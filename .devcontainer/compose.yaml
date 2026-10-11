@@ -1,0 +1,28 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspaces/Business-Payment-System-Management:cached
+    command: sleep infinity
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: nexora
+      POSTGRES_DB: nexora_preview
+      # Isolated synthetic preview only; PostgreSQL has no published host port.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - preview-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexora -d nexora_preview"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  preview-postgres:

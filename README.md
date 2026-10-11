@@ -24,6 +24,18 @@ For MRP ৳200.00: company ৳60.00 (30%), dealer bucket ৳100.00 (50%), reward
 
 Do not enable financial posting before reviewing [the missing business decisions](docs/operations.md#business-decisions-required-for-financial-operation).
 
+## Get a live preview with GitHub Codespaces
+
+[Create a Codespace for this repository](https://codespaces.new/techtemlead-lab/Business-Payment-System-Management?ref=main).
+
+1. Create a Codespace on `main` and wait for the container setup to finish. The included configuration installs PHP/Node dependencies, starts a separate PostgreSQL preview database, seeds synthetic profiles, and builds the frontend.
+2. Open the **Ports** tab, find **8000 / Nexora website**, and click **Open in Browser**. This opens your live website through GitHub's forwarded URL.
+3. To share it with someone else, right-click port 8000, choose **Port Visibility → Public**, and copy its **Forwarded Address**. Keep it private if you only need to preview it yourself.
+
+The generated URL works while the Codespace is running. This is a development demo with sample accounts and inactive financial posting. Use synthetic data only, especially when making the port public. Codespaces usage is subject to your GitHub plan and included allowance; stop the Codespace when finished.
+
+The app starts automatically after creation/restart. If needed, run `bash scripts/codespaces-start.sh` in its terminal. Setup preserves an existing `.env` and application key and requires the isolated `nexora_preview` database with `APP_ENV=local` before applying migrations. A forwarded HTTPS URL enables `APP_FORCE_HTTPS=true`, so generated asset and redirect URLs use HTTPS even though the internal PHP connection uses HTTP. Keep the forwarded port's backend protocol set to HTTP.
+
 ## Start in this cloud workspace
 
 ```bash
