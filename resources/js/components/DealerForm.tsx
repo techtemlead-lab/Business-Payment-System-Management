@@ -3,9 +3,24 @@ import { Modal, Field, Button, Notice } from "./Common";
 export function DealerForm({
     open,
     onOpenChange,
+    initial,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    initial?: Partial<
+        Record<
+            | "name"
+            | "email"
+            | "level"
+            | "division"
+            | "district"
+            | "upazila"
+            | "union_name"
+            | "business_name"
+            | "mobile",
+            string
+        >
+    >;
 }) {
     const form = useForm({
         name: "",
@@ -20,6 +35,7 @@ export function DealerForm({
         business_name: "",
         mobile: "",
         password: "",
+        ...initial,
     });
     const field = (
         key: keyof typeof form.data,

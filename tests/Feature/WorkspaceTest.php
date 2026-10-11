@@ -80,6 +80,19 @@ class WorkspaceTest extends TestCase
         $this->assertDatabaseCount('ledger_entries', 0);
     }
 
+    public function test_company_can_update_contact_and_territory_but_cannot_edit_balance_or_role(): void
+    {
+        $dealer = Dealer::factory()->create();
+        $admin = $this->admin();
+        $this->actingAs($admin)->patch('/dealers/'.$dealer->id, ['name' => 'Updated Partner', 'email' => 'UPDATED@EXAMPLE.TEST', 'mobile' => '+8801712345678', 'business_name' => 'Updated Trading', 'level' => 'Union', 'division' => 'Dhaka', 'district' => 'Dhaka', 'upazila' => 'Savar', 'union_name' => 'Ashulia', 'password' => 'password', 'balance_minor' => 999999, 'role' => 'admin', 'status' => 'suspended'])->assertRedirect();
+        $this->assertSame('updated@example.test', $dealer->user->fresh()->email);
+        $this->assertSame('Updated Partner', $dealer->user->fresh()->name);
+        $this->assertSame('Union', $dealer->fresh()->level);
+        $this->assertSame('active', $dealer->fresh()->status);
+        $this->assertSame('dealer', $dealer->user->fresh()->role);
+        $this->assertDatabaseCount('ledger_entries', 0);
+    }
+
     public function test_admin_preview_does_not_post_financial_entries(): void
     {
         $this->actingAs($this->admin())->postJson('/rules/preview', ['mrp' => '200.00', 'dealer_minor' => 999999, 'balance' => 999999])->assertOk()->assertJsonPath('dealer_minor', 10000)->assertJsonPath('unallocated_minor', 2400)->assertJsonPath('preview_only', true);

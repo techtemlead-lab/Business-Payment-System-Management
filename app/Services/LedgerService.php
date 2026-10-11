@@ -12,10 +12,10 @@ class LedgerService
 {
     public function balances(int $dealerId): array
     {
-        $q = LedgerEntry::where('dealer_id', $dealerId);
-        $earned = (int) (clone $q)->whereIn('kind', ['earned', 'reversal'])->sum('amount_minor');
-        $reserved = -(int) (clone $q)->whereIn('kind', ['reserved', 'released'])->sum('amount_minor');
-        $paid = -(int) (clone $q)->where('kind', 'paid')->sum('amount_minor');
+        $totals = LedgerEntry::where('dealer_id', $dealerId)->selectRaw("SUM(CASE WHEN kind IN ('earned', 'reversal') THEN amount_minor ELSE 0 END) AS earned, SUM(CASE WHEN kind IN ('reserved', 'released') THEN amount_minor ELSE 0 END) AS reserved, SUM(CASE WHEN kind = 'paid' THEN amount_minor ELSE 0 END) AS paid")->first();
+        $earned = (int) $totals->earned;
+        $reserved = -(int) $totals->reserved;
+        $paid = -(int) $totals->paid;
 
         return ['earned_minor' => $earned, 'reserved_minor' => $reserved, 'paid_minor' => $paid, 'available_minor' => $earned - $reserved - $paid];
     }

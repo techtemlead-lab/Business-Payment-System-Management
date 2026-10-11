@@ -1,285 +1,399 @@
-import { useState, type ReactNode } from "react";
-import { Head, Link, router, useForm, usePage } from "@inertiajs/react";
+import { useState } from "react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
+    ArrowDown,
     ArrowUpRight,
-    ArrowRight,
-    ShieldCheck,
-    Network,
-    Users,
-    CircleDollarSign,
+    Building2,
     Check,
+    ChevronDown,
     Mail,
     Phone,
-    LockKeyhole,
-    Eye,
-    EyeOff,
-    ChevronRight,
-    Building2,
-    Fingerprint,
-    CheckCircle2,
-    ArrowLeft,
-    Globe2,
+    ShieldCheck,
+    Users,
 } from "lucide-react";
-import { Logo, Layout } from "@/components/Layout";
-import {
-    Button,
-    Field,
-    Notice,
-    Card,
-    CardHeading,
-    PageHeading,
-} from "@/components/Common";
+import { Logo } from "@/components/Brand";
+import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/Reveal";
+import { NetworkScene } from "@/components/NetworkScene";
 import type { Shared } from "@/lib/types";
-import { AuthShell } from "@/components/AuthShell";
+
+const approach = [
+    {
+        title: "People first. Paperwork second.",
+        body: "Dealer contacts, territories, approvals, and account status. Keep the details in one place, so the relationship can come first.",
+        tags: ["Dealer profiles", "Territory management", "Company approval"],
+    },
+    {
+        title: "Every number has a story.",
+        body: "Follow commission allocation previews and recorded ledger activity without losing the context. Clear rules make for clearer conversations.",
+        tags: ["Allocation previews", "Traceable records", "BDT precision"],
+    },
+    {
+        title: "A little trust. A lot of care.",
+        body: "The company manages the network. Each dealer sees their own workspace. Account protection and an audit history keep everyone accountable.",
+        tags: [
+            "Private workspaces",
+            "Two-factor authentication",
+            "Audit history",
+        ],
+    },
+];
+
 export default function Welcome() {
     const { company, demo } = usePage<Shared>().props;
+    const [open, setOpen] = useState(0);
+    const [workspace, setWorkspace] = useState<"company" | "dealer">("company");
+    const [mobile, setMobile] = useState(false);
     return (
         <>
-            <Head title="Better partnerships. Clearer rewards." />
-            <div className="public-page">
-                <header className="public-header">
+            <Head title="Good business starts with connection." />
+            <div className="public-page landing">
+                <a className="skip-link" href="#main">
+                    Skip to content
+                </a>
+                <header className="landing-header">
                     <Link href="/" aria-label="Nexora home">
                         <Logo />
                     </Link>
-                    <nav>
-                        <a href="#partnerships">Our approach</a>
-                        <a href="#contact">Contact</a>
-                        <Button asChild variant="outline">
-                            <Link href="/login">
-                                Workspace sign in <ArrowUpRight size={15} />
-                            </Link>
-                        </Button>
+                    <nav
+                        className="landing-desktop-nav"
+                        aria-label="Website navigation"
+                    >
+                        <a href="#partnerships">The way we work</a>
+                        <a href="#workspaces">Your workspace</a>
+                        <a href="#contact">Get in touch</a>
+                        <Link href="/request-dealership">
+                            Request dealership
+                        </Link>
                     </nav>
+                    <Link href="/login" className="landing-signin">
+                        Sign in <ArrowUpRight size={17} />
+                    </Link>
+                    <button
+                        type="button"
+                        className="landing-menu"
+                        aria-label="Website menu"
+                        aria-expanded={mobile}
+                        aria-controls="website-mobile-nav"
+                        onClick={() => setMobile(!mobile)}
+                    >
+                        Menu <ChevronDown size={15} />
+                    </button>
+                    {mobile && (
+                        <nav
+                            id="website-mobile-nav"
+                            className="landing-mobile-nav"
+                            aria-label="Mobile website navigation"
+                            onKeyDown={(event) => {
+                                if (event.key === "Escape") {
+                                    setMobile(false);
+                                    document
+                                        .querySelector<HTMLButtonElement>(
+                                            ".landing-menu",
+                                        )
+                                        ?.focus();
+                                }
+                            }}
+                        >
+                            <a
+                                href="#partnerships"
+                                onClick={() => setMobile(false)}
+                            >
+                                The way we work <ArrowUpRight size={17} />
+                            </a>
+                            <a
+                                href="#workspaces"
+                                onClick={() => setMobile(false)}
+                            >
+                                Your workspace <ArrowUpRight size={17} />
+                            </a>
+                            <a href="#contact" onClick={() => setMobile(false)}>
+                                Get in touch <ArrowUpRight size={17} />
+                            </a>
+                            <Link href="/request-dealership">
+                                Request dealership <ArrowUpRight size={17} />
+                            </Link>
+                        </nav>
+                    )}
                 </header>
-                <main>
-                    <section className="public-hero">
-                        <div className="hero-copy">
-                            <span className="public-eyebrow">
-                                <span /> BUILT AROUND BETTER PARTNERSHIPS
+                <main id="main">
+                    <section className="landing-hero">
+                        <div className="landing-hero-copy">
+                            <span className="editorial-label">
+                                <i /> PEOPLE. PARTNERSHIPS. POSSIBILITIES.
                             </span>
                             <h1>
-                                A stronger network.
-                                <br />A <em>clearer</em> future.
+                                <span>Good business</span>
+                                <span>starts with</span>
+                                <em>connection.</em>
                             </h1>
                             <p>
-                                Bring your dealer relationships, commissions,
-                                and rewards together in one thoughtfully
-                                connected workspace.
+                                A home for your dealer network. Bring the
+                                people, the details, and the bigger picture
+                                together.
                             </p>
-                            <div className="hero-actions">
+                            <div className="landing-hero-actions">
                                 <Button asChild>
                                     <Link href="/login">
                                         Enter your workspace{" "}
-                                        <ArrowRight size={17} />
+                                        <ArrowUpRight size={18} />
                                     </Link>
                                 </Button>
-                                <a href="#partnerships" className="text-link">
-                                    Discover our approach{" "}
+                                <Link
+                                    href="/request-dealership"
+                                    className="landing-discover"
+                                >
+                                    Request dealership{" "}
                                     <ArrowUpRight size={16} />
-                                </a>
+                                </Link>
                             </div>
-                            <div className="hero-assurance">
-                                <ShieldCheck size={17} />
+                            <div className="hero-footnote">
+                                <span className="footnote-mark">
+                                    <ShieldCheck size={17} />
+                                </span>
                                 <span>
-                                    Private accounts. Transparent records.
-                                    Trusted partnerships.
+                                    Company-led. Dealer-focused.
+                                    <br />
+                                    <strong>
+                                        Built for your business in Bangladesh.
+                                    </strong>
                                 </span>
                             </div>
                         </div>
-                        <div className="hero-visual">
-                            <span className="visual-caption">
-                                <span /> THE POWER OF CONNECTION
-                            </span>
-                            <div className="network-illustration">
-                                <svg viewBox="0 0 500 400" aria-hidden="true">
-                                    <defs>
-                                        <radialGradient id="halo">
-                                            <stop
-                                                offset="0%"
-                                                stopColor="#c9dcb1"
-                                                stopOpacity=".7"
-                                            />
-                                            <stop
-                                                offset="100%"
-                                                stopColor="#c9dcb1"
-                                                stopOpacity="0"
-                                            />
-                                        </radialGradient>
-                                    </defs>
-                                    <circle
-                                        cx="250"
-                                        cy="205"
-                                        r="180"
-                                        fill="url(#halo)"
-                                    />
-                                    <circle
-                                        cx="250"
-                                        cy="205"
-                                        r="142"
-                                        fill="none"
-                                        stroke="#cfdbc5"
-                                        strokeDasharray="4 7"
-                                    />
-                                    <circle
-                                        cx="250"
-                                        cy="205"
-                                        r="94"
-                                        fill="none"
-                                        stroke="#d9e2d3"
-                                    />
-                                    <path
-                                        d="M250 205L130 105M250 205L375 120M250 205L140 310M250 205L365 295"
-                                        stroke="#89a783"
-                                        strokeWidth="1.5"
-                                    />
-                                    <circle
-                                        cx="130"
-                                        cy="105"
-                                        r="5"
-                                        fill="#174d3b"
-                                    />
-                                    <circle
-                                        cx="375"
-                                        cy="120"
-                                        r="5"
-                                        fill="#174d3b"
-                                    />
-                                    <circle
-                                        cx="140"
-                                        cy="310"
-                                        r="5"
-                                        fill="#174d3b"
-                                    />
-                                    <circle
-                                        cx="365"
-                                        cy="295"
-                                        r="5"
-                                        fill="#174d3b"
-                                    />
-                                </svg>
-                                <span className="illustration-core">
-                                    <Network size={48} />
-                                </span>
-                                <div className="partner-node node-a">
-                                    <span>
-                                        <Building2 size={20} />
-                                    </span>
-                                    <div>
-                                        <strong>Divisional</strong>
-                                        <small>Shared direction</small>
-                                    </div>
-                                    <Check size={14} />
-                                </div>
-                                <div className="partner-node node-b">
-                                    <span>
-                                        <Users size={20} />
-                                    </span>
-                                    <div>
-                                        <strong>District</strong>
-                                        <small>Stronger connections</small>
-                                    </div>
-                                    <Check size={14} />
-                                </div>
-                                <div className="partner-node node-c">
-                                    <span>
-                                        <Globe2 size={20} />
-                                    </span>
-                                    <div>
-                                        <strong>Upazila / Thana</strong>
-                                        <small>Local expertise</small>
-                                    </div>
-                                    <Check size={14} />
-                                </div>
-                                <div className="partner-node node-d">
-                                    <span>
-                                        <ShieldCheck size={20} />
-                                    </span>
-                                    <div>
-                                        <strong>Union</strong>
-                                        <small>Community reach</small>
-                                    </div>
-                                    <Check size={14} />
-                                </div>
-                            </div>
-                            <div className="visual-footer">
-                                <span>Four dealer levels.</span>
-                                <strong>One connected workspace.</strong>
-                                <ArrowUpRight size={19} />
-                            </div>
-                        </div>
+                        <Reveal className="landing-hero-art" delay={160}>
+                            <NetworkScene />
+                        </Reveal>
                     </section>
-                    <div className="public-pillars">
-                        <span>
-                            <Users size={19} /> People-first relationships
-                        </span>
-                        <span>
-                            <CircleDollarSign size={19} /> Clear commission
-                            records
-                        </span>
-                        <span>
-                            <ShieldCheck size={19} /> Privacy at every level
-                        </span>
-                    </div>
-                    <section className="approach-section" id="partnerships">
+                    <div className="landing-facts">
                         <div>
-                            <span className="eyebrow">
-                                A THOUGHTFUL WAY FORWARD
+                            <strong>
+                                04<span> / levels</span>
+                            </strong>
+                            <p>From division to community.</p>
+                        </div>
+                        <div>
+                            <strong>
+                                01<span> / connected workspace</span>
+                            </strong>
+                            <p>A shared view. A clear direction.</p>
+                        </div>
+                        <div className="facts-principle">
+                            <span className="facts-cross" aria-hidden="true">
+                                ✳
                             </span>
-                            <h2>
-                                More clarity.
-                                <br />
-                                Better collaboration.
-                            </h2>
                             <p>
-                                A dedicated workspace for the company and its
-                                authorized dealer network.
+                                Good partnerships need
+                                <br />
+                                <strong>more than a spreadsheet.</strong>
                             </p>
                         </div>
-                        <div className="approach-cards">
-                            {[
-                                {
-                                    icon: Network,
-                                    n: "01",
-                                    title: "Connected relationships",
-                                    body: "Manage dealer profiles and approved territories across all four dealer levels.",
-                                },
-                                {
-                                    icon: CircleDollarSign,
-                                    n: "02",
-                                    title: "Transparent rewards",
-                                    body: "Understand commissions and reward allocations with clear, traceable records.",
-                                },
-                                {
-                                    icon: ShieldCheck,
-                                    n: "03",
-                                    title: "Confidence in every step",
-                                    body: "Private dealer access, controlled approvals, and a protected history of changes.",
-                                },
-                            ].map((c) => (
-                                <Card key={c.n}>
-                                    <span className="approach-number">
-                                        {c.n}
-                                    </span>
-                                    <c.icon size={25} />
-                                    <h3>{c.title}</h3>
-                                    <p>{c.body}</p>
-                                </Card>
+                    </div>
+                    <section className="landing-approach" id="partnerships">
+                        <Reveal className="section-intro">
+                            <span className="editorial-label">
+                                01 / THE WAY WE WORK
+                            </span>
+                            <h2>
+                                Less friction.
+                                <br />
+                                <em>More forward.</em>
+                            </h2>
+                            <p>
+                                Business is personal. Your workspace should make
+                                room for that.
+                            </p>
+                            <a href="#workspaces" className="underlined-link">
+                                Find your place <ArrowUpRight size={17} />
+                            </a>
+                        </Reveal>
+                        <Reveal className="approach-editorial" delay={100}>
+                            {approach.map((item, i) => (
+                                <div
+                                    className={`approach-item ${open === i ? "approach-open" : ""}`}
+                                    key={item.title}
+                                >
+                                    <h3>
+                                        <button
+                                            type="button"
+                                            aria-expanded={open === i}
+                                            aria-controls={`approach-panel-${i}`}
+                                            onClick={() =>
+                                                setOpen(open === i ? -1 : i)
+                                            }
+                                        >
+                                            <span className="approach-index">
+                                                0{i + 1}
+                                            </span>
+                                            <span>{item.title}</span>
+                                            <span
+                                                className="approach-toggle"
+                                                aria-hidden="true"
+                                            >
+                                                {open === i ? "−" : "+"}
+                                            </span>
+                                        </button>
+                                    </h3>
+                                    <div
+                                        id={`approach-panel-${i}`}
+                                        className="approach-panel"
+                                        hidden={open !== i}
+                                    >
+                                        <p>{item.body}</p>
+                                        <div className="approach-tags">
+                                            {item.tags.map((tag) => (
+                                                <span key={tag}>
+                                                    <Check size={12} />
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
-                        </div>
+                            <div className="approach-signature">
+                                <span className="signature-line" />
+                                <span>One network. A little more human.</span>
+                            </div>
+                        </Reveal>
                     </section>
-                    {demo && (
-                        <section className="demo-section">
-                            <div>
-                                <span className="eyebrow">
-                                    LOCAL DEMONSTRATION
-                                </span>
-                                <h2>Take a look around.</h2>
+                    <section className="workspace-section" id="workspaces">
+                        <Reveal className="workspace-intro">
+                            <span className="editorial-label">
+                                02 / A PLACE FOR EVERY PARTNER
+                            </span>
+                            <h2>
+                                Your role.
+                                <br />
+                                <em>Your workspace.</em>
+                            </h2>
+                            <p>
+                                A company-wide view or a space of your own.
+                                Everything starts with your account.
+                            </p>
+                            <div
+                                className="workspace-selector"
+                                role="group"
+                                aria-label="Choose your workspace"
+                            >
+                                <button
+                                    type="button"
+                                    aria-pressed={workspace === "company"}
+                                    onClick={() => setWorkspace("company")}
+                                >
+                                    <Building2 size={17} />
+                                    For the company
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={workspace === "dealer"}
+                                    onClick={() => setWorkspace("dealer")}
+                                >
+                                    <Users size={17} />
+                                    For the dealer
+                                </button>
+                            </div>
+                            <div
+                                className="workspace-description"
+                                aria-live="polite"
+                                aria-atomic="true"
+                            >
+                                <h3>
+                                    {workspace === "company"
+                                        ? "See the whole picture."
+                                        : "Make it your own."}
+                                </h3>
                                 <p>
-                                    Explore with sample dealer profiles.
-                                    Financial balances start at zero.
+                                    {workspace === "company"
+                                        ? "Manage dealer profiles, review approvals, explore territories, and keep track of company records."
+                                        : "Find your profile, review your recorded earnings, and follow payout requests from your personal portal."}
                                 </p>
                             </div>
+                            <Link
+                                className="workspace-enter"
+                                href={`/login?workspace=${workspace}`}
+                            >
+                                Sign in as{" "}
+                                {workspace === "company" ? "company" : "dealer"}
+                                <ArrowUpRight size={20} />
+                            </Link>
+                        </Reveal>
+                        <Reveal className="workspace-preview" delay={140}>
+                            <div
+                                className="preview-window"
+                                aria-label={`${workspace === "company" ? "Company" : "Dealer"} workspace illustration`}
+                            >
+                                <div className="preview-window-bar">
+                                    <span className="window-dots">
+                                        <i />
+                                        <i />
+                                        <i />
+                                    </span>
+                                    <span>
+                                        NEXORA / {workspace.toUpperCase()}
+                                    </span>
+                                    <ShieldCheck size={15} />
+                                </div>
+                                <div className="preview-window-body">
+                                    <div className="preview-monogram">
+                                        n<span>.</span>
+                                    </div>
+                                    <span className="editorial-label">
+                                        {workspace === "company"
+                                            ? "THE BIGGER PICTURE"
+                                            : "YOUR CORNER OF THE NETWORK"}
+                                    </span>
+                                    <h3>
+                                        {workspace === "company"
+                                            ? "Everything connected."
+                                            : "Everything you need."}
+                                    </h3>
+                                    <p>
+                                        {workspace === "company"
+                                            ? "People, territories, and the details that matter."
+                                            : "Your profile. Your records. Your progress."}
+                                    </p>
+                                    <div className="preview-lines">
+                                        {(workspace === "company"
+                                            ? [
+                                                  "Dealer relationships",
+                                                  "Network & territories",
+                                                  "Commission previews",
+                                              ]
+                                            : [
+                                                  "My dealer profile",
+                                                  "My earnings",
+                                                  "My payout requests",
+                                              ]
+                                        ).map((label, i) => (
+                                            <div key={label}>
+                                                <span>0{i + 1}</span>
+                                                <strong>{label}</strong>
+                                                <ArrowUpRight size={16} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="preview-window-note">
+                                        <i />
+                                        WORKSPACE ILLUSTRATION
+                                    </div>
+                                </div>
+                            </div>
+                        </Reveal>
+                    </section>
+                    {demo && (
+                        <section className="landing-demo">
                             <div>
+                                <span className="editorial-label">
+                                    LOCAL PREVIEW
+                                </span>
+                                <h2>A look around, before you begin.</h2>
+                                <p>
+                                    These sample workspaces open without a
+                                    password. Your own accounts use email and
+                                    password.
+                                </p>
+                            </div>
+                            <div className="landing-demo-actions">
                                 <Button
                                     onClick={() =>
                                         router.post("/demo-login", {
@@ -288,7 +402,7 @@ export default function Welcome() {
                                     }
                                 >
                                     Explore admin workspace{" "}
-                                    <ArrowRight size={17} />
+                                    <ArrowUpRight size={16} />
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -299,54 +413,71 @@ export default function Welcome() {
                                     }
                                 >
                                     Explore dealer portal{" "}
-                                    <ArrowUpRight size={17} />
+                                    <ArrowUpRight size={16} />
                                 </Button>
                             </div>
                         </section>
                     )}
-                    <section className="contact-section" id="contact">
-                        <div>
-                            <span className="eyebrow">
-                                LET'S STAY CONNECTED
+                    <section className="landing-contact" id="contact">
+                        <Reveal>
+                            <span className="editorial-label">
+                                03 / LET'S TALK BUSINESS
                             </span>
-                            <h2>Partnership begins with a conversation.</h2>
+                            <h2>
+                                The next connection
+                                <br />
+                                <em>starts with you.</em>
+                            </h2>
                             <p>
-                                Dealer accounts are created by the company after
-                                review and approval.
+                                Speak to your company representative about
+                                joining the network. Dealer accounts are created
+                                after company review.
                             </p>
-                        </div>
-                        <div>
+                        </Reveal>
+                        <Reveal className="contact-details" delay={100}>
                             {company.contact_email && (
                                 <a href={`mailto:${company.contact_email}`}>
-                                    <Mail size={19} />
-                                    {company.contact_email}
+                                    <Mail size={20} />
+                                    <span>{company.contact_email}</span>
+                                    <ArrowUpRight size={17} />
                                 </a>
                             )}
                             {company.contact_phone && (
                                 <a href={`tel:${company.contact_phone}`}>
-                                    <Phone size={19} />
-                                    {company.contact_phone}
+                                    <Phone size={20} />
+                                    <span>{company.contact_phone}</span>
+                                    <ArrowUpRight size={17} />
                                 </a>
                             )}
                             {!company.contact_email &&
                                 !company.contact_phone && (
                                     <p>
-                                        Contact your company representative for
-                                        account and partnership enquiries.
+                                        Already part of the network?
+                                        <br />
+                                        <Link href="/login">
+                                            Your workspace is ready.{" "}
+                                            <ArrowUpRight size={17} />
+                                        </Link>
                                     </p>
                                 )}
-                        </div>
+                            <span className="contact-stamp" aria-hidden="true">
+                                <span>BUILT AROUND</span>
+                                <strong>people.</strong>
+                                <span>CONNECTED BY NEXORA</span>
+                            </span>
+                        </Reveal>
                     </section>
                 </main>
-                <footer className="public-footer">
-                    <Logo />
-                    <span>
-                        © {new Date().getFullYear()} {company.company_name}. All
-                        rights reserved.
-                    </span>
-                    <Link href="/login">
-                        Authorized workspace <ArrowUpRight size={14} />
+                <footer className="landing-footer">
+                    <Link href="/" aria-label="Nexora home">
+                        <Logo />
                     </Link>
+                    <span>
+                        © {new Date().getFullYear()} {company.company_name}
+                    </span>
+                    <a href="#main">
+                        Back to top <ArrowUpRight size={15} />
+                    </a>
                 </footer>
             </div>
         </>

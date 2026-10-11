@@ -30,6 +30,17 @@ const initial: Preview = {
     ],
 };
 describe("Allocation preview", () => {
+    it("starts empty and waits for a real MRP instead of a sample product price", () => {
+        const fetch = vi.fn();
+        vi.stubGlobal("fetch", fetch);
+        render(<Allocation preview={null} detailed />);
+        expect((screen.getByLabelText("Product MRP (BDT)") as HTMLInputElement).value).toBe("");
+        expect(screen.getByText("Start with your product's MRP")).toBeTruthy();
+        expect(screen.queryByText("৳200.00")).toBeNull();
+        expect(fetch).not.toHaveBeenCalled();
+        cleanup();
+        vi.unstubAllGlobals();
+    });
     it("renders pool percentages separately from MRP percentages and keeps residual unallocated", () => {
         render(<Allocation preview={initial} detailed />);
         expect(screen.getByText("Unallocated balance")).toBeTruthy();

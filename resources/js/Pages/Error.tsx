@@ -20,7 +20,7 @@ import {
     ArrowLeft,
     Globe2,
 } from "lucide-react";
-import { Logo, Layout } from "@/components/Layout";
+import { Logo } from "@/components/Brand";
 import {
     Button,
     Field,
@@ -47,14 +47,18 @@ export default function Error({ status }: { status: number }) {
                         ? "This area is private."
                         : status === 404
                           ? "A little off the path."
-                          : "We need a moment."}
+                          : status === 429
+                            ? "A moment between requests."
+                            : "We need a moment."}
                 </h1>
                 <p>
                     {status === 403
                         ? "Your account does not have access to this page, or it is awaiting activation. Contact your company administrator."
                         : status === 404
                           ? "The page you requested could not be found."
-                          : "The workspace could not complete this request. Please try again shortly."}
+                          : status === 429
+                            ? "You’ve reached the request limit. Please wait a few minutes, then try again."
+                            : "The workspace could not complete this request. Please try again shortly."}
                 </p>
                 <Button asChild>
                     <Link href="/">

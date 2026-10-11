@@ -11,7 +11,7 @@ test("public website is responsive and has no public registration", async ({
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/");
     await expect(
-        page.getByRole("heading", { name: /A stronger network/ }),
+        page.getByRole("heading", { name: /Good business/ }),
     ).toBeVisible();
     await expect(
         page.getByRole("link", { name: /register|apply now|sign up/i }),
@@ -38,6 +38,8 @@ test("admin pages render with server data and accessible mobile navigation", asy
     ).toBeVisible();
     for (const path of [
         "/dealers",
+        "/dealership-requests",
+        "/purchases",
         "/hierarchy",
         "/rules",
         "/operating-mode",
@@ -117,6 +119,8 @@ test("allocation preview handles CSRF after Inertia login and preserves unalloca
     page,
 }) => {
     await admin(page);
+    await page.goto("/ledger");
+    const existingEntries = await page.locator("tbody tr").count();
     await page
         .getByRole("link", { name: "Commission & rewards", exact: true })
         .click();
@@ -135,9 +139,7 @@ test("allocation preview handles CSRF after Inertia login and preserves unalloca
     await expect(page.locator(".donut-label strong")).toContainText("400.00");
     await expect(page.locator(".total-row")).toContainText("48.00");
     await page.goto("/ledger");
-    await expect(
-        page.getByRole("heading", { name: "A clean starting point" }),
-    ).toBeVisible();
+    await expect(page.locator("tbody tr")).toHaveCount(existingEntries);
 });
 test("invalid preview shows a useful error and incomplete rank mode stays inactive", async ({
     page,
@@ -182,4 +184,167 @@ test("dealer portal hides admin navigation and blocks other dealer profiles and 
     await expect(
         page.getByRole("heading", { name: "This area is private." }),
     ).toBeVisible();
+});
+
+test("public dealership enquiry reaches the company and never opens a dealer account", async ({
+    page,
+}) => {
+    const suffix = Date.now().toString();
+    await page.goto("/request-dealership");
+    await page.getByLabel("Full name", { exact: true }).fill("Enquiry Partner");
+    await page
+        .getByLabel("Email address")
+        .fill(`enquiry-${suffix}@example.test`);
+    await page.getByLabel("Mobile number").fill("+8801712345678");
+    await page.getByLabel("Business name").fill(`Enquiry Trading ${suffix}`);
+    await page.getByLabel("District", { exact: true }).fill("Dhaka");
+    await page.getByLabel("Business address").fill("12 Test Road, Dhaka");
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "Send dealership request" }).click();
+    await expect(page.getByRole("status")).toContainText(
+        "request has reached the company",
+    );
+    await admin(page);
+    await expect(page.locator(".request-inbox")).toContainText(
+        `Enquiry Trading ${suffix}`,
+    );
+    await page.goto("/dealership-requests");
+    await page
+        .getByRole("textbox", { name: "Search requests" })
+        .fill(`Enquiry Trading ${suffix}`);
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByRole("button", { name: "View request" }).click();
+    await expect(page.getByRole("dialog")).toContainText(
+        `enquiry-${suffix}@example.test`,
+    );
+    await page
+        .getByLabel("Review note")
+        .fill("Contact information reviewed by company");
+    await page.getByRole("button", { name: "Save review" }).click();
+    await expect(page.getByRole("status")).toContainText(
+        "Request review saved",
+    );
+    await page.goto(`/dealers?q=Enquiry%20Trading%20${suffix}`);
+    await expect(page.locator("tbody tr")).toHaveCount(0);
+});
+
+test("company purchase credits dealer earnings and withdrawal review preserves funds", async ({
+    page,
+    browser,
+}) => {
+    await admin(page);
+    await page.goto("/purchases");
+    await page.getByRole("button", { name: "Record purchase" }).click();
+    const dialog = page.getByRole("dialog");
+    const reference = `E2E-INV-${Date.now()}`;
+    await dialog.getByLabel("Dealer code").fill("NX-DH-001");
+    await dialog.getByLabel("Invoice / receipt reference").fill(reference);
+    await dialog.getByLabel("Product name").fill("Browser purchase product");
+    await dialog.getByLabel("Quantity").fill("4");
+    await dialog.getByLabel("Unit MRP (BDT)").fill("375.00");
+    await dialog.getByLabel("Total amount actually paid (BDT)").fill("1200.00");
+    await dialog
+        .getByLabel("Purchase date")
+        .fill(
+            new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(
+                new Date(),
+            ),
+        );
+    await dialog.getByRole("button", { name: "Save purchase" }).click();
+    await expect(page.getByRole("status")).toContainText("Purchase recorded");
+    const row = page.locator("tbody tr").filter({ hasText: reference });
+    await row.getByRole("button", { name: "View breakdown" }).click();
+    await expect(page.locator(".purchase-breakdown")).toContainText("750.00");
+    await expect(page.locator(".purchase-breakdown")).toContainText("450.00");
+    await expect(page.locator(".purchase-breakdown")).toContainText("300.00");
+    await page.keyboard.press("Escape");
+    const dealerContext = await browser.newContext();
+    const dealer = await dealerContext.newPage();
+    await dealer.goto("http://127.0.0.1:8001/");
+    await dealer.getByRole("button", { name: "Explore dealer portal" }).click();
+    await expect(dealer).toHaveURL(/\/dashboard$/);
+    await dealer.goto("http://127.0.0.1:8001/purchases");
+    await expect(dealer.locator("tbody")).toContainText(reference);
+    await expect(
+        dealer.getByRole("button", { name: "Record purchase" }),
+    ).toHaveCount(0);
+    await dealer.goto("http://127.0.0.1:8001/payouts");
+    await dealer
+        .getByRole("button", { name: "Request withdrawal", exact: true })
+        .click();
+    await dealer
+        .getByRole("dialog")
+        .getByLabel("Withdrawal amount (BDT)")
+        .fill("200.00");
+    await dealer
+        .getByRole("button", { name: "Send withdrawal request" })
+        .click();
+    await expect(dealer.getByRole("status")).toContainText(
+        "Withdrawal request sent",
+    );
+    await page.goto("/payouts");
+    await page.getByRole("button", { name: "View request" }).first().click();
+    await page
+        .getByLabel("Review note")
+        .fill("Company reviewed the withdrawal");
+    await page.getByRole("button", { name: "Save withdrawal review" }).click();
+    await expect(page.getByRole("status")).toContainText("Withdrawal approved");
+    await page.getByRole("button", { name: "View request" }).first().click();
+    await expect(
+        page.getByRole("button", { name: "Release payment", exact: true }),
+    ).toBeDisabled();
+    await page.getByLabel("Review decision").selectOption("declined");
+    await page
+        .getByLabel("Review note")
+        .fill("Company postpones payment until provider selection");
+    await page.getByRole("button", { name: "Save withdrawal review" }).click();
+    await expect(page.getByRole("status")).toContainText(
+        "Reserved funds returned",
+    );
+    await page.goto("/purchases");
+    await page
+        .locator("tbody tr")
+        .filter({ hasText: reference })
+        .getByRole("button", { name: "View breakdown" })
+        .click();
+    await page
+        .getByLabel("Cancellation reason")
+        .fill("End-to-end test correction");
+    await page
+        .getByRole("button", { name: "Cancel purchase & reverse earning" })
+        .click();
+    await expect(page.getByRole("status")).toContainText("Purchase cancelled");
+    await dealerContext.close();
+});
+
+test("interactive network and mobile navigation respect reduced motion", async ({
+    page,
+}) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Website menu" }).click();
+    await expect(
+        page.getByRole("navigation", { name: "Mobile website navigation" }),
+    ).toBeVisible();
+    await page
+        .getByRole("navigation", { name: "Mobile website navigation" })
+        .getByRole("link", { name: /Request dealership/ })
+        .focus();
+    await page.keyboard.press("Escape");
+    await expect(
+        page.getByRole("button", { name: "Website menu" }),
+    ).toBeFocused();
+    const level = page.locator(".scene-select button").filter({ hasText: "District" });
+    await level.click();
+    await expect(level).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".network-scene")).toHaveAttribute(
+        "data-running",
+        "false",
+    );
+    expect(
+        await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+    ).toBe(true);
 });

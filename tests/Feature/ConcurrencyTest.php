@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\LedgerService;
 use App\Services\ModeManager;
 use App\Services\PayoutService;
+use App\Services\WithdrawalService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
@@ -96,6 +97,43 @@ class ConcurrencyTest extends TestCase
         $this->assertDatabaseCount('payouts', 0);
         $this->assertDatabaseCount('ledger_entries', 1);
         $this->assertSame(10000, (new LedgerService)->balances($d->id)['available_minor']);
+    }
+
+    public function test_concurrent_same_invoice_creates_one_purchase_and_one_earning(): void
+    {
+        $dealer = Dealer::factory()->create();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin);
+        $payload = ['dealer_code' => $dealer->code, 'reference' => 'CONCURRENT-INVOICE', 'product_name' => 'Test product', 'quantity' => 2, 'unit_mrp' => '375.00', 'amount_paid' => '600.00', 'purchased_on' => now()->toDateString(), 'password' => 'password'];
+        $operation = fn () => $this->post('/purchases', $payload)->assertRedirect()->assertSessionHasNoErrors();
+        $results = $this->parallel([$operation, $operation]);
+        $this->assertSame(['ok', 'ok'], $results);
+        $this->assertDatabaseCount('purchases', 1);
+        $this->assertDatabaseCount('ledger_entries', 1);
+        $this->assertSame(37500, (new LedgerService)->balances($dealer->id)['available_minor']);
+    }
+
+    public function test_concurrent_withdrawals_cannot_reserve_the_same_available_balance(): void
+    {
+        $dealer = Dealer::factory()->create();
+        LedgerEntry::create(['dealer_id' => $dealer->id, 'amount_minor' => 10000, 'kind' => 'earned', 'business_reference' => 'fixture-1', 'reason' => 'Test fixture', 'created_at' => now()]);
+        $results = $this->parallel([fn () => app(WithdrawalService::class)->request($dealer->id, 10000, '9e16d00e-984d-4c51-95e6-ce91230d871e', null), fn () => app(WithdrawalService::class)->request($dealer->id, 10000, '9e16d00e-984d-4c51-95e6-ce91230d871f', null)]);
+        $this->assertSame(1, count(array_filter($results, fn ($result) => $result === 'ok')));
+        $this->assertDatabaseCount('withdrawal_requests', 1);
+        $this->assertDatabaseCount('ledger_entries', 2);
+        $this->assertSame(0, (new LedgerService)->balances($dealer->id)['available_minor']);
+    }
+
+    public function test_concurrent_duplicate_withdrawal_reserves_only_once(): void
+    {
+        $dealer = Dealer::factory()->create();
+        LedgerEntry::create(['dealer_id' => $dealer->id, 'amount_minor' => 10000, 'kind' => 'earned', 'business_reference' => 'fixture-1', 'reason' => 'Test fixture', 'created_at' => now()]);
+        $operation = fn () => app(WithdrawalService::class)->request($dealer->id, 10000, '9e16d00e-984d-4c51-95e6-ce91230d871e', null);
+        $results = $this->parallel([$operation, $operation]);
+        $this->assertSame(['ok', 'ok'], $results);
+        $this->assertDatabaseCount('withdrawal_requests', 1);
+        $this->assertDatabaseCount('ledger_entries', 2);
+        $this->assertSame(10000, (new LedgerService)->balances($dealer->id)['reserved_minor']);
     }
 
     public function test_database_rejects_direct_ledger_history_mutation(): void

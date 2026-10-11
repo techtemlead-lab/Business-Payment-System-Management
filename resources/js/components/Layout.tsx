@@ -30,6 +30,8 @@ import {
 } from "lucide-react";
 import { type Shared } from "@/lib/types";
 import { Modal, Button } from "./Common";
+import { Logo } from "./Brand";
+export { Logo } from "./Brand";
 type NavGroup = { group: string; items: [string, string, LucideIcon][] };
 const adminNav: NavGroup[] = [
     {
@@ -37,12 +39,14 @@ const adminNav: NavGroup[] = [
         items: [
             ["/dashboard", "Overview", LayoutDashboard],
             ["/dealers", "Dealer management", Users],
+            ["/dealership-requests", "Dealership requests", Building2],
             ["/hierarchy", "Network & territories", Network],
         ],
     },
     {
         group: "FINANCE",
         items: [
+            ["/purchases", "Dealer purchases", Building2],
             ["/rules", "Commission & rewards", CircleDollarSign],
             ["/operating-mode", "Operating mode", SlidersHorizontal],
             ["/ledger", "Financial ledger", ArrowLeftRight],
@@ -63,29 +67,13 @@ const dealerNav: NavGroup[] = [
         group: "MY WORKSPACE",
         items: [
             ["/dashboard", "Overview", LayoutDashboard],
+            ["/purchases", "My purchases", Building2],
             ["/ledger", "My earnings", CircleDollarSign],
-            ["/payouts", "My payouts", Wallet],
+            ["/payouts", "Withdrawals & payouts", Wallet],
             ["/security", "Account security", ShieldCheck],
         ],
     },
 ];
-export function Logo({ light = false }: { light?: boolean }) {
-    return (
-        <span className={`brand ${light ? "brand-light" : ""}`}>
-            <span className="brand-mark">
-                <svg viewBox="0 0 32 32" fill="none">
-                    <path
-                        d="M7 24V8h4l10 11V8h4v16h-4L11 13v11z"
-                        fill="currentColor"
-                    />
-                </svg>
-            </span>
-            <span>
-                nexora<span className="brand-period">.</span>
-            </span>
-        </span>
-    );
-}
 export function Layout({
     title,
     children,
@@ -145,6 +133,11 @@ export function Layout({
                                 key={href}
                                 href={href}
                                 className={`nav-item ${url.split("?")[0] === href ? "nav-active" : ""}`}
+                                aria-current={
+                                    url.split("?")[0] === href
+                                        ? "page"
+                                        : undefined
+                                }
                             >
                                 <Icon size={18} />
                                 <span>{label}</span>
@@ -258,7 +251,7 @@ export function Layout({
                                         <h3>Workspace updates</h3>
                                         <p>
                                             {isAdmin
-                                                ? "Commission distribution and reward eligibility need company approval."
+                                                ? "Record purchases to credit dealer earnings. Reward recipient eligibility still needs company rules."
                                                 : "Your private workspace shows only your account and authorized financial records."}
                                         </p>
                                         <Link
@@ -321,7 +314,7 @@ export function Layout({
                             </div>
                         </div>
                     </header>
-                    <main className="content">
+                    <main className="content" key={url.split("?")[0]}>
                         {props.flash.success && (
                             <div className="flash" role="status">
                                 <CheckCircle2 size={18} />
@@ -414,8 +407,8 @@ export function Layout({
                         <CircleDollarSign />
                         <h3>Understand your allocations</h3>
                         <p>
-                            Preview the confirmed MRP model. All unapproved
-                            rules remain inactive.
+                            Record purchases using the confirmed MRP model,
+                            then review dealer withdrawal requests.
                         </p>
                     </div>
                     <div>

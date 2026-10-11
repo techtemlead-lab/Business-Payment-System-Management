@@ -94,7 +94,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE business_config ADD CONSTRAINT singleton_config CHECK (id = 1)');
             DB::statement('ALTER TABLE payouts ADD CONSTRAINT positive_payout CHECK (amount_minor > 0)');
-            DB::unprepared("CREATE FUNCTION reject_history_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Historical records are immutable'; END; $$");
+            DB::unprepared("CREATE OR REPLACE FUNCTION reject_history_mutation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'Historical records are immutable'; END; $$");
             foreach (['ledger_entries', 'audit_events', 'rule_versions'] as $table) {
                 DB::unprepared("CREATE TRIGGER immutable_{$table} BEFORE UPDATE OR DELETE ON {$table} FOR EACH ROW EXECUTE FUNCTION reject_history_mutation()");
             }

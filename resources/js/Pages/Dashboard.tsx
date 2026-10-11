@@ -79,6 +79,9 @@ export default function Dashboard({
     activities,
     preview,
     rankReady,
+    requests,
+    requestCount,
+    purchaseTotals,
 }: {
     stats: {
         dealers: number;
@@ -90,8 +93,23 @@ export default function Dashboard({
     dealers: Dealer[];
     levels: { name: string; count: number }[];
     activities: Audit[];
-    preview: Preview;
+    preview: Preview | null;
     rankReady: boolean;
+    requests: {
+        id: number;
+        name: string;
+        business_name: string;
+        level: string;
+        division: string;
+        created_at: string;
+    }[];
+    requestCount: number;
+    purchaseTotals: {
+        company_minor: number;
+        dealer_minor: number;
+        pool_minor: number;
+        unallocated_minor: number;
+    };
 }) {
     const { auth, company } = usePage<Shared>().props;
     const [create, setCreate] = useState(false);
@@ -112,6 +130,11 @@ export default function Dashboard({
                                 timeZone: "Asia/Dhaka",
                             })}
                         </span>
+                        <Button asChild>
+                            <Link href="/purchases">
+                                Record purchase <Plus size={16} />
+                            </Link>
+                        </Button>
                         <CreateDealerButton onClick={() => setCreate(true)} />
                     </div>
                 }
@@ -184,6 +207,73 @@ export default function Dashboard({
                     note="Confirmed model · simulation"
                 />
             </div>
+            <Card className="purchase-allocation-summary">
+                <CardHeading
+                    title="Your purchase allocation picture"
+                    subtitle="Calculated from recorded commission-mode purchases. Reward distribution is pending eligibility."
+                    action={
+                        <ArrowLink href="/purchases">View purchases</ArrowLink>
+                    }
+                />
+                <div className="purchase-breakdown">
+                    <div>
+                        <span>Company share</span>
+                        <strong>{money(purchaseTotals.company_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Dealer earnings</span>
+                        <strong>{money(purchaseTotals.dealer_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Reward pool</span>
+                        <strong>{money(purchaseTotals.pool_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Unallocated pool</span>
+                        <strong>
+                            {money(purchaseTotals.unallocated_minor)}
+                        </strong>
+                    </div>
+                </div>
+            </Card>
+            <Card className="request-inbox">
+                <CardHeading
+                    title="New connections, waiting for you."
+                    subtitle={`${requestCount} dealership request${requestCount === 1 ? "" : "s"} awaiting company review.`}
+                    action={
+                        <ArrowLink href="/dealership-requests">
+                            Review requests
+                        </ArrowLink>
+                    }
+                />
+                {requests.length ? (
+                    <div className="request-inbox-list">
+                        {requests.map((request) => (
+                            <Link href="/dealership-requests" key={request.id}>
+                                <span className="request-initial">
+                                    {request.name.slice(0, 1)}
+                                </span>
+                                <div>
+                                    <strong>{request.name}</strong>
+                                    <span>
+                                        {request.business_name} ·{" "}
+                                        {request.division}
+                                    </span>
+                                </div>
+                                <span className="request-level">
+                                    {request.level}
+                                </span>
+                                <ArrowUpRight size={17} />
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="request-inbox-empty">
+                        Requests submitted through your website will appear
+                        here. The company creates accounts after review.
+                    </p>
+                )}
+            </Card>
             <div className="overview-main">
                 <Allocation preview={preview} />
                 <Card className="network-card">
@@ -273,8 +363,8 @@ export default function Dashboard({
                             <SlidersHorizontal size={19} />
                         </span>
                         <div>
-                            <strong>Complete financial rules</strong>
-                            <p>Dealer distribution needs approval</p>
+                            <strong>Review reward rules</strong>
+                            <p>Reward recipients still need eligibility rules</p>
                         </div>
                         <ChevronRight size={17} />
                     </Link>
@@ -295,8 +385,8 @@ export default function Dashboard({
                     <div className="quiet-note">
                         <Info size={14} />
                         <span>
-                            Financial posting stays inactive until required
-                            business rules are approved.
+                            Purchase earnings are recorded in commission mode.
+                            Reward distribution awaits eligibility rules.
                         </span>
                     </div>
                 </Card>

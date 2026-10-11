@@ -20,7 +20,7 @@ import {
     ArrowLeft,
     Globe2,
 } from "lucide-react";
-import { Logo, Layout } from "@/components/Layout";
+import { Logo } from "@/components/Brand";
 import {
     Button,
     Field,
@@ -49,15 +49,19 @@ export function AuthShell({
                         <Logo light />
                     </Link>
                     <div className="auth-brand-copy">
-                        <span className="banner-eyebrow">BETTER TOGETHER</span>
+                        <span className="banner-eyebrow">
+                            A PLACE FOR EVERY PARTNER
+                        </span>
                         <h1>
-                            Great partnerships.
+                            Your work.
                             <br />
-                            Clearer possibilities.
+                            Your people.
+                            <br />
+                            <em>One place.</em>
                         </h1>
                         <p>
-                            Your dealer network deserves a workspace built
-                            around trust, transparency, and shared progress.
+                            A company-wide view. A personal dealer portal.
+                            Connected by the same ambition.
                         </p>
                         <div className="auth-graphic">
                             <div className="auth-orbit" />

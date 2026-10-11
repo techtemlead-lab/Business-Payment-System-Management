@@ -73,10 +73,25 @@ class DealerController extends WorkspaceController
     public function updateDealer(Request $r, Dealer $dealer): RedirectResponse
     {
         $this->dealerAccess($r, $dealer);
-        $v = $r->validate(['name_bn' => 'nullable|string|max:120', 'business_name' => 'nullable|string|max:160']);
-        DB::transaction(function () use ($dealer, $v) {
-            $dealer->update($v);
-            AuditEvent::record('dealer.profile_updated', ['fields' => array_keys($v)], $dealer->id);
+        $isCompany = $r->user()->role === 'admin';
+        $rules = ['name_bn' => 'nullable|string|max:120', 'business_name' => 'nullable|string|max:160'];
+        if ($isCompany) {
+            $this->stepUp($r);
+            $r->merge(['email' => mb_strtolower(trim((string) $r->input('email')))]);
+            $rules += ['name' => 'required|string|max:120', 'email' => ['required', 'email', 'max:160', Rule::unique('users', 'email')->ignore($dealer->user_id)], 'mobile' => 'nullable|regex:/^\+?8801[3-9][0-9]{8}$/', 'level' => ['required', Rule::in(['Divisional', 'District', 'Upazila / Thana', 'Union'])], 'division' => ['required', Rule::in(['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'])], 'district' => [Rule::requiredIf($r->input('level') !== 'Divisional'), 'nullable', 'string', 'max:100'], 'upazila' => [Rule::requiredIf(in_array($r->input('level'), ['Upazila / Thana', 'Union'])), 'nullable', 'string', 'max:100'], 'union_name' => 'required_if:level,Union|nullable|string|max:100'];
+        }
+        $validated = $r->validate($rules);
+        DB::transaction(function () use ($dealer, $validated, $isCompany): void {
+            $record = Dealer::whereKey($dealer->id)->lockForUpdate()->firstOrFail();
+            if ($isCompany) {
+                $user = User::whereKey($record->user_id)->lockForUpdate()->firstOrFail();
+                if ($user->email !== $validated['email']) {
+                    DB::table('sessions')->where('user_id', $user->id)->delete();
+                }
+                $user->update(collect($validated)->only(['name', 'email'])->all());
+            }
+            $record->update(collect($validated)->except(['name', 'email'])->all());
+            AuditEvent::record('dealer.profile_updated', ['fields' => array_keys($validated)], $record->id);
         });
 
         return back()->with('success', 'Profile updated.');

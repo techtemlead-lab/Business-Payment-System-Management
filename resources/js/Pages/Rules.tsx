@@ -75,6 +75,7 @@ import {
 export default function Rules({
     versions,
     preview,
+    purchaseTotals,
 }: {
     versions: {
         id: number;
@@ -84,7 +85,13 @@ export default function Rules({
         definition: Record<string, unknown>;
         created_at: string;
     }[];
-    preview: Preview;
+    preview: Preview | null;
+    purchaseTotals: {
+        company_minor: number;
+        dealer_minor: number;
+        pool_minor: number;
+        unallocated_minor: number;
+    };
 }) {
     const [draft, setDraft] = useState(false);
     const [versionId, setVersionId] = useState<number | undefined>(undefined);
@@ -110,10 +117,39 @@ export default function Rules({
                 }
             />
             <Notice tone="warning">
-                <strong>Configuration is incomplete.</strong> The dealer-level
-                split, reward recipients, and source transaction workflow need
-                company approval. Financial posting remains inactive.
+                <strong>
+                    Purchase commission is active in commission mode.
+                </strong>{" "}
+                Company-recorded purchases credit 50% of total MRP to the
+                purchasing dealer. Reward recipient eligibility remains
+                unconfigured; rule drafts are inactive.
             </Notice>
+            <Card className="purchase-allocation-summary">
+                <CardHeading
+                    title="Allocations from recorded purchases"
+                    subtitle="Commission-mode purchase totals after cancellations. Pool amounts are held for allocation; no reward payments are posted."
+                />
+                <div className="purchase-breakdown">
+                    <div>
+                        <span>Company share · 30%</span>
+                        <strong>{money(purchaseTotals.company_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Dealer earnings · 50%</span>
+                        <strong>{money(purchaseTotals.dealer_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Reward pool · 20%</span>
+                        <strong>{money(purchaseTotals.pool_minor)}</strong>
+                    </div>
+                    <div>
+                        <span>Unallocated reward pool · 60% of pool</span>
+                        <strong>
+                            {money(purchaseTotals.unallocated_minor)}
+                        </strong>
+                    </div>
+                </div>
+            </Card>
             <div className="rule-version-selector">
                 <label htmlFor="rule-version">Preview rule version</label>
                 <select
@@ -175,7 +211,10 @@ export default function Rules({
                                             }
                                         >
                                             {v.status === "reference"
-                                                ? "Reference · preview only"
+                                                ? v.name ===
+                                                  "Confirmed dealer-purchase model"
+                                                    ? "Purchase commission model"
+                                                    : "Calculation reference"
                                                 : "Draft · inactive"}
                                         </Badge>
                                     </td>

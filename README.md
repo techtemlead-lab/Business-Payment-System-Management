@@ -1,6 +1,6 @@
 # Nexora — Business Payment System Management
 
-A private company and dealer workspace built from the supplied master prompt. **Nexora is a placeholder brand**, editable in company settings. This is a working application foundation with persistent profiles and administration; financial posting and live payouts are deliberately inactive until the company supplies the missing business rules and provider integration.
+A private company and dealer workspace built from the supplied master prompt. **Nexora is a placeholder brand**, editable in company settings. This is a working application foundation with persistent profiles and administration; company-recorded purchases now credit the purchasing dealer’s commission earnings. Reward distribution, financial rank rules, and live payment transfers still require their missing rules or provider integration.
 
 ## Stack
 
@@ -8,9 +8,11 @@ Laravel 13 / PHP 8.4, React 19 / TypeScript, Inertia 2, Tailwind CSS 4, Vite 7, 
 
 ## What works
 
-- Responsive public website, private admin workspace, and scoped dealer portal. No public registration.
+- Responsive public website with interactive network illustration, private company workspace, and scoped dealer portal. Dealership enquiries reach the company dashboard; only the company creates accounts.
 - Admin creation of pending dealers, territory and level validation, case-insensitive search, profile updates, audited activation/suspension, and session invalidation.
 - Divisional, District, Upazila / Thana, and Union dealer levels; territory overview.
+- Company purchase entry with dealer code, unique invoice/receipt reference, product, quantity, unit MRP, actual paid amount, and date. Commission mode credits 50% of total MRP to the purchasing dealer once, preserving the rule and calculation snapshot. Audited cancellations reverse eligible earnings without deleting history.
+- Dealer withdrawal requests reserve available earned funds. Company approval/decline, dealer cancellation of pending requests, and release-payment visibility with a provider setup requirement. Approval never marks money paid.
 - Integer-poisha commission previews, immutable rule drafts, explicit unallocated reward balance, and no automatic earnings from previews.
 - One central operating mode, revision checks and row locks, audited transitions, and blocking for pending payouts/reserved funds. Approved ranks are **status-only configuration**; eligibility evaluation, dealer rank assignment, and financial rank rewards are not implemented.
 - Immutable ledger foundation, tested reversal service, balances derived from entries, and a provider interface that rejects payouts while unconfigured.
@@ -20,9 +22,9 @@ The local demo contains six synthetic dealer profiles and **zero financial trans
 
 ## Confirmed calculation
 
-For MRP ৳200.00: company ৳60.00 (30%), dealer bucket ৳100.00 (50%), reward pool ৳40.00 (20%). The nine supplied reward percentages total **40% of the pool**, or ৳16.00. The remaining **60% of the pool**, ৳24.00, stays unallocated. These percentages are not applied to MRP. Rounding preserves every poisha.
+The interface starts with an empty MRP field. The following is an illustrative calculation, not a preset product price. For MRP ৳200.00: company ৳60.00 (30%), dealer bucket ৳100.00 (50%), reward pool ৳40.00 (20%). The nine supplied reward percentages total **40% of the pool**, or ৳16.00. The remaining **60% of the pool**, ৳24.00, stays unallocated. These percentages are not applied to MRP. Rounding preserves every poisha.
 
-Do not enable financial posting before reviewing [the missing business decisions](docs/operations.md#business-decisions-required-for-financial-operation).
+Company-recorded purchases credit the confirmed dealer share in commission mode. Reward distribution and actual payment execution require [the remaining business decisions](docs/operations.md#business-decisions-required-for-financial-operation).
 
 ## Get a live preview with GitHub Codespaces
 
@@ -32,9 +34,26 @@ Do not enable financial posting before reviewing [the missing business decisions
 2. Open the **Ports** tab, find **8000 / Nexora website**, and click **Open in Browser**. This opens your live website through GitHub's forwarded URL.
 3. To share it with someone else, right-click port 8000, choose **Port Visibility → Public**, and copy its **Forwarded Address**. Keep it private if you only need to preview it yourself.
 
-The generated URL works while the Codespace is running. This is a development demo with sample accounts and inactive financial posting. Use synthetic data only, especially when making the port public. Codespaces usage is subject to your GitHub plan and included allowance; stop the Codespace when finished.
+The generated URL works while the Codespace is running. This is a development demo with sample accounts. Purchases and withdrawal reservations update its isolated ledger; actual payments are disabled. Use synthetic data only, especially when making the port public. Codespaces usage is subject to your GitHub plan and included allowance; stop the Codespace when finished.
 
 The app starts automatically after creation/restart. If needed, run `bash scripts/codespaces-start.sh` in its terminal. Setup preserves an existing `.env` and application key and requires the isolated `nexora_preview` database with `APP_ENV=local` before applying migrations. A forwarded HTTPS URL enables `APP_FORCE_HTTPS=true`, so generated asset and redirect URLs use HTTPS even though the internal PHP connection uses HTTP. Keep the forwarded port's backend protocol set to HTTP.
+
+## Run locally on Windows with Docker
+
+Open PowerShell in the unzipped repository folder, with Docker Desktop running:
+
+```powershell
+$composeArgs = @("-p", "nexora-local", "-f", ".devcontainer/compose.yaml", "-f", ".devcontainer/compose.local.yaml")
+docker compose @composeArgs up -d --build
+docker compose @composeArgs exec app bash scripts/codespaces-setup.sh
+docker compose @composeArgs restart app
+```
+
+Open `http://localhost:8000` after setup completes. The app waits for setup and then keeps its web server as the container's main process; closing PowerShell does not stop it. PHP/npm dependencies live in Linux Docker volumes to reduce Windows filesystem overhead. PHP OPcache and compiled views are enabled for development preview, with timestamp checks to reflect edits. Node and npm are pinned in the image.
+
+When updating an existing ZIP installation, replace the source files in the same project folder, preserve your `.env`, and use the same `nexora-local` project name. Run the commands above again to refresh dependencies, apply new migrations, rebuild assets, and restart. Do not remove database volumes. The setup command only accepts the isolated local `nexora_preview` database; use the regular installation instructions for other environments. Keep Docker running while using the website.
+
+The company workflow is **Dealer management → create/activate dealer → Dealer purchases → record purchase → Withdrawals & payouts → review dealer requests**. A dealer sees their own purchases, earnings, and withdrawal requests. Company exports include purchases and withdrawals. A real payment provider is chosen separately; no hosting platform is required by this application.
 
 ## Start in this cloud workspace
 
@@ -50,7 +69,7 @@ For hot reload, add `/workspace/.runtime/bin` to `PATH`, then run `composer run 
 
 ## Install on a regular development machine
 
-Requirements: PHP 8.4+ with ctype, curl, DOM/XML, fileinfo, mbstring, PDO PostgreSQL, and tokenizer; Composer 2; Node 22.12+; PostgreSQL 17; OpenSSL and PostgreSQL client tools for backups.
+Requirements: PHP 8.4+ with ctype, curl, DOM/XML, fileinfo, mbstring, PDO PostgreSQL, and tokenizer; Composer 2; Node 22.23.3 (or another version supported by `package.json`); npm 12.2.0; PostgreSQL 17; OpenSSL and PostgreSQL client tools for backups.
 
 ```bash
 composer install

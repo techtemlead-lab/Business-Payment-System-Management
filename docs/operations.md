@@ -6,12 +6,12 @@ The supplied prompt defines the top-level 30/50/20 split but leaves executable p
 
 | Decision | Current behavior | Company input required |
 | --- | --- | --- |
-| Sales/source events | No sales ingestion or earning-post endpoint | Approved sale lifecycle, verification, cancellation/refund handling, uniqueness of source events |
-| Dealer distribution | The 50% bucket is previewed only | Allocation among dealer levels, qualifying territory/beneficiary, missing/inactive dealer treatment |
+| Sales/source events | Company records dealer purchases with unique references and dates; commission mode posts linked earnings once. Cancellation reverses earnings only when funds are available. | Company verifies its invoice/receipt records; external order/import integrations are not configured. Partial refunds require an additional approved workflow. |
+| Dealer distribution | Owner confirmed 50% of unit MRP × quantity goes to the specific purchasing dealer; 30% company and 20% pool are preserved in the purchase snapshot. Actual paid amount is recorded separately. | Purchases require an active dealer; drafts do not change the confirmed purchase model. |
 | Reward categories | Nine percentages are previewed; no recipients paid | Each trigger, eligibility, beneficiary, referral and dealer-to-dealer rules, accumulation/expiry/cap rules |
 | Remaining reward pool | 60% of pool stays unallocated | Explicit ownership and permitted use; no silent redistribution |
 | Rank system | Approved definitions with explicit eligibility text; status-only mode | Evaluation criteria, assignment workflow, transition treatment, monetary effects, maintenance rules |
-| Live payouts | Unconfigured adapter rejects transfers and reservation | Provider, account verification, authorization policy, fees/minimums, callback authentication, idempotency, reconciliation, timeout and refund behavior |
+| Live payouts | Withdrawal requests reserve earned funds and support company review. The unconfigured provider rejects actual payment execution. | Provider, account verification, authorization policy, fees/minimums, callback authentication, idempotency, reconciliation, timeout and refund behavior |
 | Territory constraints | Required coverage fields and four levels validated | Approved geographical catalog, dealer exclusivity/overlap, transfer history, parent relationships |
 | Legal identity and retention | No NID collection, synthetic demo records | Required fields, consent, access and retention policy, approved records and branding |
 
@@ -27,7 +27,7 @@ Install locked dependencies with `composer install --no-dev --optimize-autoloade
 
 The application applies production security headers and enforces admin MFA enrollment before workspace access. Validate the Content Security Policy against the actual production origin. Configure HTTPS and trusted proxy handling for your hosting topology; do not blindly trust arbitrary proxy headers. Prevent server/CDN logs and monitoring tools from recording password-reset tokens, authenticator secrets, credentials, or private request bodies. Session pages are not cacheable.
 
-The database queue driver is configured. Supervise `php artisan queue:work --tries=1 --timeout=90` when queued work is introduced, monitor failed jobs, and run `php artisan schedule:run` from the host scheduler when scheduled application jobs are introduced. No provider settlement or automatic financial posting jobs are implemented.
+The database queue driver is configured. Supervise `php artisan queue:work --tries=1 --timeout=90` when queued work is introduced, monitor failed jobs, and run `php artisan schedule:run` from the host scheduler when scheduled application jobs are introduced. Purchase earnings are posted synchronously in a database transaction. No provider settlement or automatic reward-posting jobs are implemented.
 
 Monitor readiness (`/up`), errors, failed authentication, and rejected transitions. Audit details intentionally omit financial account secrets and credentials. PostgreSQL triggers forbid updating or deleting historical ledger, rule, and audit rows; protect database administration separately because privileged administrators can alter triggers. An independent production security and business review remains necessary.
 

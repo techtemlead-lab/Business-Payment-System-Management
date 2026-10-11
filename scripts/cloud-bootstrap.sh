@@ -39,6 +39,13 @@ if [[ "$(psql -h "$runtime_root" -U "$(id -un)" -d postgres -Atqc "SELECT 1 FROM
   createdb -h "$runtime_root" -U "$(id -un)" dealer_management
 fi
 composer install --prefer-source --no-interaction
+npm_version="$(cat .npm-version)"
+npm_cli="$runtime_root/node-tools/node_modules/npm/bin/npm-cli.js"
+if [[ ! -f "$npm_cli" ]] || [[ "$(node "$npm_cli" --version)" != "$npm_version" ]]; then
+  npm install --prefix "$runtime_root/node-tools" --no-save --package-lock=false --ignore-scripts --cache "$runtime_root/npm" "npm@$npm_version"
+fi
+printf '%s\n' '#!/bin/sh' 'exec node /workspace/.runtime/node-tools/node_modules/npm/bin/npm-cli.js "$@"' > "$runtime_root/bin/npm"
+chmod +x "$runtime_root/bin/npm"
 npm ci --ignore-scripts --cache "$runtime_root/npm" --no-audit --no-fund
 if [[ ! -f .env ]]; then
   python - <<'PY'
@@ -56,3 +63,4 @@ if php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app
   php artisan db:seed --class=DemoSeeder --no-interaction
 fi
 npm run build
+php artisan view:cache --no-interaction

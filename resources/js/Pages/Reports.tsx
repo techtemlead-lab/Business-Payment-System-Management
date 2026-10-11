@@ -75,7 +75,14 @@ import {
 export default function Reports({
     counts,
 }: {
-    counts: { dealers: number; ledger: number; payouts: number; audit: number };
+    counts: {
+        dealers: number;
+        ledger: number;
+        payouts: number;
+        audit: number;
+        purchases: number;
+        withdrawals: number;
+    };
 }) {
     return (
         <Layout title="Reports">
@@ -99,6 +106,20 @@ export default function Reports({
                         description:
                             "Validated amounts, transaction types, and rule references.",
                         icon: CircleDollarSign,
+                    },
+                    {
+                        key: "purchases",
+                        title: "Dealer purchases",
+                        description:
+                            "Invoice references, quantities, total MRP, actual payments, and ledger links.",
+                        icon: Building2,
+                    },
+                    {
+                        key: "withdrawals",
+                        title: "Withdrawal requests",
+                        description:
+                            "Requested amounts, company review, and request status.",
+                        icon: Wallet,
                     },
                     {
                         key: "payouts",

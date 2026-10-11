@@ -87,7 +87,13 @@ export default function Portal({
                 eyebrow="YOUR PARTNERSHIP, IN FOCUS"
                 title={`Welcome back, ${dealer.name.split(" ")[0]}.`}
                 description="Your account, earnings, and payout history — all in one place."
-                action={<Badge status={dealer.status} />}
+                action={
+                    <Button asChild>
+                        <Link href="/payouts">
+                            Request withdrawal <ArrowUpRight size={16} />
+                        </Link>
+                    </Button>
+                }
             />
             <div className="dealer-banner">
                 <div>
@@ -151,10 +157,12 @@ export default function Portal({
                 <Card className="portal-link">
                     <Wallet size={28} />
                     <div>
-                        <h3>Your payout history</h3>
-                        <p>Follow each payout's recorded status.</p>
+                        <h3>Withdraw your earnings</h3>
+                        <p>
+                            Request a withdrawal and follow the company review.
+                        </p>
                     </div>
-                    <ArrowLink href="/payouts">View payouts</ArrowLink>
+                    <ArrowLink href="/payouts">Request withdrawal</ArrowLink>
                 </Card>
                 <Card className="portal-link">
                     <ShieldCheck size={28} />

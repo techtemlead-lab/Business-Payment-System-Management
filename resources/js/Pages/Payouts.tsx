@@ -72,9 +72,14 @@ import {
     BalanceCards,
     Stat,
 } from "@/components/WorkspaceComponents";
+import { WithdrawalPanel, type Withdrawal } from "@/components/WithdrawalPanel";
 export default function Payouts({
     payouts,
+    withdrawals,
+    balances,
 }: {
+    withdrawals: Page<Withdrawal>;
+    balances: Balances | null;
     payouts: Page<{
         id: number;
         dealer_id: number;
@@ -88,13 +93,14 @@ export default function Payouts({
         <Layout title="Payouts">
             <PageHeading
                 eyebrow="FROM EARNINGS TO PAYOUTS"
-                title="Dealer payouts"
-                description="Track requests, provider evidence, and items requiring reconciliation."
+                title="Withdrawals & payouts"
+                description="Request withdrawals, review decisions, and track verified payments."
             />
+            <WithdrawalPanel withdrawals={withdrawals} balances={balances} />
             <Notice tone="warning">
-                <strong>Disbursements are not yet enabled.</strong> The company
-                must confirm a payout provider, beneficiary verification,
-                limits, and approval policies.
+                <strong>Payment execution is not yet enabled.</strong> The
+                company must confirm a payout provider, beneficiary
+                verification, limits, and approval policies.
             </Notice>
             <Card>
                 <CardHeading
@@ -137,7 +143,7 @@ export default function Payouts({
                     <Empty
                         icon={<Wallet size={29} />}
                         title="No payout requests yet"
-                        description="Eligible payout requests will appear here after the company approves and verifies the disbursement workflow."
+                        description="Verified payment records will appear here when the payout provider is configured. Withdrawal requests are shown above."
                     />
                 )}
                 <Pagination page={payouts} />

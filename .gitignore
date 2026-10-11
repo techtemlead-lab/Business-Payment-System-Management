@@ -29,3 +29,4 @@ Thumbs.db
 /test-results/
 /playwright-report/
 /storage/app/backups/
+/.devcontainer/.local-temp/

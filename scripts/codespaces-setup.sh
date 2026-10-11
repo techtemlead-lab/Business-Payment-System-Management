@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+rm -f storage/app/preview-ready
 if [[ ! -f .env ]]; then
   php <<'PHP'
 <?php
@@ -36,3 +37,5 @@ if php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app
   php artisan db:seed --class=DemoSeeder --no-interaction
 fi
 npm run build
+php artisan view:cache --no-interaction
+touch storage/app/preview-ready

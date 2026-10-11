@@ -35,11 +35,42 @@ export default function Login() {
     const form = useForm({ email: "", password: "" });
     const [show, setShow] = useState(false);
     const { demo } = usePage<Shared>().props;
+    const { url } = usePage();
+    const workspace =
+        new URLSearchParams(url.split("?")[1]).get("workspace") === "dealer"
+            ? "dealer"
+            : "company";
     return (
         <AuthShell
-            title="Welcome to your workspace"
-            subtitle="Sign in to manage your partnerships and progress."
+            title={
+                workspace === "company"
+                    ? "Company workspace."
+                    : "Your dealer workspace."
+            }
+            subtitle={
+                workspace === "company"
+                    ? "Sign in with your company administrator account."
+                    : "Sign in with the account your company created for you."
+            }
         >
+            <nav className="login-workspace" aria-label="Workspace sign in">
+                <Link
+                    href="/login?workspace=company"
+                    preserveState
+                    aria-current={workspace === "company" ? "page" : undefined}
+                >
+                    <Building2 size={16} />
+                    Company
+                </Link>
+                <Link
+                    href="/login?workspace=dealer"
+                    preserveState
+                    aria-current={workspace === "dealer" ? "page" : undefined}
+                >
+                    <Users size={16} />
+                    Dealer
+                </Link>
+            </nav>
             <form
                 onSubmit={(e) => {
                     e.preventDefault();
@@ -89,7 +120,11 @@ export default function Login() {
             </form>
             {demo && (
                 <div className="demo-login">
-                    <span>Or explore the local demonstration</span>
+                    <span>Just looking around?</span>
+                    <p>
+                        These local sample accounts open without a password.
+                        Your own accounts use the form above.
+                    </p>
                     <Button
                         className="full-width"
                         variant="outline"

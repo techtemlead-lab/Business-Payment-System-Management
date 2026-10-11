@@ -1,4 +1,5 @@
 import "../css/app.css";
+import "../css/experience.css";
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 const pages = import.meta.glob<{ default: React.ComponentType<any> }>(

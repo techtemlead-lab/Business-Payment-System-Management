@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     CircleDollarSign,
     ArrowRight,
@@ -13,12 +13,15 @@ export function Allocation({
     detailed = false,
     versionId,
 }: {
-    preview: Preview;
+    preview: Preview | null;
     detailed?: boolean;
     versionId?: number;
 }) {
     const [preview, setPreview] = useState(initial);
-    const [mrp, setMrp] = useState("200.00");
+    const [mrp, setMrp] = useState(
+        initial ? (initial.mrp_minor / 100).toFixed(2) : "",
+    );
+    const previousVersion = useRef(versionId);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     async function calculate() {
@@ -54,10 +57,64 @@ export function Allocation({
         }
     }
     useEffect(() => {
-        if (detailed && versionId !== undefined) {
-            void calculate();
+        if (previousVersion.current !== versionId) {
+            setPreview(null);
+            setError("");
+            previousVersion.current = versionId;
         }
     }, [versionId]);
+    const input = (
+        <form
+            className="preview-form"
+            onSubmit={(event) => {
+                event.preventDefault();
+                void calculate();
+            }}
+        >
+            <Field label="Product MRP (BDT)" error={error}>
+                <input
+                    type="text"
+                    inputMode="decimal"
+                    required
+                    value={mrp}
+                    placeholder="Enter the actual product MRP"
+                    onChange={(event) => setMrp(event.target.value)}
+                    aria-label="Product MRP (BDT)"
+                />
+            </Field>
+            <Button type="submit" disabled={loading}>
+                <RefreshCw size={16} className={loading ? "spin" : ""} />
+                {loading ? "Calculating..." : "Run preview"}
+            </Button>
+        </form>
+    );
+    if (!preview) {
+        return (
+            <Card
+                className={`allocation-card ${detailed ? "allocation-detailed" : ""}`}
+            >
+                <CardHeading
+                    title="Explore your allocation."
+                    subtitle="Your product. Your MRP. A clear preview."
+                    action={
+                        <span className="preview-tag">
+                            <FlaskConical size={13} /> Simulation
+                        </span>
+                    }
+                />
+                {input}
+                <div className="allocation-start">
+                    <CircleDollarSign size={38} />
+                    <h3>Start with your product's MRP</h3>
+                    <p>
+                        Enter an amount to see the company, dealer, and reward
+                        pool breakdown. A preview does not create earnings or
+                        payments.
+                    </p>
+                </div>
+            </Card>
+        );
+    }
     return (
         <Card
             className={`allocation-card ${detailed ? "allocation-detailed" : ""}`}
@@ -75,6 +132,7 @@ export function Allocation({
                     </span>
                 }
             />
+            {input}
             <div className="allocation-content">
                 <div className="allocation-donut">
                     <svg
@@ -182,24 +240,6 @@ export function Allocation({
             </div>
             {detailed && (
                 <>
-                    <div className="preview-form">
-                        <Field label="Product MRP (BDT)" error={error}>
-                            <input
-                                type="text"
-                                inputMode="decimal"
-                                value={mrp}
-                                onChange={(e) => setMrp(e.target.value)}
-                                aria-label="Product MRP (BDT)"
-                            />
-                        </Field>
-                        <Button onClick={calculate} disabled={loading}>
-                            <RefreshCw
-                                size={16}
-                                className={loading ? "spin" : ""}
-                            />
-                            {loading ? "Calculating..." : "Run preview"}
-                        </Button>
-                    </div>
                     <Notice>
                         Preview only. These amounts are calculated on the server
                         and do not create earnings or ledger entries.
