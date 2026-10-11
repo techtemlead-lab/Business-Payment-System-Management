@@ -88,10 +88,12 @@ The admin command prompts for the password without echoing it. Configure a real 
 ## Verification
 
 ```bash
-php vendor/bin/phpunit --exclude-group pgsql
 npm test
 npm run build
+php vendor/bin/phpunit --exclude-group pgsql
 ```
+
+Build assets before running the PHP page tests on a fresh checkout: those tests render the real application template and require Vite's generated manifest. GitHub Actions follows the same order.
 
 PostgreSQL concurrency tests need an **empty, dedicated test database** and Linux `pcntl`. They migrate and roll back that database:
 

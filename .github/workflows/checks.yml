@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:17-bookworm
@@ -25,14 +25,14 @@ jobs:
       DB_USERNAME: postgres
       DB_PASSWORD: isolated-ci-only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
           extensions: pdo_pgsql, pdo_sqlite, mbstring, intl, pcntl
           coverage: none
           tools: composer:v2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .nvmrc
       - run: npm install --global npm@12.2.0
@@ -40,17 +40,18 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: cp .env.example .env
       - run: php artisan key:generate --no-interaction
+      - name: Test and build frontend before rendering application pages
+        run: npm test && npm run build
       - run: php vendor/bin/phpunit --exclude-group pgsql
       - run: php vendor/bin/phpunit --group pgsql
         env:
           DB_CONNECTION: pgsql
           DB_DATABASE: dealer_tests
-      - run: npm test && npm run build
       - run: npx playwright install --with-deps chromium
       - run: |
           PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USERNAME" -d postgres -c 'CREATE DATABASE dealer_browser'
           CHROMIUM_PATH="$(node --input-type=module -e 'import { chromium } from "@playwright/test"; process.stdout.write(chromium.executablePath())')" npm run test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: browser-failures
