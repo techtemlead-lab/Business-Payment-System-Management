@@ -4,6 +4,11 @@ async function admin(page: Page) {
     await page.getByRole("button", { name: "Explore admin workspace" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
 }
+async function dealerLogin(page: Page) {
+    await page.goto("http://127.0.0.1:8001/login?workspace=dealer");
+    await page.getByRole("button", { name: "Explore dealer portal" }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+}
 test("public website is responsive and has no public registration", async ({
     page,
 }) => {
@@ -162,8 +167,7 @@ test("invalid preview shows a useful error and incomplete rank mode stays inacti
 test("dealer portal hides admin navigation and blocks other dealer profiles and reports", async ({
     page,
 }) => {
-    await page.goto("/");
-    await page.getByRole("button", { name: "Explore dealer portal" }).click();
+    await dealerLogin(page);
     await expect(
         page.getByRole("heading", { name: "Welcome back, Farhan." }),
     ).toBeVisible();
@@ -260,9 +264,7 @@ test("company purchase credits dealer earnings and withdrawal review preserves f
     await page.keyboard.press("Escape");
     const dealerContext = await browser.newContext();
     const dealer = await dealerContext.newPage();
-    await dealer.goto("http://127.0.0.1:8001/");
-    await dealer.getByRole("button", { name: "Explore dealer portal" }).click();
-    await expect(dealer).toHaveURL(/\/dashboard$/);
+    await dealerLogin(dealer);
     await dealer.goto("http://127.0.0.1:8001/purchases");
     await expect(dealer.locator("tbody")).toContainText(reference);
     await expect(
@@ -348,3 +350,4 @@ test("interactive network and mobile navigation respect reduced motion", async (
         ),
     ).toBe(true);
 });
+
