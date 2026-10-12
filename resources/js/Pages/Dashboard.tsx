@@ -203,8 +203,8 @@ export default function Dashboard({
                 <Stat
                     icon={<Gift />}
                     label="Unallocated reward pool"
-                    value="60%"
-                    note="Confirmed model · simulation"
+                    value={money(purchaseTotals.unallocated_minor)}
+                    note="From recorded purchase allocations"
                 />
             </div>
             <Card className="purchase-allocation-summary">
@@ -364,7 +364,9 @@ export default function Dashboard({
                         </span>
                         <div>
                             <strong>Review reward rules</strong>
-                            <p>Reward recipients still need eligibility rules</p>
+                            <p>
+                                Reward recipients still need eligibility rules
+                            </p>
                         </div>
                         <ChevronRight size={17} />
                     </Link>

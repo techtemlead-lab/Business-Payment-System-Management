@@ -5,20 +5,26 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealerController;
 use App\Http\Controllers\DealershipRequestController;
+use App\Http\Controllers\EarningsController;
 use App\Http\Controllers\LedgerController;
 use App\Http\Controllers\ModeController;
 use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\PayoutController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RuleController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\WithdrawalRequestController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', fn () => auth()->check() ? redirect('/dashboard') : Inertia::render('Welcome'))->name('home');
+Route::get('/', [WebsiteController::class, 'home'])->name('home');
+Route::get('/pages/{slug}', [WebsiteController::class, 'page'])->name('website.page');
+Route::get('/website/media/{key}', [WebsiteController::class, 'image'])->whereUuid('key')->name('website.media');
+Route::get('/sitemap.xml', [WebsiteController::class, 'sitemap'])->name('website.sitemap');
 Route::middleware('guest')->group(function () {
     Route::get('/request-dealership', [DealershipRequestController::class, 'create'])->name('dealership.request');
     Route::post('/request-dealership', [DealershipRequestController::class, 'store'])->middleware('throttle:5,10,post-request-dealership:');
@@ -39,7 +45,20 @@ Route::middleware('auth')->group(function () {
     Route::post('/security/enable', [AuthController::class, 'enableMfa'])->middleware('throttle:5,1,post-security-enable:');
     Route::post('/confirm-password', [AuthController::class, 'confirm'])->middleware('throttle:5,1,post-confirm-password:');
     Route::middleware('workspace')->group(function () {
+        Route::get('/website/customize', [WebsiteController::class, 'edit'])->name('website.customize');
+        Route::put('/website/draft', [WebsiteController::class, 'save'])->middleware('throttle:60,1,website-draft:')->name('website.save');
+        Route::post('/website/publish', [WebsiteController::class, 'publish'])->name('website.publish');
+        Route::post('/website/restore/{version}', [WebsiteController::class, 'restore'])->name('website.restore');
+        Route::delete('/website/schedule', [WebsiteController::class, 'cancelSchedule'])->name('website.schedule.cancel');
+        Route::get('/website/preview', [WebsiteController::class, 'preview'])->name('website.preview');
+        Route::post('/website/media', [WebsiteController::class, 'upload'])->middleware('throttle:20,1,website-upload:')->name('website.upload');
+        Route::patch('/website/media/{key}', [WebsiteController::class, 'updateMedia'])->whereUuid('key')->name('website.media.update');
         Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('dashboard');
+        Route::get('/rewards/earnings', [EarningsController::class, 'index'])->name('earnings.index');
+        Route::get('/referrals', [ReferralController::class, 'index'])->name('referrals.index');
+        Route::get('/referrals/options', [ReferralController::class, 'options'])->middleware('throttle:60,1,referral-options:')->name('referrals.options');
+        Route::patch('/dealers/{dealer}/referrer', [ReferralController::class, 'update'])->middleware('throttle:20,1,referrer-update:')->name('referrals.update');
+        Route::post('/rules/{version}/activate', [RuleController::class, 'activate'])->middleware('throttle:10,1,rule-activation:')->name('rules.activate');
         Route::get('/dealership-requests', [DealershipRequestController::class, 'index']);
         Route::patch('/dealership-requests/{dealershipRequest}', [DealershipRequestController::class, 'update'])->middleware('throttle:20,1,patch-dealership-requests-dealershipRequest:');
         Route::get('/dealers', [DealerController::class, 'dealers']);

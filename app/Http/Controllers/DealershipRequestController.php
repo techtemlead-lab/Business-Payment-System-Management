@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDealershipRequest;
 use App\Models\AuditEvent;
+use App\Models\Dealer;
 use App\Models\DealershipRequest;
+use App\Services\WebsiteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,11 +23,26 @@ class DealershipRequestController extends WorkspaceController
     public function store(StoreDealershipRequest $request): RedirectResponse
     {
         DB::transaction(function () use ($request): void {
-            $application = DealershipRequest::create($request->safe()->except(['consent']));
+            $validated = $request->safe()->except(['consent', 'language']);
+            $definitions = app(WebsiteService::class)->published()['application']['questions'];
+            $answers = [];
+            foreach ($definitions as $definition) {
+                if (isset($validated['additional_answers'][$definition['id']])) {
+                    $answers[] = ['label' => $definition['label'], 'value' => $validated['additional_answers'][$definition['id']]];
+                }
+            }
+            $validated['additional_answers'] = $answers;
+            $application = DealershipRequest::create($validated);
+            if (! empty($validated['referral_code'])) {
+                $application->forceFill(['referrer_id' => Dealer::where('code', $validated['referral_code'])->firstOrFail()->id])->save();
+            }
             AuditEvent::record('dealership.request_received', ['level' => $application->level], $application->id);
         });
 
-        return redirect('/request-dealership')->with('success', 'Your request has reached the company. They will review your information and contact you about the next steps.');
+        $document = app(WebsiteService::class)->published();
+        $message = $request->input('language') === 'bn' ? ($document['translations']['application.success_message'] ?? $document['application']['success_message']) : $document['application']['success_message'];
+
+        return redirect('/request-dealership')->with('success', $message);
     }
 
     public function index(Request $request): Response

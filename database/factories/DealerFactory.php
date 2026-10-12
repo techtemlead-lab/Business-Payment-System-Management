@@ -19,4 +19,9 @@ class DealerFactory extends Factory
     {
         return $this->state(fn () => ['status' => 'pending']);
     }
+
+    public function areaDealer(): static
+    {
+        return $this->state(fn () => ['dealer_type' => 'area_dealer']);
+    }
 }

@@ -35,6 +35,10 @@ class FinancialCalculator
             throw ValidationException::withMessages(['rates' => 'Top-level allocations must total exactly 100%.']);
         }
         $rewardRates = $d['rewards'] ?? [];
+        $referralRates = $d['referrals']['generation_bps'] ?? [0, 0, 0];
+        if (count($referralRates) !== 3 || count(array_filter($referralRates, fn ($rate) => is_int($rate) && $rate >= 0 && $rate <= 10000)) !== 3) {
+            throw ValidationException::withMessages(['referral_bps' => 'Enter a percentage between 0% and 100% for each of the three generations.']);
+        }
         if (array_key_exists('Unallocated', $rewardRates) || count(array_filter($rewardRates, fn ($v) => is_int($v) && $v >= 0 && $v <= 10000)) !== count($rewardRates) || array_sum($rewardRates) > 10000) {
             throw ValidationException::withMessages(['rates' => 'Reward allocations cannot exceed 100% of the pool.']);
         }
@@ -48,7 +52,7 @@ class FinancialCalculator
 
         return ['company_bps' => $rates[0], 'dealer_bps' => $rates[1], 'pool_bps' => $rates[2], 'mrp_minor' => $mrp, 'company_minor' => $top['company'], 'dealer_minor' => $top['dealer'], 'pool_minor' => $top['pool'],
             'allocated_minor' => array_sum($rewardParts) - $rewardParts['Unallocated'], 'unallocated_minor' => $rewardParts['Unallocated'],
-            'allocated_bps' => array_sum($rewardRates), 'rewards' => $rows, 'preview_only' => true];
+            'allocated_bps' => array_sum($rewardRates), 'rewards' => $rows, 'preview_only' => true, 'referrals' => ['base' => 'pending_discussion', 'generation_bps' => $referralRates, 'posting_enabled' => false]];
     }
 
     private function apportion(int $amount, array $rates): array

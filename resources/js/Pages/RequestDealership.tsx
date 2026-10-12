@@ -1,22 +1,22 @@
+import { useState } from "react";
 import { Head, Link, useForm, usePage } from "@inertiajs/react";
-import {
-    ArrowLeft,
-    ArrowUpRight,
-    CheckCircle2,
-    ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { Logo } from "@/components/Brand";
 import { Button, Field } from "@/components/Common";
+import { ApplicationFields } from "@/components/ApplicationFields";
+import { localized, siteStyle } from "@/lib/website";
 import type { Shared } from "@/lib/types";
-
 export default function RequestDealership() {
-    const { flash, company } = usePage<Shared>().props;
+    const { website, flash } = usePage<Shared>().props;
+    const [language, setLanguage] = useState(website.languages.default);
+    const d = localized(website, language);
     const form = useForm({
         name: "",
         email: "",
         mobile: "",
         business_name: "",
         business_address: "",
+        dealer_type: "dealer",
         level: "District",
         division: "Dhaka",
         district: "",
@@ -24,47 +24,36 @@ export default function RequestDealership() {
         union_name: "",
         message: "",
         consent: false,
+        language: website.languages.default,
+        additional_answers: {} as Record<string, string>,
+        referral_code:
+            new URLSearchParams(usePage().url.split("?")[1])
+                .get("ref")
+                ?.toUpperCase() ?? "",
     });
-    const field = (
-        key:
-            | "name"
-            | "email"
-            | "mobile"
-            | "business_name"
-            | "district"
-            | "upazila"
-            | "union_name",
-        label: string,
-        type = "text",
-        maxLength = 100,
-    ) => (
-        <Field label={label} error={form.errors[key]}>
-            <input
-                type={type}
-                required
-                maxLength={maxLength}
-                value={form.data[key]}
-                onChange={(event) => form.setData(key, event.target.value)}
-                autoComplete={
-                    key === "name"
-                        ? "name"
-                        : key === "email"
-                          ? "email"
-                          : key === "mobile"
-                            ? "tel"
-                            : "off"
-                }
-                placeholder={key === "mobile" ? "+8801XXXXXXXXX" : undefined}
-            />
-        </Field>
-    );
     return (
-        <div className="public-page landing request-page">
+        <div
+            className="site-root public-page landing request-page"
+            style={siteStyle(d)}
+            lang={language}
+            data-motion={d.theme.motion}
+        >
             <Head title="Request dealership" />
             <header className="landing-header">
-                <Link href="/" aria-label="Nexora home">
+                <Link href="/" aria-label={`${d.brand.name} home`}>
                     <Logo />
                 </Link>
+                {d.languages.switcher && (
+                    <button
+                        onClick={() => {
+                            const next = language === "en" ? "bn" : "en";
+                            setLanguage(next);
+                            form.setData("language", next);
+                        }}
+                    >
+                        {language === "en" ? "বাংলা" : "English"}
+                    </button>
+                )}
                 <Link href="/login" className="landing-signin">
                     Already a dealer? Sign in <ArrowUpRight size={17} />
                 </Link>
@@ -74,89 +63,39 @@ export default function RequestDealership() {
                     <Link href="/" className="text-link">
                         <ArrowLeft size={15} /> Back to home
                     </Link>
-                    <span className="editorial-label">
-                        LET’S START A CONVERSATION
-                    </span>
-                    <h1>
-                        Your next chapter
-                        <br />
-                        starts <em>here.</em>
-                    </h1>
-                    <p>
-                        Tell {company.company_name} about your business and the
-                        community you want to serve.
-                    </p>
+                    <span className="editorial-label">DEALERSHIP ENQUIRY</span>
+                    <h1>{d.application.title}</h1>
+                    <p>{d.application.intro}</p>
                     <ol className="request-steps">
-                        <li>
-                            <span>01</span>
-                            <div>
-                                <strong>Share your details</strong>
-                                <p>
-                                    Introduce yourself, your business, and your
-                                    territory.
-                                </p>
-                            </div>
-                        </li>
-                        <li>
-                            <span>02</span>
-                            <div>
-                                <strong>The company reviews</strong>
-                                <p>
-                                    Your information goes directly to their
-                                    private dashboard.
-                                </p>
-                            </div>
-                        </li>
-                        <li>
-                            <span>03</span>
-                            <div>
-                                <strong>Connect and get started</strong>
-                                <p>
-                                    The company contacts you and creates your
-                                    dealer account after approval.
-                                </p>
-                            </div>
-                        </li>
+                        {[
+                            "Share your details",
+                            "The company reviews",
+                            "Connect and get started",
+                        ].map((step, index) => (
+                            <li key={step}>
+                                <span>0{index + 1}</span>
+                                <strong>{step}</strong>
+                            </li>
+                        ))}
                     </ol>
-                    <div className="request-assurance">
-                        <ShieldCheck size={20} />
-                        <p>
-                            Your information is shared with the company for
-                            reviewing your dealership request.
-                        </p>
-                    </div>
                 </aside>
                 <section
                     className="request-form-panel"
                     aria-label="Dealership request"
                 >
-                    {flash.success ? (
+                    {!d.application.open ? (
+                        <div role="status">
+                            <h2>Applications closed</h2>
+                            <p>{d.application.closed_message}</p>
+                        </div>
+                    ) : flash.success ? (
                         <div className="request-success" role="status">
                             <CheckCircle2 size={38} />
-                            <span className="editorial-label">
-                                YOUR REQUEST IS IN
-                            </span>
-                            <h2>
-                                A new connection.
-                                <br />A next step.
-                            </h2>
+                            <h2>Your request is in.</h2>
                             <p>{flash.success}</p>
                             <Button asChild>
-                                <Link href="/">
-                                    Back to home <ArrowUpRight size={17} />
-                                </Link>
+                                <Link href="/">Back to home</Link>
                             </Button>
-                            <button
-                                className="text-link"
-                                onClick={() => {
-                                    form.reset();
-                                    window.location.assign(
-                                        "/request-dealership",
-                                    );
-                                }}
-                            >
-                                Submit another request
-                            </button>
                         </div>
                     ) : (
                         <form
@@ -168,155 +107,45 @@ export default function RequestDealership() {
                             }}
                         >
                             <div className="request-form-heading">
-                                <span className="editorial-label">
-                                    DEALERSHIP ENQUIRY
-                                </span>
                                 <h2>Introduce your business.</h2>
                                 <p>
-                                    All fields are required except the optional
-                                    message.
+                                    Required identity and territory information
+                                    helps the company review your application.
                                 </p>
                             </div>
-                            <div className="form-grid">
-                                {field("name", "Full name", "text", 120)}
-                                {field("email", "Email address", "email", 160)}
-                                {field("mobile", "Mobile number", "tel", 20)}
-                                {field(
-                                    "business_name",
-                                    "Business name",
-                                    "text",
-                                    160,
-                                )}
-                                <Field
-                                    label="Dealer level"
-                                    error={form.errors.level}
-                                >
-                                    <select
-                                        value={form.data.level}
-                                        onChange={(event) =>
-                                            form.setData({
-                                                ...form.data,
-                                                level: event.target.value,
-                                                district: "",
-                                                upazila: "",
-                                                union_name: "",
-                                            })
-                                        }
-                                    >
-                                        {[
-                                            "Divisional",
-                                            "District",
-                                            "Upazila / Thana",
-                                            "Union",
-                                        ].map((level) => (
-                                            <option key={level}>{level}</option>
-                                        ))}
-                                    </select>
-                                </Field>
-                                <Field
-                                    label="Division"
-                                    error={form.errors.division}
-                                >
-                                    <select
-                                        value={form.data.division}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                "division",
-                                                event.target.value,
-                                            )
-                                        }
-                                    >
-                                        {[
-                                            "Dhaka",
-                                            "Chattogram",
-                                            "Rajshahi",
-                                            "Khulna",
-                                            "Barishal",
-                                            "Sylhet",
-                                            "Rangpur",
-                                            "Mymensingh",
-                                        ].map((division) => (
-                                            <option key={division}>
-                                                {division}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </Field>
-                                {form.data.level !== "Divisional" &&
-                                    field("district", "District")}
-                                {["Upazila / Thana", "Union"].includes(
-                                    form.data.level,
-                                ) && field("upazila", "Upazila / Thana")}
-                                {form.data.level === "Union" &&
-                                    field("union_name", "Union")}
-                            </div>
+                            <ApplicationFields
+                                document={d}
+                                values={form.data}
+                                errors={form.errors}
+                                onChange={(key, value) => {
+                                    form.setData(
+                                        key as keyof typeof form.data,
+                                        value,
+                                    );
+                                }}
+                            />
                             <Field
-                                label="Business address"
-                                error={form.errors.business_address}
+                                label="Referral code (optional)"
+                                hint="The dealer who referred you. The company will review this connection."
+                                error={form.errors.referral_code}
                             >
-                                <textarea
-                                    required
-                                    maxLength={500}
-                                    rows={3}
-                                    value={form.data.business_address}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "business_address",
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                            </Field>
-                            <Field
-                                label="Message (optional)"
-                                error={form.errors.message}
-                            >
-                                <textarea
-                                    maxLength={1500}
-                                    rows={3}
-                                    value={form.data.message}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            "message",
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="Tell us about your experience or ask a question."
-                                />
-                            </Field>
-                            <label className="request-consent">
                                 <input
-                                    type="checkbox"
-                                    required
-                                    checked={form.data.consent}
+                                    maxLength={30}
+                                    value={form.data.referral_code}
                                     onChange={(event) =>
                                         form.setData(
-                                            "consent",
-                                            event.target.checked,
+                                            "referral_code",
+                                            event.target.value.toUpperCase(),
                                         )
                                     }
                                 />
-                                <span>
-                                    I agree to share these details with the
-                                    company and be contacted about my dealership
-                                    request.
-                                </span>
-                            </label>
-                            {form.errors.consent && (
-                                <p className="field-error">
-                                    {form.errors.consent}
-                                </p>
-                            )}
-                            <Button disabled={form.processing} type="submit">
+                            </Field>
+                            <Button disabled={form.processing}>
                                 {form.processing
-                                    ? "Sending your request…"
-                                    : "Send dealership request"}
-                                <ArrowUpRight size={18} />
+                                    ? "Sending…"
+                                    : d.application.button_label}{" "}
+                                <ArrowUpRight size={17} />
                             </Button>
-                            <p className="request-form-note">
-                                An account is created by the company after
-                                review.
-                            </p>
                         </form>
                     )}
                 </section>

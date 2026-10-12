@@ -1,4 +1,5 @@
 export type Shared = {
+    website: import("./website").SiteDocument;
     [key: string]: unknown;
     auth: {
         user: {
@@ -22,10 +23,15 @@ export type Shared = {
 export type Dealer = {
     id: number;
     code: string;
+    referrer_code?: string | null;
+    referrer_name?: string | null;
+    referral_verified_at?: string | null;
+    referral_verified_by_name?: string | null;
     name: string;
     email: string;
     name_bn?: string;
     mobile?: string;
+    dealer_type: "dealer" | "area_dealer";
     level: string;
     division: string;
     district?: string;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ManageReferral } from "./ManageReferral";
 import { Link, router, useForm, usePage } from "@inertiajs/react";
 import {
     Users,
@@ -74,15 +75,18 @@ export function DealerTable({
     dealers: Dealer[];
     compact?: boolean;
 }) {
+    const canManageReferrals =
+        usePage<Shared>().props.auth.user?.role === "admin" && !compact;
     return (
         <div className="table-scroll">
             <table>
                 <thead>
                     <tr>
                         <th>Dealer</th>
-                        <th>Level</th>
+                        <th>Territory level</th>
                         <th>Territory</th>
                         <th>Status</th>
+                        {canManageReferrals && <th>Referral / verification</th>}
                         <th>
                             <span className="sr-only">View profile</span>
                         </th>
@@ -105,7 +109,12 @@ export function DealerTable({
                                     </span>
                                     <div>
                                         <strong>{d.name}</strong>
-                                        <span>{d.code}</span>
+                                        <span>
+                                            {d.code} ·{" "}
+                                            {d.dealer_type === "area_dealer"
+                                                ? "Area dealer"
+                                                : "Dealer"}
+                                        </span>
                                     </div>
                                 </Link>
                             </td>
@@ -119,10 +128,25 @@ export function DealerTable({
                                     <MapPin size={13} />
                                     {d.division}
                                 </span>
+                                <div className="field-hint">
+                                    {[d.district, d.upazila, d.union_name]
+                                        .filter(Boolean)
+                                        .join(" / ")}
+                                </div>
                             </td>
                             <td>
                                 <Badge status={d.status} />
                             </td>
+                            {canManageReferrals && (
+                                <td>
+                                    <div className="mb-2 field-hint">
+                                        {d.referrer_code
+                                            ? `${d.referrer_code} · ${d.referral_verified_at ? "Verified" : "Verification pending"}`
+                                            : "No referrer"}
+                                    </div>
+                                    <ManageReferral dealer={d} />
+                                </td>
+                            )}
                             <td>
                                 <Link
                                     href={`/dealers/${d.id}`}

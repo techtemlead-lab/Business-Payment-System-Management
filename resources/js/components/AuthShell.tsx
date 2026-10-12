@@ -30,6 +30,7 @@ import {
     PageHeading,
 } from "@/components/Common";
 import type { Shared } from "@/lib/types";
+import { localized, siteStyle } from "@/lib/website";
 export function AuthShell({
     title,
     subtitle,
@@ -39,11 +40,17 @@ export function AuthShell({
     subtitle: string;
     children: ReactNode;
 }) {
-    const { flash, demo } = usePage<Shared>().props;
+    const { flash, demo, website: source } = usePage<Shared>().props;
+    const [language, setLanguage] = useState(source.languages.default);
+    const website = localized(source, language);
     return (
         <>
             <Head title={title} />
-            <div className="auth-page">
+            <div
+                className="auth-page site-root"
+                style={siteStyle(website)}
+                data-motion={website.theme.motion}
+            >
                 <section className="auth-brand-panel">
                     <Link href="/">
                         <Logo light />
@@ -52,17 +59,15 @@ export function AuthShell({
                         <span className="banner-eyebrow">
                             A PLACE FOR EVERY PARTNER
                         </span>
-                        <h1>
-                            Your work.
-                            <br />
-                            Your people.
-                            <br />
-                            <em>One place.</em>
-                        </h1>
-                        <p>
-                            A company-wide view. A personal dealer portal.
-                            Connected by the same ambition.
-                        </p>
+                        <h1>{website.login.title}</h1>
+                        <p>{website.login.body}</p>
+                        {website.login.image && (
+                            <img
+                                className="site-section-image"
+                                src={website.login.image}
+                                alt=""
+                            />
+                        )}
                         <div className="auth-graphic">
                             <div className="auth-orbit" />
                             <span>
@@ -85,6 +90,15 @@ export function AuthShell({
                     <Link href="/" className="back-link">
                         <ArrowLeft size={15} /> Back to website
                     </Link>
+                    {website.languages.switcher && (
+                        <button
+                            onClick={() =>
+                                setLanguage(language === "en" ? "bn" : "en")
+                            }
+                        >
+                            {language === "en" ? "বাংলা" : "English"}
+                        </button>
+                    )}
                     <div className="auth-form-wrap">
                         <span className="auth-icon">
                             <LockKeyhole size={24} />
@@ -96,8 +110,10 @@ export function AuthShell({
                         )}
                         {children}
                         <div className="auth-footnote">
-                            <ShieldCheck size={15} /> Accounts are created and
-                            approved by the company.
+                            <ShieldCheck size={15} /> {website.login.help_text}
+                            <a href={website.login.support_href}>
+                                Contact support
+                            </a>
                         </div>
                     </div>
                     <span className="auth-form-footer">

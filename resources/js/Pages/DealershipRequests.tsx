@@ -29,6 +29,7 @@ type Enquiry = {
     mobile: string;
     business_name: string;
     business_address: string;
+    dealer_type: "dealer" | "area_dealer";
     level: string;
     division: string;
     district: string | null;
@@ -38,6 +39,8 @@ type Enquiry = {
     status: string;
     review_note: string | null;
     created_at: string;
+    additional_answers?: { label: string; value: string }[];
+    referral_code?: string | null;
 };
 export default function DealershipRequests({
     requests,
@@ -161,6 +164,19 @@ export default function DealershipRequests({
                 >
                     <div className="enquiry-details">
                         <p>
+                            <strong>Requested account type:</strong>{" "}
+                            {selected.dealer_type === "area_dealer"
+                                ? "Area dealer"
+                                : "Dealer"}{" "}
+                            · company approval required
+                        </p>
+                        {selected.referral_code && (
+                            <p>
+                                <strong>Referred by:</strong>{" "}
+                                {selected.referral_code}
+                            </p>
+                        )}
+                        <p>
                             <Mail size={17} />
                             <a href={`mailto:${selected.email}`}>
                                 {selected.email}
@@ -190,6 +206,11 @@ export default function DealershipRequests({
                         {selected.message && (
                             <blockquote>{selected.message}</blockquote>
                         )}
+                        {selected.additional_answers?.map((answer, index) => (
+                            <p key={index}>
+                                <strong>{answer.label}:</strong> {answer.value}
+                            </p>
+                        ))}
                         {selected.review_note && (
                             <p className="field-hint">
                                 Previous review: {selected.review_note}
@@ -277,6 +298,7 @@ export default function DealershipRequests({
             {create && (
                 <DealerForm
                     key={create.id}
+                    applicationId={create.id}
                     open
                     onOpenChange={(open) => {
                         if (!open) setCreate(null);
@@ -286,11 +308,13 @@ export default function DealershipRequests({
                         email: create.email,
                         mobile: create.mobile,
                         business_name: create.business_name,
+                        dealer_type: create.dealer_type,
                         level: create.level,
                         division: create.division,
                         district: create.district ?? "",
                         upazila: create.upazila ?? "",
                         union_name: create.union_name ?? "",
+                        referrer_code: create.referral_code ?? "",
                     }}
                 />
             )}

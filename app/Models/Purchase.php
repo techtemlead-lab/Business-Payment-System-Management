@@ -14,12 +14,12 @@ class Purchase extends Model
 
     protected function casts(): array
     {
-        return ['unit_mrp_minor' => 'integer', 'total_mrp_minor' => 'integer', 'amount_paid_minor' => 'integer', 'quantity' => 'integer', 'calculation' => 'array', 'purchased_on' => 'date:Y-m-d'];
+        return ['unit_mrp_minor' => 'integer', 'total_mrp_minor' => 'integer', 'amount_paid_minor' => 'integer', 'quantity' => 'integer', 'calculation' => 'array', 'referral_snapshot' => 'array', 'purchased_on' => 'date:Y-m-d'];
     }
 
     public static function allocationTotals(): array
     {
-        $totals = static::where('status', 'recorded')->whereNotNull('ledger_entry_id')->selectRaw('SUM(total_mrp_minor) AS mrp, SUM(company_minor) AS company, SUM(dealer_minor) AS dealer, SUM(pool_minor) AS pool, SUM(allocated_pool_minor) AS allocated, SUM(unallocated_pool_minor) AS unallocated')->first();
+        $totals = static::where('status', 'recorded')->where('calculation->preview_only', false)->selectRaw('SUM(total_mrp_minor) AS mrp, SUM(company_minor) AS company, SUM(dealer_minor) AS dealer, SUM(pool_minor) AS pool, SUM(allocated_pool_minor) AS allocated, SUM(unallocated_pool_minor) AS unallocated')->first();
 
         return ['mrp_minor' => (int) $totals->mrp, 'company_minor' => (int) $totals->company, 'dealer_minor' => (int) $totals->dealer, 'pool_minor' => (int) $totals->pool, 'allocated_minor' => (int) $totals->allocated, 'unallocated_minor' => (int) $totals->unallocated];
     }

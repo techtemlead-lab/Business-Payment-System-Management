@@ -97,12 +97,16 @@ export default function Portal({
             />
             <div className="dealer-banner">
                 <div>
-                    <span className="eyebrow">AUTHORIZED DEALER</span>
+                    <span className="eyebrow">
+                        {dealer.dealer_type === "area_dealer"
+                            ? "AUTHORIZED AREA DEALER"
+                            : "AUTHORIZED DEALER"}
+                    </span>
                     <h2>{dealer.business_name || dealer.name}</h2>
                     <p>
                         <span>{dealer.code}</span>
                         <span>·</span>
-                        <span>{dealer.level} dealer</span>
+                        <span>{dealer.level} territory</span>
                         <span>·</span>
                         <span>{dealer.division}</span>
                     </p>

@@ -42,6 +42,6 @@ abstract class WorkspaceController extends Controller
 
     protected function dealerRows(Builder $query): Collection
     {
-        return $query->with('user:id,name,email')->orderByDesc('id')->get()->map(fn ($d) => [...$d->only(['id', 'code', 'level', 'division', 'district', 'upazila', 'union_name', 'status', 'business_name', 'name_bn', 'mobile', 'created_at']), 'name' => $d->user->name, 'email' => $d->user->email]);
+        return $query->with('user:id,name,email', 'referrer:id,user_id,code', 'referrer.user:id,name', 'referralVerifier:id,name')->orderByDesc('id')->get()->map(fn ($d) => [...$d->only(['id', 'code', 'dealer_type', 'level', 'division', 'district', 'upazila', 'union_name', 'status', 'business_name', 'name_bn', 'mobile', 'created_at']), 'name' => $d->user->name, 'email' => $d->user->email, 'referrer_code' => $d->referrer?->code, 'referrer_name' => $d->referrer?->user->name, 'referral_verified_at' => $d->referral_verified_at, 'referral_verified_by_name' => $d->referralVerifier?->name]);
     }
 }

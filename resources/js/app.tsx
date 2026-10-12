@@ -1,12 +1,13 @@
 import "../css/app.css";
 import "../css/experience.css";
+import "../css/website.css";
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 const pages = import.meta.glob<{ default: React.ComponentType<any> }>(
     "./Pages/*.tsx",
 );
 createInertiaApp({
-    title: (title) => `${title} · Nexora`,
+    title: (title) => title,
     resolve: async (name) => {
         const load = pages[`./Pages/${name}.tsx`];
         if (!load) throw new Error(`Unknown page ${name}`);

@@ -1,23 +1,29 @@
 import { useForm } from "@inertiajs/react";
+import { DealerTypeField } from "./DealerTypeField";
+import { ReferrerPicker } from "./ReferrerPicker";
 import { Modal, Field, Button, Notice } from "./Common";
 export function DealerForm({
     open,
     onOpenChange,
     initial,
+    applicationId,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    applicationId?: number;
     initial?: Partial<
         Record<
             | "name"
             | "email"
+            | "dealer_type"
             | "level"
             | "division"
             | "district"
             | "upazila"
             | "union_name"
             | "business_name"
-            | "mobile",
+            | "mobile"
+            | "referrer_code",
             string
         >
     >;
@@ -27,6 +33,7 @@ export function DealerForm({
         name_bn: "",
         email: "",
         code: "",
+        dealer_type: "dealer",
         level: "District",
         division: "Dhaka",
         district: "",
@@ -35,10 +42,17 @@ export function DealerForm({
         business_name: "",
         mobile: "",
         password: "",
+        referrer_code: "",
+        referral_choice: initial?.referrer_code ? "referred" : "none",
+        referral_verified: false,
+        application_id: applicationId ?? null,
         ...initial,
     });
     const field = (
-        key: keyof typeof form.data,
+        key: Exclude<
+            keyof typeof form.data,
+            "application_id" | "referral_verified" | "referral_choice"
+        >,
         label: string,
         type = "text",
         placeholder = "",
@@ -79,6 +93,11 @@ export function DealerForm({
                 }}
             >
                 <div className="form-grid">
+                    <DealerTypeField
+                        value={form.data.dealer_type}
+                        error={form.errors.dealer_type}
+                        onChange={(value) => form.setData("dealer_type", value)}
+                    />
                     {field(
                         "name",
                         "Full name (English)",
@@ -92,8 +111,13 @@ export function DealerForm({
                         "email",
                         "dealer@company.com",
                     )}
-                    {field("code", "Dealer code", "text", "NX-DH-007")}
-                    <Field label="Dealer level" error={form.errors.level}>
+                    {field(
+                        "code",
+                        "Dealer code / unique referral code",
+                        "text",
+                        "NX-DH-007",
+                    )}
+                    <Field label="Territory level" error={form.errors.level}>
                         <select
                             value={form.data.level}
                             onChange={(e) =>
@@ -140,6 +164,25 @@ export function DealerForm({
                     {field("mobile", "Mobile number", "tel", "+8801XXXXXXXXX")}
                     {field("password", "Initial password", "password")}
                 </div>
+                {open && (
+                    <ReferrerPicker
+                        choice={form.data.referral_choice}
+                        code={form.data.referrer_code}
+                        verified={form.data.referral_verified}
+                        onChoice={(value) =>
+                            form.setData("referral_choice", value)
+                        }
+                        onCode={(value) => form.setData("referrer_code", value)}
+                        onVerified={(value) =>
+                            form.setData("referral_verified", value)
+                        }
+                        errors={form.errors}
+                    />
+                )}
+                <p className="field-hint">
+                    This dealer’s code becomes their unique referral code after
+                    account creation.
+                </p>
                 <p className="field-hint">
                     Use 12+ characters with uppercase, lowercase, a number, and
                     a symbol. Share initial credentials through an approved
@@ -153,7 +196,14 @@ export function DealerForm({
                     >
                         Cancel
                     </Button>
-                    <Button disabled={form.processing}>
+                    <Button
+                        disabled={
+                            form.processing ||
+                            (form.data.referral_choice === "referred" &&
+                                (!form.data.referrer_code ||
+                                    !form.data.referral_verified))
+                        }
+                    >
                         {form.processing ? "Creating..." : "Create dealer"}
                     </Button>
                 </div>

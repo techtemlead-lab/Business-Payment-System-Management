@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditEvent;
 use App\Models\User;
 use App\Services\Totp;
+use App\Services\WebsiteService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,7 +34,9 @@ class AuthController extends Controller
         }
         AuditEvent::record('auth.login');
 
-        return redirect(Auth::user()->totp_secret ? '/two-factor' : '/dashboard');
+        $landing = Auth::user()->role === 'dealer' ? app(WebsiteService::class)->published()['portal']['landing'] : '/dashboard';
+
+        return redirect(Auth::user()->totp_secret ? '/two-factor' : $landing);
     }
 
     public function demo(Request $r): RedirectResponse

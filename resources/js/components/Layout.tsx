@@ -1,5 +1,11 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+    Children,
+    isValidElement,
+    useEffect,
+    useState,
+    type ReactNode,
+} from "react";
 import { Head, Link, router, usePage } from "@inertiajs/react";
 import {
     type LucideIcon,
@@ -29,6 +35,7 @@ import {
     CheckCircle2,
 } from "lucide-react";
 import { type Shared } from "@/lib/types";
+import { siteStyle } from "@/lib/website";
 import { Modal, Button } from "./Common";
 import { Logo } from "./Brand";
 export { Logo } from "./Brand";
@@ -41,6 +48,7 @@ const adminNav: NavGroup[] = [
             ["/dealers", "Dealer management", Users],
             ["/dealership-requests", "Dealership requests", Building2],
             ["/hierarchy", "Network & territories", Network],
+            ["/referrals", "Referral network", Network],
         ],
     },
     {
@@ -48,10 +56,17 @@ const adminNav: NavGroup[] = [
         items: [
             ["/purchases", "Dealer purchases", Building2],
             ["/rules", "Commission & rewards", CircleDollarSign],
+            ["/rewards/earnings", "Earnings by category", Gift],
             ["/operating-mode", "Operating mode", SlidersHorizontal],
             ["/ledger", "Financial ledger", ArrowLeftRight],
             ["/payouts", "Payouts", Wallet],
             ["/reports", "Reports", BarChart3],
+        ],
+    },
+    {
+        group: "WEBSITE",
+        items: [
+            ["/website/customize", "Website customization", SlidersHorizontal],
         ],
     },
     {
@@ -68,8 +83,10 @@ const dealerNav: NavGroup[] = [
         items: [
             ["/dashboard", "Overview", LayoutDashboard],
             ["/purchases", "My purchases", Building2],
-            ["/ledger", "My earnings", CircleDollarSign],
+            ["/rewards/earnings", "Commission & rewards", Gift],
+            ["/ledger", "My ledger", CircleDollarSign],
             ["/payouts", "Withdrawals & payouts", Wallet],
+            ["/referrals", "My referrals", Network],
             ["/security", "Account security", ShieldCheck],
         ],
     },
@@ -171,7 +188,15 @@ export function Layout({
     return (
         <>
             <Head title={title} />
-            <div className="app-shell">
+            <div
+                className={`app-shell ${props.website?.theme.portal_branding ? "site-workspace" : ""}`}
+                style={
+                    props.website?.theme.portal_branding
+                        ? siteStyle(props.website)
+                        : undefined
+                }
+                data-compact={props.website?.portal.compact_tables}
+            >
                 <aside className="sidebar">{sidebar}</aside>
                 <Dialog.Root open={mobile} onOpenChange={setMobile}>
                     <Dialog.Portal>
@@ -315,13 +340,41 @@ export function Layout({
                         </div>
                     </header>
                     <main className="content" key={url.split("?")[0]}>
+                        {!isAdmin && props.website?.portal.announcement && (
+                            <div className="flash" role="status">
+                                {props.website.portal.announcement}
+                            </div>
+                        )}
                         {props.flash.success && (
                             <div className="flash" role="status">
                                 <CheckCircle2 size={18} />
                                 {props.flash.success}
                             </div>
                         )}
-                        {children}
+                        {isAdmin &&
+                        title === "Overview" &&
+                        props.website.portal.dashboard_order
+                            ? Children.toArray(children)
+                                  .map((child, index) => ({
+                                      child,
+                                      index,
+                                      rank:
+                                          isValidElement<{
+                                              className?: string;
+                                          }>(child) &&
+                                          props.website.portal.dashboard_order.includes(
+                                              child.props.className ?? "",
+                                          )
+                                              ? props.website.portal.dashboard_order.indexOf(
+                                                    child.props.className!,
+                                                )
+                                              : index === 0
+                                                ? -1
+                                                : 100 + index,
+                                  }))
+                                  .sort((a, b) => a.rank - b.rank)
+                                  .map((item) => item.child)
+                            : children}
                     </main>
                     <footer className="app-footer">
                         <span>
@@ -407,8 +460,8 @@ export function Layout({
                         <CircleDollarSign />
                         <h3>Understand your allocations</h3>
                         <p>
-                            Record purchases using the confirmed MRP model,
-                            then review dealer withdrawal requests.
+                            Record purchases using the confirmed MRP model, then
+                            review dealer withdrawal requests.
                         </p>
                     </div>
                     <div>

@@ -101,7 +101,7 @@ export default function Purchases({
                 }
                 description={
                     isCompany
-                        ? "Record what each dealer bought. Calculations use total product MRP; the purchasing dealer earns 50%."
+                        ? "Record what each dealer bought. Calculations use total product MRP and the active commission rule."
                         : "Purchases recorded by your company, with your earnings breakdown."
                 }
                 action={

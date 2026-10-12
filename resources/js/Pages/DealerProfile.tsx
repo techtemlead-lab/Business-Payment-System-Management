@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { DealerTypeField } from "@/components/DealerTypeField";
+import { ManageReferral } from "@/components/ManageReferral";
 import { Link, router, useForm, usePage } from "@inertiajs/react";
 import {
     Users,
@@ -87,6 +89,7 @@ export default function DealerProfile({
         name: dealer.name,
         email: dealer.email,
         mobile: dealer.mobile ?? "",
+        ...(isAdmin ? { dealer_type: dealer.dealer_type } : {}),
         level: dealer.level,
         division: dealer.division,
         district: dealer.district ?? "",
@@ -110,6 +113,45 @@ export default function DealerProfile({
                 action={<Badge status={dealer.status} />}
             />
             <BalanceCards balances={balances} />
+            <Card>
+                <CardHeading
+                    title="Referral network"
+                    subtitle="Track this dealer’s three generations and direct referrer."
+                />
+                <Button asChild variant="outline">
+                    <Link
+                        href={
+                            isAdmin
+                                ? `/referrals?code=${encodeURIComponent(dealer.code)}`
+                                : "/referrals"
+                        }
+                    >
+                        View referral network
+                    </Link>
+                </Button>
+            </Card>
+            {isAdmin && (
+                <Card className="my-6 p-6">
+                    <h2 className="mb-3 text-xl">Referral connection</h2>
+                    <p>
+                        <strong>Unique referral code:</strong> {dealer.code}
+                    </p>
+                    <p>
+                        <strong>Direct referrer:</strong>{" "}
+                        {dealer.referrer_code
+                            ? `${dealer.referrer_code} · ${dealer.referrer_name}`
+                            : "No referrer"}
+                    </p>
+                    <p className="field-hint mb-3">
+                        {dealer.referrer_code
+                            ? dealer.referral_verified_at
+                                ? `Verified ${date(dealer.referral_verified_at)} by ${dealer.referral_verified_by_name}`
+                                : "Existing connection · manual verification pending"
+                            : "The company can connect a referring dealer at any time."}
+                    </p>
+                    <ManageReferral dealer={dealer} />
+                </Card>
+            )}
             {isAdmin && (
                 <Card className="dealer-financial-actions">
                     <div>
@@ -143,7 +185,13 @@ export default function DealerProfile({
                             ["English name", dealer.name],
                             ["Email address", dealer.email],
                             ["Mobile", dealer.mobile || "Not provided"],
-                            ["Dealer level", dealer.level],
+                            [
+                                "Account type",
+                                dealer.dealer_type === "area_dealer"
+                                    ? "Area dealer"
+                                    : "Dealer",
+                            ],
+                            ["Territory level", dealer.level],
                             ["Division", dealer.division],
                             ["District", dealer.district || "Not assigned"],
                             [
@@ -198,6 +246,19 @@ export default function DealerProfile({
                         </Field>
                         {isAdmin && (
                             <>
+                                <DealerTypeField
+                                    value={
+                                        form.data.dealer_type ??
+                                        dealer.dealer_type
+                                    }
+                                    error={form.errors.dealer_type}
+                                    onChange={(value) =>
+                                        form.setData(
+                                            "dealer_type",
+                                            value as "dealer" | "area_dealer",
+                                        )
+                                    }
+                                />
                                 {(
                                     [
                                         ["name", "Full name (English)"],
@@ -230,7 +291,7 @@ export default function DealerProfile({
                                     </Field>
                                 ))}
                                 <Field
-                                    label="Dealer level"
+                                    label="Territory level"
                                     error={form.errors.level}
                                 >
                                     <select

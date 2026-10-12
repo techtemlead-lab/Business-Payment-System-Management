@@ -44,7 +44,7 @@ class LedgerService
             if ($this->balances($entry->dealer_id)['available_minor'] < $entry->amount_minor) {
                 throw ValidationException::withMessages(['entry' => 'Funds are reserved or paid; reconcile before reversing.']);
             }
-            $reversal = LedgerEntry::create(['dealer_id' => $entry->dealer_id, 'amount_minor' => -$entry->amount_minor, 'kind' => 'reversal', 'business_reference' => $reference, 'rule_version_id' => $entry->rule_version_id, 'reversal_of' => $entry->id, 'actor_id' => auth()->id(), 'reason' => $reason, 'created_at' => now()]);
+            $reversal = LedgerEntry::create(['dealer_id' => $entry->dealer_id, 'amount_minor' => -$entry->amount_minor, 'kind' => 'reversal', 'earning_category' => $entry->earning_category, 'business_reference' => $reference, 'rule_version_id' => $entry->rule_version_id, 'reversal_of' => $entry->id, 'actor_id' => auth()->id(), 'reason' => $reason, 'created_at' => now()]);
             AuditEvent::record('ledger.reversed', ['entry_id' => $entryId, 'reversal_id' => $reversal->id, 'reason' => $reason], $entry->dealer_id);
 
             return $reversal;

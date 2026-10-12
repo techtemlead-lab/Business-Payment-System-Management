@@ -11,7 +11,32 @@ class Dealer extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id', 'user_id'];
+    public function isAreaDealer(): bool
+    {
+        return $this->dealer_type === 'area_dealer';
+    }
+
+    protected $guarded = ['id', 'user_id', 'referrer_id', 'dealership_request_id', 'referral_verified_by', 'referral_verified_at'];
+
+    protected function casts(): array
+    {
+        return ['referrer_id' => 'integer', 'dealership_request_id' => 'integer', 'referral_verified_by' => 'integer', 'referral_verified_at' => 'datetime'];
+    }
+
+    public function referrer(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'referrer_id');
+    }
+
+    public function referralVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referral_verified_by');
+    }
+
+    public function referrals(): HasMany
+    {
+        return $this->hasMany(self::class, 'referrer_id');
+    }
 
     public function user(): BelongsTo
     {

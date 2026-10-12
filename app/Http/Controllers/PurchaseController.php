@@ -10,6 +10,7 @@ use App\Models\Purchase;
 use App\Models\RuleVersion;
 use App\Services\FinancialCalculator;
 use App\Services\LedgerService;
+use App\Services\ReferralService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,7 @@ class PurchaseController extends WorkspaceController
         ]);
     }
 
-    public function store(Request $request, FinancialCalculator $calculator): RedirectResponse
+    public function store(Request $request, FinancialCalculator $calculator, ReferralService $referrals): RedirectResponse
     {
         $this->admin($request);
         $this->stepUp($request);
@@ -58,7 +59,7 @@ class PurchaseController extends WorkspaceController
         if ($total <= 0 || $total > 99999999999) {
             throw ValidationException::withMessages(['unit_mrp' => 'Total MRP must be positive and at most BDT 999,999,999.99.']);
         }
-        DB::transaction(function () use ($request, $validated, $amounts, $total, $calculator): void {
+        DB::transaction(function () use ($request, $validated, $amounts, $total, $calculator, $referrals): void {
             $config = BusinessConfig::query()->lockForUpdate()->findOrFail(1);
             $dealer = Dealer::where('code', $validated['dealer_code'])->lockForUpdate()->firstOrFail();
             if ($dealer->status !== 'active') {
@@ -72,18 +73,23 @@ class PurchaseController extends WorkspaceController
 
                 return;
             }
-            $version = RuleVersion::firstOrCreate(['name' => 'Confirmed dealer-purchase model', 'status' => 'reference'], ['definition' => FinancialCalculator::definition(), 'reason' => 'Company-confirmed purchase workflow: total product MRP; 50% credited to the purchasing dealer, 30% company share, 20% reward pool. Pool recipient eligibility remains undefined.']);
+            $version = $config->active_rule_version_id ? RuleVersion::findOrFail($config->active_rule_version_id) : RuleVersion::firstOrCreate(['name' => 'Confirmed dealer-purchase model', 'status' => 'reference'], ['definition' => FinancialCalculator::definition(), 'reason' => 'Company-confirmed purchase workflow: total product MRP; 50% credited to the purchasing dealer, 30% company share, 20% reward pool. Pool recipient eligibility remains undefined.']);
+            if (($version->effective_from && $validated['purchased_on'] < $version->effective_from) || ($version->effective_to && $validated['purchased_on'] > $version->effective_to)) {
+                throw ValidationException::withMessages(['purchased_on' => 'The purchase date falls outside the active rule version’s effective date range.']);
+            }
             $calculation = $calculator->preview($total, $version->definition);
             $calculation['preview_only'] = $config->mode !== 'COMMISSION_BASED';
+            $calculation['referral_snapshot'] = $referrals->ancestors($dealer);
             $purchase = Purchase::create(['dealer_id' => $dealer->id, 'reference' => $validated['reference'], 'product_name' => $validated['product_name'], 'quantity' => (int) $validated['quantity'], 'unit_mrp_minor' => $amounts['unit_mrp'], 'total_mrp_minor' => $total, 'amount_paid_minor' => $amounts['amount_paid'], 'purchased_on' => $validated['purchased_on'], 'calculation' => $calculation, 'company_minor' => $calculation['company_minor'], 'dealer_minor' => $calculation['dealer_minor'], 'pool_minor' => $calculation['pool_minor'], 'allocated_pool_minor' => $calculation['allocated_minor'], 'unallocated_pool_minor' => $calculation['unallocated_minor'], 'rule_version_id' => $version->id, 'note' => $validated['note'] ?? null, 'actor_id' => $request->user()->id, 'status' => 'recorded']);
-            if ($config->mode === 'COMMISSION_BASED') {
-                $earning = LedgerEntry::create(['dealer_id' => $dealer->id, 'amount_minor' => $calculation['dealer_minor'], 'kind' => 'earned', 'business_reference' => 'purchase-earning-'.$purchase->id, 'rule_version_id' => $version->id, 'actor_id' => $request->user()->id, 'reason' => '50% of total product MRP for company-recorded purchase '.$purchase->reference, 'created_at' => now()]);
+            $purchase->update(['referral_snapshot' => $calculation['referral_snapshot']]);
+            if ($config->mode === 'COMMISSION_BASED' && $calculation['dealer_minor'] > 0) {
+                $earning = LedgerEntry::create(['dealer_id' => $dealer->id, 'amount_minor' => $calculation['dealer_minor'], 'kind' => 'earned', 'earning_category' => 'purchase_commission', 'business_reference' => 'purchase-earning-'.$purchase->id, 'rule_version_id' => $version->id, 'actor_id' => $request->user()->id, 'reason' => ($calculation['dealer_bps'] / 100).'% of total product MRP under rule V'.$version->id.' for purchase '.$purchase->reference, 'created_at' => now()]);
                 $purchase->update(['ledger_entry_id' => $earning->id]);
             }
             AuditEvent::record('purchase.recorded', ['purchase_id' => $purchase->id, 'dealer_id' => $dealer->id, 'total_mrp_minor' => $total, 'amount_paid_minor' => $purchase->amount_paid_minor, 'preview_only' => $calculation['preview_only']], $dealer->id);
         });
 
-        return back()->with('success', 'Purchase recorded. In commission mode, 50% of total MRP is credited to the purchasing dealer. Reward-pool allocations remain pending eligibility.');
+        return back()->with('success', 'Purchase recorded using the active commission rule. In commission mode, the dealer share is credited once. Referral and reward payouts remain pending their business rules.');
     }
 
     public function cancel(Request $request, Purchase $purchase, LedgerService $ledger): RedirectResponse

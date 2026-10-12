@@ -2,9 +2,13 @@
 
 use App\Models\AuditEvent;
 use App\Models\User;
+use App\Services\WebsiteService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules\Password;
+
+Schedule::call(fn () => app(WebsiteService::class)->publishDue())->everyMinute()->name('website.publish')->withoutOverlapping();
 
 Artisan::command('dealer:admin {email} {--name=Company Admin}', function () {
     $email = strtolower($this->argument('email'));

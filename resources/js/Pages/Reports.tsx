@@ -166,9 +166,9 @@ export default function Reports({
                 />
                 <div className="checklist">
                     {[
-                        "Define the approved source sales or purchase workflow.",
-                        "Approve the dealer-level distribution of the 50% dealer commission.",
-                        "Confirm reward eligibility, recipients, and the unallocated 60% of the pool.",
+                        "Review the active commission version for future purchases.",
+                        "Confirm the calculation base and eligibility for three-generation referral payouts.",
+                        "Confirm reward eligibility and recipients for pool allocations.",
                         "Confirm a disbursement provider, payout limits, and approval policies.",
                     ].map((t) => (
                         <div key={t}>
