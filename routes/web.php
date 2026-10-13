@@ -9,6 +9,7 @@ Route::get('/products/preview/{id}',[PublicController::class,'previewProduct']);
 Route::get('/products/{product}/image',[ProductRegistryController::class,'image'])->name('products.image');
 Route::get('/products/{product}/video',[ProductRegistryController::class,'video'])->name('products.video');
 Route::get('/products/{product}',[PublicController::class,'product'])->name('products.show');
+Route::get('/outlets', fn() => redirect('/dealers', 301));
 Route::get('/{page}',[PublicController::class,'index'])->whereIn('page',['products','dealers','about','contact']);
 Route::post('/enquiries',[PublicController::class,'enquiry'])->middleware('throttle:5,1');
 Route::middleware('guest')->group(function(){

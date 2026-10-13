@@ -2,10 +2,11 @@
     $reference = json_decode(file_get_contents(public_path('reference/home-products.json')), true);
     $referenceProducts = $referencePreview ? $reference['products'] : [];
     $featuredCategories = [
-        ['Medical Equipment','fa-kit-medical'],['Meat & Fish','fa-fish'],['Food Supplement','fa-seedling'],['Personal Care','fa-spa'],
-        ['Water Purifier','fa-droplet'],['Leather Items','fa-briefcase'],['Unani Medicine','fa-pills'],['Organic Fruit','fa-apple-whole'],
-        ['Consumer Items','fa-basket-shopping'],['Agriculture Product','fa-tractor'],['Cosmetics','fa-wand-magic-sparkles'],['Furniture','fa-couch'],
-        ['Service','fa-hand-holding-heart'],['Medicine','fa-capsules'],['Food & Grocery','fa-utensils'],['Health Care','fa-heart-pulse'],
+        ['Medical Equipment','fa-briefcase-medical'],['Meat & Fish','fa-drumstick-bite'],['Food Supplement','fa-seedling'],['Personal Care','fa-spa'],
+        ['Water Purifier','fa-droplet'],['Leather Items','fa-briefcase'],['Unani Medicine','fa-mortar-pestle'],['Consumer Items','fa-basket-shopping'],
+        ['Medicine','fa-capsules'],['Electric Kettle','fa-mug-hot'],['Agriculture Product','fa-leaf'],['Cookeries Items','fa-kitchen-set'],
+        ['Cosmetics','fa-wand-magic-sparkles'],['Room Heater','fa-temperature-high'],['Furniture','fa-couch'],['Service','fa-hand-holding-heart'],
+        ['Electronic Devices','fa-plug'],['Fashion & Lifestyle','fa-vest'],
     ];
 
     $slides = $siteCustomization['slides'] ?? [];
@@ -109,10 +110,30 @@
         </div>
         <div class="ref-category-grid">@foreach($featuredCategories as [$title,$icon])<a href="/products?category={{ urlencode($title) }}"><i class="fa-solid {{ $icon }}" aria-hidden="true"></i><span>{{ $title }}</span></a>@endforeach</div>
     </section>
+    <section class="ref-dealer-network-banner" aria-label="Authorized Dealer Network">
+        <div class="ref-dealer-banner-inner">
+            <div class="ref-dealer-banner-info">
+                <div class="ref-dealer-banner-icon" aria-hidden="true">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+                <div>
+                    <h3>{{ $siteCustomization['dealer_banner_title'] ?? 'Authorized Dealer Network' }}</h3>
+                    <p>{{ $siteCustomization['dealer_banner_subtitle'] ?? 'Find your nearest authorized dealer or sub-dealer pharmacy with GPS distance calculation!' }}</p>
+                </div>
+            </div>
+            <a href="/dealers" class="ref-dealer-banner-btn">
+                <span>Find Nearest Dealer</span>
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            </a>
+        </div>
+    </section>
     <section id="featured-products" class="ref-featured-products">
-        <div class="ref-section-title">
-            <h2>{{ $siteCustomization['featured_products_title'] ?? 'Featured Products' }}</h2>
-            <p>{{ $siteCustomization['featured_products_subtitle'] ?? 'Check & Get Your Desired Product!' }}</p>
+        <div class="ref-section-title ref-section-title-flex">
+            <div>
+                <h2>{{ $siteCustomization['featured_products_title'] ?? 'Featured Products' }}</h2>
+                <p>{{ $siteCustomization['featured_products_subtitle'] ?? 'Check & Get Your Desired Product!' }}</p>
+            </div>
+            <a href="/products" class="ref-view-all-link">View All Products <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
         <div class="ref-product-grid">
             @if(!$referencePreview)

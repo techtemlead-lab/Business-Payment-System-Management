@@ -124,5 +124,25 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('About Us');
         $res->assertSee('Contact');
     }
+
+    public function test_home_page_renders_dealer_network_banner_and_view_all_link():void
+    {
+        $res = $this->get('/');
+        $res->assertOk();
+        $res->assertSee('Authorized Dealer Network');
+        $res->assertSee('Find Nearest Dealer');
+        $res->assertSee('/dealers');
+        $res->assertSee('View All Products');
+        $res->assertSee('Medical Equipment');
+        $res->assertSee('Electronic Devices');
+        $res->assertSee('Fashion &amp; Lifestyle', false);
+    }
+
+    public function test_outlets_url_redirects_to_dealers_directory():void
+    {
+        $res = $this->get('/outlets');
+        $res->assertRedirect('/dealers');
+        $this->assertEquals(301, $res->getStatusCode());
+    }
 }
 
