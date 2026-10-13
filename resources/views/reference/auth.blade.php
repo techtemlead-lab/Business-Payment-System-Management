@@ -1,7 +1,7 @@
 @extends('reference.layout')
 @section('title',($mode==='login'?'Account Login':($mode==='forgot'?'Forgot Password':'Reset Password')).' · Madina Natural Health Care')
 @section('content')
-<main id="main" class="ref-container ref-auth-main"><section class="ref-auth-card"><h1>{{ $mode==='login'?'Account Login':($mode==='forgot'?'Forgot Password':'Reset Password') }}</h1><p class="ref-auth-subtitle">{{ $mode==='login'?'Welcome back! Please enter your credentials.':($mode==='forgot'?'Enter your account email to request a reset link.':'Choose a new password for your account.') }}</p>
+<main id="main" class="ref-container ref-auth-main"><section class="ref-auth-card"><h1>{{ $mode==='login'?($siteCustomization['auth_login_title'] ?? 'Account Login'):($mode==='forgot'?'Forgot Password':'Reset Password') }}</h1><p class="ref-auth-subtitle">{{ $mode==='login'?($siteCustomization['auth_login_subtitle'] ?? 'Welcome back! Please enter your credentials.'):($mode==='forgot'?'Enter your account email to request a reset link.':'Choose a new password for your account.') }}</p>
 @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
 <form class="ref-form" action="{{ $mode==='login'?'/login':($mode==='forgot'?'/forgot-password':'/reset-password') }}" method="post">@csrf
@@ -10,5 +10,5 @@
 @if($mode!=='forgot')<div class="ref-password-label"><label for="account-password">Password</label>@if($mode==='login')<a href="/forgot-password">Forgot password?</a>@endif</div><div class="ref-password-field"><input id="account-password" type="password" name="password" required @if($mode==='reset') minlength="12" autocomplete="new-password" @else autocomplete="current-password" @endif maxlength="200" placeholder="Enter your password"><button type="button" data-toggle-password="account-password" aria-label="Show password" aria-pressed="false"><i class="fa-regular fa-eye" aria-hidden="true"></i></button></div>@endif
 @if($mode==='reset')<label for="account-password-confirmation">Confirm Password</label><input id="account-password-confirmation" type="password" name="password_confirmation" minlength="12" maxlength="200" required autocomplete="new-password"><p class="ref-form-hint">Use at least 12 characters with uppercase and lowercase letters and a number.</p>@endif
 <button class="ref-auth-submit" type="submit">{{ $mode==='login'?'Login':($mode==='forgot'?'Send Reset Link':'Reset Password') }}</button></form>
-<div class="ref-auth-bottom">@if($mode==='login')Need a dealer account? <a href="/contact">Contact the company</a>@else<a href="/login">Back to Login</a>@endif</div></section></main>
+<div class="ref-auth-bottom">@if($mode==='login'){{ $siteCustomization['auth_dealer_help_text'] ?? 'Need a dealer account?' }} <a href="/contact">{{ $siteCustomization['auth_dealer_contact_text'] ?? 'Contact the company' }}</a>@else<a href="/login">Back to Login</a>@endif</div></section></main>
 @endsection

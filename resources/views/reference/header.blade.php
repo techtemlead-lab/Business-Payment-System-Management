@@ -5,8 +5,8 @@
         <a href="/" class="ref-logo ref-madina-logo" aria-label="Madina Natural Health Care home"><img src="/madina-header-logo.png?v=3" alt="Madina Natural Health Care" width="668" height="372"></a>
         <form method="get" action="/products" class="ref-search"><label class="ref-sr-only" for="site-search">Search products</label><input id="site-search" name="q" placeholder="{{ $siteCustomization['search_placeholder'] ?? 'Search' }}" autocomplete="off"><button aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></form>
         <div class="ref-header-links">
-            <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>About Us</b><small>Our Story</small></span></a>
-            <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>Contact</b><small>Get Support</small></span></a>
+            <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_about_title'] ?? 'About Us' }}</b><small>{{ $siteCustomization['header_about_subtitle'] ?? 'Our Story' }}</small></span></a>
+            <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_contact_title'] ?? 'Contact' }}</b><small>{{ $siteCustomization['header_contact_subtitle'] ?? 'Get Support' }}</small></span></a>
             <a href="/#featured-products"><i class="fa-solid fa-gift" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_offers_title'] ?? 'Offers' }}</b><small>{{ $siteCustomization['header_offers_subtitle'] ?? 'Latest Offers' }}</small></span></a>
             <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_projects_title'] ?? 'Projects' }}</b><small>{{ $siteCustomization['header_projects_subtitle'] ?? 'Dealer Network' }}</small></span></a>
             <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_account_title'] ?? 'Account' }}</b><small>{{ $siteCustomization['header_account_subtitle'] ?? 'Partner Login' }}</small></span></a>

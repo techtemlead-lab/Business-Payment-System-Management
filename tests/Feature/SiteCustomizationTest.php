@@ -83,4 +83,29 @@ class SiteCustomizationTest extends TestCase
         $this->get('/')->assertSee('MADINA NATURAL HEALTH CARE');
         $this->get('/')->assertDontSee('CUSTOM TOP BAR TEXT');
     }
+
+    public function test_inner_pages_and_catalog_reflect_customized_placeholders(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $payload = [
+            'customization' => [
+                'about_hero_title' => 'Custom About Hero Title',
+                'contact_company_title' => 'Custom Contact Company Hub',
+                'directory_title' => 'Custom Dealer Directory Point',
+                'catalog_categories_title' => 'Custom Catalog Filter Head',
+                'auth_login_title' => 'Custom Partner Access Portal',
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        $this->get('/about')->assertOk()->assertSee('Custom About Hero Title');
+        $this->get('/contact')->assertOk()->assertSee('Custom Contact Company Hub');
+        $this->get('/dealers')->assertOk()->assertSee('Custom Dealer Directory Point');
+        $this->get('/products')->assertOk()->assertSee('Custom Catalog Filter Head');
+
+        auth()->logout();
+        $this->get('/login')->assertOk()->assertSee('Custom Partner Access Portal');
+    }
 }

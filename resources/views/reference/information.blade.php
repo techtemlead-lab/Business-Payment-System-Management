@@ -5,62 +5,62 @@
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? 'About Madina Natural Health Care' }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? 'Madina Natural Health Care connects quality wellness products, dealers, healthcare practitioners and communities through an approved distribution network across Bangladesh.' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization['about_hero_title'] ?? 'About Madina Natural Health Care') }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['about_hero_lead'] ?? 'Madina Natural Health Care connects quality wellness products, dealers, healthcare practitioners and communities through an approved distribution network across Bangladesh.') }}</div>
 </article>
 
 <div class="ref-about-sections-grid">
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
-        <h2>Company History</h2>
+        <h2>{{ $siteCustomization['about_history_title'] ?? 'Company History' }}</h2>
         <p>{{ $siteCustomization['about_history'] ?? 'Established with a commitment to pure wellness, Madina Natural Health Care began by addressing the growing need for authentic natural food supplements, unani medicines and accessible community healthcare. Over the years, our organization has expanded from local healthcare service points into a nationwide network connecting dedicated dealers, sub-dealers and health centers across Bangladesh.' }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-bullseye" aria-hidden="true"></i></div>
-        <h2>Our Mission</h2>
+        <h2>{{ $siteCustomization['about_mission_title'] ?? 'Our Mission' }}</h2>
         <p>{{ $siteCustomization['about_mission'] ?? 'To formulate, source and deliver reliable, high-standard natural health products while empowering local entrepreneurship through a transparent, staff-verified dealer and distribution ecosystem.' }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-eye" aria-hidden="true"></i></div>
-        <h2>Our Vision</h2>
+        <h2>{{ $siteCustomization['about_vision_title'] ?? 'Our Vision' }}</h2>
         <p>{{ $siteCustomization['about_vision'] ?? 'To become Bangladesh’s foremost trusted name in natural preventive healthcare, unani medicine and community wellness, fostering healthier families and resilient partner livelihoods in every district.' }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
-        <h2>Core Objectives</h2>
+        <h2>{{ $siteCustomization['about_objectives_title'] ?? 'Core Objectives' }}</h2>
         <ul class="ref-about-objectives">
-            <li><strong>Authentic Wellness:</strong> Supply safe, verified unani and dietary supplements with clear quality standards.</li>
-            <li><strong>Empowered Partners:</strong> Support authorized dealers and sub-dealers with fair terms, structured training and dedicated portals.</li>
-            <li><strong>Accessible Care:</strong> Connect rural and urban communities with nearby partner outlets and physiotherapy assistance.</li>
-            <li><strong>Transparent Operations:</strong> Maintain staff-audited orders, manual payment verifications and clear distribution records.</li>
+            <li><strong>{{ $siteCustomization['about_obj1_title'] ?? 'Authentic Wellness' }}:</strong> {{ $siteCustomization['about_obj1_desc'] ?? 'Supply safe, verified unani and dietary supplements with clear quality standards.' }}</li>
+            <li><strong>{{ $siteCustomization['about_obj2_title'] ?? 'Empowered Partners' }}:</strong> {{ $siteCustomization['about_obj2_desc'] ?? 'Support authorized dealers and sub-dealers with fair terms, structured training and dedicated portals.' }}</li>
+            <li><strong>{{ $siteCustomization['about_obj3_title'] ?? 'Accessible Care' }}:</strong> {{ $siteCustomization['about_obj3_desc'] ?? 'Connect rural and urban communities with nearby partner outlets and physiotherapy assistance.' }}</li>
+            <li><strong>{{ $siteCustomization['about_obj4_title'] ?? 'Transparent Operations' }}:</strong> {{ $siteCustomization['about_obj4_desc'] ?? 'Maintain staff-audited orders, manual payment verifications and clear distribution records.' }}</li>
         </ul>
     </section>
 </div>
 
 <div class="ref-information-links">
-    <a href="/products" class="ref-primary-button">Explore Products</a>
-    <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a>
-    <a href="/contact">Contact Head Office <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    <a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>
+    <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
+    <a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 </div>
 @endif
 
 @if($page==='contact')
-<h1 class="ref-page-title">Contact Us</h1>
+<h1 class="ref-page-title">{{ $siteCustomization['contact_title'] ?? 'Contact Us' }}</h1>
 <div class="ref-contact-grid">
     <section class="ref-content-card">
-        <h2>Madina Natural Health Care</h2>
-        <p>For product information, dealer enquiries or support, send us a message or visit our head office.</p>
+        <h2>{{ $siteCustomization['contact_company_title'] ?? 'Madina Natural Health Care' }}</h2>
+        <p>{{ $siteCustomization['contact_company_desc'] ?? 'For product information, dealer enquiries or support, send us a message or visit our head office.' }}</p>
         @if($content)<div class="ref-content-prose">{{ $content->body }}</div>@endif
-        <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>Dealer Enquiries</h3><p>Dealer accounts are created by company staff after review.</p></div></div>
-        <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>Products &amp; Support</h3><p>Ask about availability, orders and your local dealer.</p></div></div>
-        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>Head Office</h3><p>{{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p></div></div>
-        <a href="/dealers" class="ref-primary-button">Find a Dealer</a>
+        <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic1_title'] ?? 'Dealer Enquiries' }}</h3><p>{{ $siteCustomization['contact_topic1_desc'] ?? 'Dealer accounts are created by company staff after review.' }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic2_title'] ?? 'Products & Support' }}</h3><p>{{ $siteCustomization['contact_topic2_desc'] ?? 'Ask about availability, orders and your local dealer.' }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic3_title'] ?? 'Head Office' }}</h3><p>{{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p></div></div>
+        <a href="/dealers" class="ref-primary-button">{{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
     </section>
     <section class="ref-content-card">
-        <h2>Send an Enquiry</h2>
+        <h2>{{ $siteCustomization['contact_form_title'] ?? 'Send an Enquiry' }}</h2>
         @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
         @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
         <form class="ref-form" action="/enquiries" method="post">
@@ -85,23 +85,23 @@
 
 <section class="ref-content-card ref-map-card">
     <div class="ref-map-header">
-        <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Office &amp; Healthcare Center Location</h2>
-        <p>Visit Madina Natural Health Care at our registered center or navigate with map directions.</p>
+        <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> {{ $siteCustomization['map_title'] ?? 'Office & Healthcare Center Location' }}</h2>
+        <p>{{ $siteCustomization['map_subtitle'] ?? 'Visit Madina Natural Health Care at our registered center or navigate with map directions.' }}</p>
     </div>
     <div class="ref-map-wrapper">
         <iframe 
-            src="https://www.openstreetmap.org/export/embed.html?bbox=90.22,23.88,90.30,23.95&amp;layer=mapnik&amp;marker=23.914,90.260" 
+            src="{{ $siteCustomization['map_embed_url'] ?? 'https://www.openstreetmap.org/export/embed.html?bbox=90.22,23.88,90.30,23.95&amp;layer=mapnik&amp;marker=23.914,90.260' }}" 
             title="Madina Natural Health Care Office Location Map" 
             loading="lazy">
         </iframe>
     </div>
     <div class="ref-map-footer">
         <div>
-            <strong>Madina Natural Health Care &amp; Physiotherapy Center</strong>
+            <strong>{{ $siteCustomization['map_facility'] ?? 'Madina Natural Health Care & Physiotherapy Center' }}</strong>
             <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p>
         </div>
-        <a href="https://www.openstreetmap.org/?mlat=23.914&amp;mlon=90.260#map=15/23.914/90.260" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
-            <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> Open Map Directions
+        <a href="{{ $siteCustomization['map_directions_url'] ?? 'https://www.openstreetmap.org/?mlat=23.914&amp;mlon=90.260#map=15/23.914/90.260' }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+            <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $siteCustomization['map_directions_text'] ?? 'Open Map Directions' }}
         </a>
     </div>
 </section>
@@ -109,12 +109,12 @@
 
 @if($page==='dealers')
 <section class="ref-directory-heading">
-    <h1>Dealer Directory</h1>
-    <p>Find a company-approved dealer point or search nearest dealers in your area.</p>
+    <h1>{{ $siteCustomization['directory_title'] ?? 'Dealer Directory' }}</h1>
+    <p>{{ $siteCustomization['directory_subtitle'] ?? 'Find a company-approved dealer point or search nearest dealers in your area.' }}</p>
 
     <div class="ref-location-search-bar">
         <button type="button" class="ref-location-btn" id="find-nearest-btn">
-            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> Use My Current Location (Nearest Dealers)
+            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $siteCustomization['directory_gps_btn'] ?? 'Use My Current Location (Nearest Dealers)' }}
         </button>
         <span class="ref-location-status" id="location-status" role="status" aria-live="polite"></span>
     </div>
@@ -145,8 +145,8 @@
                 @endforeach
             </select>
         </label>
-        <button class="ref-primary-button">Find Dealers</button>
-        <a href="/dealers">Clear</a>
+        <button class="ref-primary-button">{{ $siteCustomization['directory_filter_btn'] ?? 'Find Dealers' }}</button>
+        <a href="/dealers">{{ $siteCustomization['directory_clear_btn'] ?? 'Clear' }}</a>
     </form>
 </section>
 
@@ -178,8 +178,8 @@
     @empty
     <div class="ref-empty">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-        <h2>No published dealers in this area yet.</h2>
-        <p>Contact us for help finding a local dealer.</p>
+        <h2>{{ $siteCustomization['directory_empty_title'] ?? 'No published dealers in this area yet.' }}</h2>
+        <p>{{ $siteCustomization['directory_empty_desc'] ?? 'Contact us for help finding a local dealer.' }}</p>
         <a href="/contact" class="ref-primary-button">Contact Us</a>
     </div>
     @endforelse
