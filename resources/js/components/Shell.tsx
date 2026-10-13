@@ -51,7 +51,7 @@ export default function Shell({ section, children, action }: { section: string; 
         {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
         <aside ref={sidebar} id="workspace-navigation" className={`sidebar ${open ? 'open' : ''}`} inert={!open&&(!staff||mobile)} aria-hidden={!open&&(!staff||mobile)} role={open?'dialog':undefined} aria-modal={open||undefined} aria-label={staff?'Company navigation':'Account navigation'}>
             <button className={`icon-button ${staff?'mobile-only':''}`} aria-label="Close navigation" onClick={() => setOpen(false)}><X size={18} /></button>
-            <a href={base} className="portal-logo sidebar-logo" aria-label="Madina dashboard"><img src="/madina-header-logo.png?v=4" alt="Madina Natural Health Care"/></a>
+            <a href={base} className="portal-logo sidebar-logo" aria-label="Madina dashboard"><img src="/madina-header-logo.png?v=5" alt="Madina Natural Health Care"/></a>
             <div className="workspace-label"><span className="live-dot" />{staff ? 'Company workspace' : user.role === 'sub_dealer' ? 'Sub-dealer workspace' : 'Dealer workspace'}</div>
             {group('WORKSPACE', operation)}{group('FINANCE & GROWTH', finance)}{group('MANAGEMENT', management)}{group('ACCOUNT', ['profile', 'security'])}
             <div className="sidebar-footer">{!staff&&<div className="help-card"><Leaf size={22} /><b>Growing, together.</b><span>One connected Madina network.</span><a href="/contact">Contact the company <ArrowUpRight size={14} /></a></div>}<button className="sign-out" onClick={() => router.post('/logout')}><LogOut size={17} />Sign out</button></div>
