@@ -1,0 +1,238 @@
+{
+  "purpose": "Reference design demo only. Public presentation fixture, not target product inventory, prices, stock or medical/business claims.",
+  "source": {
+    "homepage": "https://naturalgroupmart.com/",
+    "archived_evidence": "P01",
+    "snapshot_file": "imported-rea-context/outputs/homepage-dom.yml",
+    "capture_date": "2026-10-13",
+    "scope": "First twenty public homepage Featured Products; contact values and private account data excluded"
+  },
+  "products": [
+    {
+      "id": "reference-product-01",
+      "name": "বৃদ্ধি সঞ্জীবনী কিট",
+      "product_path": "/product/brriddhi-snjeebnee-kit",
+      "price_display": "1,080 Tk",
+      "old_price_display": "1,200 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-01.jpg"
+    },
+    {
+      "id": "reference-product-02",
+      "name": "Body analyser and Physiotherapy Machine",
+      "product_path": "/product/body-analyser-and-physiotherapy-machine-1787225734",
+      "price_display": "23,000 Tk",
+      "old_price_display": "24,500 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-02.jpg"
+    },
+    {
+      "id": "reference-product-03",
+      "name": "Bio Spray PLUS Revolutic",
+      "product_path": "/product/bio-spray-plus-revolutic",
+      "price_display": "6,500 Tk",
+      "old_price_display": "7,500 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-03.jpg"
+    },
+    {
+      "id": "reference-product-04",
+      "name": "Outlet/Store",
+      "product_path": "/product/outletstore-1786383453",
+      "price_display": "11,700 Tk",
+      "old_price_display": "12,900 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-04.jpg"
+    },
+    {
+      "id": "reference-product-05",
+      "name": "Natural face tonic",
+      "product_path": "/product/natural-face-tonic",
+      "price_display": "276 Tk",
+      "old_price_display": "300 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-05.png"
+    },
+    {
+      "id": "reference-product-06",
+      "name": "Natural Skin Tonic",
+      "product_path": "/product/natural-skin-tonic-1785629932",
+      "price_display": "460 Tk",
+      "old_price_display": "500 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-06.png"
+    },
+    {
+      "id": "reference-product-07",
+      "name": "Natural Hair Tonic",
+      "product_path": "/product/natural-hair-tonic-1785629319",
+      "price_display": "460 Tk",
+      "old_price_display": "500 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-07.png"
+    },
+    {
+      "id": "reference-product-08",
+      "name": "VITOLIZEN WOMAN",
+      "product_path": "/product/vitolizen-woman-fpp1j",
+      "price_display": "828 Tk",
+      "old_price_display": "900 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-08.png"
+    },
+    {
+      "id": "reference-product-09",
+      "name": "VITOLIZE MAN",
+      "product_path": "/product/vitolize-man-1rodm",
+      "price_display": "736 Tk",
+      "old_price_display": "800 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-09.png"
+    },
+    {
+      "id": "reference-product-10",
+      "name": "US Based Suppliments",
+      "product_path": "/product/us-based-suppliments-orcii",
+      "price_display": "8,900 Tk",
+      "old_price_display": "9,900 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-10.jpg"
+    },
+    {
+      "id": "reference-product-11",
+      "name": "Share Package",
+      "product_path": "/product/share-package-ollgq",
+      "price_display": "485,000 Tk",
+      "old_price_display": "500,000 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-11.png"
+    },
+    {
+      "id": "reference-product-12",
+      "name": "SM-SIK",
+      "product_path": "/product/sm-sik-7gkfw",
+      "price_display": "368 Tk",
+      "old_price_display": "400 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-12.jpg"
+    },
+    {
+      "id": "reference-product-13",
+      "name": "Sebavit",
+      "product_path": "/product/sebavit-raj0z",
+      "price_display": "120 Tk",
+      "old_price_display": "130 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-13.jpg"
+    },
+    {
+      "id": "reference-product-14",
+      "name": "Sebavit",
+      "product_path": "/product/sebavit-ocmlj",
+      "price_display": "258 Tk",
+      "old_price_display": "280 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-14.jpg"
+    },
+    {
+      "id": "reference-product-15",
+      "name": "Sebaten",
+      "product_path": "/product/sebaten-1tlyj",
+      "price_display": "129 Tk",
+      "old_price_display": "140 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-15.jpg"
+    },
+    {
+      "id": "reference-product-16",
+      "name": "Sebaten",
+      "product_path": "/product/sebaten-hfq8r",
+      "price_display": "239 Tk",
+      "old_price_display": "260 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-16.jpg"
+    },
+    {
+      "id": "reference-product-17",
+      "name": "Sebamina",
+      "product_path": "/product/sebamina-w3ymg",
+      "price_display": "129 Tk",
+      "old_price_display": "140 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-17.jpg"
+    },
+    {
+      "id": "reference-product-18",
+      "name": "Sebamina",
+      "product_path": "/product/sebamina-sj4gw",
+      "price_display": "184 Tk",
+      "old_price_display": "200 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-18.jpg"
+    },
+    {
+      "id": "reference-product-19",
+      "name": "Sebalive",
+      "product_path": "/product/sebalive-g9kc0",
+      "price_display": "202 Tk",
+      "old_price_display": "220 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-19.jpg"
+    },
+    {
+      "id": "reference-product-20",
+      "name": "Sebalive",
+      "product_path": "/product/sebalive-vieeo",
+      "price_display": "120 Tk",
+      "old_price_display": "130 Tk",
+      "stock_display": "In Stock",
+      "image_path": "/reference/products/product-20.jpg"
+    }
+  ],
+  "footer": {
+    "section_titles": [
+      "SUPPORT",
+      "ABOUT US",
+      "STAY CONNECTED"
+    ],
+    "public_links": [
+      {
+        "label": "About Us",
+        "path": "/info/about-us"
+      },
+      {
+        "label": "Vendor Program",
+        "path": "/info/vendor-program"
+      },
+      {
+        "label": "Order Tracking",
+        "path": "/order-tracking"
+      },
+      {
+        "label": "Blog & Tips",
+        "path": "/blog"
+      },
+      {
+        "label": "Contact Us",
+        "path": "/contact"
+      },
+      {
+        "label": "Apply for an Outlet",
+        "path": "/outlets/apply"
+      }
+    ],
+    "social_icon_paths": [
+      "/reference/icons/facebook.png",
+      "/reference/icons/youtube.png",
+      "/reference/icons/linkedin.png",
+      "/reference/icons/instagram.png",
+      "/reference/icons/whatsapp.png"
+    ],
+    "app_badge_paths": [
+      "/reference/icons/google-play.png",
+      "/reference/icons/app-store.png"
+    ],
+    "payment_badge_path": "/reference/icons/payment_logo.png",
+    "contact_values": "Omitted; use reviewed client contact configuration"
+  }
+}

@@ -1,0 +1,3 @@
+/* Matching reference-named family from official Google Fonts; see manifest provenance. */
+@font-face{font-family:'Instrument Sans';font-style:normal;font-weight:400 700;font-stretch:75% 100%;font-display:swap;src:url('/reference/fonts/instrument-sans-variable.ttf') format('truetype');}
+@font-face{font-family:'Instrument Sans';font-style:italic;font-weight:400 700;font-stretch:75% 100%;font-display:swap;src:url('/reference/fonts/instrument-sans-variable-italic.ttf') format('truetype');}

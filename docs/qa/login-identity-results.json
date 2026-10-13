@@ -1,0 +1,42 @@
+{
+  "checks": [
+    {
+      "name": "/company/login has text identity input",
+      "passed": true
+    },
+    {
+      "name": "/company/login no mobile overflow",
+      "passed": true
+    },
+    {
+      "name": "/company/login phone submission reaches authentication",
+      "passed": true
+    },
+    {
+      "name": "/company/login registered email still signs in",
+      "passed": true
+    },
+    {
+      "name": "/login has text identity input",
+      "passed": true
+    },
+    {
+      "name": "/login no mobile overflow",
+      "passed": true
+    },
+    {
+      "name": "/login phone submission reaches authentication",
+      "passed": true
+    },
+    {
+      "name": "/login registered email still signs in",
+      "passed": true
+    },
+    {
+      "name": "No login JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

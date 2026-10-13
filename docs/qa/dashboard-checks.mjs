@@ -1,0 +1,21 @@
+import {createRequire} from 'node:module';
+import {readFile,writeFile} from 'node:fs/promises';
+import {resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');const credentials=JSON.parse(await readFile(resolve(root,'.local/demo-access.json'),'utf8'));
+const {chromium}=createRequire(import.meta.url)(process.argv[2]||'playwright');let browser;try{browser=await chromium.launch({headless:true});}catch{browser=await chromium.launch({headless:true,channel:'msedge'});}
+const result={checks:[],errors:[]};function check(name,value){result.checks.push({name,passed:!!value});if(!value)throw new Error(name);}
+try{for(const account of ['admin','dealer','subdealer']){
+ const company=account==='admin',base=company?'/company':'/workspace';const context=await browser.newContext({viewport:{width:1440,height:1000}});const page=await context.newPage();page.on('pageerror',e=>result.errors.push(e.message));
+ await page.goto('http://localhost:8088'+(company?'/company/login':'/login'));await page.getByLabel('E-Mail / Phone Number',{exact:true}).fill(credentials.accounts[account]);await page.getByLabel('Password',{exact:true}).fill(credentials.password);await page.getByRole('button',{name:company?'Sign In':'Login',exact:true}).click();await page.waitForURL('**'+base);await page.getByRole('heading',{name:company?'Company Dashboard':'My Account',exact:true}).waitFor();
+ check(account+' profile summary',await page.locator('.account-profile-card').isVisible());check(account+' five summary figures',await page.locator('.account-profile-stats>div').count()===5);check(account+' desktop no overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ check(account+' correct website separation',await page.locator('.portal-site-header').count()===(company?0:1));check(account+' correct action links',await page.locator('.account-action-card').evaluateAll((links,base)=>links.every(a=>new URL(a.href).pathname.startsWith(base+'/')),base));
+ if(account==='subdealer'){check('Sub-dealer salary action',await page.locator('.account-action-card[href="/workspace/salary"]').count()===1);check('Sub-dealer has no unapproved network action',await page.locator('.account-action-card[href="/workspace/network"]').count()===0);}
+ await page.screenshot({animations:'disabled',path:resolve(root,'docs/screenshots/'+account+'-dashboard-desktop.png')});await page.setViewportSize({width:390,height:844});check(account+' mobile no overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({animations:'disabled',path:resolve(root,'docs/screenshots/'+account+'-dashboard-mobile.png')});
+ await page.getByRole('button',{name:'Open navigation',exact:true}).click();check(account+' drawer opens',await page.locator('#workspace-navigation').getAttribute('aria-hidden')==='false');check(account+' background inert',await page.locator('.workspace').getAttribute('inert')!==null);await page.getByRole('button',{name:'Close navigation',exact:true}).press('Escape');check(account+' Escape closes drawer',await page.locator('#workspace-navigation').getAttribute('aria-hidden')==='true');
+ await page.getByRole('button',{name:'Open navigation',exact:true}).click();await page.getByRole('link',{name:'Account security',exact:true}).click();await page.waitForURL('**'+base+'/security');check(account+' drawer navigation works',await page.getByRole('heading',{name:'Change password',exact:true}).isVisible());
+ await page.getByRole('button',{name:'Open navigation',exact:true}).click();await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.waitForURL('**'+(company?'/company/login':'/login'));check(account+' logout reaches correct login',true);await context.close();
+ }check('No dashboard JavaScript errors',result.errors.length===0);result.passed=true;await writeFile(resolve(root,'docs/qa/dashboard-results.json'),JSON.stringify(result,null,2));console.log(JSON.stringify({passed:true,checks:result.checks.length,consoleErrors:result.errors.length}));
+}catch(e){result.passed=false;result.failure=e.message;await writeFile(resolve(root,'docs/qa/dashboard-results.json'),JSON.stringify(result,null,2));throw e;}finally{await browser.close();}
+
+

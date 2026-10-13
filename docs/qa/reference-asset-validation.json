@@ -1,0 +1,43 @@
+{
+  "assets_downloaded": 51,
+  "failures": [],
+  "decoded_images": 38,
+  "files_checksum_verified": 53,
+  "matching_family_font_axes": [
+    {
+      "file": "fonts/instrument-sans-variable.ttf",
+      "axes": [
+        {
+          "tag": "wdth",
+          "min": 75.0,
+          "default": 100.0,
+          "max": 100.0
+        },
+        {
+          "tag": "wght",
+          "min": 400.0,
+          "default": 400.0,
+          "max": 700.0
+        }
+      ]
+    },
+    {
+      "file": "fonts/instrument-sans-variable-italic.ttf",
+      "axes": [
+        {
+          "tag": "wdth",
+          "min": 75.0,
+          "default": 100.0,
+          "max": 100.0
+        },
+        {
+          "tag": "wght",
+          "min": 400.0,
+          "default": 400.0,
+          "max": 700.0
+        }
+      ]
+    }
+  ],
+  "scope": "Public visual assets only; no private profile media or reference scripts requested"
+}

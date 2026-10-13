@@ -1,0 +1,66 @@
+{
+  "checks": [
+    {
+      "name": "Homepage HTTP200",
+      "passed": true
+    },
+    {
+      "name": "Reference five-slide carousel",
+      "passed": true
+    },
+    {
+      "name": "Twenty reference product cards",
+      "passed": true
+    },
+    {
+      "name": "Desktop does not overflow",
+      "passed": true
+    },
+    {
+      "name": "Promotional popup opens",
+      "passed": true
+    },
+    {
+      "name": "Carousel next advances",
+      "passed": true
+    },
+    {
+      "name": "Cart dialog opens",
+      "passed": true
+    },
+    {
+      "name": "Cart contains added product",
+      "passed": true
+    },
+    {
+      "name": "Wishlist toggles",
+      "passed": true
+    },
+    {
+      "name": "Product comparison renders two items",
+      "passed": true
+    },
+    {
+      "name": "Search reaches real product route",
+      "passed": true
+    },
+    {
+      "name": "Mobile bottom navigation visible",
+      "passed": true
+    },
+    {
+      "name": "Mobile does not overflow",
+      "passed": true
+    },
+    {
+      "name": "All homepage images decode",
+      "passed": true
+    },
+    {
+      "name": "No browser JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

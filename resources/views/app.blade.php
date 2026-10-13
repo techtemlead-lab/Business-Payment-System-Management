@@ -1,0 +1,2 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#011627"><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/reference/instrument-sans-local.css">@viteReactRefresh @vite(['resources/css/app.css','resources/js/app.tsx','resources/css/dashboard.css'])<x-inertia::head /></head><body><x-inertia::app /></body></html>

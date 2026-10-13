@@ -1,0 +1,6 @@
+<article class="ref-product-card">
+    <span class="ref-stock {{ $item['stock']>0?'':'unavailable' }}">{{ $item['stock']>0?'In Stock':'Awaiting Stock' }}</span><button class="ref-wishlist" data-favorite="{{ $item['id'] }}" aria-label="Save {{ $item['name'] }}" aria-pressed="false"><i class="fa-regular fa-heart" aria-hidden="true"></i></button>
+    <a class="ref-product-photo" href="{{ $item['url'] }}">@if(!empty($item['image_path']))<img src="{{ $item['image_path'] }}" alt="{{ $item['name'] }}" loading="lazy">@else<div class="ref-no-image" aria-hidden="true">No Image</div>@endif</a>
+    <div class="ref-product-info"><h3><a href="{{ $item['url'] }}">{{ $item['name'] }}</a></h3><p>{{ $item['description'] }}</p><div class="ref-price"><strong>{{ $item['price'] }} Tk</strong>@if($item['price']!==$item['mrp'])<del>{{ $item['mrp'] }} Tk</del>@endif</div>
+    <button class="ref-add-cart" data-cart="{{ $item['id'] }}" data-name="{{ $item['name'] }}" data-price="{{ $item['price'] }} Tk" data-image="{{ $item['image_path']??'/reference/logo.png' }}"><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> Add to Cart</button><a class="ref-buy-now" href="/login"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i> Buy Now</a></div>
+</article>

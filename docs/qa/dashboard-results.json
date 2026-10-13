@@ -1,0 +1,150 @@
+{
+  "checks": [
+    {
+      "name": "admin profile summary",
+      "passed": true
+    },
+    {
+      "name": "admin five summary figures",
+      "passed": true
+    },
+    {
+      "name": "admin desktop no overflow",
+      "passed": true
+    },
+    {
+      "name": "admin correct website separation",
+      "passed": true
+    },
+    {
+      "name": "admin correct action links",
+      "passed": true
+    },
+    {
+      "name": "admin mobile no overflow",
+      "passed": true
+    },
+    {
+      "name": "admin drawer opens",
+      "passed": true
+    },
+    {
+      "name": "admin background inert",
+      "passed": true
+    },
+    {
+      "name": "admin Escape closes drawer",
+      "passed": true
+    },
+    {
+      "name": "admin drawer navigation works",
+      "passed": true
+    },
+    {
+      "name": "admin logout reaches correct login",
+      "passed": true
+    },
+    {
+      "name": "dealer profile summary",
+      "passed": true
+    },
+    {
+      "name": "dealer five summary figures",
+      "passed": true
+    },
+    {
+      "name": "dealer desktop no overflow",
+      "passed": true
+    },
+    {
+      "name": "dealer correct website separation",
+      "passed": true
+    },
+    {
+      "name": "dealer correct action links",
+      "passed": true
+    },
+    {
+      "name": "dealer mobile no overflow",
+      "passed": true
+    },
+    {
+      "name": "dealer drawer opens",
+      "passed": true
+    },
+    {
+      "name": "dealer background inert",
+      "passed": true
+    },
+    {
+      "name": "dealer Escape closes drawer",
+      "passed": true
+    },
+    {
+      "name": "dealer drawer navigation works",
+      "passed": true
+    },
+    {
+      "name": "dealer logout reaches correct login",
+      "passed": true
+    },
+    {
+      "name": "subdealer profile summary",
+      "passed": true
+    },
+    {
+      "name": "subdealer five summary figures",
+      "passed": true
+    },
+    {
+      "name": "subdealer desktop no overflow",
+      "passed": true
+    },
+    {
+      "name": "subdealer correct website separation",
+      "passed": true
+    },
+    {
+      "name": "subdealer correct action links",
+      "passed": true
+    },
+    {
+      "name": "Sub-dealer salary action",
+      "passed": true
+    },
+    {
+      "name": "Sub-dealer has no unapproved network action",
+      "passed": true
+    },
+    {
+      "name": "subdealer mobile no overflow",
+      "passed": true
+    },
+    {
+      "name": "subdealer drawer opens",
+      "passed": true
+    },
+    {
+      "name": "subdealer background inert",
+      "passed": true
+    },
+    {
+      "name": "subdealer Escape closes drawer",
+      "passed": true
+    },
+    {
+      "name": "subdealer drawer navigation works",
+      "passed": true
+    },
+    {
+      "name": "subdealer logout reaches correct login",
+      "passed": true
+    },
+    {
+      "name": "No dashboard JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

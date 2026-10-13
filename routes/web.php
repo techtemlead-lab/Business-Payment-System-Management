@@ -1,0 +1,68 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\{AuthController,PortalController,CommandController,PublicController,ReportController,WithdrawalController,ProductRegistryController};
+use Inertia\Inertia;
+
+Route::get('/',[PublicController::class,'index']);
+Route::get('/products/preview/{id}',[PublicController::class,'previewProduct']);
+Route::get('/products/{product}/image',[ProductRegistryController::class,'image'])->name('products.image');
+Route::get('/products/{product}/video',[ProductRegistryController::class,'video'])->name('products.video');
+Route::get('/products/{product}',[PublicController::class,'product'])->name('products.show');
+Route::get('/{page}',[PublicController::class,'index'])->whereIn('page',['products','dealers','about','contact']);
+Route::post('/enquiries',[PublicController::class,'enquiry'])->middleware('throttle:5,1');
+Route::middleware('guest')->group(function(){
+    Route::get('/company/login',fn()=>view('company.auth',['mode'=>'login']))->name('company.login');
+    Route::post('/company/login',[AuthController::class,'companyLogin'])->middleware('throttle:20,1');
+    Route::get('/company/forgot-password',fn()=>view('company.auth',['mode'=>'forgot']))->name('company.password.request');
+    Route::post('/company/forgot-password',[AuthController::class,'forgot'])->middleware('throttle:3,1');
+    Route::get('/company/reset-password/{token}',fn(string $token)=>view('company.auth',['mode'=>'reset','token'=>$token,'email'=>request('email')]))->name('company.password.reset');
+    Route::post('/company/reset-password',[AuthController::class,'reset'])->middleware('throttle:5,1');
+    Route::get('/login',fn()=>view('reference.auth',['mode'=>'login']))->name('login');
+    Route::post('/login',[AuthController::class,'login'])->middleware('throttle:20,1');
+    Route::get('/forgot-password',fn()=>view('reference.auth',['mode'=>'forgot']))->name('password.request');
+    Route::post('/forgot-password',[AuthController::class,'forgot'])->middleware('throttle:3,1');
+    Route::get('/reset-password/{token}',fn(string $token)=>view('reference.auth',['mode'=>'reset','token'=>$token,'email'=>request('email')]))->name('password.reset');
+    Route::post('/reset-password',[AuthController::class,'reset'])->middleware('throttle:5,1');
+});
+Route::middleware(['auth','active'])->group(function(){
+    Route::post('/logout',[AuthController::class,'logout']);
+    Route::post('/security/password',[AuthController::class,'password'])->middleware('throttle:5,1');
+    Route::middleware('portal:partner')->group(function(){
+        Route::get('/workspace/orders/{order}',[PortalController::class,'show']);
+        Route::get('/workspace/withdrawals/{id}',[WithdrawalController::class,'show']);
+        Route::get('/workspace/withdrawals/{id}/receipt',[WithdrawalController::class,'receipt']);
+        Route::get('/workspace/{section?}',[PortalController::class,'index']);
+    });
+    Route::prefix('company')->middleware('portal:company')->group(function(){
+        Route::get('/products/create',[ProductRegistryController::class,'edit']);
+        Route::get('/products/{product}',[ProductRegistryController::class,'edit']);
+        Route::get('/orders/{order}',[PortalController::class,'show']);
+        Route::get('/withdrawals/{id}/receipt',[WithdrawalController::class,'receipt']);
+        Route::get('/withdrawals/{id}',[WithdrawalController::class,'show']);
+        Route::get('/{section?}',[PortalController::class,'index']);
+    });
+    Route::get('/exports/orders',[ReportController::class,'export'])->middleware('throttle:5,1');
+    Route::post('/commands/orders',[CommandController::class,'order']);
+    Route::post('/commands/orders/{order}/decision',[CommandController::class,'decision']);
+    Route::post('/commands/orders/{order}/dispatch',[CommandController::class,'dispatch']);
+    Route::post('/commands/orders/{order}/payments',[CommandController::class,'claim'])->middleware('throttle:10,1');
+    Route::post('/commands/orders/{order}/shipments/{shipment}/delivered',[CommandController::class,'delivered']);
+    Route::post('/commands/claims/{claim}/verify',[CommandController::class,'verify']);
+    Route::post('/commands/accounts',[CommandController::class,'account']);
+    Route::patch('/commands/accounts/{user}',[CommandController::class,'accountUpdate']);
+    Route::post('/commands/accounts/{user}/invite',[CommandController::class,'invite'])->middleware('throttle:3,1');
+    Route::post('/commands/products',[ProductRegistryController::class,'store']);
+    Route::patch('/commands/products/{product}',[ProductRegistryController::class,'update']);
+    Route::post('/commands/stock',[CommandController::class,'stock']);
+    Route::post('/commands/policies',[CommandController::class,'policy']);
+    Route::post('/commands/content',[CommandController::class,'content']);
+    Route::post('/commands/customization',[CommandController::class,'customization']);
+    Route::post('/commands/customization/reset',[CommandController::class,'resetCustomization']);
+    Route::post('/commands/enquiries/{id}',[CommandController::class,'enquiry']);
+    Route::post('/commands/notices/{id}/read',[CommandController::class,'readNotice']);
+    Route::post('/commands/withdrawals',[CommandController::class,'financialGate']);
+    Route::post('/commands/withdrawals/{id}/review',[WithdrawalController::class,'review']);
+    Route::post('/commands/withdrawals/{id}/record-payment',[WithdrawalController::class,'settle']);
+    Route::post('/commands/policies/{id}/publish',[CommandController::class,'financialGate']);
+});

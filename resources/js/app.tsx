@@ -1,0 +1,10 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {createInertiaApp} from '@inertiajs/react';
+import Auth from './pages/Auth';
+import Portal from './pages/Portal';
+import OrderDetail from './pages/OrderDetail';
+import WithdrawalDetail from './pages/WithdrawalDetail';
+import ProductEditor from './pages/ProductEditor';
+const pages: Record<string,React.ComponentType<any>>={Auth,Portal,OrderDetail,WithdrawalDetail,ProductEditor};
+createInertiaApp({title:title=>`${title} · Madina`,resolve:name=>pages[name],setup({el,App,props}){createRoot(el).render(<App {...props}/>);},progress:{color:'#377b5a'}});

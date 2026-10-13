@@ -1,0 +1,154 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/products",
+      "status": 200
+    },
+    {
+      "path": "/dealers",
+      "status": 200
+    },
+    {
+      "path": "/about",
+      "status": 200
+    },
+    {
+      "path": "/contact",
+      "status": 200
+    },
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/company/login",
+      "status": 200
+    },
+    {
+      "path": "/company/accounts",
+      "status": 200
+    },
+    {
+      "path": "/company/catalog",
+      "status": 200
+    },
+    {
+      "path": "/company/orders",
+      "status": 200
+    },
+    {
+      "path": "/company/inventory",
+      "status": 200
+    },
+    {
+      "path": "/company/payments",
+      "status": 200
+    },
+    {
+      "path": "/company/deliveries",
+      "status": 200
+    },
+    {
+      "path": "/company/dues",
+      "status": 200
+    },
+    {
+      "path": "/company/policies",
+      "status": 200
+    },
+    {
+      "path": "/company/salary",
+      "status": 200
+    },
+    {
+      "path": "/company/withdrawals",
+      "status": 200
+    },
+    {
+      "path": "/company/ledger",
+      "status": 200
+    },
+    {
+      "path": "/company/reports",
+      "status": 200
+    },
+    {
+      "path": "/company/content",
+      "status": 200
+    },
+    {
+      "path": "/company/enquiries",
+      "status": 200
+    },
+    {
+      "path": "/company/audit",
+      "status": 200
+    },
+    {
+      "path": "/company/security",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/workspace/catalog",
+      "status": 200
+    },
+    {
+      "path": "/workspace/orders",
+      "status": 200
+    },
+    {
+      "path": "/workspace/deliveries",
+      "status": 200
+    },
+    {
+      "path": "/workspace/dues",
+      "status": 200
+    },
+    {
+      "path": "/workspace/earnings",
+      "status": 200
+    },
+    {
+      "path": "/workspace/withdrawals",
+      "status": 200
+    },
+    {
+      "path": "/workspace/network",
+      "status": 200
+    },
+    {
+      "path": "/workspace/ranks",
+      "status": 200
+    },
+    {
+      "path": "/workspace/profile",
+      "status": 200
+    },
+    {
+      "path": "/workspace/security",
+      "status": 200
+    },
+    {
+      "path": "/workspace/notifications",
+      "status": 200
+    },
+    {
+      "path": "/workspace/orders",
+      "status": 200
+    },
+    {
+      "workflow": "Dealer submits a real synthetic purchase request",
+      "passed": true
+    }
+  ],
+  "consoleErrors": []
+}

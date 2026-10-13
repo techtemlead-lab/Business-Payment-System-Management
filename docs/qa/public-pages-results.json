@@ -1,0 +1,238 @@
+{
+  "checks": [
+    {
+      "name": "/products HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/products Madina header",
+      "passed": true
+    },
+    {
+      "name": "Catalog first page has 12 products",
+      "passed": true
+    },
+    {
+      "name": "Desktop catalog no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "Catalog pagination second page",
+      "passed": true
+    },
+    {
+      "name": "Price sort ascends",
+      "passed": true
+    },
+    {
+      "name": "Price filters apply",
+      "passed": true
+    },
+    {
+      "name": "/products/preview/reference-product-01 HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/products/preview/reference-product-01 Madina header",
+      "passed": true
+    },
+    {
+      "name": "Quantity increases to three",
+      "passed": true
+    },
+    {
+      "name": "Cart receives selected quantity",
+      "passed": true
+    },
+    {
+      "name": "Specification tab opens",
+      "passed": true
+    },
+    {
+      "name": "Keyboard switches information tab",
+      "passed": true
+    },
+    {
+      "name": "Detail adds product to comparison",
+      "passed": true
+    },
+    {
+      "name": "Desktop detail no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/login HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/login Madina header",
+      "passed": true
+    },
+    {
+      "name": "Desktop /login no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/forgot-password HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/forgot-password Madina header",
+      "passed": true
+    },
+    {
+      "name": "Desktop /forgot-password no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/about HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/about Madina header",
+      "passed": true
+    },
+    {
+      "name": "Desktop /about no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/dealers HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/dealers Madina header",
+      "passed": true
+    },
+    {
+      "name": "Desktop /dealers no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/contact HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/contact Madina header",
+      "passed": true
+    },
+    {
+      "name": "Desktop /contact no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "Contact enquiry submitted",
+      "passed": true
+    },
+    {
+      "name": "/products HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/products Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /products no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/products/preview/reference-product-01 HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/products/preview/reference-product-01 Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /products/preview/reference-product-01 no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/login HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/login Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /login no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/forgot-password HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/forgot-password Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /forgot-password no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/about HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/about Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /about no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/dealers HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/dealers Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /dealers no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/contact HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/contact Madina header",
+      "passed": true
+    },
+    {
+      "name": "Mobile /contact no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "/login HTTP 200",
+      "passed": true
+    },
+    {
+      "name": "/login Madina header",
+      "passed": true
+    },
+    {
+      "name": "Password visibility toggle works",
+      "passed": true
+    },
+    {
+      "name": "Invalid login gives accessible error",
+      "passed": true
+    },
+    {
+      "name": "Login reaches dealer workspace",
+      "passed": true
+    },
+    {
+      "name": "No browser JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

@@ -1,0 +1,70 @@
+{
+  "checks": [
+    {
+      "name": "Company add-product screen opens",
+      "passed": true
+    },
+    {
+      "name": "Product saved with photo and YouTube URL",
+      "passed": true
+    },
+    {
+      "name": "Public product uses uploaded photo",
+      "passed": true
+    },
+    {
+      "name": "Public product contains safe YouTube embed",
+      "passed": true
+    },
+    {
+      "name": "Real product cart survives reload",
+      "passed": true
+    },
+    {
+      "name": "Purchase cost absent from public page",
+      "passed": true
+    },
+    {
+      "name": "Approved product appears on homepage",
+      "passed": true
+    },
+    {
+      "name": "Uploaded video preview appears in company details",
+      "passed": true
+    },
+    {
+      "name": "Uploaded video decodes in browser",
+      "passed": true
+    },
+    {
+      "name": "Uploaded video actually plays",
+      "passed": true
+    },
+    {
+      "name": "Video seeking supports HTTP byte ranges",
+      "passed": true
+    },
+    {
+      "name": "Product editor mobile has no overflow",
+      "passed": true
+    },
+    {
+      "name": "Public product video mobile has no overflow",
+      "passed": true
+    },
+    {
+      "name": "Product can be hidden and video removed",
+      "passed": true
+    },
+    {
+      "name": "Hidden product is unavailable publicly",
+      "passed": true
+    },
+    {
+      "name": "No browser JavaScript errors",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}
