@@ -2,7 +2,7 @@
 <div class="ref-company-bar">{{ $siteCustomization['top_bar_text'] ?? 'MADINA NATURAL HEALTH CARE' }}</div>
 <header class="ref-header">
     <div class="ref-container ref-header-inner">
-        <a href="/" class="ref-logo ref-madina-logo" aria-label="Madina Natural Health Care home"><img src="/madina-header-logo.png?v=5" alt="Madina Natural Health Care" width="353" height="196"></a>
+        <a href="/" class="ref-logo ref-madina-logo" aria-label="Madina Natural Health Care home"><img src="/madina-header-logo-white.png?v=2" alt="Madina Natural Health Care" width="353" height="196"></a>
         <form method="get" action="/products" class="ref-search"><label class="ref-sr-only" for="site-search">Search products</label><input id="site-search" name="q" placeholder="{{ $siteCustomization['search_placeholder'] ?? 'Search' }}" autocomplete="off"><button aria-label="Search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button></form>
         <div class="ref-header-links">
             <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_about_title'] ?? 'About Us' }}</b><small>{{ $siteCustomization['header_about_subtitle'] ?? 'Our Story' }}</small></span></a>
