@@ -19,3 +19,26 @@
 .ref-logo.ref-madina-logo img{width:320px}
 @media(max-width:1023px){.ref-logo.ref-madina-logo img{width:280px}}
 .ref-logo.ref-madina-logo img{transform:translateY(5px)}
+
+
+/* Campaign and Special Discounts Section */
+.ref-campaign-section{margin-top:32px;background:linear-gradient(135deg,#fff,#f8fafc);border-radius:16px;padding:32px 28px;box-shadow:0 3px 12px #0000000a;border:1px solid #e2e8f0}
+.ref-campaign-badge{display:inline-flex;align-items:center;gap:6px;background:#fff1ee;color:#ef4a23;font-size:11px;font-weight:700;letter-spacing:1px;padding:6px 12px;border-radius:20px;margin-bottom:10px}
+.ref-campaign-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px}
+.ref-campaign-card{position:relative;background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:26px;box-shadow:0 2px 6px #00000008;display:flex;flex-direction:column;justify-content:space-between;transition:transform 0.2s,box-shadow 0.2s}
+.ref-campaign-card:hover{transform:translateY(-3px);box-shadow:0 6px 18px #00000012}
+.ref-campaign-card.highlight{border-color:#fa4f22;background:linear-gradient(180deg,#fff,#fffdfc)}
+.ref-discount-tag{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;background:#ef4a23;color:#fff;padding:4px 10px;border-radius:20px}
+.ref-campaign-card:not(.highlight) .ref-discount-tag{background:#2e3192}
+.ref-campaign-body h3{font-size:17px;font-weight:700;color:#011627;margin:0 0 10px;line-height:1.4;padding-right:90px}
+.ref-campaign-body p{font-size:13px;color:#64748b;line-height:1.6;margin:0 0 18px}
+.ref-campaign-pricing{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.ref-campaign-pricing strong{font-size:22px;color:#ef4a23;font-weight:800}
+.ref-campaign-pricing del{font-size:13px;color:#94a3b8}
+.ref-save-pill{font-size:11px;font-weight:700;background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:12px}
+.ref-campaign-card .ref-primary-button{width:100%;font-size:14px}
+@media(max-width:768px){
+    .ref-campaign-section{padding:22px 16px}
+    .ref-campaign-grid{grid-template-columns:1fr}
+    .ref-campaign-body h3{padding-right:0;margin-top:20px}
+}

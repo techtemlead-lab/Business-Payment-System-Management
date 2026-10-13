@@ -17,17 +17,48 @@ class PublicController extends Controller
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
             'page'=>'nullable|integer|min:1','sort'=>'nullable|in:name,price_asc,price_desc','in_stock'=>'nullable|in:0,1',
-            'min_price'=>'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/','max_price'=>'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/']);
+            'min_price'=>'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/','max_price'=>'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/',
+            'lat'=>'nullable|numeric|between:-90,90','lng'=>'nullable|numeric|between:-180,180']);
         if($page==='products')return $this->catalog($request);
         $products = Product::where('active', true)
             ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
             ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
             ->orderBy('name')->paginate($page === 'home' ? 4 : 12, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'stock', 'tone'])->withQueryString();
         $directory = User::where('directory_visible', true)->where('status', 'active')->where('role', 'dealer');
-        $dealers = (clone $directory)
-            ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
-            ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
-            ->orderBy('name')->paginate(12, ['name', 'dealer_code', 'phone', 'division', 'district'])->withQueryString();
+        $dealerCols = ['name', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
+        if($page === 'dealers' && $request->filled(['lat', 'lng'])) {
+            $userLat = (float) $request->input('lat');
+            $userLng = (float) $request->input('lng');
+            $allDealers = (clone $directory)
+                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
+                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->get($dealerCols)
+                ->map(function ($dealer) use ($userLat, $userLng) {
+                    if ($dealer->latitude !== null && $dealer->longitude !== null) {
+                        $lat1 = deg2rad($userLat); $lon1 = deg2rad($userLng);
+                        $lat2 = deg2rad((float)$dealer->latitude); $lon2 = deg2rad((float)$dealer->longitude);
+                        $dLat = $lat2 - $lat1; $dLon = $lon2 - $lon1;
+                        $a = sin($dLat/2)**2 + cos($lat1) * cos($lat2) * sin($dLon/2)**2;
+                        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+                        $dealer->distance_km = round(6371 * $c, 1);
+                    } else {
+                        $dealer->distance_km = null;
+                    }
+                    return $dealer;
+                })->sort(function ($a, $b) {
+                    if ($a->distance_km === null && $b->distance_km === null) return strcmp($a->name, $b->name);
+                    if ($a->distance_km === null) return 1;
+                    if ($b->distance_km === null) return -1;
+                    return $a->distance_km <=> $b->distance_km;
+                })->values();
+            $pageNumber = $request->integer('page', 1);
+            $dealers = new LengthAwarePaginator($allDealers->slice(($pageNumber - 1) * 12, 12)->values(), $allDealers->count(), 12, $pageNumber, ['path' => '/dealers', 'query' => $request->query()]);
+        } else {
+            $dealers = (clone $directory)
+                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
+                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->orderBy('name')->paginate(12, $dealerCols)->withQueryString();
+        }
         $districts = (clone $directory)->whereNotNull('district')->orderBy('district')->distinct()->pluck('district');
         $divisions = (clone $directory)->whereNotNull('division')->orderBy('division')->distinct()->pluck('division');
         $referencePreview=ReferenceCatalog::enabled()&&!Product::where('active',true)->where('sku','not like','DEMO-%')->exists();

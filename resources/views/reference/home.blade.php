@@ -67,6 +67,41 @@
         <a href="{{ $s['link'] ?: '#' }}"><i class="fa-solid {{ $s['icon'] ?: 'fa-circle' }}" aria-hidden="true"></i><div><h3>{{ $s['title'] ?: 'Feature' }}</h3><p>{{ $s['subtitle'] ?: '' }}</p></div></a>
         @endforeach
     </section>
+    <section class="ref-campaign-section" aria-label="Special Offers and Campaigns">
+        <div class="ref-section-title">
+            <span class="ref-campaign-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> SPECIAL CAMPAIGN &amp; OFFERS</span>
+            <h2>{{ $siteCustomization['campaign_title'] ?? 'Special Discounts & Promotional Offers' }}</h2>
+            <p>{{ $siteCustomization['campaign_subtitle'] ?? 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.' }}</p>
+        </div>
+        <div class="ref-campaign-grid">
+            <div class="ref-campaign-card highlight">
+                <span class="ref-discount-tag">Featured Campaign</span>
+                <div class="ref-campaign-body">
+                    <h3>Healthcare Entrepreneur &amp; Partner Package</h3>
+                    <p>Comprehensive natural health package including diagnostic machine and physiotherapy equipment support for regional centers.</p>
+                    <div class="ref-campaign-pricing">
+                        <strong>20,000 Tk</strong>
+                        <del>30,000 Tk</del>
+                        <span class="ref-save-pill">Save 10,000 Tk</span>
+                    </div>
+                    <a href="/products" class="ref-primary-button">View Package <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
+            </div>
+            <div class="ref-campaign-card">
+                <span class="ref-discount-tag">Seasonal Offer</span>
+                <div class="ref-campaign-body">
+                    <h3>Family Wellness &amp; Immunity Kit</h3>
+                    <p>Selected organic food supplements, unani tonics and herbal wellness essentials for full family vitality.</p>
+                    <div class="ref-campaign-pricing">
+                        <strong>6,100 Tk</strong>
+                        <del>7,000 Tk</del>
+                        <span class="ref-save-pill">Save 900 Tk</span>
+                    </div>
+                    <a href="/products" class="ref-primary-button">Explore Kit <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
     <section class="ref-featured-categories">
         <div class="ref-section-title">
             <h2>{{ $siteCustomization['featured_categories_title'] ?? 'Featured Categories' }}</h2>
