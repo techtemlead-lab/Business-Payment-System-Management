@@ -1,7 +1,7 @@
 @extends('reference.layout')
 @section('title',($mode==='login'?'Account Login':($mode==='forgot'?'Forgot Password':'Reset Password')).' · Madina Natural Health Care')
 @section('content')
-<main id="main" class="ref-container ref-auth-main"><section class="ref-auth-card"><h1>{{ $mode==='login'?($siteCustomization['auth_login_title'] ?? 'Account Login'):($mode==='forgot'?'Forgot Password':'Reset Password') }}</h1><p class="ref-auth-subtitle">{{ $mode==='login'?($siteCustomization['auth_login_subtitle'] ?? 'Welcome back! Please enter your credentials.'):($mode==='forgot'?'Enter your account email to request a reset link.':'Choose a new password for your account.') }}</p>
+<main id="main" class="ref-container ref-auth-main"><section class="ref-auth-card"><div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;"><a href="/" aria-label="Home"><img src="/madina-header-logo.png?v=4" alt="Madina Natural Health Care" style="height:65px;margin:0 auto;object-fit:contain;"></a></div><h1>{{ $mode==='login'?($siteCustomization['auth_login_title'] ?? 'Account Login'):($mode==='forgot'?'Forgot Password':'Reset Password') }}</h1><p class="ref-auth-subtitle">{{ $mode==='login'?($siteCustomization['auth_login_subtitle'] ?? 'Welcome back! Please enter your credentials.'):($mode==='forgot'?'Enter your account email to request a reset link.':'Choose a new password for your account.') }}</p>
 @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
 <form class="ref-form" action="{{ $mode==='login'?'/login':($mode==='forgot'?'/forgot-password':'/reset-password') }}" method="post">@csrf

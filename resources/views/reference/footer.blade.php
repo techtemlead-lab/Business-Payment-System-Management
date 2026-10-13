@@ -16,6 +16,7 @@
     </section>
     <section>
         <h2>{{ $siteCustomization['footer_stay_connected_heading'] ?? 'STAY CONNECTED' }}</h2>
+        <div style="margin-bottom:14px;"><a href="/" aria-label="Madina Natural Health Care home"><img src="/madina-header-logo.png?v=4" alt="Madina Natural Health Care" style="height:44px;background:#ffffff;padding:4px 8px;border-radius:6px;object-fit:contain;display:inline-block;"></a></div>
         <h3>{{ $siteCustomization['footer_about_title'] ?? 'Madina Natural Health Care' }}</h3>
         <p>{{ $siteCustomization['footer_about_desc'] ?? 'Products, partners and communities across Bangladesh.' }}</p>
         <div class="ref-socials">

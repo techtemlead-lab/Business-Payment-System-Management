@@ -11,14 +11,14 @@
 @media(max-width:500px){.ref-product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.ref-product-info{padding:10px}.ref-product-photo{padding:25px 10px 6px}.ref-product-info>p{font-size:9px;min-height:54px}.ref-price{gap:6px;margin-bottom:10px}.ref-price strong{font-size:14px}.ref-shortcuts p{max-width:135px}.ref-wishlist{width:23px;height:23px;font-size:13px}.ref-header-links b{font-size:12px}.ref-floating-tools{width:40px}.ref-floating-tools>button,.ref-floating-tools>a{width:40px;height:44px}.ref-floating-tools b{font-size:7px}.ref-floating-tools i{font-size:16px}.ref-footer-links{grid-template-columns:1fr 1fr}.ref-company-bar{font-size:10px}.ref-support-box{border-radius:15px}.ref-support-box b{font-size:12px}.ref-category-grid>a{min-height:96px}.ref-toast{top:10px;right:10px;left:10px;max-width:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 /* The supplied logo remains intact; the viewport trims its outer blank margins. */
-.ref-logo.ref-madina-logo{height:86px;padding:0;justify-content:center;overflow:hidden;border-radius:6px;background:#f7f6f2}
+.ref-logo.ref-madina-logo{height:86px;padding:0;justify-content:center;overflow:hidden;border-radius:6px;background:#ffffff}
 .ref-logo.ref-madina-logo img{width:290px;height:auto;max-width:none;flex-shrink:0}
 @media(max-width:1023px){.ref-logo.ref-madina-logo{width:180px;flex:0 0 180px;height:76px}.ref-logo.ref-madina-logo img{width:250px;height:auto}}
 @media(max-width:360px){.ref-logo.ref-madina-logo{width:155px;flex-basis:155px}}
 /* Latest client logo, 13 October: wider wordmark without the previous tagline. */
 .ref-logo.ref-madina-logo img{width:320px}
 @media(max-width:1023px){.ref-logo.ref-madina-logo img{width:280px}}
-.ref-logo.ref-madina-logo img{transform:translateY(5px)}
+.ref-logo.ref-madina-logo img{transform:none}
 
 
 /* Campaign and Special Discounts Section */
