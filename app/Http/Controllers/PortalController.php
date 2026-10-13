@@ -49,7 +49,18 @@ class PortalController extends Controller {
             });
         }
         if ($section==='inventory') $data['movements']=DB::table('stock_movements')->join('products','products.id','=','product_id')->select('stock_movements.*','products.name')->orderByDesc('stock_movements.id')->paginate(20);
-        if ($section==='accounts') $data['accounts']=User::when($r->filled('q'),fn($q)=>$q->where('name','like','%'.$r->string('q').'%'))->when($u->role!=='super_admin',fn($q)=>$q->whereIn('role',['dealer','sub_dealer']))->orderByDesc('id')->paginate(20,['id','name','email','phone','role','status','dealer_code','division','district','directory_visible','profile']);
+        if ($section==='accounts') {
+            $data['accounts']=User::when($r->filled('q'),function($q)use($r){
+                $term = '%'.$r->string('q').'%';
+                $q->where(function($sub)use($term){
+                    $sub->where('name','like',$term)
+                        ->orWhere('dealer_code','like',$term)
+                        ->orWhere('email','like',$term)
+                        ->orWhere('phone','like',$term);
+                });
+            })->when($u->role!=='super_admin',fn($q)=>$q->whereIn('role',['dealer','sub_dealer']))->orderByDesc('id')->paginate(20,['id','name','email','phone','role','status','dealer_code','division','district','directory_visible','profile','sponsor_id','created_at']);
+            $data['sponsors']=User::where('role','dealer')->where('status','active')->orderBy('name')->get(['id','name','dealer_code','district']);
+        }
         if ($section==='payments') $data['claims']=DB::table('payment_claims')->join('orders','orders.id','=','order_id')->join('users','users.id','=','orders.user_id')->select('payment_claims.*','orders.number','users.name')->orderByDesc('payment_claims.id')->paginate(20);
         if ($section==='policies') $data['policies']=DB::table('policy_drafts')->orderByDesc('id')->get();
         if ($section==='profile') $data['profile']=[...$u->safe(),'phone'=>$u->phone,'fields'=>$u->profile??[],'nid_status'=>$u->nid?'On file — access restricted':'Not provided'];
@@ -65,6 +76,18 @@ class PortalController extends Controller {
         if ($section==='enquiries') $data['enquiries']=DB::table('enquiries')->latest()->paginate(20);
         if ($section==='notifications') $data['notices']=DB::table('account_notices')->where('user_id',$u->id)->latest()->paginate(20);
         return Inertia::render('Portal',['section'=>$section,'data'=>$data,'filters'=>$r->only(['q','status'])]);
+    }
+    public function createAccount(Request $r) {
+        $u=$r->user(); abort_unless($u->allows('accounts'),403);
+        $roles=['dealer','sub_dealer'];
+        if ($u->role==='super_admin') {
+            $roles=[...$roles,...array_keys(config('madina.roles'))];
+        }
+        $sponsors=User::where('role','dealer')->where('status','active')->orderBy('name')->get(['id','name','dealer_code','district']);
+        return Inertia::render('AccountCreate',[
+            'roles'=>$roles,
+            'sponsors'=>$sponsors,
+        ]);
     }
     public function show(Request $r,Order $order) {
         $u=$r->user(); abort_unless($order->user_id===$u->id || $u->allows('orders') || $u->allows('finance'),404);

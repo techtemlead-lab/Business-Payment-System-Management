@@ -35,6 +35,7 @@ Route::middleware(['auth','active'])->group(function(){
         Route::get('/workspace/{section?}',[PortalController::class,'index']);
     });
     Route::prefix('company')->middleware('portal:company')->group(function(){
+        Route::get('/accounts/create',[PortalController::class,'createAccount']);
         Route::get('/products/create',[ProductRegistryController::class,'edit']);
         Route::get('/products/{product}',[ProductRegistryController::class,'edit']);
         Route::get('/orders/{order}',[PortalController::class,'show']);

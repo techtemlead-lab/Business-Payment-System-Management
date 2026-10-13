@@ -32,20 +32,88 @@ class CommandController extends Controller {
     }
     public function account(Request $r) {
         $this->permit($r,'accounts'); $roles=['dealer','sub_dealer']; if($r->user()->role==='super_admin') $roles=[...$roles,...array_keys(config('madina.roles'))];
-        $d=$r->validate(['name'=>'required|string|max:150','email'=>'required|email|max:254|unique:users','phone'=>'nullable|string|max:30','role'=>['required',Rule::in($roles)],'division'=>'nullable|string|max:80','district'=>'nullable|string|max:80','sponsor_id'=>'nullable|integer|exists:users,id']);
+        $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
+        $d=$r->validate([
+            'role'=>['required',Rule::in($roles)],
+            'dealer_code'=>$isPartner ? ['required','string','max:40','unique:users,dealer_code'] : ['nullable','string','max:40','unique:users,dealer_code'],
+            'name'=>'required|string|max:150',
+            'email'=>'required|email|max:254|unique:users,email',
+            'phone'=>'nullable|string|max:30',
+            'division'=>'nullable|string|max:80',
+            'district'=>'nullable|string|max:80',
+            'latitude'=>'nullable|numeric|between:-90,90',
+            'longitude'=>'nullable|numeric|between:-180,180',
+            'directory_visible'=>'sometimes|boolean',
+            'status'=>'sometimes|in:active,suspended',
+            'sponsor_id'=>'nullable|integer|exists:users,id',
+            'nid'=>'nullable|string|max:30',
+            'reason'=>'nullable|string|max:1000',
+            'profile'=>'sometimes|array',
+            'profile.name_bn'=>'nullable|string|max:150',
+            'profile.father_name'=>'nullable|string|max:150',
+            'profile.mother_name'=>'nullable|string|max:150',
+            'profile.village'=>'nullable|string|max:150',
+            'profile.post_office'=>'nullable|string|max:150',
+            'profile.upazila'=>'nullable|string|max:150',
+            'profile.union'=>'nullable|string|max:150',
+            'profile.pharmacy'=>'nullable|string|max:150',
+            'profile.area_code'=>'nullable|string|max:80',
+        ]);
+        $profileKeys=['name_bn','father_name','mother_name','village','post_office','upazila','union','pharmacy','area_code'];
+        $profileData=$d['profile']??[];
+        foreach($profileKeys as $key) {
+            if($r->filled($key)) {
+                $profileData[$key]=trim((string)$r->string($key));
+            }
+        }
+        $d['profile']=$profileData;
         if (!empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->where('role','dealer')->where('status','active')->exists(),422,'Sponsor must be an active dealer.');
         }
-        $u=DB::transaction(function()use($r,$d){ $u=User::create([...$d,'password'=>Str::random(48),'dealer_code'=>in_array($d['role'],['dealer','sub_dealer'])?'MN-'.Str::upper(Str::random(8)):null]); DB::table('wallets')->insert(['user_id'=>$u->id,'created_at'=>now(),'updated_at'=>now()]); Audit::record($r->user()->id,'account.created',(string)$u->id); return $u; });
+        if (($d['directory_visible']??false) && $d['role']!=='dealer') {
+            throw ValidationException::withMessages(['directory_visible'=>'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
+        }
+        $u=DB::transaction(function()use($r,$d,$isPartner){
+            $role=$d['role'];
+            $dealerCode=$isPartner ? trim((string)$d['dealer_code']) : ($d['dealer_code']??null);
+            $reason=$d['reason']??'Account created by company staff';
+            unset($d['reason']);
+            $u=User::create([
+                ...$d,
+                'dealer_code'=>$dealerCode,
+                'password'=>Str::random(48),
+            ]);
+            DB::table('wallets')->insert(['user_id'=>$u->id,'created_at'=>now(),'updated_at'=>now()]);
+            Audit::record($r->user()->id,'account.created',(string)$u->id, [
+                'role'=>$role,
+                'dealer_code'=>$dealerCode,
+                'reason'=>$reason,
+            ]);
+            return $u;
+        });
         Password::sendResetLink(['email'=>$u->email]);
-        return back()->with('success','Account created. A private password-setting invitation has been emailed.');
+        return redirect('/company/accounts')->with('success','Partner account created. Unique code: '.($u->dealer_code??$u->name).'. A private password-setting invitation has been emailed.');
     }
     public function accountUpdate(Request $r,User $user) {
         $this->permit($r,'accounts'); abort_if($user->staff() && $r->user()->role!=='super_admin',403); abort_if($r->user()->id===$user->id,422,'Use your security page; self-suspension is not allowed.');
         if ($r->exists('nid')) $this->permit($r,'identity_write');
-        $d=$r->validate(['status'=>'sometimes|in:active,suspended','name'=>'sometimes|required|string|max:150','phone'=>'nullable|string|max:30','division'=>'nullable|string|max:80','district'=>'nullable|string|max:80','directory_visible'=>'sometimes|boolean','reason'=>'required|string|max:1000',
-            'profile'=>'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy','profile.*'=>'nullable|string|max:150','nid'=>'sometimes|nullable|string|max:30']);
+        $d=$r->validate(['status'=>'sometimes|in:active,suspended','name'=>'sometimes|required|string|max:150','dealer_code'=>'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id,'phone'=>'nullable|string|max:30','division'=>'nullable|string|max:80','district'=>'nullable|string|max:80','latitude'=>'sometimes|nullable|numeric|between:-90,90','longitude'=>'sometimes|nullable|numeric|between:-180,180','sponsor_id'=>'sometimes|nullable|integer|exists:users,id','directory_visible'=>'sometimes|boolean','reason'=>'required|string|max:1000',
+            'profile'=>'sometimes|array','profile.name_bn'=>'nullable|string|max:150','profile.father_name'=>'nullable|string|max:150','profile.mother_name'=>'nullable|string|max:150','profile.village'=>'nullable|string|max:150','profile.post_office'=>'nullable|string|max:150','profile.upazila'=>'nullable|string|max:150','profile.union'=>'nullable|string|max:150','profile.pharmacy'=>'nullable|string|max:150','profile.area_code'=>'nullable|string|max:80','nid'=>'sometimes|nullable|string|max:30']);
         if (($d['directory_visible']??false) && $user->role!=='dealer') throw ValidationException::withMessages(['directory_visible'=>'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
+        if (!empty($d['sponsor_id'])) {
+            abort_unless(User::whereKey($d['sponsor_id'])->where('role','dealer')->where('status','active')->exists(),422,'Sponsor must be an active dealer.');
+        }
+        $profileKeys=['name_bn','father_name','mother_name','village','post_office','upazila','union','pharmacy','area_code'];
+        if ($r->has('profile') || $r->hasAny($profileKeys)) {
+            $existing = $user->profile ?? [];
+            $incoming = $d['profile'] ?? [];
+            foreach ($profileKeys as $key) {
+                if ($r->filled($key)) {
+                    $incoming[$key] = trim((string)$r->string($key));
+                }
+            }
+            $d['profile'] = array_merge($existing, $incoming);
+        }
         DB::transaction(function()use($r,$user,$d){ $reason=$d['reason']; unset($d['reason']); $locked=User::whereKey($user->id)->lockForUpdate()->firstOrFail(); $locked->update($d); if(($d['status']??'')==='suspended') { $locked->update(['remember_token'=>Str::random(60)]); DB::table('sessions')->where('user_id',$user->id)->delete(); } Audit::record($r->user()->id,'account.updated',(string)$user->id,['fields'=>array_keys($d),'reason'=>$reason]); });
         return back()->with('success','Account updated.');
     }
