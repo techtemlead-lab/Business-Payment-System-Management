@@ -32,20 +32,20 @@ class SiteCustomization
 
             // Carousel Slides (1 to 5)
             'slides' => [
-                ['image' => '/reference/slider-01.webp', 'link' => '/products', 'alt' => 'Promotion 1'],
-                ['image' => '/reference/slider-02.webp', 'link' => '/products', 'alt' => 'Promotion 2'],
-                ['image' => '/reference/slider-03.webp', 'link' => '/products', 'alt' => 'Promotion 3'],
+                ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
+                ['image' => '/branding/madina-side-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Premium Natural Care'],
+                ['image' => '/branding/madina-side-banner-2.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Dealer Network'],
                 ['image' => '/reference/slider-04.webp', 'link' => '/products', 'alt' => 'Promotion 4'],
                 ['image' => '/reference/slider-05.webp', 'link' => '/products', 'alt' => 'Promotion 5'],
             ],
 
             // Side Banners
-            'side_banner_1_image' => '/reference/side-01.png',
+            'side_banner_1_image' => '/branding/madina-side-banner-1.jpg',
             'side_banner_1_link' => '/products',
-            'side_banner_1_alt' => 'Product promotion',
-            'side_banner_2_image' => '/reference/side-02.webp',
-            'side_banner_2_link' => '/contact',
-            'side_banner_2_alt' => 'Dealer network promotion',
+            'side_banner_1_alt' => 'Madina Premium Natural Care - 100% Pure Botanical Ingredients',
+            'side_banner_2_image' => '/branding/madina-side-banner-2.jpg',
+            'side_banner_2_link' => '/dealers',
+            'side_banner_2_alt' => 'Madina Authorized Dealer Network - Nationwide Distribution',
 
             // Quick Shortcuts (5 items)
             'shortcuts' => [

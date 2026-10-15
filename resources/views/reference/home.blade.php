@@ -12,9 +12,9 @@
     $slides = $siteCustomization['slides'] ?? [];
     if (empty($slides)) {
         $slides = [
-            ['image' => '/reference/slider-01.webp', 'link' => '/products', 'alt' => 'Promotion 1'],
-            ['image' => '/reference/slider-02.webp', 'link' => '/products', 'alt' => 'Promotion 2'],
-            ['image' => '/reference/slider-03.webp', 'link' => '/products', 'alt' => 'Promotion 3'],
+            ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
+            ['image' => '/branding/madina-side-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Premium Natural Care'],
+            ['image' => '/branding/madina-side-banner-2.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Dealer Network'],
             ['image' => '/reference/slider-04.webp', 'link' => '/products', 'alt' => 'Promotion 4'],
             ['image' => '/reference/slider-05.webp', 'link' => '/products', 'alt' => 'Promotion 5'],
         ];
@@ -55,10 +55,10 @@
         </div>
         <div class="ref-side-banners">
             <a href="{{ $siteCustomization['side_banner_1_link'] ?? '/products' }}">
-                <img src="{{ $siteCustomization['side_banner_1_image'] ?? '/reference/side-01.png' }}" alt="{{ $siteCustomization['side_banner_1_alt'] ?? 'Product promotion' }}">
+                <img src="{{ $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg' }}" alt="{{ $siteCustomization['side_banner_1_alt'] ?? 'Madina Premium Natural Care' }}">
             </a>
-            <a href="{{ $siteCustomization['side_banner_2_link'] ?? '/contact' }}">
-                <img src="{{ $siteCustomization['side_banner_2_image'] ?? '/reference/side-02.webp' }}" alt="{{ $siteCustomization['side_banner_2_alt'] ?? 'Dealer network promotion' }}">
+            <a href="{{ $siteCustomization['side_banner_2_link'] ?? '/dealers' }}">
+                <img src="{{ $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg' }}" alt="{{ $siteCustomization['side_banner_2_alt'] ?? 'Madina Authorized Dealer Network' }}">
             </a>
         </div>
     </section>
