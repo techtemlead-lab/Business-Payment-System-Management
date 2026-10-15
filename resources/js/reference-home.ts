@@ -1,7 +1,7 @@
 type CartItem={id:string;name:string;price:string;image:string;quantity:number};
 const key='madina.reference.cart';
 let cart:CartItem[]=[];let favorites:string[]=[];
-try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(saved))cart=saved.filter(x=>typeof x.id==='string'&&typeof x.name==='string'&&typeof x.price==='string'&&typeof x.image==='string'&&(x.image.startsWith('/reference/')||/^\/products\/\d+\/image(?:\?v=\d+)?$/.test(x.image))&&Number.isInteger(x.quantity)&&x.quantity>0&&x.quantity<1000);const savedFavorites=JSON.parse(localStorage.getItem('madina.reference.favorites')||'[]');if(Array.isArray(savedFavorites))favorites=savedFavorites.filter(x=>typeof x==='string');}catch{}
+try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(saved))cart=saved.filter(x=>typeof x.id==='string'&&typeof x.name==='string'&&typeof x.price==='string'&&typeof x.image==='string'&&(x.image.startsWith('/reference/')||x.image.startsWith('/branding/')||/^\/products\/\d+\/image(?:\?v=\d+)?$/.test(x.image))&&Number.isInteger(x.quantity)&&x.quantity>0&&x.quantity<1000);const savedFavorites=JSON.parse(localStorage.getItem('madina.reference.favorites')||'[]');if(Array.isArray(savedFavorites))favorites=savedFavorites.filter(x=>typeof x==='string');}catch{}
 const dialog=document.querySelector<HTMLDialogElement>('.ref-cart-dialog');
 let toastTimer:ReturnType<typeof setTimeout>;
 function toast(message:string){const node=document.querySelector<HTMLElement>('.ref-toast');if(!node)return;node.textContent=message;node.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('visible'),2500);}
