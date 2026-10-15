@@ -19,10 +19,10 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .help-card span,.app-shell .help-card svg{color:#d8defd}
 .app-shell .sign-out{color:#f1f5f9;font-size:12px;padding:15px 12px}
 .app-shell .sidebar>.icon-button{margin-left:auto;margin-bottom:15px;background:#ffffff18;border-color:#ffffff30;color:white}
-.portal-logo{width:auto;min-width:140px;max-width:240px;height:80px;display:flex;align-items:center;justify-content:center;border-radius:0;background:transparent;padding:0;box-shadow:none;flex-shrink:0;overflow:visible}
-.portal-logo img{height:100%;max-height:74px;width:auto;max-width:100%;object-fit:contain}
+.portal-logo{width:auto;min-width:80px;max-width:240px;height:80px;display:flex;align-items:center;justify-content:flex-start;border-radius:0;background:transparent;padding:0;box-shadow:none;flex-shrink:0;overflow:visible}
+.portal-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
 .app-shell .sidebar-logo{width:100%;height:85px;margin-bottom:20px;background:transparent;border-radius:0;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible}
-.app-shell .sidebar-logo img{height:100%;max-height:74px;width:auto;max-width:100%;object-fit:contain}
+.app-shell .sidebar-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
 .portal-container{max-width:1320px;margin:auto;padding:0 16px;width:100%}
 .portal-company-bar{background:#081621;border:1px solid #36434e;color:white;text-align:center;font-size:12px;font-weight:700;line-height:26px;height:28px}
 .portal-site-header{background:#011627;color:white;padding:16px 0}
@@ -94,7 +94,7 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .company-auth{background:#f2f4f8;min-height:100vh;color:#011627}
 .company-auth-main{max-width:440px;margin:auto;padding:55px 16px 30px;min-height:100vh}
 .company-auth-brand{width:auto;max-width:240px;height:95px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;background:transparent;border-radius:0;padding:0;box-shadow:none;overflow:visible}
-.company-auth-brand img{height:100%;max-height:80px;width:auto;max-width:100%;object-fit:contain}
+.company-auth-brand img{height:100%;max-height:85px;width:auto;max-width:100%;object-fit:contain}
 .company-auth-card{background:white;padding:32px;border-radius:12px;box-shadow:0 4px 25px #0116270c;border:1px solid #e4e7ec}
 .company-auth-card h1{font-size:25px;margin:15px 0 10px;font-weight:700;letter-spacing:0}
 .company-auth-card>p{font-size:12px;color:#64748b;line-height:1.8;margin-bottom:26px}
