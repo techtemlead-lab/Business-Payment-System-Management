@@ -49,6 +49,8 @@ export interface CustomizationData {
 
     // Slides & Banners
     slides?: Slide[];
+    side_banner_1_slides?: Slide[];
+    side_banner_2_slides?: Slide[];
     side_banner_1_image?: string;
     side_banner_1_link?: string;
     side_banner_1_alt?: string;
@@ -295,6 +297,22 @@ export default function SiteCustomizationEditor({
                     alt: s?.alt || ''
                 };
             }),
+            side_banner_1_slides: (defaults.side_banner_1_slides || []).map((defSlide, i) => {
+                const s = customization.side_banner_1_slides?.[i];
+                return {
+                    image: s?.image || '',
+                    link: s?.link || '',
+                    alt: s?.alt || ''
+                };
+            }),
+            side_banner_2_slides: (defaults.side_banner_2_slides || []).map((defSlide, i) => {
+                const s = customization.side_banner_2_slides?.[i];
+                return {
+                    image: s?.image || '',
+                    link: s?.link || '',
+                    alt: s?.alt || ''
+                };
+            }),
             side_banner_1_image: customization.side_banner_1_image || '',
             side_banner_1_link: customization.side_banner_1_link || '',
             side_banner_1_alt: customization.side_banner_1_alt || '',
@@ -493,6 +511,14 @@ export default function SiteCustomizationEditor({
         form.setData('customization', { ...form.data.customization, slides });
     };
 
+    const updateSideSlide = (banner: 1 | 2, index: number, key: keyof Slide, value: string) => {
+        const fieldKey = banner === 1 ? 'side_banner_1_slides' : 'side_banner_2_slides';
+        const list = [...((form.data.customization[fieldKey] as Slide[] | undefined) || defaults[fieldKey] || [])];
+        if (!list[index]) list[index] = { image: '', link: '', alt: '' };
+        list[index] = { ...list[index], [key]: value };
+        form.setData('customization', { ...form.data.customization, [fieldKey]: list });
+    };
+
     const updateShortcut = (index: number, key: keyof Shortcut, value: string) => {
         const shortcuts = [...(form.data.customization.shortcuts || [])];
         if (!shortcuts[index]) shortcuts[index] = { title: '', subtitle: '', icon: '', link: '' };
@@ -631,20 +657,108 @@ export default function SiteCustomizationEditor({
                                 })}
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Side Promotional Banners</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Side Promotional Banners (Mini-Carousels)</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
+                                {/* Side Banner 1 (Top) */}
                                 <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
-                                    <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>Side Banner 1 (Top)</h4>
-                                    <Field label="Image URL" fieldKey="side_banner_1_image" value={form.data.customization.side_banner_1_image} placeholder={defaults.side_banner_1_image} onChange={updateField} />
-                                    <Field label="Target Link" fieldKey="side_banner_1_link" value={form.data.customization.side_banner_1_link} placeholder={defaults.side_banner_1_link} onChange={updateField} />
-                                    <Field label="Alt Text" fieldKey="side_banner_1_alt" value={form.data.customization.side_banner_1_alt} placeholder={defaults.side_banner_1_alt} onChange={updateField} />
+                                    <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#2e3192' }}>Top Side Card (Mini-Carousel Slides)</h4>
+                                    <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>Configure multiple rotating slides for the top side promotion card.</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                        {((form.data.customization.side_banner_1_slides || defaults.side_banner_1_slides) || []).map((slide, idx) => {
+                                            const defSlide = defaults.side_banner_1_slides?.[idx] || { image: '', link: '', alt: '' };
+                                            return (
+                                                <div key={idx} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
+                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>Top Card Slide #{idx + 1}</span>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Image URL</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.image}
+                                                                placeholder={defSlide.image}
+                                                                onChange={e => updateSideSlide(1, idx, 'image', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.image}</small>
+                                                        </label>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Target Link</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.link}
+                                                                placeholder={defSlide.link}
+                                                                onChange={e => updateSideSlide(1, idx, 'link', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.link}</small>
+                                                        </label>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Alt Text</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.alt}
+                                                                placeholder={defSlide.alt}
+                                                                onChange={e => updateSideSlide(1, idx, 'alt', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.alt}</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
+                                {/* Side Banner 2 (Bottom) */}
                                 <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
-                                    <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>Side Banner 2 (Bottom)</h4>
-                                    <Field label="Image URL" fieldKey="side_banner_2_image" value={form.data.customization.side_banner_2_image} placeholder={defaults.side_banner_2_image} onChange={updateField} />
-                                    <Field label="Target Link" fieldKey="side_banner_2_link" value={form.data.customization.side_banner_2_link} placeholder={defaults.side_banner_2_link} onChange={updateField} />
-                                    <Field label="Alt Text" fieldKey="side_banner_2_alt" value={form.data.customization.side_banner_2_alt} placeholder={defaults.side_banner_2_alt} onChange={updateField} />
+                                    <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#2e3192' }}>Bottom Side Card (Mini-Carousel Slides)</h4>
+                                    <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>Configure multiple rotating slides for the bottom side promotion card.</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                        {((form.data.customization.side_banner_2_slides || defaults.side_banner_2_slides) || []).map((slide, idx) => {
+                                            const defSlide = defaults.side_banner_2_slides?.[idx] || { image: '', link: '', alt: '' };
+                                            return (
+                                                <div key={idx} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
+                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>Bottom Card Slide #{idx + 1}</span>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Image URL</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.image}
+                                                                placeholder={defSlide.image}
+                                                                onChange={e => updateSideSlide(2, idx, 'image', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.image}</small>
+                                                        </label>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Target Link</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.link}
+                                                                placeholder={defSlide.link}
+                                                                onChange={e => updateSideSlide(2, idx, 'link', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.link}</small>
+                                                        </label>
+                                                        <label>
+                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Alt Text</span>
+                                                            <input
+                                                                type="text"
+                                                                value={slide.alt}
+                                                                placeholder={defSlide.alt}
+                                                                onChange={e => updateSideSlide(2, idx, 'alt', e.target.value)}
+                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                            />
+                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.alt}</small>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>

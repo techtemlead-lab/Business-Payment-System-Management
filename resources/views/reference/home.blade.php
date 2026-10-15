@@ -20,6 +20,24 @@
         ];
     }
 
+    $sideBanner1Slides = $siteCustomization['side_banner_1_slides'] ?? [];
+    if (empty($sideBanner1Slides)) {
+        $sideBanner1Slides = [
+            ['image' => $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg', 'link' => $siteCustomization['side_banner_1_link'] ?? '/products', 'alt' => $siteCustomization['side_banner_1_alt'] ?? 'Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
+            ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => 'Madina Authentic Unani & Herbal Solutions'],
+            ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
+        ];
+    }
+
+    $sideBanner2Slides = $siteCustomization['side_banner_2_slides'] ?? [];
+    if (empty($sideBanner2Slides)) {
+        $sideBanner2Slides = [
+            ['image' => $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg', 'link' => $siteCustomization['side_banner_2_link'] ?? '/dealers', 'alt' => $siteCustomization['side_banner_2_alt'] ?? 'Madina Authorized Dealer Network - Nationwide Distribution'],
+            ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => 'Madina Holistic Wellness & Modern Physiotherapy Care'],
+            ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
+        ];
+    }
+
     $shortcuts = $siteCustomization['shortcuts'] ?? [];
     if (empty($shortcuts)) {
         $shortcuts = [
@@ -37,7 +55,7 @@
 @section('content')
 <main id="main" class="ref-container ref-main">
     <section class="ref-promotions" aria-label="Promotional banners">
-        <div class="ref-carousel" aria-roledescription="carousel" aria-label="Featured promotions">
+        <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Featured promotions">
             <div class="ref-slides">
                 @foreach($slides as $idx => $slide)
                 <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
@@ -54,12 +72,38 @@
             </div>
         </div>
         <div class="ref-side-banners">
-            <a href="{{ $siteCustomization['side_banner_1_link'] ?? '/products' }}">
-                <img src="{{ ($siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $siteCustomization['side_banner_1_alt'] ?? 'Madina Premium Natural Care' }}">
-            </a>
-            <a href="{{ $siteCustomization['side_banner_2_link'] ?? '/dealers' }}">
-                <img src="{{ ($siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $siteCustomization['side_banner_2_alt'] ?? 'Madina Authorized Dealer Network' }}">
-            </a>
+            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Top side promotion">
+                <div class="ref-slides">
+                    @foreach($sideBanner1Slides as $idx => $slide)
+                    <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Premium Natural Care' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    </a>
+                    @endforeach
+                </div>
+                <button class="ref-carousel-arrow prev" aria-label="Previous promotion"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow next" aria-label="Next promotion"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                <div class="ref-carousel-dots">
+                    @foreach($sideBanner1Slides as $idx => $slide)
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="Show promotion {{ $idx + 1 }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    @endforeach
+                </div>
+            </div>
+            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Bottom side promotion">
+                <div class="ref-slides">
+                    @foreach($sideBanner2Slides as $idx => $slide)
+                    <a href="{{ $slide['link'] ?: '/dealers' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Authorized Dealer Network' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    </a>
+                    @endforeach
+                </div>
+                <button class="ref-carousel-arrow prev" aria-label="Previous promotion"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow next" aria-label="Next promotion"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                <div class="ref-carousel-dots">
+                    @foreach($sideBanner2Slides as $idx => $slide)
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="Show promotion {{ $idx + 1 }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </section>
     <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $siteCustomization['announcement_text'] ?? 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.' }}</span></div></div>
