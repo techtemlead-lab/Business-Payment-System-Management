@@ -15,8 +15,6 @@
             ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
             ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => 'Madina Authentic Unani & Herbal Solutions'],
             ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => 'Madina Holistic Wellness & Physiotherapy Center'],
-            ['image' => '/branding/madina-side-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Premium Natural Care - Pure Botanical Extracts'],
-            ['image' => '/branding/madina-side-banner-2.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Dealer Network - Nationwide Distribution'],
         ];
     }
 
@@ -24,8 +22,8 @@
     if (empty($sideBanner1Slides)) {
         $sideBanner1Slides = [
             ['image' => $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg', 'link' => $siteCustomization['side_banner_1_link'] ?? '/products', 'alt' => $siteCustomization['side_banner_1_alt'] ?? 'Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
-            ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => 'Madina Authentic Unani & Herbal Solutions'],
-            ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
+            ['image' => '/branding/madina-top-skincare.jpg', 'link' => '/products', 'alt' => 'Madina Pure Herbal Skincare & Hair Vitality'],
+            ['image' => '/branding/madina-top-immunity.jpg', 'link' => '/products', 'alt' => 'Madina Daily Immunity & Vitality Boosters'],
         ];
     }
 
@@ -33,8 +31,8 @@
     if (empty($sideBanner2Slides)) {
         $sideBanner2Slides = [
             ['image' => $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg', 'link' => $siteCustomization['side_banner_2_link'] ?? '/dealers', 'alt' => $siteCustomization['side_banner_2_alt'] ?? 'Madina Authorized Dealer Network - Nationwide Distribution'],
-            ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => 'Madina Holistic Wellness & Modern Physiotherapy Care'],
-            ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
+            ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
+            ['image' => '/branding/madina-bottom-pharmacy.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
         ];
     }
 
