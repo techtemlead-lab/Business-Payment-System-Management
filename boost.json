@@ -1,4 +1,7 @@
 {
+    "agents": [
+        "codex"
+    ],
     "cloud": true,
     "guidelines": true,
     "skills": [

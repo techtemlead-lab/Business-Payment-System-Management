@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Domain\Pricing\CurrentProductPricing;
+use App\Domain\Pricing\ProductPricing;
+use App\Support\SiteCustomization;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(ProductPricing::class, CurrentProductPricing::class);
     }
 
     /**
@@ -19,13 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        \Illuminate\Auth\Notifications\ResetPassword::createUrlUsing(fn($user,$token)=>route($user->staff()?'company.password.reset':'password.reset',['token'=>$token,'email'=>$user->email]));
+        ResetPassword::createUrlUsing(fn ($user, $token) => route($user->staff() ? 'company.password.reset' : 'password.reset', ['token' => $token, 'email' => $user->email]));
 
-        \Illuminate\Support\Facades\View::composer('*', function ($view) {
+        View::composer('*', function ($view) {
             try {
-                $view->with('siteCustomization', \App\Support\SiteCustomization::all());
+                $view->with('siteCustomization', SiteCustomization::all());
             } catch (\Throwable $e) {
-                $view->with('siteCustomization', \App\Support\SiteCustomization::defaults());
+                $view->with('siteCustomization', SiteCustomization::defaults());
             }
         });
     }
