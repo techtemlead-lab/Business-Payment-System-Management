@@ -1,0 +1,652 @@
+import React, { useState } from 'react';
+import { Link, router, useForm } from '@inertiajs/react';
+import {
+    Package,
+    Sparkles,
+    Tag,
+    Plus,
+    Search,
+    Save,
+    RotateCcw,
+    Layers,
+    CheckCircle2,
+    Eye
+} from 'lucide-react';
+import {
+    CampaignOffersManager,
+    FeaturedProductsManager,
+    type CampaignCardItem,
+    type CustomizationData
+} from './SiteCustomizationEditor';
+import { Row, money } from './UI';
+
+export default function ProductManagementHub({
+    products,
+    allProducts = [],
+    categories = [],
+    customization = {},
+    defaults = {},
+    filters = {},
+    canCreate = false,
+    onCreateProduct,
+    initialTab = 'products',
+}: {
+    products: Row[];
+    allProducts: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
+    categories?: string[];
+    customization?: CustomizationData;
+    defaults?: CustomizationData;
+    filters?: Row;
+    canCreate?: boolean;
+    onCreateProduct: () => void;
+    initialTab?: string;
+}) {
+    const validTabs: ('products' | 'offers' | 'featured')[] = ['products', 'offers', 'featured'];
+    const getInitialTab = (): 'products' | 'offers' | 'featured' => {
+        if (typeof window !== 'undefined') {
+            const urlTab = new URLSearchParams(window.location.search).get('tab');
+            if (urlTab && validTabs.includes(urlTab as any)) {
+                return urlTab as 'products' | 'offers' | 'featured';
+            }
+        }
+        return validTabs.includes(initialTab as any) ? (initialTab as 'products' | 'offers' | 'featured') : 'products';
+    };
+    const [activeTab, setActiveTab] = useState<'products' | 'offers' | 'featured'>(getInitialTab);
+    const [searchQuery, setSearchQuery] = useState(filters?.q || '');
+
+    // Form for Special Discounts & Promotional Offers
+    const campaignForm = useForm({
+        customization: {
+            campaign_section_enabled: customization.campaign_section_enabled !== undefined ? customization.campaign_section_enabled : '1',
+            campaign_badge: customization.campaign_badge || '',
+            campaign_title: customization.campaign_title || '',
+            campaign_subtitle: customization.campaign_subtitle || '',
+            campaign_cards: Array.isArray(customization.campaign_cards) && customization.campaign_cards.length > 0
+                ? customization.campaign_cards
+                : (defaults.campaign_cards || []),
+        }
+    });
+
+    // Form for Featured Products Showcase
+    const featuredForm = useForm({
+        customization: {
+            featured_products_enabled: customization.featured_products_enabled !== undefined ? customization.featured_products_enabled : '1',
+            featured_products_badge: customization.featured_products_badge || '',
+            featured_products_title: customization.featured_products_title || '',
+            featured_products_subtitle: customization.featured_products_subtitle || '',
+            featured_products_view_all: customization.featured_products_view_all || '',
+            featured_products_tabs_enabled: customization.featured_products_tabs_enabled !== undefined ? customization.featured_products_tabs_enabled : '1',
+            featured_products_mode: customization.featured_products_mode || 'auto',
+            featured_products_items: Array.isArray(customization.featured_products_items)
+                ? customization.featured_products_items
+                : (defaults.featured_products_items || []),
+        }
+    });
+
+    const handleSaveCampaign = (e: React.FormEvent) => {
+        e.preventDefault();
+        campaignForm.post('/commands/customization', {
+            preserveScroll: true,
+        });
+    };
+
+    const handleSaveFeatured = (e: React.FormEvent) => {
+        e.preventDefault();
+        featuredForm.post('/commands/customization', {
+            preserveScroll: true,
+        });
+    };
+
+    const handleTabChange = (t: 'products' | 'offers' | 'featured') => {
+        setActiveTab(t);
+        const url = new URL(window.location.href);
+        if (t === 'products') {
+            url.searchParams.delete('tab');
+        } else {
+            url.searchParams.set('tab', t);
+        }
+        window.history.replaceState({}, '', url.toString());
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.get('/company/catalog', { q: searchQuery, tab: activeTab !== 'products' ? activeTab : undefined }, { preserveState: true });
+    };
+
+    const activeCards = campaignForm.data.customization.campaign_cards || [];
+
+    return (
+        <div>
+            {/* Top Navigation Tabs for Product Management */}
+            <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 10,
+                padding: '8px 12px',
+                marginBottom: 24,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12
+            }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('products')}
+                        style={{
+                            padding: '9px 16px',
+                            borderRadius: 7,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: activeTab === 'products' ? '#006837' : 'transparent',
+                            color: activeTab === 'products' ? '#ffffff' : '#475569',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <Package size={16} />
+                        <span>All Products Catalog ({products.length})</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('offers')}
+                        style={{
+                            padding: '9px 16px',
+                            borderRadius: 7,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: activeTab === 'offers' ? '#006837' : 'transparent',
+                            color: activeTab === 'offers' ? '#ffffff' : '#475569',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <Tag size={16} />
+                        <span>Special Discounts & Promotional Offers ({activeCards.length})</span>
+                        <span style={{
+                            background: activeTab === 'offers' ? '#10b981' : '#e2e8f0',
+                            color: activeTab === 'offers' ? '#fff' : '#475569',
+                            fontSize: 10,
+                            fontWeight: 800,
+                            padding: '1px 6px',
+                            borderRadius: 10
+                        }}>
+                            NEW DUAL MODE
+                        </span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('featured')}
+                        style={{
+                            padding: '9px 16px',
+                            borderRadius: 7,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: activeTab === 'featured' ? '#006837' : 'transparent',
+                            color: activeTab === 'featured' ? '#ffffff' : '#475569',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <Sparkles size={16} />
+                        <span>Featured Products Showcase</span>
+                    </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <a
+                        href="/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: '#006837',
+                            padding: '6px 12px',
+                            borderRadius: 6,
+                            border: '1px solid #bbf7d0',
+                            background: '#f0fdf4',
+                            textDecoration: 'none'
+                        }}
+                    >
+                        <Eye size={14} /> View Homepage
+                    </a>
+                </div>
+            </div>
+
+            {/* TAB 1: ALL PRODUCTS CATALOG */}
+            {activeTab === 'products' && (
+                <div>
+                    {/* Catalog Control Bar */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 20,
+                        flexWrap: 'wrap',
+                        gap: 12
+                    }}>
+                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 440 }}>
+                            <div className="search-input" style={{ flex: 1 }}>
+                                <Search size={17} />
+                                <input
+                                    aria-label="Search records"
+                                    placeholder="Search by product name, SKU, or category…"
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <button className="button small">Search</button>
+                            {filters?.q && (
+                                <Link href="/company/catalog" className="text-link" style={{ alignSelf: 'center' }}>
+                                    Clear
+                                </Link>
+                            )}
+                        </form>
+
+                        {canCreate && (
+                            <button
+                                type="button"
+                                className="button dark"
+                                onClick={onCreateProduct}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontWeight: 700,
+                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
+                                }}
+                            >
+                                <Plus size={17} /> + Add New Product
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Products Grid */}
+                    <div className="product-grid portal-products">
+                        {products.map(p => {
+                            const mrpVal = Number(p.mrp) || 0;
+                            const priceVal = Number(p.price) || 0;
+                            const hasDiscount = mrpVal > 0 && priceVal > 0 && priceVal < mrpVal;
+                            const savings = hasDiscount ? (mrpVal - priceVal) : 0;
+                            const discountPct = hasDiscount ? Math.round((savings / mrpVal) * 100) : 0;
+
+                            return (
+                                <article className="product-card" key={p.id} style={{ position: 'relative' }}>
+                                    {p.featured && (
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: 8,
+                                            right: 8,
+                                            background: '#dcfce7',
+                                            color: '#15803d',
+                                            padding: '2px 7px',
+                                            borderRadius: 4,
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            zIndex: 2
+                                        }}>
+                                            ★ FEATURED
+                                        </span>
+                                    )}
+
+                                    <div className={`product-art ${p.tone}`}>
+                                        {p.image_url ? (
+                                            <img className="portal-product-image" src={p.image_url} alt={p.name} />
+                                        ) : (
+                                            <div className="mini-bottle" aria-hidden="true">
+                                                <div className="mini-cap" />
+                                                <b>madina</b>
+                                                <span>{p.category}</span>
+                                                <small>NATURAL CARE</small>
+                                            </div>
+                                        )}
+                                        <span className="product-category">{p.category}</span>
+                                        <span className={`stock-label ${p.stock === 0 ? 'out' : ''}`}>
+                                            {p.stock > 0 ? `${p.stock} in stock` : 'Awaiting stock'}
+                                        </span>
+                                    </div>
+
+                                    <div className="product-body">
+                                        <small className="muted">{p.sku} · {p.unit}</small>
+                                        <h3>
+                                            <Link href={`/company/products/${p.id}`}>{p.name}</Link>
+                                        </h3>
+                                        <p>{p.description}</p>
+
+                                        <div className="product-bottom">
+                                            <div>
+                                                <div>
+                                                    <b>{money(p.price ?? p.mrp)}</b>
+                                                    {hasDiscount && (
+                                                        <del style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'line-through', marginLeft: 6 }}>
+                                                            {money(p.mrp)}
+                                                        </del>
+                                                    )}
+                                                </div>
+                                                {hasDiscount ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                                        <span style={{
+                                                            background: '#ecfdf5',
+                                                            color: '#047857',
+                                                            fontSize: 11,
+                                                            fontWeight: 700,
+                                                            padding: '1px 6px',
+                                                            borderRadius: 4,
+                                                            border: '1px solid #a7f3d0'
+                                                        }}>
+                                                            {discountPct}% OFF
+                                                        </span>
+                                                        <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
+                                                            Save ৳{savings.toFixed(0)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <small className="cell-sub">
+                                                        {p.price ? 'Partner price' : 'MRP · partner price pending'}
+                                                    </small>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Action Row with 1-Click Stock Toggle */}
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            marginTop: 10,
+                                            gap: 8,
+                                            flexWrap: 'wrap'
+                                        }}>
+                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                                <Link className="button small product-details-link" href={`/company/products/${p.id}`}>
+                                                    Details & media ↗
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    className="button small"
+                                                    title={p.stock > 0 ? 'Click to instantly mark Out of Stock' : 'Click to instantly mark In Stock'}
+                                                    style={{
+                                                        fontSize: 11,
+                                                        padding: '4px 8px',
+                                                        background: p.stock > 0 ? '#fef2f2' : '#ecfdf5',
+                                                        color: p.stock > 0 ? '#b91c1c' : '#047857',
+                                                        borderColor: p.stock > 0 ? '#fecaca' : '#a7f3d0',
+                                                        fontWeight: 600,
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 4
+                                                    }}
+                                                    onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
+                                                >
+                                                    {p.stock > 0 ? '⚡ Mark Out of Stock' : '⚡ Mark In Stock'}
+                                                </button>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="text-link"
+                                                style={{ color: '#ef4444', fontSize: 12, padding: '4px 6px' }}
+                                                onClick={() => {
+                                                    const reason = window.prompt(`Are you sure you want to delete or archive "${p.name}"? Reason:`);
+                                                    if (reason !== null && reason.trim().length >= 3) {
+                                                        router.delete(`/commands/products/${p.id}`, { data: { reason } });
+                                                    }
+                                                }}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                            );
+                        })}
+                    </div>
+
+                    {!products.length && (
+                        <div style={{
+                            padding: '40px 20px',
+                            background: '#fff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 10,
+                            textAlign: 'center',
+                            marginTop: 16
+                        }}>
+                            <Package size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
+                            <h3 style={{ margin: '0 0 6px', fontSize: 16, color: '#334155' }}>No matching products</h3>
+                            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>
+                                Try changing your search query or add a new product to your catalog.
+                            </p>
+                            {canCreate && (
+                                <button type="button" className="button dark" onClick={onCreateProduct}>
+                                    <Plus size={16} /> Add Product
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* TAB 2: SPECIAL DISCOUNTS & PROMOTIONAL OFFERS */}
+            {activeTab === 'offers' && (
+                <form onSubmit={handleSaveCampaign}>
+                    <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 10,
+                        padding: '16px 20px',
+                        marginBottom: 20
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                            <div>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
+                                    Special Discounts & Promotional Offers Manager
+                                </h3>
+                                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                                    Create single-product promotional discounts or multi-product packages. All items are selected from your existing catalog.
+                                </p>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={campaignForm.processing}
+                                style={{
+                                    background: '#006837',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '10px 22px',
+                                    borderRadius: 7,
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
+                                }}
+                            >
+                                <Save size={16} />
+                                {campaignForm.processing ? 'Saving Changes…' : 'Save Promotional Offers'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <CampaignOffersManager
+                        cards={campaignForm.data.customization.campaign_cards || []}
+                        defaultCards={defaults.campaign_cards || []}
+                        enabled={campaignForm.data.customization.campaign_section_enabled !== '0'}
+                        badge={campaignForm.data.customization.campaign_badge || ''}
+                        title={campaignForm.data.customization.campaign_title || ''}
+                        subtitle={campaignForm.data.customization.campaign_subtitle || ''}
+                        defaultBadge={defaults.campaign_badge || 'SPECIAL CAMPAIGN & OFFERS'}
+                        defaultTitle={defaults.campaign_title || 'Special Discounts & Promotional Offers'}
+                        defaultSubtitle={defaults.campaign_subtitle || 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.'}
+                        onToggleEnabled={val => campaignForm.setData('customization', {
+                            ...campaignForm.data.customization,
+                            campaign_section_enabled: val ? '1' : '0'
+                        })}
+                        onUpdateHeaderField={(key, val) => campaignForm.setData('customization', {
+                            ...campaignForm.data.customization,
+                            [key]: val
+                        })}
+                        onChange={nextCards => campaignForm.setData('customization', {
+                            ...campaignForm.data.customization,
+                            campaign_cards: nextCards
+                        })}
+                        products={allProducts.length > 0 ? allProducts : products as any}
+                    />
+
+                    {/* Bottom Save Bar */}
+                    <div style={{
+                        marginTop: 24,
+                        padding: '16px 20px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 10,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 12
+                    }}>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                            Ensure you click <strong>Save Promotional Offers</strong> to apply any added or updated offers to the public homepage.
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={campaignForm.processing}
+                            style={{
+                                background: '#006837',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '10px 24px',
+                                borderRadius: 7,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
+                            }}
+                        >
+                            <Save size={16} />
+                            {campaignForm.processing ? 'Saving Changes…' : 'Save Promotional Offers'}
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            {/* TAB 3: FEATURED PRODUCTS SHOWCASE */}
+            {activeTab === 'featured' && (
+                <form onSubmit={handleSaveFeatured}>
+                    <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 10,
+                        padding: '16px 20px',
+                        marginBottom: 20
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                            <div>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
+                                    Featured Products Showcase Manager
+                                </h3>
+                                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                                    Select which catalog products appear in the featured tab grid on the public storefront.
+                                </p>
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={featuredForm.processing}
+                                style={{
+                                    background: '#006837',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    padding: '10px 22px',
+                                    borderRadius: 7,
+                                    fontSize: 13,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
+                                }}
+                            >
+                                <Save size={16} />
+                                {featuredForm.processing ? 'Saving Changes…' : 'Save Featured Showcase'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <FeaturedProductsManager
+                        customization={featuredForm.data.customization as any}
+                        defaults={defaults}
+                        products={allProducts.length > 0 ? allProducts : products as any}
+                        updateField={(key, val) => featuredForm.setData('customization', {
+                            ...featuredForm.data.customization,
+                            [key]: val
+                        })}
+                    />
+
+                    {/* Bottom Save Bar */}
+                    <div style={{
+                        marginTop: 24,
+                        padding: '16px 20px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 10,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 12
+                    }}>
+                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                            Save your curated featured items to update the homepage product grid and category tabs.
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={featuredForm.processing}
+                            style={{
+                                background: '#006837',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '10px 24px',
+                                borderRadius: 7,
+                                fontSize: 13,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
+                            }}
+                        >
+                            <Save size={16} />
+                            {featuredForm.processing ? 'Saving Changes…' : 'Save Featured Showcase'}
+                        </button>
+                    </div>
+                </form>
+            )}
+        </div>
+    );
+}

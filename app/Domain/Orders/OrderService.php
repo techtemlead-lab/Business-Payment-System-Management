@@ -128,6 +128,9 @@ class OrderService
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'created_at' => now(), 'updated_at' => now()]);
                     $order->update(['paid' => Money::decimal($paid)]);
+                    if ($paid >= Money::cents($order->total)) {
+                        app(\App\Domain\Commissions\CommissionService::class)->processOrder($order);
+                    }
                 }
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
                     'verified_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
@@ -199,6 +202,7 @@ class OrderService
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
             if (!$remaining && !$openShipment) {
                 $locked->update(['status' => 'delivered']);
+                app(\App\Domain\Commissions\CommissionService::class)->processOrder($locked);
             }
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             Audit::notice($locked->user_id, 'Delivery confirmed', $locked->number.': shipment delivery recorded by company staff.');

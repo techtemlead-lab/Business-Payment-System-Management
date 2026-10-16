@@ -108,4 +108,403 @@ class SiteCustomizationTest extends TestCase
         auth()->logout();
         $this->get('/login')->assertOk()->assertSee('Custom Partner Access Portal');
     }
+
+    public function test_shortcuts_can_be_customized_added_removed_and_disabled(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        // 1. Customize with 3 custom shortcuts (added/modified)
+        $payload = [
+            'customization' => [
+                'shortcuts_section_enabled' => '1',
+                'shortcuts' => [
+                    ['title' => 'VIP Consultations', 'subtitle' => 'Book doctor session', 'icon' => 'fa-user-doctor', 'link' => '/vip-consult'],
+                    ['title' => 'Rapid Medicine Dispatch', 'subtitle' => 'Same-day delivery', 'icon' => 'fa-truck-fast', 'link' => '/delivery'],
+                    ['title' => 'Herbal Research Lab', 'subtitle' => 'Explore unani formulas', 'icon' => 'fa-flask', 'link' => '/lab'],
+                ],
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        $response = $this->get('/');
+        $response->assertOk();
+        $response->assertSee('VIP Consultations');
+        $response->assertSee('Book doctor session');
+        $response->assertSee('Rapid Medicine Dispatch');
+        $response->assertSee('Herbal Research Lab');
+        // Unused default shortcuts should not be present
+        $response->assertDontSee('Raise a Complain');
+
+        // 2. Disable shortcuts section
+        $payloadDisabled = [
+            'customization' => [
+                'shortcuts_section_enabled' => '0',
+            ],
+        ];
+        $this->actingAs($editor)->post('/commands/customization', $payloadDisabled);
+
+        $responseDisabled = $this->get('/');
+        $responseDisabled->assertOk();
+        $responseDisabled->assertDontSee('VIP Consultations');
+        $responseDisabled->assertDontSee('Rapid Medicine Dispatch');
+    }
+
+    public function test_campaign_offers_can_be_customized_added_and_sync_with_product_detail_page(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $product = \App\Models\Product::factory()->create([
+            'name' => 'Super Ginseng Tonic',
+            'mrp' => '1500.00',
+            'active' => true,
+        ]);
+
+        // 1. Add 3 campaign cards with one linked to $product
+        $payload = [
+            'customization' => [
+                'campaign_section_enabled' => '1',
+                'campaign_title' => 'Mega Eid Wellness Festival',
+                'campaign_cards' => [
+                    [
+                        'id' => 'card-custom-1',
+                        'product_id' => (string)$product->id,
+                        'tag' => '50% Mega Flash',
+                        'title' => 'Super Ginseng Tonic Special Bundle',
+                        'desc' => 'Buy Ginseng tonic with free unani honey.',
+                        'price' => '999 Tk',
+                        'mrp' => '1,500 Tk',
+                        'save' => 'Save 501 Tk',
+                        'btn' => 'Claim Tonic Offer',
+                        'link' => '/products/' . $product->id,
+                        'highlight' => '1',
+                    ],
+                    [
+                        'id' => 'card-custom-2',
+                        'product_id' => '',
+                        'tag' => 'Dealer Starter',
+                        'title' => 'Community Pharmacy Starter Package',
+                        'desc' => 'Full retail starter kit for pharmacy dealers.',
+                        'price' => '45,000 Tk',
+                        'mrp' => '60,000 Tk',
+                        'save' => 'Save 15,000 Tk',
+                        'btn' => 'Become Partner',
+                        'link' => '/dealers',
+                        'highlight' => '0',
+                    ],
+                    [
+                        'id' => 'card-custom-3',
+                        'product_id' => '',
+                        'tag' => 'Seasonal Bonus',
+                        'title' => 'Family Daily Immunity Crate',
+                        'desc' => '5 essential herbal tonics in one crate.',
+                        'price' => '3,200 Tk',
+                        'mrp' => '4,000 Tk',
+                        'save' => 'Save 800 Tk',
+                        'btn' => 'Order Crate',
+                        'link' => '/products',
+                        'highlight' => '0',
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        // Check Homepage has all 3 offer cards and custom campaign title
+        $response = $this->get('/');
+        $response->assertOk();
+        $response->assertSee('Mega Eid Wellness Festival');
+        $response->assertSee('Super Ginseng Tonic Special Bundle');
+        $response->assertSee('999 Tk');
+        $response->assertSee('Save 501 Tk');
+        $response->assertSee('Community Pharmacy Starter Package');
+        $response->assertSee('Family Daily Immunity Crate');
+
+        // Check Product Detail page automatically inherits the campaign discount and savings
+        $productPage = $this->get('/products/' . $product->id);
+        $productPage->assertOk();
+        $productPage->assertSee('999');
+        $productPage->assertSee('Save 501 Tk');
+        $productPage->assertSee('1,500');
+
+        // 2. Test disabling campaign section
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'campaign_section_enabled' => '0',
+            ],
+        ]);
+
+        $disabledResponse = $this->get('/');
+        $disabledResponse->assertOk();
+        $disabledResponse->assertDontSee('Mega Eid Wellness Festival');
+        $disabledResponse->assertDontSee('Super Ginseng Tonic Special Bundle');
+    }
+
+    public function test_featured_products_section_can_be_customized_curated_and_filtered_by_tabs(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        $p1 = \App\Models\Product::create([
+            'name' => 'Madina Habbe Ambar',
+            'sku' => 'UNANI-001',
+            'category' => 'Unani Medicine',
+            'unit' => 'box',
+            'description' => 'Classical herbal tonic formulation.',
+            'mrp' => '450.00',
+            'dealer_price' => '320.00',
+            'cost_price' => '200.00',
+            'active' => true,
+            'featured' => true,
+            'stock' => 15,
+            'low_stock_at' => 5,
+        ]);
+
+        $p2 = \App\Models\Product::create([
+            'name' => 'Organic Spirulina Powder',
+            'sku' => 'SUPP-002',
+            'category' => 'Food Supplement',
+            'unit' => 'jar',
+            'description' => 'Pure spirulina dietary health supplement.',
+            'mrp' => '850.00',
+            'dealer_price' => '600.00',
+            'cost_price' => '400.00',
+            'active' => true,
+            'featured' => false,
+            'stock' => 4, // low stock test
+            'low_stock_at' => 5,
+        ]);
+
+        $payload = [
+            'customization' => [
+                'featured_products_enabled' => '1',
+                'featured_products_badge' => 'STAFF PICKS',
+                'featured_products_title' => 'Top Natural Formulations',
+                'featured_products_subtitle' => 'Scientifically validated botanical products',
+                'featured_products_view_all' => 'Explore Entire Catalog',
+                'featured_products_tabs_enabled' => '1',
+                'featured_products_mode' => 'curated',
+                'featured_products_items' => [
+                    [
+                        'product_id' => (string)$p1->id,
+                        'marketing_badge' => '★ Best Seller',
+                        'override_title' => 'Habbe Ambar Premium',
+                    ],
+                    [
+                        'product_id' => (string)$p2->id,
+                        'marketing_badge' => '🔥 Hot Deal',
+                        'override_title' => '',
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        // Verify public home response
+        $response = $this->get('/');
+        $response->assertOk();
+        $response->assertSee('STAFF PICKS');
+        $response->assertSee('Top Natural Formulations');
+        $response->assertSee('Scientifically validated botanical products');
+        $response->assertSee('Explore Entire Catalog');
+        $response->assertSee('Habbe Ambar Premium');
+        $response->assertSee('★ Best Seller');
+        $response->assertSee('Organic Spirulina Powder');
+        $response->assertSee('🔥 Hot Deal');
+        $response->assertSee('⚡ Only 4 Left!'); // Low stock urgency badge
+        $response->assertSee('Unani Medicine');
+        $response->assertSee('Food Supplement');
+
+        // Test Disabling Featured Products section
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'featured_products_enabled' => '0',
+            ],
+        ]);
+
+        $disabledResponse = $this->get('/');
+        $disabledResponse->assertOk();
+        $disabledResponse->assertDontSee('Top Natural Formulations');
+        $disabledResponse->assertDontSee('STAFF PICKS');
+    }
+
+    public function test_special_campaign_offers_supports_single_promo_override_and_package_bundles(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        $p1 = \App\Models\Product::create([
+            'name' => 'Botanical Vitality Syrup',
+            'sku' => 'BOT-100',
+            'category' => 'Herbal Care',
+            'unit' => 'bottle',
+            'description' => 'Pure herbal tonic.',
+            'mrp' => '1000.00',
+            'dealer_price' => '500.00', // Regular 50% catalog discount
+            'cost_price' => '250.00',
+            'active' => true,
+            'stock' => 50,
+        ]);
+
+        $p2 = \App\Models\Product::create([
+            'name' => 'Pure Black Seed Honey',
+            'sku' => 'HON-200',
+            'category' => 'Food Supplement',
+            'unit' => 'jar',
+            'description' => 'Natural pure organic honey.',
+            'mrp' => '800.00',
+            'dealer_price' => '480.00', // Regular 40% catalog discount
+            'cost_price' => '300.00',
+            'active' => true,
+            'stock' => 30,
+        ]);
+
+        $payload = [
+            'customization' => [
+                'campaign_section_enabled' => '1',
+                'campaign_badge' => 'EXCLUSIVE SPECIAL OFFERS',
+                'campaign_title' => 'Limited Time Special Discounts',
+                'campaign_cards' => [
+                    // Single Product Offer: 60% promo discount (1000 MRP -> 400 price, Save 600)
+                    [
+                        'type' => 'single',
+                        'product_id' => (string)$p1->id,
+                        'promo_discount_pct' => 60,
+                        'tag' => 'Single Deal',
+                        'title' => 'Botanical Vitality Special Promo',
+                        'desc' => 'Get 60% promotional discount instead of standard 50%.',
+                        'feat1' => 'Immunity Booster',
+                        'feat2' => 'Direct Factory Dispatch',
+                        'price' => '400 Tk',
+                        'mrp' => '1,000 Tk',
+                        'save' => 'Save 600 Tk',
+                        'btn' => 'Claim 60% Offer',
+                        'link' => '/products/' . $p1->id,
+                        'highlight' => '1',
+                    ],
+                    // Multi-Product Package Bundle: combined MRP 1800, flat 35% discount -> 1170 price, Save 630
+                    [
+                        'type' => 'bundle',
+                        'product_id' => '',
+                        'bundle_discount_mode' => 'total',
+                        'bundle_discount_pct' => 35,
+                        'bundle_items' => [
+                            [
+                                'product_id' => $p1->id,
+                                'name' => $p1->name,
+                                'sku' => $p1->sku,
+                                'mrp' => '1000.00',
+                            ],
+                            [
+                                'product_id' => $p2->id,
+                                'name' => $p2->name,
+                                'sku' => $p2->sku,
+                                'mrp' => '800.00',
+                            ],
+                        ],
+                        'tag' => 'Package Bundle',
+                        'title' => 'Ultimate Wellness Duo Package',
+                        'desc' => 'Comprehensive 2-in-1 family healthcare pack.',
+                        'feat1' => 'Includes Syrup + Honey',
+                        'feat2' => 'Free Priority Delivery',
+                        'price' => '1,170 Tk',
+                        'mrp' => '1,800 Tk',
+                        'save' => 'Save 630 Tk',
+                        'btn' => 'Order Package',
+                        'link' => '/products',
+                        'highlight' => '0',
+                    ],
+                ],
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        // Verify public home displays both Single Product and Bundle Package
+        $response = $this->get('/');
+        $response->assertOk();
+        $response->assertSee('EXCLUSIVE SPECIAL OFFERS');
+        $response->assertSee('Limited Time Special Discounts');
+
+        // Single product offer assertions
+        $response->assertSee('Botanical Vitality Special Promo');
+        $response->assertSee('400 Tk');
+        $response->assertSee('1,000 Tk');
+        $response->assertSee('Save 600 Tk');
+
+        // Bundle package offer assertions
+        $response->assertSee('Ultimate Wellness Duo Package');
+        $response->assertSee('1,170 Tk');
+        $response->assertSee('1,800 Tk');
+        $response->assertSee('Save 630 Tk');
+        $response->assertSee('Package Includes (2 Products):');
+        $response->assertSee('Botanical Vitality Syrup');
+        $response->assertSee('Pure Black Seed Honey');
+
+        // Verify single product catalog pricing uses promotional override while active in campaign
+        $cardActive = SiteCustomization::formatPublicProductCard($p1);
+        $this->assertEquals(400.0, (float)$cardActive['price']);
+
+        // Verify reversion rule: When removed from campaign cards, product price reverts to catalog dealer_price
+        SiteCustomization::save([
+            'campaign_cards' => [],
+        ]);
+
+        $cardReverted = SiteCustomization::formatPublicProductCard($p1);
+        $this->assertEquals('500.00', (string)$cardReverted['price']);
+    }
+
+    public function test_footer_and_contact_support_phone_social_and_app_store_placeholders(): void
+    {
+        // 1. Verify default values in public home and contact views
+        $home = $this->get('/');
+        $home->assertOk();
+        $home->assertSee('+8801730532966');
+        $home->assertSee('tel:+8801730532966');
+        $home->assertSee('href="#"', false);
+        $home->assertSee('https://wa.me/8801730532966');
+
+        $contact = $this->get('/contact');
+        $contact->assertOk();
+        $contact->assertSee('+8801730532966');
+        $contact->assertSee('Customer Care &amp; Hotline', false);
+
+        // 2. Staff customizes phone, social media, and app store URLs
+        $editor = User::factory()->create(['role' => 'editor']);
+        $payload = [
+            'customization' => [
+                'footer_support_title' => 'Hotline: +8801888888888',
+                'footer_support_link' => 'tel:+8801888888888',
+                'footer_phone' => '+8801888888888',
+                'contact_phone' => '+8801888888888',
+                'social_facebook' => 'https://facebook.com/custom-madina-page',
+                'social_whatsapp' => '01888888888',
+                'app_google_play_link' => 'https://play.google.com/store/apps/details?id=com.madina.app',
+                'app_apple_store_link' => 'https://apps.apple.com/app/madina-care/id123456789',
+                'footer_link_about_url' => '/custom-story',
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        $customHome = $this->get('/');
+        $customHome->assertOk();
+        $customHome->assertSee('Hotline: +8801888888888');
+        $customHome->assertSee('tel:+8801888888888');
+        $customHome->assertSee('https://facebook.com/custom-madina-page');
+        $customHome->assertSee('https://wa.me/8801888888888');
+        $customHome->assertSee('https://play.google.com/store/apps/details?id=com.madina.app');
+        $customHome->assertSee('https://apps.apple.com/app/madina-care/id123456789');
+        $customHome->assertSee('/custom-story');
+
+        $customContact = $this->get('/contact');
+        $customContact->assertOk();
+        $customContact->assertSee('+8801888888888');
+        $customContact->assertSee('https://facebook.com/custom-madina-page');
+    }
 }
+

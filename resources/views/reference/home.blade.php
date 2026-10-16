@@ -1,13 +1,6 @@
 @php
     $reference = json_decode(file_get_contents(public_path('reference/home-products.json')), true);
     $referenceProducts = $referencePreview ? $reference['products'] : [];
-    $featuredCategories = [
-        ['Medical Equipment','fa-briefcase-medical'],['Meat & Fish','fa-drumstick-bite'],['Food Supplement','fa-seedling'],['Personal Care','fa-spa'],
-        ['Water Purifier','fa-droplet'],['Leather Items','fa-briefcase'],['Unani Medicine','fa-mortar-pestle'],['Consumer Items','fa-basket-shopping'],
-        ['Medicine','fa-capsules'],['Electric Kettle','fa-mug-hot'],['Agriculture Product','fa-leaf'],['Cookeries Items','fa-kitchen-set'],
-        ['Cosmetics','fa-wand-magic-sparkles'],['Room Heater','fa-temperature-high'],['Furniture','fa-couch'],['Service','fa-hand-holding-heart'],
-        ['Electronic Devices','fa-plug'],['Fashion & Lifestyle','fa-vest'],
-    ];
 
     $slides = $siteCustomization['slides'] ?? [];
     if (empty($slides)) {
@@ -40,7 +33,7 @@
     if (empty($shortcuts)) {
         $shortcuts = [
             ['title'=>'Our Products','subtitle'=>'browse wellness items','icon'=>'fa-seedling','link'=>'/products'],
-            ['title'=>'Raise a Complain','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact'],
+            ['title'=>'Raise a Complain','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=Complaint'],
             ['title'=>'Our Services','subtitle'=>'Natural Health Care and Physiotherapy Center','icon'=>'fa-hand-holding-heart','link'=>'/about'],
             ['title'=>'Contact Us','subtitle'=>'Support & Inquiries','icon'=>'fa-headset','link'=>'/contact'],
             ['title'=>'Our Projects','subtitle'=>'Entrepreneur','icon'=>'fa-diagram-project','link'=>'/dealers']
@@ -105,11 +98,46 @@
         </div>
     </section>
     <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $siteCustomization['announcement_text'] ?? 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.' }}</span></div></div>
+    @php
+        $shortcutsEnabled = filter_var($siteCustomization['shortcuts_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $shortcutsList = \App\Support\SiteCustomization::getShortcuts();
+    @endphp
+    @if($shortcutsEnabled && !empty($shortcutsList))
     <section class="ref-shortcuts" aria-label="Quick links">
-        @foreach($shortcuts as $s)
-        <a href="{{ $s['link'] ?: '#' }}"><i class="fa-solid {{ $s['icon'] ?: 'fa-circle' }}" aria-hidden="true"></i><div><h3>{{ $s['title'] ?: 'Feature' }}</h3><p>{{ $s['subtitle'] ?: '' }}</p></div></a>
+        @foreach($shortcutsList as $idx => $s)
+        @php
+            $icon = trim($s['icon'] ?? 'fa-circle');
+            $isImage = (bool)preg_match('/\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i', $icon)
+                || str_starts_with($icon, '/')
+                || str_starts_with($icon, 'http://')
+                || str_starts_with($icon, 'https://');
+            if (!$isImage && !str_contains($icon, 'fa-solid') && !str_contains($icon, 'fa-brands') && !str_contains($icon, 'fa-regular')) {
+                if (!str_starts_with($icon, 'fa-')) {
+                    $icon = 'fa-' . $icon;
+                }
+                $icon = 'fa-solid ' . $icon;
+            }
+            $title = $s['title'] ?: 'Shortcut';
+        @endphp
+        <a href="{{ $s['link'] ?: '#' }}">
+            @if($isImage)
+                <img src="{{ $icon }}" alt="{{ $title }}" style="width: 32px; height: 32px; object-fit: contain;" />
+            @else
+                <i class="{{ $icon }}" aria-hidden="true"></i>
+            @endif
+            <div>
+                <h3>{{ $title }}</h3>
+                @if(!empty($s['subtitle']))<p>{{ $s['subtitle'] }}</p>@endif
+            </div>
+        </a>
         @endforeach
     </section>
+    @endif
+    @php
+        $campaignEnabled = filter_var($siteCustomization['campaign_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $campaignCards = \App\Support\SiteCustomization::getCampaignCards();
+    @endphp
+    @if($campaignEnabled && !empty($campaignCards))
     <section class="ref-campaign-section" aria-label="Special Offers and Campaigns">
         <div class="ref-section-title">
             <span class="ref-campaign-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> {{ $siteCustomization['campaign_badge'] ?? 'SPECIAL CAMPAIGN & OFFERS' }}</span>
@@ -117,41 +145,121 @@
             <p>{{ $siteCustomization['campaign_subtitle'] ?? 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.' }}</p>
         </div>
         <div class="ref-campaign-grid">
-            <div class="ref-campaign-card highlight">
-                <span class="ref-discount-tag">{{ $siteCustomization['campaign_card1_tag'] ?? 'Featured Campaign' }}</span>
-                <div class="ref-campaign-body">
-                    <h3>{{ $siteCustomization['campaign_card1_title'] ?? 'Healthcare Entrepreneur & Partner Package' }}</h3>
-                    <p>{{ $siteCustomization['campaign_card1_desc'] ?? 'Comprehensive natural health package including diagnostic machine and physiotherapy equipment support for regional centers.' }}</p>
-                    <div class="ref-campaign-pricing">
-                        <strong>{{ $siteCustomization['campaign_card1_price'] ?? '20,000 Tk' }}</strong>
-                        <del>{{ $siteCustomization['campaign_card1_mrp'] ?? '30,000 Tk' }}</del>
-                        <span class="ref-save-pill">{{ $siteCustomization['campaign_card1_save'] ?? 'Save 10,000 Tk' }}</span>
+            @foreach($campaignCards as $card)
+            @php
+                $cardLink = !empty($card['link']) ? $card['link'] : '/products';
+                $isHighlight = filter_var($card['highlight'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $cardTitle = $card['title'] ?? 'Special Offer';
+                $feat1 = $card['feat1'] ?? '';
+                $feat2 = $card['feat2'] ?? '';
+            @endphp
+            <div class="ref-campaign-card {{ $isHighlight ? 'highlight' : '' }}">
+                @if(!empty($card['image']))
+                <a href="{{ $cardLink }}" class="ref-campaign-thumb-link" aria-label="{{ $cardTitle }}">
+                    <div class="ref-campaign-thumb">
+                        <img src="{{ $card['image'] }}" alt="{{ $cardTitle }}" loading="lazy">
                     </div>
-                    <a href="/products" class="ref-primary-button">{{ $siteCustomization['campaign_card1_btn'] ?? 'View Package' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                </a>
+                @endif
+                @if(!empty($card['tag']))
+                <span class="ref-discount-tag"><span class="ref-pulse-dot" aria-hidden="true"></span>{{ $card['tag'] }}</span>
+                @endif
+                <div class="ref-campaign-body">
+                    <a href="{{ $cardLink }}" class="ref-campaign-title-link">
+                        <h3>{{ $cardTitle }}</h3>
+                    </a>
+                    @if(!empty($card['desc']))
+                    <p>{{ $card['desc'] }}</p>
+                    @endif
+                    @if(($card['type'] ?? 'bundle') === 'bundle' && !empty($card['bundle_items']))
+                    <div class="ref-bundle-preview" style="margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                        <div style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Package Includes ({{ count($card['bundle_items']) }} Products):
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                            @foreach($card['bundle_items'] as $bItem)
+                            <span style="font-size: 11px; background: #fff; padding: 2px 7px; border-radius: 4px; border: 1px solid #e2e8f0; color: #334155;">
+                                {{ $bItem['name'] ?? 'Product' }} @if(!empty($bItem['mrp']))<small style="color: #64748b;">(৳{{ number_format((float)$bItem['mrp']) }})</small>@endif
+                            </span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                    @if(!empty($feat1) || !empty($feat2))
+                    <ul class="ref-campaign-features">
+                        @if(!empty($feat1))<li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ $feat1 }}</li>@endif
+                        @if(!empty($feat2))<li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ $feat2 }}</li>@endif
+                    </ul>
+                    @endif
+                    <div class="ref-campaign-pricing">
+                        @if(!empty($card['price']))<strong>{{ $card['price'] }}</strong>@endif
+                        @if(!empty($card['mrp']))<del>{{ $card['mrp'] }}</del>@endif
+                        @if(!empty($card['save']))<span class="ref-save-pill">{{ $card['save'] }}</span>@endif
+                    </div>
+                    <a href="{{ $cardLink }}" class="ref-primary-button">{{ $card['btn'] ?? 'View Package' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
                 </div>
             </div>
-            <div class="ref-campaign-card">
-                <span class="ref-discount-tag">{{ $siteCustomization['campaign_card2_tag'] ?? 'Seasonal Offer' }}</span>
-                <div class="ref-campaign-body">
-                    <h3>{{ $siteCustomization['campaign_card2_title'] ?? 'Family Wellness & Immunity Kit' }}</h3>
-                    <p>{{ $siteCustomization['campaign_card2_desc'] ?? 'Selected organic food supplements, unani tonics and herbal wellness essentials for full family vitality.' }}</p>
-                    <div class="ref-campaign-pricing">
-                        <strong>{{ $siteCustomization['campaign_card2_price'] ?? '6,100 Tk' }}</strong>
-                        <del>{{ $siteCustomization['campaign_card2_mrp'] ?? '7,000 Tk' }}</del>
-                        <span class="ref-save-pill">{{ $siteCustomization['campaign_card2_save'] ?? 'Save 900 Tk' }}</span>
-                    </div>
-                    <a href="/products" class="ref-primary-button">{{ $siteCustomization['campaign_card2_btn'] ?? 'Explore Kit' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                </div>
-            </div>
+            @endforeach
         </div>
     </section>
-    <section class="ref-featured-categories">
+    @endif
+    @php
+        $categoriesEnabled = filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
+    @endphp
+    @if($categoriesEnabled && !empty($categoriesList))
+    <section class="ref-featured-categories" aria-label="Featured Categories">
         <div class="ref-section-title">
             <h2>{{ $siteCustomization['featured_categories_title'] ?? 'Featured Categories' }}</h2>
             <p>{{ $siteCustomization['featured_categories_subtitle'] ?? 'Get Your Desired Product from Featured Category!' }}</p>
         </div>
-        <div class="ref-category-grid">@foreach($featuredCategories as [$title,$icon])<a href="/products?category={{ urlencode($title) }}"><i class="fa-solid {{ $icon }}" aria-hidden="true"></i><span>{{ $title }}</span></a>@endforeach</div>
+        <div class="ref-category-grid is-collapsed" id="refCategoryGrid">
+            @foreach($categoriesList as $cat)
+                @php
+                    $badgeClass = !empty($cat['badge']) ? strtolower(trim($cat['badge'])) : '';
+                @endphp
+                <a href="{{ $cat['link'] }}">
+                    @if(!empty($cat['badge']))
+                        <span class="ref-cat-pill-badge {{ $badgeClass }}">{{ $cat['badge'] }}</span>
+                    @endif
+                    <div class="ref-cat-icon-wrap">
+                        @if(!empty($cat['is_image']))
+                            <img src="{{ $cat['image'] }}" alt="{{ $cat['name'] }}" loading="lazy">
+                        @else
+                            <i class="fa-solid {{ $cat['icon'] }}" aria-hidden="true"></i>
+                        @endif
+                    </div>
+                    <span class="ref-cat-name">{{ $cat['name'] }}</span>
+                </a>
+            @endforeach
+        </div>
+        @if(count($categoriesList) > 8)
+        <div class="ref-cat-expand-wrap">
+            <button type="button" class="ref-cat-toggle-btn" id="refCatToggleBtn" aria-expanded="false">
+                <span>View All Categories ({{ count($categoriesList) }})</span>
+                <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+            </button>
+        </div>
+        <script>
+        (function() {
+            var btn = document.getElementById('refCatToggleBtn');
+            var grid = document.getElementById('refCategoryGrid');
+            if (btn && grid) {
+                btn.addEventListener('click', function() {
+                    var collapsed = grid.classList.toggle('is-collapsed');
+                    btn.setAttribute('aria-expanded', !collapsed);
+                    if (collapsed) {
+                        btn.innerHTML = '<span>View All Categories ({{ count($categoriesList) }})</span> <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+                    } else {
+                        btn.innerHTML = '<span>Show Fewer Categories</span> <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
+                    }
+                });
+            }
+        })();
+        </script>
+        @endif
     </section>
+    @endif
     <section class="ref-dealer-network-banner" aria-label="Authorized Dealer Network">
         <div class="ref-dealer-banner-inner">
             <div class="ref-dealer-banner-info">
@@ -169,32 +277,52 @@
             </a>
         </div>
     </section>
-    <section id="featured-products" class="ref-featured-products">
+    @php
+        $featuredSectionEnabled = filter_var($siteCustomization['featured_products_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $tabsEnabled = filter_var($siteCustomization['featured_products_tabs_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $viewAllLink = !empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products';
+    @endphp
+    @if($featuredSectionEnabled)
+    <section id="featured-products" class="ref-featured-products" aria-label="Featured Products">
         <div class="ref-section-title ref-section-title-flex">
             <div>
+                @if(!empty($siteCustomization['featured_products_badge']))
+                    <span class="ref-featured-badge"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ $siteCustomization['featured_products_badge'] }}</span>
+                @endif
                 <h2>{{ $siteCustomization['featured_products_title'] ?? 'Featured Products' }}</h2>
                 <p>{{ $siteCustomization['featured_products_subtitle'] ?? 'Check & Get Your Desired Product!' }}</p>
             </div>
-            <a href="/products" class="ref-view-all-link">{{ $siteCustomization['featured_products_view_all'] ?? 'View All Products' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <a href="{{ $viewAllLink }}" class="ref-view-all-link">{{ $siteCustomization['featured_products_view_all'] ?? 'View All Products' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
-        <div class="ref-product-grid">
-            @if(!$referencePreview)
-            @forelse($featuredItems as $item)@include('reference.product-card',compact('item'))@empty<div class="ref-empty"><h2>{{ $siteCustomization['products_empty_title'] ?? 'Our collection is being prepared.' }}</h2><a href="/contact" class="ref-primary-button">Contact Us</a></div>@endforelse
-            @else
-            @foreach($referenceProducts as $index=>$product)
-            <article class="ref-product-card">
-                <span class="ref-stock">{{ $product['stock_display'] }}</span><button class="ref-wishlist" data-favorite="{{ $product['id'] }}" aria-label="Save {{ $product['name'] }}" aria-pressed="false"><i class="fa-regular fa-heart" aria-hidden="true"></i></button>
-                <a class="ref-product-photo" href="/products/preview/{{ $product['id'] }}"><img src="{{ $product['image_path'] }}" alt="{{ $product['name'] }}" loading="lazy"></a>
-                <div class="ref-product-info"><h3><a href="/products/preview/{{ $product['id'] }}">{{ $product['name'] }}</a></h3><p>Product information and dealer availability. Contact the company for details.</p>
-                    <div class="ref-price"><strong>{{ $product['price_display'] }}</strong><del>{{ $product['old_price_display'] }}</del></div>
-                    <button class="ref-add-cart" data-cart="{{ $product['id'] }}" data-name="{{ $product['name'] }}" data-price="{{ $product['price_display'] }}" data-image="{{ $product['image_path'] }}"><i class="fa-solid fa-cart-plus" aria-hidden="true"></i> Add to Cart</button>
-                    <a class="ref-buy-now" href="/login"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i> Buy Now</a>
-                </div>
-            </article>
+
+        @if($tabsEnabled && !empty($featuredCategoryTabs) && count($featuredCategoryTabs) > 1)
+        <div class="ref-featured-tabs" role="tablist" aria-label="Product category filters">
+            @foreach($featuredCategoryTabs as $tab)
+            <button type="button" class="ref-tab-btn {{ $loop->first ? 'is-active' : '' }}" role="tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-category-filter="{{ $tab['slug'] }}">
+                <span>{{ $tab['name'] }}</span>
+                <span class="ref-tab-count">{{ $tab['count'] }}</span>
+            </button>
             @endforeach
-            @endif
+        </div>
+        @endif
+
+        <div class="ref-product-grid" id="refProductGrid">
+            @forelse($featuredProducts as $item)
+                @include('reference.product-card', compact('item'))
+            @empty
+                <div class="ref-empty" style="grid-column: 1 / -1;">
+                    <h2>{{ $siteCustomization['products_empty_title'] ?? 'Our collection is being prepared.' }}</h2>
+                    <a href="/contact" class="ref-primary-button">Contact Us</a>
+                </div>
+            @endforelse
+        </div>
+
+        <div class="ref-tab-empty" id="refTabEmpty" style="display: none;">
+            <i class="fa-solid fa-box-open" style="font-size: 36px; color: #94a3b8; margin-bottom: 12px;"></i>
+            <p style="color: #64748b; font-size: 14px; margin: 0;">No products found in this category.</p>
         </div>
     </section>
+    @endif
     <section class="ref-home-about">
         <h1>{{ $siteCustomization['about_headline'] ?? 'Natural Food, Medicine & Wellness Product Shop in Bangladesh' }}</h1>
         <p>{{ $siteCustomization['about_lead'] ?? 'Madina Natural Health Care connects products, dealers and communities across Bangladesh. Explore the collection and contact the company for product information and partnership enquiries.' }}</p>

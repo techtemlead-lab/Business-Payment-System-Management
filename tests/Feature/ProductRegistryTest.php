@@ -54,5 +54,81 @@ class ProductRegistryTest extends TestCase {
         $p=$this->product();$this->actingAs(User::factory()->create(['role'=>'super_admin']))->patch('/commands/products/'.$p->id,[...$this->data(),'version'=>'0','video_source'=>'upload','video'=>$this->video()])->assertRedirect();
         $this->patch('/commands/products/'.$p->id,[...$this->data(),'version'=>'1','video_source'=>'none','active'=>false])->assertRedirect();$this->assertFalse($p->fresh()->active);$this->assertSame(2,$p->fresh()->registry_version);
     }
+
+    public function test_product_deletion_deletes_unpurchased_and_archives_ordered_product():void{
+        $admin = User::factory()->create(['role'=>'super_admin']);
+        $dealer = User::factory()->create(['role'=>'dealer']);
+
+        // 1. Unauthorized role cannot delete product
+        $p1 = $this->product();
+        $this->actingAs($dealer)->delete('/commands/products/'.$p1->id, ['reason'=>'Unauthorized'])->assertForbidden();
+
+        // 2. Unordered product is completely deleted
+        $this->actingAs($admin)->delete('/commands/products/'.$p1->id, ['reason'=>'Obsolete product'])->assertRedirect();
+        $this->assertNull(Product::find($p1->id));
+
+        // 3. Product with order history is safely deactivated/archived to preserve financial records
+        $p2 = $this->product();
+        $order = app(OrderService::class)->create($dealer, ['items'=>[['product_id'=>$p2->id, 'quantity'=>1]], 'idempotency_key'=>(string)Str::uuid()]);
+        $this->actingAs($admin)->delete('/commands/products/'.$p2->id, ['reason'=>'Discontinue with history'])->assertRedirect();
+
+        $freshP2 = Product::find($p2->id);
+        $this->assertNotNull($freshP2);
+        $this->assertFalse($freshP2->active);
+        $this->assertFalse($freshP2->featured);
+
+        // Historical order lines remain completely untouched
+        $this->assertSame($p2->id, DB::table('order_lines')->where('order_id', $order->id)->value('product_id'));
+    }
+
+    public function test_staff_can_toggle_product_stock_in_one_click_and_records_audit_trail(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $dealer = User::factory()->create(['role' => 'dealer']);
+        $product = $this->product();
+        $product->update(['stock' => 20]);
+
+        // 1. Unauthorized dealer cannot toggle stock
+        $this->actingAs($dealer)->post('/commands/products/'.$product->id.'/toggle-stock')->assertForbidden();
+
+        // 2. Staff toggles from in-stock (20) to out-of-stock (0)
+        $this->actingAs($admin)
+            ->from('/company/catalog')
+            ->post('/commands/products/'.$product->id.'/toggle-stock')
+            ->assertRedirect('/company/catalog')
+            ->assertSessionHas('success');
+
+        $product->refresh();
+        $this->assertSame(0, $product->stock);
+
+        // Verify stock movement and audit record
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'quantity' => -20,
+            'kind' => 'adjustment',
+        ]);
+        $this->assertDatabaseHas('audit_events', [
+            'action' => 'stock.quick_toggle',
+            'subject' => (string)$product->id,
+        ]);
+
+        // 3. Staff toggles back from out-of-stock (0) to in-stock (50)
+        $this->actingAs($admin)
+            ->from('/company/inventory')
+            ->post('/commands/products/'.$product->id.'/toggle-stock')
+            ->assertRedirect('/company/inventory')
+            ->assertSessionHas('success');
+
+        $product->refresh();
+        $this->assertSame(50, $product->stock);
+
+        // Verify receipt stock movement
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'quantity' => 50,
+            'kind' => 'receipt',
+        ]);
+    }
 }
+
 

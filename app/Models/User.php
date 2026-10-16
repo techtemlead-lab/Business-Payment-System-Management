@@ -21,6 +21,13 @@ class User extends Authenticatable
     public function allows(string $capability): bool { return $this->status === 'active' && in_array($capability, config('madina.roles.'.$this->role, []), true); }
     public function safe(): array { return $this->only(['id','name','email','role','dealer_code','district','division','status']); }
 
+    public function sponsor() { return $this->belongsTo(User::class, 'sponsor_id'); }
+    public function referrals() { return $this->hasMany(User::class, 'sponsor_id'); }
+    public function rank() { return $this->hasOne(DealerRank::class); }
+    public function areaAssignments() { return $this->hasMany(AreaDealerAssignment::class); }
+    public function milestones() { return $this->hasMany(RewardMilestoneProgress::class); }
+    public function wallet() { return $this->hasOne(\Illuminate\Support\Facades\DB::raw('wallets'), 'user_id'); }
+
     /**
      * Get the attributes that should be cast.
      *
