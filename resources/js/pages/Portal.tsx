@@ -18,6 +18,8 @@ import SubDealerHub from '../components/SubDealerHub';
 import SettlementsHub from '../components/SettlementsHub';
 import CompensationSimulator from '../components/CompensationSimulator';
 import PayoutDisbursementHub from '../components/PayoutDisbursementHub';
+import EmployeesHub from '../components/EmployeesHub';
+import DashboardManagementHub from '../components/DashboardManagementHub';
 import {Row,Field,Table,Pagination,Modal,ActionForm,Badge,Empty,money,date,label} from '../components/UI';
 const options=(items:string[])=>items.map(value=>({value,label:label(value)}));
 const accountFields:Field[]=[{name:'name',label:'Full name',required:true},{name:'email',label:'Email address',type:'email',required:true},{name:'phone',label:'Phone number'},{name:'role',label:'Account type',options:options(['dealer','sub_dealer']),required:true},{name:'division',label:'Division'},{name:'district',label:'District'}];
@@ -52,6 +54,8 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments||[]} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]}/>}
  {section==='ranks'&&<RankRoyaltyHub ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/>}
  {section==='rewards'&&<CarBikeRewardsHub bike_milestones={d.bike_milestones||[]} car_milestones={d.car_milestones||[]} rule_params={d.rule_params||{}}/>}
+ {section==='employees'&&<EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters}/>}
+ {section==='dashboards'&&<DashboardManagementHub settings={d.dashboard_settings||{}} defaults={d.dashboard_defaults||{}} stats={d.stats||{dealers_count:0,active_dealers:0,sub_dealers_count:0,active_sub_dealers:0,employees_count:0,active_employees:0,super_admins_count:0}} recent_employees={d.recent_employees||[]}/>}
  {(section==='capital-flow'||section==='treasury')&&<CompanyTreasuryHub flow={d.flow||{gross_cash_inflow:0,company_share_60:0,commission_pool_40:0,allocated_so_far:0}} allocations_by_category={d.allocations_by_category||[]} recent_allocations={d.recent_allocations||[]}/>}
  {section==='sub-dealers'&&<SubDealerHub accounts={d.accounts} sponsors={d.sponsors} stats={d.subdealer_stats} filters={filters} onEditAccount={(acc)=>open('editAccount',acc)}/>}
  {section==='sub-dealer-orders'&&<SubDealerHub accounts={d.accounts} orders={d.orders} sponsors={d.sponsors} stats={d.subdealer_stats} filters={filters}/>}

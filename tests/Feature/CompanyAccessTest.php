@@ -51,5 +51,109 @@ class CompanyAccessTest extends TestCase
         $this->actingAs(User::factory()->create(['role'=>'super_admin']))->withHeader('X-Inertia','true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location','/company/login');
         $this->assertGuest();
     }
+    public function test_super_admin_can_create_employee_with_manual_permissions():void
+    {
+        $admin=User::factory()->create(['role'=>'super_admin']);
+        $this->actingAs($admin)->post('/commands/accounts',[
+            'role'=>'employee',
+            'name'=>'Test Employee',
+            'email'=>'employee.test@madina.com',
+            'phone'=>'01799998888',
+            'status'=>'active',
+            'permissions'=>['orders','inventory'],
+            'reason'=>'Onboarding test warehouse employee with orders and inventory permissions.',
+        ])->assertRedirect('/company/employees');
+
+        $employee=User::where('email','employee.test@madina.com')->firstOrFail();
+        $this->assertSame('employee',$employee->role);
+        $this->assertTrue($employee->staff());
+        $this->assertSame(['orders','inventory'],$employee->profile['permissions']);
+        $this->assertTrue($employee->allows('orders'));
+        $this->assertTrue($employee->allows('inventory'));
+        $this->assertFalse($employee->allows('finance'));
+        $this->assertFalse($employee->allows('audit'));
+    }
+    public function test_employee_dashboard_access_is_strictly_restricted_to_granted_permissions():void
+    {
+        $employee=User::factory()->create([
+            'role'=>'employee',
+            'status'=>'active',
+            'profile'=>['permissions'=>['orders','inventory']],
+        ]);
+
+        $this->actingAs($employee)->get('/company')->assertOk();
+        $this->get('/company/orders')->assertOk();
+        $this->get('/company/inventory')->assertOk();
+
+        $this->get('/company/treasury')->assertForbidden();
+        $this->get('/company/commissions')->assertForbidden();
+        $this->get('/company/audit')->assertForbidden();
+        $this->get('/company/employees')->assertForbidden();
+    }
+    public function test_super_admin_can_update_employee_permissions():void
+    {
+        $admin=User::factory()->create(['role'=>'super_admin']);
+        $employee=User::factory()->create([
+            'role'=>'employee',
+            'status'=>'active',
+            'profile'=>['permissions'=>['orders']],
+        ]);
+
+        $this->actingAs($admin)->patch('/commands/accounts/'.$employee->id,[
+            'name'=>'Updated Employee Name',
+            'status'=>'active',
+            'permissions'=>['orders','finance','reports'],
+            'reason'=>'Promoting employee to finance and reporting.',
+        ])->assertSessionHas('success');
+
+        $employee->refresh();
+        $this->assertSame(['orders','finance','reports'],$employee->profile['permissions']);
+        $this->assertTrue($employee->allows('finance'));
+        $this->assertTrue($employee->allows('reports'));
+    }
+
+    public function test_super_admin_can_manage_and_reset_dashboards(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        // 1. Super admin can access /company/dashboards
+        $this->actingAs($admin)->get('/company/dashboards')->assertOk();
+
+        // 2. Super admin saves dashboard settings
+        $response = $this->actingAs($admin)->post('/commands/dashboards', [
+            'settings' => [
+                'dealer_announcement' => 'Special promotion week for all dealers!',
+                'dealer_announcement_type' => 'warning',
+                'dealer_maintenance_mode' => true,
+                'subdealer_announcement' => 'Sub-dealer inventory update active.',
+                'subdealer_announcement_type' => 'info',
+                'subdealer_maintenance_mode' => false,
+            ]
+        ]);
+        $response->assertSessionHas('success');
+
+        // 3. Settings are reflected in DashboardManagement::get()
+        $settings = \App\Support\DashboardManagement::get();
+        $this->assertSame('Special promotion week for all dealers!', $settings['dealer_announcement']);
+        $this->assertSame('warning', $settings['dealer_announcement_type']);
+        $this->assertTrue((bool)$settings['dealer_maintenance_mode']);
+
+        // 4. Dealer receives customized notice and maintenance status via noticeForUser
+        $notice = \App\Support\DashboardManagement::noticeForUser($dealer);
+        $this->assertSame('Special promotion week for all dealers!', $notice['text']);
+        $this->assertSame('warning', $notice['type']);
+        $this->assertTrue($notice['maintenance']);
+
+        // 5. Non-staff dealer cannot access /company/dashboards or POST /commands/dashboards
+        $this->actingAs($dealer)->get('/company/dashboards')->assertForbidden();
+        $this->actingAs($dealer)->post('/commands/dashboards', ['settings' => []])->assertForbidden();
+
+        // 6. Reset dashboard settings restores defaults
+        $this->actingAs($admin)->post('/commands/dashboards/reset')->assertSessionHas('success');
+        $resetSettings = \App\Support\DashboardManagement::get();
+        $this->assertFalse((bool)$resetSettings['dealer_maintenance_mode']);
+        $this->assertSame(\App\Support\DashboardManagement::defaults()['dealer_announcement'], $resetSettings['dealer_announcement']);
+    }
 }
 

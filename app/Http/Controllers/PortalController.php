@@ -8,6 +8,8 @@ use Inertia\Inertia;
 
 class PortalController extends Controller {
     private const STAFF=[
+        'dashboards'=>'accounts',
+        'employees'=>'accounts',
         'accounts'=>'accounts',
         'sub-dealers'=>'accounts',
         'sub-dealer-orders'=>'orders',
@@ -127,6 +129,55 @@ class PortalController extends Controller {
             if ($r->filled('q')) $q->where('number','like','%'.$r->string('q').'%');
             if ($r->filled('status')) $q->where('status',$r->string('status'));
             $data['orders']=$q->with(['user:id,name,dealer_code','lines'])->latest()->paginate(12)->withQueryString();
+        }
+        if ($section==='employees') {
+            $query = User::where('role', 'employee');
+            if ($r->filled('q')) {
+                $term = '%'.$r->string('q').'%';
+                $query->where(function($sub) use ($term) {
+                    $sub->where('name', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('phone', 'like', $term);
+                });
+            }
+            if ($r->filled('status')) {
+                $query->where('status', $r->string('status'));
+            }
+            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id','name','email','phone','role','status','profile','created_at']);
+            $data['employee_stats'] = [
+                'total' => User::where('role', 'employee')->count(),
+                'active' => User::where('role', 'employee')->where('status', 'active')->count(),
+                'suspended' => User::where('role', 'employee')->where('status', 'suspended')->count(),
+            ];
+            $data['available_permissions'] = [
+                ['key' => 'orders', 'label' => 'Orders & Deliveries', 'description' => 'View orders, shipments, deliveries and payment claims', 'category' => 'Operations'],
+                ['key' => 'order_review', 'label' => 'Order Review & Approvals', 'description' => 'Approve purchase requests and verify credit allocations', 'category' => 'Operations'],
+                ['key' => 'inventory', 'label' => 'Inventory & Stock Movements', 'description' => 'Track stock levels, record receipts and stock adjustments', 'category' => 'Inventory'],
+                ['key' => 'catalog', 'label' => 'Product Catalogue & Pricing', 'description' => 'Manage products, units, descriptions and promotional flags', 'category' => 'Inventory'],
+                ['key' => 'accounts', 'label' => 'Partner Directory & Accounts', 'description' => 'Manage dealer and sub-dealer profiles and KYC', 'category' => 'Network'],
+                ['key' => 'finance', 'label' => 'Treasury, Commissions & Payouts', 'description' => 'View capital waterfall, settlements, commissions and payouts', 'category' => 'Finance'],
+                ['key' => 'reports', 'label' => 'Export Reports', 'description' => 'Export order CSVs and financial summaries', 'category' => 'Operations'],
+                ['key' => 'content', 'label' => 'Content Management & Customization', 'description' => 'Manage site content pages and visual hero customization', 'category' => 'Marketing'],
+                ['key' => 'audit', 'label' => 'Audit & Security Logs', 'description' => 'Inspect append-only system activity and security events', 'category' => 'Security'],
+                ['key' => 'pricing', 'label' => 'Price Modification', 'description' => 'Change MRP and wholesale pricing structures', 'category' => 'Pricing'],
+                ['key' => 'cost_read', 'label' => 'Cost Price Visibility', 'description' => 'View manufacturing/cost prices on products', 'category' => 'Finance'],
+                ['key' => 'identity_write', 'label' => 'KYC / NID Management', 'description' => 'View and edit sensitive NID credentials', 'category' => 'Security'],
+            ];
+        }
+        if ($section === 'dashboards') {
+            abort_unless($u->role === 'super_admin' || $u->allows('accounts'), 403);
+            $data['dashboard_settings'] = \App\Support\DashboardManagement::get();
+            $data['dashboard_defaults'] = \App\Support\DashboardManagement::defaults();
+            $data['stats'] = [
+                'dealers_count' => User::where('role', 'dealer')->count(),
+                'active_dealers' => User::where('role', 'dealer')->where('status', 'active')->count(),
+                'sub_dealers_count' => User::where('role', 'sub_dealer')->count(),
+                'active_sub_dealers' => User::where('role', 'sub_dealer')->where('status', 'active')->count(),
+                'employees_count' => User::where('role', 'employee')->count(),
+                'active_employees' => User::where('role', 'employee')->where('status', 'active')->count(),
+                'super_admins_count' => User::where('role', 'super_admin')->count(),
+            ];
+            $data['recent_employees'] = User::where('role', 'employee')->latest()->limit(6)->get(['id', 'name', 'email', 'status', 'profile', 'created_at']);
         }
         if ($section==='payments') $data['claims']=DB::table('payment_claims')->join('orders','orders.id','=','order_id')->join('users','users.id','=','orders.user_id')->select('payment_claims.*','orders.number','users.name')->orderByDesc('payment_claims.id')->paginate(20);
         if ($section==='policies') $data['policies']=DB::table('policy_drafts')->orderByDesc('id')->get();
@@ -348,7 +399,7 @@ class PortalController extends Controller {
         $u=$r->user(); abort_unless($u->allows('accounts'),403);
         $roles=['dealer','sub_dealer'];
         if ($u->role==='super_admin') {
-            $roles=[...$roles,...array_keys(config('madina.roles'))];
+            $roles=[...$roles,'employee',...array_keys(config('madina.roles'))];
         }
         $sponsors=User::where('role','dealer')->where('status','active')->orderBy('name')->get(['id','name','dealer_code','district']);
         return Inertia::render('AccountCreate',[

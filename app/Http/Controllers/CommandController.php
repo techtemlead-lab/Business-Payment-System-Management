@@ -32,7 +32,7 @@ class CommandController extends Controller {
         $s->dispatch($r->user(),$order,$d); return back()->with('success','Shipment recorded and stock updated.');
     }
     public function account(Request $r) {
-        $this->permit($r,'accounts'); $roles=['dealer','sub_dealer']; if($r->user()->role==='super_admin') $roles=[...$roles,...array_keys(config('madina.roles'))];
+        $this->permit($r,'accounts'); $roles=['dealer','sub_dealer']; if($r->user()->role==='super_admin') $roles=[...$roles,'employee',...array_keys(config('madina.roles'))];
         $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
         $d=$r->validate([
             'role'=>['required',Rule::in($roles)],
@@ -49,6 +49,7 @@ class CommandController extends Controller {
             'sponsor_id'=>'nullable|integer|exists:users,id',
             'nid'=>'nullable|string|max:30',
             'reason'=>'nullable|string|max:1000',
+            'permissions'=>'nullable|array',
             'profile'=>'sometimes|array',
             'profile.name_bn'=>'nullable|string|max:150',
             'profile.father_name'=>'nullable|string|max:150',
@@ -66,6 +67,9 @@ class CommandController extends Controller {
             if($r->filled($key)) {
                 $profileData[$key]=trim((string)$r->string($key));
             }
+        }
+        if ($r->has('permissions')) {
+            $profileData['permissions'] = array_values(array_filter((array)$r->input('permissions')));
         }
         $d['profile']=$profileData;
         if (!empty($d['sponsor_id'])) {
@@ -95,12 +99,15 @@ class CommandController extends Controller {
             return $u;
         });
         Password::sendResetLink(['email'=>$u->email]);
-        return redirect('/company/accounts')->with('success','Partner account created. Unique code: '.($u->dealer_code??$u->name).'. A private password-setting invitation has been emailed.');
+        $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/company/employees' : '/company/accounts';
+        $accountTypeLabel = ($d['role'] ?? '') === 'employee' ? 'Employee' : 'Partner';
+        return redirect($redirectUrl)->with('success', $accountTypeLabel.' account created. Unique code: '.($u->dealer_code??$u->name).'. A private password-setting invitation has been emailed.');
     }
     public function accountUpdate(Request $r,User $user) {
         $this->permit($r,'accounts'); abort_if($user->staff() && $r->user()->role!=='super_admin',403); abort_if($r->user()->id===$user->id,422,'Use your security page; self-suspension is not allowed.');
         if ($r->exists('nid')) $this->permit($r,'identity_write');
         $d=$r->validate(['status'=>'sometimes|in:active,suspended','name'=>'sometimes|required|string|max:150','dealer_code'=>'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id,'phone'=>'nullable|string|max:30','division'=>'nullable|string|max:80','district'=>'nullable|string|max:80','latitude'=>'sometimes|nullable|numeric|between:-90,90','longitude'=>'sometimes|nullable|numeric|between:-180,180','sponsor_id'=>'sometimes|nullable|integer|exists:users,id','directory_visible'=>'sometimes|boolean','reason'=>'required|string|max:1000',
+            'permissions'=>'sometimes|nullable|array',
             'profile'=>'sometimes|array','profile.name_bn'=>'nullable|string|max:150','profile.father_name'=>'nullable|string|max:150','profile.mother_name'=>'nullable|string|max:150','profile.village'=>'nullable|string|max:150','profile.post_office'=>'nullable|string|max:150','profile.upazila'=>'nullable|string|max:150','profile.union'=>'nullable|string|max:150','profile.pharmacy'=>'nullable|string|max:150','profile.area_code'=>'nullable|string|max:80','nid'=>'sometimes|nullable|string|max:30']);
         if ($r->has('sponsor_id')) {
             $newSponsorId = !empty($d['sponsor_id']) ? (int)$d['sponsor_id'] : null;
@@ -115,7 +122,7 @@ class CommandController extends Controller {
             }
         }
         $profileKeys=['name_bn','father_name','mother_name','village','post_office','upazila','union','pharmacy','area_code'];
-        if ($r->has('profile') || $r->hasAny($profileKeys)) {
+        if ($r->has('profile') || $r->hasAny($profileKeys) || $r->has('permissions')) {
             $existing = $user->profile ?? [];
             $incoming = $d['profile'] ?? [];
             foreach ($profileKeys as $key) {
@@ -123,8 +130,12 @@ class CommandController extends Controller {
                     $incoming[$key] = trim((string)$r->string($key));
                 }
             }
+            if ($r->has('permissions')) {
+                $incoming['permissions'] = array_values(array_filter((array)$r->input('permissions')));
+            }
             $d['profile'] = array_merge($existing, $incoming);
         }
+        unset($d['permissions']);
         DB::transaction(function()use($r,$user,$d){
             $reason=$d['reason']; unset($d['reason']);
             $locked=User::whereKey($user->id)->lockForUpdate()->firstOrFail();
@@ -179,6 +190,20 @@ class CommandController extends Controller {
         \App\Support\SiteCustomization::reset();
         Audit::record($r->user()->id,'customization.reset','frontend');
         return back()->with('success','Customization reset to default placeholders.');
+    }
+    public function saveDashboardSettings(Request $r) {
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        $payload = $r->input('settings', []);
+        if (!is_array($payload)) $payload = [];
+        \App\Support\DashboardManagement::save($payload);
+        Audit::record($r->user()->id, 'dashboard.updated', 'control_center');
+        return back()->with('success', 'Dashboard management configuration saved successfully.');
+    }
+    public function resetDashboardSettings(Request $r) {
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        \App\Support\DashboardManagement::reset();
+        Audit::record($r->user()->id, 'dashboard.reset', 'control_center');
+        return back()->with('success', 'Dashboard settings reset to system defaults.');
     }
     public function enquiry(Request $r,int $id) { $this->permit($r,'content'); $d=$r->validate(['status'=>'required|in:new,contacted,closed']); abort_unless(DB::table('enquiries')->where('id',$id)->exists(),404); DB::table('enquiries')->where('id',$id)->update([...$d,'updated_at'=>now()]); Audit::record($r->user()->id,'enquiry.updated',(string)$id); return back()->with('success','Enquiry updated.'); }
     public function readNotice(Request $r,int $id) { abort_unless(DB::table('account_notices')->where('id',$id)->where('user_id',$r->user()->id)->update(['read_at'=>now()]),404); return back(); }

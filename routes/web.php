@@ -64,6 +64,8 @@ Route::middleware(['auth','active'])->group(function(){
     Route::post('/commands/content',[CommandController::class,'content']);
     Route::post('/commands/customization',[CommandController::class,'customization']);
     Route::post('/commands/customization/reset',[CommandController::class,'resetCustomization']);
+    Route::post('/commands/dashboards',[CommandController::class,'saveDashboardSettings']);
+    Route::post('/commands/dashboards/reset',[CommandController::class,'resetDashboardSettings']);
     Route::post('/commands/enquiries/{id}',[CommandController::class,'enquiry']);
     Route::post('/commands/notices/{id}/read',[CommandController::class,'readNotice']);
     Route::post('/commands/withdrawals',[CommandController::class,'financialGate']);

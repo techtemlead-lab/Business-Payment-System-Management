@@ -4,7 +4,7 @@ import {
     LayoutDashboard, ShoppingBag, Package, Users, Truck, Wallet, GitBranch,
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
-    Trophy, TrendingUp, Percent, Store, Landmark, Building2, type LucideIcon
+    Trophy, TrendingUp, Percent, Store, Landmark, Building2, UserCheck, AlertTriangle, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -16,7 +16,8 @@ const icons: Record<string, LucideIcon> = {
     profile: Users, security: Settings, notifications: Bell, earnings: Coins, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
-    treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag
+    treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
+    employees: UserCheck, dashboards: SlidersHorizontal
 };
 
 const names: Record<string, string> = {
@@ -27,11 +28,12 @@ const names: Record<string, string> = {
     notifications: 'Notifications', earnings: 'My earnings', ranks: 'Ranks & Royalties',
     commissions: 'Commission Studio', 'network-tree': 'Network Tree', 'area-dealers': 'Area Dealers', rewards: 'Car & Bike Rewards', 'capital-flow': 'Capital Waterfall',
     settlements: 'Settlements & Payouts', simulator: 'What-If Simulator', 'payouts-hub': 'Disbursement Hub',
-    treasury: 'Treasury & Money Flow', 'sub-dealers': 'Sub-Dealer Directory', 'sub-dealer-orders': '40% Margin Orders'
+    treasury: 'Treasury & Money Flow', 'sub-dealers': 'Sub-Dealer Directory', 'sub-dealer-orders': '40% Margin Orders',
+    employees: 'Employees & Staff', dashboards: 'Dashboard Management'
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, demoMode } = usePage<any>().props;
+    const { auth, demoMode, dashboardNotice, dashboardControls } = usePage<any>().props;
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
     const staff = capabilities.length > 0;
@@ -71,6 +73,7 @@ export default function Shell({ section, children, action }: { section: string; 
     // Grouping by 3 Pillars for Staff
     const companyGroup = staff ? [
         'overview',
+        ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
         'catalog',
         ...(capabilities.includes('inventory') ? ['inventory'] : []),
@@ -116,10 +119,11 @@ export default function Shell({ section, children, action }: { section: string; 
     );
 
     // Active Domain Determination for Top Pillar Bar
-    const isCompanyDomain = ['overview', 'treasury', 'capital-flow', 'catalog', 'inventory', 'customization', 'content', 'enquiries', 'audit'].includes(section);
+    const isDashboardsDomain = section === 'dashboards';
+    const isCompanyDomain = ['overview', 'employees', 'treasury', 'capital-flow', 'catalog', 'inventory', 'customization', 'content', 'enquiries', 'audit'].includes(section);
     const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
-    const currentDomain = isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+    const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
 
     return (
         <div className={`app-shell ${staff ? 'company-shell' : 'dealer-shell'}`}>
@@ -144,7 +148,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />
-                    {staff ? 'Company workspace' : user.role === 'sub_dealer' ? 'Sub-dealer workspace' : 'Dealer workspace'}
+                    {user.role === 'employee' ? 'Employee workspace' : staff ? 'Company workspace' : user.role === 'sub_dealer' ? 'Sub-dealer workspace' : 'Dealer workspace'}
                 </div>
 
                 {staff ? (
@@ -269,51 +273,78 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <span>🏢</span> COMPANY SECTION
                                     </Link>
 
-                                    <Link
-                                        href="/company/accounts"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            padding: '8px 16px',
-                                            borderRadius: 8,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            textDecoration: 'none',
-                                            background: currentDomain === 'dealers' ? '#2e3192' : '#f8fafc',
-                                            color: currentDomain === 'dealers' ? '#ffffff' : '#475569',
-                                            border: currentDomain === 'dealers' ? '1px solid #2e3192' : '1px solid #e2e8f0',
-                                        }}
-                                    >
-                                        <span>🤝</span> DEALER SECTION
-                                    </Link>
+                                    {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
+                                        <Link
+                                            href={capabilities.includes('accounts') ? '/company/accounts' : (capabilities.includes('orders') ? '/company/orders' : '/company/commissions')}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                padding: '8px 16px',
+                                                borderRadius: 8,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                textDecoration: 'none',
+                                                background: currentDomain === 'dealers' ? '#2e3192' : '#f8fafc',
+                                                color: currentDomain === 'dealers' ? '#ffffff' : '#475569',
+                                                border: currentDomain === 'dealers' ? '1px solid #2e3192' : '1px solid #e2e8f0',
+                                            }}
+                                        >
+                                            <span>🤝</span> DEALER SECTION
+                                        </Link>
+                                    )}
 
-                                    <Link
-                                        href="/company/sub-dealers"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            padding: '8px 16px',
-                                            borderRadius: 8,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            textDecoration: 'none',
-                                            background: currentDomain === 'sub_dealers' ? '#059669' : '#f8fafc',
-                                            color: currentDomain === 'sub_dealers' ? '#ffffff' : '#475569',
-                                            border: currentDomain === 'sub_dealers' ? '1px solid #059669' : '1px solid #e2e8f0',
-                                        }}
-                                    >
-                                        <span>🏬</span> SUB-DEALER SECTION
-                                    </Link>
+                                    {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
+                                        <Link
+                                            href={capabilities.includes('accounts') ? '/company/sub-dealers' : (capabilities.includes('orders') ? '/company/sub-dealer-orders' : '/company/salary')}
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                padding: '8px 16px',
+                                                borderRadius: 8,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                textDecoration: 'none',
+                                                background: currentDomain === 'sub_dealers' ? '#059669' : '#f8fafc',
+                                                color: currentDomain === 'sub_dealers' ? '#ffffff' : '#475569',
+                                                border: currentDomain === 'sub_dealers' ? '1px solid #059669' : '1px solid #e2e8f0',
+                                            }}
+                                        >
+                                            <span>🏬</span> SUB-DEALER SECTION
+                                        </Link>
+                                    )}
+
+                                    {capabilities.includes('accounts') && (
+                                        <Link
+                                            href="/company/dashboards"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                padding: '8px 16px',
+                                                borderRadius: 8,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                textDecoration: 'none',
+                                                background: currentDomain === 'dashboards' ? '#2e3192' : '#f8fafc',
+                                                color: currentDomain === 'dashboards' ? '#ffffff' : '#475569',
+                                                border: currentDomain === 'dashboards' ? '1px solid #2e3192' : '1px solid #e2e8f0',
+                                            }}
+                                        >
+                                            <span>🎛️</span> DASHBOARD MANAGEMENT
+                                        </Link>
+                                    )}
                                 </div>
 
                                 <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
-                                    {currentDomain === 'company'
-                                        ? 'Managing Company & Treasury'
-                                        : currentDomain === 'dealers'
-                                            ? 'Managing Dealer Network & Commissions'
-                                            : 'Managing Sub-Dealers & 40% Margin'}
+                                    {currentDomain === 'dashboards'
+                                        ? 'Managing Global Dashboards & Role Controls'
+                                        : currentDomain === 'company'
+                                            ? 'Managing Company & Treasury'
+                                            : currentDomain === 'dealers'
+                                                ? 'Managing Dealer Network & Commissions'
+                                                : 'Managing Sub-Dealers & 40% Margin'}
                                 </span>
                             </div>
 
@@ -332,38 +363,97 @@ export default function Shell({ section, children, action }: { section: string; 
                                 {currentDomain === 'company' && (
                                     <>
                                         <Link href="/company" className={`button small ${section === 'overview' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Overview</Link>
-                                        <Link href="/company/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`} style={{ fontSize: 11 }}>Treasury & Money Flow</Link>
+                                        {capabilities.includes('accounts') && (
+                                            <Link href="/company/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Employees & Staff</Link>
+                                        )}
+                                        {capabilities.includes('finance') && (
+                                            <Link href="/company/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`} style={{ fontSize: 11 }}>Treasury & Money Flow</Link>
+                                        )}
                                         <Link href="/company/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Product Management</Link>
-                                        <Link href="/company/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Inventory & Stock</Link>
-                                        <Link href="/company/customization" className={`button small ${section === 'customization' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Site Customization</Link>
-                                        <Link href="/company/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Audit Trail</Link>
+                                        {capabilities.includes('inventory') && (
+                                            <Link href="/company/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Inventory & Stock</Link>
+                                        )}
+                                        {capabilities.includes('content') && (
+                                            <Link href="/company/customization" className={`button small ${section === 'customization' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Site Customization</Link>
+                                        )}
+                                        {capabilities.includes('audit') && (
+                                            <Link href="/company/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Audit Trail</Link>
+                                        )}
                                     </>
                                 )}
 
                                 {currentDomain === 'dealers' && (
                                     <>
-                                        <Link href="/company/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Dealer Accounts</Link>
-                                        <Link href="/company/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Orders</Link>
-                                        <Link href="/company/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Deliveries</Link>
-                                        <Link href="/company/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Outstanding Dues</Link>
-                                        <Link href="/company/commissions" className={`button small ${section === 'commissions' ? 'dark' : ''}`} style={{ fontSize: 11, background: section === 'commissions' ? '#2e3192' : '#eef0ff', color: section === 'commissions' ? '#fff' : '#2e3192', borderColor: '#c7d2fe' }}>★ Commission Studio</Link>
-                                        <Link href="/company/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Network Tree</Link>
-                                        <Link href="/company/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Area Dealers</Link>
-                                        <Link href="/company/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Ranks & Royalties</Link>
-                                        <Link href="/company/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Car & Bike Rewards</Link>
-                                        <Link href="/company/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Settlements</Link>
-                                        <Link href="/company/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`} style={{ fontSize: 11 }}>What-If Simulator</Link>
-                                        <Link href="/company/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Disbursements</Link>
+                                        {capabilities.includes('accounts') && <Link href="/company/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Dealer Accounts</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/company/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Orders</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/company/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Deliveries</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/company/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Outstanding Dues</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/commissions" className={`button small ${section === 'commissions' ? 'dark' : ''}`} style={{ fontSize: 11, background: section === 'commissions' ? '#2e3192' : '#eef0ff', color: section === 'commissions' ? '#fff' : '#2e3192', borderColor: '#c7d2fe' }}>★ Commission Studio</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/company/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Network Tree</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/company/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Area Dealers</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/company/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Ranks & Royalties</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Car & Bike Rewards</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Settlements</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`} style={{ fontSize: 11 }}>What-If Simulator</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Disbursements</Link>}
                                     </>
                                 )}
 
                                 {currentDomain === 'sub_dealers' && (
                                     <>
-                                        <Link href="/company/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Sub-Dealer Accounts</Link>
-                                        <Link href="/company/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>40% Margin Orders</Link>
-                                        <Link href="/company/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Monthly Salary Tiers</Link>
+                                        {capabilities.includes('accounts') && <Link href="/company/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Sub-Dealer Accounts</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/company/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>40% Margin Orders</Link>}
+                                        {capabilities.includes('finance') && <Link href="/company/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Monthly Salary Tiers</Link>}
                                     </>
                                 )}
+
+                                {currentDomain === 'dashboards' && (
+                                    <>
+                                        <Link href="/company/dashboards" className={`button small ${section === 'dashboards' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Control Center</Link>
+                                        <Link href="/company/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Employees & Staff</Link>
+                                        <Link href="/company/accounts" className="button small" style={{ fontSize: 11 }}>Dealer Accounts</Link>
+                                        <Link href="/company/sub-dealers" className="button small" style={{ fontSize: 11 }}>Sub-Dealer Accounts</Link>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {dashboardNotice && dashboardNotice.text && (
+                        <div style={{
+                            padding: '12px 16px',
+                            marginBottom: 20,
+                            borderRadius: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            fontSize: 13,
+                            fontWeight: 500,
+                            background: dashboardNotice.type === 'warning' ? '#fffbeb' : dashboardNotice.type === 'success' ? '#ecfdf5' : '#eff6ff',
+                            color: dashboardNotice.type === 'warning' ? '#92400e' : dashboardNotice.type === 'success' ? '#065f46' : '#1e40af',
+                            border: `1px solid ${dashboardNotice.type === 'warning' ? '#fde68a' : dashboardNotice.type === 'success' ? '#a7f3d0' : '#bfdbfe'}`
+                        }}>
+                            <Bell size={18} style={{ flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>{dashboardNotice.text}</div>
+                        </div>
+                    )}
+
+                    {dashboardNotice?.maintenance && !staff && (
+                        <div style={{
+                            padding: '16px 20px',
+                            marginBottom: 20,
+                            borderRadius: 8,
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            color: '#991b1b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12
+                        }}>
+                            <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: 14 }}>System Notice: Portal Under Scheduled Maintenance</div>
+                                <div style={{ fontSize: 12, marginTop: 2 }}>Some workspace ordering and submission features may be temporarily limited while administrative maintenance is underway.</div>
                             </div>
                         </div>
                     )}
