@@ -18,7 +18,6 @@ class ClaimPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
             'channel' => 'required|in:bKash,Nagad,Rocket,Bank', 'reference' => 'required|string|max:100',
             'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
         ];

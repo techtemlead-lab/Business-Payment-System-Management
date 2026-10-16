@@ -25,14 +25,14 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string }) {
-    const { auth,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string }) {
+    const { auth,portalBase:base } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
     const open = !['rejected', 'cancelled'].includes(order.status);
     return <Shell section="order">
         <Head title={order.number} />
-        <Link className="text-link" href={backUrl??base+'/orders'}>← All orders</Link>
+        <Link className="text-link" href={base+'/orders'}>← All orders</Link>
         <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><Badge status={order.status} /></div>
         <div className="metric-grid three">
             <div className="metric"><span>Order total</span><strong>{money(order.total)}</strong></div>
@@ -79,7 +79,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <h2>Submit another payment reference</h2><p className="muted">Submit a payment made against this order. Company staff will verify receipt separately.</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
                 { name: 'channel', label: 'Payment method', required: true, options: ['Bank', 'bKash', 'Nagad', 'Rocket'].map(value => ({ value, label: value })) },
-                ...(collectionAccounts.length ? [{name:'payment_account_id',label:'Company collection account',required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
                 { name: 'reference', label: 'Transaction reference', required: true }, { name: 'amount', label: 'Claimed amount (BDT)', type: 'number', required: true },
             ]} submit="Submit for verification" />
         </section>}

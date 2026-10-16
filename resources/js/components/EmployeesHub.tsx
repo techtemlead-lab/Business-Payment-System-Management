@@ -71,7 +71,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
         setEditModalEmployee(employee);
         const currentPermissions: string[] = Array.isArray(employee.profile?.permissions)
             ? employee.profile.permissions
-            : employee.role === 'sr' ? ['field_sales','sr_orders','sr_dues','sr_onboarding'] : [];
+            : [];
         editForm.setData({
             name: employee.name || '',
             phone: employee.phone || '',
@@ -104,7 +104,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
     };
 
     const applyEditPreset = (keys: string[]) => {
-        editForm.setData('permissions', editModalEmployee?.role === 'sr' ? keys.filter(key=>['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(key)) : [...keys]);
+        editForm.setData('permissions', [...keys]);
     };
 
     const submitCreate = (e: React.FormEvent) => {
@@ -247,7 +247,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             key: 'permissions',
                             title: 'Granted Capabilities',
                             render: r => {
-                                const perms: string[] = Array.isArray(r.profile?.permissions) ? r.profile.permissions : r.role === 'sr' ? ['field_sales','sr_orders','sr_dues','sr_onboarding'] : [];
+                                const perms: string[] = Array.isArray(r.profile?.permissions) ? r.profile.permissions : [];
                                 if (!perms.length) {
                                     return <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>No permissions granted (Restricted)</span>;
                                 }
@@ -689,7 +689,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                             {cat} Modules
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
-                                            {availablePermissions.filter(p => p.category === cat && (editModalEmployee?.role !== 'sr' || ['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(p.key))).map(p => {
+                                            {availablePermissions.filter(p => p.category === cat).map(p => {
                                                 const checked = editForm.data.permissions.includes(p.key);
                                                 return (
                                                     <label

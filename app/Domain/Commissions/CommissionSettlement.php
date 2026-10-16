@@ -140,7 +140,6 @@ final class CommissionSettlement
     private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind): void
     {
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
-            'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
         $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, 'Commission '.$kind.' settlement '.$month, [
             ['user_id' => null, 'account' => 'commission_expense', 'debit' => $amount, 'credit' => 0],

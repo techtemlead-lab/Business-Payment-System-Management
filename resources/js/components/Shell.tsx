@@ -10,9 +10,6 @@ import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 
 const icons: Record<string, LucideIcon> = {
-    'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
-    'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
-    'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
@@ -24,9 +21,6 @@ const icons: Record<string, LucideIcon> = {
 };
 
 const names: Record<string, string> = {
-    'field-sales': 'Field sales', 'staff-operations': 'Territories & targets', 'payroll': 'Staff payroll', 'my-payroll': 'My payroll',
-    'payment-accounts': 'Payment accounts', 'policy-schedules': 'Commission schedules', 'reserve-payouts': 'Reserve payouts',
-    'commission-holds': 'Commission holds', 'financial-readiness': 'Opening balance review', 'financial-reports': 'Financial reports',
     overview: 'Overview', orders: 'Orders', catalog: 'Product collection', accounts: 'Dealer Directory', inventory: 'Inventory',
     deliveries: 'Deliveries', dues: 'Outstanding dues', payments: 'Payment review', network: 'My network', policies: 'Commission policies',
     salary: 'Sub-dealer flat 3% salary', withdrawals: 'Withdrawals', ledger: 'Financial ledger', reports: 'Reports', customization: 'Site Customization',
@@ -79,12 +73,6 @@ export default function Shell({ section, children, action }: { section: string; 
     // Grouping by 3 Pillars for Staff
     const companyGroup = staff ? [
         'overview',
-        'my-payroll',
-        ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
-        ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
-        ...(capabilities.includes('payroll') ? ['payroll'] : []),
-        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness'] : []),
-        ...(capabilities.some(cap=>['finance','reports','field_sales'].includes(cap)) ? ['financial-reports'] : []),
         ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
         ...(capabilities.some(cap=>['catalog','pricing','inventory','orders','finance'].includes(cap)) ? ['catalog'] : []),
@@ -118,7 +106,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         onClick={() => setOpen(false)}
                         aria-current={section === item ? 'page' : undefined}
                         className={section === item ? 'selected' : ''}
-                        href={`${base}/${['field-sales','staff-operations','payroll','my-payroll','payment-accounts','policy-schedules','reserve-payouts','commission-holds','financial-readiness','financial-reports'].includes(item)?'operations/':''}${item === 'overview' ? '' : item}`}
+                        href={`${base}/${item === 'overview' ? '' : item}`}
                         key={item}
                     >
                         <Icon size={18} />

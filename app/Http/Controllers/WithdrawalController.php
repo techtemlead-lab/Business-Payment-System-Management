@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
-use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Support\Audit;
 use Carbon\Carbon;
@@ -42,7 +41,6 @@ class WithdrawalController extends Controller
         }
 
         return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $r->user()->allows('finance') ? $destination : null, 'has_receipt' => (bool) $w->receipt_path],
-            'paymentAccounts' => $r->user()->allows('finance') ? app(PaymentAccounts::class)->listing($r->user()) : [],
             'events' => DB::table('withdrawal_events')->join('users', 'users.id', '=', 'actor_id')->where('withdrawal_id', $id)->orderBy('withdrawal_events.id')->get(['event', 'note', 'withdrawal_events.created_at', 'users.name'])]);
     }
 
@@ -58,12 +56,12 @@ class WithdrawalController extends Controller
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
-        $d = $r->validate(['payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'payment_reference' => 'required|string|max:100', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
+        $d = $r->validate(['receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'payment_reference' => 'required|string|max:100', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                 $fail('Payment time cannot be in the future.');
             }
         }], 'note' => 'required|string|max:1000']);
-        $s->settle($r->user(), $id, $r->file('receipt'), strtoupper(trim($d['payment_reference'])), Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $s->settle($r->user(), $id, $r->file('receipt'), strtoupper(trim($d['payment_reference'])), Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note']);
 
         return back()->with('success', 'Manual payment recorded with a private receipt.');
     }

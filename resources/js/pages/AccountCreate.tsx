@@ -16,12 +16,6 @@ const divisions = [
 ];
 
 const availablePermissions = [
-    { key: 'field_sales', label: 'Field Sales Workspace', description: 'Work with partners inside assigned territories' },
-    { key: 'sr_orders', label: 'Territory Orders', description: 'Submit and track orders for assigned partners' },
-    { key: 'sr_dues', label: 'Territory Dues', description: 'Read assigned partner dues and reports' },
-    { key: 'sr_onboarding', label: 'Dealer Applications', description: 'Submit new partner applications for review' },
-    { key: 'staff_admin', label: 'Territories & Targets', description: 'Assign sales territories and monthly targets' },
-    { key: 'payroll', label: 'Payroll Preparation', description: 'Prepare closed-month salaries from effective contracts' },
     { key: 'orders', label: 'Orders & Deliveries', description: 'View orders, shipments, deliveries and payment claims' },
     { key: 'order_review', label: 'Order Review & Approvals', description: 'Approve purchase requests and verify credit allocations' },
     { key: 'inventory', label: 'Inventory & Stock Movements', description: 'Track stock levels, record receipts and stock adjustments' },
@@ -72,10 +66,6 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.transform(data => {
-            const {permissions, ...rest} = data;
-            return ['employee', 'sr'].includes(data.role) ? {...rest, permissions} : rest;
-        });
         form.post('/commands/accounts', {
             preserveScroll: true,
         });
@@ -121,7 +111,6 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                                         form.setData((prev) => ({
                                             ...prev,
                                             role: newRole,
-                                            permissions: newRole === 'sr' ? ['field_sales','sr_orders','sr_dues','sr_onboarding'] : ['orders','inventory'],
                                             directory_visible: newRole === 'dealer' ? prev.directory_visible : '0',
                                         }));
                                     }}
@@ -129,7 +118,7 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                                 >
                                     {roles.map((r) => (
                                         <option key={r} value={r}>
-                                            {r === 'dealer' ? 'Dealer (Full margin & area privileges)' : r === 'sub_dealer' ? 'Sub-Dealer (40% discount baseline & flat 3% salary)' : label(r)}
+                                            {r === 'dealer' ? 'Dealer (Full margin & area privileges)' : r === 'sub_dealer' ? 'Sub-Dealer (40% discount baseline & salary tiers)' : label(r)}
                                         </option>
                                     ))}
                                 </select>
@@ -181,7 +170,7 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                     </section>
 
                     {/* Panel: Employee Privileges & Permissions (When Role is Employee) */}
-                    {['employee','sr'].includes(form.data.role) && (
+                    {form.data.role === 'employee' && (
                         <section className="panel" style={{ borderLeft: '4px solid #059669' }}>
                             <div className="panel-heading">
                                 <div>
@@ -194,7 +183,7 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
-                                {availablePermissions.filter(p=>form.data.role!=='sr'||['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(p.key)).map(p => {
+                                {availablePermissions.map(p => {
                                     const checked = form.data.permissions.includes(p.key);
                                     return (
                                         <label
