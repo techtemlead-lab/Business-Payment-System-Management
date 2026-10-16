@@ -195,7 +195,7 @@ class PortalController extends Controller
             $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
         }
         if ($section === 'employees') {
-            $query = User::whereIn('role', ['employee', 'sr']);
+            $query = User::where('role', 'employee');
             if ($r->filled('q')) {
                 $term = '%'.$r->string('q').'%';
                 $query->where(function ($sub) use ($term) {
@@ -214,12 +214,6 @@ class PortalController extends Controller
                 'suspended' => User::where('role', 'employee')->where('status', 'suspended')->count(),
             ];
             $data['available_permissions'] = [
-                ['key' => 'field_sales', 'label' => 'Field Sales Workspace', 'description' => 'Work with partners inside assigned territories', 'category' => 'Field Sales'],
-                ['key' => 'sr_orders', 'label' => 'Territory Orders', 'description' => 'Submit and track orders for assigned partners', 'category' => 'Field Sales'],
-                ['key' => 'sr_dues', 'label' => 'Territory Dues', 'description' => 'Read assigned partner dues and reports', 'category' => 'Field Sales'],
-                ['key' => 'sr_onboarding', 'label' => 'Dealer Applications', 'description' => 'Submit new partner applications for review', 'category' => 'Field Sales'],
-                ['key' => 'staff_admin', 'label' => 'Territories & Targets', 'description' => 'Assign territories and monthly targets', 'category' => 'Operations'],
-                ['key' => 'payroll', 'label' => 'Payroll Preparation', 'description' => 'Prepare closed-month staff salary drafts', 'category' => 'Finance'],
                 ['key' => 'orders', 'label' => 'Orders & Deliveries', 'description' => 'View orders, shipments, deliveries and payment claims', 'category' => 'Operations'],
                 ['key' => 'order_review', 'label' => 'Order Review & Approvals', 'description' => 'Approve purchase requests and verify credit allocations', 'category' => 'Operations'],
                 ['key' => 'inventory', 'label' => 'Inventory & Stock Movements', 'description' => 'Track stock levels, record receipts and stock adjustments', 'category' => 'Inventory'],

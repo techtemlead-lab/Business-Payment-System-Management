@@ -4,10 +4,8 @@ namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
-use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Pricing\ProductPricing;
-use App\Domain\Staff\TerritoryAccess;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -22,16 +20,13 @@ class OrderService
 {
     public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions, private readonly StockNotifications $stockNotifications) {}
 
-    public function create(User $user, array $data, ?User $submittedBy = null): Order
+    public function create(User $user, array $data): Order
     {
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
 
-        return DB::transaction(function () use ($user, $data, $submittedBy): Order {
+        return DB::transaction(function () use ($user, $data): Order {
             CommissionWallet::lock();
             $user = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
-            if ($submittedBy) {
-                app(TerritoryAccess::class)->assertPartner($submittedBy->fresh(), $user->id, 'sr_orders');
-            }
             abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
             $hash = $this->hash($data);
             $existing = Order::where('user_id', $user->id)->where('idempotency_key', $data['idempotency_key'])->first();
@@ -57,14 +52,14 @@ class OrderService
                 throw ValidationException::withMessages(['items' => 'Order amount exceeds the allowed limit.']);
             }
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
-                'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
+                'user_id' => $user->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
             if (! empty($data['reference'])) {
                 $this->insertClaim($order, $data);
             }
-            $this->event($order, $submittedBy ?? $user, 'order.submitted');
+            $this->event($order, $user, 'order.submitted');
             Audit::notice($user->id, 'Order submitted', $order->number.' is awaiting review.');
 
             return $order->refresh();
@@ -141,7 +136,7 @@ class OrderService
                         throw ValidationException::withMessages(['payment' => 'This would overpay the order.']);
                     }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
-                        'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
+                        'reference' => $claim->reference, 'amount' => $claim->amount, 'created_at' => now(), 'updated_at' => now()]);
                     $order->update(['paid' => Money::decimal($paid)]);
                     if ($paid >= Money::cents($order->total)) {
                         $this->commissions->process($order);
@@ -230,15 +225,12 @@ class OrderService
 
     private function insertClaim(Order $order, array $data): int
     {
-        $amount = Money::cents((string) $data['amount']);
+        $amount = Money::cents($data['amount']);
         if ($amount <= 0 || $amount > Money::cents($order->total) - Money::cents($order->paid ?? '0')) {
             throw ValidationException::withMessages(['amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.']);
         }
 
-        $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
-
         return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
-            'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode($account, JSON_THROW_ON_ERROR) : null,
             'reference' => Str::upper(trim($data['reference'])), 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
     }
 
