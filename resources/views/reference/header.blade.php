@@ -1,10 +1,5 @@
 @php
-    $headerCats = is_array($siteCustomization['nav_categories'] ?? null)
-        ? $siteCustomization['nav_categories']
-        : array_filter(array_map('trim', preg_split('/[\r\n,]+/', $siteCustomization['nav_categories'] ?? '')));
-    if (empty($headerCats)) {
-        $headerCats = ['Medical Equipment','Leather Items','Consumer Items','Medicine','Agriculture Product','Cosmetics','Furniture','Service'];
-    }
+    $headerCats = \App\Support\SiteCustomization::getNavCategories();
 @endphp
 <a class="ref-skip" href="#main">Skip to content</a>
 <div class="ref-company-bar">

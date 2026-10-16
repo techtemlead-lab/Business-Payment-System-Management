@@ -13,7 +13,11 @@ import {
     Save,
     ExternalLink,
     Plus,
-    Trash2
+    Trash2,
+    ArrowUp,
+    ArrowDown,
+    Check,
+    List
 } from 'lucide-react';
 
 interface Slide {
@@ -3506,6 +3510,628 @@ export function FeaturedProductsManager({
     );
 }
 
+const DEFAULT_NAV_CATEGORIES = [
+    'Medical Equipment',
+    'Leather Items',
+    'Consumer Items',
+    'Medicine',
+    'Agriculture Product',
+    'Cosmetics',
+    'Furniture',
+    'Service',
+];
+
+interface HeaderNavCategoriesManagerProps {
+    value: string;
+    defaultValue: string;
+    onChange: (value: string) => void;
+    featuredCategoriesRaw?: string;
+    products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
+}
+
+function HeaderNavCategoriesManager({
+    value,
+    defaultValue,
+    onChange,
+    featuredCategoriesRaw = '',
+    products = [],
+}: HeaderNavCategoriesManagerProps) {
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [bulkMode, setBulkMode] = useState(false);
+    const [bulkInput, setBulkInput] = useState('');
+
+    const rawTrimmed = (value || '').trim();
+    const isCustomized = rawTrimmed.length > 0;
+
+    // Parse current categories (or fallback to defaults)
+    const activeCategories: string[] = isCustomized
+        ? value.split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+        : DEFAULT_NAV_CATEGORIES;
+
+    const handleAdd = () => {
+        const trimmed = newCategoryName.trim();
+        if (!trimmed) return;
+        const currentList = isCustomized ? activeCategories : [...DEFAULT_NAV_CATEGORIES];
+        if (currentList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+            alert(`"${trimmed}" is already in the category navigation list.`);
+            return;
+        }
+        const updated = [...currentList, trimmed];
+        onChange(updated.join('\n'));
+        setNewCategoryName('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAdd();
+        }
+    };
+
+    const handleRemove = (index: number) => {
+        const currentList = isCustomized ? activeCategories : [...DEFAULT_NAV_CATEGORIES];
+        const target = currentList[index];
+        if (window.confirm(`Remove "${target}" from the category navigation bar?`)) {
+            const updated = currentList.filter((_, i) => i !== index);
+            onChange(updated.join('\n'));
+        }
+    };
+
+    const handleEdit = (index: number, newName: string) => {
+        const currentList = isCustomized ? [...activeCategories] : [...DEFAULT_NAV_CATEGORIES];
+        currentList[index] = newName;
+        onChange(currentList.join('\n'));
+    };
+
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        const targetIdx = direction === 'up' ? index - 1 : index + 1;
+        const currentList = isCustomized ? [...activeCategories] : [...DEFAULT_NAV_CATEGORIES];
+        if (targetIdx < 0 || targetIdx >= currentList.length) return;
+        const temp = currentList[targetIdx];
+        currentList[targetIdx] = currentList[index];
+        currentList[index] = temp;
+        onChange(currentList.join('\n'));
+    };
+
+    const handleResetDefaults = () => {
+        if (window.confirm('Reset category navigation to the 8 default reference placeholders?')) {
+            onChange(DEFAULT_NAV_CATEGORIES.join('\n'));
+            setNewCategoryName('');
+        }
+    };
+
+    const handleClearToPlaceholders = () => {
+        if (window.confirm('Clear custom categories? The system will revert to the default reference placeholders.')) {
+            onChange('');
+            setNewCategoryName('');
+        }
+    };
+
+    const handleSyncFeatured = () => {
+        const names = featuredCategoriesRaw.split(/\r?\n/).map(l => l.split('|')[0].trim()).filter(Boolean);
+        if (names.length === 0) {
+            alert('No featured categories found to sync.');
+            return;
+        }
+        const unique = Array.from(new Set(names));
+        onChange(unique.join('\n'));
+    };
+
+    const handleSyncProducts = () => {
+        if (!products || products.length === 0) {
+            alert('No active products found.');
+            return;
+        }
+        const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
+        if (cats.length === 0) {
+            alert('No product categories found.');
+            return;
+        }
+        onChange(cats.join('\n'));
+    };
+
+    const handleToggleBulkMode = () => {
+        if (!bulkMode) {
+            setBulkInput(activeCategories.join('\n'));
+        } else {
+            const parsed = bulkInput.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+            onChange(parsed.join('\n'));
+        }
+        setBulkMode(!bulkMode);
+    };
+
+    return (
+        <div style={{
+            background: '#ffffff',
+            border: '1.5px solid #e2e8f0',
+            borderRadius: 12,
+            padding: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            gridColumn: '1 / -1',
+            marginTop: 10
+        }}>
+            {/* Header / Title */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 18 }}>
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <Tag size={18} />
+                        </div>
+                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#011627' }}>
+                            Upper Category Navigation Bar
+                        </h4>
+                        <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '3px 10px',
+                            borderRadius: 12,
+                            background: isCustomized ? '#dcfce7' : '#f1f5f9',
+                            color: isCustomized ? '#15803d' : '#64748b',
+                            border: `1px solid ${isCustomized ? '#86efac' : '#cbd5e1'}`
+                        }}>
+                            {isCustomized ? `CUSTOM ACTIVE (${activeCategories.length} OPTIONS)` : 'DEFAULT PLACEHOLDERS (8 OPTIONS)'}
+                        </span>
+                    </div>
+                    <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+                        This horizontal category bar appears directly beneath the main header search area on desktop and within the mobile navigation drawer. You can add new category links, rename existing ones, change order, or remove items.
+                    </p>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={handleResetDefaults}
+                        style={{
+                            background: '#f8fafc',
+                            color: '#334155',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6
+                        }}
+                        title="Restore the 8 reference category placeholders"
+                    >
+                        <RotateCcw size={13} /> Reset 8 Placeholders
+                    </button>
+                    {isCustomized && (
+                        <button
+                            type="button"
+                            onClick={handleClearToPlaceholders}
+                            style={{
+                                background: '#fff1f2',
+                                color: '#e11d48',
+                                border: '1px solid #fecdd3',
+                                borderRadius: 6,
+                                padding: '6px 12px',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}
+                            title="Clear custom list to revert to placeholders"
+                        >
+                            <Trash2 size={13} /> Clear Custom List
+                        </button>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleToggleBulkMode}
+                        style={{
+                            background: bulkMode ? '#2563eb' : '#eff6ff',
+                            color: bulkMode ? '#ffffff' : '#1d4ed8',
+                            border: `1px solid ${bulkMode ? '#1d4ed8' : '#bfdbfe'}`,
+                            borderRadius: 6,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6
+                        }}
+                    >
+                        <List size={13} /> {bulkMode ? 'Exit Bulk Editor' : 'Bulk Edit (Plain Text)'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Notice / Status description */}
+            {!isCustomized && (
+                <div style={{
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: '#f8fafc',
+                    border: '1px dashed #cbd5e1',
+                    marginBottom: 16,
+                    fontSize: 12.5,
+                    color: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8
+                }}>
+                    <span style={{ fontSize: 15 }}>💡</span>
+                    <span>
+                        Currently displaying the <strong>8 default placeholders</strong>: <em>Medical Equipment, Leather Items, Consumer Items, Medicine, Agriculture Product, Cosmetics, Furniture, Service</em>. Type a new category below or click "Add Option" or remove any item to begin customizing.
+                    </span>
+                </div>
+            )}
+
+            {/* Add New Category Box */}
+            <div style={{
+                display: 'flex',
+                gap: 10,
+                marginBottom: 20,
+                background: '#f8fafc',
+                padding: '12px 14px',
+                borderRadius: 8,
+                border: '1px solid #e2e8f0',
+                alignItems: 'center',
+                flexWrap: 'wrap'
+            }}>
+                <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
+                    <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Add new category option (e.g. Organic Honey, Unani Tonics, Herbal Skincare)..."
+                        style={{
+                            width: '100%',
+                            padding: '9px 14px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                            fontSize: 13,
+                            color: '#011627',
+                            outline: 'none',
+                            background: '#ffffff',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                </div>
+                <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={!newCategoryName.trim()}
+                    style={{
+                        background: newCategoryName.trim() ? '#006837' : '#94a3b8',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '9px 18px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: newCategoryName.trim() ? 'pointer' : 'not-allowed',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        transition: 'background 0.15s ease'
+                    }}
+                >
+                    <Plus size={15} /> Add Option
+                </button>
+            </div>
+
+            {/* Visual Cards vs Bulk Text Mode */}
+            {bulkMode ? (
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                        Bulk Plain Text Editor (One category per line):
+                    </label>
+                    <textarea
+                        rows={8}
+                        value={bulkInput}
+                        onChange={e => setBulkInput(e.target.value)}
+                        style={{
+                            width: '100%',
+                            fontFamily: 'monospace',
+                            fontSize: 13,
+                            lineHeight: 1.5,
+                            padding: '12px',
+                            borderRadius: 6,
+                            border: '1px solid #cbd5e1',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                    <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const parsed = bulkInput.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+                                onChange(parsed.join('\n'));
+                                setBulkMode(false);
+                            }}
+                            style={{
+                                background: '#2563eb',
+                                color: '#fff',
+                                padding: '8px 16px',
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                border: 'none'
+                            }}
+                        >
+                            Apply & Return to Cards
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setBulkMode(false)}
+                            style={{
+                                background: '#f1f5f9',
+                                color: '#475569',
+                                padding: '8px 14px',
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                border: '1px solid #cbd5e1'
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: 10,
+                    marginBottom: 18
+                }}>
+                    {activeCategories.map((category, idx) => (
+                        <div
+                            key={idx}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                padding: '8px 10px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 8,
+                                transition: 'border-color 0.15s ease'
+                            }}
+                        >
+                            {/* Position Index Badge */}
+                            <span style={{
+                                fontSize: 11,
+                                fontWeight: 800,
+                                color: '#64748b',
+                                background: '#ffffff',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: 4,
+                                width: 26,
+                                height: 26,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                            }}>
+                                #{idx + 1}
+                            </span>
+
+                            {/* Editable Input */}
+                            <input
+                                type="text"
+                                value={category}
+                                onChange={e => handleEdit(idx, e.target.value)}
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    fontSize: 12.5,
+                                    fontWeight: 600,
+                                    color: '#011627',
+                                    border: '1px solid transparent',
+                                    borderRadius: 4,
+                                    padding: '4px 6px',
+                                    background: 'transparent',
+                                    outline: 'none',
+                                    transition: 'border-color 0.15s, background 0.15s'
+                                }}
+                                onFocus={e => {
+                                    e.currentTarget.style.border = '1px solid #3b82f6';
+                                    e.currentTarget.style.background = '#ffffff';
+                                }}
+                                onBlur={e => {
+                                    e.currentTarget.style.border = '1px solid transparent';
+                                    e.currentTarget.style.background = 'transparent';
+                                }}
+                            />
+
+                            {/* Move Up / Move Down buttons */}
+                            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleMove(idx, 'up')}
+                                    disabled={idx === 0}
+                                    style={{
+                                        width: 24,
+                                        height: 24,
+                                        borderRadius: 4,
+                                        border: '1px solid #e2e8f0',
+                                        background: idx === 0 ? '#f1f5f9' : '#ffffff',
+                                        color: idx === 0 ? '#cbd5e1' : '#475569',
+                                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0
+                                    }}
+                                    title="Move left / up"
+                                >
+                                    <ArrowUp size={12} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleMove(idx, 'down')}
+                                    disabled={idx === activeCategories.length - 1}
+                                    style={{
+                                        width: 24,
+                                        height: 24,
+                                        borderRadius: 4,
+                                        border: '1px solid #e2e8f0',
+                                        background: idx === activeCategories.length - 1 ? '#f1f5f9' : '#ffffff',
+                                        color: idx === activeCategories.length - 1 ? '#cbd5e1' : '#475569',
+                                        cursor: idx === activeCategories.length - 1 ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: 0
+                                    }}
+                                    title="Move right / down"
+                                >
+                                    <ArrowDown size={12} />
+                                </button>
+                            </div>
+
+                            {/* Remove button */}
+                            <button
+                                type="button"
+                                onClick={() => handleRemove(idx)}
+                                style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: 4,
+                                    border: '1px solid #fee2e2',
+                                    background: '#fff1f2',
+                                    color: '#e11d48',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    padding: 0,
+                                    transition: 'background 0.15s, color 0.15s'
+                                }}
+                                title={`Remove "${category}"`}
+                            >
+                                <Trash2 size={13} />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Sync Helpers */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+                <button
+                    type="button"
+                    onClick={handleSyncFeatured}
+                    style={{
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '6px 12px',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6
+                    }}
+                >
+                    <Sparkles size={13} /> Sync from Featured Categories
+                </button>
+                {products && products.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={handleSyncProducts}
+                        style={{
+                            background: '#eff6ff',
+                            color: '#1e40af',
+                            border: '1px solid #bfdbfe',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            padding: '6px 12px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6
+                        }}
+                    >
+                        <Package size={13} /> Load from Active Products ({products.length} catalog items)
+                    </button>
+                )}
+            </div>
+
+            {/* Live Storefront Bar Preview */}
+            <div style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                padding: '14px 18px',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
+                        <strong style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#475569' }}>
+                            Storefront Navigation Bar Live Preview
+                        </strong>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#64748b' }}>
+                        Shows how it renders directly beneath the search bar
+                    </span>
+                </div>
+
+                <div style={{
+                    background: '#ffffff',
+                    border: '1px solid #dce1e8',
+                    borderRadius: 6,
+                    padding: '0 16px',
+                    minHeight: 46,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    overflowX: 'auto',
+                    scrollbarWidth: 'thin'
+                }}>
+                    {activeCategories.length === 0 ? (
+                        <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                            No categories selected. Storefront will fall back to default placeholders.
+                        </span>
+                    ) : (
+                        activeCategories.map((cat, i) => (
+                            <span
+                                key={i}
+                                style={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    color: '#011627',
+                                    whiteSpace: 'nowrap',
+                                    cursor: 'default',
+                                    padding: '8px 0'
+                                }}
+                            >
+                                {cat}
+                            </span>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function SiteCustomizationEditor({
     customization,
     defaults,
@@ -3947,44 +4573,13 @@ export default function SiteCustomizationEditor({
                                 <Field label="Partner Account Link Title" fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
                                 <Field label="Partner Account Link Subtitle" fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
 
-                                <div style={{ gridColumn: '1 / -1' }}>
-                                    <Field label="Category Navigation Bar (One per line)" fieldKey="nav_categories" value={form.data.customization.nav_categories} placeholder={defaults.nav_categories} onChange={updateField} multiline rows={4} span2 />
-                                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const rawFeatured = form.data.customization.featured_categories_items || defaults.featured_categories_items || '';
-                                                const names = rawFeatured.split(/\r?\n/).map(l => l.split('|')[0].trim()).filter(Boolean);
-                                                if (names.length === 0) {
-                                                    alert('No featured categories found to sync.');
-                                                    return;
-                                                }
-                                                updateField('nav_categories', names.join('\n'));
-                                            }}
-                                            className="button small"
-                                            style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
-                                        >
-                                            ⚡ Sync Header Nav Links from Featured Categories
-                                        </button>
-                                        {products.length > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
-                                                    if (cats.length === 0) {
-                                                        alert('No product categories found.');
-                                                        return;
-                                                    }
-                                                    updateField('nav_categories', cats.join('\n'));
-                                                }}
-                                                className="button small"
-                                                style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
-                                            >
-                                                ⚡ Load Header Nav Links from Active Products
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                                <HeaderNavCategoriesManager
+                                    value={form.data.customization.nav_categories || ''}
+                                    defaultValue={defaults.nav_categories || ''}
+                                    onChange={newVal => updateField('nav_categories', newVal)}
+                                    featuredCategoriesRaw={form.data.customization.featured_categories_items || defaults.featured_categories_items || ''}
+                                    products={products}
+                                />
                             </div>
                         </div>
                     )}

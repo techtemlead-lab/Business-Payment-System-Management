@@ -506,5 +506,82 @@ class SiteCustomizationTest extends TestCase
         $customContact->assertSee('+8801888888888');
         $customContact->assertSee('https://facebook.com/custom-madina-page');
     }
+
+    public function test_header_navigation_categories_placeholders_and_customization(): void
+    {
+        // 1. Initial state: verify default placeholders
+        $expectedDefaults = [
+            'Medical Equipment',
+            'Leather Items',
+            'Consumer Items',
+            'Medicine',
+            'Agriculture Product',
+            'Cosmetics',
+            'Furniture',
+            'Service',
+        ];
+        $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
+
+        $home = $this->get('/');
+        $home->assertOk();
+        foreach ($expectedDefaults as $cat) {
+            $home->assertSee($cat);
+            $home->assertSee('/products?category=' . urlencode($cat));
+        }
+
+        // 2. Staff customizes categories (e.g. adding 3 new categories, removing Furniture and Leather Items)
+        $editor = User::factory()->create(['role' => 'editor']);
+        $customCategories = [
+            'Organic Honey',
+            'Black Seed Oil',
+            'Herbal Tonics',
+            'Medical Equipment',
+            'Medicine',
+        ];
+
+        $payload = [
+            'customization' => [
+                'nav_categories' => implode("\n", $customCategories),
+            ],
+        ];
+
+        $this->actingAs($editor)->post('/commands/customization', $payload)
+            ->assertSessionHas('success');
+
+        // Verify backend helper returns custom items
+        $this->assertEquals($customCategories, SiteCustomization::getNavCategories());
+
+        // Verify public home page reflects custom categories
+        $customHome = $this->get('/');
+        $customHome->assertOk();
+        foreach ($customCategories as $cat) {
+            $customHome->assertSee($cat);
+            $customHome->assertSee('/products?category=' . urlencode($cat));
+        }
+
+        // Removed items must no longer appear in header category dropdown
+        $customHtml = $customHome->getContent();
+        $this->assertStringNotContainsString('All Furniture', $customHtml);
+        $this->assertStringNotContainsString('All Leather Items', $customHtml);
+        $this->assertStringContainsString('All Organic Honey', $customHtml);
+        $this->assertStringContainsString('All Black Seed Oil', $customHtml);
+
+        // 3. Resetting / clearing gracefully falls back to default placeholders
+        $clearPayload = [
+            'customization' => [
+                'nav_categories' => '',
+            ],
+        ];
+        $this->actingAs($editor)->post('/commands/customization', $clearPayload)
+            ->assertSessionHas('success');
+
+        $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
+
+        $fallbackHome = $this->get('/');
+        $fallbackHome->assertOk();
+        foreach ($expectedDefaults as $cat) {
+            $fallbackHome->assertSee($cat);
+        }
+    }
 }
 

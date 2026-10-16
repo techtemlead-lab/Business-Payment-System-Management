@@ -450,6 +450,14 @@ class SiteCustomization
         $clean = [];
 
         foreach ($defaults as $key => $defaultVal) {
+            if ($key === 'nav_categories') {
+                if (is_array($payload[$key] ?? null)) {
+                    $clean[$key] = implode("\n", array_map('trim', array_filter($payload[$key])));
+                } else {
+                    $clean[$key] = trim((string)($payload[$key] ?? ''));
+                }
+                continue;
+            }
             if (is_array($defaultVal)) {
                 $subItems = [];
                 $inputArray = $payload[$key] ?? null;
@@ -868,13 +876,32 @@ class SiteCustomization
         return $items;
     }
 
+    public static function getNavCategories(): array
+    {
+        $customization = self::all();
+        $raw = $customization['nav_categories'] ?? null;
+        $cats = is_array($raw)
+            ? array_filter(array_map('trim', $raw))
+            : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string)$raw)));
+        if (empty($cats)) {
+            return [
+                'Medical Equipment',
+                'Leather Items',
+                'Consumer Items',
+                'Medicine',
+                'Agriculture Product',
+                'Cosmetics',
+                'Furniture',
+                'Service',
+            ];
+        }
+        return array_values($cats);
+    }
+
     public static function getConfiguredCategoryNames(): array
     {
         $featured = array_column(self::getFeaturedCategories(), 'name');
-        $customization = self::all();
-        $nav = is_array($customization['nav_categories'] ?? null)
-            ? $customization['nav_categories']
-            : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string)($customization['nav_categories'] ?? ''))));
+        $nav = self::getNavCategories();
         $existing = \App\Models\Product::orderBy('category')->distinct()->pluck('category')->toArray();
         $all = array_values(array_unique(array_filter(array_merge($featured, $nav, $existing))));
         natcasesort($all);
