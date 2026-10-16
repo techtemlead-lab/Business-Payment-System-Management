@@ -118,7 +118,7 @@ class PortalController extends Controller
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
         }
-        if (in_array($section, ['overview', 'catalog', 'inventory'])) {
+        if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where('name', 'like', '%'.$r->string('q').'%'))->orderBy('name')->get();
             $data['products'] = $products->map(function ($p) use ($u, $pricing) {
                 $price = $p->dealer_price;
@@ -264,8 +264,9 @@ class PortalController extends Controller
         }
         if ($section === 'salary') {
             $month = CommissionQualification::currentMonth();
+            $rules = app(CommissionPolicy::class)->snapshot()['rules'];
             $data['salary'] = ['month' => $month, 'monthly_purchases' => Money::decimal(app(CommissionQualification::class)->monthlyVolume($u->id, $month)),
-                'salary_rate' => '3.00', 'tour_rate' => '3.00',
+                'salary_rate' => $rules['sub_dealer_salary']['percentage'], 'tour_rate' => $rules['sub_dealer_tour']['percentage'],
                 'salary_accrued' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_salary')->where('metadata->period_month', $month)->sum('amount'),
                 'tour_reserved' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_tour')->where('metadata->period_month', $month)->sum('amount')];
         }
@@ -450,6 +451,8 @@ class PortalController extends Controller
             $data['settlement_state'] = [
                 'current_month' => $currentMonth,
                 'salary_pool_pending' => (float) $salaryPoolAllocations->sum('amount'),
+                'dealer_salary_pool_pending' => (float) $salaryPoolAllocations->where('category', 'dealer_monthly_salary_pool')->sum('amount'),
+                'sub_dealer_salary_pending' => (float) $salaryPoolAllocations->where('category', 'sub_dealer_salary')->sum('amount'),
                 'salary_pool_allocations_count' => $salaryPoolAllocations->count(),
                 'qualified_salary_dealers_count' => $qualifiedSalaryDealers->count(),
                 'qualified_salary_dealers' => $qualifiedSalaryDealers->map(fn ($d) => [
@@ -457,11 +460,11 @@ class PortalController extends Controller
                     'user_id' => $d->user_id,
                     'name' => $d->user?->name,
                     'dealer_code' => $d->user?->dealer_code,
-                    'monthly_volume' => (float) $d->monthly_purchase_total,
-                ]),
+                    'monthly_volume' => app(CommissionQualification::class)->monthlyVolume($d->user_id, $currentMonth) / 100,
+                ])->values(),
                 'rank_pool_pending' => (float) $rankPoolAllocations->sum('amount'),
                 'rank_pool_allocations_count' => $rankPoolAllocations->count(),
-                'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('is_qualified', true)->count(),
+                'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('paid_as_rank', '!=', 'dealer')->count(),
                 'qualified_rank_leaders' => $qualifiedRankLeaders,
                 'maturing_count' => $maturingAllocations->count(),
                 'maturing_amount' => (float) $maturingAllocations->sum('amount'),

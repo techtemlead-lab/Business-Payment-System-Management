@@ -9,6 +9,8 @@ import { money, date } from './UI';
 interface SettlementState {
     current_month: string;
     salary_pool_pending: number;
+    dealer_salary_pool_pending: number;
+    sub_dealer_salary_pending: number;
     salary_pool_allocations_count: number;
     qualified_salary_dealers_count: number;
     qualified_salary_dealers: Array<{
@@ -62,7 +64,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleSettleRank = () => {
-        if (!confirm(`Are you sure you want to finalize and distribute the 4% Leadership Rank Royalty Pool for ${selectedMonth}? This will distribute shares across qualified active leaders in MO, AM, SM, and ME tiers.`)) {
+        if (!confirm(`Are you sure you want to finalize and distribute the leadership royalty pool for ${selectedMonth}? Each source order's captured policy determines the shares and eligible MO, AM, SM and ME leaders.`)) {
             return;
         }
         setProcessingRank(true);
@@ -118,7 +120,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     </div>
                     <div>
                         <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>Month-End Settlements & Pipeline</h2>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Automated pool closings, cooling-off maturity releases, and leadership incentive claims.</p>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Finance-controlled month closing, cooling-off releases and funded leadership incentive claims.</p>
                     </div>
                 </div>
 
@@ -222,7 +224,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 fontSize: '12px',
                                 fontWeight: 700
                             }}>
-                                2.00% Pool
+                                Captured policy rates
                             </span>
                         </div>
 
@@ -234,25 +236,23 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             marginBottom: '16px'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Accumulated Pool:</span>
-                                <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.salary_pool_pending)}</b>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>Dealer Salary Pool:</span>
+                                <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.dealer_salary_pool_pending)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Qualified Earners:</span>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>Dealers Meeting Current Threshold:</span>
                                 <b style={{ fontSize: '14px', color: '#10b981' }}>{state.qualified_salary_dealers_count} dealers</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Estimated Share / Earner:</span>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>Sub-dealer Salary Reserved:</span>
                                 <b style={{ fontSize: '14px', color: '#2563eb' }}>
-                                    {state.qualified_salary_dealers_count > 0
-                                        ? money(Math.floor((state.salary_pool_pending / state.qualified_salary_dealers_count) * 100) / 100)
-                                        : '৳0.00'}
+                                    {money(state.sub_dealer_salary_pending)}
                                 </b>
                             </div>
                         </div>
 
                         <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
-                            Qualification: Minimum monthly personal turnover of <b>৳10,000</b>. Split equally among qualified active dealers with exact penny remainder reconciliation.
+                            The dealer list uses the current qualification threshold and selected month's purchases. Actual settlement evaluates each source order's captured policy and eligibility. Sub-dealer salary is credited to its own purchaser separately.
                         </div>
 
                         {state.qualified_salary_dealers.length > 0 && (
@@ -333,7 +333,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 fontSize: '12px',
                                 fontWeight: 700
                             }}>
-                                4.00% Pool (1% / Tier)
+                                Captured policy rates
                             </span>
                         </div>
 
@@ -349,8 +349,8 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.rank_pool_pending)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Per-Tier Budget (1% each):</span>
-                                <b style={{ fontSize: '14px', color: '#7c3aed' }}>{money(state.rank_pool_pending / 4)}</b>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>Tier Allocation:</span>
+                                <b style={{ fontSize: '14px', color: '#7c3aed' }}>Source policy weights</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <span style={{ fontSize: '13px', color: '#64748b' }}>Active Qualified Leaders:</span>
@@ -359,7 +359,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
-                            Four Leadership Tiers: <b>MO (1%)</b>, <b>AM (1%)</b>, <b>SM (1%)</b>, <b>ME (1%)</b>. Leaders must satisfy monthly maintenance volume or remain within active grace period.
+                            Leadership tiers: <b>MO</b>, <b>AM</b>, <b>SM</b> and <b>ME</b>. The list uses the current maintenance policy; settlement uses each source order's captured weights and qualification rules, including applicable grace periods.
                         </div>
 
                         {state.qualified_rank_leaders.length > 0 && (

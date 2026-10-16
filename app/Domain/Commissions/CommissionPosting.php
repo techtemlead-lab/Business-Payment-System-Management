@@ -125,9 +125,9 @@ final class CommissionPosting
                 $areaRemaining -= $share;
                 $query = AreaDealerAssignment::where('level', $level)->where('is_active', true);
                 foreach ($path as $field => $value) {
-                    $query->where($field, $value);
+                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
                 }
-                $assignments = in_array(null, $path, true) || in_array('', $path, true) ? collect() : $query->get();
+                $assignments = collect($path)->contains(fn ($value): bool => trim((string) $value) === '') ? collect() : $query->get();
                 $assignment = $assignments->count() === 1 ? $assignments->first() : null;
                 $id = $assignment?->user_id;
                 $status = $recipient($id);

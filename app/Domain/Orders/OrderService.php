@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Inventory\StockNotifications;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\Order;
 use App\Models\Product;
@@ -17,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
-    public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions) {}
+    public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions, private readonly StockNotifications $stockNotifications) {}
 
     public function create(User $user, array $data): Order
     {
@@ -180,7 +181,9 @@ class OrderService
                 if ($quantity > $line->quantity - $line->dispatched || $quantity > $product->stock) {
                     throw ValidationException::withMessages(['shipment' => 'Quantity exceeds remaining supply or stock for '.$product->name.'.']);
                 }
+                $previousStock = $product->stock;
                 $product->decrement('stock', $quantity);
+                $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
                 $line->increment('dispatched', $quantity);
                 DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => -$quantity, 'kind' => 'dispatch',
                     'reference' => (string) Str::uuid(), 'reason' => $locked->number, 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);

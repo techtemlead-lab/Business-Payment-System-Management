@@ -381,7 +381,7 @@ class CommandController extends Controller
             return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. Pool rolled to company reserve.");
         }
 
-        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_pool']} to {$result['qualifiers_count']} qualified dealers.");
+        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_distributed']}. Qualifying partners: {$result['qualifiers_count']}.");
     }
 
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse

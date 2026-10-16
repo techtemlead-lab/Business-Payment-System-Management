@@ -2,6 +2,42 @@
 
 Updated: 16 October 2026. This describes the implemented backend and integration boundaries. The quotation and client-facing business plan are separate documents.
 
+## Whole-project completion audit — 16 October 2026
+
+**Overall result: not 100% complete against the expanded client scope.** Passing automated tests verifies the covered behavior; it does not establish completion of modules that do not exist. No weighted completion percentage is asserted without an agreed acceptance checklist.
+
+| Area | Implemented and checked | Remaining scope or release requirement |
+|---|---|---|
+| Public website | Company content, product catalog, filters, product media, enquiries, consented dealer directory and GPS distance sorting | Approved live content, dealer coordinates and external links still need client acceptance; social/app-store placeholders remain where no destination was supplied |
+| Authentication and permissions | Separate partner/company access, password recovery, employee capability selection, profile lock, private responses and restricted product editing | Employee capabilities do not implement an SR territory access boundary |
+| Orders and credit | Server pricing, requests and payment references, verification, explicit credit approval, shared dues, back-order information, partial dispatch and courier/delivery history | No actual bank refund execution or stock-return workflow is provided by commission reversal |
+| Inventory | Counted receipts/adjustments, negative-stock protection, archive/history preservation and order pause/resume | Production stock opening balances require reconciliation |
+| Notifications | Partner notices when a product becomes available; low/zero-stock notices for inventory staff; order/account notices | Notices are in the application; no external SMS/push delivery is included |
+| Partner network | Scoped descendants, nested tree, direct-referral list and purchase timeline; staff network explorer | Client acceptance of generation and eligibility rules remains necessary |
+| Commission accounting | Purchase-value dealer/sub-dealer allocations, 3% default sub-dealer salary and separate 3% tour reserve, captured policies, funding checks, refunds and clawbacks | Custom recipient/dealer overrides and future-dated policy activation are not implemented; policy changes take effect immediately for new orders |
+| Salary and rank | Dealer/sub-dealer month-close credits, rank qualification and royalty, funded one-time rank incentives and reward progress | Employee/SR payroll sheets, approvals and payment status are not implemented |
+| Reserved rewards and holds | Additional-rank, marketing, vehicle and tour amounts are earmarked; cooling-off balances can be released through Finance | No approved payout workflow for those earmarked reserves; no release workflow for inactive-recipient or area-quota holds |
+| Withdrawals | Minimum BDT 200, reservation, review, separate payer, private receipt, withholding snapshot and payment history | Finance-administered receiving/gateway account registry is missing; payments are recorded manually |
+| Reporting | Order CSV export with server-side date range, operational dashboards and financial histories | Product/category sales, salary, incentive, dues, withdrawal and transaction export suite with native Excel/PDF and period controls is incomplete |
+| SR operations | Super-admin-created employee accounts with selected capabilities | Territory assignment/enforcement, scoped dealer lists, orders on behalf of a dealer, target tracking and an SR earnings/payroll ledger are missing |
+
+The read-only migration check against the database configured in `D:/works/Business-Payment-System-Management` found both commission migrations pending:
+
+- `2026_10_16_000001_create_commission_and_network_tables`
+- `2026_10_16_133009_harden_commission_accounting_and_product_pricing`
+
+All migrations are exercised on the separate PostgreSQL test instance. This does not mean they have been deployed to the configured application database. No shared application database was changed during this audit. Production financial activation, legacy ledger reconciliation, approved reward disbursement rules and client acceptance remain release requirements.
+
+Audit corrections:
+
+- Transactional availability notices for active partners, and low/zero-stock notices for authorized inventory staff. Failed/replayed movements do not duplicate notices; archived or paused stock is not advertised.
+- Product editor, archived media and overview data respect product permissions. Finance retains authorized read-only cost review.
+- Salary/tour rates reflect configured policy. Settlement screens separate dealer pools from sub-dealer salary, use the selected month's actual volume, count eligible grace-period leaders and report actual distributed amounts. Unsupported equal-share estimates and fixed-tax/remittance claims were removed.
+- Partners can switch between their scoped referral tree, direct referrals and all descendants, then inspect permitted purchase timelines.
+- Area commissions match the complete geographic hierarchy after trimming and case normalization, consistently with assignment validation. Ambiguous legacy assignments remain in reserve.
+
+Verification: the complete PHPUnit suite passes on isolated PostgreSQL (172 tests, 1,232 assertions), including 11 new audit regressions. Laravel Pint, TypeScript checking and the production Vite build pass. Composer and npm audits report no known dependency vulnerabilities. Browser smoke checks covered synthetic dealer login and referral-view switching with no JavaScript errors. These checks do not replace client acceptance, production configuration or a populated-database upgrade rehearsal. The production JavaScript bundle still emits Vite's size warning at approximately 844 kB before gzip.
+
 ## Financial basis and defaults
 
 All commission percentages use the purchase value paid to the company. Product MRP is used to calculate the company share, which defaults to 30% of MRP. Dealer and sub-dealer prices are configured separately per product. An empty sub-dealer price retains the legacy 40% discount. Newly entered partner discounts must be within 20–50%; the resulting price must also fund the commission policy.

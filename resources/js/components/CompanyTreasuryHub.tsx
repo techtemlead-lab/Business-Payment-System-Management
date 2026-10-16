@@ -427,7 +427,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* 2% Management Area Share */}
                             <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>2% Management Area Share</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Management Area Share</span>
                                     <Landmark size={20} color="#2e3192" />
                                 </div>
                                 <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '10px 0 4px' }}>
@@ -509,7 +509,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* Marketing Fund */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Marketing & Branding Fund (2%)</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Marketing & Branding Fund</span>
                                     <PieChart size={18} color="#2e3192" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#2e3192', margin: '8px 0 4px' }}>
@@ -523,7 +523,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* Car & Bike Incentive Fund */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Car & Bike Asset Fund (2%)</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Car & Bike Asset Fund</span>
                                     <ShieldCheck size={18} color="#d97706" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706', margin: '8px 0 4px' }}>
@@ -537,14 +537,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {/* Statutory TDS Tax */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Statutory TDS Tax (5%)</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Recorded payout withholding</span>
                                     <FileText size={18} color="#e11d48" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#e11d48', margin: '8px 0 4px' }}>
                                     {money(tdsTax)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Tax Deducted at Source remitted directly to Bangladesh NBR
+                                    Withheld from recorded payouts using each request's captured rate. Remittance is tracked outside this application.
                                 </div>
                             </div>
                         </div>

@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 final class StockService
 {
+    public function __construct(private StockNotifications $notifications) {}
+
     /**
      * @param  array{product_id: int, quantity: int, reason: string, reference: string}  $data
      */
@@ -27,6 +29,7 @@ final class StockService
                 if ($quantity === 0 || abs($quantity) > 100000 || $product->stock + $quantity < 0 || $product->stock + $quantity > 2147483647) {
                     throw ValidationException::withMessages(['quantity' => 'The adjustment must leave a valid, nonnegative stock balance.']);
                 }
+                $previousStock = $product->stock;
                 $product->increment('stock', $quantity);
                 DB::table('stock_movements')->insert([
                     'product_id' => $product->id, 'quantity' => $quantity, 'reason' => $data['reason'],
@@ -34,6 +37,7 @@ final class StockService
                     'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now(),
                 ]);
                 Audit::record($actor->id, 'stock.adjusted', (string) $product->id, ['quantity' => $quantity, 'reason' => $data['reason']]);
+                $this->notifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
 
                 return $product->refresh();
             }, 3);
