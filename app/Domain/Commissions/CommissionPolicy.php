@@ -7,6 +7,7 @@ use App\Models\CommissionRuleParameter;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -47,7 +48,7 @@ final class CommissionPolicy
     }
 
     /** @return array<string, mixed> */
-    public function snapshot(bool $validate = true): array
+    public function snapshot(bool $validate = true, ?User $buyer = null, ?CarbonImmutable $at = null): array
     {
         $rules = self::defaults();
         foreach (CommissionRuleParameter::all() as $rule) {
@@ -57,12 +58,77 @@ final class CommissionPolicy
                 $rules[$rule->rule_key] = array_replace($rules[$rule->rule_key], $data);
             }
         }
+        $at ??= CarbonImmutable::now();
+        $revision = DB::table('commission_policy_revisions as revisions')->leftJoin('commission_policy_schedules as schedules', 'schedules.id', '=', 'revisions.schedule_id')
+            ->where('revisions.effective_at', '<=', $at)->where('revisions.created_at', '<=', $at)
+            ->where(function ($query) use ($at): void {
+                $query->where('revisions.source', 'admin')->orWhere(function ($query) use ($at): void {
+                    $query->where('revisions.source', 'scheduled')->where('schedules.status', 'approved')->where('schedules.scope', 'global')
+                        ->where(fn ($query) => $query->whereNull('schedules.expires_at')->orWhere('schedules.expires_at', '>', $at));
+                });
+            })->orderByDesc('revisions.effective_at')->orderByDesc('revisions.id')->first(['revisions.id', 'revisions.rules']);
+        if ($revision) {
+            $rules = json_decode($revision->rules, true, flags: JSON_THROW_ON_ERROR);
+        }
+        $override = $buyer ? $this->activeSchedule('buyer', $buyer->id, $at) : null;
+        if ($override) {
+            $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
+        }
         if ($validate) {
             $this->validateSchedule($rules);
         }
 
         return ['basis' => 'purchase_value', 'rounding' => 'half_up', 'company_mrp_percent' => '30.00',
-            'captured_at' => now()->toIso8601String(), 'rules' => $rules];
+            'captured_at' => $at->toIso8601String(), 'revision_id' => $revision?->id, 'buyer_schedule_id' => $override?->id, 'rules' => $rules];
+    }
+
+    public function activeSchedule(string $scope, ?int $userId, CarbonImmutable $at): ?object
+    {
+        return DB::table('commission_policy_schedules')->where('scope', $scope)->where('user_id', $userId)->where('status', 'approved')
+            ->where('effective_at', '<=', $at)->where('approved_at', '<=', $at)
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', $at))
+            ->orderByDesc('effective_at')->orderByDesc('id')->first();
+    }
+
+    /** @param list<int> $ids @return array<int, array<string, mixed>> */
+    public function recipientOverrides(array $ids): array
+    {
+        $result = [];
+        $at = CarbonImmutable::now();
+        $rows = DB::table('commission_policy_schedules')->where('scope', 'recipient')->whereIn('user_id', array_unique($ids))->where('status', 'approved')
+            ->where('effective_at', '<=', $at)->where('approved_at', '<=', $at)
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', $at))
+            ->orderByDesc('effective_at')->orderByDesc('id')->get()->unique('user_id');
+        foreach ($rows as $row) {
+            $result[$row->user_id] = ['schedule_id' => $row->id, 'rates' => json_decode($row->rules, true, flags: JSON_THROW_ON_ERROR)];
+        }
+
+        return $result;
+    }
+
+    /** @param array<string, array<string, mixed>> $base @param array<string, mixed> $changes @return array<string, array<string, mixed>> */
+    public function compose(array $base, array $changes): array
+    {
+        if ($changes === [] || array_diff_key($changes, self::defaults()) !== []) {
+            throw ValidationException::withMessages(['rules' => 'Supply known commission rule keys.']);
+        }
+        foreach ($changes as $key => $input) {
+            if (! is_array($input)) {
+                throw ValidationException::withMessages(['rules' => 'Each rule must be an object.']);
+            }
+            $data = Validator::make($input, ['percentage' => 'sometimes|required|numeric|between:0,100|decimal:0,2',
+                'parameters' => 'sometimes|array', 'is_active' => 'sometimes|boolean'])->validate();
+            if (isset($data['parameters'])) {
+                if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
+                    throw ValidationException::withMessages(['rules' => 'Unsupported parameters for '.$key.'.']);
+                }
+                $data['parameters'] = array_replace($base[$key]['parameters'], $data['parameters']);
+            }
+            $base[$key] = array_replace($base[$key], $data);
+        }
+        $this->validateSchedule($base);
+
+        return $base;
     }
 
     /** @param array<string, mixed> $rules */

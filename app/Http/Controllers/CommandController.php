@@ -95,8 +95,8 @@ class CommandController extends Controller
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
             'reason' => 'nullable|string|max:1000',
-            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $r->input('role') !== 'employee'), 'nullable', 'array'],
-            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code',
             'profile.name_bn' => 'nullable|string|max:150',
             'profile.father_name' => 'nullable|string|max:150',
@@ -168,8 +168,8 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
-            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $user->role !== 'employee'), 'sometimes', 'nullable', 'array'],
-            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
         if ($r->has('sponsor_id')) {
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;

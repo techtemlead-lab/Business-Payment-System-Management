@@ -19,7 +19,7 @@ final class CommissionPosting
     /** @return array<string, mixed> */
     public function capture(Order $order, User $buyer): array
     {
-        $snapshot = $this->policies->snapshot();
+        $snapshot = $this->policies->snapshot(true, $buyer);
         $snapshot['account_type'] = $buyer->role;
         if (config('madina.financial_activation')) {
             $rate = 0;
@@ -47,6 +47,27 @@ final class CommissionPosting
             $snapshot['uplines'][] = $upline->id;
             $next = $upline->sponsor_id;
         }
+        $geography = $snapshot['geography'];
+        $areaUsers = AreaDealerAssignment::where('is_active', true)->where(function ($query) use ($geography): void {
+            $path = [];
+            foreach (['division', 'district', 'upazila', 'union'] as $level) {
+                $value = trim((string) ($geography[$level] ?? ''));
+                if ($value === '') {
+                    break;
+                }
+                $path[$level] = mb_strtolower($value);
+                $query->orWhere(function ($inner) use ($level, $path): void {
+                    $inner->where('level', $level);
+                    foreach ($path as $field => $value) {
+                        $inner->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [$value]);
+                    }
+                });
+            }
+            if ($path === []) {
+                $query->whereRaw('1=0');
+            }
+        })->pluck('user_id')->all();
+        $snapshot['recipient_overrides'] = $this->policies->recipientOverrides([$buyer->id, ...$snapshot['uplines'], ...$areaUsers]);
         $order->update(['commission_policy_snapshot' => $snapshot]);
 
         return $snapshot;
@@ -58,6 +79,7 @@ final class CommissionPosting
         if (! config('madina.financial_activation') || Money::cents($order->total) === 0) {
             return [];
         }
+        CommissionWallet::requireActive();
 
         return DB::transaction(function () use ($order): array {
             CommissionWallet::lock();
@@ -135,7 +157,7 @@ final class CommissionPosting
                     $status = 'held';
                 }
                 $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
-                    ['assignment_id' => $assignment?->id, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve']);
+                    ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve']);
             }
             $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining);
             foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
@@ -187,6 +209,23 @@ final class CommissionPosting
                         break;
                     }
                     $rows[$index]['cents']++;
+                }
+            }
+            foreach ($rows as $index => $row) {
+                $override = $snapshot['recipient_overrides'][$row['user_id']] ?? null;
+                if (! $override || ! isset($override['rates'][$row['category']])) {
+                    continue;
+                }
+                $cap = Percentage::from((string) $override['rates'][$row['category']]['percentage']);
+                $actual = min($row['cents'], $cap->of($cash, 'half_up'));
+                $rows[$index]['metadata']['recipient_schedule_id'] = $override['schedule_id'];
+                if ($actual < $row['cents']) {
+                    $rows[$index]['cents'] = $actual;
+                    $rows[$index]['rate_percentage'] = $cap->decimal();
+                    $rows[] = [...$row, 'category' => $row['category'].'_override_reserve', 'user_id' => null,
+                        'status' => 'reserved', 'cents' => $row['cents'] - $actual,
+                        'rate_percentage' => Money::decimal(Percentage::from($row['rate_percentage'])->basisPoints - $cap->basisPoints),
+                        'metadata' => ['recipient_schedule_id' => $override['schedule_id'], 'retained_by' => 'company_override_reserve']];
                 }
             }
             $allocated = array_sum(array_column($rows, 'cents'));
