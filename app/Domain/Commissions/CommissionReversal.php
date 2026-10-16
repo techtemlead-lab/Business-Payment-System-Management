@@ -65,11 +65,24 @@ final class CommissionReversal
                 }
                 $payouts = DB::table('commission_settlement_payouts')->where('allocation_id', $allocation->id)->orderBy('id')->lockForUpdate()->get();
                 foreach ($payouts as $payout) {
-                    $target = $this->proportion(Money::cents($payout->amount), $after, $cash);
+                    $basis = Money::cents($payout->refunded_basis);
+                    $target = $this->proportion(Money::cents($payout->amount), max(0, $after - $basis), $cash - $basis);
                     $delta = $target - Money::cents($payout->reversed_amount);
                     if ($delta > 0) {
                         $recipients[] = ['user_id' => $payout->user_id, 'amount' => $delta, 'held' => false];
                         DB::table('commission_settlement_payouts')->where('id', $payout->id)->update(['reversed_amount' => Money::decimal($target), 'updated_at' => now()]);
+                    }
+                }
+                foreach (DB::table('reserve_expense_sources as s')->join('reserve_disbursements as d', 'd.id', '=', 's.disbursement_id')
+                    ->where('s.allocation_id', $allocation->id)->where('d.status', 'paid')->get(['s.*']) as $expense) {
+                    $basis = Money::cents($expense->refunded_basis);
+                    $target = $this->proportion(Money::cents($expense->amount), max(0, $after - $basis), $cash - $basis);
+                    $delta = $target - Money::cents($expense->reversed_amount);
+                    if ($delta > 0) {
+                        DB::table('reserve_expense_sources')->where('id', $expense->id)->update(['reversed_amount' => Money::decimal($target), 'updated_at' => now()]);
+                        DB::table('reserve_expense_clawbacks')->insert(['refund_id' => $id, 'source_id' => $expense->id, 'amount' => Money::decimal($delta), 'created_at' => now(), 'updated_at' => now()]);
+                        $journal[] = ['account' => 'company_reserve_clawback_receivable', 'user_id' => null, 'debit' => $delta, 'credit' => 0];
+                        $unrecoveredTotal += $delta;
                     }
                 }
                 $ownDebt = 0;

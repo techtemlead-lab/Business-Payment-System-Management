@@ -5,6 +5,9 @@ use App\Http\Controllers\Api\V1\CommissionController;
 use App\Http\Controllers\Api\V1\FinancialPreviewController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\FieldSalesController;
+use App\Http\Controllers\FinanceOperationsController;
+use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
 use Illuminate\Http\Request;
@@ -43,3 +46,37 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
     Route::post('/finance/orders/{order}/commission-refunds', [CommissionController::class, 'refund'])->name('finance.orders.refund');
     Route::post('/finance/settlements', [CommissionController::class, 'settle'])->name('finance.settlements');
 });
+
+/** Both the Inertia screens and independently developed clients use these services. */
+$operations = function (): void {
+    $finance = FinanceOperationsController::class;
+    $sales = FieldSalesController::class;
+    Route::get('/payment-accounts', [$finance, 'accounts']);
+    Route::post('/payment-accounts', [$finance, 'account']);
+    Route::patch('/payment-accounts/{id}', [$finance, 'account'])->whereNumber('id');
+    Route::post('/staff/territories', [$sales, 'territory']);
+    Route::post('/staff/territories/{id}/remove', [$sales, 'removeTerritory'])->whereNumber('id');
+    Route::post('/staff/targets', [$sales, 'target']);
+    Route::post('/staff/applications', [$sales, 'application']);
+    Route::post('/staff/applications/{id}/review', [$sales, 'reviewApplication'])->whereUuid('id');
+    Route::post('/staff/orders', [$sales, 'order']);
+    Route::get('/staff/orders/{order}', [$sales, 'show']);
+    Route::post('/payroll/contracts', [$finance, 'contract']);
+    Route::post('/payroll/prepare', [$finance, 'prepare']);
+    Route::post('/payroll/{id}/review', [$finance, 'payrollReview'])->whereUuid('id');
+    Route::post('/payroll/{id}/pay', [$finance, 'payrollPay'])->whereUuid('id');
+    Route::post('/policy-schedules', [$finance, 'schedule']);
+    Route::post('/policy-schedules/{id}/review', [$finance, 'scheduleReview'])->whereNumber('id');
+    Route::post('/reserves', [$finance, 'reserve']);
+    Route::post('/reserves/{id}/review', [$finance, 'reserveReview'])->whereNumber('id');
+    Route::post('/reserves/{id}/pay', [$finance, 'reservePay'])->whereNumber('id');
+    Route::post('/reserves/clawbacks/{id}/recover', [$finance, 'recover'])->whereNumber('id');
+    Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');
+    Route::post('/opening-balances', [$finance, 'opening']);
+    Route::post('/opening-balances/{id}/verify', [$finance, 'openingVerify'])->whereNumber('id');
+    Route::get('/receipts/{kind}/{id}', [$finance, 'receipt']);
+    Route::get('/reports', [$finance, 'export'])->middleware('throttle:5,1');
+    Route::get('/views/{section}', [OperationsController::class, 'index']);
+};
+Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1'])->group($operations);
+Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group($operations);

@@ -47,6 +47,9 @@ class User extends Authenticatable
 
             return array_values(array_intersect((array) ($this->profile['permissions'] ?? []), $known));
         }
+        if ($this->role === 'sr' && isset($this->profile['permissions'])) {
+            return array_values(array_intersect((array) $this->profile['permissions'], config('madina.roles.sr')));
+        }
 
         return config('madina.roles.'.$this->role, []);
     }

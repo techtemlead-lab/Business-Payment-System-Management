@@ -1,42 +1,25 @@
 # Madina Natural Health Care — Backend and Commission Integration
 
-Updated: 16 October 2026. This describes the implemented backend and integration boundaries. The quotation and client-facing business plan are separate documents.
+Updated: 17 October 2026. This document describes the implemented services and release controls. The quotation and client business plan remain separate documents.
 
-## Whole-project completion audit — 16 October 2026
+## Integrated operations
 
-**Overall result: not 100% complete against the expanded client scope.** Passing automated tests verifies the covered behavior; it does not establish completion of modules that do not exist. No weighted completion percentage is asserted without an agreed acceptance checklist.
-
-| Area | Implemented and checked | Remaining scope or release requirement |
+| Area | Implemented behavior | Operational requirement |
 |---|---|---|
-| Public website | Company content, product catalog, filters, product media, enquiries, consented dealer directory and GPS distance sorting | Approved live content, dealer coordinates and external links still need client acceptance; social/app-store placeholders remain where no destination was supplied |
-| Authentication and permissions | Separate partner/company access, password recovery, employee capability selection, profile lock, private responses and restricted product editing | Employee capabilities do not implement an SR territory access boundary |
-| Orders and credit | Server pricing, requests and payment references, verification, explicit credit approval, shared dues, back-order information, partial dispatch and courier/delivery history | No actual bank refund execution or stock-return workflow is provided by commission reversal |
-| Inventory | Counted receipts/adjustments, negative-stock protection, archive/history preservation and order pause/resume | Production stock opening balances require reconciliation |
-| Notifications | Partner notices when a product becomes available; low/zero-stock notices for inventory staff; order/account notices | Notices are in the application; no external SMS/push delivery is included |
-| Partner network | Scoped descendants, nested tree, direct-referral list and purchase timeline; staff network explorer | Client acceptance of generation and eligibility rules remains necessary |
-| Commission accounting | Purchase-value dealer/sub-dealer allocations, 3% default sub-dealer salary and separate 3% tour reserve, captured policies, funding checks, refunds and clawbacks | Custom recipient/dealer overrides and future-dated policy activation are not implemented; policy changes take effect immediately for new orders |
-| Salary and rank | Dealer/sub-dealer month-close credits, rank qualification and royalty, funded one-time rank incentives and reward progress | Employee/SR payroll sheets, approvals and payment status are not implemented |
-| Reserved rewards and holds | Additional-rank, marketing, vehicle and tour amounts are earmarked; cooling-off balances can be released through Finance | No approved payout workflow for those earmarked reserves; no release workflow for inactive-recipient or area-quota holds |
-| Withdrawals | Minimum BDT 200, reservation, review, separate payer, private receipt, withholding snapshot and payment history | Finance-administered receiving/gateway account registry is missing; payments are recorded manually |
-| Reporting | Order CSV export with server-side date range, operational dashboards and financial histories | Product/category sales, salary, incentive, dues, withdrawal and transaction export suite with native Excel/PDF and period controls is incomplete |
-| SR operations | Super-admin-created employee accounts with selected capabilities | Territory assignment/enforcement, scoped dealer lists, orders on behalf of a dealer, target tracking and an SR earnings/payroll ledger are missing |
+| SR territories | Hierarchical, case-normalized territory boundaries; scoped partner lists, orders on behalf of partners, order timelines, dues and dealer applications | A manager assigns territories; account staff independently review new partner applications |
+| Staff targets and payroll | Frozen monthly territories, net posted sales, earned target bonuses, effective salary contract revisions, month-close preparation, independent review, manual payment evidence and personal salary history | Finance supplies agreed salary terms and uses separate preparer/reviewer/payer controls; earlier contract and rejected payroll records remain immutable |
+| Payment accounts | Finance-managed Bank/bKash/Nagad/Rocket accounts; encrypted registry details, active collection/payout flags, optimistic versions, order claim account snapshots, encrypted account-version history and captured payout-account versions | These are company account controls for recorded manual payments; automated provider transfers require a separately commissioned integration |
+| Commission schedules | Approved global and individual purchase policies with start/expiry dates; recipient earning caps; order-captured terms and immutable revisions | A different Finance reviewer approves schedules; caps retain unused money as reserve rather than increasing another recipient's allocation |
+| Reserve payouts | Funded sub-dealer tour and additional-rank rewards, one-time qualified vehicle rewards, marketing invoice approvals/payments, private evidence and recoveries | Reward amounts are explicit reviewed requests; milestone achievement alone does not create money; the car cash amount is not inferred |
+| Hold releases | Active-recipient and original-period area-quota checks, cooling-off preservation, single credit and an audit trail | Legacy area allocations without a captured quota require reconciliation before release |
+| Financial reports | Native XLSX and Bengali-capable PDF for orders, products/categories, dues, commissions, salary/royalty settlements, payroll, withdrawals, journals, reserve rewards and commission refund adjustments; scoped records, period/date controls and totals | Dates use Asia/Dhaka; XLSX streams the full selected dataset; PDF limits output to 5,000 rows and directs larger reports to Excel |
+| Opening review | Private PostgreSQL backup command; journal, wallet, receipt, reservation, allocation and stock checks; hashed opening snapshot, independent evidence and separate Finance verification | Internal agreement with the ledger does not establish agreement with an external bank statement or constitute business-owner approval |
 
-The read-only migration check against the database configured in `D:/works/Business-Payment-System-Management` found both commission migrations pending:
+New company screens are under `/company/operations/{section}`. All new integrations have session-authenticated, CSRF-protected endpoints under `/api/v1/operations`, with matching Inertia command routes under `/commands/operations`. The shared ProductPricing contract and completed frontend design are preserved. Pages load in separate JavaScript bundles.
 
-- `2026_10_16_000001_create_commission_and_network_tables`
-- `2026_10_16_133009_harden_commission_accounting_and_product_pricing`
+Production financial posting requires the explicit deployment configuration AND an independently verified opening-balance record. Preparing drafts, reviewing configuration and exporting reports never enables posting. Business-owner approval of the policy and source opening records remains a release condition.
 
-All migrations are exercised on the separate PostgreSQL test instance. This does not mean they have been deployed to the configured application database. No shared application database was changed during this audit. Production financial activation, legacy ledger reconciliation, approved reward disbursement rules and client acceptance remain release requirements.
-
-Audit corrections:
-
-- Transactional availability notices for active partners, and low/zero-stock notices for authorized inventory staff. Failed/replayed movements do not duplicate notices; archived or paused stock is not advertised.
-- Product editor, archived media and overview data respect product permissions. Finance retains authorized read-only cost review.
-- Salary/tour rates reflect configured policy. Settlement screens separate dealer pools from sub-dealer salary, use the selected month's actual volume, count eligible grace-period leaders and report actual distributed amounts. Unsupported equal-share estimates and fixed-tax/remittance claims were removed.
-- Partners can switch between their scoped referral tree, direct referrals and all descendants, then inspect permitted purchase timelines.
-- Area commissions match the complete geographic hierarchy after trimming and case normalization, consistently with assignment validation. Ambiguous legacy assignments remain in reserve.
-
-Verification: the complete PHPUnit suite passes on isolated PostgreSQL (172 tests, 1,232 assertions), including 11 new audit regressions. Laravel Pint, TypeScript checking and the production Vite build pass. Composer and npm audits report no known dependency vulnerabilities. Browser smoke checks covered synthetic dealer login and referral-view switching with no JavaScript errors. These checks do not replace client acceptance, production configuration or a populated-database upgrade rehearsal. The production JavaScript bundle still emits Vite's size warning at approximately 844 kB before gzip.
+The public website, catalog, partner network, inventory, order fulfilment, notices and existing payout workflows continue to use the established application routes and permissions. Live branding/content, published dealer contact consent, gateway account details and business acceptance are supplied by the client. Application notices do not imply external SMS/push delivery. Commission reversal records financial adjustments; physical stock returns and bank refund execution remain separate operations.
 
 ## Financial basis and defaults
 
@@ -64,7 +47,7 @@ The area pool defaults to management, division, district, upazila and union shar
 
 The preserved three-generation referral model pays the direct sponsor 10%, generation 2 another 2%, and generation 3 another 1%. Dynamic compression is an explicit policy parameter and defaults to disabled. Missing recipients remain reserves; suspended recipients remain held without an available wallet credit.
 
-Sub-dealer monthly salary is a flat 3% across all qualifying purchases. The former 1%, 2%, 3%, 4% purchase tiers are replaced. Tour allocations are separately reserved and are not an additional spendable salary credit. Additional-rank, marketing and vehicle funds remain earmarked reserves until their approved disbursement workflow is implemented; milestone achievement does not mint an award.
+Sub-dealer monthly salary is a flat 3% across all qualifying purchases. The former 1%, 2%, 3%, 4% purchase tiers are replaced. Tour allocations are separately reserved and are not an additional spendable salary credit. Additional-rank, marketing, tour and vehicle funds are disbursed through funded reserve requests and independent Finance approval; milestone achievement does not mint an award. Marketing expenses require a separate payer, active company account, actual reference and private receipt.
 
 ## Recognition, history and rounding
 
@@ -74,7 +57,7 @@ New orders capture their account type, prices, referral chain, geography and com
 
 Money mutations use integer paisa. Allocation rounding reconciles largest remainders first between parent pools and then between recipients, without exceeding the funded batch. Original allocation amounts remain recorded when net allocations are reduced by refunds.
 
-Calendar settlement periods follow Asia/Dhaka; database timestamps remain UTC. Current or future months cannot be settled. Salary qualification uses actual posted, net-of-refund volume for the selected month, not an accumulating monthly counter. Each settlement payout retains its source allocation. Retrying a settlement cannot pay the same source twice, including when further eligible source allocations are added later.
+Calendar settlement periods follow Asia/Dhaka; database timestamps remain UTC. Current or future months cannot be settled. Salary qualification uses actual posted, net-of-refund volume for the selected month, not an accumulating monthly counter. Each settlement payout retains its source allocation and the cumulative refunded basis at the time of credit, so later refunds cannot claw back an earlier refund twice. Retrying a settlement cannot pay the same source twice, including when further eligible source allocations are added later.
 
 Royalty defaults to 1% for each of MO, AM, SM and ME, shared among that rank's qualified dealers. Configurable rank shares must total the royalty pool. Recorded rank history prevents later promotions from collecting an earlier month's higher royalty.
 
@@ -93,7 +76,7 @@ Awards are unique per user and rank and require sufficient rank-incentive reserv
 
 Commission refund adjustments require a reference and reason. Repeating the same reference replays the result; changed data is rejected. Cumulative refunds cannot exceed the order value. Append-only refund and reversal records preserve the original financial trail. Adjustments recover direct earnings and payouts already settled from that order's pools. Unrecoverable amounts become clawback receivables, offset by later earnings.
 
-Commission cooling-off holds are tracked separately from withdrawal reservations. Maturation releases only the corresponding commission hold and cannot consume funds reserved for a withdrawal. Suspended recipients do not receive an available credit.
+Commission cooling-off holds are tracked separately from withdrawal reservations. Maturation releases only the corresponding commission hold and cannot consume funds reserved for a withdrawal. Suspended recipients do not receive an available credit. Finance can release a held allocation after its recipient becomes active and, for an area earning, after the original recorded period and quota qualify. A release retains any unexpired cooling-off period and cannot be credited twice.
 
 The default withdrawal minimum is BDT 200. Requests reserve available funds atomically, encrypt destination details and enforce idempotent payloads. Outstanding clawbacks block further requests, approval and payment recording. Rejecting an unpaid request releases its reserved funds through clawback reconciliation. An approved but unpaid request can also be rejected. A paid request cannot be cancelled through review.
 
@@ -105,7 +88,7 @@ Withholding defaults to zero. A configured withholding rate is snapshotted at wi
 
 The stock-status button pauses or resumes ordering. It never deletes counted inventory or invents 50 units. Inventory receipts and adjustments retain explicit quantities, reasons, actor and unique references. Products with inventory or order history are archived rather than deleted; unused products may be deleted after the database transaction succeeds.
 
-Only a super administrator may assign employee permissions. Custom permissions apply only to the employee role and must come from the capability whitelist. Partner profile JSON cannot grant staff access. Product pricing, cost access, initial stock and identity changes enforce their separate permissions. An employee with pricing permission cannot erase hidden product costs.
+Only a super administrator may assign employee permissions. Employee custom permissions must come from the capability whitelist. The SR role has its own restricted field-sales permission list; SR permissions cannot grant Finance or account-administration access. Partner profile JSON cannot grant staff access. Product pricing, cost access, initial stock and identity changes enforce their separate permissions. An employee with pricing permission cannot erase hidden product costs.
 
 Partner rank, earnings and referral purchase views are scoped to the authenticated account and its permitted downline. Account and finance staff views retain their respective capability checks. The local administrator login bypass from the frontend branch has been removed.
 
@@ -137,13 +120,28 @@ Existing customized rules are preserved. Only untouched version-1 defaults are n
 After updating the application checkout, configure its PostgreSQL connection and run:
 
 ```sh
+composer install --no-interaction
+php artisan finance:readiness --backup-only --no-interaction
 php artisan migrate --no-interaction
 php artisan db:seed --class=CommissionRuleSeeder --no-interaction
+php artisan finance:readiness --no-interaction
 npm ci
 npm run build
 php artisan config:cache
 ```
 
-`MADINA_FINANCIAL_ACTIVATION=false` is the default. Enable it only after the business owner verifies the approved policy, legacy financial records and opening balances. Preview endpoints remain non-posting even when live finance is enabled.
+`MADINA_FINANCIAL_ACTIVATION=false` is the default. Enable it only after the business owner verifies the approved policy, legacy financial records and opening balances. Production posting also checks for an independently verified opening record. Submit source evidence and opening totals in Opening balance review; a second Finance user verifies the unchanged snapshot. Preview endpoints remain non-posting even when live finance is enabled.
 
 Run database tests only on a separate PostgreSQL instance using the dedicated `madina_testing` database. The test bootstrap rejects a different database name. Do not run destructive test migrations against a development or production database.
+
+## Verification and configured database deployment — 17 October 2026
+
+The complete suite passed on the separate PostgreSQL instance: 195 tests and 1,402 assertions. Laravel Pint, TypeScript, the production Vite build, Composer validation and platform checks pass. The initial JavaScript bundle is approximately 349 kB, with the large portal loaded separately; the previous bundle-size warning is resolved.
+
+A fresh private backup of the configured application database was restored on the isolated instance and upgraded successfully before deployment. Both previously pending commission migrations and the three additive operations migrations have now run on the configured local application database. All nine internal reconciliation checks pass, and the post-deployment totals and record counts agree with the rehearsal.
+
+No production earnings, reward credits or payments were activated by deployment. Opening evidence has not been independently verified, and financial posting remains disabled. The opening-review screen is ready for business-source evidence and a separate Finance reviewer; deployment is not a substitute for that approval.
+
+Browser checks used a separate synthetic preview database and covered navigation, recipient-specific commission controls, scheduled area-share inputs, reconciliation results and native report download. The generated PDF was rendered and visually checked for Bengali glyphs, table alignment, totals and page numbering. Private backups, generated reports, preview credentials and client document drafts are excluded from the source commit.
+
+The backup command uses the PostgreSQL client tools already installed on the deployment host and stores its output on the private local disk. It does not approve source balances or turn on financial posting.

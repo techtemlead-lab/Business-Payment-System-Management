@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\PublicController;
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/workspace/{section?}', [PortalController::class, 'index']);
     });
     Route::prefix('company')->middleware('portal:company')->group(function () {
+        Route::get('/operations/{section}', [OperationsController::class, 'index'])->name('company.operations');
         Route::get('/accounts/create', [PortalController::class, 'createAccount']);
         Route::get('/products/create', [ProductRegistryController::class, 'edit']);
         Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
@@ -82,9 +84,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/commands/commissions/settle-rank-royalty', [CommandController::class, 'settleRankRoyaltyPool']);
     Route::post('/commands/commissions/claim-incentive/{user}', [CommandController::class, 'claimRankIncentive']);
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
-    Route::post('/commands/commissions/simulate',[CommandController::class, 'simulateCommissions']);
-    Route::post('/commands/area-dealers',[CommandController::class, 'assignAreaDealer']);
-    Route::delete('/commands/area-dealers/{id}',[CommandController::class, 'removeAreaDealer']);
+    Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
+    Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
+    Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
 });
 
 require __DIR__.'/backend.php';

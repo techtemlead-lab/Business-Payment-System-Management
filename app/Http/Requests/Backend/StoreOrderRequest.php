@@ -21,6 +21,7 @@ class StoreOrderRequest extends FormRequest
             'idempotency_key' => 'required|uuid',
             'note' => 'nullable|string|max:1000',
             'reference' => 'nullable|string|max:100',
+            'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
             'channel' => 'nullable|required_with:reference|in:bKash,Nagad,Rocket,Bank',
             'amount' => ['nullable', 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
         ];
