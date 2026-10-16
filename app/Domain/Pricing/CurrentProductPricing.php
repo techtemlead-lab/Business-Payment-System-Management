@@ -9,10 +9,7 @@ use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
-/**
- * Adapter for the current schema: configured dealer_price and a 40% sub-dealer discount.
- * Replace this adapter when the database owner supplies per-product price policies.
- */
+/** Product-specific partner prices; legacy sub-dealer records retain a 40% discount. */
 final class CurrentProductPricing implements ProductPricing
 {
     public function unitPrice(Product $product, User $buyer): int
@@ -21,7 +18,7 @@ final class CurrentProductPricing implements ProductPricing
         $mrp = Money::cents($product->mrp);
         if ($buyer->role === 'sub_dealer') {
             try {
-                $price = Percentage::from('60.00')->of($mrp);
+                $price = $product->sub_dealer_price !== null ? Money::cents($product->sub_dealer_price) : Percentage::from('60.00')->of($mrp, 'half_up');
             } catch (InvalidArgumentException $exception) {
                 throw ValidationException::withMessages(['items' => $exception->getMessage()]);
             }

@@ -160,9 +160,9 @@ Before relying on a package's API, confirm its installed version:
 </laravel-boost-guidelines>
 
 <project-collaboration>
-During the current backend implementation phase, other developers own the database schema and frontend. Keep backend changes in application services, HTTP boundaries, routes and backend tests. Preserve their migrations, seeders, factories, frontend source and dependency lockfiles unless the user explicitly reassigns that scope.
+The user has reassigned backend, commission logic and database integration to this task after frontend completion. Preserve the completed frontend design and dependency lockfiles. Make only the frontend data bindings and business-rule copy corrections necessary for backend integration. Add migrations rather than rewriting shared migration history.
 
-Expose integrations through `routes/backend.php` and the `App\Domain\Pricing\ProductPricing` contract. The current pricing adapter uses the existing schema; per-product sub-dealer pricing, effective-dated financial policies, SR permission storage and earnings posting need the database developer's completed schema before integration. Financial previews must not activate or post earnings.
+Expose integrations through `routes/backend.php` and the `App\Domain\Pricing\ProductPricing` contract. Preserve policy snapshots, financial audit trails and idempotency. Financial previews must not activate or post earnings. Financial posting requires the explicit deployment configuration after approved policy and opening balances are verified.
 
 Run database tests against an isolated test instance, never a shared development database.
 </project-collaboration>

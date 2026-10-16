@@ -15,6 +15,21 @@ const divisions = [
     'Mymensingh',
 ];
 
+const availablePermissions = [
+    { key: 'orders', label: 'Orders & Deliveries', description: 'View orders, shipments, deliveries and payment claims' },
+    { key: 'order_review', label: 'Order Review & Approvals', description: 'Approve purchase requests and verify credit allocations' },
+    { key: 'inventory', label: 'Inventory & Stock Movements', description: 'Track stock levels, record receipts and stock adjustments' },
+    { key: 'catalog', label: 'Product Catalogue & Pricing', description: 'Manage products, units, descriptions and promotional flags' },
+    { key: 'accounts', label: 'Partner Directory & Accounts', description: 'Manage dealer and sub-dealer profiles and KYC' },
+    { key: 'finance', label: 'Treasury, Commissions & Payouts', description: 'View capital waterfall, settlements, commissions and payouts' },
+    { key: 'reports', label: 'Export Reports', description: 'Export order CSVs and financial summaries' },
+    { key: 'content', label: 'Content Management & Customization', description: 'Manage site content pages and visual hero customization' },
+    { key: 'audit', label: 'Audit & Security Logs', description: 'Inspect append-only system activity and security events' },
+    { key: 'pricing', label: 'Price Modification', description: 'Change MRP and wholesale pricing structures' },
+    { key: 'cost_read', label: 'Cost Price Visibility', description: 'View manufacturing/cost prices on products' },
+    { key: 'identity_write', label: 'KYC / NID Management', description: 'View and edit sensitive NID credentials' },
+];
+
 export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponsors = [] }: { roles: string[]; sponsors: Row[] }) {
     const { auth } = usePage<any>().props;
 
@@ -32,6 +47,7 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
         status: 'active',
         sponsor_id: '',
         nid: '',
+        permissions: ['orders', 'inventory'] as string[],
         reason: 'Physical agreement verified and onboarding authorized by company staff.',
         profile: {
             name_bn: '',
@@ -152,6 +168,56 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                             </label>
                         </div>
                     </section>
+
+                    {/* Panel: Employee Privileges & Permissions (When Role is Employee) */}
+                    {form.data.role === 'employee' && (
+                        <section className="panel" style={{ borderLeft: '4px solid #059669' }}>
+                            <div className="panel-heading">
+                                <div>
+                                    <h3>Employee Privileges &amp; Permissions</h3>
+                                    <p>Manually select which sections and features this employee is authorized to view and manage.</p>
+                                </div>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: 4, border: '1px solid #a7f3d0' }}>
+                                    {form.data.permissions.length} PERMISSIONS ACTIVE
+                                </span>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
+                                {availablePermissions.map(p => {
+                                    const checked = form.data.permissions.includes(p.key);
+                                    return (
+                                        <label
+                                            key={p.key}
+                                            onClick={() => {
+                                                const cur = form.data.permissions;
+                                                form.setData('permissions', cur.includes(p.key) ? cur.filter(k => k !== p.key) : [...cur, p.key]);
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: 10,
+                                                padding: '10px 12px',
+                                                borderRadius: 6,
+                                                background: checked ? '#ecfdf5' : '#ffffff',
+                                                border: checked ? '1px solid #10b981' : '1px solid #e2e8f0',
+                                                cursor: 'pointer',
+                                                userSelect: 'none'
+                                            }}
+                                        >
+                                            <input type="checkbox" checked={checked} onChange={() => {}} style={{ marginTop: 3 }} />
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <b style={{ fontSize: 12, color: checked ? '#065f46' : '#1e293b' }}>{p.label}</b>
+                                                    <code style={{ fontSize: 10, background: '#f1f5f9', padding: '1px 4px', borderRadius: 3, color: '#64748b' }}>{p.key}</code>
+                                                </div>
+                                                <small style={{ display: 'block', fontSize: 11, color: '#64748b', marginTop: 2 }}>{p.description}</small>
+                                            </div>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Panel 2: Personal & Family KYC */}
                     <section className="panel">

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\CommissionService;
+use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\OrderService;
@@ -12,12 +15,18 @@ use App\Http\Requests\Backend\DecideOrderRequest;
 use App\Http\Requests\Backend\DispatchOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
+use App\Models\AreaDealerAssignment;
+use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\DashboardManagement;
 use App\Support\Money;
 use App\Support\SiteCustomization;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
@@ -32,14 +41,14 @@ class CommandController extends Controller
         abort_unless($r->user()->allows($cap), 403);
     }
 
-    public function order(StoreOrderRequest $r, OrderService $service)
+    public function order(StoreOrderRequest $r, OrderService $service): RedirectResponse
     {
         $o = $service->create($r->user(), $r->validated());
 
         return redirect('/workspace/orders/'.$o->id)->with('success', 'Order submitted for review.');
     }
 
-    public function decision(DecideOrderRequest $r, Order $order, OrderService $s)
+    public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
         $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'));
@@ -47,7 +56,7 @@ class CommandController extends Controller
         return back()->with('success', 'Order decision recorded.');
     }
 
-    public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s)
+    public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
         $s->verify($r->user(), $claim, $d['approve'], $d['reason']);
@@ -55,7 +64,7 @@ class CommandController extends Controller
         return back()->with('success', 'Payment review recorded.');
     }
 
-    public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s)
+    public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
         $s->dispatch($r->user(), $order, $d);
@@ -63,12 +72,12 @@ class CommandController extends Controller
         return back()->with('success', 'Shipment recorded and stock updated.');
     }
 
-    public function account(Request $r)
+    public function account(Request $r): RedirectResponse
     {
         $this->permit($r, 'accounts');
         $roles = ['dealer', 'sub_dealer'];
         if ($r->user()->role === 'super_admin') {
-            $roles = [...$roles, ...array_keys(config('madina.roles'))];
+            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles'))];
         }
         $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
         $d = $r->validate([
@@ -86,7 +95,9 @@ class CommandController extends Controller
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
             'reason' => 'nullable|string|max:1000',
-            'profile' => 'sometimes|array',
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $r->input('role') !== 'employee'), 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code',
             'profile.name_bn' => 'nullable|string|max:150',
             'profile.father_name' => 'nullable|string|max:150',
             'profile.mother_name' => 'nullable|string|max:150',
@@ -98,13 +109,21 @@ class CommandController extends Controller
             'profile.area_code' => 'nullable|string|max:80',
         ]);
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'area_code'];
+        $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         $profileData = $d['profile'] ?? [];
         foreach ($profileKeys as $key) {
             if ($r->filled($key)) {
-                $profileData[$key] = trim((string) $r->string($key));
+                $profileData[$key] = trim((string) $rootProfile[$key]);
             }
         }
+        if ($r->has('permissions')) {
+            $profileData['permissions'] = array_values(array_filter((array) $r->input('permissions')));
+        }
         $d['profile'] = $profileData;
+        unset($d['permissions']);
+        if (! empty($d['nid'])) {
+            $this->permit($r, 'identity_write');
+        }
         if (! empty($d['sponsor_id'])) {
             abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
         }
@@ -112,6 +131,7 @@ class CommandController extends Controller
             throw ValidationException::withMessages(['directory_visible' => 'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
         }
         $u = DB::transaction(function () use ($r, $d, $isPartner) {
+            CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
             $reason = $d['reason'] ?? 'Account created by company staff';
@@ -122,6 +142,8 @@ class CommandController extends Controller
                 'password' => Str::random(48),
             ]);
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
+            ReferralTreePath::attachUser($u->id, $u->sponsor_id);
+            DealerRank::firstOrCreate(['user_id' => $u->id], ['current_rank' => 'dealer']);
             Audit::record($r->user()->id, 'account.created', (string) $u->id, [
                 'role' => $role,
                 'dealer_code' => $dealerCode,
@@ -131,11 +153,13 @@ class CommandController extends Controller
             return $u;
         });
         Password::sendResetLink(['email' => $u->email]);
+        $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/company/employees' : '/company/accounts';
+        $accountTypeLabel = ($d['role'] ?? '') === 'employee' ? 'Employee' : 'Partner';
 
-        return redirect('/company/accounts')->with('success', 'Partner account created. Unique code: '.($u->dealer_code ?? $u->name).'. A private password-setting invitation has been emailed.');
+        return redirect($redirectUrl)->with('success', $accountTypeLabel.' account created. Unique code: '.($u->dealer_code ?? $u->name).'. A private password-setting invitation has been emailed.');
     }
 
-    public function accountUpdate(Request $r, User $user)
+    public function accountUpdate(Request $r, User $user): RedirectResponse
     {
         $this->permit($r, 'accounts');
         abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
@@ -144,39 +168,59 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
-            'profile' => 'sometimes|array', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
-        if (($d['directory_visible'] ?? false) && $user->role !== 'dealer') {
-            throw ValidationException::withMessages(['directory_visible' => 'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
-        }
-        if (! empty($d['sponsor_id'])) {
-            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $user->role !== 'employee'), 'sometimes', 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
+        if ($r->has('sponsor_id')) {
+            $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
+            if ($newSponsorId) {
+                if ($newSponsorId === $user->id) {
+                    throw ValidationException::withMessages(['sponsor_id' => 'Self-sponsorship is disallowed. A partner cannot be their own sponsor.']);
+                }
+                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+                if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
+                    throw ValidationException::withMessages(['sponsor_id' => 'Circular referral cycle detected: The selected sponsor is already a downline descendant of this user.']);
+                }
+            }
         }
         $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'area_code'];
-        if ($r->has('profile') || $r->hasAny($profileKeys)) {
+        $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
+        if ($r->has('profile') || $r->hasAny($profileKeys) || $r->has('permissions')) {
             $existing = $user->profile ?? [];
             $incoming = $d['profile'] ?? [];
             foreach ($profileKeys as $key) {
                 if ($r->filled($key)) {
-                    $incoming[$key] = trim((string) $r->string($key));
+                    $incoming[$key] = trim((string) $rootProfile[$key]);
                 }
+            }
+            if ($r->has('permissions')) {
+                $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
             }
             $d['profile'] = array_merge($existing, $incoming);
         }
+        unset($d['permissions']);
         DB::transaction(function () use ($r, $user, $d) {
+            CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+
+            if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
+                ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
+            }
+
             $locked->update($d);
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->update(['remember_token' => Str::random(60)]);
                 DB::table('sessions')->where('user_id', $user->id)->delete();
-            } Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
+            }
+            Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
         });
 
         return back()->with('success', 'Account updated.');
     }
 
-    public function product(Request $r)
+    public function product(Request $r): RedirectResponse
     {
         $this->permit($r, 'catalog');
         abort_unless($r->user()->role === 'super_admin', 403);
@@ -193,14 +237,14 @@ class CommandController extends Controller
         return back()->with('success', 'Product created. Receive stock before dispatch.');
     }
 
-    public function stock(AdjustStockRequest $r, StockService $service)
+    public function stock(AdjustStockRequest $r, StockService $service): RedirectResponse
     {
         $service->adjust($r->user(), $r->validated());
 
         return back()->with('success', 'Stock movement recorded.');
     }
 
-    public function policy(Request $r, PolicyDraftService $service)
+    public function policy(Request $r, PolicyDraftService $service): RedirectResponse
     {
         $this->permit($r, 'finance');
         $d = $r->validate(['name' => 'required|string|max:150', 'account_type' => 'required|in:dealer,sub_dealer', 'components' => 'required|array|min:1|max:20', 'components.*.name' => 'required|string|max:80', 'components.*.rate' => 'required|numeric|min:0|max:100', 'notes' => 'required|string|max:4000']);
@@ -209,7 +253,7 @@ class CommandController extends Controller
         return back()->with('success', 'Draft saved. No earnings will be posted.');
     }
 
-    public function content(Request $r)
+    public function content(Request $r): RedirectResponse
     {
         $this->permit($r, 'content');
         $d = $r->validate(['slug' => 'required|in:about,contact,home,notice', 'title' => 'required|string|max:150', 'body' => 'required|string|max:10000', 'published' => 'required|boolean']);
@@ -221,9 +265,9 @@ class CommandController extends Controller
         return back()->with('success', 'Content saved.');
     }
 
-    public function customization(Request $r)
+    public function customization(Request $r): RedirectResponse
     {
-        $this->permit($r, 'content');
+        abort_unless($r->user()->allows('content') || $r->user()->allows('catalog') || $r->user()->role === 'super_admin', 403);
         $payload = $r->input('customization', []);
         if (! is_array($payload)) {
             $payload = [];
@@ -234,7 +278,7 @@ class CommandController extends Controller
         return back()->with('success', 'Site customization saved successfully.');
     }
 
-    public function resetCustomization(Request $r)
+    public function resetCustomization(Request $r): RedirectResponse
     {
         $this->permit($r, 'content');
         SiteCustomization::reset();
@@ -243,7 +287,29 @@ class CommandController extends Controller
         return back()->with('success', 'Customization reset to default placeholders.');
     }
 
-    public function enquiry(Request $r, int $id)
+    public function saveDashboardSettings(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        $payload = $r->input('settings', []);
+        if (! is_array($payload)) {
+            $payload = [];
+        }
+        DashboardManagement::save($payload);
+        Audit::record($r->user()->id, 'dashboard.updated', 'control_center');
+
+        return back()->with('success', 'Dashboard management configuration saved successfully.');
+    }
+
+    public function resetDashboardSettings(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        DashboardManagement::reset();
+        Audit::record($r->user()->id, 'dashboard.reset', 'control_center');
+
+        return back()->with('success', 'Dashboard settings reset to system defaults.');
+    }
+
+    public function enquiry(Request $r, int $id): RedirectResponse
     {
         $this->permit($r, 'content');
         $d = $r->validate(['status' => 'required|in:new,contacted,closed']);
@@ -254,19 +320,19 @@ class CommandController extends Controller
         return back()->with('success', 'Enquiry updated.');
     }
 
-    public function readNotice(Request $r, int $id)
+    public function readNotice(Request $r, int $id): RedirectResponse
     {
         abort_unless(DB::table('account_notices')->where('id', $id)->where('user_id', $r->user()->id)->update(['read_at' => now()]), 404);
 
         return back();
     }
 
-    public function financialGate()
+    public function financialGate(): never
     {
         throw ValidationException::withMessages(['policy' => 'This action is unavailable until the financial policy is approved and verified.']);
     }
 
-    public function claim(ClaimPaymentRequest $r, Order $order, OrderService $service)
+    public function claim(ClaimPaymentRequest $r, Order $order, OrderService $service): RedirectResponse
     {
         $data = $r->validated();
         $service->claim($r->user(), $order, $data);
@@ -274,7 +340,7 @@ class CommandController extends Controller
         return back()->with('success', 'Payment reference submitted for verification.');
     }
 
-    public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service)
+    public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service): RedirectResponse
     {
         $data = $r->validated();
         $service->deliver($r->user(), $order, $shipment, $data['reason']);
@@ -282,14 +348,143 @@ class CommandController extends Controller
         return back()->with('success', 'Delivery confirmation recorded.');
     }
 
-    public function invite(Request $r, User $user)
+    public function invite(Request $r, User $user): RedirectResponse
     {
-        $this->permit($r,'accounts');
-        abort_if($user->staff() && $r->user()->role !== 'super_admin',403);
-        abort_unless($user->status === 'active',422);
+        $this->permit($r, 'accounts');
+        abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
+        abort_unless($user->status === 'active', 422);
         Password::sendResetLink(['email' => $user->email]);
-        Audit::record($r->user()->id,'account.invitation_sent',(string) $user->id);
+        Audit::record($r->user()->id, 'account.invitation_sent', (string) $user->id);
 
-        return back()->with('success','A private password-setting link has been emailed if the account is eligible.');
+        return back()->with('success', 'A private password-setting link has been emailed if the account is eligible.');
+    }
+
+    public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $data = $r->validate(['rules' => 'required|array']);
+        $policy->update($r->user(), $data['rules']);
+
+        return back()->with('success', 'Commission policy updated. Existing orders retain their captured policy.');
+    }
+
+    public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
+        $result = $commissionService->settleMonthlySalaryPool($d['period_month']);
+
+        if ($result['status'] === 'empty_pool') {
+            return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
+        }
+        if ($result['status'] === 'rolled_over') {
+            return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. Pool rolled to company reserve.");
+        }
+
+        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_pool']} to {$result['qualifiers_count']} qualified dealers.");
+    }
+
+    public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
+        $result = $commissionService->settleRankRoyaltyPool($d['period_month']);
+
+        if ($result['status'] === 'empty_pool') {
+            return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
+        }
+
+        return back()->with('success', "Rank royalty pool for {$d['period_month']} distributed ৳{$result['total_distributed']} across leadership tiers.");
+    }
+
+    public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $result = $commissionService->claimOneTimeRankIncentive($user->id);
+
+        if (! $result['success']) {
+            throw ValidationException::withMessages(['incentive' => $result['message']]);
+        }
+
+        return back()->with('success', "Paid one-time incentive of ৳{$result['amount']} to {$user->name} for rank ".strtoupper($result['rank']).'.');
+    }
+
+    public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $result = $commissionService->releaseMaturedCommissions();
+
+        if ($result['status'] === 'no_matured_commissions') {
+            return back()->with('success', 'No matured commissions pending release.');
+        }
+
+        return back()->with('success', "Released {$result['released_count']} matured allocations (৳{$result['total_amount']}) to dealer available balances.");
+    }
+
+    public function simulateCommissions(Request $r, CommissionService $commissionService): JsonResponse
+    {
+        $this->permit($r, 'finance');
+        $overrides = $r->input('overrides', []);
+        if (! is_array($overrides)) {
+            $overrides = [];
+        }
+        $result = $commissionService->simulatePlan($overrides);
+
+        return response()->json($result);
+    }
+
+    public function assignAreaDealer(Request $r): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $d = $r->validate([
+            'user_id' => 'required|exists:users,id',
+            'level' => 'required|in:division,district,upazila,union',
+            'zone_name' => 'required|string|max:128',
+            'division' => 'nullable|string|max:64',
+            'district' => 'nullable|string|max:64',
+            'upazila' => 'nullable|string|max:64',
+            'union' => 'nullable|string|max:64',
+            'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
+        ]);
+
+        $path = [];
+        foreach (['division', 'district', 'upazila', 'union'] as $field) {
+            if (empty($d[$field])) {
+                throw ValidationException::withMessages([$field => 'Specify the full territorial hierarchy for this assignment.']);
+            }
+            $d[$field] = trim($d[$field]);
+            $path[$field] = $d[$field];
+            if ($field === $d['level']) {
+                break;
+            }
+        }
+        DB::transaction(function () use ($d, $path): void {
+            CommissionWallet::lock();
+            $user = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
+            if ($user->role !== 'dealer' || $user->status !== 'active') {
+                throw ValidationException::withMessages(['user_id' => 'Choose an active dealer.']);
+            }
+            $query = AreaDealerAssignment::where('level', $d['level'])->where('is_active', true);
+            foreach ($path as $field => $value) {
+                $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower($value)]);
+            }
+            if ($query->exists()) {
+                throw ValidationException::withMessages(['zone_name' => 'This territory already has an active dealer. Remove that assignment before replacing it.']);
+            }
+            AreaDealerAssignment::create([...$d, 'territory_key' => hash('sha256', $d['level'].'|'.mb_strtolower(implode('|', $path))), 'is_active' => true]);
+        }, 3);
+        Audit::record($r->user()->id, 'area_dealer.assigned', (string) $d['user_id'], ['level' => $d['level'], 'zone' => $d['zone_name']]);
+
+        return back()->with('success', "Assigned area dealer for {$d['zone_name']}.");
+    }
+
+    public function removeAreaDealer(Request $r, int $id): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $assignment = AreaDealerAssignment::findOrFail($id);
+        $assignment->update(['is_active' => false, 'territory_key' => null]);
+        Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+
+        return back()->with('success', 'Area dealer assignment removed.');
     }
 }

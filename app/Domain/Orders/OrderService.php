@@ -2,6 +2,8 @@
 
 namespace App\Domain\Orders;
 
+use App\Domain\Commissions\CommissionPosting;
+use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\Order;
 use App\Models\Product;
@@ -15,13 +17,14 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
-    public function __construct(private readonly ProductPricing $pricing) {}
+    public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions) {}
 
     public function create(User $user, array $data): Order
     {
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
 
         return DB::transaction(function () use ($user, $data): Order {
+            CommissionWallet::lock();
             $user = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
             $hash = $this->hash($data);
@@ -35,6 +38,9 @@ class OrderService
             $total = 0;
             foreach ($data['items'] as $item) {
                 $product = Product::whereKey($item['product_id'])->where('active', true)->firstOrFail();
+                if ($product->is_stock_paused) {
+                    throw ValidationException::withMessages(['items' => 'Ordering is temporarily paused for '.$product->name.'.']);
+                }
                 $price = $this->pricing->unitPrice($product, $user);
                 $lineTotal = $price * $item['quantity'];
                 $total += $lineTotal;
@@ -48,6 +54,7 @@ class OrderService
                 'user_id' => $user->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
             $order->lines()->createMany($lines);
+            $this->commissions->capture($order, $user);
             if (! empty($data['reference'])) {
                 $this->insertClaim($order, $data);
             }
@@ -108,6 +115,7 @@ class OrderService
         abort_unless($actor->allows('finance'), 403);
         try {
             DB::transaction(function () use ($actor, $claimId, $approve, $reason): void {
+                CommissionWallet::lock();
                 $initial = DB::table('payment_claims')->find($claimId);
                 abort_unless($initial, 404);
                 $order = Order::whereKey($initial->order_id)->lockForUpdate()->firstOrFail();
@@ -129,6 +137,9 @@ class OrderService
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'created_at' => now(), 'updated_at' => now()]);
                     $order->update(['paid' => Money::decimal($paid)]);
+                    if ($paid >= Money::cents($order->total)) {
+                        $this->commissions->process($order);
+                    }
                 }
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
                     'verified_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
@@ -189,6 +200,7 @@ class OrderService
     {
         abort_unless($actor->allows('inventory'), 403);
         DB::transaction(function () use ($actor, $order, $shipmentId, $reason): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
             abort_unless($shipment, 404);
@@ -201,6 +213,7 @@ class OrderService
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
             if (! $remaining && ! $openShipment) {
                 $locked->update(['status' => 'delivered']);
+                $this->commissions->process($locked);
             }
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             Audit::notice($locked->user_id, 'Delivery confirmed', $locked->number.': shipment delivery recorded by company staff.');

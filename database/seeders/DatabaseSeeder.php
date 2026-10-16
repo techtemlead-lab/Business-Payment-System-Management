@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,6 +14,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(CommissionRuleSeeder::class);
         $this->command?->info('No default accounts are seeded. Use madina:admin to create an administrator, or madina:demo for a local synthetic preview.');
     }
 }

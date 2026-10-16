@@ -1,13 +1,25 @@
 <?php
+
 namespace App\Http\Middleware;
+
+use App\Support\DashboardManagement;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
-class HandleInertiaRequests extends Middleware {
-    protected $rootView='app';
-    public function share(Request $request): array {
-        return [...parent::share($request),'auth'=>['user'=>$request->user()?->safe(),'capabilities'=>config('madina.roles.'.($request->user()?->role??''),[])],
-            'portalBase'=>$request->user()?->staff()?'/company':'/workspace',
-            'flash'=>['success'=>fn()=>$request->session()->get('success')],'financeActive'=>false,'withdrawalMinimum'=>config('madina.withdrawal_minimum'),'demoMode'=>app()->environment('local'),
-            'staffRoles'=>$request->user()?->role==='super_admin'?array_keys(config('madina.roles')):[]];
+
+class HandleInertiaRequests extends Middleware
+{
+    protected $rootView = 'app';
+
+    public function share(Request $request): array
+    {
+        $u = $request->user();
+        $capabilities = $u?->capabilities() ?? [];
+
+        return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
+            'portalBase' => $u?->staff() ? '/company' : '/workspace',
+            'flash' => ['success' => fn () => $request->session()->get('success')], 'financeActive' => (bool) config('madina.financial_activation'), 'withdrawalMinimum' => config('madina.withdrawal_minimum'), 'demoMode' => app()->environment('local'),
+            'staffRoles' => $u?->role === 'super_admin' ? ['employee', ...array_keys(config('madina.roles'))] : [],
+            'dashboardNotice' => DashboardManagement::noticeForUser($u),
+            'dashboardControls' => DashboardManagement::get()];
     }
 }

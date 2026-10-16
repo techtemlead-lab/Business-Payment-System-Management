@@ -6,5 +6,6 @@ import Portal from './pages/Portal';
 import OrderDetail from './pages/OrderDetail';
 import WithdrawalDetail from './pages/WithdrawalDetail';
 import ProductEditor from './pages/ProductEditor';
-const pages: Record<string,React.ComponentType<any>>={Auth,Portal,OrderDetail,WithdrawalDetail,ProductEditor};
+import AccountCreate from './pages/AccountCreate';
+const pages: Record<string,React.ComponentType<any>>={Auth,Portal,OrderDetail,WithdrawalDetail,ProductEditor,AccountCreate};
 createInertiaApp({title:title=>`${title} · Madina`,resolve:name=>pages[name],setup({el,App,props}){createRoot(el).render(<App {...props}/>);},progress:{color:'#377b5a'}});

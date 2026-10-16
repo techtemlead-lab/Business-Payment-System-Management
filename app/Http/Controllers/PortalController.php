@@ -2,25 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\CommissionService;
 use App\Domain\Pricing\ProductPricing;
+use App\Models\AreaDealerAssignment;
+use App\Models\CommissionAllocation;
+use App\Models\CommissionRuleParameter;
+use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ReferralTreePath;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use App\Support\DashboardManagement;
 use App\Support\Money;
 use App\Support\SiteCustomization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class PortalController extends Controller
 {
-    private const STAFF = ['accounts' => 'accounts', 'inventory' => 'inventory', 'payments' => 'finance', 'policies' => 'finance', 'salary' => 'finance', 'withdrawals' => 'finance', 'ledger' => 'finance', 'reports' => 'reports', 'content' => 'content', 'customization' => 'content', 'enquiries' => 'content', 'audit' => 'audit'];
+    private const STAFF = [
+        'dashboards' => 'accounts',
+        'employees' => 'accounts',
+        'accounts' => 'accounts',
+        'sub-dealers' => 'accounts',
+        'sub-dealer-orders' => 'orders',
+        'treasury' => 'finance',
+        'inventory' => 'inventory',
+        'payments' => 'finance',
+        'policies' => 'finance',
+        'salary' => 'finance',
+        'withdrawals' => 'finance',
+        'ledger' => 'finance',
+        'reports' => 'reports',
+        'content' => 'content',
+        'customization' => 'content',
+        'enquiries' => 'content',
+        'audit' => 'audit',
+        'commissions' => 'finance',
+        'network-tree' => 'accounts',
+        'area-dealers' => 'accounts',
+        'ranks' => 'accounts',
+        'rewards' => 'finance',
+        'capital-flow' => 'finance',
+        'settlements' => 'finance',
+        'simulator' => 'finance',
+        'payouts-hub' => 'finance',
+    ];
 
-    public function index(Request $r, ProductPricing $pricing, string $section = 'overview')
+    public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response
     {
         $u = $r->user();
         $staff = $u->staff();
+        if ($staff && $section === 'salary') {
+            $section = 'settlements';
+        }
         $allowed = ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications'];
         if (! $staff) {
             $allowed[] = 'earnings';
@@ -40,6 +81,9 @@ class PortalController extends Controller
         abort_unless(in_array($section, $allowed, true), 404);
         if ($staff && isset(self::STAFF[$section])) {
             abort_unless($u->allows(self::STAFF[$section]), 403);
+        }
+        if ($staff && $section === 'catalog') {
+            abort_unless($u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'), 403);
         }
         if ($staff && in_array($section, ['orders', 'deliveries', 'dues'], true)) {
             abort_unless($u->allows('orders') || $u->allows('finance'), 403);
@@ -86,8 +130,26 @@ class PortalController extends Controller
                     }
                 }
 
-                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'tone']), 'price' => $price, ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             });
+            if ($section === 'catalog') {
+                $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
+                if ($staff) {
+                    $data['customization'] = SiteCustomization::raw();
+                    $data['defaults'] = SiteCustomization::defaults();
+                    $data['all_catalog_products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
+                        'id' => $p->id,
+                        'name' => $p->name,
+                        'sku' => $p->sku,
+                        'mrp' => $p->mrp,
+                        'dealer_price' => $p->dealer_price,
+                        'category' => $p->category,
+                        'featured' => (bool) $p->featured,
+                        'stock' => (int) $p->stock,
+                        'image' => $p->media()['image_url'] ?? '',
+                    ]);
+                }
+            }
         }
         if ($section === 'inventory') {
             $data['movements'] = DB::table('stock_movements')->join('products', 'products.id', '=', 'product_id')->select('stock_movements.*', 'products.name')->orderByDesc('stock_movements.id')->paginate(20);
@@ -104,6 +166,83 @@ class PortalController extends Controller
             })->when($u->role !== 'super_admin', fn ($q) => $q->whereIn('role', ['dealer', 'sub_dealer']))->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
+        if ($section === 'sub-dealers') {
+            $data['accounts'] = User::where('role', 'sub_dealer')->when($r->filled('q'), function ($q) use ($r) {
+                $term = '%'.$r->string('q').'%';
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', $term)
+                        ->orWhere('dealer_code', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('phone', 'like', $term);
+                });
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
+            $data['subdealer_stats'] = [
+                'total' => User::where('role', 'sub_dealer')->count(),
+                'active' => User::where('role', 'sub_dealer')->where('status', 'active')->count(),
+                'orders_count' => Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->count(),
+                'orders_volume' => (float) Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->whereIn('status', ['submitted', 'approved', 'dispatched', 'partially_dispatched', 'delivered'])->sum('total'),
+            ];
+        }
+        if ($section === 'sub-dealer-orders') {
+            $q = Order::query()->whereHas('user', fn ($qu) => $qu->where('role', 'sub_dealer'));
+            if ($r->filled('q')) {
+                $q->where('number', 'like', '%'.$r->string('q').'%');
+            }
+            if ($r->filled('status')) {
+                $q->where('status', $r->string('status'));
+            }
+            $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
+        }
+        if ($section === 'employees') {
+            $query = User::where('role', 'employee');
+            if ($r->filled('q')) {
+                $term = '%'.$r->string('q').'%';
+                $query->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', $term)
+                        ->orWhere('email', 'like', $term)
+                        ->orWhere('phone', 'like', $term);
+                });
+            }
+            if ($r->filled('status')) {
+                $query->where('status', $r->string('status'));
+            }
+            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at']);
+            $data['employee_stats'] = [
+                'total' => User::where('role', 'employee')->count(),
+                'active' => User::where('role', 'employee')->where('status', 'active')->count(),
+                'suspended' => User::where('role', 'employee')->where('status', 'suspended')->count(),
+            ];
+            $data['available_permissions'] = [
+                ['key' => 'orders', 'label' => 'Orders & Deliveries', 'description' => 'View orders, shipments, deliveries and payment claims', 'category' => 'Operations'],
+                ['key' => 'order_review', 'label' => 'Order Review & Approvals', 'description' => 'Approve purchase requests and verify credit allocations', 'category' => 'Operations'],
+                ['key' => 'inventory', 'label' => 'Inventory & Stock Movements', 'description' => 'Track stock levels, record receipts and stock adjustments', 'category' => 'Inventory'],
+                ['key' => 'catalog', 'label' => 'Product Catalogue & Pricing', 'description' => 'Manage products, units, descriptions and promotional flags', 'category' => 'Inventory'],
+                ['key' => 'accounts', 'label' => 'Partner Directory & Accounts', 'description' => 'Manage dealer and sub-dealer profiles and KYC', 'category' => 'Network'],
+                ['key' => 'finance', 'label' => 'Treasury, Commissions & Payouts', 'description' => 'View capital waterfall, settlements, commissions and payouts', 'category' => 'Finance'],
+                ['key' => 'reports', 'label' => 'Export Reports', 'description' => 'Export order CSVs and financial summaries', 'category' => 'Operations'],
+                ['key' => 'content', 'label' => 'Content Management & Customization', 'description' => 'Manage site content pages and visual hero customization', 'category' => 'Marketing'],
+                ['key' => 'audit', 'label' => 'Audit & Security Logs', 'description' => 'Inspect append-only system activity and security events', 'category' => 'Security'],
+                ['key' => 'pricing', 'label' => 'Price Modification', 'description' => 'Change MRP and wholesale pricing structures', 'category' => 'Pricing'],
+                ['key' => 'cost_read', 'label' => 'Cost Price Visibility', 'description' => 'View manufacturing/cost prices on products', 'category' => 'Finance'],
+                ['key' => 'identity_write', 'label' => 'KYC / NID Management', 'description' => 'View and edit sensitive NID credentials', 'category' => 'Security'],
+            ];
+        }
+        if ($section === 'dashboards') {
+            abort_unless($u->role === 'super_admin' || $u->allows('accounts'), 403);
+            $data['dashboard_settings'] = DashboardManagement::get();
+            $data['dashboard_defaults'] = DashboardManagement::defaults();
+            $data['stats'] = [
+                'dealers_count' => User::where('role', 'dealer')->count(),
+                'active_dealers' => User::where('role', 'dealer')->where('status', 'active')->count(),
+                'sub_dealers_count' => User::where('role', 'sub_dealer')->count(),
+                'active_sub_dealers' => User::where('role', 'sub_dealer')->where('status', 'active')->count(),
+                'employees_count' => User::where('role', 'employee')->count(),
+                'active_employees' => User::where('role', 'employee')->where('status', 'active')->count(),
+                'super_admins_count' => User::where('role', 'super_admin')->count(),
+            ];
+            $data['recent_employees'] = User::where('role', 'employee')->latest()->limit(6)->get(['id', 'name', 'email', 'status', 'profile', 'created_at']);
+        }
         if ($section === 'payments') {
             $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')->select('payment_claims.*', 'orders.number', 'users.name')->orderByDesc('payment_claims.id')->paginate(20);
         }
@@ -114,10 +253,26 @@ class PortalController extends Controller
             $data['profile'] = [...$u->safe(), 'phone' => $u->phone, 'fields' => $u->profile ?? [], 'nid_status' => $u->nid ? 'On file — access restricted' : 'Not provided'];
         }
         if ($section === 'network') {
-            $data['members'] = $u->role === 'sub_dealer' ? [] : User::where('sponsor_id', $u->id)->whereIn('role', ['dealer', 'sub_dealer'])->get(['name', 'dealer_code', 'created_at']);
+            $data['members'] = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')->where('ancestor_id', $u->id)
+                ->where('depth', '>', 0)->orderBy('depth')->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
+            if ($r->filled('member_id')) {
+                $member = $r->validate(['member_id' => 'required|integer'])['member_id'];
+                abort_unless(ReferralTreePath::isDescendant($u->id, (int) $member), 404);
+                $data['selected_member'] = User::whereKey($member)->first(['id', 'name', 'dealer_code']);
+                $data['member_orders'] = Order::where('user_id', $member)->latest()->paginate(12, ['id', 'number', 'status', 'total', 'paid', 'created_at'])->withQueryString();
+            }
+        }
+        if ($section === 'salary') {
+            $month = CommissionQualification::currentMonth();
+            $data['salary'] = ['month' => $month, 'monthly_purchases' => Money::decimal(app(CommissionQualification::class)->monthlyVolume($u->id, $month)),
+                'salary_rate' => '3.00', 'tour_rate' => '3.00',
+                'salary_accrued' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_salary')->where('metadata->period_month', $month)->sum('amount'),
+                'tour_reserved' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_tour')->where('metadata->period_month', $month)->sum('amount')];
         }
         if (in_array($section, ['withdrawals', 'earnings'])) {
-            $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held']);
+            $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held', 'commission_held']);
+            $data['earnings'] = CommissionAllocation::where('user_id', $u->id)->latest()->limit(30)->get();
+            $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
             $data['withdrawals'] = DB::table('withdrawals')->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->latest()->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
         }
         if ($section === 'ledger') {
@@ -130,8 +285,19 @@ class PortalController extends Controller
             $data['pages'] = DB::table('content_pages')->orderBy('slug')->get();
         }
         if ($section === 'customization') {
-            $data['customization'] = SiteCustomization::all();
+            $data['customization'] = SiteCustomization::raw();
             $data['defaults'] = SiteCustomization::defaults();
+            $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'sku' => $p->sku,
+                'mrp' => $p->mrp,
+                'dealer_price' => $p->dealer_price,
+                'category' => $p->category,
+                'featured' => (bool) $p->featured,
+                'stock' => (int) $p->stock,
+                'image' => $p->media()['image_url'] ?? '',
+            ]);
         }
         if ($section === 'enquiries') {
             $data['enquiries'] = DB::table('enquiries')->latest()->paginate(20);
@@ -139,17 +305,194 @@ class PortalController extends Controller
         if ($section === 'notifications') {
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);
         }
+        if ($section === 'commissions') {
+            $data['rules'] = array_values(app(CommissionPolicy::class)->snapshot(false)['rules']);
+            $data['allocations'] = CommissionAllocation::with(['order:id,number,total', 'user:id,name,dealer_code'])->latest()->paginate(20);
+            $data['pools_summary'] = CommissionAllocation::selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
+        }
+        if ($section === 'network-tree' || ($staff && $section === 'network')) {
+            $data['dealers'] = User::whereIn('role', ['dealer', 'sub_dealer'])
+                ->with(['rank', 'sponsor:id,name,dealer_code'])
+                ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
+                ->map(fn ($d) => [
+                    'id' => $d->id,
+                    'name' => $d->name,
+                    'dealer_code' => $d->dealer_code,
+                    'phone' => $d->phone,
+                    'district' => $d->district,
+                    'division' => $d->division,
+                    'sponsor_id' => $d->sponsor_id,
+                    'sponsor_name' => $d->sponsor?->name,
+                    'role' => $d->role,
+                    'status' => $d->status,
+                    'rank' => $d->rank?->current_rank ?? 'dealer',
+                    'lifetime_purchases' => (float) ($d->rank?->lifetime_purchase_total ?? 0),
+                    'created_at' => $d->created_at?->toIso8601String(),
+                ]);
+        }
+        if ($section === 'area-dealers') {
+            $data['assignments'] = AreaDealerAssignment::where('is_active', true)->with('user:id,name,dealer_code,phone,district,division')->orderBy('id')->get();
+            $data['divisions'] = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
+            $data['dealers_list'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district', 'division']);
+        }
+        if ($section === 'ranks') {
+            $data['ranks'] = DealerRank::with('user:id,name,dealer_code,phone,district,division,sponsor_id')
+                ->when(! $staff, fn ($q) => $q->where('user_id', $u->id))
+                ->orderByDesc('lifetime_purchase_total')
+                ->get()
+                ->map(fn ($r) => [
+                    'id' => $r->id,
+                    'user_id' => $r->user_id,
+                    'name' => $r->user?->name,
+                    'dealer_code' => $r->user?->dealer_code,
+                    'phone' => $r->user?->phone,
+                    'district' => $r->user?->district,
+                    'division' => $r->user?->division,
+                    'current_rank' => $r->current_rank,
+                    'achieved_at' => $r->achieved_at?->toIso8601String(),
+                    'lifetime_purchase_total' => (float) $r->lifetime_purchase_total,
+                    'monthly_purchase_total' => (float) $r->monthly_purchase_total,
+                    'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                ]);
+            $data['stats'] = [];
+            foreach (['dealer', 'mo', 'am', 'sm', 'me'] as $code) {
+                $data['stats'][$code.'_count'] = $data['ranks']->where('current_rank', $code)->count();
+            }
+            $policy = app(CommissionPolicy::class)->snapshot()['rules'];
+            $data['rank_policy'] = ['qualification' => $policy['rank_royalty']['parameters'], 'incentives' => $policy['rank_incentive']['parameters']];
+        }
+        if ($section === 'rewards') {
+            $mapMilestone = fn ($row) => [...$row->toArray(), 'target_volume' => $row->target_amount, 'is_claimed' => $row->claimed,
+                'capped_leg_breakdown' => array_map(fn ($leg) => [...$leg, 'leg_user_id' => $leg['user_id'] ?? $leg['dealer_id'],
+                    'leg_user_name' => $leg['name'] ?? $leg['dealer_name'] ?? '', 'capped_volume' => $leg['qualifying_volume']], $row->leg_breakdown ?? [])];
+            $data['bike_milestones'] = RewardMilestoneProgress::where('milestone_type', 'bike')->with('user:id,name,dealer_code,phone,district')->orderByDesc('qualifying_volume')->get()->map($mapMilestone);
+            $data['car_milestones'] = RewardMilestoneProgress::where('milestone_type', 'car')->with('user:id,name,dealer_code,phone,district')->orderByDesc('qualifying_volume')->get()->map($mapMilestone);
+            $data['rule_params'] = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
+        }
+        if ($section === 'capital-flow' || $section === 'treasury') {
+            $receipts = DB::table('receipts')->join('orders', 'orders.id', '=', 'receipts.order_id')->join('users', 'users.id', '=', 'orders.user_id');
+            $cash = (clone $receipts)->sum('receipts.amount');
+            $allocated = CommissionAllocation::where('status', '!=', 'reversed')->sum('amount');
+            $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
+            $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
+            $management = CommissionAllocation::where('category', 'area_management')->where('status', '!=', 'reversed')->sum('amount');
+            $unassigned = CommissionAllocation::where('status', 'unassigned_reserve')->sum('amount');
+            $data['flow'] = [
+                'gross_cash_inflow' => (float) $cash,
+                'dealer_cash_inflow' => (float) (clone $receipts)->where('users.role', 'dealer')->sum('receipts.amount'),
+                'sub_dealer_cash_inflow' => (float) (clone $receipts)->where('users.role', 'sub_dealer')->sum('receipts.amount'),
+                'channel_breakdown' => DB::table('receipts')->selectRaw('channel, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('channel')->get(),
+                'company_share_60' => round((float) $company, 2),
+                'management_reserve_2' => (float) $management,
+                'unassigned_territory_reserve' => (float) $unassigned,
+                'total_company_deposits' => round((float) $company + (float) $management + (float) $unassigned, 2),
+                'commission_pool_40' => (float) $allocated,
+                'allocated_so_far' => (float) $allocated,
+                'settled_disbursements' => (float) DB::table('withdrawals')->where('status', 'paid')->sum(DB::raw('COALESCE(net_amount, amount)')),
+                'maturing_commissions' => (float) CommissionAllocation::where('status', 'maturing')->sum('amount'),
+                'marketing_fund' => (float) CommissionAllocation::where('category', 'company_marketing_fund')->sum('amount'),
+                'car_bike_fund' => (float) CommissionAllocation::where('category', 'car_bike_incentive_fund')->sum('amount'),
+                'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
+                'unallocated_pool_buffer' => round((float) $buffer, 2),
+                'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
+            ];
+            $data['allocations_by_category'] = CommissionAllocation::where('status', '!=', 'reversed')->selectRaw('category, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('category')->get();
+            $data['recent_allocations'] = CommissionAllocation::with('user:id,name,dealer_code')->latest()->limit(20)->get();
+        }
+        if ($section === 'settlements') {
+            $currentMonth = $r->input('period_month', now('Asia/Dhaka')->subMonthNoOverflow()->format('Y-m'));
+            CommissionQualification::period($currentMonth);
+            $salaryPoolAllocations = CommissionAllocation::whereIn('category', ['dealer_monthly_salary_pool', 'sub_dealer_salary'])->where('metadata->period_month', $currentMonth)
+                ->where('status', 'pending')
+                ->get();
+            $rankPoolAllocations = CommissionAllocation::where('category', 'rank_royalty_pool')->where('metadata->period_month', $currentMonth)
+                ->where('status', 'pending')
+                ->get();
+            $maturingAllocations = CommissionAllocation::where('status', 'maturing')
+                ->whereNotNull('user_id')
+                ->get();
+
+            $salaryRule = CommissionRuleParameter::getRule('dealer_monthly_salary');
+            $minSalaryVolume = $salaryRule && isset($salaryRule->parameters['min_monthly_volume']) ? (float) $salaryRule->parameters['min_monthly_volume'] : 10000.00;
+
+            $qualifiedSalaryDealers = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
+                ->with('user:id,name,dealer_code,phone,district')
+                ->get()->filter(fn ($rank) => app(CommissionQualification::class)->monthlyVolume($rank->user_id, $currentMonth) >= Money::cents((string) $minSalaryVolume));
+
+            $commissionService = app(CommissionService::class);
+            $qualifiedRankLeaders = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
+                ->whereHas('user', fn ($q) => $q->where('status', 'active'))
+                ->with('user:id,name,dealer_code,phone,district')
+                ->get()
+                ->map(function ($r) use ($currentMonth) {
+                    $eval = app(CommissionQualification::class)->paidAs($r->user_id, $currentMonth);
+
+                    return [
+                        'id' => $r->id,
+                        'user_id' => $r->user_id,
+                        'name' => $r->user?->name,
+                        'dealer_code' => $r->user?->dealer_code,
+                        'rank' => $r->current_rank,
+                        'paid_as_rank' => $eval['paid_as_rank'],
+                        'is_qualified' => $eval['is_qualified'],
+                        'in_grace_period' => $eval['in_grace_period'],
+                        'monthly_volume' => (float) $eval['monthly_volume'],
+                        'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                    ];
+                });
+
+            $settledHistory = DB::table('journal_entries')
+                ->where('event_key', 'like', 'commissions.%')
+                ->latest()
+                ->limit(20)
+                ->get();
+
+            $data['settlement_state'] = [
+                'current_month' => $currentMonth,
+                'salary_pool_pending' => (float) $salaryPoolAllocations->sum('amount'),
+                'salary_pool_allocations_count' => $salaryPoolAllocations->count(),
+                'qualified_salary_dealers_count' => $qualifiedSalaryDealers->count(),
+                'qualified_salary_dealers' => $qualifiedSalaryDealers->map(fn ($d) => [
+                    'id' => $d->id,
+                    'user_id' => $d->user_id,
+                    'name' => $d->user?->name,
+                    'dealer_code' => $d->user?->dealer_code,
+                    'monthly_volume' => (float) $d->monthly_purchase_total,
+                ]),
+                'rank_pool_pending' => (float) $rankPoolAllocations->sum('amount'),
+                'rank_pool_allocations_count' => $rankPoolAllocations->count(),
+                'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('is_qualified', true)->count(),
+                'qualified_rank_leaders' => $qualifiedRankLeaders,
+                'maturing_count' => $maturingAllocations->count(),
+                'maturing_amount' => (float) $maturingAllocations->sum('amount'),
+                'settled_history' => $settledHistory,
+            ];
+        }
+        if ($section === 'simulator') {
+            $commissionService = app(CommissionService::class);
+            $data['simulation'] = $commissionService->simulatePlan([]);
+            $data['active_rules'] = CommissionRuleParameter::orderBy('id')->get();
+        }
+        if ($section === 'payouts-hub') {
+            $data['withdrawals'] = DB::table('withdrawals')
+                ->join('users', 'users.id', '=', 'withdrawals.user_id')
+                ->select('withdrawals.id', 'withdrawals.user_id', 'withdrawals.amount', 'withdrawals.withheld_amount', 'withdrawals.net_amount', 'withdrawals.channel', 'withdrawals.status', 'withdrawals.reason', 'withdrawals.reviewed_by', 'withdrawals.paid_by', 'withdrawals.payment_reference', 'withdrawals.paid_at', 'withdrawals.created_at', 'users.name as user_name', 'users.dealer_code', 'users.phone')
+                ->latest('withdrawals.created_at')
+                ->paginate(20);
+            $tdsRule = CommissionRuleParameter::getRule('payout_tax_withholding');
+            $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
+        }
 
         return Inertia::render('Portal', ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status'])]);
     }
 
-    public function createAccount(Request $r)
+    public function createAccount(Request $r): Response
     {
         $u = $r->user();
         abort_unless($u->allows('accounts'), 403);
         $roles = ['dealer', 'sub_dealer'];
         if ($u->role === 'super_admin') {
-            $roles = [...$roles, ...array_keys(config('madina.roles'))];
+            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles'))];
         }
         $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
 
@@ -159,7 +502,7 @@ class PortalController extends Controller
         ]);
     }
 
-    public function show(Request $r, Order $order)
+    public function show(Request $r, Order $order): Response
     {
         $u = $r->user();
         abort_unless($order->user_id === $u->id || $u->allows('orders') || $u->allows('finance'), 404);
@@ -167,7 +510,7 @@ class PortalController extends Controller
         return Inertia::render('OrderDetail', ['order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'outstanding' => Money::decimal(Money::cents($order->total) - Money::cents($order->paid)),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
-            'events' => DB::table('order_events')->where('order_id',$order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
-            'shipments' => DB::table('shipments')->where('order_id',$order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])]);
+            'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
+            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])]);
     }
 }

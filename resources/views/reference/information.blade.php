@@ -54,10 +54,63 @@
         <h2>{{ $siteCustomization['contact_company_title'] ?? 'Madina Natural Health Care' }}</h2>
         <p>{{ $siteCustomization['contact_company_desc'] ?? 'For product information, dealer enquiries or support, send us a message or visit our head office.' }}</p>
         @if($content)<div class="ref-content-prose">{{ $content->body }}</div>@endif
+        <div class="ref-contact-topic">
+            <i class="fa-solid fa-phone-volume" aria-hidden="true" style="color:#006837;"></i>
+            <div>
+                <h3>{{ $siteCustomization['contact_phone_title'] ?? 'Customer Care & Hotline' }}</h3>
+                <p>
+                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['contact_phone'] ?? '+8801730532966') }}" style="color:#006837; font-weight:700; font-size:16px; text-decoration:none;">
+                        {{ $siteCustomization['contact_phone'] ?? '+8801730532966' }}
+                    </a>
+                    @if(!empty($siteCustomization['contact_phone_hours'] ?? 'Sat - Thu: 9:00 AM - 8:00 PM'))
+                    <br><small style="color:#64748b;">{{ $siteCustomization['contact_phone_hours'] ?? 'Sat - Thu: 9:00 AM - 8:00 PM' }}</small>
+                    @endif
+                </p>
+            </div>
+        </div>
+
+        <div class="ref-contact-topic">
+            <i class="fa-solid fa-envelope-open-text" aria-hidden="true" style="color:#0284c7;"></i>
+            <div>
+                <h3>{{ $siteCustomization['contact_email_title'] ?? 'Official Email' }}</h3>
+                <p>
+                    <a href="mailto:{{ $siteCustomization['contact_email'] ?? 'contact@madinanatural.com' }}" style="color:#006837; font-weight:600; text-decoration:none;">
+                        {{ $siteCustomization['contact_email'] ?? 'contact@madinanatural.com' }}
+                    </a>
+                </p>
+            </div>
+        </div>
+
         <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic1_title'] ?? 'Dealer Enquiries' }}</h3><p>{{ $siteCustomization['contact_topic1_desc'] ?? 'Dealer accounts are created by company staff after review.' }}</p></div></div>
         <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic2_title'] ?? 'Products & Support' }}</h3><p>{{ $siteCustomization['contact_topic2_desc'] ?? 'Ask about availability, orders and your local dealer.' }}</p></div></div>
         <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic3_title'] ?? 'Head Office' }}</h3><p>{{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p></div></div>
-        <a href="/dealers" class="ref-primary-button">{{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
+
+        @php
+            $socialMap = [
+                'facebook' => $siteCustomization['social_facebook'] ?? '#',
+                'youtube' => $siteCustomization['social_youtube'] ?? '#',
+                'linkedin' => $siteCustomization['social_linkedin'] ?? '#',
+                'instagram' => $siteCustomization['social_instagram'] ?? '#',
+                'whatsapp' => $siteCustomization['social_whatsapp'] ?? 'https://wa.me/8801730532966',
+            ];
+        @endphp
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
+            <h3 style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $siteCustomization['contact_social_title'] ?? 'Connect With Us Online' }}</h3>
+            <div class="ref-socials" style="margin-top:0;">
+                @foreach($socialMap as $social => $link)
+                @php
+                    $href = $link ?: '#';
+                    if ($social === 'whatsapp' && $href !== '#' && !str_starts_with($href, 'http')) {
+                        $cleaned = preg_replace('/[^0-9]/', '', $href);
+                        $href = $cleaned ? 'https://wa.me/' . (str_starts_with($cleaned, '01') ? '88' . $cleaned : $cleaned) : '#';
+                    }
+                @endphp
+                <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($social) }}"><img src="/reference/icons/{{ $social }}.png" alt="{{ ucfirst($social) }}"></a>
+                @endforeach
+            </div>
+        </div>
+
+        <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
     </section>
     <section class="ref-content-card">
         <h2>{{ $siteCustomization['contact_form_title'] ?? 'Send an Enquiry' }}</h2>
@@ -71,8 +124,8 @@
             <input id="enquiry-phone" type="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
             <label for="enquiry-topic">Enquiry Type</label>
             <select id="enquiry-topic" name="topic">
-                @foreach(['Dealer enquiry','Product enquiry','Support'] as $topic)
-                <option @selected(old('topic')===$topic)>{{ $topic }}</option>
+                @foreach(['Dealer enquiry','Product enquiry','Support','Complaint'] as $topic)
+                <option @selected(old('topic', request('topic'))===$topic)>{{ $topic }}</option>
                 @endforeach
             </select>
             <label for="enquiry-message">Message</label>
