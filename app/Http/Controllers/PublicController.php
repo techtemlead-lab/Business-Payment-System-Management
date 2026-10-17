@@ -108,15 +108,10 @@ class PublicController extends Controller
 
     private function publicProduct(Product $p): array
     {
-        $campaign = SiteCustomization::getCampaignForProduct($p->id, $p->name);
-        $price = $campaign && ! empty($campaign['price']) ? $campaign['price'] : $p->mrp;
-        $mrp = $campaign && ! empty($campaign['mrp']) ? $campaign['mrp'] : $p->mrp;
-
         return [
             ...$p->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'stock']),
-            'price' => $price,
-            'mrp' => $mrp,
-            'campaign' => $campaign,
+            'price' => $p->mrp,
+            'mrp' => $p->mrp,
             'url' => route('products.show', $p->id),
             'image_path' => $p->media()['image_url'],
             ...$p->media(),

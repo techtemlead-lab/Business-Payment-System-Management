@@ -43,15 +43,14 @@
         <div class="ref-header-links">
             <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_about_title'] ?? 'About Us' }}</b><small>{{ $siteCustomization['header_about_subtitle'] ?? 'Our Story' }}</small></span></a>
             <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_contact_title'] ?? 'Contact' }}</b><small>{{ $siteCustomization['header_contact_subtitle'] ?? 'Get Support' }}</small></span></a>
-            <a href="/#featured-products"><i class="fa-solid fa-gift" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_offers_title'] ?? 'Offers' }}</b><small>{{ $siteCustomization['header_offers_subtitle'] ?? 'Latest Offers' }}</small></span></a>
-            <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_projects_title'] ?? 'Projects' }}</b><small>{{ $siteCustomization['header_projects_subtitle'] ?? 'Dealer Network' }}</small></span></a>
+            <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_network_title'] ?? 'Dealer Network' }}</b><small>{{ 'Find a Local Partner' }}</small></span></a>
             @auth
             <a href="{{ auth()->user()->staff() ? '/company' : '/workspace' }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->staff() ? 'Company Portal' : (auth()->user()->dealer_code ?? 'My Account') }}</small></span></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="Log out" aria-label="Log out"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>Log out</b><small>Exit Session</small></span></button></form>
             @else
             <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_account_title'] ?? 'Account' }}</b><small>{{ $siteCustomization['header_account_subtitle'] ?? 'Partner Login' }}</small></span></a>
             @endauth
-            <a href="/products" class="ref-shop"><i class="fa-solid fa-store" aria-hidden="true"></i><b>{{ $siteCustomization['header_shop_title'] ?? 'Shop' }}</b></a>
+            <a href="/products" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $siteCustomization['header_catalog_title'] ?? 'Products' }}</b></a>
         </div>
     </div>
 </header>
@@ -92,9 +91,8 @@
             <div class="ref-mobile-drawer-group-title">Navigation</div>
             <ul class="ref-mobile-drawer-nav-list">
                 <li><a href="/"><i class="fa-solid fa-house"></i> Home</a></li>
-                <li><a href="/products"><i class="fa-solid fa-store"></i> Shop All Products</a></li>
-                <li><a href="/#featured-products"><i class="fa-solid fa-gift"></i> Special Offers</a></li>
-                <li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> Dealer Network / Projects</a></li>
+                <li><a href="/products"><i class="fa-solid fa-leaf"></i> Our Products</a></li>
+                <li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> Dealer Network</a></li>
                 <li><a href="/about"><i class="fa-solid fa-circle-info"></i> About Us</a></li>
                 <li><a href="/contact"><i class="fa-solid fa-headset"></i> Contact Us</a></li>
             </ul>

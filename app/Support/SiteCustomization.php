@@ -27,6 +27,11 @@ class SiteCustomization
             'header_account_title' => 'Account',
             'header_account_subtitle' => 'Partner Login',
             'header_shop_title' => 'Shop',
+            'header_catalog_title' => 'Products',
+            'header_network_title' => 'Dealer Network',
+            'company_intro_title' => 'Madina Natural Health Care',
+            'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
+            'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => "Medical Equipment\nLeather Items\nConsumer Items\nMedicine\nAgriculture Product\nCosmetics\nFurniture\nService",
 
             // Announcement & Ticker
@@ -62,10 +67,10 @@ class SiteCustomization
             'shortcuts_section_enabled' => '1',
             'shortcuts' => [
                 ['title' => 'Our Products', 'subtitle' => 'browse wellness items', 'icon' => 'fa-seedling', 'link' => '/products'],
-                ['title' => 'Raise a Complain', 'subtitle' => 'Share your experience', 'icon' => 'fa-comments', 'link' => '/contact?topic=Complaint'],
+                ['title' => 'Share Feedback', 'subtitle' => 'Share your experience', 'icon' => 'fa-comments', 'link' => '/contact?topic=Complaint'],
                 ['title' => 'Our Services', 'subtitle' => 'Natural Health Care and Physiotherapy Center', 'icon' => 'fa-hand-holding-heart', 'link' => '/about'],
                 ['title' => 'Contact Us', 'subtitle' => 'Support & Inquiries', 'icon' => 'fa-headset', 'link' => '/contact'],
-                ['title' => 'Our Projects', 'subtitle' => 'Entrepreneur', 'icon' => 'fa-diagram-project', 'link' => '/dealers'],
+                ['title' => 'Our Network', 'subtitle' => 'Dealer Directory', 'icon' => 'fa-diagram-project', 'link' => '/dealers'],
             ],
 
             // Campaign & Special Offers
@@ -144,10 +149,10 @@ class SiteCustomization
             // Featured Categories Section
             'featured_categories_enabled' => '1',
             'featured_categories_title' => 'Featured Categories',
-            'featured_categories_subtitle' => 'Get Your Desired Product from Featured Category!',
+            'featured_categories_subtitle' => 'Explore products by category.',
             'featured_categories_items' => "Medical Equipment | fa-briefcase-medical\nMeat & Fish | fa-drumstick-bite\nFood Supplement | fa-seedling\nPersonal Care | fa-spa\nWater Purifier | fa-droplet\nLeather Items | fa-briefcase\nUnani Medicine | fa-mortar-pestle\nConsumer Items | fa-basket-shopping\nMedicine | fa-capsules\nElectric Kettle | fa-mug-hot\nAgriculture Product | fa-leaf\nCookeries Items | fa-kitchen-set\nCosmetics | fa-wand-magic-sparkles\nRoom Heater | fa-temperature-high\nFurniture | fa-couch\nService | fa-hand-holding-heart\nElectronic Devices | fa-plug\nFashion & Lifestyle | fa-vest",
             'dealer_banner_title' => 'Authorized Dealer Network',
-            'dealer_banner_subtitle' => 'Find your nearest authorized dealer or sub-dealer pharmacy with GPS distance calculation!',
+            'dealer_banner_subtitle' => 'Connect with an authorized local dealer for product information and purchase enquiries.',
             'dealer_banner_btn_text' => 'Find Nearest Dealer',
 
             // Featured Products Section
@@ -222,7 +227,7 @@ class SiteCustomization
             // Products Catalog Page (/products)
             'catalog_categories_title' => 'Categories',
             'catalog_all_products_label' => 'All Products',
-            'catalog_price_title' => 'Price Range',
+            'catalog_price_title' => 'MRP Range',
             'catalog_instock_label' => 'In-stock products only',
             'catalog_apply_filters_btn' => 'Apply Filters',
             'catalog_clear_filters_btn' => 'Clear Filters',
@@ -1039,7 +1044,7 @@ class SiteCustomization
     {
         $campaign = self::getCampaignForProduct($p->id, $p->name);
         $price = $campaign && ! empty($campaign['price']) ? $campaign['price'] : ($p->dealer_price ?: $p->mrp);
-        $mrp = $campaign && ! empty($campaign['mrp']) ? $campaign['mrp'] : $p->mrp;
+        $mrp = $p->mrp;
 
         $numPrice = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) $price));
         $numMrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) $mrp));

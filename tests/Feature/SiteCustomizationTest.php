@@ -47,7 +47,11 @@ class SiteCustomizationTest extends TestCase
                 'top_bar_text' => 'OFFICIAL MADINA HEALTH STORE',
                 'announcement_text' => 'Special Ramadan offer: 10% discount on all wellness supplements!',
                 'featured_products_title' => 'Handpicked Wellness Collection',
-                'about_headline' => 'Leading Organic Health Care Hub in BD',
+                'about_headline' => 'Retired Shop Introduction',
+                'company_intro_title' => 'Our Company and Distribution Network',
+                'company_intro_body' => 'Custom company introduction for our partners.',
+                'header_catalog_title' => 'Product Catalogue',
+                'header_network_title' => 'Our Dealers',
                 'copyright_text' => '© 2026 Madina Natural Health Care Custom Copyright.',
             ],
         ];
@@ -61,7 +65,11 @@ class SiteCustomizationTest extends TestCase
         $response->assertSee('OFFICIAL MADINA HEALTH STORE');
         $response->assertSee('Special Ramadan offer: 10% discount on all wellness supplements!');
         $response->assertSee('Handpicked Wellness Collection');
-        $response->assertSee('Leading Organic Health Care Hub in BD');
+        $response->assertSee('Our Company and Distribution Network');
+        $response->assertSee('Custom company introduction for our partners.');
+        $response->assertSee('Product Catalogue');
+        $response->assertSee('Our Dealers');
+        $response->assertDontSee('Retired Shop Introduction');
         $response->assertSee('© 2026 Madina Natural Health Care Custom Copyright.');
 
         // Verify unset elements still show standard placeholders
@@ -152,7 +160,7 @@ class SiteCustomizationTest extends TestCase
         $responseDisabled->assertDontSee('Rapid Medicine Dispatch');
     }
 
-    public function test_campaign_offers_can_be_customized_added_and_sync_with_product_detail_page(): void
+    public function test_stored_campaigns_cannot_restore_public_shopping_or_override_product_mrp(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
         $product = Product::factory()->create([
@@ -213,22 +221,14 @@ class SiteCustomizationTest extends TestCase
         $this->actingAs($editor)->post('/commands/customization', $payload)
             ->assertSessionHas('success');
 
-        // Check Homepage has all 3 offer cards and custom campaign title
-        $response = $this->get('/');
-        $response->assertOk();
-        $response->assertSee('Mega Eid Wellness Festival');
-        $response->assertSee('Super Ginseng Tonic Special Bundle');
-        $response->assertSee('999 Tk');
-        $response->assertSee('Save 501 Tk');
-        $response->assertSee('Community Pharmacy Starter Package');
-        $response->assertSee('Family Daily Immunity Crate');
-
-        // Check Product Detail page automatically inherits the campaign discount and savings
-        $productPage = $this->get('/products/'.$product->id);
-        $productPage->assertOk();
-        $productPage->assertSee('999');
-        $productPage->assertSee('Save 501 Tk');
-        $productPage->assertSee('1,500');
+        $response = $this->get('/')->assertOk();
+        $response->assertDontSee('Mega Eid Wellness Festival');
+        $response->assertDontSee('Super Ginseng Tonic Special Bundle');
+        $response->assertDontSee('999 Tk');
+        $response->assertDontSee('Save 501 Tk');
+        $response->assertDontSee('Community Pharmacy Starter Package');
+        $response->assertDontSee('Family Daily Immunity Crate');
+        $this->get('/products/'.$product->id)->assertOk()->assertSee('1500.00 BDT')->assertDontSee('999 Tk')->assertDontSee('Save 501 Tk');
 
         // 2. Test disabling campaign section
         $this->actingAs($editor)->post('/commands/customization', [
@@ -282,7 +282,7 @@ class SiteCustomizationTest extends TestCase
                 'featured_products_enabled' => '1',
                 'featured_products_badge' => 'STAFF PICKS',
                 'featured_products_title' => 'Top Natural Formulations',
-                'featured_products_subtitle' => 'Scientifically validated botanical products',
+                'public_products_subtitle' => 'Information about our botanical product range',
                 'featured_products_view_all' => 'Explore Entire Catalog',
                 'featured_products_tabs_enabled' => '1',
                 'featured_products_mode' => 'curated',
@@ -309,13 +309,14 @@ class SiteCustomizationTest extends TestCase
         $response->assertOk();
         $response->assertSee('STAFF PICKS');
         $response->assertSee('Top Natural Formulations');
-        $response->assertSee('Scientifically validated botanical products');
+        $response->assertSee('Information about our botanical product range');
         $response->assertSee('Explore Entire Catalog');
         $response->assertSee('Habbe Ambar Premium');
-        $response->assertSee('★ Best Seller');
+        $response->assertDontSee('★ Best Seller');
         $response->assertSee('Organic Spirulina Powder');
-        $response->assertSee('🔥 Hot Deal');
-        $response->assertSee('⚡ Only 4 Left!'); // Low stock urgency badge
+        $response->assertDontSee('🔥 Hot Deal');
+        $response->assertDontSee('⚡ Only 4 Left!');
+        $response->assertSee('Low Stock');
         $response->assertSee('Unani Medicine');
         $response->assertSee('Food Supplement');
 
@@ -424,26 +425,17 @@ class SiteCustomizationTest extends TestCase
         $this->actingAs($editor)->post('/commands/customization', $payload)
             ->assertSessionHas('success');
 
-        // Verify public home displays both Single Product and Bundle Package
-        $response = $this->get('/');
-        $response->assertOk();
-        $response->assertSee('EXCLUSIVE SPECIAL OFFERS');
-        $response->assertSee('Limited Time Special Discounts');
-
-        // Single product offer assertions
-        $response->assertSee('Botanical Vitality Special Promo');
-        $response->assertSee('400 Tk');
-        $response->assertSee('1,000 Tk');
-        $response->assertSee('Save 600 Tk');
-
-        // Bundle package offer assertions
-        $response->assertSee('Ultimate Wellness Duo Package');
-        $response->assertSee('1,170 Tk');
-        $response->assertSee('1,800 Tk');
-        $response->assertSee('Save 630 Tk');
-        $response->assertSee('Package Includes (2 Products):');
-        $response->assertSee('Botanical Vitality Syrup');
-        $response->assertSee('Pure Black Seed Honey');
+        // Stored campaign configuration cannot restore public retail offers or purchase controls.
+        $response = $this->get('/')->assertOk();
+        $response->assertDontSee('EXCLUSIVE SPECIAL OFFERS');
+        $response->assertDontSee('Limited Time Special Discounts');
+        $response->assertDontSee('Botanical Vitality Special Promo');
+        $response->assertDontSee('Ultimate Wellness Duo Package');
+        $response->assertDontSee('Save 600 Tk');
+        $response->assertDontSee('Package Includes (2 Products):');
+        $response->assertDontSee('Add to Cart');
+        $response->assertDontSee('Buy Now');
+        $this->get('/products/'.$p1->id)->assertOk()->assertSee('1000.00 BDT')->assertDontSee('400 Tk')->assertDontSee('Save 600 Tk');
 
         // Verify single product catalog pricing uses promotional override while active in campaign
         $cardActive = SiteCustomization::formatPublicProductCard($p1);

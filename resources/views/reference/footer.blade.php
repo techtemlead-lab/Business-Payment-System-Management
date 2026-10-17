@@ -33,9 +33,9 @@
         <h2>{{ $siteCustomization['footer_about_heading'] ?? 'ABOUT US' }}</h2>
         <div class="ref-footer-links">
             <a href="{{ $siteCustomization['footer_link_about_url'] ?? '/about' }}">{{ $siteCustomization['footer_link_about'] ?? 'About Us' }}</a>
-            <a href="{{ $siteCustomization['footer_link_vendor_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_vendor'] ?? 'Vendor Program' }}</a>
-            <a href="{{ $siteCustomization['footer_link_orders_url'] ?? '/workspace/orders' }}">{{ $siteCustomization['footer_link_orders'] ?? 'Order Tracking' }}</a>
-            <a href="{{ $siteCustomization['footer_link_blog_url'] ?? '/about' }}">{{ $siteCustomization['footer_link_blog'] ?? 'Blog & Tips' }}</a>
+            <a href="/products">Our Products</a>
+            <a href="/dealers">Dealer Network</a>
+            <a href="/login">Dealer / Sub-dealer Login</a>
             <a href="{{ $siteCustomization['footer_link_contact_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_contact'] ?? 'Contact Us' }}</a>
             <a href="{{ $siteCustomization['footer_link_dealer_apply_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
         </div>
@@ -75,38 +75,39 @@
             <a href="{{ $siteCustomization['social_telegram'] }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram" class="ref-social-fa" style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#229ed9;color:#fff;font-size:14px;"><i class="fa-brands fa-telegram"></i></a>
             @endif
         </div>
-        @if(($siteCustomization['app_badges_enabled'] ?? '1') === '1')
-        <div class="ref-app-badges">
-            <a href="{{ $siteCustomization['app_google_play_link'] ?? '#' }}" target="_blank" rel="noopener noreferrer" aria-label="Get it on Google Play">
-                <img src="/reference/icons/google-play.png" alt="Google Play">
-            </a>
-            <a href="{{ $siteCustomization['app_apple_store_link'] ?? '#' }}" target="_blank" rel="noopener noreferrer" aria-label="Download on App Store">
-                <img src="/reference/icons/app-store.png" alt="App Store">
-            </a>
-        </div>
+        @php
+            $appLinks = collect([
+                ['url' => $siteCustomization['app_google_play_link'] ?? '', 'name' => 'Google Play', 'image' => 'google-play.png'],
+                ['url' => $siteCustomization['app_apple_store_link'] ?? '', 'name' => 'App Store', 'image' => 'app-store.png'],
+            ])->filter(fn ($app) => str_starts_with($app['url'], 'https://'));
+        @endphp
+        @if(($siteCustomization['app_badges_enabled'] ?? '1') === '1' && $appLinks->isNotEmpty())
+            <div class="ref-app-badges">
+                @foreach($appLinks as $app)
+                    <a href="{{ $app['url'] }}" target="_blank" rel="noopener noreferrer" aria-label="{{ $app['name'] }}"><img src="/reference/icons/{{ $app['image'] }}" alt="{{ $app['name'] }}"></a>
+                @endforeach
+            </div>
         @endif
+
+
     </section>
 </div>
 <div class="ref-container ref-footer-bottom">
     <span>{{ $siteCustomization['copyright_text'] ?? ('© ' . date('Y') . ' Madina Natural Health Care. All rights reserved.') }}</span>
-    @if(($siteCustomization['payment_methods_enabled'] ?? '1') === '1')
-    <img src="{{ $siteCustomization['payment_methods_image'] ?? '/reference/icons/payment_logo.png' }}" alt="{{ $siteCustomization['payment_methods_alt'] ?? 'Payment methods' }}">
-    @endif
+
 </div>
 </footer>
-<aside class="ref-floating-tools" aria-label="Shopping tools">
-    <button data-open-compare><i class="fa-solid fa-shuffle" aria-hidden="true"></i><b>{{ $siteCustomization['floating_compare_label'] ?? 'COMPARE' }}</b><span data-compare-count>0</span></button>
-    <button data-open-cart><i class="fa-solid fa-basket-shopping" aria-hidden="true"></i><b>{{ $siteCustomization['floating_cart_label'] ?? 'CART' }}</b><span data-cart-count>0</span></button>
+<aside class="ref-floating-tools" aria-label="Company support">
     <a href="{{ $siteCustomization['whatsapp_link'] ?? '/contact' }}" class="ref-chat" aria-label="Customer support chat"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><b>{{ $siteCustomization['floating_chat_label'] ?? 'CHAT' }}</b></a>
 </aside>
 <nav class="ref-mobile-nav" aria-label="Mobile navigation">
     <a href="/products" class="ref-mobile-nav-item">
         <i class="fa-solid fa-store" aria-hidden="true"></i>
-        <span>Shop</span>
+        <span>Products</span>
     </a>
-    <a href="/#featured-products" class="ref-mobile-nav-item">
-        <i class="fa-solid fa-gift" aria-hidden="true"></i>
-        <span>Offers</span>
+    <a href="/dealers" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+        <span>Dealers</span>
     </a>
     <a href="/" class="ref-mobile-home" aria-label="Home">
         <span class="ref-mobile-home-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
@@ -138,22 +139,18 @@
         <div class="ref-quickview-grid">
             <div class="ref-qv-image-col">
                 <img id="qvImage" src="" alt="Product Image" loading="lazy">
-                <span class="ref-qv-badge" id="qvBadge" style="display: none;"></span>
+
             </div>
             <div class="ref-qv-info-col">
                 <div class="ref-qv-cat" id="qvCategory"></div>
                 <h2 class="ref-qv-title" id="qvTitle"></h2>
                 <div class="ref-qv-stock-row" id="qvStockRow"></div>
                 <div class="ref-qv-price-row">
-                    <strong class="ref-qv-price" id="qvPrice"></strong>
-                    <del class="ref-qv-mrp" id="qvMrp"></del>
-                    <span class="ref-save-pill" id="qvSave" style="display: none;"></span>
+                    <span>MRP</span><strong class="ref-qv-price" id="qvMrp"></strong>
                 </div>
                 <p class="ref-qv-desc" id="qvDescription"></p>
                 <div class="ref-qv-actions">
-                    <button type="button" class="ref-primary-button ref-qv-add-cart" id="qvAddCart">
-                        <i class="fa-solid fa-cart-plus" aria-hidden="true"></i> {{ $siteCustomization['product_add_to_cart_btn'] ?? 'Add to Cart' }}
-                    </button>
+                    <a href="/dealers" class="ref-primary-button">Find a Dealer</a>
                     <a href="#" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
                         View Full Details <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                     </a>
@@ -162,6 +159,3 @@
         </div>
     </div>
 </dialog>
-<dialog class="ref-cart-dialog"><div class="ref-dialog-title"><h2>{{ $siteCustomization['cart_dialog_title'] ?? 'Your Cart' }}</h2><button data-close-cart aria-label="Close cart"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div><div class="ref-cart-items"></div><a href="/login" class="ref-cart-login">{{ $siteCustomization['cart_dialog_btn'] ?? 'Sign in to request products' }}</a><p>{{ $siteCustomization['cart_dialog_notice'] ?? 'Product requests and payments are reviewed by company staff.' }}</p></dialog>
-<dialog class="ref-compare-dialog"><div class="ref-dialog-title"><h2>{{ $siteCustomization['compare_dialog_title'] ?? 'Product Comparison' }}</h2><button data-close-compare aria-label="Close comparison"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div><p>{{ $siteCustomization['compare_dialog_desc'] ?? 'Select products to compare.' }}</p><div class="ref-compare-selects">@for($slot=0;$slot<3;$slot++)<label>Product {{ $slot+1 }}<select data-compare-slot="{{ $slot }}"><option value="">Select product</option>@foreach($referenceProducts as $product)<option value="{{ $product['id'] }}" data-name="{{ $product['name'] }}" data-price="{{ $product['price_display'] }}" data-stock="{{ $product['stock_display'] }}" data-image="{{ $product['image_path'] }}">{{ $product['name'] }}</option>@endforeach</select></label>@endfor</div><div class="ref-compare-results"></div></dialog>
-<dialog class="ref-promotion-dialog" aria-label="Company promotion"><button data-close-promotion aria-label="Close promotion"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><a href="/products"><img src="/branding/madina-promotion-popup.jpg?v=20261015" alt="Madina Natural Health Care & Physiotherapy Center Promotion"></a></dialog>
