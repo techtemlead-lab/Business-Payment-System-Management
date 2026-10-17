@@ -3,35 +3,40 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\CommissionAllocation;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class OperationsController extends Controller
 {
-    public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports'];
+    public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'];
 
     public function index(Request $request, string $section): Response|JsonResponse
     {
         $actor = $request->user();
         $capability = match ($section) {
+            'access-management' => 'staff_admin', 'video-marketing' => $actor->allows('content') ? 'content' : 'catalog',
             'field-sales' => 'field_sales', 'staff-operations' => 'staff_admin', 'payroll' => 'payroll', 'my-payroll' => null,
             'financial-reports' => $actor->allows('finance') ? 'finance' : ($actor->allows('field_sales') ? 'field_sales' : 'reports'), default => 'finance'
         };
         abort_unless(in_array($section, self::Sections, true) && $actor->staff() && ($capability === null || $actor->allows($capability)), 403);
         $tables = [];
         $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => []];
-        $staff = User::whereIn('role', ['employee', ...array_keys(config('madina.roles'))])->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
+        $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
             $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();
         }
@@ -59,7 +64,7 @@ class OperationsController extends Controller
             if ($actor->allows('sr_orders') || $actor->allows('sr_dues')) {
                 $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
                 if ($actor->allows('sr_dues')) {
-                    $columns = [...$columns, 'o.paid', DB::raw('o.total-o.paid AS outstanding')];
+                    $columns = [...$columns, 'o.paid', 'o.due_credit', DB::raw('o.total-o.due_credit-o.paid AS outstanding')];
                 }
                 $tables['Territory orders and dues'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
             }
@@ -100,6 +105,33 @@ class OperationsController extends Controller
         if ($section === 'financial-readiness') {
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $tables['Opening balance reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
+        }
+        if ($section === 'dues-adjustments') {
+            $data['adjustableOrders'] = Order::with('user:id,name')->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+                ->when($request->filled('q'), fn ($q) => $q->where('number', 'ilike', '%'.$request->string('q').'%'))->orderByDesc('created_at')->limit(100)->get()
+                ->map(fn ($order) => ['id' => $order->id, 'name' => $order->number.' · '.$order->user->name.' · due BDT '.$order->outstanding(), 'due_credit' => $order->due_credit])->all();
+            $tables['Due adjustment requests'] = DB::table('due_adjustments as a')->join('orders as o', 'o.id', '=', 'a.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
+                ->join('users as c', 'c.id', '=', 'a.created_by')->leftJoin('users as r', 'r.id', '=', 'a.reviewed_by')
+                ->select(['a.*', 'o.number', 'u.name', 'c.name as prepared_by_name', 'r.name as reviewed_by_name'])->orderByDesc('a.id');
+        }
+        if ($section === 'finance-settings') {
+            $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
+        }
+        if ($section === 'access-management') {
+            abort_unless($actor->role === 'super_admin', 403);
+            $permissions = app(StaffPermissions::class);
+            $data['permissionModules'] = $permissions->modules();
+            $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => Str::headline($key),
+                'permissions' => array_fill_keys($capabilities, array_fill_keys(StaffPermissions::Actions, true))])->values()->all();
+            $data['staffAccess'] = $staff->where('role', '!=', 'super_admin')->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
+                'version' => $permissions->version($user), 'permissions' => $permissions->matrix($user)])->values()->all();
+            $data['customRoles'] = DB::table('staff_roles')->orderBy('name')->get()->map(fn ($role) => ['key' => $role->key, 'name' => $role->name,
+                'version' => $role->version, 'permissions' => json_decode($role->permissions, true, 512, JSON_THROW_ON_ERROR)])->all();
+        }
+        if ($section === 'video-marketing') {
+            $setting = DB::table('business_settings')->where('key', 'homepage_video')->first();
+            $data['videoSetting'] = $setting ? [...json_decode($setting->value, true, 512, JSON_THROW_ON_ERROR), 'version' => $setting->version] : ['enabled' => false, 'version' => 0];
+            $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
         }
         foreach ($tables as $title => $query) {
             $data['tables'][] = ['title' => $title, 'page' => $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString()];

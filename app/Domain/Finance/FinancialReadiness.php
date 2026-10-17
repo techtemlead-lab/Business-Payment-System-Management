@@ -30,6 +30,7 @@ final class FinancialReadiness
                 'allocation_totals' => ! DB::table('commission_batches as b')->whereRaw('b.total_allocated <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id),0)')->exists(),
                 'nonnegative_balances' => ! DB::table('wallets')->whereRaw('available < 0 OR held < 0 OR commission_held < 0 OR commission_held > held')->exists(),
                 'nonnegative_stock' => ! DB::table('products')->where('stock', '<', 0)->exists(),
+                'due_adjustments' => ! DB::table('orders as o')->whereRaw("o.due_credit <> COALESCE((SELECT SUM(CASE WHEN a.kind='credit' THEN a.amount ELSE -a.amount END) FROM due_adjustments a WHERE a.order_id=o.id AND a.status='approved'),0) OR o.due_credit < 0 OR o.paid+o.due_credit > o.total")->exists(),
             ];
             $totals = [];
             foreach (['wallet_available' => ['wallets', 'available'], 'wallet_held' => ['wallets', 'held'],
@@ -41,7 +42,7 @@ final class FinancialReadiness
                 $totals[$key] = Money::decimal(Money::cents((string) $query->sum($column)));
             }
             $counts = [];
-            foreach (['orders', 'receipts', 'journal_entries', 'commission_batches', 'commission_refunds', 'withdrawals', 'payroll_entries', 'reserve_disbursements'] as $table) {
+            foreach (['orders', 'receipts', 'journal_entries', 'commission_batches', 'commission_refunds', 'withdrawals', 'payroll_entries', 'reserve_disbursements', 'due_adjustments'] as $table) {
                 $counts[$table] = DB::table($table)->count();
             }
             $policy = app(CommissionPolicy::class)->snapshot();
@@ -49,7 +50,7 @@ final class FinancialReadiness
             foreach (DB::table('wallets')->orderBy('user_id')->cursor(['user_id', 'available', 'held', 'commission_held']) as $wallet) {
                 hash_update($digest, json_encode($wallet, JSON_THROW_ON_ERROR));
             }
-            foreach (DB::table('orders')->orderBy('id')->cursor(['id', 'total', 'paid', 'status']) as $order) {
+            foreach (DB::table('orders')->orderBy('id')->cursor(['id', 'total', 'paid', 'due_credit', 'status']) as $order) {
                 hash_update($digest, json_encode($order, JSON_THROW_ON_ERROR));
             }
             $snapshot = ['checks' => $checks, 'totals' => $totals, 'counts' => $counts, 'balance_digest' => hash_final($digest), 'policy' => $policy['rules']];

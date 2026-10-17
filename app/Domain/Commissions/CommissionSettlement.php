@@ -17,7 +17,7 @@ final class CommissionSettlement
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private CommissionPolicy $policies) {}
 
     /** @return array<string, mixed> */
-    public function settle(string $month, string $kind): array
+    public function settle(string $month, string $kind, ?int $actorId = null): array
     {
         CommissionWallet::requireActive();
         [, $end] = CommissionQualification::period($month);
@@ -25,7 +25,7 @@ final class CommissionSettlement
             throw ValidationException::withMessages(['period_month' => 'Close the calendar month before settling its salary or royalty.']);
         }
 
-        return DB::transaction(function () use ($month, $kind): array {
+        return DB::transaction(function () use ($month, $kind, $actorId): array {
             CommissionWallet::lock();
             $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
             $funds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
@@ -86,7 +86,7 @@ final class CommissionSettlement
                 $tier['rolled_to_reserve'] = Money::decimal($tier['reserve_cents']);
                 unset($tier['allocated_cents'], $tier['reserve_cents']);
             }
-            Audit::record(null, 'commissions.'.$kind.'_pool_settled', $month, ['distributed' => Money::decimal($totalPaid)]);
+            Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, ['distributed' => Money::decimal($totalPaid)]);
 
             return ['status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
                 'total_distributed' => Money::decimal($totalPaid), 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers];
@@ -151,11 +151,11 @@ final class CommissionSettlement
     }
 
     /** @return array<string, mixed> */
-    public function incentive(int $userId): array
+    public function incentive(int $userId, ?int $actorId = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($userId): array {
+        return DB::transaction(function () use ($userId, $actorId): array {
             CommissionWallet::lock();
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
@@ -194,17 +194,18 @@ final class CommissionSettlement
             DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
                 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);
+            Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, ['beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'sources' => $sources]);
 
             return ['success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String()];
         }, 3);
     }
 
     /** @return array<string, mixed> */
-    public function release(): array
+    public function release(?int $actorId = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function (): array {
+        return DB::transaction(function () use ($actorId): array {
             CommissionWallet::lock();
             $funds = CommissionAllocation::where('status', 'maturing')->whereNotNull('user_id')->orderBy('id')->lockForUpdate()->get();
             $count = 0;
@@ -227,6 +228,10 @@ final class CommissionSettlement
                 $fund->update(['status' => 'available', 'metadata' => [...$fund->metadata, 'maturation_released' => true, 'matured_at' => now()->toIso8601String()]]);
                 $count++;
                 $total += $amount;
+            }
+
+            if ($count > 0) {
+                Audit::record($actorId, 'commissions.matured_released', 'batch', ['count' => $count, 'amount' => Money::decimal($total)]);
             }
 
             return ['status' => $count > 0 ? 'success' : 'no_matured_commissions', 'released_count' => $count, 'total_amount' => Money::decimal($total)];

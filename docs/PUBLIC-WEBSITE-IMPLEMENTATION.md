@@ -1,5 +1,7 @@
 # Public website checkpoint
 
+Historical checkpoint: use [the current requirements-to-code review](COMMISSION-AND-NETWORK-SYSTEM.md#requirements-to-code-review---17-october-2026) for the latest status. Later code supersedes this page's dated remaining-work list.
+
 13 October 2026, Asia/Dhaka. User authorized the local build and requested the reference design, public website first. The supplied Madina logo is the shared header brand.
 
 The catalog, product detail, account login, forgot/reset password, about, dealer directory and contact routes now use the shared reference header/footer and navy, orange, blue and pale gray styling. The homepage remains functional. Layout evidence is recorded in `../../planning/evidence/reference-public-pages-layout.md`: login/product screenshots support their appearance; catalog/about/contact/directory measurements are incomplete, so those layouts are source-guided reconstructions rather than a certified pixel-exact copy.

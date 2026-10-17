@@ -217,15 +217,20 @@ class FinanceOperationsController extends Controller
         }
         $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to']);
         $reportName = match ($data['type']) {
-            'products' => 'Delivered product sales by order date', 'refunds' => 'Commission refund adjustments', default => Str::headline($data['type'])
+            'products' => 'Delivered product sales by order date', 'product-summary' => 'Product sales totals', 'category-summary' => 'Category sales totals',
+            'rank-achievements' => 'Rank achievement history', 'rank-incentives' => 'Rank incentive wallet awards', 'refunds' => 'Commission refund adjustments', default => Str::headline($data['type'])
         };
         $reportNote = match ($data['type']) {
             'products' => 'Gross delivered product lines. Commission refund adjustments are reported separately; they do not specify physical return quantities.',
+            'product-summary', 'category-summary' => 'Gross delivered sales grouped by captured category and product, using order dates. Legacy categories were captured at upgrade. Financial adjustments are reported separately.',
+            'rank-incentives' => 'Funded rank awards credited to wallets, with source-payout reversals and remaining net awards. These are not executed bank transfers.',
+            'rank-achievements' => 'Recorded achievement dates and rank history. Historical rows without an achievement date cannot be assigned an invented reporting date.',
+            'due-adjustments' => 'Requested, approved and rejected credit notes and debit corrections. Only approved notes change dues. Totals show the listed activity, not cash received.',
             'refunds' => 'Commission accounting adjustments by adjustment date. These records do not confirm execution of a bank refund.', default => 'Authorized records only; statuses are shown as recorded.'
         };
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.'.$data['format']);
-        $totals = array_fill_keys($report['money'], 0);
+        $totals = array_fill_keys(array_diff($report['money'], ['unit_price']), 0);
         try {
             if ($data['format'] === 'xlsx') {
                 $writer = new Writer(new Options(DEFAULT_COLUMN_WIDTH: 22));
@@ -245,10 +250,11 @@ class FinanceOperationsController extends Controller
                             if ($value !== '' && str_ends_with($column, '_at')) {
                                 $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
                             }
-                            if (in_array($column, $report['money'], true)) {
+                            if (isset($totals[$column])) {
                                 $totals[$column] += Money::cents((string) ($value === '' ? '0' : $value));
                             }
-                            $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00')) : new StringCell((string) $value);
+                            $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00'))
+                                : (in_array($column, ['quantity', 'dispatched', 'order_count'], true) ? new NumericCell((int) $value) : new StringCell((string) $value));
                         }
                         $writer->addRow(new Row($cells));
                     }

@@ -4,6 +4,7 @@ namespace App\Domain\Payouts;
 
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Models\User;
 use App\Support\Audit;
@@ -31,8 +32,9 @@ class ManualPayoutService
 
                 return $existing->id;
             }
-            if ($amount < Money::cents(config('madina.withdrawal_minimum'))) {
-                throw ValidationException::withMessages(['amount' => 'Minimum withdrawal is '.config('madina.withdrawal_minimum').' BDT.']);
+            $minimum = app(FinanceSettings::class)->withdrawalMinimum()['amount'];
+            if ($amount < Money::cents($minimum)) {
+                throw ValidationException::withMessages(['amount' => 'Minimum withdrawal is '.$minimum.' BDT.']);
             }
             if (CommissionWallet::hasDebt($actor->id)) {
                 throw ValidationException::withMessages(['amount' => 'Resolve prior commission clawbacks before requesting another withdrawal.']);
@@ -43,7 +45,7 @@ class ManualPayoutService
             }
             $tax = app(CommissionService::class)->calculatePayoutTds((float) $data['amount']);
             $id = (string) Str::uuid();
-            DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $actor->id, 'amount' => Money::decimal($amount),
+            DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $actor->id, 'amount' => Money::decimal($amount), 'minimum_snapshot' => $minimum,
                 'channel' => $data['channel'], 'destination' => encrypt(trim($data['destination'])), 'idempotency_key' => $data['idempotency_key'],
                 'withheld_amount' => $tax['tds_amount'], 'net_amount' => $tax['net_amount'], 'created_at' => now(), 'updated_at' => now()]);
             DB::table('wallets')->where('id', $wallet->id)->update(['available' => Money::decimal(Money::cents($wallet->available) - $amount),

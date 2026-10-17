@@ -3,8 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Staff\StaffPermissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,7 +23,7 @@ class User extends Authenticatable
 
     public function staff(): bool
     {
-        return $this->role === 'employee' || array_key_exists($this->role, config('madina.roles'));
+        return $this->role === 'employee' || str_starts_with($this->role, 'custom_') || array_key_exists($this->role, config('madina.roles'));
     }
 
     public function allows(string $capability): bool
@@ -36,11 +38,25 @@ class User extends Authenticatable
         return in_array($capability, $this->capabilities(), true);
     }
 
+    public function canAct(string $module, string $action): bool
+    {
+        return in_array($action, StaffPermissions::Actions, true)
+            && (app(StaffPermissions::class)->matrix($this)[$module][$action] ?? false);
+    }
+
+    public function scopeStaffAccounts(Builder $query): void
+    {
+        $query->where(fn ($staff) => $staff->whereIn('role', ['employee', ...array_keys(config('madina.roles'))])->orWhere('role', 'like', 'custom\\_%'));
+    }
+
     /** @return list<string> */
     public function capabilities(): array
     {
         if ($this->status !== 'active') {
             return [];
+        }
+        if (str_starts_with($this->role, 'custom_') || isset($this->profile['action_permissions'])) {
+            return array_keys(array_filter(app(StaffPermissions::class)->matrix($this), fn (array $actions): bool => $actions['view'] ?? false));
         }
         if ($this->role === 'employee') {
             $known = array_unique(array_merge(...array_values(config('madina.roles'))));

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Finance\DueAdjustments;
 use App\Domain\Orders\OrderService;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
@@ -40,6 +41,7 @@ class OrderController extends Controller
     {
         $this->authorizeOrder($request, $order);
         $data = (new OrderResource($order->load('lines')))->resolve($request);
+        $data['due_adjustments'] = app(DueAdjustments::class)->history($order);
         $data['payment_claims'] = DB::table('payment_claims')->where('order_id', $order->id)->orderBy('id')
             ->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
         $data['shipments'] = DB::table('shipments')->where('order_id', $order->id)->orderBy('id')

@@ -74,14 +74,14 @@ final class CommissionPosting
     }
 
     /** @return list<array<string, mixed>> */
-    public function process(Order $order): array
+    public function process(Order $order, ?int $actorId = null): array
     {
         if (! config('madina.financial_activation') || Money::cents($order->total) === 0) {
             return [];
         }
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order): array {
+        return DB::transaction(function () use ($order, $actorId): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (DB::table('commission_batches')->where('order_id', $order->id)->exists() || CommissionAllocation::where('order_id', $order->id)->exists()) {
@@ -255,7 +255,7 @@ final class CommissionPosting
                 $this->wallets->journal('commissions.order.'.$order->id, 'Earned commissions for '.$order->number, $journal);
             }
             $this->qualification->record($buyer, $cash, $rules);
-            Audit::record($buyer->id, 'commissions.calculated', $order->id, ['cash_basis' => $order->total, 'allocated' => Money::decimal($allocated)]);
+            Audit::record($actorId, 'commissions.calculated', $order->id, ['buyer_id' => $buyer->id, 'cash_basis' => $order->total, 'allocated' => Money::decimal($allocated)]);
 
             return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
         }, 3);

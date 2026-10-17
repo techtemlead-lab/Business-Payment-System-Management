@@ -14,7 +14,7 @@ class OrderResource extends JsonResource
             'id' => $this->id, 'number' => $this->number, 'user_id' => $this->user_id,
             'status' => $this->status, 'currency' => 'BDT',
             'total' => $this->total, 'paid' => $this->paid,
-            'outstanding' => Money::decimal(Money::cents($this->total) - Money::cents($this->paid)),
+            'due_credit' => $this->due_credit, 'outstanding' => $this->resource->outstanding(),
             'note' => $this->note, 'decision_reason' => $this->decision_reason,
             'created_at' => $this->created_at?->toISOString(), 'updated_at' => $this->updated_at?->toISOString(),
             'lines' => $this->whenLoaded('lines', fn () => $this->lines->map(fn ($line) => [

@@ -50,7 +50,7 @@ class OrderService
                 $price = $this->pricing->unitPrice($product, $user);
                 $lineTotal = $price * $item['quantity'];
                 $total += $lineTotal;
-                $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku,
+                $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'category_snapshot' => $product->category,
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {
@@ -100,7 +100,7 @@ class OrderService
                 throw ValidationException::withMessages(['status' => 'This order has already been decided.']);
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
-            if ($status === 'approved' && Money::cents($locked->paid) < Money::cents($locked->total)) {
+            if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 if (! $allowCredit || ! $actor->allows('finance')) {
                     throw ValidationException::withMessages(['allow_credit' => 'Verify full payment or have Finance explicitly authorize this credit sale.']);
                 }
@@ -137,14 +137,14 @@ class OrderService
                         throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
                     }
                     $paid = Money::cents($order->paid) + Money::cents($claim->amount);
-                    if ($paid > Money::cents($order->total)) {
+                    if ($paid > Money::cents($order->total) - Money::cents($order->due_credit)) {
                         throw ValidationException::withMessages(['payment' => 'This would overpay the order.']);
                     }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
                     $order->update(['paid' => Money::decimal($paid)]);
                     if ($paid >= Money::cents($order->total)) {
-                        $this->commissions->process($order);
+                        $this->commissions->process($order, $actor->id);
                     }
                 }
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
@@ -221,7 +221,7 @@ class OrderService
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
             if (! $remaining && ! $openShipment) {
                 $locked->update(['status' => 'delivered']);
-                $this->commissions->process($locked);
+                $this->commissions->process($locked, $actor->id);
             }
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             Audit::notice($locked->user_id, 'Delivery confirmed', $locked->number.': shipment delivery recorded by company staff.');
@@ -231,7 +231,7 @@ class OrderService
     private function insertClaim(Order $order, array $data): int
     {
         $amount = Money::cents((string) $data['amount']);
-        if ($amount <= 0 || $amount > Money::cents($order->total) - Money::cents($order->paid ?? '0')) {
+        if ($amount <= 0 || $amount > Money::cents($order->outstanding())) {
             throw ValidationException::withMessages(['amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.']);
         }
 

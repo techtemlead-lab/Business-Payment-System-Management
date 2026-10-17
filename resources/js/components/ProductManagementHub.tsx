@@ -41,7 +41,10 @@ export default function ProductManagementHub({
     onCreateProduct: () => void;
     initialTab?: string;
 }) {
-    const canStock=usePage<any>().props.auth.capabilities.includes('inventory');
+    const {auth,staffActions}=usePage<any>().props;
+    const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
+    const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
+    const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
     const validTabs: ('products' | 'offers' | 'featured')[] = ['products', 'offers', 'featured'];
     const getInitialTab = (): 'products' | 'offers' | 'featured' => {
         if (typeof window !== 'undefined') {
@@ -406,6 +409,7 @@ export default function ProductManagementHub({
                                                 type="button"
                                                 className="text-link"
                                                 style={{ color: '#ef4444', fontSize: 12, padding: '4px 6px' }}
+                                                disabled={!canEditCatalog}
                                                 onClick={() => {
                                                     const reason = window.prompt(`Are you sure you want to delete or archive "${p.name}"? Reason:`);
                                                     if (reason !== null && reason.trim().length >= 3) {
@@ -467,7 +471,7 @@ export default function ProductManagementHub({
                             </div>
                             <button
                                 type="submit"
-                                disabled={campaignForm.processing}
+                                disabled={!canEditMarketing || campaignForm.processing}
                                 style={{
                                     background: '#006837',
                                     color: '#ffffff',
@@ -532,7 +536,7 @@ export default function ProductManagementHub({
                         </div>
                         <button
                             type="submit"
-                            disabled={campaignForm.processing}
+                            disabled={!canEditMarketing || campaignForm.processing}
                             style={{
                                 background: '#006837',
                                 color: '#ffffff',
@@ -576,7 +580,7 @@ export default function ProductManagementHub({
                             </div>
                             <button
                                 type="submit"
-                                disabled={featuredForm.processing}
+                                disabled={!canEditMarketing || featuredForm.processing}
                                 style={{
                                     background: '#006837',
                                     color: '#ffffff',
@@ -626,7 +630,7 @@ export default function ProductManagementHub({
                         </div>
                         <button
                             type="submit"
-                            disabled={featuredForm.processing}
+                            disabled={!canEditMarketing || featuredForm.processing}
                             style={{
                                 background: '#006837',
                                 color: '#ffffff',

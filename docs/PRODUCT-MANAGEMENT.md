@@ -1,5 +1,7 @@
 # Product registry and media checkpoint
 
+Historical checkpoint: use [the current requirements-to-code review](COMMISSION-AND-NETWORK-SYSTEM.md#requirements-to-code-review---17-october-2026) for the latest scope comparison and outstanding acceptance items.
+
 14 October 2026, Asia/Dhaka. Client PDF product registry/stock requirements (Q-P03, Q-A05, Q-A06) plus the user's explicit addition: each product can use a YouTube video or a company-uploaded video. Company access remains separate from the storefront.
 
 Company workflow: Product collection → Add product or Product details & media. Deep links are `/company/products/create` and `/company/products/{id}`. Staff can maintain name/SKU/category/unit/description, publication and featured placement, a primary photo, video source, supported prices and low-stock threshold according to permissions. Category suggestions come from existing products; typing a new category creates that grouping through the product. A dedicated hierarchical category editor is still a later module.

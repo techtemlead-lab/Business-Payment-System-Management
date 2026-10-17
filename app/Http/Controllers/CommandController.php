@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\StaffPermissions;
 use App\Http\Requests\Backend\AdjustStockRequest;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
 use App\Http\Requests\Backend\ConfirmDeliveryRequest;
@@ -77,7 +78,7 @@ class CommandController extends Controller
         $this->permit($r, 'accounts');
         $roles = ['dealer', 'sub_dealer'];
         if ($r->user()->role === 'super_admin') {
-            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles'))];
+            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
         $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
         $d = $r->validate([
@@ -194,6 +195,9 @@ class CommandController extends Controller
                 }
             }
             if ($r->has('permissions')) {
+                if (isset($existing['action_permissions'])) {
+                    throw ValidationException::withMessages(['permissions' => 'Manage this account in Roles & permissions to retain its detailed action controls.']);
+                }
                 $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
             }
             $d['profile'] = array_merge($existing, $incoming);
@@ -372,7 +376,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'finance');
         $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleMonthlySalaryPool($d['period_month']);
+        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
@@ -388,7 +392,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'finance');
         $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleRankRoyaltyPool($d['period_month']);
+        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
@@ -400,7 +404,7 @@ class CommandController extends Controller
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->claimOneTimeRankIncentive($user->id);
+        $result = $commissionService->claimOneTimeRankIncentive($user->id, actorId: $r->user()->id);
 
         if (! $result['success']) {
             throw ValidationException::withMessages(['incentive' => $result['message']]);
@@ -412,7 +416,7 @@ class CommandController extends Controller
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->releaseMaturedCommissions();
+        $result = $commissionService->releaseMaturedCommissions($r->user()->id);
 
         if ($result['status'] === 'no_matured_commissions') {
             return back()->with('success', 'No matured commissions pending release.');

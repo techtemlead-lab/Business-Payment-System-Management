@@ -17,11 +17,11 @@ final class CommissionReversal
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification) {}
 
     /** @return list<array<string, mixed>> */
-    public function refund(Order $order, ?int $requested, string $reason, string $reference): array
+    public function refund(Order $order, ?int $requested, string $reason, string $reference, ?int $actorId = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order, $requested, $reason, $reference): array {
+        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
@@ -129,7 +129,7 @@ final class CommissionReversal
             foreach (ReferralTreePath::getUplines($order->user_id, 100) as $path) {
                 $this->qualification->refreshMilestones($path->ancestor_id);
             }
-            Audit::record($order->user_id, 'commissions.reversed', $order->id, ['reference' => $reference, 'refund_amount' => Money::decimal($amount), 'reason' => $reason]);
+            Audit::record($actorId, 'commissions.reversed', $order->id, ['buyer_id' => $order->user_id, 'reference' => $reference, 'refund_amount' => Money::decimal($amount), 'reason' => $reason]);
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);

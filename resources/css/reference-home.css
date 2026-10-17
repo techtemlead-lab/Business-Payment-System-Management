@@ -960,3 +960,5 @@ dialog::backdrop,
     background: #dc2626;
     transform: rotate(90deg);
 }
+
+.ref-home-video{margin:24px 0;padding:24px;background:#fff;border:1px solid #e2e8f0;border-radius:12px}.ref-home-video iframe,.ref-home-video video{display:block;width:100%;aspect-ratio:16/9;border:0;border-radius:8px;background:#0f172a}.ref-home-video p{color:#64748b;line-height:1.6}

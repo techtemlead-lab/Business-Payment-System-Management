@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
+use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
@@ -49,6 +50,13 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
 
 /** Both the Inertia screens and independently developed clients use these services. */
 $operations = function (): void {
+    $completion = ModuleCompletionController::class;
+    Route::post('/orders/{order}/due-adjustments', [$completion, 'adjustment']);
+    Route::post('/due-adjustments/{id}/review', [$completion, 'reviewAdjustment'])->whereNumber('id');
+    Route::post('/settings/withdrawal-minimum', [$completion, 'minimum']);
+    Route::post('/staff/roles', [$completion, 'role']);
+    Route::post('/staff/action-permissions', [$completion, 'staffAccess']);
+    Route::post('/marketing/homepage-video', [$completion, 'homepageVideo']);
     $finance = FinanceOperationsController::class;
     $sales = FieldSalesController::class;
     Route::get('/payment-accounts', [$finance, 'accounts']);

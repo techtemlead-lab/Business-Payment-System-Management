@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Finance\DueAdjustments;
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\StaffPermissions;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
@@ -103,16 +105,17 @@ class PortalController extends Controller
                 $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched'])->whereHas('lines', fn ($lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
             }
             if ($section === 'dues') {
-                $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->whereColumn('paid', '<', 'total');
+                $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->whereRaw('paid < total-due_credit');
             }
             $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
         }
         if ($section === 'overview') {
             $approved = (clone $orders)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered']);
             $total = (string) (clone $approved)->sum('total');
+            $credits = (string) (clone $approved)->sum('due_credit');
             $paid = (string) (clone $approved)->sum('paid');
             $data['stats'] = ['order_count' => (clone $orders)->count(), 'purchases' => Money::decimal(Money::cents($total)),
-                'dues' => Money::decimal(Money::cents($total) - Money::cents($paid)),
+                'dues' => Money::decimal(Money::cents($total) - Money::cents($paid) - Money::cents($credits)),
                 'pending' => (clone $orders)->whereIn('status', ['submitted', 'held'])->count(),
                 'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
@@ -195,7 +198,7 @@ class PortalController extends Controller
             $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
         }
         if ($section === 'employees') {
-            $query = User::whereIn('role', ['employee', 'sr']);
+            $query = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
             if ($r->filled('q')) {
                 $term = '%'.$r->string('q').'%';
                 $query->where(function ($sub) use ($term) {
@@ -207,11 +210,13 @@ class PortalController extends Controller
             if ($r->filled('status')) {
                 $query->where('status', $r->string('status'));
             }
-            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at']);
+            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at'])
+                ->through(fn (User $employee) => [...$employee->toArray(), 'effective_permissions' => $employee->capabilities()]);
+            $staffQuery = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
             $data['employee_stats'] = [
-                'total' => User::where('role', 'employee')->count(),
-                'active' => User::where('role', 'employee')->where('status', 'active')->count(),
-                'suspended' => User::where('role', 'employee')->where('status', 'suspended')->count(),
+                'total' => (clone $staffQuery)->count(),
+                'active' => (clone $staffQuery)->where('status', 'active')->count(),
+                'suspended' => (clone $staffQuery)->where('status', 'suspended')->count(),
             ];
             $data['available_permissions'] = [
                 ['key' => 'field_sales', 'label' => 'Field Sales Workspace', 'description' => 'Work with partners inside assigned territories', 'category' => 'Field Sales'],
@@ -501,7 +506,7 @@ class PortalController extends Controller
         abort_unless($u->allows('accounts'), 403);
         $roles = ['dealer', 'sub_dealer'];
         if ($u->role === 'super_admin') {
-            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles'))];
+            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
         $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
 
@@ -517,7 +522,7 @@ class PortalController extends Controller
         abort_unless($order->user_id === $u->id || $u->allows('orders') || $u->allows('finance'), 404);
 
         return Inertia::render('OrderDetail', ['order' => $order->load(['lines', 'user:id,name,dealer_code']),
-            'outstanding' => Money::decimal(Money::cents($order->total) - Money::cents($order->paid)),
+            'outstanding' => $order->outstanding(), 'adjustments' => app(DueAdjustments::class)->history($order),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
             'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])]);

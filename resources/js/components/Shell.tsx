@@ -26,7 +26,7 @@ const icons: Record<string, LucideIcon> = {
 const names: Record<string, string> = {
     'field-sales': 'Field sales', 'staff-operations': 'Territories & targets', 'payroll': 'Staff payroll', 'my-payroll': 'My payroll',
     'payment-accounts': 'Payment accounts', 'policy-schedules': 'Commission schedules', 'reserve-payouts': 'Reserve payouts',
-    'commission-holds': 'Commission holds', 'financial-readiness': 'Opening balance review', 'financial-reports': 'Financial reports',
+    'commission-holds': 'Commission holds', 'financial-readiness': 'Opening balance review', 'financial-reports': 'Financial reports', 'dues-adjustments':'Due adjustments', 'finance-settings':'Finance settings', 'access-management':'Roles & permissions', 'video-marketing':'Video marketing',
     overview: 'Overview', orders: 'Orders', catalog: 'Product collection', accounts: 'Dealer Directory', inventory: 'Inventory',
     deliveries: 'Deliveries', dues: 'Outstanding dues', payments: 'Payment review', network: 'My network', policies: 'Commission policies',
     salary: 'Sub-dealer flat 3% salary', withdrawals: 'Withdrawals', ledger: 'Financial ledger', reports: 'Reports', customization: 'Site Customization',
@@ -83,8 +83,10 @@ export default function Shell({ section, children, action }: { section: string; 
         ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
         ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
         ...(capabilities.includes('payroll') ? ['payroll'] : []),
-        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness'] : []),
+        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness','dues-adjustments','finance-settings'] : []),
         ...(capabilities.some(cap=>['finance','reports','field_sales'].includes(cap)) ? ['financial-reports'] : []),
+        ...(user.role==='super_admin'?['access-management']:[]),
+        ...(capabilities.some(cap=>['content','catalog'].includes(cap))?['video-marketing']:[]),
         ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
         ...(capabilities.some(cap=>['catalog','pricing','inventory','orders','finance'].includes(cap)) ? ['catalog'] : []),
@@ -118,7 +120,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         onClick={() => setOpen(false)}
                         aria-current={section === item ? 'page' : undefined}
                         className={section === item ? 'selected' : ''}
-                        href={`${base}/${['field-sales','staff-operations','payroll','my-payroll','payment-accounts','policy-schedules','reserve-payouts','commission-holds','financial-readiness','financial-reports'].includes(item)?'operations/':''}${item === 'overview' ? '' : item}`}
+                        href={`${base}/${['field-sales','staff-operations','payroll','my-payroll','payment-accounts','policy-schedules','reserve-payouts','commission-holds','financial-readiness','financial-reports','dues-adjustments','finance-settings','access-management','video-marketing'].includes(item)?'operations/':''}${item === 'overview' ? '' : item}`}
                         key={item}
                     >
                         <Icon size={18} />

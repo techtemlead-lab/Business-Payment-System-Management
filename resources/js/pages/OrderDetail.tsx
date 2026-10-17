@@ -25,8 +25,8 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string }) {
-    const { auth,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[] }) {
+    const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
     const open = !['rejected', 'cancelled'].includes(order.status);
@@ -39,6 +39,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <div className="metric"><span>Verified payment</span><strong>{money(order.paid)}</strong></div>
             <div className="metric"><span>Remaining payment</span><strong>{money(outstanding)}</strong><small>Only approved orders contribute to financial dues.</small></div>
         </div>
+        {Number(order.due_credit)>0&&<div className="notice"><strong>Approved due credits: {money(order.due_credit)}</strong><p>These notes reduce outstanding dues and are shown separately from verified payments.</p></div>}
+        {adjustments.length>0&&<section className="panel"><h2>Due adjustment history</h2><Table rows={adjustments} columns={[{key:'reference',title:'Reference'},{key:'kind',title:'Type'},{key:'amount',title:'Amount',render:r=>money(r.amount)},{key:'status',title:'Status',render:r=><Badge status={r.status}/>},{key:'before_outstanding',title:'Due before',render:r=>r.before_outstanding==null?'—':money(r.before_outstanding)},{key:'after_outstanding',title:'Due after',render:r=>r.after_outstanding==null?'—':money(r.after_outstanding)},{key:'reason',title:'Reason'},{key:'prepared_by',title:'Prepared by'},{key:'reviewed_by',title:'Reviewed by'}]}/></section>}
         <section className="panel"><div className="panel-heading"><h2>Products & fulfilment</h2><span>Prices saved at submission</span></div>
             <Table rows={order.lines} columns={[
                 { key: 'name', title: 'Product' }, { key: 'quantity', title: 'Ordered' }, { key: 'dispatched', title: 'Dispatched' },
@@ -91,7 +93,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { name: 'reason', label: 'Decision / credit authorization reason', type: 'textarea', required: true },
             ]} submit="Record decision" />
         </section>}
-        {capabilities.includes('inventory') && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>Dispatch available items</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>Dispatch available items</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}
         <section className="panel"><h2>Order activity</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;

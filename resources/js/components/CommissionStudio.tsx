@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { SlidersHorizontal, Percent, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check, ArrowRight } from 'lucide-react';
 import { money } from './UI';
 
@@ -18,6 +18,8 @@ interface RuleRecord {
 }
 
 export default function CommissionStudio({ rules: initialRules }: { rules: RuleRecord[] }) {
+    const {staffActions} = usePage<any>().props;
+    const canEdit = staffActions?.finance?.edit ?? true;
     const [rules, setRules] = useState<Record<string, RuleRecord>>(() => {
         const map: Record<string, RuleRecord> = {};
         initialRules.forEach(r => { map[r.rule_key] = { ...r }; });
@@ -110,7 +112,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
 
                         <button
                             type="button"
-                            disabled={isOverAllocated || saving}
+                            disabled={!canEdit || isOverAllocated || saving}
                             onClick={handleSave}
                             style={{
                                 padding: '9px 20px',

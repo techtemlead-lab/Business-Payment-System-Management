@@ -46,7 +46,7 @@ interface SettlementState {
 }
 
 export default function SettlementsHub({ state }: { state: SettlementState }) {
-    const { flash, financeActive } = usePage<any>().props;
+    const { flash, financeActive, staffActions } = usePage<any>().props;
     const [selectedMonth, setSelectedMonth] = useState(state.current_month || new Date().toISOString().slice(0, 7));
     const [processingSalary, setProcessingSalary] = useState(false);
     const [processingRank, setProcessingRank] = useState(false);
@@ -171,7 +171,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 <button
                     type="button"
                     className="button small"
-                    disabled={!financeActive || processingMatured || state.maturing_count === 0}
+                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingMatured || state.maturing_count === 0}
                     onClick={handleReleaseMatured}
                     style={{
                         background: '#0284c7',
@@ -281,7 +281,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
                     <button
                         type="button"
-                        disabled={!financeActive || processingSalary}
+                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingSalary}
                         onClick={handleSettleSalary}
                         style={{
                             width: '100%',
@@ -396,7 +396,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
                     <button
                         type="button"
-                        disabled={!financeActive || processingRank}
+                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingRank}
                         onClick={handleSettleRank}
                         style={{
                             width: '100%',
@@ -505,7 +505,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                                     <button
                                                         type="button"
                                                         className="button small"
-                                                        disabled={!financeActive || claimingIncentive === l.user_id}
+                                                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id}
                                                         onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
                                                         style={{
                                                             background: '#0f172a',

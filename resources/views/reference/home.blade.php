@@ -323,6 +323,18 @@
         </div>
     </section>
     @endif
+    @php($homepageVideo = \App\Support\ProductVideo::homepage())
+    @if($homepageVideo)
+    <section class="ref-product-video ref-home-video" aria-labelledby="homepage-video-title">
+        <h2 id="homepage-video-title">{{ $homepageVideo['title'] }}</h2>
+        @if(!empty($homepageVideo['description']))<p>{{ $homepageVideo['description'] }}</p>@endif
+        @if($homepageVideo['media']['video_embed_url'])
+            <iframe src="{{ $homepageVideo['media']['video_embed_url'] }}" title="{{ $homepageVideo['product_name'] }} promotional video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+        @else
+            <video controls playsinline preload="metadata" @if($homepageVideo['media']['image_url']) poster="{{ $homepageVideo['media']['image_url'] }}" @endif><source src="{{ $homepageVideo['media']['video_url'] }}">Your browser does not support video playback.</video>
+        @endif
+    </section>
+    @endif
     <section class="ref-home-about">
         <h1>{{ $siteCustomization['about_headline'] ?? 'Natural Food, Medicine & Wellness Product Shop in Bangladesh' }}</h1>
         <p>{{ $siteCustomization['about_lead'] ?? 'Madina Natural Health Care connects products, dealers and communities across Bangladesh. Explore the collection and contact the company for product information and partnership enquiries.' }}</p>
