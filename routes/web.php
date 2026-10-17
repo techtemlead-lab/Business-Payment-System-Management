@@ -20,6 +20,12 @@ Route::get('/outlets', fn () => redirect('/dealers', 301));
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
 Route::middleware('guest')->group(function () {
+    Route::get('/owner/login', fn () => view('company.auth', ['mode' => 'login', 'ownerPortal' => true]))->name('owner.login');
+    Route::post('/owner/login', [AuthController::class, 'ownerLogin'])->middleware('throttle:20,1');
+    Route::get('/owner/forgot-password', fn () => view('company.auth', ['mode' => 'forgot', 'ownerPortal' => true]))->name('owner.password.request');
+    Route::post('/owner/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
+    Route::get('/owner/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'ownerPortal' => true, 'token' => $token, 'email' => request('email')]))->name('owner.password.reset');
+    Route::post('/owner/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
     Route::get('/company/login', fn () => view('company.auth', ['mode' => 'login']))->name('company.login');
     Route::post('/company/login', [AuthController::class, 'companyLogin'])->middleware('throttle:20,1');
     Route::get('/company/forgot-password', fn () => view('company.auth', ['mode' => 'forgot']))->name('company.password.request');

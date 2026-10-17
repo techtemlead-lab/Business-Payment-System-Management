@@ -21,6 +21,16 @@ class User extends Authenticatable
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
 
+    public function owner(): bool
+    {
+        return in_array($this->role, ['super_admin', 'md', 'chairman'], true);
+    }
+
+    public function loginPath(): string
+    {
+        return $this->owner() ? '/owner/login' : ($this->staff() ? '/company/login' : '/login');
+    }
+
     public function staff(): bool
     {
         return $this->role === 'employee' || str_starts_with($this->role, 'custom_') || array_key_exists($this->role, config('madina.roles'));
@@ -55,7 +65,7 @@ class User extends Authenticatable
         if ($this->status !== 'active') {
             return [];
         }
-        if (str_starts_with($this->role, 'custom_') || isset($this->profile['action_permissions'])) {
+        if (str_starts_with($this->role, 'custom_') || isset($this->profile['action_permissions']) || in_array($this->role, ['md', 'chairman'], true)) {
             return array_keys(array_filter(app(StaffPermissions::class)->matrix($this), fn (array $actions): bool => $actions['view'] ?? false));
         }
         if ($this->role === 'employee') {

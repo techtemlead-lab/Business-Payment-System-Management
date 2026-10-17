@@ -213,7 +213,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                         onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                         style={{ width: '100%', accentColor: '#006837', cursor: 'pointer' }}
                                     />
-                                    {Object.entries(r.parameters??{}).filter(([,value])=>typeof value!=='object').map(([key,value])=><label key={key} style={{display:'block',fontSize:11,marginTop:8}}>{key.replaceAll('_',' ')}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))} style={{marginLeft:8,maxWidth:130}}/></label>)}
+                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&typeof value!=='object').map(([key,value])=><label key={key} style={{display:'block',fontSize:11,marginTop:8}}>{key.replaceAll('_',' ')}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))} style={{marginLeft:8,maxWidth:130}}/></label>)}
                                 </div>
                             </div>
                         );

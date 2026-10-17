@@ -31,7 +31,7 @@ class CompanyAccessTest extends TestCase
 
     public function test_correct_credentials_do_not_cross_company_and_dealer_login(): void
     {
-        $staff = User::factory()->create(['role' => 'super_admin', 'password' => 'StaffPassword12345']);
+        $staff = User::factory()->create(['role' => 'finance', 'password' => 'StaffPassword12345']);
         $dealer = User::factory()->create(['role' => 'dealer', 'password' => 'DealerPassword12345']);
         $this->post('/company/login', ['email' => $dealer->email, 'password' => 'DealerPassword12345'])->assertSessionHasErrors('email');
         $this->assertGuest();
@@ -72,7 +72,7 @@ class CompanyAccessTest extends TestCase
 
     public function test_inertia_logout_uses_full_navigation_to_standalone_company_login(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'super_admin']))->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', '/company/login');
+        $this->actingAs(User::factory()->create(['role' => 'super_admin']))->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', '/owner/login');
         $this->assertGuest();
     }
 

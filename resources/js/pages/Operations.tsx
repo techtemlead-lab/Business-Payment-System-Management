@@ -7,28 +7,32 @@ import {Badge, Empty, Modal, Pagination, Row, Table, label, money} from '../comp
 
 type Option = {value:string;label:string};
 type Field = {name:string;label:string;type?:string;options?:Option[];required?:boolean;value?:string};
-type Action = {title:string;action:string;fields:Field[];defaults?:Row;policy?:boolean;policyRules?:Row};
+type Action = {title:string;action:string;fields:Field[];defaults?:Row;policy?:boolean;policyRules?:Row;fundingSources?:string[]};
 const root = '/commands/operations';
 const reason:Field = {name:'reason',label:'Reason and approval details',type:'textarea',required:true};
 const field = (name:string,title:string,type='text',required=true):Field => ({name,label:title,type,required});
 const options = (name:string,title:string,values:string[],required=true):Field => ({name,label:title,required,options:values.map(value=>({value,label:value==='1'?'Yes':value==='0'?'No':label(value)}))});
 const titles:Record<string,string> = {'field-sales':'Field sales workspace','staff-operations':'Territories & targets',payroll:'Staff payroll','my-payroll':'My payroll','payment-accounts':'Payment accounts','policy-schedules':'Commission schedules','reserve-payouts':'Reserve payouts','commission-holds':'Commission holds','financial-readiness':'Opening balance review','financial-reports':'Financial reports','dues-adjustments':'Due adjustments','finance-settings':'Finance settings','access-management':'Roles & permissions','video-marketing':'Homepage video marketing'};
 
-function OperationForm({title,action,fields,defaults={},policy,policyRules={},onDone}:Action & {onDone?:()=>void}) {
+function OperationForm({title,action,fields,defaults={},policy,policyRules={},fundingSources=[],onDone}:Action & {onDone?:()=>void}) {
     const form = useForm<Row>({...Object.fromEntries(fields.map(f=>[f.name,f.type==='file'?null:(f.value??'')])),...defaults});
+    const [fundCount,setFundCount]=useState(1);
     const [itemCount,setItemCount] = useState(1);
     const itemFields = fields.filter(f=>f.name.startsWith('items.0.'));
     const recipientKeys = ['own_dealer_cashback','direct_referral','d2d_gen2','d2d_gen3','area_division','area_district','area_upazila','area_union'];
-    const parameters = policy && form.data.scope!=='recipient' ? (policyRules[form.data.rule_key]?.parameters??{}) : {};
+    const parameters = policy && form.data.scope!=='recipient' ? Object.fromEntries(Object.entries(policyRules[form.data.rule_key]?.parameters??{}).filter(([key])=>key!=='dynamic_compression')) : {};
     const parameterFields:Field[] = Object.entries(parameters).map(([key,value])=>typeof value==='boolean'
         ? {...options('parameters.'+key,label(key),['1','0']),value:value?'1':'0'}
         : {...field('parameters.'+key,label(key.replace(/_pct$/,' (%)')),'number'),value:String(value)});
+    const fundingFields:Field[]=policy&&form.data.scope==='recipient'?[{name:'funding_mode',label:'Source for any increased rate',required:true,options:[{value:'company',label:'A · Company share'},{value:'allocations',label:'B · Other commissions / reserves'}]},...(form.data.funding_mode==='allocations'?Array.from({length:fundCount},(_,index)=>[
+        {name:`funding_sources.${index}.category`,label:`Funding source ${index+1}`,required:true,options:fundingSources.filter(category=>category!==form.data.rule_key&&!Array.from({length:fundCount},(_,other)=>other===index?'':form.data[`funding_sources.${other}.category`]).includes(category)).map(value=>({value,label:label(value)}))},field(`funding_sources.${index}.percentage`,`Rate deducted from source ${index+1} (%)`,'number')
+    ]).flat():[])]:[];
     const visibleFields = [...fields.flatMap(f=>f.name.startsWith('items.0.')
-        ? Array.from({length:itemCount},(_,index)=>({...f,name:f.name.replace('items.0.',`items.${index}.`),label:`${f.label} ${index+1}`})) : [f]), ...parameterFields];
+        ? Array.from({length:itemCount},(_,index)=>({...f,name:f.name.replace('items.0.',`items.${index}.`),label:`${f.label} ${index+1}`})) : [f]), ...parameterFields, ...fundingFields];
     const change = (name:string,value:any) => {
         if (policy && ['scope','rule_key'].includes(name)) {
             form.setData((current:Row)=>{
-                const next=Object.fromEntries(Object.entries(current).filter(([key])=>!key.startsWith('parameters.')));
+                const next=Object.fromEntries(Object.entries(current).filter(([key])=>!key.startsWith('parameters.')&&!key.startsWith('funding_sources.')));
                 next[name]=value;
                 if(name==='scope'){next.rule_key='';next.percentage='';}
                 if(name==='rule_key')next.percentage=String(policyRules[value]?.percentage??'');
@@ -51,6 +55,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},on
                     rule.parameters={...parameters,...data.parameters};
                     for(const key of Object.keys(parameters))if(typeof parameters[key]==='boolean')rule.parameters[key]=rule.parameters[key]===true||rule.parameters[key]==='1';
                 }
+                if(data.scope==='recipient'){rule.funding_mode=data.funding_mode;if(data.funding_mode==='allocations')rule.funding_sources=Object.fromEntries((data.funding_sources??[]).map((source:Row)=>[source.category,source.percentage]));}delete data.funding_mode;delete data.funding_sources;
                 data.rules={[data.rule_key]:rule};delete data.rule_key;delete data.percentage;delete data.parameters;if(data.scope==='global')delete data.user_id;
             }
             if(data.program==='marketing')delete data.user_id;
@@ -63,6 +68,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},on
             const value=form.data[f.name]??f.value??'';
             return <label key={f.name}>{f.label}{choices?<select required={f.required} value={String(value)} onChange={e=>change(f.name,e.target.value)}><option value="">Select…</option>{choices.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:f.type==='textarea'?<textarea rows={3} required={f.required} value={value} onChange={e=>change(f.name,e.target.value)}/>:f.type==='file'?<input required={f.required} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e=>change(f.name,e.target.files?.[0]??null)}/>:<input required={f.required} type={f.type??'text'} step={f.type==='number'?(f.name.endsWith('.quantity')?'1':'0.01'):undefined} value={value} onChange={e=>change(f.name,e.target.value)}/>} {form.errors[f.name]&&<span className="field-error">{String(form.errors[f.name])}</span>}</label>;
         })}
+        {policy&&form.data.scope==='recipient'&&form.data.funding_mode==='allocations'&&<div style={{display:'flex',gap:8}}><button className="button" type="button" disabled={fundCount>=fundingSources.length-1} onClick={()=>setFundCount(fundCount+1)}>Add funding source</button>{fundCount>1&&<button className="button" type="button" onClick={()=>{form.setData((current:Row)=>Object.fromEntries(Object.entries(current).filter(([key])=>!key.startsWith(`funding_sources.${fundCount-1}.`))));setFundCount(fundCount-1);}}>Remove last source</button>}</div>}
         {itemFields.length>0&&<div style={{display:'flex',gap:8}}><button className="button" type="button" disabled={itemCount>=100} onClick={()=>{for(const f of itemFields)form.setData(f.name.replace('items.0.',`items.${itemCount}.`),f.name.endsWith('.quantity')?'1':'');setItemCount(itemCount+1);}}>Add product</button>{itemCount>1&&<button className="button" type="button" onClick={()=>{form.setData((current:Row)=>Object.fromEntries(Object.entries(current).filter(([key])=>!key.startsWith(`items.${itemCount-1}.`))));setItemCount(itemCount-1);}}>Remove last product</button>}</div>}
         {Object.keys(form.errors).length>0&&<div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
         {form.progress&&<progress max={100} value={form.progress.percentage} aria-label="Upload progress"/>}
@@ -118,7 +124,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         if(capabilities.includes('finance'))forms.push({title:'Create effective salary contract',action:root+'/payroll/contracts',fields:[staffField,field('effective_month','Effective month','month'),field('base_salary','Base salary (BDT)','number'),field('allowance','Allowance (BDT)','number'),field('deduction','Deduction (BDT)','number'),reason]});
         forms.push({title:'Prepare closed-month payroll',action:root+'/payroll/prepare',fields:[field('period_month','Closed salary month','month')]});
     }
-    if(section==='policy-schedules')forms.push({title:'Propose commission schedule',action:root+'/policy-schedules',policy:true,policyRules:policy?.rules??{},fields:[options('scope','Schedule applies to',['global','buyer','recipient']),{...partnerField,required:false},{name:'rule_key',label:'Commission rule',required:true,options:Object.entries(policy?.rules??{}).map(([key,value]:[string,any])=>({value:key,label:value.name}))},field('percentage','Rate (%)','number'),field('effective_at','Starts (Dhaka)','datetime-local'),field('expires_at','Expires (optional, Dhaka)','datetime-local',false),reason]});
+    if(section==='policy-schedules')forms.push({title:'Propose commission schedule',action:root+'/policy-schedules',policy:true,policyRules:policy?.rules??{},fundingSources:policy?.funding_sources??[],fields:[options('scope','Schedule applies to',['global','buyer','recipient']),{...partnerField,required:false},{name:'rule_key',label:'Commission rule',required:true,options:Object.entries(policy?.rules??{}).map(([key,value]:[string,any])=>({value:key,label:value.name}))},field('percentage','Rate (%)','number'),field('effective_at','Starts (Dhaka)','datetime-local'),field('expires_at','Expires (optional, Dhaka)','datetime-local',false),reason]});
     if(section==='reserve-payouts')forms.push({title:'Request reward or company expense',action:root+'/reserves',fields:[options('program','Reserve program',['tour','additional_rank','bike','car','marketing']),{...partnerField,required:false},field('payee_name','Company expense payee','text',false),field('amount','Approved amount requested (BDT)','number'),reason],defaults:{request_key:crypto.randomUUID()}});
     if(section==='financial-readiness')forms.push({title:'Submit evidenced opening balances',action:root+'/opening-balances',fields:[field('wallet_available','Verified available wallet total (BDT)','number'),field('wallet_held','Verified held wallet total (BDT)','number'),field('order_paid','Verified collected order total (BDT)','number'),field('withdrawal_paid','Verified paid withdrawal total (BDT)','number'),field('source_reference','Source / statement reference'),field('evidence','Independent evidence (PDF or image, up to 10 MB)','file')]});
     const accountFields:Field[]=[field('label','Account label'),options('channel','Gateway / payment method',['Bank','bKash','Nagad','Rocket']),field('holder','Account holder'),field('account_number','Account number'),field('details','Payment instructions','textarea',false),options('collects_payments','Accept collections?',['1','0']),options('pays_out','Allow payouts?',['1','0']),options('is_active','Account active?',['1','0']),reason];
@@ -140,6 +146,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
                 actions.push(review('Cancel unpaid expense',`${root}/reserves/${row.id}/review`,['cancelled']));
             }
         }
+        if(title==='Held allocations'&&financeActive&&row.partner_status!=='active'&&['direct_referral','d2d_gen2','d2d_gen3'].includes(row.category)&&(staffActions?.finance?.edit??true))actions.push({title:'Select replacement and release',action:`${root}/holds/${row.id}/reassign`,fields:[choose(partners,'user_id','Replacement partner'),reason],defaults:{request_key:crypto.randomUUID()}});
         if(title==='Held allocations'&&financeActive)actions.push({title:'Review and release hold',action:`${root}/holds/${row.id}/release`,fields:[reason]});
         if(title==='Opening balance reviews'&&!row.verified_at&&row.created_by!==auth.user.id)actions.push({title:'Verify opening evidence and totals',action:`${root}/opening-balances/${row.id}/verify`,fields:[]});
         if(title==='Company reserve clawbacks'&&Number(row.amount)>Number(row.recovered)&&financeActive)actions.push({...payment('Record recovered reserve',`${root}/reserves/clawbacks/${row.id}/recover`),fields:[choose(paymentAccounts.filter((a:Row)=>a.is_active&&a.collects_payments),'payment_account_id','Company collection account'),field('amount','Recovered amount (BDT)','number'),field('payment_reference','Collection reference'),field('paid_at','Collection time (Dhaka)','datetime-local'),field('receipt','Recovery receipt','file'),reason]});
@@ -152,7 +159,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {section==='access-management'&&<StaffAccessEditor modules={permissionModules} staff={staffAccess} roles={customRoles} presets={rolePresets}/>}
         {section==='dues-adjustments'&&<section className="panel"><h2>Receivable credit notes</h2><p>A credit note reduces unpaid dues. A debit correction restores an earlier credit up to the original order value. Neither is cash received or commissionable payment. Prices and the captured commission policy remain unchanged.</p><form method="get" className="action-form"><label>Find an order<input type="search" name="q" placeholder="Order number"/></label><button className="button">Search orders</button></form><label>Order<select value={selectedOrder} onChange={e=>setAdjustmentOrder(e.target.value)}>{adjustableOrders.map((order:Row)=><option key={order.id} value={order.id}>{order.name}</option>)}</select></label><p className="muted">A separate Finance reviewer approves each note. Paid-order refunds use the existing linked reversal workflow.</p></section>}
         {section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>Withdrawal policy</h2><p>Current minimum: <strong>{money(withdrawalSetting.amount)}</strong>. Changes apply to new requests; existing requests retain their recorded minimum and amount.</p></section>}
-        {section==='policy-schedules'&&<p>Global and buyer schedules set the terms for new orders. Recipient schedules cap an individual partner’s earning rate; the remainder stays in reserve. A separate Finance reviewer approves each schedule.</p>}
+        {section==='policy-schedules'&&<p>Global, buyer and recipient schedules take effect when an order is approved. Recipient rates may increase or decrease; choose company-share or named allocation funding for increases. Source deductions must match the increase. Reductions stay in reserve. A separate Finance reviewer approves each schedule.</p>}
         {section==='payroll'&&<p>Salary contracts retain every revision. Review the captured contract, target and earned bonus before approval. Approved entries require a separate payer and a private receipt.</p>}
         {section==='reserve-payouts'&&<p>Tour rewards use the selected sub-dealer’s own reserve. Approved partner rewards credit their earnings wallet. Marketing expenses require a separate payer, actual bank or gateway reference and receipt.</p>}
         {Object.keys(summary).length>0&&<section className="panel"><dl className="profile-grid">{Object.entries(summary).map(([key,value])=><div key={key}><dt>{label(key)}</dt><dd>{money(value)}</dd></div>)}</dl></section>}

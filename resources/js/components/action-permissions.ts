@@ -14,7 +14,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(part==='marketing/homepage-video')return any(['content','catalog'],'edit');
         if(part==='payroll/prepare')return any(['payroll'],'create');
         if(part==='payroll/contracts'||part==='settings/withdrawal-minimum')return any(['finance'],'edit');
-        if(/\/(review|pay|verify|release|recover)$/.test(part))return any(['finance'],'approve');
+        if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');
         return any(['finance'],method==='patch'?'edit':'create');
     }
     if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/invite$/.test(path)?'edit':'create');

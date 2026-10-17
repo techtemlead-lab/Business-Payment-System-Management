@@ -74,6 +74,7 @@ final class CommissionPolicy
         if ($override) {
             $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
         }
+        $rules['d2d_multitier']['parameters']['dynamic_compression'] = false;
         if ($validate) {
             $this->validateSchedule($rules);
         }
@@ -118,6 +119,9 @@ final class CommissionPolicy
             }
             $data = Validator::make($input, ['percentage' => 'sometimes|required|numeric|between:0,100|decimal:0,2',
                 'parameters' => 'sometimes|array', 'is_active' => 'sometimes|boolean'])->validate();
+            if (($data['parameters']['dynamic_compression'] ?? false) === true) {
+                throw ValidationException::withMessages(['rules' => 'Automatic referral compression is disabled. Select inactive-recipient replacements explicitly when approving an order.']);
+            }
             if (isset($data['parameters'])) {
                 if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
                     throw ValidationException::withMessages(['rules' => 'Unsupported parameters for '.$key.'.']);
@@ -134,7 +138,7 @@ final class CommissionPolicy
     /** @param array<string, mixed> $rules */
     public function update(User $actor, array $rules): void
     {
-        abort_unless($actor->allows('finance'), 403);
+        abort_unless($actor->canAct('finance', 'edit'), 403);
         if ($rules === [] || array_diff_key($rules, self::defaults()) !== []) {
             throw ValidationException::withMessages(['rules' => 'Supply known commission rule keys.']);
         }
@@ -157,6 +161,9 @@ final class CommissionPolicy
                     throw ValidationException::withMessages(['rules' => 'This commission rule changed while you were editing. Reload the page before saving.']);
                 }
                 unset($data['version']);
+                if (($data['parameters']['dynamic_compression'] ?? false) === true) {
+                    throw ValidationException::withMessages(['rules' => 'Automatic referral compression is disabled. Select inactive-recipient replacements explicitly when approving an order.']);
+                }
                 if (isset($data['parameters'])) {
                     if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
                         throw ValidationException::withMessages(['rules' => 'Unsupported parameters for '.$key.'.']);

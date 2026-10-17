@@ -130,6 +130,14 @@ class FinanceOperationsController extends Controller
         return $this->done($request);
     }
 
+    public function reassignHeld(Request $request, int $id, ReserveService $reserves): Response
+    {
+        $data = $request->validate(['user_id' => 'required|integer|exists:users,id', 'reason' => self::Reason, 'request_key' => 'required|uuid']);
+        $reserves->reassignHeld($request->user(), $id, (int) $data['user_id'], $data['reason'], $data['request_key']);
+
+        return $this->done($request);
+    }
+
     public function release(Request $request, int $id, ReserveService $reserves): Response
     {
         $data = $request->validate(['reason' => self::Reason]);

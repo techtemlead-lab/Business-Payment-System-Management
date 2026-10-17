@@ -25,7 +25,7 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[] }) {
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
@@ -86,11 +86,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             ]} submit="Submit for verification" />
         </section>}
         {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">
-            <h2>Review this order</h2><p className="muted">Approval is separate from payment and delivery. Only Finance may explicitly authorize an unpaid credit sale.</p>
+            <h2>Review this order</h2><p className="muted">Commission rules and individual rates are fixed when this order is approved. Original product prices remain unchanged. Only authorized Finance staff may approve unpaid credit.</p>{replacementSlots.length>0&&<div className="notice"><p>Inactive recipients can be replaced by an explicitly selected active partner. Leave a selection blank to retain the original recipient and hold their commission. Use the decision reason to explain each replacement.</p><form method="get"><label>Find replacement partners by name or code<input name="replacement_q" type="search"/></label><button className="button small">Find partners</button></form></div>}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
                 { name: 'status', label: 'Decision', required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value) })) },
                 ...(capabilities.includes('finance') ? [{ name: 'allow_credit', label: 'Credit authorization', value: '0', options: [{ value: '0', label: 'Full verified payment required' }, { value: '1', label: 'I authorize the unpaid amount as credit' }] }] : []),
-                { name: 'reason', label: 'Decision / credit authorization reason', type: 'textarea', required: true },
+                ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:`Replacement for generation ${slot.generation} · ${slot.name} (optional)`,options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??'Partner'}`}))})),
+                { name: 'reason', label: 'Decision / credit authorization / replacement reason', type: 'textarea', required: true },
             ]} submit="Record decision" />
         </section>}
         {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>Dispatch available items</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}

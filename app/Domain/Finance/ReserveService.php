@@ -216,6 +216,41 @@ final class ReserveService
         }, 3);
     }
 
+    public function reassignHeld(User $actor, int $id, int $recipientId, string $reason, string $requestKey): void
+    {
+        abort_unless($actor->canAct('finance', 'edit') && $actor->canAct('finance', 'approve'), 403);
+        CommissionWallet::requireActive();
+        DB::transaction(function () use ($actor, $id, $recipientId, $reason, $requestKey): void {
+            CommissionWallet::lock();
+            abort_unless($actor->fresh()->canAct('finance', 'edit') && $actor->fresh()->canAct('finance', 'approve'), 403);
+            $existing = DB::table('audit_events')->where('action', 'commission.hold_reassigned')->where('metadata->request_key', $requestKey)->first();
+            if ($existing) {
+                $metadata = json_decode($existing->metadata, true, flags: JSON_THROW_ON_ERROR);
+                abort_unless($existing->subject === (string) $id && $existing->actor_id === $actor->id && $metadata['recipient_id'] === $recipientId && $metadata['reason'] === $reason, 409, 'This reassignment key was already used for different data.');
+
+                return;
+            }
+            $fund = CommissionAllocation::whereKey($id)->lockForUpdate()->firstOrFail();
+            $original = User::find($fund->user_id);
+            if ($fund->status !== 'held' || ! in_array($fund->category, ['direct_referral', 'd2d_gen2', 'd2d_gen3'], true) || ! $original || $original->status === 'active'
+                || ! DB::table('commission_batches')->where('order_id', $fund->order_id)->where('cash_basis', '>', 0)->exists()) {
+                throw ValidationException::withMessages(['hold' => 'Only an inactive recipient\'s source-funded held referral or D2D commission can be reassigned.']);
+            }
+            $recipient = User::whereKey($recipientId)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->first();
+            $buyerId = DB::table('orders')->where('id', $fund->order_id)->value('user_id');
+            $alreadyReceives = CommissionAllocation::where('order_id', $fund->order_id)->where('user_id', $recipientId)
+                ->whereIn('category', ['direct_referral', 'd2d_gen2', 'd2d_gen3'])->where('amount', '>', 0)->exists();
+            if (! $recipient || $recipientId === $buyerId || $alreadyReceives) {
+                throw ValidationException::withMessages(['user_id' => 'Choose an active partner other than the buyer or another referral recipient on this order.']);
+            }
+            $metadata = ['original_user_id' => $original->id, 'recipient_id' => $recipientId, 'reason' => $reason, 'request_key' => $requestKey,
+                'authorized_by' => $actor->id, 'authorized_at' => now()->toIso8601String(), 'amount' => $fund->amount];
+            $fund->update(['user_id' => $recipientId, 'metadata' => [...$fund->metadata, 'recipient_reassignment' => $metadata]]);
+            $this->release($actor, $id, $reason);
+            Audit::record($actor->id, 'commission.hold_reassigned', (string) $id, $metadata);
+        }, 3);
+    }
+
     /** @return Collection<int, CommissionAllocation> */
     private function funds(string $program, ?int $userId): Collection
     {

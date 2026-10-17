@@ -80,6 +80,7 @@ $operations = function (): void {
     Route::post('/reserves/{id}/pay', [$finance, 'reservePay'])->whereNumber('id');
     Route::post('/reserves/clawbacks/{id}/recover', [$finance, 'recover'])->whereNumber('id');
     Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');
+    Route::post('/holds/{id}/reassign', [$finance, 'reassignHeld'])->whereNumber('id');
     Route::post('/opening-balances', [$finance, 'opening']);
     Route::post('/opening-balances/{id}/verify', [$finance, 'openingVerify'])->whereNumber('id');
     Route::get('/receipts/{kind}/{id}', [$finance, 'receipt']);

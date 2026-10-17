@@ -521,7 +521,23 @@ class PortalController extends Controller
         $u = $r->user();
         abort_unless($order->user_id === $u->id || $u->allows('orders') || $u->allows('finance'), 404);
 
-        return Inertia::render('OrderDetail', ['order' => $order->load(['lines', 'user:id,name,dealer_code']),
+        $replacementSlots = [];
+        $replacementCandidates = [];
+        if ($u->canAct('finance', 'edit') && in_array($order->status, ['submitted', 'held'], true)) {
+            foreach (array_slice($order->commission_policy_snapshot['uplines'] ?? [], 0, 3) as $index => $id) {
+                $original = User::find($id);
+                if ($original && ($original->status !== 'active' || ! in_array($original->role, ['dealer', 'sub_dealer'], true))) {
+                    $replacementSlots[] = ['generation' => $index + 1, 'name' => $original->name];
+                }
+            }
+            if ($replacementSlots !== []) {
+                $replacementCandidates = User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->where('id', '!=', $order->user_id)
+                    ->when($r->filled('replacement_q'), fn ($q) => $q->where(fn ($q) => $q->where('name', 'ilike', '%'.$r->string('replacement_q').'%')->orWhere('dealer_code', 'ilike', '%'.$r->string('replacement_q').'%')))
+                    ->orderBy('name')->limit(200)->get(['id', 'name', 'dealer_code']);
+            }
+        }
+
+        return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'outstanding' => $order->outstanding(), 'adjustments' => app(DueAdjustments::class)->history($order),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),

@@ -17,8 +17,11 @@ final class CommissionPosting
     public function __construct(private CommissionPolicy $policies, private CommissionWallet $wallets, private CommissionQualification $qualification) {}
 
     /** @return array<string, mixed> */
-    public function capture(Order $order, User $buyer): array
+    public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null): array
     {
+        if (($order->commission_policy_snapshot['capture_event'] ?? null) === 'approval') {
+            return $order->commission_policy_snapshot;
+        }
         $snapshot = $this->policies->snapshot(true, $buyer);
         $snapshot['account_type'] = $buyer->role;
         if (config('madina.financial_activation')) {
@@ -33,6 +36,8 @@ final class CommissionPosting
                 throw ValidationException::withMessages(['items' => 'Purchase prices do not fund the company share and commission schedule. Ask Finance to correct pricing or policy.']);
             }
         }
+        $existing = $order->commission_policy_snapshot;
+        $snapshot['capture_event'] = $event;
         $snapshot['geography'] = ['division' => $buyer->division, 'district' => $buyer->district,
             'upazila' => $buyer->profile['upazila'] ?? null, 'union' => $buyer->profile['union'] ?? null];
         $snapshot['uplines'] = [];
@@ -47,6 +52,11 @@ final class CommissionPosting
             $snapshot['uplines'][] = $upline->id;
             $next = $upline->sponsor_id;
         }
+        if ($event === 'approval' && $existing) {
+            $snapshot['geography'] = $existing['geography'];
+            $snapshot['uplines'] = $existing['uplines'];
+        }
+        $snapshot['referral_replacements'] = $this->replacements($snapshot['uplines'], $buyer, $replacements, $actor, $event);
         $geography = $snapshot['geography'];
         $areaUsers = AreaDealerAssignment::where('is_active', true)->where(function ($query) use ($geography): void {
             $path = [];
@@ -67,7 +77,13 @@ final class CommissionPosting
                 $query->whereRaw('1=0');
             }
         })->pluck('user_id')->all();
-        $snapshot['recipient_overrides'] = $this->policies->recipientOverrides([$buyer->id, ...$snapshot['uplines'], ...$areaUsers]);
+        $snapshot['recipient_overrides'] = $this->policies->recipientOverrides([$buyer->id, ...$snapshot['uplines'], ...array_column($snapshot['referral_replacements'], 'user_id'), ...$areaUsers]);
+        if ($event === 'approval') {
+            $preview = $this->calculate($order, $buyer, $snapshot);
+            $snapshot['approved_by'] = $actor?->id;
+            $snapshot['funding_decisions'] = $preview['funding_decisions'];
+            $snapshot['approved_company_share'] = Money::decimal($preview['company']);
+        }
         $order->update(['commission_policy_snapshot' => $snapshot]);
 
         return $snapshot;
@@ -96,142 +112,10 @@ final class CommissionPosting
                 return [];
             }
             $snapshot = $order->commission_policy_snapshot ?? $this->capture($order, $buyer);
+            ['rows' => $rows, 'mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'days' => $days, 'funding_decisions' => $decisions] = $this->calculate($order, $buyer, $snapshot);
+            $snapshot['funding_decisions'] = $decisions;
             $rules = $snapshot['rules'];
-            $this->policies->validateSchedule($rules);
-            $mrp = 0;
-            $lineCash = 0;
-            foreach ($order->lines as $line) {
-                $mrp += Money::cents($line->mrp) * $line->quantity;
-                $lineCash += Money::cents($line->total);
-            }
-            if ($mrp <= 0 || $lineCash !== $cash) {
-                throw ValidationException::withMessages(['commissions' => 'Order lines and collected purchase value must reconcile before posting earnings.']);
-            }
-            $company = Percentage::from($snapshot['company_mrp_percent'])->of($mrp, 'half_up');
             $type = $snapshot['account_type'];
-            $rows = [];
-            $add = function (string $category, string $ruleKey, ?int $userId = null, string $status = 'pending', ?string $rate = null, ?int $amount = null, array $metadata = []) use (&$rows, $rules, $cash): void {
-                $percentage = $rate === null ? CommissionPolicy::rate($rules, $ruleKey) : Percentage::from($rate);
-                $value = $amount ?? $percentage->of($cash, 'half_up');
-                if ($percentage->basisPoints > 0) {
-                    $rows[] = ['category' => $category, 'rule_key' => $ruleKey, 'user_id' => $userId, 'status' => $status,
-                        'rate_percentage' => $percentage->decimal(), 'cents' => $value, 'metadata' => $metadata];
-                }
-            };
-            $days = ($rules['commission_cooling_off']['is_active'] ?? false) ? (int) $rules['commission_cooling_off']['parameters']['cooling_off_days'] : 0;
-            $eligibleStatus = $days > 0 ? 'maturing' : 'available';
-            $recipient = function (?int $id) use ($eligibleStatus): string {
-                $user = $id ? User::find($id) : null;
-
-                return $user && $user->status === 'active' && in_array($user->role, ['dealer', 'sub_dealer'], true) ? $eligibleStatus : ($id ? 'held' : 'pending');
-            };
-            $add('own_dealer_cashback', 'own_dealer_cashback', $buyer->id, $recipient($buyer->id));
-            $uplines = $snapshot['uplines'];
-            if ($rules['d2d_multitier']['parameters']['dynamic_compression'] ?? false) {
-                $uplines = array_values(array_filter($uplines, fn (int $id): bool => User::whereKey($id)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->exists()));
-            }
-            $add(isset($uplines[0]) ? 'direct_referral' : 'direct_referral_breakage', 'direct_referral', $uplines[0] ?? null, $recipient($uplines[0] ?? null));
-            foreach ([2, 3] as $depth) {
-                $rate = CommissionPolicy::rate($rules, 'd2d_multitier')->basisPoints > 0 ? (string) $rules['d2d_multitier']['parameters']['gen'.$depth.'_pct'] : '0.00';
-                $id = $uplines[$depth - 1] ?? null;
-                $add('d2d_gen'.$depth.($id ? '' : '_breakage'), 'd2d_multitier', $id, $recipient($id), $rate);
-            }
-            $areaPool = CommissionPolicy::rate($rules, 'area_dealer_pool')->of($cash, 'half_up');
-            $areaRemaining = $areaPool;
-            $geography = $snapshot['geography'];
-            $path = [];
-            foreach (['division', 'district', 'upazila', 'union'] as $level) {
-                $path[$level] = $geography[$level] ?? null;
-                $rate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters'][$level.'_share_pct'] : '0.00';
-                $share = min($areaRemaining, Percentage::from($rate)->of($cash, 'half_up'));
-                $areaRemaining -= $share;
-                $query = AreaDealerAssignment::where('level', $level)->where('is_active', true);
-                foreach ($path as $field => $value) {
-                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
-                }
-                $assignments = collect($path)->contains(fn ($value): bool => trim((string) $value) === '') ? collect() : $query->get();
-                $assignment = $assignments->count() === 1 ? $assignments->first() : null;
-                $id = $assignment?->user_id;
-                $status = $recipient($id);
-                if ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
-                    $status = 'held';
-                }
-                $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
-                    ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve']);
-            }
-            $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining);
-            foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
-                'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {
-                $add($category, $key);
-            }
-            if ($type === 'sub_dealer') {
-                $add('additional_rank_pool', 'additional_rank');
-                $add('sub_dealer_salary', 'sub_dealer_salary', $buyer->id);
-                $add('sub_dealer_tour', 'sub_dealer_tour', $buyer->id, 'reserved');
-            }
-            $totalRate = array_sum(array_map(fn (array $row): int => Percentage::from($row['rate_percentage'])->basisPoints, $rows));
-            $target = intdiv($cash * $totalRate + 5000, 10000);
-            if ($target + $company === $cash + 1 && $cash * 10000 >= $mrp * 3000 + $cash * $totalRate) {
-                $target--;
-            }
-            $groups = [];
-            foreach ($rows as $index => $row) {
-                $groups[$row['rule_key']][] = $index;
-            }
-            $groupAmounts = [];
-            $groupFractions = [];
-            foreach ($groups as $key => $indexes) {
-                $numerator = $cash * CommissionPolicy::rate($rules, $key)->basisPoints;
-                $groupAmounts[$key] = intdiv($numerator, 10000);
-                $groupFractions[$key] = $numerator % 10000;
-            }
-            arsort($groupFractions, SORT_NUMERIC);
-            $remaining = $target - array_sum($groupAmounts);
-            foreach (array_keys($groupFractions) as $key) {
-                if ($remaining-- <= 0) {
-                    break;
-                }
-                $groupAmounts[$key]++;
-            }
-            foreach ($groups as $key => $indexes) {
-                $fractions = [];
-                $base = 0;
-                foreach ($indexes as $index) {
-                    $numerator = $cash * Percentage::from($rows[$index]['rate_percentage'])->basisPoints;
-                    $rows[$index]['cents'] = intdiv($numerator, 10000);
-                    $base += $rows[$index]['cents'];
-                    $fractions[$index] = $numerator % 10000;
-                }
-                arsort($fractions, SORT_NUMERIC);
-                $remaining = $groupAmounts[$key] - $base;
-                foreach (array_keys($fractions) as $index) {
-                    if ($remaining-- <= 0) {
-                        break;
-                    }
-                    $rows[$index]['cents']++;
-                }
-            }
-            foreach ($rows as $index => $row) {
-                $override = $snapshot['recipient_overrides'][$row['user_id']] ?? null;
-                if (! $override || ! isset($override['rates'][$row['category']])) {
-                    continue;
-                }
-                $cap = Percentage::from((string) $override['rates'][$row['category']]['percentage']);
-                $actual = min($row['cents'], $cap->of($cash, 'half_up'));
-                $rows[$index]['metadata']['recipient_schedule_id'] = $override['schedule_id'];
-                if ($actual < $row['cents']) {
-                    $rows[$index]['cents'] = $actual;
-                    $rows[$index]['rate_percentage'] = $cap->decimal();
-                    $rows[] = [...$row, 'category' => $row['category'].'_override_reserve', 'user_id' => null,
-                        'status' => 'reserved', 'cents' => $row['cents'] - $actual,
-                        'rate_percentage' => Money::decimal(Percentage::from($row['rate_percentage'])->basisPoints - $cap->basisPoints),
-                        'metadata' => ['recipient_schedule_id' => $override['schedule_id'], 'retained_by' => 'company_override_reserve']];
-                }
-            }
-            $allocated = array_sum(array_column($rows, 'cents'));
-            if ($company + $allocated > $cash) {
-                throw ValidationException::withMessages(['commissions' => 'This product price cannot fund the approved company share and commission schedule. Correct pricing or policy before posting.']);
-            }
             DB::table('commission_batches')->insert(['order_id' => $order->id, 'account_type' => $type, 'period_month' => CommissionQualification::currentMonth(),
                 'cash_basis' => Money::decimal($cash), 'mrp_basis' => Money::decimal($mrp), 'company_share' => Money::decimal($company),
                 'total_allocated' => Money::decimal($allocated), 'unallocated' => Money::decimal($cash - $company - $allocated),
@@ -259,5 +143,167 @@ final class CommissionPosting
 
             return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
         }, 3);
+    }
+
+    /** @param array<string, mixed> $snapshot @return array<string, mixed> */
+    private function calculate(Order $order, User $buyer, array $snapshot): array
+    {
+        $cash = Money::cents($order->total);
+        $rules = $snapshot['rules'];
+        $this->policies->validateSchedule($rules);
+        $mrp = 0;
+        $lineCash = 0;
+        foreach ($order->lines as $line) {
+            $mrp += Money::cents($line->mrp) * $line->quantity;
+            $lineCash += Money::cents($line->total);
+        }
+        if ($mrp <= 0 || $lineCash !== $cash) {
+            throw ValidationException::withMessages(['commissions' => 'Order lines and collected purchase value must reconcile before posting earnings.']);
+        }
+        $company = Percentage::from($snapshot['company_mrp_percent'])->of($mrp, 'half_up');
+        $type = $snapshot['account_type'];
+        $rows = [];
+        $add = function (string $category, string $ruleKey, ?int $userId = null, string $status = 'pending', ?string $rate = null, ?int $amount = null, array $metadata = []) use (&$rows, $rules, $cash, $snapshot): void {
+            $percentage = $rate === null ? CommissionPolicy::rate($rules, $ruleKey) : Percentage::from($rate);
+            $value = $amount ?? $percentage->of($cash, 'half_up');
+            if ($percentage->basisPoints > 0 || $userId && isset($snapshot['recipient_overrides'][$userId]['rates'][$category])) {
+                $rows[] = ['category' => $category, 'rule_key' => $ruleKey, 'user_id' => $userId, 'status' => $status,
+                    'rate_percentage' => $percentage->decimal(), 'cents' => $value, 'metadata' => $metadata];
+            }
+        };
+        $days = ($rules['commission_cooling_off']['is_active'] ?? false) ? (int) $rules['commission_cooling_off']['parameters']['cooling_off_days'] : 0;
+        $eligibleStatus = $days > 0 ? 'maturing' : 'available';
+        $recipient = function (?int $id) use ($eligibleStatus): string {
+            $user = $id ? User::find($id) : null;
+
+            return $user && $user->status === 'active' && in_array($user->role, ['dealer', 'sub_dealer'], true) ? $eligibleStatus : ($id ? 'held' : 'pending');
+        };
+        $add('own_dealer_cashback', 'own_dealer_cashback', $buyer->id, $recipient($buyer->id));
+        $uplines = $snapshot['uplines'];
+        $uplines = array_slice($uplines, 0, 3);
+        foreach ($snapshot['referral_replacements'] ?? [] as $generation => $replacement) {
+            $uplines[(int) $generation - 1] = $replacement['user_id'];
+        }
+        $add(isset($uplines[0]) ? 'direct_referral' : 'direct_referral_breakage', 'direct_referral', $uplines[0] ?? null, $recipient($uplines[0] ?? null));
+        foreach ([2, 3] as $depth) {
+            $rate = CommissionPolicy::rate($rules, 'd2d_multitier')->basisPoints > 0 ? (string) $rules['d2d_multitier']['parameters']['gen'.$depth.'_pct'] : '0.00';
+            $id = $uplines[$depth - 1] ?? null;
+            $add('d2d_gen'.$depth.($id ? '' : '_breakage'), 'd2d_multitier', $id, $recipient($id), $rate);
+        }
+        $areaPool = CommissionPolicy::rate($rules, 'area_dealer_pool')->of($cash, 'half_up');
+        $areaRemaining = $areaPool;
+        $geography = $snapshot['geography'];
+        $path = [];
+        foreach (['division', 'district', 'upazila', 'union'] as $level) {
+            $path[$level] = $geography[$level] ?? null;
+            $rate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters'][$level.'_share_pct'] : '0.00';
+            $share = min($areaRemaining, Percentage::from($rate)->of($cash, 'half_up'));
+            $areaRemaining -= $share;
+            $query = AreaDealerAssignment::where('level', $level)->where('is_active', true);
+            foreach ($path as $field => $value) {
+                $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
+            }
+            $assignments = collect($path)->contains(fn ($value): bool => trim((string) $value) === '') ? collect() : $query->get();
+            $assignment = $assignments->count() === 1 ? $assignments->first() : null;
+            $id = $assignment?->user_id;
+            $status = $recipient($id);
+            if ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
+                $status = 'held';
+            }
+            $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
+                ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve']);
+        }
+        $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining);
+        foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
+            'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {
+            $add($category, $key);
+        }
+        if ($type === 'sub_dealer') {
+            $add('additional_rank_pool', 'additional_rank');
+            $add('sub_dealer_salary', 'sub_dealer_salary', $buyer->id);
+            $add('sub_dealer_tour', 'sub_dealer_tour', $buyer->id, 'reserved');
+        }
+        $totalRate = array_sum(array_map(fn (array $row): int => Percentage::from($row['rate_percentage'])->basisPoints, $rows));
+        $target = intdiv($cash * $totalRate + 5000, 10000);
+        if ($target + $company === $cash + 1 && $cash * 10000 >= $mrp * 3000 + $cash * $totalRate) {
+            $target--;
+        }
+        $groups = [];
+        foreach ($rows as $index => $row) {
+            $groups[$row['rule_key']][] = $index;
+        }
+        $groupAmounts = [];
+        $groupFractions = [];
+        foreach ($groups as $key => $indexes) {
+            $numerator = $cash * CommissionPolicy::rate($rules, $key)->basisPoints;
+            $groupAmounts[$key] = intdiv($numerator, 10000);
+            $groupFractions[$key] = $numerator % 10000;
+        }
+        arsort($groupFractions, SORT_NUMERIC);
+        $remaining = $target - array_sum($groupAmounts);
+        foreach (array_keys($groupFractions) as $key) {
+            if ($remaining-- <= 0) {
+                break;
+            }
+            $groupAmounts[$key]++;
+        }
+        foreach ($groups as $key => $indexes) {
+            $fractions = [];
+            $base = 0;
+            foreach ($indexes as $index) {
+                $numerator = $cash * Percentage::from($rows[$index]['rate_percentage'])->basisPoints;
+                $rows[$index]['cents'] = intdiv($numerator, 10000);
+                $base += $rows[$index]['cents'];
+                $fractions[$index] = $numerator % 10000;
+            }
+            arsort($fractions, SORT_NUMERIC);
+            $remaining = $groupAmounts[$key] - $base;
+            foreach (array_keys($fractions) as $index) {
+                if ($remaining-- <= 0) {
+                    break;
+                }
+                $rows[$index]['cents']++;
+            }
+        }
+        $funding = app(RecipientFunding::class)->apply($rows, $snapshot, $cash, $company);
+        $rows = $funding['rows'];
+        $company = $funding['company'];
+        $allocated = array_sum(array_column($rows, 'cents'));
+        if ($company + $allocated > $cash) {
+            throw ValidationException::withMessages(['commissions' => 'This product price cannot fund the approved company share and commission schedule. Correct pricing or policy before posting.']);
+        }
+
+        return ['rows' => $rows, 'cash' => $cash, 'mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'days' => $days, 'funding_decisions' => $funding['decisions']];
+    }
+
+    /** @param list<int> $uplines @param array<int, int> $requested @return array<int, array<string, int|string>> */
+    private function replacements(array $uplines, User $buyer, array $requested, ?User $actor, string $event): array
+    {
+        if ($requested === []) {
+            return [];
+        }
+        abort_unless($event === 'approval' && $actor?->fresh()->canAct('finance', 'edit'), 403);
+        $selected = array_slice($uplines, 0, 3);
+        $result = [];
+        foreach ($requested as $generation => $userId) {
+            if (! in_array((int) $generation, [1, 2, 3], true)) {
+                throw ValidationException::withMessages(['replacement' => 'Choose one of the three referral positions.']);
+            }
+            $original = isset($uplines[$generation - 1]) ? User::find($uplines[$generation - 1]) : null;
+            if (! $original || $original->status === 'active' && in_array($original->role, ['dealer', 'sub_dealer'], true)) {
+                throw ValidationException::withMessages(['replacement' => 'Only an existing inactive referral recipient can be replaced.']);
+            }
+            $replacement = User::whereKey($userId)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->first();
+            if (! $replacement || $replacement->id === $buyer->id) {
+                throw ValidationException::withMessages(['replacement' => 'Choose an active dealer or sub-dealer other than the buyer.']);
+            }
+            $selected[$generation - 1] = $replacement->id;
+            $result[$generation] = ['original_user_id' => $original->id, 'user_id' => $replacement->id, 'authorized_by' => $actor->id, 'authorized_at' => now()->toIso8601String()];
+        }
+        if (count(array_unique($selected)) !== count($selected)) {
+            throw ValidationException::withMessages(['replacement' => 'A person cannot occupy two referral positions on the same order.']);
+        }
+
+        return $result;
     }
 }

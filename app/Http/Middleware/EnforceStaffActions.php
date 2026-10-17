@@ -18,7 +18,7 @@ class EnforceStaffActions
     {
         $actor = $request->user();
         if (! $actor?->staff() || $actor->role === 'super_admin' || $request->isMethodSafe()
-            || (! str_starts_with($actor->role, 'custom_') && ! isset($actor->profile['action_permissions']))) {
+            || (! $actor->owner() && ! str_starts_with($actor->role, 'custom_') && ! isset($actor->profile['action_permissions']))) {
             return $next($request);
         }
         $route = $request->route();
@@ -56,7 +56,7 @@ class EnforceStaffActions
             },
             'FinanceOperationsController' => match ($method) {
                 'prepare' => [['payroll'], 'create'],
-                'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'recover', 'openingVerify' => [['finance'], 'approve'],
+                'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
             },

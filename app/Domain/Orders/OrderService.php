@@ -88,13 +88,14 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false): void
+    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => 'Choose approved, held or rejected.']);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit, $replacements): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
                 throw ValidationException::withMessages(['status' => 'This order has already been decided.']);
@@ -110,8 +111,18 @@ class OrderService
             if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
                 throw ValidationException::withMessages(['status' => 'A paid order needs the approved refund workflow.']);
             }
+            if ($status === 'approved') {
+                $this->commissions->capture($locked, $locked->user, 'approval', $replacements, $actor);
+            } elseif ($replacements !== []) {
+                throw ValidationException::withMessages(['replacement' => 'Select replacement recipients only when approving the order.']);
+            }
             $locked->update($changes);
-            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by'])]);
+            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by']),
+                'referral_replacements' => $status === 'approved' ? $locked->commission_policy_snapshot['referral_replacements'] ?? [] : []]);
+            if ($status === 'approved') {
+                Audit::record($actor->id, 'commissions.policy_approved', $locked->id, ['reason' => $reason, 'revision_id' => $locked->commission_policy_snapshot['revision_id'],
+                    'referral_replacements' => $locked->commission_policy_snapshot['referral_replacements'], 'funding_decisions' => $locked->commission_policy_snapshot['funding_decisions']]);
+            }
             Audit::notice($locked->user_id, 'Order '.$status, $locked->number.': '.$reason);
         }, 3);
     }

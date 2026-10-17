@@ -5,7 +5,8 @@ import {actionAllowed} from './action-permissions';
 export type Row=Record<string,any>;
 export const money=(value:unknown)=>new Intl.NumberFormat('en-BD',{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
 export const date=(value:string)=>value?new Date(value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dhaka'}):'—';
-export const label=(text:string)=>text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const businessLabels:Record<string,string>={direct_referral:'Direct referral · Generation 1',d2d_gen2:'D2D · Generation 2',d2d_gen3:'D2D · Generation 3'};
+export const label=(text:string)=>businessLabels[text]??text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 export function Badge({status}:{status:string}) {return <span className={`badge ${status}`}>{label(status)}</span>}
 export function Empty({title='Nothing here yet',body='New activity will appear here as it happens.'}:{title?:string,body?:string}) {return <div className="empty"><Inbox size={30}/><h3>{title}</h3><p>{body}</p></div>}
 export function Flash(){const {flash,errors}=usePage<any>().props;return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}

@@ -18,11 +18,11 @@ final class PolicyScheduling
     /** @param array<string, mixed> $data */
     public function propose(User $actor, array $data): int
     {
-        abort_unless($actor->allows('finance'), 403);
+        abort_unless($actor->canAct('finance', 'create'), 403);
 
         return DB::transaction(function () use ($actor, $data): int {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->allows('finance'), 403);
+            abort_unless($actor->fresh()->canAct('finance', 'create'), 403);
             $buyer = $data['scope'] === 'global' ? null : User::whereKey($data['user_id'])->whereIn('role', ['dealer', 'sub_dealer'])->where('status', 'active')->firstOrFail();
             $at = CarbonImmutable::parse($data['effective_at'])->utc();
             if ($at->lt(CarbonImmutable::now()->subMinute())) {
@@ -34,7 +34,19 @@ final class PolicyScheduling
                 }
                 $rules = [];
                 foreach ($data['rules'] as $key => $rule) {
-                    $rules[$key] = Validator::make($rule, ['percentage' => 'required|numeric|between:0,100|decimal:0,2'])->validate();
+                    if (! is_array($rule)) {
+                        throw ValidationException::withMessages(['rules' => 'Each recipient rate must be an object.']);
+                    }
+                    $validated = Validator::make($rule, ['percentage' => 'required|numeric|between:0,100|decimal:0,2',
+                        'funding_mode' => 'sometimes|in:company,allocations', 'funding_sources' => 'sometimes|array'])->validate();
+                    $sources = $validated['funding_sources'] ?? [];
+                    if (array_diff(array_keys($sources), RecipientFunding::Sources) || isset($sources[$key]) || $sources && ($validated['funding_mode'] ?? null) !== 'allocations') {
+                        throw ValidationException::withMessages(['funding_sources' => 'Select supported, different allocation sources only for allocation-funded increases.']);
+                    }
+                    foreach ($sources as $percentage) {
+                        Validator::make(['percentage' => $percentage], ['percentage' => 'required|numeric|gt:0|lte:100|decimal:0,2'])->validate();
+                    }
+                    $rules[$key] = $validated;
                 }
             } else {
                 $rules = $this->policies->compose($this->policies->snapshot(true, $buyer, $at)['rules'], $data['rules']);
@@ -50,10 +62,10 @@ final class PolicyScheduling
 
     public function review(User $actor, int $id, string $decision, string $reason): void
     {
-        abort_unless($actor->allows('finance'), 403);
+        abort_unless($actor->canAct('finance', 'approve'), 403);
         DB::transaction(function () use ($actor, $id, $decision, $reason): void {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->allows('finance'), 403);
+            abort_unless($actor->fresh()->canAct('finance', 'approve'), 403);
             $row = DB::table('commission_policy_schedules')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
             if ($decision === 'cancelled') {

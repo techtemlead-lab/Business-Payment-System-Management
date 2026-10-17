@@ -44,7 +44,9 @@ final class StaffPermissions
                 $capabilities = array_intersect($capabilities, $user->profile['permissions']);
             }
             foreach (array_intersect($capabilities, $this->modules()) as $capability) {
-                $matrix[$capability] = array_fill_keys(self::Actions, true);
+                $matrix[$capability] = in_array($user->role, ['md', 'chairman'], true)
+                    ? ['view' => true, 'create' => false, 'edit' => false, 'approve' => false]
+                    : array_fill_keys(self::Actions, true);
             }
         }
         if (isset($user->profile['action_permissions'])) {

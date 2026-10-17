@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        ResetPassword::createUrlUsing(fn ($user, $token) => route($user->staff() ? 'company.password.reset' : 'password.reset', ['token' => $token, 'email' => $user->email]));
+        ResetPassword::createUrlUsing(fn ($user, $token) => route($user->owner() ? 'owner.password.reset' : ($user->staff() ? 'company.password.reset' : 'password.reset'), ['token' => $token, 'email' => $user->email]));
 
         View::composer('*', function ($view) {
             try {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\RecipientFunding;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
@@ -40,7 +41,7 @@ class OperationsController extends Controller
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
             $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();
         }
-        if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales'], true)) {
+        if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales', 'commission-holds'], true)) {
             $partners = $section === 'field-sales' ? app(TerritoryAccess::class)->partners($actor) : User::whereIn('role', ['dealer', 'sub_dealer']);
             $data['partners'] = $partners->when($request->filled('q'), fn ($q) => $q->where('name', 'ilike', '%'.$request->string('q').'%'))
                 ->orderBy('name')->limit(200)->get(['id', 'name', 'dealer_code', 'role', 'status', 'division', 'district'])->toArray();
@@ -86,7 +87,7 @@ class OperationsController extends Controller
         if ($section === 'policy-schedules') {
             $tables['Policy schedules'] = DB::table('commission_policy_schedules as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')
                 ->select(['s.*', 'u.name'])->orderByDesc('s.id');
-            $data['policy'] = app(CommissionPolicy::class)->snapshot();
+            $data['policy'] = [...app(CommissionPolicy::class)->snapshot(), 'funding_sources' => RecipientFunding::Sources];
         }
         if ($section === 'reserve-payouts') {
             $tables['Reward and expense requests'] = DB::table('reserve_disbursements as r')->leftJoin('users as u', 'u.id', '=', 'r.user_id')
@@ -122,7 +123,7 @@ class OperationsController extends Controller
             $permissions = app(StaffPermissions::class);
             $data['permissionModules'] = $permissions->modules();
             $data['rolePresets'] = collect(['employee' => [], ...config('madina.roles')])->map(fn ($capabilities, $key) => ['key' => $key, 'name' => Str::headline($key),
-                'permissions' => array_fill_keys($capabilities, array_fill_keys(StaffPermissions::Actions, true))])->values()->all();
+                'permissions' => $permissions->matrix(new User(['role' => $key]))])->values()->all();
             $data['staffAccess'] = $staff->where('role', '!=', 'super_admin')->map(fn ($user) => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role,
                 'version' => $permissions->version($user), 'permissions' => $permissions->matrix($user)])->values()->all();
             $data['customRoles'] = DB::table('staff_roles')->orderBy('name')->get()->map(fn ($role) => ['key' => $role->key, 'name' => $role->name,

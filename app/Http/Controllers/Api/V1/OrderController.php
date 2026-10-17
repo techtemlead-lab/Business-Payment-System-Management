@@ -65,7 +65,7 @@ class OrderController extends Controller
     public function decision(DecideOrderRequest $request, Order $order, OrderService $service): OrderResource
     {
         $data = $request->validated();
-        $service->decision($request->user(), $order, $data['status'], $data['reason'], $request->boolean('allow_credit'));
+        $service->decision($request->user(), $order, $data['status'], $data['reason'], $request->boolean('allow_credit'), $request->replacements());
 
         return new OrderResource($order->refresh()->load('lines'));
     }

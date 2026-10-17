@@ -52,7 +52,7 @@ class CommandController extends Controller
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
-        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'));
+        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
         return back()->with('success', 'Order decision recorded.');
     }
