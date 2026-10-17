@@ -31,11 +31,11 @@ The two hospital proposal reference parts are presentation references, not an in
 
 | Location | Revision at review | Meaning |
 |---|---|---|
-| This worktree, `codex/project-completion-audit` | `7217086` | Includes the latest operations, payroll, reserves, schedules and native exports |
-| Fetched GitHub `origin/main` | `c7f9c13` | No newer remote-main commit was found; the final operations commit is still on the project branch |
-| Primary checkout `D:/works/Business-Payment-System-Management`, local `main` | `be4067d` | Eight commits behind fetched main; it must not be mistaken for the reviewed application revision |
+| This worktree, `codex/project-completion-audit` | `a23125b` | Implements the eight partial module rows on top of operations baseline `7217086`; tested as this branch |
+| Latest fetched GitHub `origin/main` | `33e8c34` | PR #1 merged the operations baseline, then PR #2 reverted it (`bd63dfe`). Main does not currently retain those operations services. |
+| Primary checkout `D:/works/Business-Payment-System-Management`, local `main` | `be4067d` | Older checkout, preserved in place; it must not be mistaken for the tested application branch |
 
-The revision table records the audit baseline; the eight-module completion changes are included in the implementation commit containing this review. The primary checkout's existing changes were preserved. This review does not merge the branch, reset that checkout or prove that a live server is running the reviewed revision. Database migration status was inspected on the configured local application database; tests ran on a separate PostgreSQL instance.
+The revision table now includes the final remote fetch. The first audit fetch had only found `c7f9c13`; after pushing the eight-module implementation, the merge and subsequent operations revert were discovered. Draft PR #3 contains the new module changes and explicitly records this dependency. It currently conflicts with reverted main. The user has been asked whether the earlier work should return or the revert should remain; no revert has been silently undone and no merge is claimed. The primary checkout's existing changes were preserved. This review does not merge the branch, reset that checkout or prove that a live server is running the reviewed revision. Database migration status was inspected on the configured local application database; tests ran on a separate PostgreSQL instance.
 
 ### All 43 quoted modules
 
