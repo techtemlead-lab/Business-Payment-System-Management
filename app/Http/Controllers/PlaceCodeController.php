@@ -60,6 +60,32 @@ class PlaceCodeController extends Controller
         ]);
     }
 
+    public function children(Request $request): JsonResponse
+    {
+        $this->permit($request);
+        $data = $request->validate([
+            'parent_id' => 'nullable|integer|exists:place_codes,id',
+            'level' => 'required|in:'.implode(',', PlaceCode::Levels),
+            'q' => 'nullable|string|max:80',
+        ]);
+        $query = PlaceCode::query()
+            ->where('level', $data['level'])
+            ->where('is_active', true)
+            ->when(isset($data['parent_id']), fn ($builder) => $builder->where('parent_id', $data['parent_id']))
+            ->when(($data['q'] ?? '') !== '', function ($builder) use ($data): void {
+                $term = '%'.mb_strtolower(trim($data['q'])).'%';
+                $builder->where(function ($inner) use ($term): void {
+                    $inner->whereRaw('LOWER(code) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]);
+                });
+            })
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->limit(100)
+            ->get(['id', 'code', 'name', 'level', 'parent_id']);
+
+        return response()->json(['data' => $query]);
+    }
+
     private function permit(Request $request): void
     {
         abort_unless($request->user()?->allows('accounts'), 403);

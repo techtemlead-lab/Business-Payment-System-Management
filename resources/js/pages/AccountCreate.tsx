@@ -1,19 +1,15 @@
-import React from 'react';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { label, type Row } from '../components/UI';
-import { ArrowLeft, UserPlus, ShieldAlert, MapPin, Store, Building2, BadgeCheck } from 'lucide-react';
+import {
+    ArrowLeft, UserPlus, ShieldAlert, MapPin, Store, Building2, BadgeCheck,
+    Search, IdCard, Phone, Hash, AlertTriangle, CheckCircle2,
+} from 'lucide-react';
 
-const divisions = [
-    'Dhaka',
-    'Chittagong',
-    'Rajshahi',
-    'Khulna',
-    'Barishal',
-    'Sylhet',
-    'Rangpur',
-    'Mymensingh',
-];
+type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
+type CommissionPlace = { level: string; code: string | null; name: string | null };
+type Consumer = { id: number; name: string; refer_code: string | null; rate: string } | null;
 
 const availablePermissions = [
     { key: 'field_sales', label: 'Field Sales Workspace', description: 'Work with partners inside assigned territories' },
@@ -36,25 +32,63 @@ const availablePermissions = [
     { key: 'identity_write', label: 'KYC / NID Management', description: 'View and edit sensitive NID credentials' },
 ];
 
-export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponsors = [] }: { roles: string[]; sponsors: Row[] }) {
-    const { auth } = usePage<any>().props;
+async function fetchJson<T>(url: string): Promise<T> {
+    const response = await fetch(url, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+    });
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.message || body?.errors?.place_code?.[0] || 'Request failed');
+    }
+    return response.json();
+}
+
+export default function AccountCreate({
+    roles = ['dealer', 'sub_dealer'],
+    sponsors = [],
+    place_divisions = [],
+    default_identity_type = 'birth_certificate',
+}: {
+    roles: string[];
+    sponsors: Row[];
+    place_divisions?: PlaceOption[];
+    default_identity_type?: 'birth_certificate' | 'nid';
+}) {
+    const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
 
     const form = useForm({
         role: 'dealer',
-        dealer_code: '',
+        identity_type: default_identity_type as 'birth_certificate' | 'nid',
+        birth_certificate_number: '',
+        nid: '',
+        date_of_birth: '',
         name: '',
-        email: '',
-        phone: '',
-        division: 'Dhaka',
+        name_bn: '',
+        father_name: '',
+        mother_name: '',
+        occupation: '',
+        division: '',
         district: '',
+        upazila: '',
+        union: '',
+        village: '',
+        post_office: '',
+        place_code: '',
+        dealer_code: '',
+        reference_code: '',
+        refer_code: '',
+        phone: '',
+        email: '',
+        extra_contact: '',
+        pharmacy: '',
+        directory_visible: false,
+        status: 'active',
+        reason: 'Physical agreement verified and onboarding authorized by company staff.',
+        permissions: ['orders', 'inventory'] as string[],
+        sponsor_id: '',
         latitude: '',
         longitude: '',
-        directory_visible: '0',
-        status: 'active',
-        sponsor_id: '',
-        nid: '',
-        permissions: ['orders', 'inventory'] as string[],
-        reason: 'Physical agreement verified and onboarding authorized by company staff.',
         profile: {
             name_bn: '',
             father_name: '',
@@ -69,17 +103,212 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
     });
 
     const isPartner = ['dealer', 'sub_dealer'].includes(form.data.role);
+    const [bdrisMessage, setBdrisMessage] = useState('');
+    const [bdrisLoading, setBdrisLoading] = useState(false);
+    const [placePreview, setPlacePreview] = useState<{
+        label: string;
+        available: boolean;
+        commission_places: CommissionPlace[];
+        next_sub_dealer_code?: string | null;
+    } | null>(null);
+    const [placeError, setPlaceError] = useState('');
+    const [referWarnings, setReferWarnings] = useState<string[]>([]);
+    const [consumers, setConsumers] = useState<{
+        direct_referral: Consumer;
+        d2d_gen2: Consumer;
+        d2d_gen3: Consumer;
+        unassigned: Record<string, string>;
+    } | null>(null);
+
+    const [divisionId, setDivisionId] = useState('');
+    const [districtId, setDistrictId] = useState('');
+    const [upazilaId, setUpazilaId] = useState('');
+    const [unionId, setUnionId] = useState('');
+    const [districts, setDistricts] = useState<PlaceOption[]>([]);
+    const [upazilas, setUpazilas] = useState<PlaceOption[]>([]);
+    const [unions, setUnions] = useState<PlaceOption[]>([]);
+    const [addressSearch, setAddressSearch] = useState('');
+
+    const loadChildren = async (level: string, parentId: string, q = '') => {
+        const params = new URLSearchParams({ level });
+        if (parentId) params.set('parent_id', parentId);
+        if (q) params.set('q', q);
+        const json = await fetchJson<{ data: PlaceOption[] }>(`/commands/place-codes/children?${params}`);
+        return json.data;
+    };
+
+    useEffect(() => {
+        if (!divisionId) {
+            setDistricts([]);
+            setDistrictId('');
+            return;
+        }
+        loadChildren('district', divisionId, addressSearch).then(setDistricts).catch(() => setDistricts([]));
+    }, [divisionId, addressSearch]);
+
+    useEffect(() => {
+        if (!districtId) {
+            setUpazilas([]);
+            setUpazilaId('');
+            return;
+        }
+        loadChildren('upazila', districtId, addressSearch).then(setUpazilas).catch(() => setUpazilas([]));
+    }, [districtId, addressSearch]);
+
+    useEffect(() => {
+        if (!upazilaId) {
+            setUnions([]);
+            setUnionId('');
+            return;
+        }
+        loadChildren('union', upazilaId, addressSearch).then(setUnions).catch(() => setUnions([]));
+    }, [upazilaId, addressSearch]);
+
+    useEffect(() => {
+        const division = place_divisions.find((item) => String(item.id) === divisionId);
+        const district = districts.find((item) => String(item.id) === districtId);
+        const upazila = upazilas.find((item) => String(item.id) === upazilaId);
+        const union = unions.find((item) => String(item.id) === unionId);
+        form.setData((prev) => ({
+            ...prev,
+            division: division?.name || prev.division,
+            district: district?.name || prev.district,
+            upazila: upazila?.name || prev.upazila,
+            union: union?.name || prev.union,
+        }));
+    }, [divisionId, districtId, upazilaId, unionId, districts, upazilas, unions, place_divisions]);
+
+    const lookupBdris = async () => {
+        setBdrisLoading(true);
+        setBdrisMessage('');
+        try {
+            const response = await fetch('/commands/identity/bdris-lookup', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    birth_certificate_number: form.data.birth_certificate_number,
+                    date_of_birth: form.data.date_of_birth,
+                }),
+            });
+            const json = await response.json();
+            const result = json.data;
+            setBdrisMessage(result?.message || 'Lookup finished.');
+            if (result?.success && result.details) {
+                form.setData((prev) => ({
+                    ...prev,
+                    name: result.details.name || prev.name,
+                    name_bn: result.details.name_bn || prev.name_bn,
+                    father_name: result.details.father_name || prev.father_name,
+                    mother_name: result.details.mother_name || prev.mother_name,
+                    occupation: result.details.occupation || prev.occupation,
+                    date_of_birth: result.details.date_of_birth || prev.date_of_birth,
+                }));
+            }
+        } catch {
+            setBdrisMessage('Could not reach BDRIS. Enter the personal details manually.');
+        } finally {
+            setBdrisLoading(false);
+        }
+    };
+
+    const previewPlace = async () => {
+        setPlaceError('');
+        setPlacePreview(null);
+        if (!form.data.place_code.trim()) return;
+        try {
+            const params = new URLSearchParams({
+                place_code: form.data.place_code.trim(),
+                role: form.data.role,
+            });
+            const json = await fetchJson<{ data: any }>(`/commands/identity/place-preview?${params}`);
+            setPlacePreview(json.data);
+            if (form.data.role === 'sub_dealer' && json.data.next_sub_dealer_code) {
+                form.setData('dealer_code', json.data.next_sub_dealer_code);
+            } else if (form.data.role === 'dealer' && !form.data.dealer_code) {
+                form.setData('dealer_code', form.data.place_code.trim());
+            }
+            if (json.data.path) {
+                form.setData((prev) => ({
+                    ...prev,
+                    division: json.data.path.division || prev.division,
+                    district: json.data.path.district || prev.district,
+                    upazila: json.data.path.upazila || prev.upazila,
+                    union: json.data.path.union || prev.union,
+                }));
+            }
+        } catch (error: any) {
+            setPlaceError(error.message || 'Place code not found.');
+        }
+    };
+
+    useEffect(() => {
+        const handle = window.setTimeout(() => {
+            const params = new URLSearchParams({
+                reference_code: form.data.reference_code,
+                refer_code: form.data.refer_code,
+            });
+            fetchJson<{ data: { warnings: string[]; consumers: any } }>(`/commands/identity/refer-preview?${params}`)
+                .then((json) => {
+                    setReferWarnings(json.data.warnings || []);
+                    setConsumers(json.data.consumers || null);
+                })
+                .catch(() => {
+                    setReferWarnings([]);
+                    setConsumers(null);
+                });
+        }, 350);
+        return () => window.clearTimeout(handle);
+    }, [form.data.reference_code, form.data.refer_code]);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        form.transform(data => {
-            const {permissions, ...rest} = data;
-            return ['employee', 'sr'].includes(data.role) ? {...rest, permissions} : rest;
-        });
-        form.post('/commands/accounts', {
-            preserveScroll: true,
-        });
+        if (!isPartner) {
+            form.transform((data) => {
+                const { permissions, ...rest } = data;
+                return ['employee', 'sr'].includes(data.role) ? { ...rest, permissions } : rest;
+            });
+            form.post('/commands/accounts', { preserveScroll: true });
+            return;
+        }
+        form.transform((data) => ({
+            role: data.role,
+            identity_type: data.identity_type,
+            birth_certificate_number: data.birth_certificate_number,
+            nid: data.nid,
+            date_of_birth: data.date_of_birth,
+            name: data.name,
+            name_bn: data.name_bn,
+            father_name: data.father_name,
+            mother_name: data.mother_name,
+            occupation: data.occupation,
+            division: data.division,
+            district: data.district,
+            upazila: data.upazila,
+            union: data.union,
+            village: data.village,
+            post_office: data.post_office,
+            place_code: data.place_code,
+            dealer_code: data.dealer_code,
+            reference_code: data.reference_code,
+            refer_code: data.refer_code,
+            phone: data.phone,
+            email: data.email,
+            extra_contact: data.extra_contact,
+            pharmacy: data.pharmacy,
+            directory_visible: data.directory_visible,
+            status: data.status,
+            reason: data.reason,
+        }));
+        form.post('/commands/accounts', { preserveScroll: true });
     };
+
+    const commissionLines = useMemo(() => placePreview?.commission_places || [], [placePreview]);
 
     return (
         <Shell section="accounts">
@@ -94,23 +323,21 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                 <div>
                     <h2>Add Dealer / Sub-Dealer Account</h2>
                     <p>
-                        Authorized staff onboarding. Enter the verified KYC, administrative territory, and manually assign the unique dealer code. A secure password-setting invitation will be emailed upon creation.
+                        Prefer birth certificate lookup (BDRIS). Assign by place code, set unique refer codes, then create the account and SMS the mobile login.
                     </p>
                 </div>
             </div>
 
             <form onSubmit={submit} className="account-create-layout">
                 <div className="account-create-main">
-                    {/* Panel 1: Account Role & Identification */}
                     <section className="panel">
                         <div className="panel-heading">
                             <div>
-                                <h3>1. Account Role &amp; Unique Identification</h3>
-                                <p>Staff manually assigns the unique code according to regional serials or contract records.</p>
+                                <h3>1. Account type</h3>
+                                <p>Dealer uses any place code (one dealer per code). Sub-dealer uses a union/city corporation code with unlimited seats.</p>
                             </div>
                             <UserPlus size={22} className="text-muted" />
                         </div>
-
                         <div className="form-grid">
                             <label>
                                 Account Type / Role *
@@ -121,471 +348,327 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
                                         form.setData((prev) => ({
                                             ...prev,
                                             role: newRole,
-                                            permissions: newRole === 'sr' ? ['field_sales','sr_orders','sr_dues','sr_onboarding'] : ['orders','inventory'],
-                                            directory_visible: newRole === 'dealer' ? prev.directory_visible : '0',
+                                            place_code: '',
+                                            dealer_code: '',
+                                            permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
                                         }));
+                                        setPlacePreview(null);
                                     }}
                                     required
                                 >
                                     {roles.map((r) => (
                                         <option key={r} value={r}>
-                                            {r === 'dealer' ? 'Dealer (Full margin & area privileges)' : r === 'sub_dealer' ? 'Sub-Dealer (40% discount baseline & flat 3% salary)' : label(r)}
+                                            {r === 'dealer' ? 'Dealer' : r === 'sub_dealer' ? 'Sub-Dealer' : label(r)}
                                         </option>
                                     ))}
                                 </select>
-                                {form.errors.role && <span className="field-error">{form.errors.role}</span>}
-                            </label>
-
-                            <label>
-                                Unique Dealer Code *
-                                <input
-                                    type="text"
-                                    required={isPartner}
-                                    placeholder="e.g. D-DHK-001 or SD-CTG-012"
-                                    value={form.data.dealer_code}
-                                    maxLength={40}
-                                    onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())}
-                                />
-                                <small className="muted">Manually assigned unique serial (never system-randomized).</small>
-                                {form.errors.dealer_code && <span className="field-error">{form.errors.dealer_code}</span>}
-                            </label>
-
-                            <label>
-                                Area / Zone Code
-                                <input
-                                    type="text"
-                                    placeholder="e.g. ZONE-DHK-02"
-                                    value={form.data.profile.area_code}
-                                    maxLength={80}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, area_code: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.area_code'] && (
-                                    <span className="field-error">{form.errors['profile.area_code']}</span>
-                                )}
-                            </label>
-
-                            <label>
-                                Initial Account Status
-                                <select
-                                    value={form.data.status}
-                                    onChange={(e) => form.setData('status', e.target.value)}
-                                >
-                                    <option value="active">Active (Permit login and product orders)</option>
-                                    <option value="suspended">Suspended / Under Review (Locked)</option>
-                                </select>
-                                {form.errors.status && <span className="field-error">{form.errors.status}</span>}
                             </label>
                         </div>
                     </section>
 
-                    {/* Panel: Employee Privileges & Permissions (When Role is Employee) */}
-                    {['employee','sr'].includes(form.data.role) && (
+                    {['employee', 'sr'].includes(form.data.role) && (
                         <section className="panel" style={{ borderLeft: '4px solid #059669' }}>
                             <div className="panel-heading">
                                 <div>
                                     <h3>Employee Privileges &amp; Permissions</h3>
-                                    <p>Manually select which sections and features this employee is authorized to view and manage.</p>
                                 </div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: 4, border: '1px solid #a7f3d0' }}>
-                                    {form.data.permissions.length} PERMISSIONS ACTIVE
-                                </span>
                             </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginTop: 12 }}>
-                                {availablePermissions.filter(p=>form.data.role!=='sr'||['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(p.key)).map(p => {
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
+                                {availablePermissions.filter((p) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'].includes(p.key)).map((p) => {
                                     const checked = form.data.permissions.includes(p.key);
                                     return (
                                         <label
                                             key={p.key}
                                             onClick={() => {
                                                 const cur = form.data.permissions;
-                                                form.setData('permissions', cur.includes(p.key) ? cur.filter(k => k !== p.key) : [...cur, p.key]);
+                                                form.setData('permissions', cur.includes(p.key) ? cur.filter((k) => k !== p.key) : [...cur, p.key]);
                                             }}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'flex-start',
-                                                gap: 10,
-                                                padding: '10px 12px',
-                                                borderRadius: 6,
-                                                background: checked ? '#ecfdf5' : '#ffffff',
-                                                border: checked ? '1px solid #10b981' : '1px solid #e2e8f0',
-                                                cursor: 'pointer',
-                                                userSelect: 'none'
-                                            }}
+                                            style={{ display: 'flex', gap: 10, padding: 10, border: checked ? '1px solid #10b981' : '1px solid #e2e8f0', borderRadius: 6, background: checked ? '#ecfdf5' : '#fff' }}
                                         >
-                                            <input type="checkbox" checked={checked} onChange={() => {}} style={{ marginTop: 3 }} />
+                                            <input type="checkbox" checked={checked} onChange={() => {}} />
                                             <div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    <b style={{ fontSize: 12, color: checked ? '#065f46' : '#1e293b' }}>{p.label}</b>
-                                                    <code style={{ fontSize: 10, background: '#f1f5f9', padding: '1px 4px', borderRadius: 3, color: '#64748b' }}>{p.key}</code>
-                                                </div>
-                                                <small style={{ display: 'block', fontSize: 11, color: '#64748b', marginTop: 2 }}>{p.description}</small>
+                                                <b style={{ fontSize: 12 }}>{p.label}</b>
+                                                <small style={{ display: 'block', color: '#64748b' }}>{p.description}</small>
                                             </div>
                                         </label>
                                     );
                                 })}
                             </div>
+                            <div className="form-grid" style={{ marginTop: 16 }}>
+                                <label>Full Name *<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
+                                <label>Email *<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
+                                <label>Phone<input value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
+                            </div>
                         </section>
                     )}
 
-                    {/* Panel 2: Personal & Family KYC */}
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>2. Personal &amp; Family KYC</h3>
-                                <p>Legal name in English &amp; Bangla, family credentials, and restricted NID record.</p>
-                            </div>
-                            <Building2 size={22} className="text-muted" />
-                        </div>
-
-                        <div className="form-grid">
-                            <label>
-                                Full Name (English) *
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="e.g. Md. Rafiqul Islam"
-                                    value={form.data.name}
-                                    maxLength={150}
-                                    onChange={(e) => form.setData('name', e.target.value)}
-                                />
-                                {form.errors.name && <span className="field-error">{form.errors.name}</span>}
-                            </label>
-
-                            <label>
-                                Full Name in Bangla (বাংলায় পুরো নাম)
-                                <input
-                                    type="text"
-                                    placeholder="যেমন: মোঃ রফিকুল ইসলাম"
-                                    value={form.data.profile.name_bn}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, name_bn: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.name_bn'] && (
-                                    <span className="field-error">{form.errors['profile.name_bn']}</span>
+                    {isPartner && (
+                        <>
+                            <section className="panel">
+                                <div className="panel-heading">
+                                    <div>
+                                        <h3>2. Identity (NID / Birth certificate)</h3>
+                                        <p>Birth certificate is preferred and selected by default. NID requires full manual entry.</p>
+                                    </div>
+                                    <IdCard size={22} className="text-muted" />
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                                    <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>Birth certificate</button>
+                                    <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>NID</button>
+                                </div>
+                                <div className="form-grid">
+                                    {form.data.identity_type === 'birth_certificate' ? (
+                                        <label>
+                                            Birth certificate number *
+                                            <input required value={form.data.birth_certificate_number} onChange={(e) => form.setData('birth_certificate_number', e.target.value)} />
+                                            {form.errors.birth_certificate_number && <span className="field-error">{form.errors.birth_certificate_number}</span>}
+                                        </label>
+                                    ) : (
+                                        <label>
+                                            NID number *
+                                            <input required value={form.data.nid} onChange={(e) => form.setData('nid', e.target.value)} />
+                                            {form.errors.nid && <span className="field-error">{form.errors.nid}</span>}
+                                        </label>
+                                    )}
+                                    <label>
+                                        Date of birth *
+                                        <input type="date" required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
+                                        {form.errors.date_of_birth && <span className="field-error">{form.errors.date_of_birth}</span>}
+                                    </label>
+                                </div>
+                                {form.data.identity_type === 'birth_certificate' && (
+                                    <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
+                                            <Search size={16} /> {bdrisLoading ? 'Searching BDRIS…' : 'Search BDRIS'}
+                                        </button>
+                                        {bdrisMessage && <span className="muted" style={{ fontSize: 13 }}>{bdrisMessage}</span>}
+                                    </div>
                                 )}
-                            </label>
+                                <div className="form-grid" style={{ marginTop: 16 }}>
+                                    <label>Name (English) *<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />{form.errors.name && <span className="field-error">{form.errors.name}</span>}</label>
+                                    <label>Name (Bangla) *<input required value={form.data.name_bn} onChange={(e) => form.setData('name_bn', e.target.value)} />{form.errors.name_bn && <span className="field-error">{form.errors.name_bn}</span>}</label>
+                                    <label>Father's name *<input required value={form.data.father_name} onChange={(e) => form.setData('father_name', e.target.value)} />{form.errors.father_name && <span className="field-error">{form.errors.father_name}</span>}</label>
+                                    <label>Mother's name *<input required value={form.data.mother_name} onChange={(e) => form.setData('mother_name', e.target.value)} />{form.errors.mother_name && <span className="field-error">{form.errors.mother_name}</span>}</label>
+                                    <label>Occupation<input value={form.data.occupation} onChange={(e) => form.setData('occupation', e.target.value)} /></label>
+                                </div>
+                            </section>
 
-                            <label>
-                                Father's Name (পিতার নাম)
-                                <input
-                                    type="text"
-                                    placeholder="Father's full legal name"
-                                    value={form.data.profile.father_name}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, father_name: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.father_name'] && (
-                                    <span className="field-error">{form.errors['profile.father_name']}</span>
+                            <section className="panel">
+                                <div className="panel-heading">
+                                    <div>
+                                        <h3>3. Address</h3>
+                                        <p>Select division → zila → upazila → union/city corporation. Search filters the next lists.</p>
+                                    </div>
+                                    <MapPin size={22} className="text-muted" />
+                                </div>
+                                <label style={{ display: 'block', marginBottom: 12 }}>
+                                    Search places
+                                    <input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder="Filter by code or name…" />
+                                </label>
+                                <div className="form-grid">
+                                    <label>
+                                        Division
+                                        <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}>
+                                            <option value="">Select division…</option>
+                                            {place_divisions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        District / Zila
+                                        <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setUnionId(''); }} disabled={!divisionId}>
+                                            <option value="">Select district…</option>
+                                            {districts.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Upazila
+                                        <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setUnionId(''); }} disabled={!districtId}>
+                                            <option value="">Select upazila…</option>
+                                            {upazilas.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Union / City corporation
+                                        <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId}>
+                                            <option value="">Select union…</option>
+                                            {unions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+                                        </select>
+                                    </label>
+                                    <label>Village / street<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
+                                    <label>Post office<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
+                                </div>
+                            </section>
+
+                            <section className="panel">
+                                <div className="panel-heading">
+                                    <div>
+                                        <h3>4. Area code</h3>
+                                        <p>
+                                            {form.data.role === 'sub_dealer'
+                                                ? 'Enter a union / city corporation code. Sub-dealer area code is auto-generated (e.g. 457482-000001). Unlimited sub-dealers per union.'
+                                                : 'Enter the place code. Only one dealer may be associated with each area code.'}
+                                        </p>
+                                    </div>
+                                    <Hash size={22} className="text-muted" />
+                                </div>
+                                <div className="form-grid">
+                                    <label>
+                                        {form.data.role === 'sub_dealer' ? 'Union / city corporation code *' : 'Place / area code *'}
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? 'e.g. 457482' : 'e.g. 102'} />
+                                            <button type="button" className="button dark" onClick={previewPlace}>Resolve</button>
+                                        </div>
+                                        {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
+                                        {placeError && <span className="field-error">{placeError}</span>}
+                                    </label>
+                                    {form.data.role === 'dealer' && (
+                                        <label>
+                                            Dealer code (optional override)
+                                            <input value={form.data.dealer_code} onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())} placeholder="Defaults to place code" />
+                                        </label>
+                                    )}
+                                    {form.data.role === 'sub_dealer' && (
+                                        <label>
+                                            Auto sub-dealer area code
+                                            <input value={form.data.dealer_code} readOnly />
+                                        </label>
+                                    )}
+                                </div>
+                                {placePreview && (
+                                    <div style={{ marginTop: 14, padding: 12, background: placePreview.available ? '#ecfdf5' : '#fff7ed', border: `1px solid ${placePreview.available ? '#a7f3d0' : '#fed7aa'}`, borderRadius: 8 }}>
+                                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            {placePreview.available ? <CheckCircle2 size={16} color="#047857" /> : <AlertTriangle size={16} color="#c2410c" />}
+                                            {placePreview.label}
+                                        </div>
+                                        {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>This area code already has an active dealer.</p>}
+                                        <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
+                                            {commissionLines.map((row) => (
+                                                <div key={row.level} style={{ fontSize: 13 }}>
+                                                    <b>{row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union'}:</b>{' '}
+                                                    {row.code ? `${row.code} — ${row.name}` : '— (not on last-serial path)'}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 )}
-                            </label>
+                            </section>
 
-                            <label>
-                                Mother's Name (মাতার নাম)
-                                <input
-                                    type="text"
-                                    placeholder="Mother's full legal name"
-                                    value={form.data.profile.mother_name}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, mother_name: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.mother_name'] && (
-                                    <span className="field-error">{form.errors['profile.mother_name']}</span>
+                            <section className="panel">
+                                <div className="panel-heading">
+                                    <div>
+                                        <h3>5. Refer section</h3>
+                                        <p>Reference = who referred them. Your refer code = code for their underlinks. Both must be unique when filled.</p>
+                                    </div>
+                                    <BadgeCheck size={22} className="text-muted" />
+                                </div>
+                                <div className="form-grid">
+                                    <label>
+                                        Your reference
+                                        <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder="Refer code of the person who referred them" />
+                                        {form.errors.reference_code && <span className="field-error">{form.errors.reference_code}</span>}
+                                    </label>
+                                    <label>
+                                        Your refer code *
+                                        <input required value={form.data.refer_code} onChange={(e) => form.setData('refer_code', e.target.value.toUpperCase())} placeholder="Unique code for this partner’s underlinks" />
+                                        {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
+                                    </label>
+                                </div>
+                                {referWarnings.length > 0 && (
+                                    <div className="error" style={{ marginTop: 10 }}>
+                                        {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
+                                    </div>
                                 )}
-                            </label>
-
-                            <label>
-                                Primary Mobile Number
-                                <input
-                                    type="tel"
-                                    placeholder="01XXXXXXXXX"
-                                    value={form.data.phone}
-                                    maxLength={30}
-                                    onChange={(e) => form.setData('phone', e.target.value)}
-                                />
-                                <small className="muted">Supports login via phone alongside email.</small>
-                                {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
-                            </label>
-
-                            <label>
-                                Email Address *
-                                <input
-                                    type="email"
-                                    required
-                                    placeholder="dealer@example.com"
-                                    value={form.data.email}
-                                    maxLength={254}
-                                    onChange={(e) => form.setData('email', e.target.value)}
-                                />
-                                <small className="muted">Password setup invitation is dispatched here.</small>
-                                {form.errors.email && <span className="field-error">{form.errors.email}</span>}
-                            </label>
-
-                            <label className="span-2">
-                                National Identity (NID) Number
-                                <input
-                                    type="text"
-                                    placeholder="10, 13, or 17 digit NID number"
-                                    value={form.data.nid}
-                                    maxLength={30}
-                                    onChange={(e) => form.setData('nid', e.target.value)}
-                                />
-                                <small className="muted">Restricted confidential data. Stored encrypted; hidden from public &amp; downline lists.</small>
-                                {form.errors.nid && <span className="field-error">{form.errors.nid}</span>}
-                            </label>
-                        </div>
-                    </section>
-
-                    {/* Panel 3: Geographic Territory & Coordinates */}
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>3. Geographic Territory &amp; GPS Coordinates</h3>
-                                <p>Administrative coverage hierarchy for territory allocation and public nearest-dealer search.</p>
-                            </div>
-                            <MapPin size={22} className="text-muted" />
-                        </div>
-
-                        <div className="form-grid">
-                            <label>
-                                Division (বিভাগ)
-                                <select
-                                    value={form.data.division}
-                                    onChange={(e) => form.setData('division', e.target.value)}
-                                >
-                                    <option value="">Select Division…</option>
-                                    {divisions.map((d) => (
-                                        <option key={d} value={d}>
-                                            {d}
-                                        </option>
-                                    ))}
-                                </select>
-                                {form.errors.division && <span className="field-error">{form.errors.division}</span>}
-                            </label>
-
-                            <label>
-                                District (জেলা)
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Gazipur, Bogura, Cumilla"
-                                    value={form.data.district}
-                                    maxLength={80}
-                                    onChange={(e) => form.setData('district', e.target.value)}
-                                />
-                                {form.errors.district && <span className="field-error">{form.errors.district}</span>}
-                            </label>
-
-                            <label>
-                                Upazila / Thana (উপজেলা / থানা)
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Kaliakair, Sadar"
-                                    value={form.data.profile.upazila}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, upazila: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.upazila'] && (
-                                    <span className="field-error">{form.errors['profile.upazila']}</span>
+                                {consumers && (
+                                    <div style={{ marginTop: 12, fontSize: 13 }}>
+                                        <b>Commission consumers</b>
+                                        <div>10% direct referral: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <div>2% D2D gen-2: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <div>1% D2D gen-3: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : '→ unassigned_reserve'}</div>
+                                    </div>
                                 )}
-                            </label>
+                            </section>
 
-                            <label>
-                                Union / Ward (ইউনিয়ন / ওয়ার্ড)
-                                <input
-                                    type="text"
-                                    placeholder="Assigned Union coverage"
-                                    value={form.data.profile.union}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, union: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.union'] && (
-                                    <span className="field-error">{form.errors['profile.union']}</span>
-                                )}
-                            </label>
-
-                            <label>
-                                Village / Road / Street (গ্রাম / রাস্তা)
-                                <input
-                                    type="text"
-                                    placeholder="Village or street address"
-                                    value={form.data.profile.village}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, village: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.village'] && (
-                                    <span className="field-error">{form.errors['profile.village']}</span>
-                                )}
-                            </label>
-
-                            <label>
-                                Post Office (ডাকঘর)
-                                <input
-                                    type="text"
-                                    placeholder="e.g. Kaliakair - 1750"
-                                    value={form.data.profile.post_office}
-                                    maxLength={150}
-                                    onChange={(e) =>
-                                        form.setData('profile', { ...form.data.profile, post_office: e.target.value })
-                                    }
-                                />
-                                {form.errors['profile.post_office'] && (
-                                    <span className="field-error">{form.errors['profile.post_office']}</span>
-                                )}
-                            </label>
-
-                            <label>
-                                GPS Latitude
-                                <input
-                                    type="number"
-                                    step="0.0000001"
-                                    placeholder="e.g. 23.8103310"
-                                    value={form.data.latitude}
-                                    onChange={(e) => form.setData('latitude', e.target.value)}
-                                />
-                                {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
-                            </label>
-
-                            <label>
-                                GPS Longitude
-                                <input
-                                    type="number"
-                                    step="0.0000001"
-                                    placeholder="e.g. 90.4125210"
-                                    value={form.data.longitude}
-                                    onChange={(e) => form.setData('longitude', e.target.value)}
-                                />
-                                {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
-                            </label>
-                        </div>
-                    </section>
+                            <section className="panel">
+                                <div className="panel-heading">
+                                    <div>
+                                        <h3>6. Contact</h3>
+                                        <p>Bangladeshi mobile and email are required. Username for login is the mobile number.</p>
+                                    </div>
+                                    <Phone size={22} className="text-muted" />
+                                </div>
+                                <div className="form-grid">
+                                    <label>
+                                        Mobile number *
+                                        <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="01XXXXXXXXX" />
+                                        {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
+                                    </label>
+                                    <label>
+                                        Email *
+                                        <input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
+                                        {form.errors.email && <span className="field-error">{form.errors.email}</span>}
+                                    </label>
+                                    <label>
+                                        Extra contact (optional)
+                                        <input value={form.data.extra_contact} onChange={(e) => form.setData('extra_contact', e.target.value)} />
+                                    </label>
+                                    <label>
+                                        Pharmacy / chamber
+                                        <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
+                                    </label>
+                                </div>
+                            </section>
+                        </>
+                    )}
                 </div>
 
                 <div className="account-create-sidebar">
-                    {/* Business Establishment */}
                     <section className="panel">
                         <div className="panel-heading">
                             <div>
-                                <h3>4. Business Point &amp; Directory</h3>
-                                <p>Medical chamber / pharmacy information.</p>
-                            </div>
-                            <Store size={20} className="text-muted" />
-                        </div>
-
-                        <label>
-                            Pharmacy / Chamber Name
-                            <input
-                                type="text"
-                                placeholder="e.g. Madina Natural Care Point"
-                                value={form.data.profile.pharmacy}
-                                maxLength={150}
-                                onChange={(e) =>
-                                    form.setData('profile', { ...form.data.profile, pharmacy: e.target.value })
-                                }
-                            />
-                            {form.errors['profile.pharmacy'] && (
-                                <span className="field-error">{form.errors['profile.pharmacy']}</span>
-                            )}
-                        </label>
-
-                        {form.data.role === 'dealer' && (
-                            <label className="checkbox-label" style={{ marginTop: '0.8rem' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={form.data.directory_visible === '1'}
-                                    onChange={(e) =>
-                                        form.setData('directory_visible', e.target.checked ? '1' : '0')
-                                    }
-                                />
-                                <span>Publish in public dealer directory (Name, business phone &amp; district)</span>
-                            </label>
-                        )}
-                        {form.data.role === 'sub_dealer' && (
-                            <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                                Sub-dealer contacts remain confidential and are excluded from the public directory per client policy.
-                            </p>
-                        )}
-                    </section>
-
-                    {/* Sponsoring Dealer */}
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>5. Sponsor Relationship</h3>
-                                <p>Required for sub-dealer parent link and D2D reward tracking.</p>
-                            </div>
-                            <BadgeCheck size={20} className="text-muted" />
-                        </div>
-
-                        <label>
-                            Sponsoring Dealer
-                            <select
-                                value={form.data.sponsor_id}
-                                onChange={(e) => form.setData('sponsor_id', e.target.value)}
-                            >
-                                <option value="">No sponsor (Direct company placement)</option>
-                                {sponsors.map((s) => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name} ({s.dealer_code ?? 'No code'}) — {s.district ?? 'BD'}
-                                    </option>
-                                ))}
-                            </select>
-                            {form.errors.sponsor_id && (
-                                <span className="field-error">{form.errors.sponsor_id}</span>
-                            )}
-                        </label>
-                    </section>
-
-                    {/* Staff Verification Note & Actions */}
-                    <section className="panel">
-                        <div className="panel-heading">
-                            <div>
-                                <h3>6. Staff Audit Record</h3>
-                                <p>Immutable log entry for this account creation.</p>
+                                <h3>Staff audit</h3>
                             </div>
                             <ShieldAlert size={20} className="text-muted" />
                         </div>
-
                         <label>
-                            Staff Verification / Reason Note *
-                            <textarea
-                                rows={3}
-                                required
-                                maxLength={1000}
-                                value={form.data.reason}
-                                onChange={(e) => form.setData('reason', e.target.value)}
-                            />
-                            {form.errors.reason && <span className="field-error">{form.errors.reason}</span>}
+                            Verification note *
+                            <textarea rows={3} required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
                         </label>
-
-                        {Object.keys(form.errors).length > 0 && (
-                            <div className="error" role="alert" style={{ marginTop: '0.8rem' }}>
-                                Please correct the highlighted errors above.
-                            </div>
+                        {form.data.role === 'dealer' && (
+                            <label className="checkbox-label" style={{ marginTop: 12 }}>
+                                <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
+                                <span>Publish in public dealer directory</span>
+                            </label>
                         )}
-
-                        <button
-                            type="submit"
-                            className="button dark full-width"
-                            disabled={form.processing}
-                            style={{ marginTop: '1rem', justifyContent: 'center' }}
-                        >
-                            {form.processing ? 'Creating Account…' : 'Create Account & Email Invitation'}
+                        {Object.keys(form.errors).length > 0 && (
+                            <div className="error" role="alert" style={{ marginTop: 12 }}>Please correct the highlighted errors.</div>
+                        )}
+                        <button type="submit" className="button dark full-width" disabled={form.processing || (isPartner && referWarnings.length > 0)} style={{ marginTop: 16, justifyContent: 'center' }}>
+                            {form.processing ? 'Creating…' : isPartner ? 'Add account & send SMS' : 'Create account & email invitation'}
                         </button>
                     </section>
+                    {isPartner && (
+                        <section className="panel">
+                            <div className="panel-heading">
+                                <div><h3>Business point</h3></div>
+                                <Store size={20} className="text-muted" />
+                            </div>
+                            <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                                After a valid add, the partner receives an SMS with username (mobile) and temporary password.
+                            </p>
+                        </section>
+                    )}
+                    {!isPartner && (
+                        <section className="panel">
+                            <div className="panel-heading"><div><h3>Sponsor (legacy)</h3></div><Building2 size={20} className="text-muted" /></div>
+                            <label>
+                                Sponsoring dealer
+                                <select value={form.data.sponsor_id} onChange={(e) => form.setData('sponsor_id', e.target.value)}>
+                                    <option value="">No sponsor</option>
+                                    {sponsors.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.dealer_code})</option>)}
+                                </select>
+                            </label>
+                        </section>
+                    )}
                 </div>
             </form>
         </Shell>

@@ -229,11 +229,29 @@ final class CommissionPosting
         foreach ($snapshot['referral_replacements'] ?? [] as $generation => $replacement) {
             $uplines[(int) $generation - 1] = $replacement['user_id'];
         }
-        $add(isset($uplines[0]) ? 'direct_referral' : 'direct_referral_breakage', 'direct_referral', $uplines[0] ?? null, $recipient($uplines[0] ?? null));
+        $directId = $uplines[0] ?? null;
+        if ($directId) {
+            $add('direct_referral', 'direct_referral', $directId, $recipient($directId));
+        } else {
+            $add('direct_referral_breakage', 'direct_referral', null, 'unassigned_reserve', null, null, [
+                'unassigned' => true,
+                'retained_by' => 'referral_unassigned_reserve',
+                'account_type' => $type,
+            ]);
+        }
         foreach ([2, 3] as $depth) {
             $rate = CommissionPolicy::rate($rules, 'd2d_multitier')->basisPoints > 0 ? (string) $rules['d2d_multitier']['parameters']['gen'.$depth.'_pct'] : '0.00';
             $id = $uplines[$depth - 1] ?? null;
-            $add('d2d_gen'.$depth.($id ? '' : '_breakage'), 'd2d_multitier', $id, $recipient($id), $rate);
+            if ($id) {
+                $add('d2d_gen'.$depth, 'd2d_multitier', $id, $recipient($id), $rate);
+            } else {
+                $add('d2d_gen'.$depth.'_breakage', 'd2d_multitier', null, 'unassigned_reserve', $rate, null, [
+                    'unassigned' => true,
+                    'retained_by' => 'referral_unassigned_reserve',
+                    'account_type' => $type,
+                    'generation' => $depth,
+                ]);
+            }
         }
         $areaPool = CommissionPolicy::rate($rules, 'area_dealer_pool')->of($cash, 'half_up');
         $areaRemaining = $areaPool;
