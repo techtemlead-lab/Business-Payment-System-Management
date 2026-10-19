@@ -49,13 +49,110 @@ interface AllocationRecord {
     };
 }
 
+interface RetainedFundRow {
+    id: number | string;
+    fund?: string;
+    category?: string;
+    status?: string;
+    amount?: string | number;
+    company_share?: string | number;
+    purchase_value?: string | number;
+    rate_percentage?: string | number;
+    order_number?: string;
+    buyer_name?: string;
+    buyer_code?: string;
+    buyer_role?: string;
+    division?: string | null;
+    district?: string | null;
+    upazila?: string | null;
+    union?: string | null;
+    area_level?: string | null;
+    retained_by?: string | null;
+    reason?: string;
+    created_at?: string;
+    mrp_basis?: string | number;
+    total_allocated?: string | number;
+    batch_unallocated?: string | number;
+}
+
+interface RetainedFundDetails {
+    unassigned_geographic?: RetainedFundRow[];
+    management_area?: RetainedFundRow[];
+    override_reserves?: RetainedFundRow[];
+    marketing_fund?: RetainedFundRow[];
+    car_bike_fund?: RetainedFundRow[];
+    benefits_fund?: RetainedFundRow[];
+    company_share_batches?: RetainedFundRow[];
+    totals?: Record<string, number>;
+}
+
 interface CompanyTreasuryHubProps {
     flow: CapitalFlowData;
     allocations_by_category: CategoryAllocation[];
     recent_allocations: AllocationRecord[];
+    retained_fund_details?: RetainedFundDetails | null;
 }
 
-export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations }: CompanyTreasuryHubProps) {
+function placeLabel(row: RetainedFundRow): string {
+    return [row.division, row.district, row.upazila, row.union].filter(Boolean).join(' / ') || '—';
+}
+
+function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { title: string; hint: string; rows: RetainedFundRow[]; amountKey?: 'amount' | 'company_share' }) {
+    if (!rows.length) {
+        return (
+            <div style={{ marginTop: 18, border: '1px dashed #cbd5e1', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
+                <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>No detailed entries yet.</p>
+            </div>
+        );
+    }
+    return (
+        <div style={{ marginTop: 18, border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#ffffff' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{hint}</p>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <thead>
+                        <tr style={{ textAlign: 'left', color: '#64748b', background: '#fcfcfd' }}>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Posted</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Order</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Buyer</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Location</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Purchase</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Rate</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Amount</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row) => (
+                            <tr key={`${row.category}-${row.id}`} style={{ borderTop: '1px solid #eef2f7' }}>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{date(row.created_at)}</td>
+                                <td style={{ padding: '10px 12px' }}>{row.order_number || '—'}</td>
+                                <td style={{ padding: '10px 12px' }}>
+                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.buyer_name || '—'}</div>
+                                    <div style={{ color: '#64748b' }}>{[row.buyer_code, row.buyer_role].filter(Boolean).join(' · ')}</div>
+                                </td>
+                                <td style={{ padding: '10px 12px' }}>
+                                    <div>{placeLabel(row)}</div>
+                                    {row.area_level && <div style={{ color: '#64748b' }}>Level: {row.area_level}</div>}
+                                </td>
+                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{money(row.purchase_value)}</td>
+                                <td style={{ padding: '10px 12px' }}>{row.rate_percentage != null ? `${row.rate_percentage}%` : '—'}</td>
+                                <td style={{ padding: '10px 12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>{money(row[amountKey])}</td>
+                                <td style={{ padding: '10px 12px', color: '#475569', minWidth: 220 }}>{row.reason || row.fund || '—'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null }: CompanyTreasuryHubProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -77,6 +174,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
     const unallocatedBuffer = ownerBenefitsVisible
         ? (Number(flow.commission_benefits_fund ?? flow.unallocated_pool_buffer) || 0)
         : 0;
+    const details = retained_fund_details || {};
+    const unassignedRows = details.unassigned_geographic || [];
+    const managementRows = details.management_area || [];
+    const companyShareRows = details.company_share_batches || [];
+    const benefitsRows = details.benefits_fund || [];
+    const overrideRows = details.override_reserves || [];
+    const marketingRows = details.marketing_fund || [];
+    const carBikeRows = details.car_bike_fund || [];
 
     // Channel breakdown
     const channels = flow.channel_breakdown ?? [];
@@ -471,6 +576,35 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
                         </div>
 
+                        <RetainedDetailTable
+                            title="Company operating share — amount details"
+                            hint="Each posted batch shows purchase value, MRP basis share, buyer and geography."
+                            rows={companyShareRows}
+                            amountKey="company_share"
+                        />
+                        <RetainedDetailTable
+                            title="Unassigned geographic reserve — amount details"
+                            hint="District/division/upazila/union slices retained when no active area dealer is assigned."
+                            rows={unassignedRows}
+                        />
+                        <RetainedDetailTable
+                            title="Management area share — amount details"
+                            hint="Management portion of the area dealer pool, with source order and buyer context."
+                            rows={managementRows}
+                        />
+                        {ownerBenefitsVisible && (
+                            <RetainedDetailTable
+                                title="Company Commission Benefits Fund — amount details"
+                                hint="Owner-only purchase surplus after company share and distributed commissions."
+                                rows={benefitsRows}
+                            />
+                        )}
+                        <RetainedDetailTable
+                            title="Override / breakage reserves — amount details"
+                            hint="Amounts retained when individual rates are reduced or referral recipients are missing."
+                            rows={overrideRows}
+                        />
+
                         {/* Company Bank Accounts */}
                         <div style={{ marginTop: 24 }}>
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
@@ -566,6 +700,17 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                 </div>
                             </div>
                         </div>
+
+                        <RetainedDetailTable
+                            title="Marketing fund — amount details"
+                            hint="Each reserved marketing amount with source order, buyer and purchase value."
+                            rows={marketingRows}
+                        />
+                        <RetainedDetailTable
+                            title="Car / motorcycle fund — amount details"
+                            hint="Vehicle reserve contributions with source order and buyer context."
+                            rows={carBikeRows}
+                        />
 
                         {/* Category Allocations Table */}
                         <div style={{ marginTop: 24 }}>
