@@ -306,13 +306,30 @@ class CommandController extends Controller
     public function content(Request $r): RedirectResponse
     {
         $this->permit($r, 'content');
-        $d = $r->validate(['slug' => 'required|in:about,contact,home,notice', 'title' => 'required|string|max:150', 'body' => 'required|string|max:10000', 'published' => 'required|boolean']);
+        $d = $r->validate([
+            'slug' => 'required|in:home,about,contact,notice,partnership,services,quality,faq,privacy,terms,products,dealers',
+            'title' => 'required|string|max:150',
+            'body' => 'required|string|max:10000',
+            'published' => 'required|boolean',
+        ]);
         DB::transaction(function () use ($r, $d) {
-            DB::table('content_pages')->updateOrInsert(['slug' => $d['slug']], [...$d, 'updated_at' => now()]);
+            $existing = DB::table('content_pages')->where('slug', $d['slug'])->exists();
+            DB::table('content_pages')->updateOrInsert(
+                ['slug' => $d['slug']],
+                [...$d, 'updated_at' => now(), ...($existing ? [] : ['created_at' => now()])]
+            );
             Audit::record($r->user()->id, 'content.updated', $d['slug']);
         });
 
         return back()->with('success', 'Content saved.');
+    }
+
+    public function publishPolicy(Request $r, int $id, PolicyDraftService $service): RedirectResponse
+    {
+        $this->permit($r, 'finance');
+        $service->publish($r->user(), $id);
+
+        return back()->with('success', 'Policy draft marked published for review. Live commission rates still use Commission Studio.');
     }
 
     public function customization(Request $r): RedirectResponse

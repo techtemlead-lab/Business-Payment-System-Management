@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
  * Loaded through web.php: session and CSRF protection remain enabled.
  * All money and percentage values in financial previews are decimal strings.
  */
-Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class, 'throttle:60,1'])->group(function (): void {
+Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group(function (): void {
     Route::get('/me', fn (Request $request) => response()->json(['data' => [
         'user' => $request->user()->safe(),
         'capabilities' => $request->user()->capabilities(),

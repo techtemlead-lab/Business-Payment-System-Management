@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -39,11 +40,18 @@ class PhoneLoginTest extends TestCase
         }
     }
 
-    public function test_ambiguous_or_invalid_phone_is_rejected_and_email_still_works(): void
+    public function test_normalized_phone_uniqueness_blocks_ambiguous_accounts_and_email_still_works(): void
     {
         $u = User::factory()->create(['role' => 'dealer', 'phone' => '01000000003', 'email' => 'phone-fallback@example.test', 'password' => 'SyntheticPassword123']);
+
+        $this->expectException(UniqueConstraintViolationException::class);
         User::factory()->create(['role' => 'dealer', 'phone' => '+8801000000003']);
-        foreach (['01000000003', 'letters01000000003', 'not-an-identity'] as $phone) {
+    }
+
+    public function test_invalid_phone_is_rejected_and_email_still_works(): void
+    {
+        $u = User::factory()->create(['role' => 'dealer', 'phone' => '01000000006', 'email' => 'phone-fallback@example.test', 'password' => 'SyntheticPassword123']);
+        foreach (['letters01000000006', 'not-an-identity'] as $phone) {
             $this->post('/login', ['email' => $phone, 'password' => 'SyntheticPassword123'])->assertSessionHasErrors('email');
             $this->assertGuest();
         }

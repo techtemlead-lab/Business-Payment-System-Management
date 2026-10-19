@@ -1,7 +1,7 @@
 name: Application quality
 on:
   push:
-    branches: [main, "codex/**"]
+    branches: [main, "codex/**", "xai-cursore/**"]
   pull_request:
 permissions:
   contents: read
@@ -49,6 +49,7 @@ jobs:
       - run: composer install --no-interaction --prefer-dist --no-progress
       - run: composer validate --strict
       - run: composer audit --locked
+      - run: vendor/bin/pint --test
       - run: npm ci --ignore-scripts
       - run: npm audit
       - run: cp .env.example .env && php artisan key:generate --no-interaction
@@ -56,6 +57,12 @@ jobs:
       - run: node --test tests/Unit/business-date.test.mjs
       - run: npm run build
       - run: php artisan test --compact --log-junit storage/test-results.xml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: phpunit-junit
+          path: storage/test-results.xml
+          if-no-files-found: ignore
 
   production-images:
     needs: verify

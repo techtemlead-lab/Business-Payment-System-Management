@@ -66,6 +66,7 @@ return [
     'policy_schedules' => 'Commission schedules',
     'reserve_payouts' => 'Reserve payouts',
     'data_imports' => 'Excel data import',
+    'service_integrations' => 'Service integrations',
     'commission_holds' => 'Commission holds',
     'financial_readiness' => 'Opening balance review',
     'financial_reports' => 'Financial reports',

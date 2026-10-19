@@ -13,13 +13,24 @@ use Illuminate\Validation\ValidationException;
 final class PaymentAccounts
 {
     /** @return list<array<string, mixed>> */
-    public function listing(User $actor, bool $collectionOnly = false): array
+    public function listing(User $actor, bool $collectionOnly = false, bool $revealSecrets = true): array
     {
         abort_unless($actor->status === 'active', 403);
         abort_unless($collectionOnly || $actor->allows('finance'), 403);
 
         return DB::table('payment_accounts')->when($collectionOnly, fn ($query) => $query->where('is_active', true)->where('collects_payments', true))
-            ->orderBy('label')->get()->map(fn (object $account): array => $this->display($account))->all();
+            ->orderBy('label')->get()->map(fn (object $account): array => $this->display($account, $revealSecrets))->all();
+    }
+
+    public function mayReceiveCollectionAccounts(User $actor): bool
+    {
+        if ($actor->status !== 'active') {
+            return false;
+        }
+
+        return in_array($actor->role, ['dealer', 'sub_dealer'], true)
+            || $actor->allows('finance')
+            || $actor->allows('orders');
     }
 
     /** @param array<string, mixed> $data */
@@ -68,7 +79,7 @@ final class PaymentAccounts
             throw ValidationException::withMessages(['payment_account_id' => 'Choose an active company collection account for this payment method.']);
         }
 
-        return $this->display($account);
+        return $this->display($account, true);
     }
 
     public function assertPayout(int $id): object
@@ -113,14 +124,31 @@ final class PaymentAccounts
                 $metadata = json_decode($event->metadata, true, flags: JSON_THROW_ON_ERROR);
 
                 return ['version' => $metadata['version'], 'reason' => $metadata['reason'], 'recorded_at' => $event->created_at,
-                    ...(! empty($metadata['after']) ? $this->display((object) decrypt($metadata['after'])) : []), 'id' => $event->id];
+                    ...(! empty($metadata['after']) ? $this->display((object) decrypt($metadata['after']), true) : []), 'id' => $event->id];
             })->all();
     }
 
     /** @return array<string, mixed> */
-    private function display(object $account): array
+    private function display(object $account, bool $revealSecrets = true): array
     {
+        $number = decrypt($account->account_number);
+        $details = $account->details ? decrypt($account->details) : '';
+        $masked = $this->maskAccountNumber((string) $number);
+
         return [...collect($account)->only(['id', 'label', 'channel', 'holder', 'collects_payments', 'pays_out', 'is_active', 'version'])->all(),
-            'account_number' => decrypt($account->account_number), 'details' => $account->details ? decrypt($account->details) : ''];
+            'account_number' => $revealSecrets ? $number : $masked,
+            'account_number_masked' => $masked,
+            'details' => $revealSecrets ? $details : '',
+            'secrets_revealed' => $revealSecrets];
+    }
+
+    private function maskAccountNumber(string $number): string
+    {
+        $trimmed = preg_replace('/\s+/', '', $number) ?: '';
+        if (strlen($trimmed) <= 4) {
+            return str_repeat('•', max(4, strlen($trimmed)));
+        }
+
+        return str_repeat('•', max(4, strlen($trimmed) - 4)).substr($trimmed, -4);
     }
 }

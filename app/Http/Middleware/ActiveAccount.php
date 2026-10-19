@@ -17,6 +17,9 @@ class ActiveAccount
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+            if ($request->expectsJson() || $request->is('api/*')) {
+                abort(403, 'This account is unavailable.');
+            }
             if ($request->header('X-Inertia')) {
                 return Inertia::location($login);
             }

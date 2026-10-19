@@ -225,6 +225,6 @@ class BackendIntegrationTest extends TestCase
         $this->actingAs($admin)->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '4.00', 'version' => 1]]])->assertOk();
         $this->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '3.00', 'version' => 1]]])->assertUnprocessable();
         $this->assertDatabaseHas('commission_rule_parameters', ['rule_key' => 'own_dealer_cashback', 'percentage' => '4.00', 'version' => 2]);
-        $this->assertDatabaseCount('commission_policy_revisions',1);
+        $this->assertDatabaseCount('commission_policy_revisions', 1);
     }
 }

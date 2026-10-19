@@ -80,7 +80,7 @@ class EnforceStaffActions
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization', 'enquiry' => [['content'], 'edit'], 'customization' => [['content', 'catalog'], 'edit'],
-                'policy' => [['finance'], 'create'], 'updateCommissionRules' => [['finance'], 'edit'],
+                'policy' => [['finance'], 'create'], 'publishPolicy' => [['finance'], 'approve'], 'updateCommissionRules' => [['finance'], 'edit'],
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
                 'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'], default => null,
             },

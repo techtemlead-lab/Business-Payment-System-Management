@@ -36,4 +36,26 @@ final class PolicyDraftService
             return $id;
         });
     }
+
+    public function publish(User $actor, int $id): void
+    {
+        abort_unless($actor->allows('finance'), 403);
+        DB::transaction(function () use ($actor, $id): void {
+            abort_unless($actor->fresh()->allows('finance'), 403);
+            $draft = DB::table('policy_drafts')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($draft, 404);
+            if ($draft->status === 'published') {
+                return;
+            }
+            DB::table('policy_drafts')->where('id', $id)->update([
+                'status' => 'published',
+                'basis' => 'purchase_value',
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'policy.published', (string) $id, [
+                'account_type' => $draft->account_type,
+                'name' => $draft->name,
+            ]);
+        }, 3);
+    }
 }

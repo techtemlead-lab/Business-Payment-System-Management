@@ -74,9 +74,6 @@ export default function Shell({ section, children, action }: { section: string; 
         if (item === 'catalog' && staff) {
             return translate('portal', 'product_management');
         }
-        if (item === 'service-integrations') {
-            return 'Service integrations';
-        }
         const key = sectionKeys[item];
         return key ? translate('portal', key) : translate('portal', 'order_details');
     };
@@ -147,16 +144,16 @@ export default function Shell({ section, children, action }: { section: string; 
     const dealerGroup = staff ? [
         ...(capabilities.includes('accounts') ? ['accounts'] : []),
         ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['orders', 'deliveries', 'dues'] : []),
-        ...(capabilities.includes('finance') ? ['commissions'] : []),
+        ...(capabilities.includes('finance') ? ['commissions', 'policies', 'ledger', 'reports'] : []),
         ...(capabilities.includes('accounts') ? ['network-tree', 'area-dealers', 'ranks'] : []),
-        ...(capabilities.includes('finance') ? ['rewards', 'settlements', 'simulator', 'payouts-hub', 'payments'] : []),
-    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks'] : []);
+        ...(capabilities.includes('finance') ? ['rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals'] : []),
+    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'withdrawals'] : []);
 
     const subDealerGroup = staff ? [
         ...(capabilities.includes('accounts') ? ['sub-dealers'] : []),
         ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['sub-dealer-orders'] : []),
         ...(capabilities.includes('finance') ? ['salary'] : []),
-    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary'] : []);
+    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'withdrawals'] : []);
 
     const group = (title: string, items: string[]) => items.length > 0 && (
         <nav className="nav-group" aria-label={title}>
@@ -182,7 +179,7 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const isDashboardsDomain = section === 'dashboards';
     const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
-    const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports'].includes(section);
+    const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
     const currentSectionTitle = section === 'overview'
@@ -383,12 +380,18 @@ export default function Shell({ section, children, action }: { section: string; 
                                         {capabilities.includes('accounts') && (
                                             <Link href="/place-codes" className={`button small ${section === 'place-codes' ? 'dark' : ''}`}>{translate('portal', 'place_codes')}</Link>
                                         )}
-                                        <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
+                                        {capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) && (
+                                            <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
+                                        )}
                                         {capabilities.includes('inventory') && (
                                             <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`}>{translate('portal', 'inventory')}</Link>
                                         )}
                                         {capabilities.includes('content') && (
-                                            <Link href="/website" className={`button small ${['website', 'customization'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'website')}</Link>
+                                            <>
+                                                <Link href="/website" className={`button small ${['website', 'customization'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'website')}</Link>
+                                                <Link href="/content" className={`button small ${section === 'content' ? 'dark' : ''}`}>{translate('portal', 'content')}</Link>
+                                                <Link href="/enquiries" className={`button small ${section === 'enquiries' ? 'dark' : ''}`}>{translate('portal', 'enquiries')}</Link>
+                                            </>
                                         )}
                                         {capabilities.includes('audit') && (
                                             <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`}>{translate('portal', 'audit')}</Link>
@@ -403,6 +406,9 @@ export default function Shell({ section, children, action }: { section: string; 
                                         {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`}>{translate('portal', 'deliveries')}</Link>}
                                         {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`}>{translate('portal', 'dues')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/commissions" className={`button small accent ${section === 'commissions' ? 'dark' : ''}`}>{translate('portal', 'commissions')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/policies" className={`button small ${section === 'policies' ? 'dark' : ''}`}>{translate('portal', 'policies')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/ledger" className={`button small ${section === 'ledger' ? 'dark' : ''}`}>{translate('portal', 'ledger')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/reports" className={`button small ${section === 'reports' ? 'dark' : ''}`}>{translate('portal', 'reports')}</Link>}
                                         {capabilities.includes('accounts') && <Link href="/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`}>{translate('portal', 'network_tree')}</Link>}
                                         {capabilities.includes('accounts') && <Link href="/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`}>{translate('portal', 'area_dealers')}</Link>}
                                         {capabilities.includes('accounts') && <Link href="/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`}>{translate('portal', 'ranks')}</Link>}
@@ -410,6 +416,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                         {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`}>{translate('portal', 'settlements')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`}>{translate('portal', 'simulator')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`}>{translate('portal', 'payouts_hub')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/withdrawals" className={`button small ${section === 'withdrawals' ? 'dark' : ''}`}>{translate('portal', 'withdrawals')}</Link>}
                                     </>
                                 )}
 
