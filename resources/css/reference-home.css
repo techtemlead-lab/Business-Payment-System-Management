@@ -1006,8 +1006,8 @@ details.ref-content-card summary i{transition:transform .18s ease}
 }
 .ref-company-bar-inner{display:flex;align-items:center;justify-content:center;gap:14px;height:100%;max-width:1320px;margin:0 auto}
 .ref-bar-text{
-  font-size:11px;font-weight:650;letter-spacing:.18em;text-transform:uppercase;
-  color:rgba(255,255,255,.92);text-shadow:none;white-space:nowrap;
+  font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:none;
+  color:rgba(255,255,255,.94);text-shadow:none;white-space:nowrap;
 }
 .ref-bar-flourish{display:inline-flex;align-items:center;gap:8px;color:#7dcea0;font-size:10px;opacity:.9}
 .ref-bar-flourish.left i{transform:scaleX(-1)}
