@@ -158,7 +158,7 @@ class PortalController extends Controller
             $data['movements'] = DB::table('stock_movements')->join('products', 'products.id', '=', 'product_id')->select('stock_movements.*', 'products.name')->orderByDesc('stock_movements.id')->paginate(20);
         }
         if ($section === 'accounts') {
-            $data['accounts'] = User::when($r->filled('q'), function ($q) use ($r) {
+            $data['accounts'] = User::whereIn('role', ['dealer', 'sub_dealer'])->when($r->filled('q'), function ($q) use ($r) {
                 $term = '%'.$r->string('q').'%';
                 $q->where(function ($sub) use ($term) {
                     $sub->where('name', 'like', $term)
@@ -166,7 +166,7 @@ class PortalController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->when($u->role !== 'super_admin', fn ($q) => $q->whereIn('role', ['dealer', 'sub_dealer']))->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {

@@ -26,12 +26,14 @@ class VerifyApplicationBackup extends Command
         }
         $disk = Storage::disk(config('madina.backup_disk'));
         if (! $disk->exists($name)) {
+            $this->forgetVerification($name);
             $this->error('Backup not found.');
 
             return self::FAILURE;
         }
         $zip = new ZipArchive;
         if ($zip->open($disk->path($name)) !== true) {
+            $this->forgetVerification($name);
             $this->error('Cannot open backup.');
 
             return self::FAILURE;
@@ -70,12 +72,20 @@ class VerifyApplicationBackup extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $exception) {
+            $this->forgetVerification($name);
             report($exception);
             $this->error('Backup verification failed. Check the password, archive and application log.');
 
             return self::FAILURE;
         } finally {
             $zip->close();
+        }
+    }
+
+    private function forgetVerification(string $name): void
+    {
+        if ((Cache::get('operations:verified-backup')['file'] ?? null) === $name) {
+            Cache::forget('operations:verified-backup');
         }
     }
 }

@@ -70,11 +70,16 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue(Cache::has('operations:verified-backup'));
         config(['madina.backup_password' => str_repeat('Incorrect-secret-', 3)]);
         $this->artisan('app:backup-verify', ['file' => $backups[0]])->assertFailed();
+        $this->assertFalse(Cache::has('operations:verified-backup'));
         config(['madina.backup_password' => str_repeat('Private-backup-secret-', 3)]);
-        $zip->open(Storage::disk('backups')->path($backups[0]));
-        $zip->addFromString('private/test-evidence/receipt.txt', 'Modified evidence');
-        $zip->close();
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open(Storage::disk('backups')->path($backups[0])));
+        $zip->setPassword(config('madina.backup_password'));
+        $this->assertTrue($zip->addFromString('private/test-evidence/receipt.txt', 'Modified evidence'));
+        $this->assertTrue($zip->setEncryptionName('private/test-evidence/receipt.txt', ZipArchive::EM_AES_256));
+        $this->assertTrue($zip->close());
         $this->artisan('app:backup-verify', ['file' => $backups[0]])->assertFailed();
+        $this->assertFalse(Cache::has('operations:verified-backup'));
     }
 
     public function test_health_and_security_headers_are_available_without_exposing_diagnostics(): void

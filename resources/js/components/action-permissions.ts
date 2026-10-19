@@ -4,7 +4,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(!matrix)return true;
     const path=url.split('?')[0];
     const any=(modules:string[],action:string)=>modules.some(module=>matrix[module]?.[action]);
-    if(path.startsWith('/security/')||path==='/logout'||/\/notices\/[^/]+\/read$/.test(path))return true;
+    if(path.startsWith('/security/')||path==='/commands/owner/contact'||path==='/logout'||/\/notices\/[^/]+\/read$/.test(path))return true;
     if(path.startsWith('/commands/operations/')) {
         const part=path.slice('/commands/operations/'.length);
         if(part.startsWith('staff/roles')||part.startsWith('staff/action-permissions'))return any(['staff_admin'],'edit');

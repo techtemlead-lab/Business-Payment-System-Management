@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -105,6 +106,28 @@ class AuthController extends Controller
         }
 
         return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? '/login')->with('success', 'Password set. You can sign in now.');
+    }
+
+    public function ownerContact(Request $request): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner?->owner(), 403);
+        $data = $request->validate([
+            'current_password' => 'required|current_password',
+            'email' => ['required', 'email', 'max:254', Rule::unique('users')->ignore($owner->id)],
+        ]);
+        DB::transaction(function () use ($owner, $data, $request): void {
+            $previousEmail = $owner->email;
+            if ($previousEmail !== $data['email']) {
+                $owner->update(['email' => $data['email'], 'email_verified_at' => null, 'remember_token' => Str::random(60)]);
+                DB::table('password_reset_tokens')->whereIn('email', [$previousEmail, $data['email']])->delete();
+                DB::table('sessions')->where('user_id', $owner->id)->where('id', '!=', $request->session()->getId())->delete();
+                Audit::record($owner->id, 'owner.contact_updated', (string) $owner->id, ['changed_fields' => ['email']]);
+            }
+        });
+        $request->session()->regenerate();
+
+        return back()->with('success', 'Owner email updated. Use this email or your registered phone number to sign in.');
     }
 
     public function password(Request $r): Response
