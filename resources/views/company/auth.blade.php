@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>Company {{ $mode==='login'?'Sign In':'Password Recovery' }} · Madina</title>
+    <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password')) }} · Madina</title>
     <link rel="stylesheet" href="/reference/instrument-sans-local.css">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
