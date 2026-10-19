@@ -79,6 +79,7 @@ interface RetainedFundDetails {
     unassigned_geographic?: RetainedFundRow[];
     management_area?: RetainedFundRow[];
     override_reserves?: RetainedFundRow[];
+    settlement_reserves?: RetainedFundRow[];
     marketing_fund?: RetainedFundRow[];
     car_bike_fund?: RetainedFundRow[];
     benefits_fund?: RetainedFundRow[];
@@ -180,6 +181,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
     const companyShareRows = details.company_share_batches || [];
     const benefitsRows = details.benefits_fund || [];
     const overrideRows = details.override_reserves || [];
+    const settlementRows = details.settlement_reserves || [];
     const marketingRows = details.marketing_fund || [];
     const carBikeRows = details.car_bike_fund || [];
 
@@ -603,6 +605,11 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             title="Override / breakage reserves — amount details"
                             hint="Amounts retained when individual rates are reduced or referral recipients are missing."
                             rows={overrideRows}
+                        />
+                        <RetainedDetailTable
+                            title="Salary / royalty settlement reserves — amount details"
+                            hint="Undistributed dealer salary, sub-dealer salary, or unfilled royalty tier shares moved into dedicated company reserves at month close."
+                            rows={settlementRows}
                         />
 
                         {/* Company Bank Accounts */}

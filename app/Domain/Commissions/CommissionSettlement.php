@@ -14,6 +14,18 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionSettlement
 {
+    public const DealerSalaryReserve = 'dealer_salary_settlement_reserve';
+
+    public const SubDealerSalaryReserve = 'sub_dealer_salary_settlement_reserve';
+
+    public const RankRoyaltyReserve = 'rank_royalty_settlement_reserve';
+
+    /** @return list<string> */
+    public static function settlementReserveCategories(): array
+    {
+        return [self::DealerSalaryReserve, self::SubDealerSalaryReserve, self::RankRoyaltyReserve];
+    }
+
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private CommissionPolicy $policies) {}
 
     /** @return array<string, mixed> */
@@ -32,10 +44,11 @@ final class CommissionSettlement
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $total = $funds->sum(fn (CommissionAllocation $a): int => Money::cents($a->amount));
             if ($total === 0) {
-                return ['status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0, 'total_distributed' => '0.00'];
+                return ['status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0, 'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00'];
             }
             $distributed = [];
             $tiers = [];
+            $rolled = 0;
             foreach ($funds as $fund) {
                 $source = DB::table('commission_batches')->where('order_id', $fund->order_id)->value('policy');
                 $rules = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR)['rules'] : $this->policies->snapshot()['rules'];
@@ -72,8 +85,16 @@ final class CommissionSettlement
                         $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
                     }
                 }
+                $paidCents = array_sum($shares);
+                $remainder = $cents - $paidCents;
+                $reserveId = null;
+                if ($remainder > 0) {
+                    $reserveId = $this->rollUndistributed($fund, $remainder, $month, $kind);
+                    $rolled += $remainder;
+                }
                 $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
-                    'settled_period' => $month, 'distributed' => Money::decimal(array_sum($shares)), 'reserved' => Money::decimal($cents - array_sum($shares))]]);
+                    'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
+                    'settlement_reserve_allocation_id' => $reserveId]]);
             }
             $totalPaid = array_sum($distributed);
             $result = [];
@@ -86,11 +107,46 @@ final class CommissionSettlement
                 $tier['rolled_to_reserve'] = Money::decimal($tier['reserve_cents']);
                 unset($tier['allocated_cents'], $tier['reserve_cents']);
             }
-            Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, ['distributed' => Money::decimal($totalPaid)]);
+            Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
+                'distributed' => Money::decimal($totalPaid),
+                'rolled_to_reserve' => Money::decimal($rolled),
+            ]);
 
             return ['status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
-                'total_distributed' => Money::decimal($totalPaid), 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers];
+                'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => Money::decimal($rolled),
+                'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers];
         }, 3);
+    }
+
+    private function rollUndistributed(CommissionAllocation $fund, int $remainder, string $month, string $kind): int
+    {
+        $category = match ($fund->category) {
+            'sub_dealer_salary' => self::SubDealerSalaryReserve,
+            'dealer_monthly_salary_pool' => self::DealerSalaryReserve,
+            default => self::RankRoyaltyReserve,
+        };
+
+        return CommissionAllocation::query()->create([
+            'order_id' => $fund->order_id,
+            'user_id' => null,
+            'category' => $category,
+            'rate_percentage' => $fund->rate_percentage,
+            'cash_basis' => $fund->cash_basis,
+            'amount' => Money::decimal($remainder),
+            'original_amount' => Money::decimal($remainder),
+            'status' => 'reserved',
+            'metadata' => [
+                'basis' => 'purchase_value',
+                'period_month' => $month,
+                'source_allocation_id' => $fund->id,
+                'source_category' => $fund->category,
+                'settlement_kind' => $kind,
+                'retained_by' => 'settlement_rollover',
+                'reason' => $kind === 'salary'
+                    ? 'Undistributed salary share rolled to company settlement reserve.'
+                    : 'Unfilled royalty tier share rolled to company settlement reserve.',
+            ],
+        ])->id;
     }
 
     /** @param list<int> $ids @return array<int, int> */
@@ -169,6 +225,10 @@ final class CommissionSettlement
                 return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
             }
             $rules = $this->policies->snapshot()['rules'];
+            $paidAs = $this->qualification->paidAs($userId, CommissionQualification::currentMonth(), $rules);
+            if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
+                return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
+            }
             $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$rank->current_rank.'_bonus']);
             $funds = CommissionAllocation::where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])->orderBy('id')->lockForUpdate()->get();
             $available = $funds->sum(fn ($fund): int => Money::cents($fund->amount) - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00')));

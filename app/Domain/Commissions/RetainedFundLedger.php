@@ -24,6 +24,7 @@ final class RetainedFundLedger
      *   unassigned_geographic: list<array<string, mixed>>,
      *   management_area: list<array<string, mixed>>,
      *   override_reserves: list<array<string, mixed>>,
+     *   settlement_reserves: list<array<string, mixed>>,
      *   marketing_fund: list<array<string, mixed>>,
      *   car_bike_fund: list<array<string, mixed>>,
      *   benefits_fund: list<array<string, mixed>>,
@@ -37,6 +38,7 @@ final class RetainedFundLedger
             'unassigned_geographic' => [],
             'management_area' => [],
             'override_reserves' => [],
+            'settlement_reserves' => [],
             'marketing_fund' => [],
             'car_bike_fund' => [],
             'benefits_fund' => [],
@@ -52,6 +54,7 @@ final class RetainedFundLedger
                     ->orWhere('category', 'company_marketing_fund')
                     ->orWhere('category', 'car_bike_incentive_fund')
                     ->orWhere('category', self::BenefitsCategory)
+                    ->orWhereIn('category', CommissionSettlement::settlementReserveCategories())
                     ->orWhere('category', 'like', '%_override_reserve')
                     ->orWhere('category', 'like', '%_breakage');
             })
@@ -67,6 +70,8 @@ final class RetainedFundLedger
                 } elseif ($allocation->category === 'area_management') {
                     $groups['management_area'][] = $row;
                 }
+            } elseif (in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
+                $groups['settlement_reserves'][] = $row;
             } elseif ($allocation->category === 'company_marketing_fund') {
                 $groups['marketing_fund'][] = $row;
             } elseif ($allocation->category === 'car_bike_incentive_fund') {
@@ -89,6 +94,7 @@ final class RetainedFundLedger
             'unassigned_geographic' => $this->sumAmount($groups['unassigned_geographic']),
             'management_area' => $this->sumAmount($groups['management_area']),
             'override_reserves' => $this->sumAmount($groups['override_reserves']),
+            'settlement_reserves' => $this->sumAmount($groups['settlement_reserves']),
             'marketing_fund' => $this->sumAmount($groups['marketing_fund']),
             'car_bike_fund' => $this->sumAmount($groups['car_bike_fund']),
             'benefits_fund' => $includeOwnerBenefits ? $this->sumAmount($groups['benefits_fund']) : 0.0,
@@ -262,6 +268,9 @@ final class RetainedFundLedger
         if ($allocation->category === 'car_bike_incentive_fund') {
             return 'Vehicle reward reserve funded from the purchase-value commission schedule.';
         }
+        if (in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
+            return (string) ($metadata['reason'] ?? 'Undistributed salary or royalty share rolled into the company settlement reserve.');
+        }
 
         return (string) ($metadata['source'] ?? 'Company retained commission amount.');
     }
@@ -274,6 +283,9 @@ final class RetainedFundLedger
             $allocation->category === 'area_management' => 'Management area share',
             $allocation->category === 'company_marketing_fund' => 'Marketing fund',
             $allocation->category === 'car_bike_incentive_fund' => 'Car / motorcycle fund',
+            $allocation->category === CommissionSettlement::DealerSalaryReserve => 'Dealer salary settlement reserve',
+            $allocation->category === CommissionSettlement::SubDealerSalaryReserve => 'Sub-dealer salary settlement reserve',
+            $allocation->category === CommissionSettlement::RankRoyaltyReserve => 'Rank royalty settlement reserve',
             str_contains((string) $allocation->category, 'override_reserve') => 'Override reserve',
             str_contains((string) $allocation->category, 'breakage') => 'Referral breakage reserve',
             default => (string) $allocation->category,

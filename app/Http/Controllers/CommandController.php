@@ -425,10 +425,13 @@ class CommandController extends Controller
             return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
         }
         if ($result['status'] === 'rolled_over') {
-            return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. Pool rolled to company reserve.");
+            return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. ৳{$result['total_rolled_to_reserve']} moved to the salary settlement reserve.");
         }
 
-        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_distributed']}. Qualifying partners: {$result['qualifiers_count']}.");
+        $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
+        $extra = Money::cents((string) $rolled) > 0 ? " Undistributed ৳{$rolled} moved to the salary settlement reserve." : '';
+
+        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_distributed']}. Qualifying partners: {$result['qualifiers_count']}.{$extra}");
     }
 
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
@@ -441,7 +444,10 @@ class CommandController extends Controller
             return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
         }
 
-        return back()->with('success', "Rank royalty pool for {$d['period_month']} distributed ৳{$result['total_distributed']} across leadership tiers.");
+        $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
+        $extra = Money::cents((string) $rolled) > 0 ? " Unfilled tiers ৳{$rolled} moved to the royalty settlement reserve." : '';
+
+        return back()->with('success', "Rank royalty pool for {$d['period_month']} distributed ৳{$result['total_distributed']} across leadership tiers.{$extra}");
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
