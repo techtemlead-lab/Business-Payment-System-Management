@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PhoneIdentity;
+use App\Support\PortalHost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,17 +23,10 @@ class AuthController extends Controller
 {
     public function login(Request $r): Response
     {
-        return $this->authenticate($r, 'partner');
-    }
+        $portal = PortalHost::current($r);
+        abort_unless(is_string($portal) && $portal !== 'public', 404);
 
-    public function companyLogin(Request $r): Response
-    {
-        return $this->authenticate($r, 'employee');
-    }
-
-    public function ownerLogin(Request $r): Response
-    {
-        return $this->authenticate($r, 'owner');
+        return $this->authenticate($r, $portal);
     }
 
     private function authenticate(Request $r, string $portal): Response
@@ -57,7 +51,7 @@ class AuthController extends Controller
         // remains available if more than one active identity matches a phone.
         $matches = $query->limit(2)->get();
         $candidate = $matches->count() === 1 ? $matches->first() : null;
-        if (! $candidate || ($candidate->owner() ? 'owner' : ($candidate->staff() ? 'employee' : 'partner')) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
+        if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
             RateLimiter::hit($key, 60);
             throw ValidationException::withMessages(['email' => 'These credentials could not be verified.']);
         }
@@ -65,19 +59,18 @@ class AuthController extends Controller
         RateLimiter::clear($key);
         $r->session()->regenerate();
         Audit::record($r->user()->id, 'login', 'account');
-        $base = $candidate->staff() ? '/company' : '/workspace';
         $intended = $r->session()->pull('url.intended');
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
-        if (is_string($path) && ($path === $base || str_starts_with($path, $base.'/')) && parse_url($intended, PHP_URL_HOST) === $r->getHost()) {
+        if (is_string($intended) && is_string($path) && $path !== '/login' && parse_url($intended, PHP_URL_HOST) === $r->getHost()) {
             return redirect($intended);
         }
 
-        return redirect($base);
+        return redirect('/');
     }
 
     public function logout(Request $r): Response
     {
-        $login = $r->user()?->loginPath() ?? '/login';
+        $login = $r->user()?->loginPath() ?? PortalHost::loginUrl('dealer');
         Auth::logout();
         $r->session()->invalidate();
         $r->session()->regenerateToken();
@@ -105,7 +98,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? '/login')->with('success', 'Password set. You can sign in now.');
+        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', 'Password set. You can sign in now.');
     }
 
     public function ownerContact(Request $request): Response

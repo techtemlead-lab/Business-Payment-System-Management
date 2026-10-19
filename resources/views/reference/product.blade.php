@@ -12,9 +12,9 @@
     <p>Contact an authorized dealer for product availability and purchase enquiries. Registered dealers and sub-dealers place orders through their dashboards.</p>
     <div class="ref-company-intro-actions"><a href="/dealers" class="ref-primary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a>
     @if(auth()->check() && !auth()->user()->staff())
-        <a href="/workspace/catalog" class="ref-secondary-button">Open Partner Dashboard</a>
+        <a href="{{ \App\Support\PortalHost::url(\App\Support\PortalHost::forUser(auth()->user()), '/catalog') }}" class="ref-secondary-button">Open Partner Dashboard</a>
     @elseif(!auth()->check())
-        <a href="/login" class="ref-secondary-button">Dealer / Sub-dealer Login</a>
+        <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-secondary-button">Dealer / Sub-dealer Login</a>
     @endif
     </div>
 </div>

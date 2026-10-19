@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Support\DashboardManagement;
+use App\Support\PortalHost;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -23,8 +24,8 @@ class CompanyAccessTest extends TestCase
 
     public function test_company_entry_is_separate_and_guest_pages_are_private(): void
     {
-        $this->get('/company')->assertRedirect('/company/login');
-        $this->get('/company/orders')->assertRedirect('/company/login');
+        $this->get('/company')->assertRedirect('/login');
+        $this->get('/company/orders')->assertRedirect('/login');
         $this->get('/company/login')->assertOk()->assertSee('Staff Sign In')->assertDontSee('portal-category-nav')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->get('/')->assertDontSee('/company/login');
     }
@@ -37,22 +38,26 @@ class CompanyAccessTest extends TestCase
         $this->assertGuest();
         $this->post('/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertSessionHasErrors('email');
         $this->assertGuest();
-        $this->post('/company/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertRedirect('/company');
+        $this->post('/company/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertRedirect('/');
         $this->assertAuthenticatedAs($staff);
-        $this->get('/company')->assertInertia(fn (Assert $p) => $p->where('portalBase', '/company'));
-        $this->get('/workspace/orders?q=TEST')->assertRedirect('/company/orders?q=TEST');
-        $this->post('/logout')->assertRedirect('/company/login');
+        $this->get('/company')->assertInertia(fn (Assert $p) => $p->where('portalBase', '')->where('portal', 'manage'));
+        $this->get('/workspace/orders?q=TEST')->assertOk();
+        $this->onPortal('dealer')->get('/orders?q=TEST')->assertForbidden();
+        $this->post('/logout')->assertRedirect('/login');
         $this->assertGuest();
     }
 
     public function test_dealer_cannot_open_company_area_and_staff_permissions_still_apply(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'dealer']))->get('/company')->assertForbidden();
+        $dealer = User::factory()->create(['role' => 'dealer']);
+        $this->actingAs($dealer)->get('/company')->assertForbidden();
         $this->get('/company/accounts')->assertForbidden();
         $editor = User::factory()->create(['role' => 'editor']);
         $this->actingAs($editor)->get('/company/content')->assertOk();
         $this->get('/company/payments')->assertForbidden();
         $this->get('/company/orders')->assertForbidden();
+        $this->actingAs(User::factory()->create(['role' => 'super_admin']))->onPortal('manage')->get('/')->assertForbidden();
+        $this->actingAs(User::factory()->create(['role' => 'sub_dealer']))->onPortal('dealer')->get('/')->assertForbidden();
     }
 
     public function test_staff_recovery_link_and_reset_return_to_company_access(): void
@@ -63,16 +68,17 @@ class CompanyAccessTest extends TestCase
         Notification::assertSentTo($staff, ResetPassword::class, function ($notification) use ($staff) {
             $mail = $notification->toMail($staff);
 
-            return str_starts_with($mail->actionUrl, url('/company/reset-password/'));
+            return str_starts_with($mail->actionUrl, PortalHost::url('manage', '/reset-password/'));
         });
         $token = Password::createToken($staff);
         $this->get('/company/reset-password/'.$token.'?email='.urlencode($staff->email))->assertOk()->assertSee('Confirm Password');
-        $this->post('/company/reset-password', ['token' => $token, 'email' => $staff->email, 'password' => 'ReplacementPassword123', 'password_confirmation' => 'ReplacementPassword123'])->assertRedirect('/company/login');
+        $this->post('/company/reset-password', ['token' => $token, 'email' => $staff->email, 'password' => 'ReplacementPassword123', 'password_confirmation' => 'ReplacementPassword123'])->assertRedirect('/login');
     }
 
     public function test_inertia_logout_uses_full_navigation_to_standalone_company_login(): void
     {
-        $this->actingAs(User::factory()->create(['role' => 'super_admin']))->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', '/owner/login');
+        $owner = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($owner)->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', PortalHost::loginUrl($owner));
         $this->assertGuest();
     }
 
@@ -87,7 +93,7 @@ class CompanyAccessTest extends TestCase
             'status' => 'active',
             'permissions' => ['orders', 'inventory'],
             'reason' => 'Onboarding test warehouse employee with orders and inventory permissions.',
-        ])->assertRedirect('/company/employees');
+        ])->assertRedirect('/employees');
 
         $employee = User::where('email', 'employee.test@madina.com')->firstOrFail();
         $this->assertSame('employee', $employee->role);

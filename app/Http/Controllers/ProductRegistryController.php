@@ -84,7 +84,7 @@ class ProductRegistryController extends Controller
             return false;
         }, 3);
 
-        return redirect('/company/catalog')->with('success', $archived ? 'Product archived with its inventory and order history preserved.' : 'Unused product deleted.');
+        return redirect('/catalog')->with('success', $archived ? 'Product archived with its inventory and order history preserved.' : 'Unused product deleted.');
     }
 
     public function toggleStock(Request $r, Product $product): RedirectResponse
@@ -245,10 +245,10 @@ class ProductRegistryController extends Controller
         if ($r->input('redirect_to') === 'catalog') {
             $stockNotice = $initialStock > 0 ? " ({$initialStock} units in stock)" : '';
 
-            return redirect('/company/catalog')->with('success', $product ? "Product '{$saved->name}' updated." : "Product '{$saved->name}' created successfully{$stockNotice}.");
+            return redirect('/catalog')->with('success', $product ? "Product '{$saved->name}' updated." : "Product '{$saved->name}' created successfully{$stockNotice}.");
         }
 
-        return redirect('/company/products/'.$saved->id)->with('success', $product ? 'Product updated.' : 'Product created. Receive stock through Inventory before dispatch.');
+        return redirect('/products/'.$saved->id)->with('success', $product ? 'Product updated.' : 'Product created. Receive stock through Inventory before dispatch.');
     }
 
     public function image(Request $r, Product $product): BinaryFileResponse

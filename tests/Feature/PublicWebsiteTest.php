@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Support\PortalHost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -56,7 +57,7 @@ class PublicWebsiteTest extends TestCase
         $this->get('/about')->assertOk()->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert("cms")</script>', false);
         $this->get('/login')->assertOk()->assertSee('Account Login')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
         $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345']);
-        $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/workspace');
+        $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/');
         $this->assertAuthenticatedAs($u);
     }
 
@@ -154,7 +155,7 @@ class PublicWebsiteTest extends TestCase
         foreach (['dealer', 'sub_dealer'] as $role) {
             $partner = User::factory()->create(['role' => $role]);
             $this->actingAs($partner)->get('/products/'.$product->id)->assertOk()
-                ->assertSee('Open Partner Dashboard')->assertSee('/workspace/catalog')->assertDontSee('data-cart=', false)->assertDontSee('Buy Now');
+                ->assertSee('Open Partner Dashboard')->assertSee(PortalHost::url(PortalHost::forUser($partner), '/catalog'), false)->assertDontSee('data-cart=', false)->assertDontSee('Buy Now');
             $this->get('/workspace/catalog')->assertOk();
         }
         $this->assertDatabaseCount('orders', 0);
@@ -171,6 +172,14 @@ class PublicWebsiteTest extends TestCase
         $res->assertDontSee('Medical Equipment');
         $res->assertDontSee('Electronic Devices');
         $res->assertDontSee('Fashion &amp; Lifestyle', false);
+    }
+
+    public function test_legacy_apex_paths_redirect_to_the_portal_that_owns_them(): void
+    {
+        $this->onPortal('public')->get('/login')->assertRedirect(PortalHost::url('dealer', '/login'));
+        $this->onPortal('public')->get('/workspace/orders?q=KEEP')->assertRedirect(PortalHost::url('dealer', '/orders').'?q=KEEP');
+        $this->onPortal('public')->get('/company/catalog')->assertRedirect(PortalHost::url('manage', '/catalog'));
+        $this->onPortal('public')->get('/owner/login')->assertRedirect(PortalHost::url('sadmin', '/login'));
     }
 
     public function test_outlets_url_redirects_to_dealers_directory(): void

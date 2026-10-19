@@ -9,6 +9,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,17 +71,17 @@ class BusinessPolicyDecisionsTest extends TestCase
     public function test_owner_employee_and_partner_accounts_only_authenticate_at_their_own_portals(): void
     {
         $address = 1;
-        foreach (['super_admin' => '/owner/login', 'md' => '/owner/login', 'chairman' => '/owner/login', 'finance' => '/company/login', 'sr' => '/company/login', 'dealer' => '/login', 'sub_dealer' => '/login'] as $role => $path) {
+        foreach (['super_admin' => 'sadmin', 'md' => 'sadmin', 'chairman' => 'sadmin', 'finance' => 'manage', 'sr' => 'manage', 'dealer' => 'dealer', 'sub_dealer' => 'subdealer'] as $role => $portal) {
             $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.'.$address++]);
             $user = User::factory()->create(['role' => $role, 'password' => 'SyntheticPassword123']);
             $data = ['email' => $user->email, 'password' => 'SyntheticPassword123'];
-            foreach (array_diff(['/owner/login', '/company/login', '/login'], [$path]) as $wrongPath) {
-                $this->post($wrongPath, $data)->assertSessionHasErrors('email');
+            foreach (array_diff(['sadmin', 'manage', 'dealer', 'subdealer'], [$portal]) as $wrongPortal) {
+                $this->onPortal($wrongPortal)->post('/login', $data)->assertSessionHasErrors('email');
                 $this->assertGuest();
             }
-            $this->post($path, $data)->assertRedirect($user->staff() ? '/company' : '/workspace');
+            $this->onPortal($portal)->post('/login', $data)->assertRedirect('/');
             $this->assertAuthenticatedAs($user);
-            $this->post('/logout')->assertRedirect($path);
+            $this->post('/logout')->assertRedirect('/login');
         }
     }
 
@@ -90,8 +91,8 @@ class BusinessPolicyDecisionsTest extends TestCase
         $owner = User::factory()->staff()->create();
         $this->get('/owner/login')->assertOk()->assertSee('Owner Sign In')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->post('/owner/forgot-password', ['email' => $owner->email])->assertSessionHas('success');
-        Notification::assertSentTo($owner, ResetPassword::class, fn ($notice) => str_starts_with($notice->toMail($owner)->actionUrl, url('/owner/reset-password/')));
-        $this->actingAs($owner)->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', '/owner/login');
+        Notification::assertSentTo($owner, ResetPassword::class, fn ($notice) => str_starts_with($notice->toMail($owner)->actionUrl, PortalHost::url('sadmin', '/reset-password/')));
+        $this->actingAs($owner)->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', PortalHost::loginUrl($owner));
     }
 
     public function test_owner_titles_do_not_automatically_grant_financial_write_permissions(): void

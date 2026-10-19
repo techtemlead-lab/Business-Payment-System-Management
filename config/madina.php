@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'app_domain' => env('APP_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost'),
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
     'auto_release_matured' => env('MADINA_AUTO_RELEASE_MATURED', false),

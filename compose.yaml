@@ -13,6 +13,7 @@ services:
       DB_USERNAME: madina
       DB_PASSWORD: local-development-only
       APP_URL: http://localhost:8088
+      APP_DOMAIN: localhost
       MAIL_MAILER: smtp
       MAIL_HOST: mail
       MAIL_PORT: 1025

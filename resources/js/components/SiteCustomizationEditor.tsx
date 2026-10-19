@@ -4521,7 +4521,7 @@ export default function SiteCustomizationEditor({
                             Manage the homepage <strong>Product Showcase</strong> in <strong>Product Management</strong>. Purchasing is available through the dealer and sub-dealer dashboards.
                         </span>
                     </div>
-                    <a href="/company/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                    <a href="/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
                         Go to Product Management ↗
                     </a>
                 </div>

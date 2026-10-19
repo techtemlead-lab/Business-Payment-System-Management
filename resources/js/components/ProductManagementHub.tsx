@@ -92,7 +92,7 @@ export default function ProductManagementHub({
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/company/catalog', { q: searchQuery, tab: activeTab !== 'products' ? activeTab : undefined }, { preserveState: true });
+        router.get('/catalog', { q: searchQuery, tab: activeTab !== 'products' ? activeTab : undefined }, { preserveState: true });
     };
 
 
@@ -208,7 +208,7 @@ export default function ProductManagementHub({
                             </div>
                             <button className="button small">Search</button>
                             {filters?.q && (
-                                <Link href="/company/catalog" className="text-link" style={{ alignSelf: 'center' }}>
+                                <Link href="/catalog" className="text-link" style={{ alignSelf: 'center' }}>
                                     Clear
                                 </Link>
                             )}
@@ -275,7 +275,7 @@ export default function ProductManagementHub({
                                     <div className="product-body">
                                         <small className="muted">{p.sku} · {p.unit}</small>
                                         <h3>
-                                            <Link href={`/company/products/${p.id}`}>{p.name}</Link>
+                                            <Link href={`/products/${p.id}`}>{p.name}</Link>
                                         </h3>
                                         <p>{p.description}</p>
 
@@ -297,7 +297,7 @@ export default function ProductManagementHub({
                                             flexWrap: 'wrap'
                                         }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <Link className="button small product-details-link" href={`/company/products/${p.id}`}>
+                                                <Link className="button small product-details-link" href={`/products/${p.id}`}>
                                                     Details & media ↗
                                                 </Link>
                                                 <button

@@ -21,7 +21,7 @@ class SiteCustomizationTest extends TestCase
 
     public function test_guest_and_dealer_cannot_access_site_customization(): void
     {
-        $this->get('/company/customization')->assertRedirect('/company/login');
+        $this->get('/company/customization')->assertRedirect('/login');
         $dealer = User::factory()->create(['role' => 'dealer']);
         $this->actingAs($dealer)->get('/company/customization')->assertForbidden();
     }

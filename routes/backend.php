@@ -95,8 +95,6 @@ $operations = function (): void {
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1'])->group($operations);
 Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group($operations);
 
-Route::get('/company/operations/data-imports', [DataImportController::class, 'index'])
-    ->middleware(['auth', 'active', 'portal:company'])->name('company.imports');
 foreach (['commands' => 'data-imports.', 'api/v1' => 'api.data-imports.'] as $prefix => $name) {
     Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
         $controller = DataImportController::class;

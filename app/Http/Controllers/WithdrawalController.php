@@ -29,7 +29,7 @@ class WithdrawalController extends Controller
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
         }
 
-        return redirect('/workspace/withdrawals/'.$id)->with('success', 'Withdrawal requested. Funds are reserved for company review.');
+        return redirect('/withdrawals/'.$id)->with('success', 'Withdrawal requested. Funds are reserved for company review.');
     }
 
     public function show(Request $r, string $id): Response

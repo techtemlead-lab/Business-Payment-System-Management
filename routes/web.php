@@ -2,61 +2,110 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WithdrawalController;
+use App\Support\PortalHost;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', [PublicController::class, 'index']);
 Route::get('/products/{product}/image', [ProductRegistryController::class, 'image'])->name('products.image');
 Route::get('/products/{product}/video', [ProductRegistryController::class, 'video'])->name('products.video');
-Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
-Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
-Route::get('/outlets', fn () => redirect('/dealers', 301));
-Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact']);
-Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
-Route::middleware('guest')->group(function () {
-    Route::get('/owner/login', fn () => view('company.auth', ['mode' => 'login', 'ownerPortal' => true]))->name('owner.login');
-    Route::post('/owner/login', [AuthController::class, 'ownerLogin'])->middleware('throttle:20,1');
-    Route::get('/owner/forgot-password', fn () => view('company.auth', ['mode' => 'forgot', 'ownerPortal' => true]))->name('owner.password.request');
-    Route::post('/owner/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::get('/owner/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'ownerPortal' => true, 'token' => $token, 'email' => request('email')]))->name('owner.password.reset');
-    Route::post('/owner/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
-    Route::get('/company/login', fn () => view('company.auth', ['mode' => 'login']))->name('company.login');
-    Route::post('/company/login', [AuthController::class, 'companyLogin'])->middleware('throttle:20,1');
-    Route::get('/company/forgot-password', fn () => view('company.auth', ['mode' => 'forgot']))->name('company.password.request');
-    Route::post('/company/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::get('/company/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email')]))->name('company.password.reset');
-    Route::post('/company/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
-    Route::get('/login', fn () => view('reference.auth', ['mode' => 'login']))->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
-    Route::get('/forgot-password', fn () => view('reference.auth', ['mode' => 'forgot']))->name('password.request');
-    Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
-    Route::get('/reset-password/{token}', fn (string $token) => view('reference.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email')]))->name('password.reset');
-    Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
-});
-Route::middleware(['auth', 'active'])->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/security/password', [AuthController::class, 'password'])->middleware('throttle:5,1');
-    Route::middleware('portal:partner')->group(function () {
-        Route::get('/workspace/orders/{order}', [PortalController::class, 'show']);
-        Route::get('/workspace/withdrawals/{id}', [WithdrawalController::class, 'show']);
-        Route::get('/workspace/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
-        Route::get('/workspace/{section?}', [PortalController::class, 'index']);
+
+$domain = PortalHost::domain();
+
+Route::domain($domain)->group(function (): void {
+    Route::get('/', [PublicController::class, 'index']);
+    Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
+    Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
+    Route::get('/outlets', fn () => redirect('/dealers', 301));
+    Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact']);
+    Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
+
+    $away = function (string $portal, string $path): RedirectResponse {
+        $query = request()->getQueryString();
+
+        return redirect()->away(PortalHost::url($portal, $path).($query ? '?'.$query : ''));
+    };
+    Route::get('/login', fn () => $away('dealer', '/login'));
+    Route::get('/forgot-password', fn () => $away('dealer', '/forgot-password'));
+    Route::get('/reset-password/{token}', function (string $token) {
+        $email = request()->query('email');
+        $path = '/reset-password/'.$token.(is_string($email) && $email !== '' ? '?email='.urlencode($email) : '');
+
+        return redirect()->away(PortalHost::url('dealer', $path));
     });
-    Route::prefix('company')->middleware('portal:company')->group(function () {
-        Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections)->name('company.operations');
-        Route::get('/accounts/create', [PortalController::class, 'createAccount']);
-        Route::get('/products/create', [ProductRegistryController::class, 'edit']);
-        Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
+    Route::get('/workspace/{path?}', fn (?string $path = null) => $away('dealer', $path ? '/'.$path : '/'))->where('path', '.*');
+    Route::get('/company/{path?}', fn (?string $path = null) => $away('manage', $path ? '/'.$path : '/'))->where('path', '.*');
+    Route::get('/owner/{path?}', fn (?string $path = null) => $away('sadmin', $path ? '/'.$path : '/'))->where('path', '.*');
+});
+
+$registerPortal = function (string $portal): void {
+    $staff = in_array($portal, ['manage', 'sadmin'], true);
+    Route::middleware('guest')->group(function () use ($portal, $staff): void {
+        $login = Route::get('/login', function () use ($portal, $staff) {
+            return $staff
+                ? view('company.auth', ['mode' => 'login', 'ownerPortal' => $portal === 'sadmin'])
+                : view('reference.auth', ['mode' => 'login', 'portal' => $portal]);
+        });
+        $forgot = Route::get('/forgot-password', function () use ($portal, $staff) {
+            return $staff
+                ? view('company.auth', ['mode' => 'forgot', 'ownerPortal' => $portal === 'sadmin'])
+                : view('reference.auth', ['mode' => 'forgot', 'portal' => $portal]);
+        });
+        $reset = Route::get('/reset-password/{token}', function (string $token) use ($portal, $staff) {
+            $data = ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'portal' => $portal, 'ownerPortal' => $portal === 'sadmin'];
+
+            return view($staff ? 'company.auth' : 'reference.auth', $data);
+        });
+        $names = match ($portal) {
+            'dealer' => ['login', 'password.request', 'password.reset'],
+            'manage' => ['company.login', 'company.password.request', 'company.password.reset'],
+            'sadmin' => ['owner.login', 'owner.password.request', 'owner.password.reset'],
+            default => [],
+        };
+        if ($names !== []) {
+            $login->name($names[0]);
+            $forgot->name($names[1]);
+            $reset->name($names[2]);
+        }
+        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+        Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
+        Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
+    });
+
+    Route::middleware(['auth', 'active', 'portal:'.$portal])->group(function () use ($portal, $staff): void {
+        if ($staff) {
+            $imports = Route::get('/operations/data-imports', [DataImportController::class, 'index']);
+            $operations = Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections);
+            if ($portal === 'manage') {
+                $operations->name('company.operations');
+                $imports->name('company.imports');
+            }
+            Route::get('/accounts/create', [PortalController::class, 'createAccount']);
+            Route::get('/products/create', [ProductRegistryController::class, 'edit']);
+            Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
+        }
         Route::get('/orders/{order}', [PortalController::class, 'show']);
         Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
         Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
         Route::get('/{section?}', [PortalController::class, 'index']);
     });
+};
+
+foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
+    Route::domain($portal.'.'.$domain)->group(function () use ($registerPortal, $portal): void {
+        $registerPortal($portal);
+    });
+}
+
+Route::middleware(['auth', 'active'])->group(function (): void {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/security/password', [AuthController::class, 'password'])->middleware('throttle:5,1');
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
     Route::post('/commands/orders', [CommandController::class, 'order']);
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);

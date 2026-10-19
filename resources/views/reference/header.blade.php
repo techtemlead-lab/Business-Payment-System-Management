@@ -45,10 +45,10 @@
             <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_contact_title'] ?? 'Contact' }}</b><small>{{ $siteCustomization['header_contact_subtitle'] ?? 'Get Support' }}</small></span></a>
             <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_network_title'] ?? 'Dealer Network' }}</b><small>{{ 'Find a Local Partner' }}</small></span></a>
             @auth
-            <a href="{{ auth()->user()->staff() ? '/company' : '/workspace' }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->staff() ? 'Company Portal' : (auth()->user()->dealer_code ?? 'My Account') }}</small></span></a>
+            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->owner() ? 'Owner Portal' : (auth()->user()->staff() ? 'Company Portal' : (auth()->user()->dealer_code ?? 'My Account')) }}</small></span></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="Log out" aria-label="Log out"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>Log out</b><small>Exit Session</small></span></button></form>
             @else
-            <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_account_title'] ?? 'Account' }}</b><small>{{ $siteCustomization['header_account_subtitle'] ?? 'Partner Login' }}</small></span></a>
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_account_title'] ?? 'Account' }}</b><small>{{ $siteCustomization['header_account_subtitle'] ?? 'Partner Login' }}</small></span></a>
             @endauth
             <a href="/products" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $siteCustomization['header_catalog_title'] ?? 'Products' }}</b></a>
         </div>
@@ -112,8 +112,8 @@
         </div>
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth
-            <a href="{{ auth()->user()->staff() ? '/company' : '/workspace' }}" class="ref-drawer-btn ref-drawer-btn-primary">
-                <i class="fa-solid fa-user-check"></i> {{ auth()->user()->staff() ? 'Company Portal' : 'Partner Workspace' }}
+            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-drawer-btn ref-drawer-btn-primary">
+                <i class="fa-solid fa-user-check"></i> {{ auth()->user()->owner() ? 'Owner Portal' : (auth()->user()->staff() ? 'Company Portal' : 'Partner Workspace') }}
             </a>
             <form method="POST" action="/logout" class="ref-drawer-logout-form">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
@@ -122,7 +122,7 @@
                 </button>
             </form>
             @else
-            <a href="/login" class="ref-drawer-btn ref-drawer-btn-primary">
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
                 <i class="fa-solid fa-user"></i> Partner Login
             </a>
             <a href="/contact#vendor" class="ref-drawer-btn ref-drawer-btn-secondary">

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -67,7 +66,7 @@ class DealerOnboardingTest extends TestCase
         ];
 
         $res = $this->actingAs($admin)->post('/commands/accounts', $payload);
-        $res->assertRedirect('/company/accounts');
+        $res->assertRedirect('/accounts');
         $res->assertSessionHas('success');
 
         $user = User::where('email', 'rafiq@example.com')->first();
@@ -120,7 +119,7 @@ class DealerOnboardingTest extends TestCase
         ];
 
         $res = $this->actingAs($admin)->post('/commands/accounts', $payload);
-        $res->assertRedirect('/company/accounts');
+        $res->assertRedirect('/accounts');
 
         $sub = User::where('email', 'kashem@example.com')->first();
         $this->assertNotNull($sub);

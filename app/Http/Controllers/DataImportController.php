@@ -59,7 +59,7 @@ class DataImportController extends Controller
         $id = $imports->preview($request->user(), $data['type'], $request->file('file'), $data['source_reference']);
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id]], 201)
-            : redirect()->route('company.imports', ['batch' => $id])->with('success', 'Workbook validated. Review the rows before importing.');
+            : redirect('/operations/data-imports?batch='.$id)->with('success', 'Workbook validated. Review the rows before importing.');
     }
 
     public function apply(Request $request, string $id, OpeningBalanceImport $imports): Response
@@ -71,7 +71,7 @@ class DataImportController extends Controller
         $status = DB::table('data_import_batches')->where('id', $id)->value('status');
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id, 'status' => $status]], $status === 'queued' ? 202 : 200)
-            : redirect()->route('company.imports', ['batch' => $id])->with('success', $queued ? 'Import request accepted. The status below shows processing progress.' : 'Import completed. Existing records were preserved.');
+            : redirect('/operations/data-imports?batch='.$id)->with('success', $queued ? 'Import request accepted. The status below shows processing progress.' : 'Import completed. Existing records were preserved.');
     }
 
     public function template(Request $request, string $type, OpeningBalanceImport $imports): Response

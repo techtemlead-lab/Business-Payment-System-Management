@@ -35,7 +35,8 @@
             <a href="{{ $siteCustomization['footer_link_about_url'] ?? '/about' }}">{{ $siteCustomization['footer_link_about'] ?? 'About Us' }}</a>
             <a href="/products">Our Products</a>
             <a href="/dealers">Dealer Network</a>
-            <a href="/login">Dealer / Sub-dealer Login</a>
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">Dealer Login</a>
+            <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">Sub-dealer Login</a>
             <a href="{{ $siteCustomization['footer_link_contact_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_contact'] ?? 'Contact Us' }}</a>
             <a href="{{ $siteCustomization['footer_link_dealer_apply_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
         </div>
@@ -120,12 +121,12 @@
         <span>Categories</span>
     </button>
     @auth
-    <a href="{{ auth()->user()->staff() ? '/company' : '/workspace' }}" class="ref-mobile-nav-item">
+    <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user-check" aria-hidden="true"></i>
         <span>Account</span>
     </a>
     @else
-    <a href="/login" class="ref-mobile-nav-item">
+    <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user" aria-hidden="true"></i>
         <span>Account</span>
     </a>
