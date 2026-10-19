@@ -97,4 +97,34 @@ class CompanyCommissionBenefitsFundTest extends TestCase
                 ->where('data.flow.owner_benefits_fund_visible', true)
                 ->where('data.flow.commission_benefits_fund', 12));
     }
+
+    public function test_sub_dealer_purchase_surplus_funds_the_owner_benefits_fund(): void
+    {
+        $sponsor = User::factory()->dealer()->create();
+        $buyer = User::factory()->subDealer()->create(['sponsor_id' => $sponsor->id, 'division' => 'Rangpur']);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '140.00', 'sub_dealer_price' => '140.00']);
+        $order = app(OrderService::class)->create($buyer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $finance = User::factory()->staff('finance')->create();
+        $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
+            'status' => 'approved',
+            'allow_credit' => true,
+            'reason' => 'Approve sub-dealer benefits fund posting',
+        ])->assertOk();
+        $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);
+        app(CommissionPosting::class)->process($order->fresh());
+
+        $this->assertDatabaseHas('commission_batches', [
+            'order_id' => $order->id,
+            'account_type' => 'sub_dealer',
+            'unallocated' => '10.00',
+        ]);
+        $this->assertDatabaseHas('commission_allocations', [
+            'order_id' => $order->id,
+            'category' => 'company_commission_benefits_fund',
+            'amount' => '10.00',
+        ]);
+    }
 }

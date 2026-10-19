@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
@@ -388,33 +389,37 @@ class WorkspaceController extends Controller
                 'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
                 'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
             ];
+            $ownerBenefits = $u->owner() && $portal === 'sadmin';
             // Owner-only: purchase surplus after company share + commissions.
-            if ($u->owner() && $portal === 'sadmin') {
+            if ($ownerBenefits) {
                 $data['flow']['unallocated_pool_buffer'] = round((float) $buffer, 2);
                 $data['flow']['commission_benefits_fund'] = round((float) $buffer, 2);
                 $data['flow']['owner_benefits_fund_visible'] = true;
             }
             $data['allocations_by_category'] = CommissionAllocation::where('status', '!=', 'reversed')
-                ->when(! ($u->owner() && $portal === 'sadmin'), fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
+                ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
                 ->selectRaw('category, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('category')->get();
             $data['recent_allocations'] = CommissionAllocation::with('user:id,name,dealer_code')
-                ->when(! ($u->owner() && $portal === 'sadmin'), fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
+                ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
                 ->latest()->limit(20)->get();
+            $data['retained_fund_details'] = app(RetainedFundLedger::class)->detail($ownerBenefits);
         }
         if ($section === 'benefits-fund') {
+            $ledger = app(RetainedFundLedger::class);
             $balance = DB::table('commission_batches')
                 ->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')
                 ->value('amount');
             $entries = CommissionAllocation::query()
-                ->where('category', 'company_commission_benefits_fund')
-                ->with(['order:id,number,user_id,total', 'order.user:id,name,dealer_code,division,district'])
+                ->where('category', RetainedFundLedger::BenefitsCategory)
+                ->with(['order:id,number,user_id,total,commission_policy_snapshot', 'order.user:id,name,dealer_code,division,district,role,profile'])
                 ->latest()
                 ->paginate(25)
-                ->withQueryString();
+                ->withQueryString()
+                ->through(fn (CommissionAllocation $allocation): array => $ledger->benefitsEntry($allocation));
             $data['benefits_fund'] = [
                 'balance' => round((float) $balance, 2),
-                'entry_count' => CommissionAllocation::where('category', 'company_commission_benefits_fund')->where('status', '!=', 'reversed')->count(),
-                'description' => 'Purchase surplus retained after the company MRP share and the approved commission schedule. Visible only to owners.',
+                'entry_count' => CommissionAllocation::where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')->count(),
+                'description' => 'Purchase surplus from dealer and sub-dealer orders after the company MRP share and the approved commission schedule. Visible only to owners. Each row shows the source order, buyer role, geography, purchase value, company share, distributed commissions, and benefits amount.',
             ];
             $data['benefits_entries'] = $entries;
         }
