@@ -361,9 +361,90 @@ class SiteCustomization
             'footer_link_partnership' => 'Become a Partner',
             'footer_link_partnership_url' => '/partnership',
 
+            // Public page visibility (owner can turn pages off site-wide)
+            'page_enabled_about' => '1',
+            'page_enabled_products' => '1',
+            'page_enabled_dealers' => '1',
+            'page_enabled_contact' => '1',
+            'page_enabled_partnership' => '1',
+            'page_enabled_services' => '1',
+            'page_enabled_quality' => '1',
+            'page_enabled_faq' => '1',
+            'page_enabled_privacy' => '1',
+            'page_enabled_terms' => '1',
+
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
         ];
+    }
+
+    /** @return list<string> */
+    public static function toggleablePages(): array
+    {
+        return ['about', 'products', 'dealers', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'];
+    }
+
+    /** @return array<string, bool> */
+    public static function enabledPagesMap(?array $customization = null): array
+    {
+        $all = $customization ?? self::all();
+        $map = [];
+        foreach (self::toggleablePages() as $page) {
+            $map[$page] = filter_var($all['page_enabled_'.$page] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $map;
+    }
+
+    public static function isPageEnabled(string $page): bool
+    {
+        if ($page === 'home' || $page === '') {
+            return true;
+        }
+        if (! in_array($page, self::toggleablePages(), true)) {
+            return true;
+        }
+
+        return self::enabledPagesMap()[$page] ?? true;
+    }
+
+    public static function pageFromPath(?string $path): ?string
+    {
+        if ($path === null || $path === '') {
+            return null;
+        }
+        $path = trim($path);
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, 'mailto:') || str_starts_with($path, 'tel:') || str_starts_with($path, '#')) {
+            $host = parse_url($path, PHP_URL_HOST);
+            if ($host !== null && $host !== '' && $host !== PortalHost::domain() && ! str_ends_with((string) $host, '.'.PortalHost::domain())) {
+                return null;
+            }
+            $path = (string) (parse_url($path, PHP_URL_PATH) ?: '/');
+        }
+        $path = '/'.ltrim(explode('?', explode('#', $path)[0])[0], '/');
+        if ($path === '/' || $path === '') {
+            return 'home';
+        }
+        $segment = explode('/', trim($path, '/'))[0] ?? '';
+
+        return in_array($segment, self::toggleablePages(), true) ? $segment : null;
+    }
+
+    public static function publicHref(?string $url): ?string
+    {
+        if ($url === null) {
+            return null;
+        }
+        $url = trim($url);
+        if ($url === '' || $url === '#') {
+            return null;
+        }
+        $page = self::pageFromPath($url);
+        if ($page !== null && $page !== 'home' && ! self::isPageEnabled($page)) {
+            return null;
+        }
+
+        return $url;
     }
 
     public static function raw(): array
@@ -674,11 +755,15 @@ class SiteCustomization
             $icon = trim((string) ($s['icon'] ?? ''));
             $link = trim((string) ($s['link'] ?? ''));
 
+            $resolvedLink = $link !== '' ? $link : ($defS['link'] ?? '/products');
+            if (self::publicHref($resolvedLink) === null) {
+                continue;
+            }
             $items[] = [
                 'title' => $title !== '' ? $title : ($defS['title'] ?? 'Quick Link'),
                 'subtitle' => $subtitle !== '' ? $subtitle : ($defS['subtitle'] ?? ''),
                 'icon' => $icon !== '' ? $icon : ($defS['icon'] ?? 'fa-circle-chevron-right'),
-                'link' => $link !== '' ? $link : ($defS['link'] ?? '/products'),
+                'link' => $resolvedLink,
             ];
         }
 

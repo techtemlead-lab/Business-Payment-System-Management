@@ -27,6 +27,7 @@
             <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" width="500" height="500">
         </a>
 
+        @if($publicPageEnabled['products'] ?? true)
         <!-- Desktop Search Form -->
         <form method="get" action="/products" class="ref-search">
             <label class="ref-sr-only" for="site-search">Search products</label>
@@ -38,12 +39,19 @@
         <button type="button" class="ref-mobile-search-btn" id="refMobileSearchToggle" aria-label="Open search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         </button>
+        @endif
 
         <!-- Desktop Header Links -->
         <div class="ref-header-links">
+            @if($publicPageEnabled['about'] ?? true)
             <a href="/about"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_about_title'] ?? 'About Us' }}</b><small>{{ $siteCustomization['header_about_subtitle'] ?? 'Our Story' }}</small></span></a>
+            @endif
+            @if($publicPageEnabled['contact'] ?? true)
             <a href="/contact"><i class="fa-solid fa-headset" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_contact_title'] ?? 'Contact' }}</b><small>{{ $siteCustomization['header_contact_subtitle'] ?? 'Get Support' }}</small></span></a>
+            @endif
+            @if($publicPageEnabled['dealers'] ?? true)
             <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_network_title'] ?? 'Dealer Network' }}</b><small>{{ 'Find a Local Partner' }}</small></span></a>
+            @endif
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->owner() ? 'Owner Portal' : (auth()->user()->staff() ? 'Company Portal' : (auth()->user()->dealer_code ?? 'My Account')) }}</small></span></a>
             <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="Log out" aria-label="Log out"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>Log out</b><small>Exit Session</small></span></button></form>
@@ -54,7 +62,9 @@
                 <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
                 <button type="submit">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
             </form>
+            @if($publicPageEnabled['products'] ?? true)
             <a href="/products" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $siteCustomization['header_catalog_title'] ?? 'Products' }}</b></a>
+            @endif
         </div>
     </div>
 </header>
@@ -95,12 +105,16 @@
             <div class="ref-mobile-drawer-group-title">Navigation</div>
             <ul class="ref-mobile-drawer-nav-list">
                 <li><a href="/"><i class="fa-solid fa-house"></i> Home</a></li>
-                <li><a href="/products"><i class="fa-solid fa-leaf"></i> Our Products</a></li>
-                <li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> Dealer Network</a></li>
-                <li><a href="/about"><i class="fa-solid fa-circle-info"></i> About Us</a></li>
-                <li><a href="/contact"><i class="fa-solid fa-headset"></i> Contact Us</a></li>
+                @if($publicPageEnabled['products'] ?? true)<li><a href="/products"><i class="fa-solid fa-leaf"></i> Our Products</a></li>@endif
+                @if($publicPageEnabled['dealers'] ?? true)<li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> Dealer Network</a></li>@endif
+                @if($publicPageEnabled['about'] ?? true)<li><a href="/about"><i class="fa-solid fa-circle-info"></i> About Us</a></li>@endif
+                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> Services</a></li>@endif
+                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> Become a Partner</a></li>@endif
+                @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> Contact Us</a></li>@endif
+                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> FAQ</a></li>@endif
             </ul>
         </div>
+        @if($publicPageEnabled['products'] ?? true)
         <div class="ref-mobile-drawer-group">
             <div class="ref-mobile-drawer-group-title">Product Categories</div>
             <ul class="ref-mobile-drawer-cat-list">
@@ -114,6 +128,7 @@
                 @endforeach
             </ul>
         </div>
+        @endif
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-drawer-btn ref-drawer-btn-primary">
@@ -129,16 +144,20 @@
             <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-drawer-btn ref-drawer-btn-primary">
                 <i class="fa-solid fa-user"></i> Partner Login
             </a>
-            <a href="/contact#vendor" class="ref-drawer-btn ref-drawer-btn-secondary">
+            @if(($publicPageEnabled['partnership'] ?? true) || ($publicPageEnabled['contact'] ?? true))
+            <a href="{{ ($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor' }}" class="ref-drawer-btn ref-drawer-btn-secondary">
                 <i class="fa-solid fa-handshake"></i> Become a Partner
             </a>
+            @endif
             @endauth
         </div>
     </div>
 </aside>
 
+@if($publicPageEnabled['products'] ?? true)
 <nav class="ref-category-nav" aria-label="Product categories"><div class="ref-container">
     @foreach($headerCats as $category)
     <div class="ref-nav-item"><a href="/products?category={{ urlencode($category) }}">{{ $category }}</a><div class="ref-category-dropdown"><a href="/products?category={{ urlencode($category) }}">All {{ $category }}</a><a href="/products">Browse all products</a></div></div>
     @endforeach
 </div></nav>
+@endif

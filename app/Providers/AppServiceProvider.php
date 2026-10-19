@@ -60,10 +60,12 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('*', function ($view) {
             try {
-                $view->with('siteCustomization', SiteCustomization::all());
+                $customization = SiteCustomization::all();
             } catch (\Throwable $e) {
-                $view->with('siteCustomization', SiteCustomization::defaults());
+                $customization = SiteCustomization::defaults();
             }
+            $view->with('siteCustomization', $customization);
+            $view->with('publicPageEnabled', SiteCustomization::enabledPagesMap($customization));
         });
     }
 }

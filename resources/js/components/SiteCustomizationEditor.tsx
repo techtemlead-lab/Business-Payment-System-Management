@@ -281,6 +281,17 @@ export interface CustomizationData {
     footer_link_partnership?: string;
     footer_link_partnership_url?: string;
 
+    page_enabled_about?: string;
+    page_enabled_products?: string;
+    page_enabled_dealers?: string;
+    page_enabled_contact?: string;
+    page_enabled_partnership?: string;
+    page_enabled_services?: string;
+    page_enabled_quality?: string;
+    page_enabled_faq?: string;
+    page_enabled_privacy?: string;
+    page_enabled_terms?: string;
+
     // Contact Page (/contact)
     contact_title?: string;
     contact_company_title?: string;
@@ -4213,9 +4224,14 @@ export default function SiteCustomizationEditor({
     customization: CustomizationData;
     defaults: CustomizationData;
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
-    websitePages?: { slug: string; label: string }[];
+    websitePages?: { key: string; slug: string; label: string; toggleable?: boolean; enabled?: boolean; flag?: string | null }[];
 }) {
     const [tab, setTab] = useState<'header' | 'banners' | 'shortcuts' | 'catalog' | 'pages' | 'footer'>('pages');
+    const pageFlags = [
+        'page_enabled_about', 'page_enabled_products', 'page_enabled_dealers', 'page_enabled_contact',
+        'page_enabled_partnership', 'page_enabled_services', 'page_enabled_quality', 'page_enabled_faq',
+        'page_enabled_privacy', 'page_enabled_terms',
+    ] as const;
 
     const form = useForm<{ customization: CustomizationData }>({
         customization: {
@@ -4512,6 +4528,17 @@ export default function SiteCustomizationEditor({
             footer_link_partnership: customization.footer_link_partnership || '',
             footer_link_partnership_url: customization.footer_link_partnership_url || '',
 
+            page_enabled_about: customization.page_enabled_about !== undefined ? customization.page_enabled_about : '1',
+            page_enabled_products: customization.page_enabled_products !== undefined ? customization.page_enabled_products : '1',
+            page_enabled_dealers: customization.page_enabled_dealers !== undefined ? customization.page_enabled_dealers : '1',
+            page_enabled_contact: customization.page_enabled_contact !== undefined ? customization.page_enabled_contact : '1',
+            page_enabled_partnership: customization.page_enabled_partnership !== undefined ? customization.page_enabled_partnership : '1',
+            page_enabled_services: customization.page_enabled_services !== undefined ? customization.page_enabled_services : '1',
+            page_enabled_quality: customization.page_enabled_quality !== undefined ? customization.page_enabled_quality : '1',
+            page_enabled_faq: customization.page_enabled_faq !== undefined ? customization.page_enabled_faq : '1',
+            page_enabled_privacy: customization.page_enabled_privacy !== undefined ? customization.page_enabled_privacy : '1',
+            page_enabled_terms: customization.page_enabled_terms !== undefined ? customization.page_enabled_terms : '1',
+
             // Contact Page
             contact_title: customization.contact_title || '',
             contact_company_title: customization.contact_company_title || '',
@@ -4668,22 +4695,67 @@ export default function SiteCustomizationEditor({
                     </a>
                 </div>
 
-                {websitePages.length > 0 && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                        {websitePages.map((page) => (
+                <div style={{ marginTop: 18, padding: 16, borderRadius: 12, border: '1px solid #dbe4f0', background: 'linear-gradient(180deg,#f8fafc,#fff)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Public page visibility</h3>
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                                Turn a page off to block its route and hide every header, footer, shortcut and button that points to it.
+                            </p>
+                        </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                        {(websitePages.length > 0 ? websitePages : [
+                            { key: 'home', slug: '/', label: 'Landing page', toggleable: false, enabled: true, flag: null },
+                            ...pageFlags.map((flag) => ({
+                                key: flag.replace('page_enabled_', ''),
+                                slug: '/' + flag.replace('page_enabled_', ''),
+                                label: flag.replace('page_enabled_', ''),
+                                toggleable: true,
+                                enabled: form.data.customization[flag] !== '0',
+                                flag,
+                            })),
+                        ]).map((page) => {
+                            const flag = page.flag as typeof pageFlags[number] | null | undefined;
+                            const on = page.toggleable === false ? true : (flag ? form.data.customization[flag] !== '0' : page.enabled !== false);
+                            return (
+                                <div key={page.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', background: on ? '#fff' : '#f8fafc' }}>
+                                    <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>{page.label}</div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8' }}>{page.slug}</div>
+                                    </div>
+                                    {page.toggleable === false || !flag ? (
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>Always on</span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={`button small ${on ? 'dark' : ''}`}
+                                            aria-pressed={on}
+                                            onClick={() => updateField(flag, on ? '0' : '1')}
+                                            style={{ fontSize: 11, minWidth: 72 }}
+                                        >
+                                            {on ? 'On' : 'Off'}
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                        {websitePages.filter((page) => page.toggleable === false || (page.flag ? form.data.customization[page.flag as typeof pageFlags[number]] !== '0' : page.enabled)).map((page) => (
                             <a
-                                key={page.slug}
+                                key={`preview-${page.slug}`}
                                 href={page.slug}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="button small"
                                 style={{ fontSize: 11 }}
                             >
-                                {page.label}
+                                Preview {page.label}
                             </a>
                         ))}
                     </div>
-                )}
+                </div>
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 18, borderBottom: '1px solid #e2e8f0', overflowX: 'auto', paddingBottom: 8 }}>
                     {[

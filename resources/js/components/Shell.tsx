@@ -49,7 +49,7 @@ const operationsSections = new Set([
 ]);
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase } = usePage<any>().props;
     const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
@@ -235,7 +235,9 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Leaf size={22} />
                             <b>{translate('portal', 'help_title')}</b>
                             <span>{translate('portal', 'help_body')}</span>
-                            <a href="/contact">{translate('portal', 'contact_company')} <ArrowUpRight size={14} /></a>
+                            {(publicPageEnabled?.contact ?? true) && (
+                                <a href={`${publicBase || ''}/contact`}>{translate('portal', 'contact_company')} <ArrowUpRight size={14} /></a>
+                            )}
                         </div>
                     )}
                     <button className="sign-out" onClick={() => router.post('/logout')}>

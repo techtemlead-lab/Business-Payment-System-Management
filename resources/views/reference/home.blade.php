@@ -47,18 +47,30 @@
             <span class="ref-company-eyebrow">Company &amp; Partner Network</span>
             <h1 id="company-intro-title">{{ $siteCustomization['company_intro_title'] ?? 'Madina Natural Health Care' }}</h1>
             <p>{{ $siteCustomization['company_intro_body'] ?? 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.' }}</p>
-            <div class="ref-company-intro-actions"><a href="/about" class="ref-primary-button">About Our Company <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a><a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a></div>
+            <div class="ref-company-intro-actions">
+                @if($publicPageEnabled['about'] ?? true)<a href="/about" class="ref-primary-button">About Our Company <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+                @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a>@elseif($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> Become a Partner</a>@endif
+            </div>
         </div>
         <div class="ref-company-paths">
+            @if($publicPageEnabled['products'] ?? true)
             <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>Our Product Range</strong><small>Product information &amp; specifications</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            @elseif($publicPageEnabled['services'] ?? true)
+            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>Our Services</strong><small>Natural health &amp; physiotherapy</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            @endif
+            @if($publicPageEnabled['partnership'] ?? true)
+            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>Partner With Us</strong><small>Dealer &amp; sub-dealer enquiries</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            @elseif($publicPageEnabled['contact'] ?? true)
             <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>Partner With Us</strong><small>Dealer &amp; sub-dealer enquiries</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            @endif
         </div>
     </section>
     <section class="ref-promotions" aria-label="Promotional banners">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Featured promotions">
             <div class="ref-slides">
                 @foreach($slides as $idx => $slide)
-                <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
+                <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                     <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                 </a>
                 @endforeach
@@ -75,7 +87,8 @@
             <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Top side promotion">
                 <div class="ref-slides">
                     @foreach($sideBanner1Slides as $idx => $slide)
-                    <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                    @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
+                    <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                         <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Premium Natural Care' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                     </a>
                     @endforeach
@@ -91,7 +104,8 @@
             <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Bottom side promotion">
                 <div class="ref-slides">
                     @foreach($sideBanner2Slides as $idx => $slide)
-                    <a href="{{ $slide['link'] ?: '/dealers' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
+                    @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/dealers') ?? '#'; @endphp
+                    <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
                         <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Authorized Dealer Network' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                     </a>
                     @endforeach
@@ -143,7 +157,7 @@
     </section>
     @endif
     @php
-        $categoriesEnabled = filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $categoriesEnabled = ($publicPageEnabled['products'] ?? true) && filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
     @endphp
     @if($categoriesEnabled && !empty($categoriesList))
@@ -199,6 +213,7 @@
         @endif
     </section>
     @endif
+    @if($publicPageEnabled['dealers'] ?? true)
     <section class="ref-dealer-network-banner" aria-label="Authorized Dealer Network">
         <div class="ref-dealer-banner-inner">
             <div class="ref-dealer-banner-info">
@@ -216,10 +231,11 @@
             </a>
         </div>
     </section>
+    @endif
     @php
-        $featuredSectionEnabled = filter_var($siteCustomization['featured_products_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        $featuredSectionEnabled = ($publicPageEnabled['products'] ?? true) && filter_var($siteCustomization['featured_products_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $tabsEnabled = filter_var($siteCustomization['featured_products_tabs_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        $viewAllLink = !empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products';
+        $viewAllLink = \App\Support\SiteCustomization::publicHref(!empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products') ?? '/';
     @endphp
     @if($featuredSectionEnabled)
     <section id="featured-products" class="ref-featured-products" aria-label="Featured Products">
@@ -251,7 +267,7 @@
             @empty
                 <div class="ref-empty" style="grid-column: 1 / -1;">
                     <h2>{{ $siteCustomization['products_empty_title'] ?? 'Our collection is being prepared.' }}</h2>
-                    <a href="/contact" class="ref-primary-button">Contact Us</a>
+                    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Us</a>@endif
                 </div>
             @endforelse
         </div>

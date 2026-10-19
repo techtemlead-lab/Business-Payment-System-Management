@@ -8,6 +8,7 @@ use App\Domain\Staff\StaffPermissions;
 use App\Support\DashboardManagement;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
 use Inertia\Middleware;
@@ -30,6 +31,7 @@ class HandleInertiaRequests extends Middleware
                 ? PortalCatalog::inertiaPayload($portal)
                 : null,
             'publicBase' => PortalHost::origin('public'),
+            'publicPageEnabled' => fn () => SiteCustomization::enabledPagesMap(),
             'locale' => app()->getLocale(),
             'locales' => config('madina.locales', ['en', 'bn']),
             'translations' => fn () => [

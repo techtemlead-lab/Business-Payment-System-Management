@@ -4,13 +4,18 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PublicController;
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'index']);
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
 Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
-Route::get('/outlets', fn () => redirect('/dealers', 301));
+Route::get('/outlets', function () {
+    abort_unless(SiteCustomization::isPageEnabled('dealers'), 404);
+
+    return redirect('/dealers', 301);
+});
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');

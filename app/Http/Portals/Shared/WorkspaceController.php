@@ -252,19 +252,32 @@ class WorkspaceController extends Controller
         if ($section === 'website') {
             $data['customization'] = SiteCustomization::raw();
             $data['defaults'] = SiteCustomization::defaults();
-            $data['websitePages'] = [
-                ['slug' => '/', 'label' => 'Landing page'],
-                ['slug' => '/about', 'label' => 'About'],
-                ['slug' => '/products', 'label' => 'Products'],
-                ['slug' => '/dealers', 'label' => 'Dealer directory'],
-                ['slug' => '/partnership', 'label' => 'Partnership'],
-                ['slug' => '/services', 'label' => 'Services'],
-                ['slug' => '/quality', 'label' => 'Quality'],
-                ['slug' => '/faq', 'label' => 'FAQ'],
-                ['slug' => '/contact', 'label' => 'Contact'],
-                ['slug' => '/privacy', 'label' => 'Privacy'],
-                ['slug' => '/terms', 'label' => 'Terms'],
-            ];
+            $enabled = SiteCustomization::enabledPagesMap();
+            $data['websitePages'] = collect([
+                ['key' => 'home', 'slug' => '/', 'label' => 'Landing page', 'toggleable' => false],
+                ['key' => 'about', 'slug' => '/about', 'label' => 'About'],
+                ['key' => 'products', 'slug' => '/products', 'label' => 'Products'],
+                ['key' => 'dealers', 'slug' => '/dealers', 'label' => 'Dealer directory'],
+                ['key' => 'partnership', 'slug' => '/partnership', 'label' => 'Partnership'],
+                ['key' => 'services', 'slug' => '/services', 'label' => 'Services'],
+                ['key' => 'quality', 'slug' => '/quality', 'label' => 'Quality'],
+                ['key' => 'faq', 'slug' => '/faq', 'label' => 'FAQ'],
+                ['key' => 'contact', 'slug' => '/contact', 'label' => 'Contact'],
+                ['key' => 'privacy', 'slug' => '/privacy', 'label' => 'Privacy'],
+                ['key' => 'terms', 'slug' => '/terms', 'label' => 'Terms'],
+            ])->map(function (array $page) use ($enabled) {
+                $key = $page['key'];
+                $toggleable = $page['toggleable'] ?? true;
+
+                return [
+                    'key' => $key,
+                    'slug' => $page['slug'],
+                    'label' => $page['label'],
+                    'toggleable' => $toggleable,
+                    'enabled' => $toggleable ? ($enabled[$key] ?? true) : true,
+                    'flag' => $toggleable ? 'page_enabled_'.$key : null,
+                ];
+            })->values()->all();
             $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,

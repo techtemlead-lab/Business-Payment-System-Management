@@ -55,10 +55,10 @@
 </div>
 
 <div class="ref-information-links">
-    <a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>
-    <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
-    <a href="/partnership">Become a Partner</a>
-    <a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>@endif
+    @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">Become a Partner</a>@endif
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
@@ -130,7 +130,9 @@
             </div>
         </div>
 
+        @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
+        @endif
     </section>
     <section class="ref-content-card">
         <h2>{{ $siteCustomization['contact_form_title'] ?? 'Send an Enquiry' }}</h2>
@@ -246,7 +248,7 @@
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
         <h2>{{ $siteCustomization['directory_empty_title'] ?? 'No published dealers in this area yet.' }}</h2>
         <p>{{ $siteCustomization['directory_empty_desc'] ?? 'Contact us for help finding a local dealer.' }}</p>
-        <a href="/contact" class="ref-primary-button">Contact Us</a>
+        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Us</a>@endif
     </div>
     @endforelse
 </div>
@@ -287,8 +289,12 @@
     <h2>{{ $siteCustomization['partnership_cta_title'] ?? 'Ready to grow with Madina?' }}</h2>
     <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
     <div class="ref-information-links" style="margin-top:16px;">
-        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '/contact?topic=Dealer%20enquiry' }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
+        @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['partnership_cta_link'] ?? '/contact?topic=Dealer%20enquiry'))
+        <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
+        @endif
+        @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> View Dealer Network</a>
+        @endif
     </div>
 </section>
 @endif
@@ -308,8 +314,10 @@
     @endforeach
 </div>
 <div class="ref-information-links">
-    <a href="{{ $siteCustomization['services_cta_link'] ?? '/contact' }}" class="ref-primary-button">{{ $siteCustomization['services_cta_btn'] ?? 'Contact the Center' }}</a>
-    <a href="/quality" class="ref-secondary-button">Quality Promise</a>
+    @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['services_cta_link'] ?? '/contact'))
+    <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['services_cta_btn'] ?? 'Contact the Center' }}</a>
+    @endif
+    @if($publicPageEnabled['quality'] ?? true)<a href="/quality" class="ref-secondary-button">Quality Promise</a>@endif
 </div>
 @endif
 
@@ -328,8 +336,10 @@
     @endforeach
 </div>
 <div class="ref-information-links">
-    <a href="{{ $siteCustomization['quality_cta_link'] ?? '/products' }}" class="ref-primary-button">{{ $siteCustomization['quality_cta_btn'] ?? 'Browse Products' }}</a>
-    <a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['quality_cta_link'] ?? '/products'))
+    <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['quality_cta_btn'] ?? 'Browse Products' }}</a>
+    @endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
@@ -350,8 +360,8 @@
     @endforeach
 </div>
 <div class="ref-information-links">
-    <a href="/contact" class="ref-primary-button">Still need help? Contact us</a>
-    <a href="/partnership" class="ref-secondary-button">Partnership enquiries</a>
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Still need help? Contact us</a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button">Partnership enquiries</a>@endif
 </div>
 @endif
 
@@ -364,8 +374,11 @@
     <div class="ref-content-prose" style="white-space:pre-line;">{{ $siteCustomization[$page.'_body'] ?? '' }}</div>
 </section>
 <div class="ref-information-links">
-    <a href="/contact" class="ref-primary-button">Contact Head Office</a>
-    <a href="/{{ $page === 'privacy' ? 'terms' : 'privacy' }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Head Office</a>@endif
+    @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
+    @if($publicPageEnabled[$altLegal] ?? true)
+    <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    @endif
 </div>
 @endif
 </main>

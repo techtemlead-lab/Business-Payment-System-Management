@@ -16,6 +16,7 @@ class PublicController extends Controller
     public function index(Request $request, string $page = 'home'): View
     {
         abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'], true), 404);
+        abort_unless(SiteCustomization::isPageEnabled($page), 404);
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
             'page' => 'nullable|integer|min:1', 'sort' => 'nullable|in:name,price_asc,price_desc', 'in_stock' => 'nullable|in:0,1',
@@ -89,6 +90,7 @@ class PublicController extends Controller
 
     public function product(Product $product): View
     {
+        abort_unless(SiteCustomization::isPageEnabled('products'), 404);
         abort_unless($product->active, 404);
 
         return view('reference.product', ['item' => $this->publicProduct($product)]);

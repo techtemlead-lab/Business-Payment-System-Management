@@ -151,6 +151,39 @@ class SiteCustomizationTest extends TestCase
         $this->get('/')->assertSee('Become a Partner');
     }
 
+    public function test_disabled_public_pages_are_blocked_and_hidden_everywhere(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'page_enabled_partnership' => '0',
+                'page_enabled_faq' => '0',
+                'page_enabled_privacy' => '0',
+                'shortcuts_section_enabled' => '1',
+                'shortcuts' => [
+                    ['title' => 'Partner Desk', 'subtitle' => 'Apply now', 'icon' => 'fa-handshake', 'link' => '/partnership'],
+                    ['title' => 'Help Center', 'subtitle' => 'Read FAQ', 'icon' => 'fa-circle-question', 'link' => '/faq'],
+                    ['title' => 'Our Products', 'subtitle' => 'Browse range', 'icon' => 'fa-seedling', 'link' => '/products'],
+                ],
+            ],
+        ])->assertSessionHas('success');
+
+        $this->get('/partnership')->assertNotFound();
+        $this->get('/faq')->assertNotFound();
+        $this->get('/privacy')->assertNotFound();
+        $this->get('/services')->assertOk();
+
+        $home = $this->get('/');
+        $home->assertOk();
+        $home->assertDontSee('Become a Partner');
+        $home->assertDontSee('Partner Desk');
+        $home->assertDontSee('Help Center');
+        $home->assertSee('Our Products');
+        $home->assertDontSee('href="/partnership"', false);
+        $home->assertDontSee('href="/faq"', false);
+        $home->assertDontSee('href="/privacy"', false);
+    }
+
     public function test_shortcuts_can_be_customized_added_removed_and_disabled(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
