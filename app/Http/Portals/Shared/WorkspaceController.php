@@ -327,7 +327,17 @@ class WorkspaceController extends Controller
             ]);
         }
         if ($section === 'enquiries') {
-            $data['enquiries'] = DB::table('enquiries')->latest()->paginate(20);
+            $data['enquiries'] = DB::table('enquiries')
+                ->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate(20);
+            $data['enquiry_counts'] = [
+                'total' => (int) DB::table('enquiries')->count(),
+                'new' => (int) DB::table('enquiries')->where('status', 'new')->count(),
+                'contacted' => (int) DB::table('enquiries')->where('status', 'contacted')->count(),
+                'closed' => (int) DB::table('enquiries')->where('status', 'closed')->count(),
+            ];
         }
         if ($section === 'notifications') {
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);

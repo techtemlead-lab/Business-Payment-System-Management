@@ -121,7 +121,7 @@ return [
             'payouts-hub' => 'finance',
         ],
         'nav' => [
-            'owner' => ['overview', 'dashboards', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'catalog', 'inventory', 'website', 'audit'],
+            'owner' => ['overview', 'dashboards', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'catalog', 'inventory', 'website', 'content', 'enquiries', 'audit'],
             'dealers' => ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'policies', 'ledger', 'reports', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals'],
             'sub_dealers' => ['sub-dealers', 'sub-dealer-orders', 'salary'],
             'content' => ['content', 'enquiries'],

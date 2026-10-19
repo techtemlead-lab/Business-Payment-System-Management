@@ -140,10 +140,20 @@ class PublicController extends Controller
 
     public function enquiry(Request $request): RedirectResponse
     {
-        $data = $request->validate(['name' => 'required|string|max:150', 'phone' => 'required|string|max:30',
-            'topic' => 'required|in:Dealer enquiry,Product enquiry,Support,Complaint', 'message' => 'required|string|min:10|max:2000', 'website' => 'nullable|max:0']);
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'phone' => 'required|string|max:30',
+            'topic' => 'required|in:Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
+            'message' => 'required|string|min:10|max:2000',
+            'website' => 'nullable|max:0',
+        ]);
         unset($data['website']);
-        DB::table('enquiries')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('enquiries')->insert([
+            ...$data,
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return back()->with('success', 'Your enquiry has been received. The company will contact you.');
     }

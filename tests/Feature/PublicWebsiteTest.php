@@ -47,8 +47,13 @@ class PublicWebsiteTest extends TestCase
         $this->from('/contact')->post('/enquiries', $data)->assertRedirect('/contact')->assertSessionHas('success');
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('enquiries', 1);
+        $this->assertDatabaseHas('enquiries', ['name' => 'Synthetic Visitor', 'status' => 'new']);
         $this->post('/enquiries', [...$data, 'website' => 'spam'])->assertSessionHasErrors('website');
         $this->assertDatabaseCount('enquiries', 1);
+
+        $partnership = [...$data, 'name' => 'Partner Applicant', 'topic' => 'Partnership enquiry', 'message' => 'Interested in a dealership partnership in Chittagong.'];
+        $this->from('/contact')->post('/enquiries', $partnership)->assertRedirect('/contact')->assertSessionHas('success');
+        $this->assertDatabaseHas('enquiries', ['name' => 'Partner Applicant', 'topic' => 'Partnership enquiry', 'status' => 'new']);
     }
 
     public function test_cms_text_is_escaped_and_login_uses_staff_created_accounts(): void
