@@ -117,12 +117,19 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('empty_pool', app(CommissionService::class)->settleRankRoyaltyPool('2026-09')['status']);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'rank_royalty_pool', 'status' => 'settled']);
         $this->assertSame('3.34', DB::table('wallets')->where('user_id', $leader->id)->value('available'));
+        $this->assertDatabaseHas('commission_allocations', [
+            'order_id' => $order->id,
+            'category' => 'rank_royalty_settlement_reserve',
+            'status' => 'reserved',
+            'amount' => '9.99',
+        ]);
+        $this->assertSame('9.99', $result['total_rolled_to_reserve']);
     }
 
     public function test_rank_incentives_require_real_reserve_funding_and_cannot_be_claimed_twice(): void
     {
         $leader = User::factory()->create();
-        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo']);
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $service = app(CommissionService::class);
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
         $this->purchase(User::factory()->create(), '250000.00', '500000.00');
@@ -133,6 +140,40 @@ class CommissionSettlementTest extends TestCase
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
         $this->assertDatabaseCount('rank_incentive_awards', 1);
         $this->assertDatabaseHas('wallets', ['user_id' => $leader->id, 'available' => '5000.00']);
+    }
+
+    public function test_rank_incentive_is_blocked_when_maintenance_demotes_the_leader(): void
+    {
+        $leader = User::factory()->create();
+        DealerRank::create([
+            'user_id' => $leader->id,
+            'current_rank' => 'mo',
+            'achieved_at' => now()->subDays(60),
+        ]);
+        $this->purchase(User::factory()->create(), '250000.00', '500000.00');
+        $claim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id);
+
+        $this->assertFalse($claim['success']);
+        $this->assertStringContainsString('maintenance', $claim['message']);
+        $this->assertDatabaseCount('rank_incentive_awards', 0);
+    }
+
+    public function test_salary_pool_with_no_qualifiers_moves_cash_into_settlement_reserve(): void
+    {
+        $buyer = User::factory()->create();
+        $order = $this->purchase($buyer, '5000.00', '10000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        $this->assertSame('rolled_over', $result['status']);
+        $this->assertSame('100.00', $result['total_rolled_to_reserve']);
+        $this->assertDatabaseHas('commission_allocations', [
+            'order_id' => $order->id,
+            'category' => 'dealer_salary_settlement_reserve',
+            'status' => 'reserved',
+            'amount' => '100.00',
+        ]);
+        $this->assertDatabaseMissing('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary']);
     }
 
     public function test_open_month_cannot_be_settled_early(): void
@@ -171,7 +212,13 @@ class CommissionSettlementTest extends TestCase
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $result = app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
         $this->assertSame('0.00', $result['total_distributed']);
+        $this->assertSame('400.00', $result['total_rolled_to_reserve']);
         $this->assertDatabaseMissing('commission_settlement_payouts', ['user_id' => $leader->id]);
+        $this->assertDatabaseHas('commission_allocations', [
+            'category' => 'rank_royalty_settlement_reserve',
+            'status' => 'reserved',
+            'amount' => '400.00',
+        ]);
     }
 
     public function test_mo_requires_twenty_five_thousand_in_qualifying_own_purchases(): void
@@ -201,6 +248,6 @@ class CommissionSettlementTest extends TestCase
         ])->assertRedirect();
         $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '0.00', 'held' => '0.00']);
         $this->assertFalse(CommissionWallet::hasDebt($buyer->id));
-        $this->assertDatabaseHas('withdrawals',['id' => $withdrawal, 'status' => 'rejected']);
+        $this->assertDatabaseHas('withdrawals', ['id' => $withdrawal, 'status' => 'rejected']);
     }
 }

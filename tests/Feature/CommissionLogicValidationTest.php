@@ -686,6 +686,7 @@ class CommissionLogicValidationTest extends TestCase
         $rank = DealerRank::create([
             'user_id' => $leader->id,
             'current_rank' => 'mo',
+            'achieved_at' => now(),
             'one_time_incentive_paid' => false,
         ]);
 
