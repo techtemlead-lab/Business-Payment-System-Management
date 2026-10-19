@@ -42,9 +42,11 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             {isPartner && <>
                 <label>Map latitude
                     <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={event => form.setData('latitude', event.target.value)} placeholder="e.g. 25.7701" />
+                    {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
                 </label>
                 <label>Map longitude
                     <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder="e.g. 88.8240" />
+                    {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                 </label>
             </>}
             {profileFields.map(field => <label key={field}>{label(field)}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>)}

@@ -278,7 +278,10 @@ class WorkspaceController extends Controller
             $data['events'] = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id')->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')->orderByDesc('audit_events.id')->paginate(25);
         }
         if ($section === 'content') {
-            $data['pages'] = DB::table('content_pages')->orderBy('slug')->get();
+            $data['pages'] = DB::table('content_pages')
+                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
+                ->orderBy('slug')
+                ->get();
         }
         if ($section === 'website') {
             $data['customization'] = SiteCustomization::raw();

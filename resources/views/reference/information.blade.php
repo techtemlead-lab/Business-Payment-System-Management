@@ -10,7 +10,7 @@
         'privacy' => $siteCustomization['privacy_hero_title'] ?? 'Privacy Policy',
         'terms' => $siteCustomization['terms_hero_title'] ?? 'Terms of Use',
     ];
-    $pageTitle = $pageTitles[$page] ?? ucfirst($page);
+    $pageTitle = filled($content->title ?? null) ? $content->title : ($pageTitles[$page] ?? ucfirst($page));
 @endphp
 @extends('reference.layout')
 @section('title',$pageTitle.' · Madina Natural Health Care')
@@ -269,8 +269,8 @@
 
 @if($page==='partnership')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $siteCustomization['partnership_hero_title'] ?? 'Become an Authorized Madina Partner' }}</h1>
-    <div class="ref-content-prose">{{ $siteCustomization['partnership_hero_lead'] ?? '' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization['partnership_hero_title'] ?? 'Become an Authorized Madina Partner') }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['partnership_hero_lead'] ?? '') }}</div>
 </article>
 <h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $siteCustomization['partnership_why_title'] ?? 'Why partner with Madina' }}</h2>
 <div class="ref-about-sections-grid">
@@ -337,8 +337,8 @@
 
 @if($page==='services')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $siteCustomization['services_hero_title'] ?? 'Natural Health Care & Physiotherapy Services' }}</h1>
-    <div class="ref-content-prose">{{ $siteCustomization['services_hero_lead'] ?? '' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization['services_hero_title'] ?? 'Natural Health Care & Physiotherapy Services') }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['services_hero_lead'] ?? '') }}</div>
 </article>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3] as $i)
@@ -359,8 +359,8 @@
 
 @if($page==='quality')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $siteCustomization['quality_hero_title'] ?? 'Quality & Authenticity Promise' }}</h1>
-    <div class="ref-content-prose">{{ $siteCustomization['quality_hero_lead'] ?? '' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization['quality_hero_title'] ?? 'Quality & Authenticity Promise') }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['quality_hero_lead'] ?? '') }}</div>
 </article>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3] as $i)
@@ -381,8 +381,8 @@
 
 @if($page==='faq')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $siteCustomization['faq_hero_title'] ?? 'Frequently Asked Questions' }}</h1>
-    <div class="ref-content-prose">{{ $siteCustomization['faq_hero_lead'] ?? '' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization['faq_hero_title'] ?? 'Frequently Asked Questions') }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['faq_hero_lead'] ?? '') }}</div>
 </article>
 <div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
     @foreach(($siteCustomization['faq_items'] ?? []) as $item)
@@ -403,11 +403,13 @@
 
 @if(in_array($page, ['privacy', 'terms'], true))
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $siteCustomization[$page.'_hero_title'] ?? ucfirst($page) }}</h1>
-    <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? '' }}</div>
+    <h1>{{ $content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ucfirst($page)) }}</h1>
+    @unless(filled($content->body ?? null))
+        <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? '' }}</div>
+    @endunless
 </article>
 <section class="ref-content-card" style="margin-top:22px;">
-    <div class="ref-content-prose" style="white-space:pre-line;">{{ $siteCustomization[$page.'_body'] ?? '' }}</div>
+    <div class="ref-content-prose" style="white-space:pre-line;">{{ $content->body ?? ($siteCustomization[$page.'_body'] ?? '') }}</div>
 </section>
 <div class="ref-information-links">
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Head Office</a>@endif

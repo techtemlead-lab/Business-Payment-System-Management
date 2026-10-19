@@ -4,9 +4,7 @@ import {Search,Gift,Layers,UserRound,Store,Menu,ShoppingBag,Home,LogOut} from 'l
 export function DealerHeader(){
     const page = usePage<any>().props;
     const publicBase = String(page.publicBase ?? '');
-    const navCategories: string[] = Array.isArray(page.navCategories) && page.navCategories.length
-        ? page.navCategories
-        : ['Medical Equipment','Leather Items','Consumer Items','Medicine','Agriculture Product','Cosmetics','Furniture','Service'];
+    const navCategories: string[] = Array.isArray(page.navCategories) ? page.navCategories.filter(Boolean) : [];
     const customize = page.siteCustomization ?? {};
     const offersTitle = customize.header_offers_title || 'Offers';
     const offersSubtitle = customize.header_offers_subtitle || 'Latest Offers';
@@ -35,13 +33,15 @@ export function DealerHeader(){
                 </div>
             </div>
         </header>
-        <nav className="portal-category-nav" aria-label="Product categories">
-            <div className="portal-container">
-                {navCategories.map(category=>
-                    <a key={category} href={publicBase+'/products?category='+encodeURIComponent(category)}>{category}</a>
-                )}
-            </div>
-        </nav>
+        {navCategories.length > 0 && (
+            <nav className="portal-category-nav" aria-label="Product categories">
+                <div className="portal-container">
+                    {navCategories.map(category=>
+                        <a key={category} href={publicBase+'/products?category='+encodeURIComponent(category)}>{category}</a>
+                    )}
+                </div>
+            </nav>
+        )}
     </>;
 }
 

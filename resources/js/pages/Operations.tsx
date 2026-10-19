@@ -10,6 +10,16 @@ type Field = {name:string;label:string;type?:string;options?:Option[];required?:
 type Action = {title:string;action:string;fields:Field[];defaults?:Row;policy?:boolean;policyRules?:Row;fundingSources?:string[]};
 const root = '/commands/operations';
 const reason:Field = {name:'reason',label:'Reason and approval details',type:'textarea',required:true};
+function parseJson(value: unknown): unknown {
+    if (typeof value !== 'string') {
+        return value;
+    }
+    try {
+        return JSON.parse(value);
+    } catch {
+        return {error: 'Invalid stored JSON'};
+    }
+}
 const field = (name:string,title:string,type='text',required=true):Field => ({name,label:title,type,required});
 const options = (name:string,title:string,values:string[],required=true):Field => ({name,label:title,required,options:values.map(value=>({value,label:value==='1'?'Yes':value==='0'?'No':label(value)}))});
 const titles:Record<string,string> = {'field-sales':'Field sales workspace','staff-operations':'Territories & targets',payroll:'Staff payroll','my-payroll':'My payroll','payment-accounts':'Payment accounts','policy-schedules':'Commission schedules','reserve-payouts':'Reserve payouts','commission-holds':'Commission holds','financial-readiness':'Opening balance review','financial-reports':'Financial reports','dues-adjustments':'Due adjustments','finance-settings':'Finance settings','access-management':'Roles & permissions','video-marketing':'Homepage video marketing'};
@@ -171,7 +181,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {section==='financial-reports'&&<Reports salesOnly={!capabilities.includes('finance')&&!capabilities.includes('reports')}/>}
         {section==='payment-accounts'&&<section className="panel"><h2>Company account registry</h2><Table rows={paymentAccounts} columns={[{key:'label',title:'Account'},{key:'channel',title:'Method'},{key:'holder',title:'Holder'},{key:'account_number',title:'Number'},{key:'is_active',title:'Status',render:r=><Badge status={r.is_active?'active':'inactive'}/>},{key:'edit',title:'Manage',render:r=><div style={{display:'flex',gap:8}}><button className="button small" onClick={()=>setAccount(r)}>Edit version {r.version}</button><Link className="button small" href={'/operations/payment-accounts?account_history='+r.id}>Version history</Link></div>}]}/>{account&&<button className="button" onClick={()=>setAccount(null)}>Create another account</button>}</section>}
         {accountHistory.length>0&&<section className="panel"><h2>Payment account version history</h2><Table rows={accountHistory} columns={[{key:'version',title:'Version'},{key:'label',title:'Account'},{key:'account_number',title:'Number at this version'},{key:'recorded_at',title:'Recorded (UTC)'},{key:'reason',title:'Reason'}]}/></section>}{forms.filter(a=>actionAllowed(a.action,staffActions,a.defaults?._method??'post')).map(a=><section className="panel narrow-panel" key={a.title+(account?.version??'')}><h2>{a.title}</h2><OperationForm {...a} onDone={()=>{if(section==='payment-accounts')setAccount(null);}}/></section>)}
-        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));return <section className="panel" key={table.title}><h2>{table.title}</h2><Table rows={rows} columns={[...keys.map(key=>({key,title:label(key),render:(row:Row)=>key==='status'?<Badge status={row[key]}/>:['rules','metadata','data','snapshot'].includes(key)?<details><summary>View details</summary><div style={{minWidth:240,maxWidth:420,overflowWrap:'anywhere'}}><Detail value={typeof row[key]==='string'?JSON.parse(row[key]):row[key]}/></div></details>:String(row[key]??'—')})),{key:'actions',title:'Actions',render:r=>rowActions(r,table.title)}]}/><Pagination page={table.page}/></section>;})}
+        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const keys=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));return <section className="panel" key={table.title}><h2>{table.title}</h2><Table rows={rows} columns={[...keys.map(key=>({key,title:label(key),render:(row:Row)=>key==='status'?<Badge status={row[key]}/>:['rules','metadata','data','snapshot'].includes(key)?<details><summary>View details</summary><div style={{minWidth:240,maxWidth:420,overflowWrap:'anywhere'}}><Detail value={parseJson(row[key])}/></div></details>:String(row[key]??'—')})),{key:'actions',title:'Actions',render:r=>rowActions(r,table.title)}]}/><Pagination page={table.page}/></section>;})}
         {selected&&<Modal title={selected.title} onClose={()=>setSelected(null)}><OperationForm {...selected} onDone={()=>setSelected(null)}/></Modal>}
     </Shell>;
 }

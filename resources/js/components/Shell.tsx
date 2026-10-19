@@ -428,6 +428,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                         {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`}>{translate('portal', 'settlements')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`}>{translate('portal', 'simulator')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`}>{translate('portal', 'payouts_hub')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/payments" className={`button small ${section === 'payments' ? 'dark' : ''}`}>{translate('portal', 'payments')}</Link>}
                                         {capabilities.includes('finance') && <Link href="/withdrawals" className={`button small ${section === 'withdrawals' ? 'dark' : ''}`}>{translate('portal', 'withdrawals')}</Link>}
                                     </>
                                 )}

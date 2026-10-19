@@ -187,4 +187,34 @@ class DealerOnboardingTest extends TestCase
         ]);
         $res->assertStatus(422);
     }
+
+    public function test_staff_can_update_dealer_map_coordinates(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'latitude' => null,
+            'longitude' => null,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'latitude' => '23.8103',
+            'longitude' => '90.4125',
+            'reason' => 'Verified shop pin from field visit.',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $dealer->refresh();
+        $this->assertEqualsWithDelta(23.8103, (float) $dealer->latitude, 0.0001);
+        $this->assertEqualsWithDelta(90.4125, (float) $dealer->longitude, 0.0001);
+
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'latitude' => '',
+            'longitude' => '',
+            'reason' => 'Clear unverified map pin until survey completes.',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $dealer->refresh();
+        $this->assertNull($dealer->latitude);
+        $this->assertNull($dealer->longitude);
+    }
 }

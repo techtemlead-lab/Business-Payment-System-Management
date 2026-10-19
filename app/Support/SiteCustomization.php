@@ -230,7 +230,7 @@ class SiteCustomization
             'footer_link_vendor' => 'Vendor Program',
             'footer_link_vendor_url' => '/partnership',
             'footer_link_orders' => 'Order Tracking',
-            'footer_link_orders_url' => '/workspace/orders',
+            'footer_link_orders_url' => '/login',
             'footer_link_blog' => 'Blog & Tips',
             'footer_link_blog_url' => '/about',
             'footer_link_contact' => 'Contact Us',
