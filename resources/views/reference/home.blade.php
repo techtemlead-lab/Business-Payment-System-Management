@@ -59,7 +59,7 @@
             <div class="ref-slides">
                 @foreach($slides as $idx => $slide)
                 <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
-                    <img src="{{ ($slide['image'] ?: ('/reference/slider-0' . ($idx + 1) . '.webp')) . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                 </a>
                 @endforeach
             </div>
