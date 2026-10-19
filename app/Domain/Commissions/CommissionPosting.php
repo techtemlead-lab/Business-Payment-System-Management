@@ -153,6 +153,7 @@ final class CommissionPosting
                         'period_month' => CommissionQualification::currentMonth(),
                         'retained_by' => 'owner_commission_benefits_fund',
                         'owner_only' => true,
+                        'account_type' => $type,
                         'source' => 'purchase_surplus_after_company_share_and_commissions',
                     ],
                 ]);
@@ -165,6 +166,7 @@ final class CommissionPosting
             $this->qualification->record($buyer, $cash, $rules);
             Audit::record($actorId, 'commissions.calculated', $order->id, [
                 'buyer_id' => $buyer->id,
+                'account_type' => $type,
                 'cash_basis' => $order->total,
                 'allocated' => Money::decimal($allocated),
                 'benefits_fund' => Money::decimal($unallocated),
@@ -240,9 +242,10 @@ final class CommissionPosting
                 $status = 'held';
             }
             $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
-                ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve']);
+                ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve', 'account_type' => $type]);
         }
-        $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining);
+        $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining,
+            ['account_type' => $type, 'retained_by' => 'company_management_area_share']);
         foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
             'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {
             $add($category, $key);

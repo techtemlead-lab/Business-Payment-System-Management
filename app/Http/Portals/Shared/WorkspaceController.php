@@ -419,7 +419,7 @@ class WorkspaceController extends Controller
             $data['benefits_fund'] = [
                 'balance' => round((float) $balance, 2),
                 'entry_count' => CommissionAllocation::where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')->count(),
-                'description' => 'Purchase surplus retained after the company MRP share and the approved commission schedule. Visible only to owners. Each row shows the source order, buyer, geography, purchase value, company share, distributed commissions, and benefits amount.',
+                'description' => 'Purchase surplus from dealer and sub-dealer orders after the company MRP share and the approved commission schedule. Visible only to owners. Each row shows the source order, buyer role, geography, purchase value, company share, distributed commissions, and benefits amount.',
             ];
             $data['benefits_entries'] = $entries;
         }

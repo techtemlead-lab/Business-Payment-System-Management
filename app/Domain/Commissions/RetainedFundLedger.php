@@ -232,8 +232,10 @@ final class RetainedFundLedger
     /** @param array<string, mixed> $metadata @param array<string, mixed> $geography */
     private function reason(CommissionAllocation $allocation, array $metadata, ?string $level, array $geography): string
     {
+        $accountType = (string) ($metadata['account_type'] ?? $allocation->order?->user?->role ?? 'partner');
+        $accountLabel = $accountType === 'sub_dealer' ? 'sub-dealer' : ($accountType === 'dealer' ? 'dealer' : 'partner');
         if ($allocation->category === self::BenefitsCategory) {
-            return 'Purchase surplus after company MRP share and the approved commission schedule.';
+            return 'Purchase surplus from '.$accountLabel.' order after company MRP share and the approved commission schedule.';
         }
         if ($allocation->status === 'unassigned_reserve') {
             $place = trim(implode(' / ', array_filter([
@@ -243,7 +245,7 @@ final class RetainedFundLedger
                 $geography['union'] ?? null,
             ], fn ($value): bool => trim((string) $value) !== '')));
 
-            return 'No active '.($level ?: 'area').' dealer assigned'.($place !== '' ? ' for '.$place : '').'; retained in company geographic reserve.';
+            return 'No active '.($level ?: 'area').' dealer assigned'.($place !== '' ? ' for '.$place : '').' on '.$accountLabel.' purchase; retained in company geographic reserve.';
         }
         if ($allocation->category === 'area_management') {
             return 'Management share of the area dealer pool retained by the company.';
