@@ -161,8 +161,14 @@ class ProjectAuditTest extends TestCase
             ->where('data.settlement_state.dealer_salary_pool_pending', 24)
             ->where('data.settlement_state.sub_dealer_salary_pending', 36));
         $this->post('/commands/commissions/settle-salary', ['period_month' => '2026-09'])->assertRedirect()
-            ->assertSessionHas('success', 'Salary pool for 2026-09 distributed ৳36.00. Qualifying partners: 1.');
+            ->assertSessionHas('success', 'Salary pool for 2026-09 distributed ৳36.00. Qualifying partners: 1. Undistributed ৳24.00 moved to the salary settlement reserve.');
         $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '36.00']);
+        $this->assertDatabaseHas('commission_allocations', [
+            'order_id' => $order->id,
+            'category' => 'dealer_salary_settlement_reserve',
+            'status' => 'reserved',
+            'amount' => '24.00',
+        ]);
     }
 
     public function test_royalty_preview_counts_a_leader_who_is_eligible_during_the_grace_period(): void
