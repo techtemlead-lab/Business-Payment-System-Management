@@ -245,12 +245,36 @@ final class CommissionSettlement
     }
 
     /** @return array<string, mixed> */
-    public function incentive(int $userId, ?int $actorId = null): array
+    public function incentive(int $userId, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
+        $period = CommissionQualification::currentMonth();
 
-        return DB::transaction(function () use ($userId, $actorId): array {
+        return DB::transaction(function () use ($userId, $actorId, $requestKey, $period): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $period)
+                    ->where('kind', 'rank_incentive')
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    $result = json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                    if ((int) ($result['user_id'] ?? 0) !== $userId) {
+                        abort(409, 'Request key already used with different incentive data.');
+                    }
+
+                    return $result;
+                }
+                $award = DB::table('rank_incentive_awards')->where('request_key', $requestKey)->first();
+                if ($award) {
+                    if ((int) $award->user_id !== $userId) {
+                        abort(409, 'Request key already used with different incentive data.');
+                    }
+
+                    return ['success' => true, 'user_id' => $userId, 'rank' => $award->rank, 'amount' => (string) $award->amount, 'paid_at' => $award->created_at];
+                }
+            }
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active' || $rank->current_rank === 'dealer') {
@@ -263,7 +287,7 @@ final class CommissionSettlement
                 return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
             }
             $rules = $this->policies->snapshot()['rules'];
-            $paidAs = $this->qualification->paidAs($userId, CommissionQualification::currentMonth(), $rules);
+            $paidAs = $this->qualification->paidAs($userId, $period, $rules);
             if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
                 return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
             }
@@ -279,7 +303,7 @@ final class CommissionSettlement
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
                 $take = min($remaining, Money::cents($fund->amount) - $used);
                 if ($take > 0) {
-                    $this->pay($fund, $userId, $take, CommissionQualification::currentMonth(), 'rank_'.$rank->current_rank);
+                    $this->pay($fund, $userId, $take, $period, 'rank_'.$rank->current_rank);
                     $sources[$fund->id] = Money::decimal($take);
                     $fund->update(['status' => $used + $take === Money::cents($fund->amount) ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
@@ -290,11 +314,17 @@ final class CommissionSettlement
                 }
             }
             DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
-                'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                'request_key' => $requestKey, 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);
-            Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, ['beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'sources' => $sources]);
+            Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, [
+                'beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
+                'sources' => $sources, 'request_key' => $requestKey,
+            ]);
 
-            return ['success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String()];
+            return $this->rememberSettlement($period, 'rank_incentive', $requestKey, $actorId, [
+                'success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank,
+                'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String(),
+            ]);
         }, 3);
     }
 

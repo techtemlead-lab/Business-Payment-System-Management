@@ -85,7 +85,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setClaimingIncentive(userId);
-        router.post(`/commands/commissions/claim-incentive/${userId}`, {}, {
+        router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
             onFinish: () => setClaimingIncentive(null)
         });
     };

@@ -226,7 +226,7 @@ class ModuleCompletionTest extends TestCase
 
         $this->actingAs($finance)->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertRedirect();
         $this->postJson('/api/v1/finance/settlements', ['period_month' => '2026-09', 'kind' => 'royalty', 'request_key' => (string) Str::uuid()])->assertOk();
-        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '100.00', 'reference' => 'AUDITED-REFUND', 'reason' => 'Independently reviewed source adjustment'])->assertOk();
+        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '100.00', 'reference' => 'AUDITED-REFUND', 'reason' => 'Independently reviewed source adjustment', 'request_key' => (string) Str::uuid()])->assertOk();
 
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.royalty_pool_settled']);
@@ -240,8 +240,8 @@ class ModuleCompletionTest extends TestCase
         $buyer = User::factory()->dealer()->create();
         $finance = User::factory()->staff('finance')->create();
         $order = $this->purchase($buyer, '250000.00', true);
-        $this->actingAs($finance)->post('/commands/commissions/claim-incentive/'.$buyer->id)->assertRedirect();
-        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '50000.00', 'reference' => 'RANK-REFUND', 'reason' => 'Reduce source after rank award'])->assertOk();
+        $this->actingAs($finance)->post('/commands/commissions/claim-incentive/'.$buyer->id, ['request_key' => (string) Str::uuid()])->assertRedirect();
+        $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '50000.00', 'reference' => 'RANK-REFUND', 'reason' => 'Reduce source after rank award', 'request_key' => (string) Str::uuid()])->assertOk();
 
         $report = app(ReportData::class)->query($finance, 'rank-incentives', '2026-09-01', '2026-09-30')['query']->get();
 

@@ -110,12 +110,13 @@ final class StaffOperations
                 if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->where('role', 'dealer')->exists()) {
                     throw ValidationException::withMessages(['sponsor_id' => 'The nominated sponsor is no longer an active dealer.']);
                 }
-                $user = User::create(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
+                $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
                     'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],
                     'profile' => ['upazila' => $data['upazila'] ?? null, 'union' => $data['union'] ?? null, 'area_code' => $data['area_code'] ?? null,
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null]]);
+                $user->save();
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);
                 DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);

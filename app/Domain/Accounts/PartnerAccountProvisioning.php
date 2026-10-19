@@ -12,7 +12,6 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -151,7 +150,7 @@ final class PartnerAccountProvisioning
 
         $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword): User {
             CommissionWallet::lock();
-            $user = User::create([
+            $user = (new User)->forceFill([
                 'role' => $role,
                 'dealer_code' => $dealerCode,
                 'refer_code' => $referCode,
@@ -164,9 +163,10 @@ final class PartnerAccountProvisioning
                 'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
                 'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
                 'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
-                'password' => Hash::make($plainPassword),
+                'password' => $plainPassword,
                 'profile' => $profile,
             ]);
+            $user->save();
             DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($user->id, $user->sponsor_id);
             DealerRank::firstOrCreate(['user_id' => $user->id], ['current_rank' => 'dealer']);

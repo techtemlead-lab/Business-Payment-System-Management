@@ -8,12 +8,16 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Integrations\PaymentGatewayClient;
+use App\Domain\Orders\OrderService;
+use App\Models\DealerRank;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
 use App\Support\SpreadsheetCell;
+use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -128,6 +132,59 @@ class RemainingHardeningTest extends TestCase
         $this->assertSame($first, $second);
         $this->assertSame('empty_pool', $first['status']);
         $this->assertSame(1, DB::table('commission_settlement_runs')->where('request_key', $key)->count());
+    }
+
+    public function test_rank_incentive_and_refund_request_keys_are_idempotent(): void
+    {
+        config(['madina.financial_activation' => true]);
+        $this->seed(CommissionRuleSeeder::class);
+        $leader = User::factory()->create();
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        $buyer = User::factory()->create();
+        $product = Product::factory()->create(['mrp' => '500000.00', 'dealer_price' => '250000.00']);
+        $order = app(OrderService::class)->create($buyer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $order->update(['paid' => '250000.00', 'status' => 'delivered']);
+        app(CommissionService::class)->processOrder($order);
+
+        $claimKey = (string) Str::uuid();
+        $firstClaim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id, requestKey: $claimKey);
+        $secondClaim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id, requestKey: $claimKey);
+        $this->assertTrue($firstClaim['success']);
+        $this->assertSame($firstClaim, $secondClaim);
+        $this->assertSame(1, DB::table('rank_incentive_awards')->where('request_key', $claimKey)->count());
+
+        $refundKey = (string) Str::uuid();
+        $firstRefund = app(CommissionService::class)->reverseOrderPartial($order->fresh(), '1000.00', 'Idempotent refund', 'KEY-REFUND-1', null, $refundKey);
+        $secondRefund = app(CommissionService::class)->reverseOrderPartial($order->fresh(), '1000.00', 'Idempotent refund', 'KEY-REFUND-1', null, $refundKey);
+        $this->assertSame($firstRefund, $secondRefund);
+        $this->assertSame(1, DB::table('commission_refunds')->where('request_key', $refundKey)->count());
+    }
+
+    public function test_user_mass_assignment_blocks_password_and_verified_at(): void
+    {
+        $user = User::factory()->create();
+        $originalPassword = $user->password;
+        $originalToken = $user->remember_token;
+        $originalVerified = $user->email_verified_at;
+
+        $user->update([
+            'password' => 'ShouldNotStick1',
+            'email_verified_at' => now()->addDay(),
+            'remember_token' => 'token-should-not-stick',
+            'name' => 'Guarded Name',
+        ]);
+        $user->refresh();
+
+        $this->assertSame('Guarded Name', $user->name);
+        $this->assertSame($originalPassword, $user->password);
+        $this->assertEquals($originalVerified, $user->email_verified_at);
+        $this->assertSame($originalToken, $user->remember_token);
+
+        $user->forceFill(['password' => 'TrustedPass1a'])->save();
+        $this->assertTrue(Hash::check('TrustedPass1a', $user->fresh()->password));
     }
 
     public function test_payment_gateway_lookup_uses_http_fake_without_match_when_disabled(): void

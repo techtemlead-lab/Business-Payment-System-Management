@@ -53,6 +53,7 @@ class ProductionReadinessTest extends TestCase
         $finance = User::factory()->staff('finance')->create();
         $this->actingAs($finance)->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', [
             'refund_amount' => '100.00', 'reference' => 'AUDIT-REFUND', 'reason' => 'Audit refund of an unposted order',
+            'request_key' => (string) Str::uuid(),
         ])->assertUnprocessable();
     }
 

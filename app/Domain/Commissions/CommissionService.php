@@ -23,17 +23,17 @@ final class CommissionService
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrder(Order $order, string $reason = 'Order cancelled/refunded', ?int $actorId = null): array
+    public function reverseOrder(Order $order, string $reason = 'Order cancelled/refunded', ?int $actorId = null, ?string $requestKey = null): array
     {
-        return $this->reversals->refund($order, null, $reason, 'full-refund', $actorId);
+        return $this->reversals->refund($order, null, $reason, 'full-refund', $actorId, $requestKey);
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrderPartial(Order $order, string|float $refundAmount, string $reason = 'Partial refund', ?string $reference = null, ?int $actorId = null): array
+    public function reverseOrderPartial(Order $order, string|float $refundAmount, string $reason = 'Partial refund', ?string $reference = null, ?int $actorId = null, ?string $requestKey = null): array
     {
         $amount = is_float($refundAmount) ? number_format($refundAmount, 2, '.', '') : $refundAmount;
 
-        return $this->reversals->refund($order, Money::cents($amount), $reason, $reference ?? hash('sha256', $reason.'|'.$amount), $actorId);
+        return $this->reversals->refund($order, Money::cents($amount), $reason, $reference ?? hash('sha256', $reason.'|'.$amount), $actorId, $requestKey);
     }
 
     /** @return array<string, mixed> */
@@ -49,7 +49,7 @@ final class CommissionService
     }
 
     /** @return array<string, mixed> */
-    public function claimOneTimeRankIncentive(int $userId, float $customAmount = 0, ?int $actorId = null): array
+    public function claimOneTimeRankIncentive(int $userId, float $customAmount = 0, ?int $actorId = null, ?string $requestKey = null): array
     {
         if ($customAmount !== 0.0) {
             $rank = DealerRank::where('user_id', $userId)->value('current_rank');
@@ -59,7 +59,7 @@ final class CommissionService
             }
         }
 
-        return $this->settlements->incentive($userId, $actorId);
+        return $this->settlements->incentive($userId, $actorId, $requestKey);
     }
 
     public function creditWallet(int $userId, float $amount): void
