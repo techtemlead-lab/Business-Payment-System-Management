@@ -96,6 +96,7 @@ return [
     'commissions' => 'কমিশন স্টুডিও',
     'network_tree' => 'নেটওয়ার্ক ট্রি',
     'area_dealers' => 'এলাকাভিত্তিক ডিলার',
+    'place_codes' => 'কোড ব্যবস্থাপনা',
     'rewards' => 'কার ও বাইক পুরস্কার',
     'capital_flow' => 'ক্যাপিটাল ওয়াটারফল',
     'settlements' => 'সেটেলমেন্ট ও পেআউট',

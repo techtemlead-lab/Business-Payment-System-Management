@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AreaDealerAssignment extends Model
 {
@@ -14,8 +15,13 @@ class AreaDealerAssignment extends Model
         'is_active' => 'boolean',
     ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function placeCode(): BelongsTo
+    {
+        return $this->belongsTo(PlaceCode::class);
     }
 }

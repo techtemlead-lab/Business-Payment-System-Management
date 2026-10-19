@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WithdrawalController;
@@ -54,4 +55,6 @@ return function (string $portal): void {
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
+    Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
+    Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
 };

@@ -10,6 +10,7 @@ import ProductCreateModal from '../components/ProductCreateModal';
 import CommissionStudio from '../components/CommissionStudio';
 import NetworkTreeExplorer from '../components/NetworkTreeExplorer';
 import AreaDealersHub from '../components/AreaDealersHub';
+import PlaceCodesHub from '../components/PlaceCodesHub';
 import RankRoyaltyHub from '../components/RankRoyaltyHub';
 import CarBikeRewardsHub from '../components/CarBikeRewardsHub';
 import CompanyTreasuryHub from '../components/CompanyTreasuryHub';
@@ -59,7 +60,8 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='simulator'&&<CompensationSimulator initialSimulation={d.simulation} activeRules={d.active_rules||[]}/>}
  {section==='payouts-hub'&&<PayoutDisbursementHub withdrawals={d.withdrawals} tdsRate={d.tds_rate??0.00}/>}
  {section==='network-tree'&&(staff?<NetworkTreeExplorer dealers={d.dealers||[]}/>:<section className="panel"><h2>Referral network</h2><Table rows={d.members||[]} columns={[{key:'name',title:'Name'},{key:'dealer_code',title:'Dealer code'},{key:'created_at',title:'Joined',render:r=>date(r.created_at)}]}/></section>)}
- {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments||[]} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]}/>}
+ {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments||[]} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/>}
+ {section==='place-codes'&&<PlaceCodesHub level={d.level||'division'} level_label={d.level_label||'Division'} searchable={!!d.searchable} filters={d.filters||filters} submodules={d.submodules||[]} parent_options={d.parent_options||[]} places={d.places||{data:[],current_page:1,last_page:1,total:0,links:[]}}/>}
  {section==='ranks'&&<RankRoyaltyHub policy={d.rank_policy} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/>}
  {section==='rewards'&&<CarBikeRewardsHub bike_milestones={d.bike_milestones||[]} car_milestones={d.car_milestones||[]} rule_params={d.rule_params||{}}/>}
  {section==='employees'&&<EmployeesHub employees={d.employees} availablePermissions={d.available_permissions} stats={d.employee_stats} filters={filters}/>}
