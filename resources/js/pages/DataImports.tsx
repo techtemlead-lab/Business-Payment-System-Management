@@ -6,10 +6,11 @@ import { Badge, Pagination, Row, Table, money } from '../components/UI';
 
 const title = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 
-export default function DataImports({ types, batches, preview, openingLocked, templateBase }: Row) {
+export default function DataImports({ types, batches, preview, openingLocked, templateBase, startup }: Row) {
     const { auth, staffActions } = usePage<any>().props;
     usePoll(10000, { only: ['batches', 'preview'] });
-    const [mode, setMode] = useState('import');
+    const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
+    const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: 'Selected finance startup mode from data imports.' });
     const upload = useForm<{ type: string; source_reference: string; file: File | null }>({
         type: types[0]?.key ?? '', source_reference: '', file: null,
     });
@@ -21,16 +22,26 @@ export default function DataImports({ types, batches, preview, openingLocked, te
         ? !openingLocked && (staffActions?.finance?.approve ?? false)
         : types.find((type: Row) => type.key === preview.type)?.can_create);
     const summary = preview?.summary;
+    const chooseMode = (next: 'zero' | 'import') => {
+        setMode(next);
+        const saved = next === 'zero' ? 'fresh' : 'import';
+        startupForm.setData({ mode: saved, version: startup?.version ?? 0, reason: next === 'zero'
+            ? 'Fresh application: no past ledger import; start with administration entry only.'
+            : 'Import path: bring forward Excel partners, products and opening balances.' });
+        startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
+    };
 
     return <Shell section="data-imports"><Head title="Excel Data Import" />
         <div className="import-workspace"><div className="section-header"><div><h2>Bring your records together</h2><p className="muted">Bring existing business records into Madina with a validated preview and an audit trail.</p></div><FileSpreadsheet size={30} aria-hidden="true" /></div>
         <section className="panel">
             <h2>Choose how to begin</h2>
+            <p className="muted">Two supported starts: (1) fresh application with no past ledger import, or (2) import opening balances / old Excel reports. Current saved mode: <strong>{startup?.label ?? 'Not selected yet'}</strong>.</p>
             <div className="import-options">
-                <label className="import-choice"><input type="radio" name="start-mode" checked={mode === 'zero'} onChange={() => setMode('zero')} /> Start a new business from zero</label>
-                <label className="import-choice"><input type="radio" name="start-mode" checked={mode === 'import'} onChange={() => setMode('import')} /> Import existing records</label>
+                <label className="import-choice"><input type="radio" name="start-mode" checked={mode === 'zero'} onChange={() => chooseMode('zero')} /> 1 · Fresh application (no past data import)</label>
+                <label className="import-choice"><input type="radio" name="start-mode" checked={mode === 'import'} onChange={() => chooseMode('import')} /> 2 · Import opening balances / Excel history</label>
             </div>
-            {mode === 'zero' && <div className="notice"><p>No workbook is required for a new business. Create partner accounts, products and opening stock through administration. Verify the starting ledger before enabling financial posting.</p><p>This option does not delete or reset any data. Preview records remain until the agreed handover.</p></div>}
+            {mode === 'zero' && <div className="notice"><p>No workbook is required for a fresh start. Create partner accounts, products and opening stock through administration. Past closed books stay outside the system. Verify the starting ledger under Opening balance review before enabling financial posting.</p><p>This option does not delete or reset any data already entered.</p></div>}
+            {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
         </section>
         {mode === 'import' && <section className="panel">
             <h2>Prepare and validate a workbook</h2>

@@ -2,15 +2,18 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Integrations\SmsGatewayClient;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Delivers the onboarding username/password SMS. Uses a log driver until a
- * production Bangladesh SMS gateway is configured.
+ * Delivers the onboarding username/password SMS. Uses the log/array driver until
+ * an administrator enables an SMS provider under Service integrations.
  */
 final class AccountCreatedSms
 {
+    public function __construct(private SmsGatewayClient $gateway) {}
+
     public function send(User $user, string $plainPassword): bool
     {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
@@ -23,6 +26,17 @@ final class AccountCreatedSms
             $phone,
             $plainPassword
         );
+
+        $remote = $this->gateway->send($phone, $message);
+        if ($remote['sent']) {
+            Log::info('account.created.sms.gateway', [
+                'user_id' => $user->id,
+                'phone' => $phone,
+                'provider' => $remote['provider'],
+            ]);
+
+            return true;
+        }
 
         $driver = (string) config('madina.sms.driver', 'log');
         if ($driver === 'log' || $driver === 'array') {
@@ -40,7 +54,7 @@ final class AccountCreatedSms
             return true;
         }
 
-        Log::warning('account.created.sms.unsupported_driver', ['driver' => $driver]);
+        Log::warning('account.created.sms.unsupported_driver', ['driver' => $driver, 'gateway' => $remote['message']]);
 
         return false;
     }

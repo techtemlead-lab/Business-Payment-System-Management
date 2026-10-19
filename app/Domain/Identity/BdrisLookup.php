@@ -2,20 +2,24 @@
 
 namespace App\Domain\Identity;
 
+use App\Domain\Integrations\IntegrationSettings;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Birth Registration (BDRIS) lookup. When the remote service is unavailable or
- * unconfigured, callers must fall back to manual KYC entry.
+ * Birth Registration (BDRIS) lookup. Disabled until an administrator enables it
+ * and supplies endpoint credentials. Callers must fall back to manual KYC entry.
  */
 final class BdrisLookup
 {
+    public function __construct(private IntegrationSettings $integrations) {}
+
     /**
      * @return array{
      *   success: bool,
      *   source: string,
      *   message: string,
+     *   enabled: bool,
      *   details: array{
      *     name:?string,
      *     name_bn:?string,
@@ -35,33 +39,37 @@ final class BdrisLookup
                 'success' => false,
                 'source' => 'validation',
                 'message' => 'Enter the birth certificate number and date of birth before searching.',
+                'enabled' => $this->enabled(),
                 'details' => null,
             ];
         }
 
-        if (! config('madina.bdris.enabled')) {
+        $config = $this->config();
+        if (! $config['enabled']) {
             return [
                 'success' => false,
                 'source' => 'disabled',
-                'message' => 'BDRIS lookup is not connected. Enter the personal details manually.',
+                'message' => 'BDRIS autofill is disabled. An administrator can enable it under Service integrations, or enter personal details manually.',
+                'enabled' => false,
                 'details' => null,
             ];
         }
 
-        $baseUrl = rtrim((string) config('madina.bdris.base_url'), '/');
+        $baseUrl = rtrim((string) $config['base_url'], '/');
         if ($baseUrl === '') {
             return [
                 'success' => false,
                 'source' => 'config',
                 'message' => 'BDRIS endpoint is not configured. Enter the personal details manually.',
+                'enabled' => true,
                 'details' => null,
             ];
         }
 
         try {
-            $response = Http::timeout((int) config('madina.bdris.timeout', 12))
+            $response = Http::timeout((int) ($config['timeout'] ?? 12))
                 ->acceptJson()
-                ->withToken((string) config('madina.bdris.api_key', ''))
+                ->withToken((string) ($config['api_key'] ?? ''))
                 ->get($baseUrl.'/birth-registrations/lookup', [
                     'birth_certificate_number' => $number,
                     'date_of_birth' => $dob,
@@ -73,6 +81,7 @@ final class BdrisLookup
                 'success' => false,
                 'source' => 'network',
                 'message' => 'Could not reach the BDRIS server. Enter the personal details manually.',
+                'enabled' => true,
                 'details' => null,
             ];
         }
@@ -82,6 +91,7 @@ final class BdrisLookup
                 'success' => false,
                 'source' => 'bdris',
                 'message' => 'BDRIS did not return a match. Enter the personal details manually.',
+                'enabled' => true,
                 'details' => null,
             ];
         }
@@ -92,6 +102,7 @@ final class BdrisLookup
                 'success' => false,
                 'source' => 'bdris',
                 'message' => 'BDRIS response was empty. Enter the personal details manually.',
+                'enabled' => true,
                 'details' => null,
             ];
         }
@@ -100,6 +111,7 @@ final class BdrisLookup
             'success' => true,
             'source' => 'bdris',
             'message' => 'Details loaded from BDRIS. Review and edit if needed.',
+            'enabled' => true,
             'details' => [
                 'name' => $this->stringOrNull($payload['name'] ?? $payload['name_en'] ?? null),
                 'name_bn' => $this->stringOrNull($payload['name_bn'] ?? $payload['name_bangla'] ?? null),
@@ -108,6 +120,28 @@ final class BdrisLookup
                 'occupation' => $this->stringOrNull($payload['occupation'] ?? null),
                 'date_of_birth' => $this->stringOrNull($payload['date_of_birth'] ?? $dob),
             ],
+        ];
+    }
+
+    public function enabled(): bool
+    {
+        return (bool) ($this->config()['enabled'] ?? false);
+    }
+
+    /** @return array<string, mixed> */
+    private function config(): array
+    {
+        $db = $this->integrations->provider('bdris', 'bdris');
+        if ($db['enabled'] || filled($db['base_url'] ?? null) || filled($db['api_key'] ?? null)) {
+            return $db;
+        }
+
+        // Legacy env fallback remains disabled unless explicitly enabled in .env.
+        return [
+            'enabled' => (bool) config('madina.bdris.enabled'),
+            'base_url' => (string) config('madina.bdris.base_url', ''),
+            'api_key' => (string) config('madina.bdris.api_key', ''),
+            'timeout' => (int) config('madina.bdris.timeout', 12),
         ];
     }
 

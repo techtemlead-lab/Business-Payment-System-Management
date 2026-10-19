@@ -15,7 +15,7 @@ import { useT } from '../shared/i18n/t';
 const icons: Record<string, LucideIcon> = {
     'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
     'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
-    'data-imports': FileText, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
+    'data-imports': FileText, 'service-integrations': Settings, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
@@ -29,7 +29,7 @@ const icons: Record<string, LucideIcon> = {
 const sectionKeys: Record<string, string> = {
     'field-sales': 'field_sales', 'staff-operations': 'staff_operations', payroll: 'payroll', 'my-payroll': 'my_payroll',
     'payment-accounts': 'payment_accounts', 'policy-schedules': 'policy_schedules', 'reserve-payouts': 'reserve_payouts',
-    'data-imports': 'data_imports', 'commission-holds': 'commission_holds', 'financial-readiness': 'financial_readiness',
+    'data-imports': 'data_imports', 'service-integrations': 'service_integrations', 'commission-holds': 'commission_holds', 'financial-readiness': 'financial_readiness',
     'financial-reports': 'financial_reports', 'dues-adjustments': 'dues_adjustments', 'finance-settings': 'finance_settings',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
@@ -44,7 +44,7 @@ const sectionKeys: Record<string, string> = {
 };
 
 const operationsSections = new Set([
-    'data-imports', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
+    'data-imports', 'service-integrations', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
     'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
     'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing',
 ]);
@@ -73,6 +73,9 @@ export default function Shell({ section, children, action }: { section: string; 
     const sectionLabel = (item: string) => {
         if (item === 'catalog' && staff) {
             return translate('portal', 'product_management');
+        }
+        if (item === 'service-integrations') {
+            return 'Service integrations';
         }
         const key = sectionKeys[item];
         return key ? translate('portal', key) : translate('portal', 'order_details');
@@ -126,6 +129,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
         ...(capabilities.includes('payroll') ? ['payroll'] : []),
         ...(capabilities.some(cap => ['finance', 'accounts'].includes(cap)) ? ['data-imports'] : []),
+        ...(capabilities.includes('finance') || user.role === 'super_admin' ? ['service-integrations'] : []),
         ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings'] : []),
         ...(capabilities.some(cap => ['finance', 'reports', 'field_sales'].includes(cap)) ? ['financial-reports'] : []),
         ...(user.role === 'super_admin' ? ['access-management'] : []),

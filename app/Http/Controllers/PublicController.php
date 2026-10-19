@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Integrations\MapsPresentation;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
@@ -81,10 +82,15 @@ class PublicController extends Controller
         $featuredCategoryTabs = SiteCustomization::getFeaturedCategoryTabs($featuredProducts);
         $featuredItems = $featuredProducts;
 
+        $siteCustomization = SiteCustomization::all();
+        $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
+        $maps = app(MapsPresentation::class)->forAddress($officeAddress);
+
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
             'content' => DB::table('content_pages')->where('slug', $page)->where('published', true)->first(),
             'notice' => DB::table('content_pages')->where('slug', 'notice')->where('published', true)->first(),
             'categories' => Product::where('active', true)->orderBy('category')->distinct()->pluck('category'),
+            'maps' => $maps,
         ]);
     }
 

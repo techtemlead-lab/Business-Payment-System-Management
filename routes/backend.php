@@ -9,6 +9,7 @@ use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
 use App\Http\Controllers\IdentityLookupController;
+use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
@@ -67,6 +68,9 @@ $operations = function (): void {
     Route::post('/staff/roles', [$completion, 'role']);
     Route::post('/staff/action-permissions', [$completion, 'staffAccess']);
     Route::post('/marketing/homepage-video', [$completion, 'homepageVideo']);
+    $integrations = IntegrationSettingsController::class;
+    Route::post('/integrations/providers', [$integrations, 'saveProvider']);
+    Route::post('/integrations/startup-mode', [$integrations, 'saveStartup']);
     $finance = FinanceOperationsController::class;
     $sales = FieldSalesController::class;
     Route::get('/payment-accounts', [$finance, 'accounts']);

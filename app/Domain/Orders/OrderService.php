@@ -5,6 +5,8 @@ namespace App\Domain\Orders;
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Integrations\CourierGatewayClient;
+use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
@@ -147,6 +149,10 @@ class OrderService
                     if (DB::table('receipts')->where('channel', $claim->channel)->where('reference', $claim->reference)->exists()) {
                         throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
                     }
+                    $gateway = app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount);
+                    if ($gateway['checked'] && ! $gateway['matched']) {
+                        throw ValidationException::withMessages(['payment' => $gateway['message'].' Disable the payment gateway under Service integrations to continue with manual verification only.']);
+                    }
                     $paid = Money::cents($order->paid) + Money::cents($claim->amount);
                     if ($paid > Money::cents($order->total) - Money::cents($order->due_credit)) {
                         throw ValidationException::withMessages(['payment' => 'This would overpay the order.']);
@@ -212,13 +218,37 @@ class OrderService
                     'reference' => (string) Str::uuid(), 'reason' => $locked->number, 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
                 $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
             }
-            $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $locked->id, 'courier' => $data['courier'], 'tracking' => $data['tracking'],
+            $courier = (string) $data['courier'];
+            $tracking = trim((string) ($data['tracking'] ?? ''));
+            $provider = $data['courier_provider'] ?? null;
+            $gatewayMeta = null;
+            if (is_string($provider) && $provider !== '') {
+                $partner = User::query()->find($locked->user_id);
+                $created = app(CourierGatewayClient::class)->create($provider, [
+                    'invoice' => $locked->number,
+                    'recipient_name' => $partner?->name,
+                    'recipient_phone' => $partner?->phone,
+                    'recipient_address' => collect([$partner?->union, $partner?->upazila, $partner?->district, $partner?->division])->filter()->implode(', '),
+                    'amount' => $locked->outstanding(),
+                    'note' => $locked->number,
+                ]);
+                if (! $created['success']) {
+                    throw ValidationException::withMessages(['courier_provider' => $created['message']]);
+                }
+                $tracking = $created['tracking'] ?: $tracking;
+                $courier = $courier !== '' ? $courier : ucfirst($provider);
+                $gatewayMeta = ['provider' => $provider, 'consignment_id' => $created['consignment_id']];
+            }
+            if ($tracking === '') {
+                throw ValidationException::withMessages(['tracking' => 'Enter a tracking reference, or enable a courier API that returns one.']);
+            }
+            $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $locked->id, 'courier' => $courier, 'tracking' => $tracking,
                 'eta' => $data['eta'] ?? null, 'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR), 'actor_id' => $actor->id,
                 'idempotency_key' => $data['idempotency_key'], 'payload_hash' => $hash, 'created_at' => now(), 'updated_at' => now()]);
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched']);
-            $this->event($locked, $actor, 'order.dispatched', ['shipment_id' => $shipmentId]);
-            Audit::notice($locked->user_id, 'Shipment dispatched', $locked->number.' · '.$data['courier'].' · '.$data['tracking']);
+            $this->event($locked, $actor, 'order.dispatched', ['shipment_id' => $shipmentId, 'courier_gateway' => $gatewayMeta]);
+            Audit::notice($locked->user_id, 'Shipment dispatched', $locked->number.' · '.$courier.' · '.$tracking);
         }, 3);
     }
 

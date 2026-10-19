@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DataImportController;
+use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\ProductRegistryController;
@@ -25,6 +26,7 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($registerCommands): void {
     $registerCommands('manage');
     Route::get('/operations/data-imports', [DataImportController::class, 'index'])->name('company.imports');
+    Route::get('/operations/service-integrations', [IntegrationSettingsController::class, 'index'])->name('company.integrations');
     Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections)->name('company.operations');
     Route::get('/accounts/create', [DashboardController::class, 'createAccount']);
     Route::get('/products/create', [ProductRegistryController::class, 'edit']);
