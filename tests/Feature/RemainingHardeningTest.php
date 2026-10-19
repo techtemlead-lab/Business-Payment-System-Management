@@ -10,6 +10,7 @@ use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\SiteCustomization;
 use App\Support\SpreadsheetCell;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -145,7 +146,7 @@ class RemainingHardeningTest extends TestCase
         $this->assertSame('Ordinary', SpreadsheetCell::text('Ordinary'));
     }
 
-    public function test_catalog_hides_stock_counts_from_content_staff(): void
+    public function test_catalog_hides_stock_and_dealer_prices_from_content_staff(): void
     {
         $product = Product::factory()->create([
             'active' => true,
@@ -156,6 +157,7 @@ class RemainingHardeningTest extends TestCase
             'category' => 'Test',
             'mrp' => '200.00',
             'dealer_price' => '140.00',
+            'sub_dealer_price' => '150.00',
         ]);
 
         $editor = User::factory()->create(['role' => 'editor', 'status' => 'active']);
@@ -164,12 +166,52 @@ class RemainingHardeningTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.products.0.id', $product->id)
                 ->where('data.products.0.stock_status', $product->stockStatus())
-                ->missing('data.products.0.stock'));
+                ->missing('data.products.0.stock')
+                ->missing('data.products.0.price')
+                ->missing('data.all_catalog_products.0.dealer_price')
+                ->missing('data.all_catalog_products.0.stock'));
 
         $this->actingAs($editor)->getJson('/api/v1/catalog')
             ->assertOk()
             ->assertJsonMissingPath('data.0.stock')
             ->assertJsonPath('data.0.stock_status', $product->stockStatus());
+
+        $this->actingAs($editor)->onPortal('manage')->get('/products/'.$product->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->missing('product.stock')
+                ->missing('product.dealer_price')
+                ->missing('product.sub_dealer_price')
+                ->where('product.stock_status', $product->stockStatus()));
+    }
+
+    public function test_public_product_payloads_expose_status_not_counts(): void
+    {
+        $product = Product::factory()->create([
+            'active' => true,
+            'featured' => true,
+            'stock' => 27,
+            'name' => 'Public Status Only',
+            'mrp' => '250.00',
+            'dealer_price' => '125.00',
+        ]);
+
+        $card = SiteCustomization::formatPublicProductCard($product);
+        $this->assertArrayNotHasKey('stock', $card);
+        $this->assertSame($product->stockStatus(), $card['stock_status']);
+
+        $this->get('/products/'.$product->id)
+            ->assertOk()
+            ->assertSee('In Stock')
+            ->assertDontSee('27');
+    }
+
+    public function test_inventory_staff_can_update_locale_preference(): void
+    {
+        $inventory = User::factory()->create(['role' => 'inventory', 'status' => 'active']);
+        $this->actingAs($inventory)->onPortal('manage')->post('/locale', ['locale' => 'bn'])
+            ->assertRedirect();
+        $this->assertSame('bn', $inventory->fresh()->locale);
     }
 
     public function test_account_manager_can_use_identity_lookup_endpoints(): void

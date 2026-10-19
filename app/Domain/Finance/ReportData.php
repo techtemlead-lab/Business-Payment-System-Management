@@ -2,8 +2,10 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
+use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +39,8 @@ final class ReportData
             'due-adjustments' => [DB::table('due_adjustments as a')->join('orders as o', 'o.id', '=', 'a.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
                 ->join('users as c', 'c.id', '=', 'a.created_by')->leftJoin('users as r', 'r.id', '=', 'a.reviewed_by'),
                 ['a.id', 'o.number', 'u.name', 'a.reference', 'a.kind', 'a.amount', 'a.status', 'a.before_outstanding', 'a.after_outstanding', 'c.name as preparer', 'r.name as reviewer', 'a.created_at'], ['amount', 'before_outstanding', 'after_outstanding'], 'a.created_at', 'o.user_id'],
-            'commissions' => [DB::table('commission_allocations as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id'),
+            'commissions' => [DB::table('commission_allocations as a')->leftJoin('users as u', 'u.id', '=', 'a.user_id')
+                ->when(! ($actor->owner() && PortalHost::current() === 'sadmin'), fn ($q) => $q->where('a.category', '!=', RetainedFundLedger::BenefitsCategory)),
                 ['a.id', 'a.order_id', 'u.name', 'a.category', 'a.rate_percentage', 'a.cash_basis', 'a.original_amount', 'a.amount', 'a.status', 'a.created_at'], ['cash_basis', 'original_amount', 'amount'], 'a.created_at', 'a.user_id'],
             'settlements' => [DB::table('commission_settlement_payouts as p')->join('users as u', 'u.id', '=', 'p.user_id'),
                 ['p.id', 'u.name', 'p.kind', 'p.period_month', 'p.amount', 'p.reversed_amount', 'p.created_at'], ['amount', 'reversed_amount'], 'p.created_at', 'p.user_id'],

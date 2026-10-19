@@ -293,7 +293,7 @@ class OrderService
 
         try {
             return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
-                'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode($account, JSON_THROW_ON_ERROR) : null,
+                'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? encrypt($account) : null,
                 'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {

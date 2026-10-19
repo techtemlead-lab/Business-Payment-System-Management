@@ -64,7 +64,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-quick-view]').forEach(button
             if (element) element.textContent = value || '';
         }
         const availability = document.getElementById('qvStockRow');
-        if (availability) availability.textContent = Number(card.dataset.stockCount) > 0 ? 'In Stock' : 'Awaiting Stock';
+        if (availability) availability.textContent = (card.dataset.stockStatus || '') === 'out_of_stock' ? 'Awaiting Stock' : 'In Stock';
         const details = document.getElementById('qvViewDetails') as HTMLAnchorElement | null;
         if (details) details.href = card.dataset.url || '/products';
         qvDialog.showModal();

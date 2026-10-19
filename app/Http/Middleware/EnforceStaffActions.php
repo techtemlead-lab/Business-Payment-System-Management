@@ -23,7 +23,7 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = $route?->getActionMethod();
-        if ($controller === 'AuthController' || ($controller === 'CommandController' && $method === 'readNotice')) {
+        if ($controller === 'AuthController' || $controller === 'LocaleController' || ($controller === 'CommandController' && $method === 'readNotice')) {
             return $next($request);
         }
         if ($controller === 'DataImportController') {
@@ -96,7 +96,6 @@ class EnforceStaffActions
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
             'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
-            'LocaleController' => [['accounts', 'content', 'finance', 'orders'], 'view'],
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };

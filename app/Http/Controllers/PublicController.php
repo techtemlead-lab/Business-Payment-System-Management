@@ -31,7 +31,7 @@ class PublicController extends Controller
         $products = Product::where('active', true)
             ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
             ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
-            ->orderBy('name')->paginate($page === 'home' ? 4 : 12, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'stock', 'tone'])->withQueryString();
+            ->orderBy('name')->paginate($page === 'home' ? 4 : 12, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'tone'])->withQueryString();
         $directory = User::where('directory_visible', true)->where('status', 'active')->where('role', 'dealer');
         $dealerCols = ['name', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
         if ($page === 'dealers' && $request->filled(['lat', 'lng'])) {
@@ -107,7 +107,7 @@ class PublicController extends Controller
     private function publicProduct(Product $p): array
     {
         return [
-            ...$p->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'stock']),
+            ...$p->only(['id', 'name', 'sku', 'category', 'description', 'unit']),
             'price' => $p->mrp,
             'mrp' => $p->mrp,
             'stock_status' => $p->stockStatus(),

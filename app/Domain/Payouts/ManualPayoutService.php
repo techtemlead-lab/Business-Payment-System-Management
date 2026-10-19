@@ -60,9 +60,7 @@ class ManualPayoutService
     public function review(User $actor, string $id, string $decision, string $reason): void
     {
         abort_unless($actor->allows('finance'), 403);
-        if (! config('madina.financial_activation')) {
-            throw ValidationException::withMessages(['policy' => 'Payout recording is inactive until an approved financial policy and opening balances are verified.']);
-        }
+        CommissionWallet::requireActive();
         DB::transaction(function () use ($actor, $id, $decision, $reason) {
             CommissionWallet::lock();
             $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
@@ -94,9 +92,7 @@ class ManualPayoutService
     public function settle(User $actor, string $id, UploadedFile $receipt, string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): void
     {
         abort_unless($actor->allows('finance'), 403);
-        if (! config('madina.financial_activation')) {
-            throw ValidationException::withMessages(['policy' => 'Payout recording is inactive until an approved financial policy and opening balances are verified.']);
-        }
+        CommissionWallet::requireActive();
         $path = $receipt->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         try {
             DB::transaction(function () use ($actor, $id, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId) {
