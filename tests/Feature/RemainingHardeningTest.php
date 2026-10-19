@@ -190,7 +190,7 @@ class RemainingHardeningTest extends TestCase
         $product = Product::factory()->create([
             'active' => true,
             'featured' => true,
-            'stock' => 27,
+            'stock' => 31415,
             'name' => 'Public Status Only',
             'mrp' => '250.00',
             'dealer_price' => '125.00',
@@ -203,7 +203,7 @@ class RemainingHardeningTest extends TestCase
         $this->get('/products/'.$product->id)
             ->assertOk()
             ->assertSee('In Stock')
-            ->assertDontSee('27');
+            ->assertDontSee('31415');
     }
 
     public function test_inventory_staff_can_update_locale_preference(): void

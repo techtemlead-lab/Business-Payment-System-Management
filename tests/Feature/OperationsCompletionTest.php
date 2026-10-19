@@ -95,7 +95,9 @@ class OperationsCompletionTest extends TestCase
         $this->postJson('/api/v1/orders', [...$payload, 'payment_account_id' => $id])->assertCreated();
         $claim = DB::table('payment_claims')->first();
         $this->assertSame($id, $claim->payment_account_id);
-        $this->assertSame('BANK-123456', decrypt($claim->account_snapshot)['account_number']);
+        $snapshot = json_decode($claim->account_snapshot, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('BANK-123456', decrypt($snapshot['encrypted'])['account_number']);
+        $this->assertArrayNotHasKey('account_number', $snapshot);
         $this->actingAs($admin)->patchJson('/api/v1/operations/payment-accounts/'.$id, ['label' => 'Changed', 'channel' => 'Bank', 'holder' => 'Madina', 'collects_payments' => true, 'pays_out' => true, 'is_active' => true, 'version' => 9, 'reason' => 'Stale concurrent edit'])->assertUnprocessable();
         $this->patchJson('/api/v1/operations/payment-accounts/'.$id, ['label' => 'Changed', 'channel' => 'Bank', 'holder' => 'Madina', 'account_number' => 'BANK-NEW', 'collects_payments' => true, 'pays_out' => true, 'is_active' => true, 'version' => 1, 'reason' => 'Approved replacement account'])->assertOk();
         $this->getJson('/api/v1/operations/views/payment-accounts?account_history='.$id)->assertOk()->assertJsonCount(2, 'data.accountHistory')->assertJsonPath('data.accountHistory.1.account_number', 'BANK-123456');
