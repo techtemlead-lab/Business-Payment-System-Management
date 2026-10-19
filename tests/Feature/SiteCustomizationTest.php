@@ -93,7 +93,7 @@ class SiteCustomizationTest extends TestCase
         $this->actingAs($editor)->post('/commands/customization/reset')
             ->assertSessionHas('success');
 
-        $this->get('/')->assertSee('MADINA NATURAL HEALTH CARE');
+        $this->get('/')->assertSee('Madina Natural Health Care');
         $this->get('/')->assertDontSee('CUSTOM TOP BAR TEXT');
     }
 
