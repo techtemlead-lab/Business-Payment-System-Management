@@ -14,11 +14,16 @@ class LocaleController extends Controller
             'locale' => ['required', Rule::in(config('madina.locales', ['en', 'bn']))],
         ]);
         $request->session()->put('locale', $data['locale']);
-        cookie()->queue(cookie('locale', $data['locale'], 60 * 24 * 365));
+        cookie()->queue(cookie('locale', $data['locale'], 60 * 24 * 365, '/'));
         if ($request->user()) {
             $request->user()->forceFill(['locale' => $data['locale']])->save();
         }
 
-        return back();
+        app()->setLocale($data['locale']);
+
+        $fallback = url('/');
+        $previous = url()->previous();
+
+        return redirect()->to($previous !== '' && $previous !== url()->current() ? $previous : $fallback);
     }
 }

@@ -11,15 +11,16 @@ class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         $supported = config('madina.locales', ['en', 'bn']);
-        $locale = $request->user()?->locale
+        $candidate = $request->user()?->locale
             ?? $request->session()->get('locale')
-            ?? $request->cookie('locale')
-            ?? $request->getPreferredLanguage($supported)
-            ?? config('app.locale', 'en');
-        if (! in_array($locale, $supported, true)) {
-            $locale = config('app.locale', 'en');
+            ?? $request->cookie('locale');
+        if (! is_string($candidate) || ! in_array($candidate, $supported, true)) {
+            $candidate = $request->getPreferredLanguage($supported) ?: config('app.locale', 'en');
         }
-        app()->setLocale($locale);
+        if (! in_array($candidate, $supported, true)) {
+            $candidate = config('app.locale', 'en');
+        }
+        app()->setLocale($candidate);
 
         return $next($request);
     }

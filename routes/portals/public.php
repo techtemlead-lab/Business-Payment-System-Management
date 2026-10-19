@@ -29,7 +29,8 @@ $away = function (string $portal, string $path): RedirectResponse {
 
     return redirect()->away(PortalHost::url($portal, $path).($query ? '?'.$query : ''));
 };
-Route::get('/login', fn () => $away('dealer', '/login'));
+Route::get('/login', [PublicController::class, 'partnerLogin']);
+Route::get('/partner-login', fn () => redirect('/login', 301));
 Route::get('/forgot-password', fn () => $away('dealer', '/forgot-password'));
 Route::get('/reset-password/{token}', function (string $token) {
     $email = request()->query('email');

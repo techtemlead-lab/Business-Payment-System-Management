@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'company_bar' => 'Madina Natural Health Care',
+    'about' => 'About Us',
+    'about_sub' => 'Our Story',
+    'contact' => 'Contact',
+    'contact_sub' => 'Get Support',
+    'network' => 'Dealer Network',
+    'network_sub' => 'Find a Local Partner',
+    'account' => 'Account',
+    'account_sub' => 'Partner Login',
+    'products' => 'Products',
+    'search_placeholder' => 'Search products...',
+    'search_label' => 'Search products',
+    'partner_login_title' => 'Partner Login',
+    'partner_login_subtitle' => 'Choose the portal that matches your account type.',
+    'dealer_login' => 'Dealer Login',
+    'dealer_login_help' => 'Authorized dealers — orders, network, and earnings.',
+    'subdealer_login' => 'Sub-dealer Login',
+    'subdealer_login_help' => 'Sub-dealers — product orders and monthly salary.',
+    'staff_login' => 'Staff Login',
+    'staff_login_help' => 'Company staff — operations, finance, and inventory.',
+    'back_home' => 'Back to homepage',
+    'language' => 'Language',
+];

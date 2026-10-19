@@ -176,7 +176,7 @@ class PublicWebsiteTest extends TestCase
 
     public function test_legacy_apex_paths_redirect_to_the_portal_that_owns_them(): void
     {
-        $this->onPortal('public')->get('/login')->assertRedirect(PortalHost::url('dealer', '/login'));
+        $this->onPortal('public')->get('/login')->assertOk()->assertSee('Dealer Login')->assertSee('Staff Login');
         $this->onPortal('public')->get('/workspace/orders?q=KEEP')->assertRedirect(PortalHost::url('dealer', '/orders').'?q=KEEP');
         $this->onPortal('public')->get('/company/catalog')->assertRedirect(PortalHost::url('manage', '/catalog'));
         $this->onPortal('public')->get('/owner/login')->assertRedirect(PortalHost::url('sadmin', '/login'));

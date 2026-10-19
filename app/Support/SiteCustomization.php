@@ -15,7 +15,7 @@ class SiteCustomization
     {
         return [
             // Top Bar & Header Branding
-            'top_bar_text' => 'MADINA NATURAL HEALTH CARE',
+            'top_bar_text' => 'Madina Natural Health Care',
             'search_placeholder' => 'Search products...',
             'header_about_title' => 'About Us',
             'header_about_subtitle' => 'Our Story',

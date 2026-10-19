@@ -148,6 +148,11 @@ class PublicController extends Controller
         return back()->with('success', 'Your enquiry has been received. The company will contact you.');
     }
 
+    public function partnerLogin(): View
+    {
+        return view('reference.partner-login');
+    }
+
     public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse
     {
         abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
