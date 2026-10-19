@@ -266,8 +266,8 @@ class BusinessPolicyDecisionsTest extends TestCase
         $this->postEarnings($order);
         $this->travelTo(CarbonImmutable::parse('2026-10-01T06:00:00Z'));
         $finance = User::factory()->staff('finance')->create();
-        $this->actingAs($finance)->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-09'])->assertOk();
-        $this->postJson('/api/v1/finance/settlements', ['kind' => 'royalty', 'period_month' => '2026-09'])->assertOk();
+        $this->actingAs($finance)->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
+        $this->postJson('/api/v1/finance/settlements', ['kind' => 'royalty', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
         $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '2000.00']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.royalty_pool_settled']);

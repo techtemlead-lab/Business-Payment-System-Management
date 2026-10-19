@@ -160,7 +160,7 @@ class ProjectAuditTest extends TestCase
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.settlement_state.dealer_salary_pool_pending', 24)
             ->where('data.settlement_state.sub_dealer_salary_pending', 36));
-        $this->post('/commands/commissions/settle-salary', ['period_month' => '2026-09'])->assertRedirect()
+        $this->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertRedirect()
             ->assertSessionHas('success', 'Salary pool for 2026-09 distributed ৳36.00. Qualifying partners: 1. Undistributed ৳24.00 moved to the salary settlement reserve.');
         $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '36.00']);
         $this->assertDatabaseHas('commission_allocations', [

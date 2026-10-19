@@ -224,8 +224,8 @@ class ModuleCompletionTest extends TestCase
         $order = $this->purchase($buyer, '10000.00', true);
         $this->travelTo(CarbonImmutable::parse('2026-10-01T06:00:00Z'));
 
-        $this->actingAs($finance)->post('/commands/commissions/settle-salary', ['period_month' => '2026-09'])->assertRedirect();
-        $this->postJson('/api/v1/finance/settlements', ['period_month' => '2026-09', 'kind' => 'royalty'])->assertOk();
+        $this->actingAs($finance)->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertRedirect();
+        $this->postJson('/api/v1/finance/settlements', ['period_month' => '2026-09', 'kind' => 'royalty', 'request_key' => (string) Str::uuid()])->assertOk();
         $this->postJson('/api/v1/finance/orders/'.$order->id.'/commission-refunds', ['refund_amount' => '100.00', 'reference' => 'AUDITED-REFUND', 'reason' => 'Independently reviewed source adjustment'])->assertOk();
 
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
