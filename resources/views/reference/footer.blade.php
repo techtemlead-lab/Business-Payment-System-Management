@@ -34,11 +34,15 @@
         <div class="ref-footer-links">
             <a href="{{ $siteCustomization['footer_link_about_url'] ?? '/about' }}">{{ $siteCustomization['footer_link_about'] ?? 'About Us' }}</a>
             <a href="/products">Our Products</a>
+            <a href="{{ $siteCustomization['footer_link_services_url'] ?? '/services' }}">{{ $siteCustomization['footer_link_services'] ?? 'Our Services' }}</a>
+            <a href="{{ $siteCustomization['footer_link_quality_url'] ?? '/quality' }}">{{ $siteCustomization['footer_link_quality'] ?? 'Quality Promise' }}</a>
             <a href="/dealers">Dealer Network</a>
+            <a href="{{ $siteCustomization['footer_link_partnership_url'] ?? '/partnership' }}">{{ $siteCustomization['footer_link_partnership'] ?? 'Become a Partner' }}</a>
             <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">Dealer Login</a>
             <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">Sub-dealer Login</a>
             <a href="{{ $siteCustomization['footer_link_contact_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_contact'] ?? 'Contact Us' }}</a>
-            <a href="{{ $siteCustomization['footer_link_dealer_apply_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
+            <a href="{{ $siteCustomization['footer_link_faq_url'] ?? '/faq' }}">{{ $siteCustomization['footer_link_faq'] ?? 'FAQ' }}</a>
+            <a href="{{ $siteCustomization['footer_link_dealer_apply_url'] ?? '/partnership' }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
         </div>
     </section>
     <section>
@@ -97,7 +101,11 @@
 </div>
 <div class="ref-container ref-footer-bottom">
     <span>{{ $siteCustomization['copyright_text'] ?? ('© ' . date('Y') . ' Madina Natural Health Care. All rights reserved.') }}</span>
-
+    <nav class="ref-footer-legal" aria-label="Legal">
+        <a href="{{ $siteCustomization['footer_link_privacy_url'] ?? '/privacy' }}">{{ $siteCustomization['footer_link_privacy'] ?? 'Privacy Policy' }}</a>
+        <a href="{{ $siteCustomization['footer_link_terms_url'] ?? '/terms' }}">{{ $siteCustomization['footer_link_terms'] ?? 'Terms of Use' }}</a>
+        <a href="{{ $siteCustomization['footer_link_faq_url'] ?? '/faq' }}">{{ $siteCustomization['footer_link_faq'] ?? 'FAQ' }}</a>
+    </nav>
 </div>
 </footer>
 <aside class="ref-floating-tools" aria-label="Company support">

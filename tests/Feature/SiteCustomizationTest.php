@@ -21,22 +21,26 @@ class SiteCustomizationTest extends TestCase
 
     public function test_guest_and_dealer_cannot_access_site_customization(): void
     {
-        $this->get('/company/customization')->assertRedirect('/login');
+        $this->get('/company/website')->assertRedirect('/login');
         $dealer = User::factory()->create(['role' => 'dealer']);
-        $this->actingAs($dealer)->get('/company/customization')->assertForbidden();
+        $this->actingAs($dealer)->get('/company/website')->assertForbidden();
     }
 
     public function test_staff_with_content_permission_can_view_customization_dashboard(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
-        $this->actingAs($editor)->get('/company/customization')
+        $this->actingAs($editor)->get('/company/website')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/manage/Dashboard')
-                ->where('section', 'customization')
+                ->where('section', 'website')
                 ->has('data.customization')
                 ->has('data.defaults')
+                ->has('data.websitePages')
             );
+        $this->actingAs($editor)->get('/company/customization')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'website'));
     }
 
     public function test_customization_can_be_saved_and_reflected_on_public_home_page(): void
@@ -116,6 +120,35 @@ class SiteCustomizationTest extends TestCase
 
         auth()->logout();
         $this->get('/login')->assertOk()->assertSee('Custom Partner Access Portal');
+    }
+
+    public function test_new_public_company_pages_are_available_and_customizable(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        foreach (['partnership', 'services', 'quality', 'faq', 'privacy', 'terms'] as $page) {
+            $this->get('/'.$page)->assertOk();
+        }
+        $this->get('/partnership')->assertSee('Become an Authorized Madina Partner');
+        $this->get('/faq')->assertSee('Frequently Asked Questions');
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'partnership_hero_title' => 'Join Madina Nationwide Partners',
+                'services_hero_title' => 'Madina Care Services Hub',
+                'quality_hero_title' => 'Verified Madina Quality',
+                'faq_hero_title' => 'Partner & Customer FAQ Desk',
+                'privacy_hero_title' => 'Madina Privacy Notice',
+                'terms_hero_title' => 'Madina Website Terms',
+            ],
+        ])->assertSessionHas('success');
+
+        $this->get('/partnership')->assertSee('Join Madina Nationwide Partners');
+        $this->get('/services')->assertSee('Madina Care Services Hub');
+        $this->get('/quality')->assertSee('Verified Madina Quality');
+        $this->get('/faq')->assertSee('Partner & Customer FAQ Desk');
+        $this->get('/privacy')->assertSee('Madina Privacy Notice');
+        $this->get('/terms')->assertSee('Madina Website Terms');
+        $this->get('/')->assertSee('Become a Partner');
     }
 
     public function test_shortcuts_can_be_customized_added_removed_and_disabled(): void

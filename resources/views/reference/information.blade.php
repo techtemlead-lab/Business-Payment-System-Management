@@ -1,7 +1,21 @@
+@php
+    $pageTitles = [
+        'dealers' => $siteCustomization['directory_title'] ?? 'Dealer Directory',
+        'about' => $siteCustomization['about_hero_title'] ?? 'About Us',
+        'contact' => $siteCustomization['contact_title'] ?? 'Contact Us',
+        'partnership' => $siteCustomization['partnership_hero_title'] ?? 'Become a Partner',
+        'services' => $siteCustomization['services_hero_title'] ?? 'Our Services',
+        'quality' => $siteCustomization['quality_hero_title'] ?? 'Quality Promise',
+        'faq' => $siteCustomization['faq_hero_title'] ?? 'FAQ',
+        'privacy' => $siteCustomization['privacy_hero_title'] ?? 'Privacy Policy',
+        'terms' => $siteCustomization['terms_hero_title'] ?? 'Terms of Use',
+    ];
+    $pageTitle = $pageTitles[$page] ?? ucfirst($page);
+@endphp
 @extends('reference.layout')
-@section('title',($page==='dealers'?'Dealer Directory':ucfirst($page)).' · Madina Natural Health Care')
+@section('title',$pageTitle.' · Madina Natural Health Care')
 @section('content')
-<main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="Breadcrumb"><a href="/" aria-label="Home"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $page==='dealers'?'Dealer Directory':ucfirst($page) }}</span></nav>
+<main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="Breadcrumb"><a href="/" aria-label="Home"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
 <article class="ref-content-card ref-about-hero">
@@ -43,6 +57,7 @@
 <div class="ref-information-links">
     <a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>
     <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
+    <a href="/partnership">Become a Partner</a>
     <a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
 </div>
 @endif
@@ -129,7 +144,7 @@
             <input id="enquiry-phone" type="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
             <label for="enquiry-topic">Enquiry Type</label>
             <select id="enquiry-topic" name="topic">
-                @foreach(['Dealer enquiry','Product enquiry','Support','Complaint'] as $topic)
+                @foreach(['Dealer enquiry','Partnership enquiry','Product enquiry','Support','Complaint'] as $topic)
                 <option @selected(old('topic', request('topic'))===$topic)>{{ $topic }}</option>
                 @endforeach
             </select>
@@ -243,6 +258,115 @@
     @if($dealers->nextPageUrl())<a href="{{ $dealers->nextPageUrl() }}">Next</a>@endif
 </nav>
 @endif
+@endif
+
+@if($page==='partnership')
+<article class="ref-content-card ref-about-hero">
+    <h1>{{ $siteCustomization['partnership_hero_title'] ?? 'Become an Authorized Madina Partner' }}</h1>
+    <div class="ref-content-prose">{{ $siteCustomization['partnership_hero_lead'] ?? '' }}</div>
+</article>
+<h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $siteCustomization['partnership_why_title'] ?? 'Why partner with Madina' }}</h2>
+<div class="ref-about-sections-grid">
+    @foreach([1,2,3,4] as $i)
+    <section class="ref-content-card">
+        <div class="ref-about-icon"><i class="fa-solid {{ ['fa-leaf','fa-clipboard-check','fa-laptop','fa-map-location-dot'][$i-1] }}" aria-hidden="true"></i></div>
+        <h2>{{ $siteCustomization['partnership_benefit'.$i.'_title'] ?? '' }}</h2>
+        <p>{{ $siteCustomization['partnership_benefit'.$i.'_desc'] ?? '' }}</p>
+    </section>
+    @endforeach
+</div>
+<section class="ref-content-card" style="margin-top:24px;">
+    <h2>{{ $siteCustomization['partnership_steps_title'] ?? 'How to apply' }}</h2>
+    <ol class="ref-about-objectives" style="list-style:decimal;padding-left:20px;">
+        @foreach([1,2,3] as $i)
+        <li style="margin-bottom:12px;"><strong>{{ $siteCustomization['partnership_step'.$i.'_title'] ?? '' }}:</strong> {{ $siteCustomization['partnership_step'.$i.'_desc'] ?? '' }}</li>
+        @endforeach
+    </ol>
+</section>
+<section class="ref-content-card" style="margin-top:24px;background:linear-gradient(135deg,#f3f7f4,#fff);">
+    <h2>{{ $siteCustomization['partnership_cta_title'] ?? 'Ready to grow with Madina?' }}</h2>
+    <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
+    <div class="ref-information-links" style="margin-top:16px;">
+        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '/contact?topic=Dealer%20enquiry' }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
+        <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> View Dealer Network</a>
+    </div>
+</section>
+@endif
+
+@if($page==='services')
+<article class="ref-content-card ref-about-hero">
+    <h1>{{ $siteCustomization['services_hero_title'] ?? 'Natural Health Care & Physiotherapy Services' }}</h1>
+    <div class="ref-content-prose">{{ $siteCustomization['services_hero_lead'] ?? '' }}</div>
+</article>
+<div class="ref-about-sections-grid">
+    @foreach([1,2,3] as $i)
+    <section class="ref-content-card">
+        <div class="ref-about-icon"><i class="fa-solid {{ ['fa-stethoscope','fa-hand-holding-medical','fa-store'][$i-1] }}" aria-hidden="true"></i></div>
+        <h2>{{ $siteCustomization['services_card'.$i.'_title'] ?? '' }}</h2>
+        <p>{{ $siteCustomization['services_card'.$i.'_desc'] ?? '' }}</p>
+    </section>
+    @endforeach
+</div>
+<div class="ref-information-links">
+    <a href="{{ $siteCustomization['services_cta_link'] ?? '/contact' }}" class="ref-primary-button">{{ $siteCustomization['services_cta_btn'] ?? 'Contact the Center' }}</a>
+    <a href="/quality" class="ref-secondary-button">Quality Promise</a>
+</div>
+@endif
+
+@if($page==='quality')
+<article class="ref-content-card ref-about-hero">
+    <h1>{{ $siteCustomization['quality_hero_title'] ?? 'Quality & Authenticity Promise' }}</h1>
+    <div class="ref-content-prose">{{ $siteCustomization['quality_hero_lead'] ?? '' }}</div>
+</article>
+<div class="ref-about-sections-grid">
+    @foreach([1,2,3] as $i)
+    <section class="ref-content-card">
+        <div class="ref-about-icon"><i class="fa-solid {{ ['fa-shield-heart','fa-certificate','fa-file-circle-check'][$i-1] }}" aria-hidden="true"></i></div>
+        <h2>{{ $siteCustomization['quality_pillar'.$i.'_title'] ?? '' }}</h2>
+        <p>{{ $siteCustomization['quality_pillar'.$i.'_desc'] ?? '' }}</p>
+    </section>
+    @endforeach
+</div>
+<div class="ref-information-links">
+    <a href="{{ $siteCustomization['quality_cta_link'] ?? '/products' }}" class="ref-primary-button">{{ $siteCustomization['quality_cta_btn'] ?? 'Browse Products' }}</a>
+    <a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+</div>
+@endif
+
+@if($page==='faq')
+<article class="ref-content-card ref-about-hero">
+    <h1>{{ $siteCustomization['faq_hero_title'] ?? 'Frequently Asked Questions' }}</h1>
+    <div class="ref-content-prose">{{ $siteCustomization['faq_hero_lead'] ?? '' }}</div>
+</article>
+<div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
+    @foreach(($siteCustomization['faq_items'] ?? []) as $item)
+    <details class="ref-content-card" style="padding:18px 22px;">
+        <summary style="cursor:pointer;font-weight:700;color:#011627;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <span>{{ $item['question'] ?? '' }}</span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true" style="color:#64748b;font-size:12px;"></i>
+        </summary>
+        <p style="margin:14px 0 0;color:#475569;line-height:1.7;">{{ $item['answer'] ?? '' }}</p>
+    </details>
+    @endforeach
+</div>
+<div class="ref-information-links">
+    <a href="/contact" class="ref-primary-button">Still need help? Contact us</a>
+    <a href="/partnership" class="ref-secondary-button">Partnership enquiries</a>
+</div>
+@endif
+
+@if(in_array($page, ['privacy', 'terms'], true))
+<article class="ref-content-card ref-about-hero">
+    <h1>{{ $siteCustomization[$page.'_hero_title'] ?? ucfirst($page) }}</h1>
+    <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? '' }}</div>
+</article>
+<section class="ref-content-card" style="margin-top:22px;">
+    <div class="ref-content-prose" style="white-space:pre-line;">{{ $siteCustomization[$page.'_body'] ?? '' }}</div>
+</section>
+<div class="ref-information-links">
+    <a href="/contact" class="ref-primary-button">Contact Head Office</a>
+    <a href="/{{ $page === 'privacy' ? 'terms' : 'privacy' }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+</div>
 @endif
 </main>
 @endsection

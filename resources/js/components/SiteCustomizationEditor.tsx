@@ -212,6 +212,75 @@ export interface CustomizationData {
     about_btn_dealers?: string;
     about_btn_contact?: string;
 
+    partnership_hero_title?: string;
+    partnership_hero_lead?: string;
+    partnership_why_title?: string;
+    partnership_benefit1_title?: string;
+    partnership_benefit1_desc?: string;
+    partnership_benefit2_title?: string;
+    partnership_benefit2_desc?: string;
+    partnership_benefit3_title?: string;
+    partnership_benefit3_desc?: string;
+    partnership_benefit4_title?: string;
+    partnership_benefit4_desc?: string;
+    partnership_steps_title?: string;
+    partnership_step1_title?: string;
+    partnership_step1_desc?: string;
+    partnership_step2_title?: string;
+    partnership_step2_desc?: string;
+    partnership_step3_title?: string;
+    partnership_step3_desc?: string;
+    partnership_cta_title?: string;
+    partnership_cta_body?: string;
+    partnership_cta_btn?: string;
+    partnership_cta_link?: string;
+
+    services_hero_title?: string;
+    services_hero_lead?: string;
+    services_card1_title?: string;
+    services_card1_desc?: string;
+    services_card2_title?: string;
+    services_card2_desc?: string;
+    services_card3_title?: string;
+    services_card3_desc?: string;
+    services_cta_btn?: string;
+    services_cta_link?: string;
+
+    quality_hero_title?: string;
+    quality_hero_lead?: string;
+    quality_pillar1_title?: string;
+    quality_pillar1_desc?: string;
+    quality_pillar2_title?: string;
+    quality_pillar2_desc?: string;
+    quality_pillar3_title?: string;
+    quality_pillar3_desc?: string;
+    quality_cta_btn?: string;
+    quality_cta_link?: string;
+
+    faq_hero_title?: string;
+    faq_hero_lead?: string;
+    faq_items?: { question?: string; answer?: string }[];
+
+    privacy_hero_title?: string;
+    privacy_hero_lead?: string;
+    privacy_body?: string;
+    terms_hero_title?: string;
+    terms_hero_lead?: string;
+    terms_body?: string;
+
+    footer_link_services?: string;
+    footer_link_services_url?: string;
+    footer_link_quality?: string;
+    footer_link_quality_url?: string;
+    footer_link_faq?: string;
+    footer_link_faq_url?: string;
+    footer_link_privacy?: string;
+    footer_link_privacy_url?: string;
+    footer_link_terms?: string;
+    footer_link_terms_url?: string;
+    footer_link_partnership?: string;
+    footer_link_partnership_url?: string;
+
     // Contact Page (/contact)
     contact_title?: string;
     contact_company_title?: string;
@@ -4138,13 +4207,15 @@ function HeaderNavCategoriesManager({
 export default function SiteCustomizationEditor({
     customization,
     defaults,
-    products = []
+    products = [],
+    websitePages = []
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
+    websitePages?: { slug: string; label: string }[];
 }) {
-    const [tab, setTab] = useState<'header' | 'banners' | 'shortcuts' | 'catalog' | 'pages' | 'footer'>('header');
+    const [tab, setTab] = useState<'header' | 'banners' | 'shortcuts' | 'catalog' | 'pages' | 'footer'>('pages');
 
     const form = useForm<{ customization: CustomizationData }>({
         customization: {
@@ -4370,6 +4441,77 @@ export default function SiteCustomizationEditor({
             about_btn_dealers: customization.about_btn_dealers || '',
             about_btn_contact: customization.about_btn_contact || '',
 
+            partnership_hero_title: customization.partnership_hero_title || '',
+            partnership_hero_lead: customization.partnership_hero_lead || '',
+            partnership_why_title: customization.partnership_why_title || '',
+            partnership_benefit1_title: customization.partnership_benefit1_title || '',
+            partnership_benefit1_desc: customization.partnership_benefit1_desc || '',
+            partnership_benefit2_title: customization.partnership_benefit2_title || '',
+            partnership_benefit2_desc: customization.partnership_benefit2_desc || '',
+            partnership_benefit3_title: customization.partnership_benefit3_title || '',
+            partnership_benefit3_desc: customization.partnership_benefit3_desc || '',
+            partnership_benefit4_title: customization.partnership_benefit4_title || '',
+            partnership_benefit4_desc: customization.partnership_benefit4_desc || '',
+            partnership_steps_title: customization.partnership_steps_title || '',
+            partnership_step1_title: customization.partnership_step1_title || '',
+            partnership_step1_desc: customization.partnership_step1_desc || '',
+            partnership_step2_title: customization.partnership_step2_title || '',
+            partnership_step2_desc: customization.partnership_step2_desc || '',
+            partnership_step3_title: customization.partnership_step3_title || '',
+            partnership_step3_desc: customization.partnership_step3_desc || '',
+            partnership_cta_title: customization.partnership_cta_title || '',
+            partnership_cta_body: customization.partnership_cta_body || '',
+            partnership_cta_btn: customization.partnership_cta_btn || '',
+            partnership_cta_link: customization.partnership_cta_link || '',
+
+            services_hero_title: customization.services_hero_title || '',
+            services_hero_lead: customization.services_hero_lead || '',
+            services_card1_title: customization.services_card1_title || '',
+            services_card1_desc: customization.services_card1_desc || '',
+            services_card2_title: customization.services_card2_title || '',
+            services_card2_desc: customization.services_card2_desc || '',
+            services_card3_title: customization.services_card3_title || '',
+            services_card3_desc: customization.services_card3_desc || '',
+            services_cta_btn: customization.services_cta_btn || '',
+            services_cta_link: customization.services_cta_link || '',
+
+            quality_hero_title: customization.quality_hero_title || '',
+            quality_hero_lead: customization.quality_hero_lead || '',
+            quality_pillar1_title: customization.quality_pillar1_title || '',
+            quality_pillar1_desc: customization.quality_pillar1_desc || '',
+            quality_pillar2_title: customization.quality_pillar2_title || '',
+            quality_pillar2_desc: customization.quality_pillar2_desc || '',
+            quality_pillar3_title: customization.quality_pillar3_title || '',
+            quality_pillar3_desc: customization.quality_pillar3_desc || '',
+            quality_cta_btn: customization.quality_cta_btn || '',
+            quality_cta_link: customization.quality_cta_link || '',
+
+            faq_hero_title: customization.faq_hero_title || '',
+            faq_hero_lead: customization.faq_hero_lead || '',
+            faq_items: (Array.isArray(customization.faq_items) && customization.faq_items.length > 0)
+                ? customization.faq_items.map((item) => ({ question: item.question || '', answer: item.answer || '' }))
+                : (defaults.faq_items || []).map((item) => ({ question: item.question || '', answer: item.answer || '' })),
+
+            privacy_hero_title: customization.privacy_hero_title || '',
+            privacy_hero_lead: customization.privacy_hero_lead || '',
+            privacy_body: customization.privacy_body || '',
+            terms_hero_title: customization.terms_hero_title || '',
+            terms_hero_lead: customization.terms_hero_lead || '',
+            terms_body: customization.terms_body || '',
+
+            footer_link_services: customization.footer_link_services || '',
+            footer_link_services_url: customization.footer_link_services_url || '',
+            footer_link_quality: customization.footer_link_quality || '',
+            footer_link_quality_url: customization.footer_link_quality_url || '',
+            footer_link_faq: customization.footer_link_faq || '',
+            footer_link_faq_url: customization.footer_link_faq_url || '',
+            footer_link_privacy: customization.footer_link_privacy || '',
+            footer_link_privacy_url: customization.footer_link_privacy_url || '',
+            footer_link_terms: customization.footer_link_terms || '',
+            footer_link_terms_url: customization.footer_link_terms_url || '',
+            footer_link_partnership: customization.footer_link_partnership || '',
+            footer_link_partnership_url: customization.footer_link_partnership_url || '',
+
             // Contact Page
             contact_title: customization.contact_title || '',
             contact_company_title: customization.contact_company_title || '',
@@ -4497,14 +4639,14 @@ export default function SiteCustomizationEditor({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 15 }}>
                     <div>
                         <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-                            <SlidersHorizontal size={22} color="#2e3192" /> Frontend Personal Customization
+                            <SlidersHorizontal size={22} color="#2e3192" /> Website Manage
                         </h2>
                         <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 13 }}>
-                            Full client freedom to customize every public frontend element. Every input includes a fallback default placeholder—leave any field empty to use its standard placeholder.
+                            Customize every public company page — landing, about, products, dealers, partnership, services, quality, FAQ, contact and legal. Leave a field empty to keep its standard placeholder.
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
-                        <a href="/" target="_blank" rel="noopener noreferrer" className="button small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <a href={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/` : '/'} target="_blank" rel="noopener noreferrer" className="button small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <ExternalLink size={14} /> Preview Live Website
                         </a>
                         <button type="button" onClick={handleResetAll} className="button small" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -4526,14 +4668,31 @@ export default function SiteCustomizationEditor({
                     </a>
                 </div>
 
+                {websitePages.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
+                        {websitePages.map((page) => (
+                            <a
+                                key={page.slug}
+                                href={page.slug}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="button small"
+                                style={{ fontSize: 11 }}
+                            >
+                                {page.label}
+                            </a>
+                        ))}
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 8, marginTop: 18, borderBottom: '1px solid #e2e8f0', overflowX: 'auto', paddingBottom: 8 }}>
                     {[
                         { id: 'header', label: 'Top Bar & Header', icon: Layout },
-                        { id: 'banners', label: 'Slider & Banners', icon: Image },
-                        { id: 'shortcuts', label: 'Feature Shortcuts', icon: Sparkles },
-                        { id: 'catalog', label: 'Headings & Catalog', icon: Package },
-                        { id: 'pages', label: 'About, Contact & Dealers', icon: BookOpen },
-                        { id: 'footer', label: 'Footer & Partner Access', icon: Share2 },
+                        { id: 'banners', label: 'Landing Banners', icon: Image },
+                        { id: 'shortcuts', label: 'Landing Shortcuts', icon: Sparkles },
+                        { id: 'catalog', label: 'Landing & Catalog', icon: Package },
+                        { id: 'pages', label: 'Public Pages', icon: BookOpen },
+                        { id: 'footer', label: 'Footer & Legal', icon: Share2 },
                     ].map(t => {
                         const Icon = t.icon;
                         const active = tab === t.id;
@@ -4963,12 +5122,138 @@ export default function SiteCustomizationEditor({
                             </div>
 
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Dealer Directory Page (/dealers)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
                                 <Field label="Directory Main Title" fieldKey="directory_title" value={form.data.customization.directory_title} placeholder={defaults.directory_title} onChange={updateField} />
                                 <Field label="Directory Subtitle" fieldKey="directory_subtitle" value={form.data.customization.directory_subtitle} placeholder={defaults.directory_subtitle} onChange={updateField} />
                                 <Field label="GPS Current Location Button Text" fieldKey="directory_gps_btn" value={form.data.customization.directory_gps_btn} placeholder={defaults.directory_gps_btn} onChange={updateField} span2 />
                                 <Field label="Directory Empty Results Title" fieldKey="directory_empty_title" value={form.data.customization.directory_empty_title} placeholder={defaults.directory_empty_title} onChange={updateField} />
                                 <Field label="Directory Empty Results Description" fieldKey="directory_empty_desc" value={form.data.customization.directory_empty_desc} placeholder={defaults.directory_empty_desc} onChange={updateField} />
+                            </div>
+
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Partnership Page (/partnership)</h3>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                                <Field label="Hero Title" fieldKey="partnership_hero_title" value={form.data.customization.partnership_hero_title} placeholder={defaults.partnership_hero_title} onChange={updateField} />
+                                <Field label="Hero Lead" fieldKey="partnership_hero_lead" value={form.data.customization.partnership_hero_lead} placeholder={defaults.partnership_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label="Why Partner Heading" fieldKey="partnership_why_title" value={form.data.customization.partnership_why_title} placeholder={defaults.partnership_why_title} onChange={updateField} span2 />
+                                {[1, 2, 3, 4].map((i) => (
+                                    <React.Fragment key={`pb-${i}`}>
+                                        <Field label={`Benefit ${i} Title`} fieldKey={`partnership_benefit${i}_title`} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
+                                        <Field label={`Benefit ${i} Description`} fieldKey={`partnership_benefit${i}_desc`} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
+                                    </React.Fragment>
+                                ))}
+                                <Field label="Steps Heading" fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
+                                {[1, 2, 3].map((i) => (
+                                    <React.Fragment key={`ps-${i}`}>
+                                        <Field label={`Step ${i} Title`} fieldKey={`partnership_step${i}_title`} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
+                                        <Field label={`Step ${i} Description`} fieldKey={`partnership_step${i}_desc`} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
+                                    </React.Fragment>
+                                ))}
+                                <Field label="CTA Title" fieldKey="partnership_cta_title" value={form.data.customization.partnership_cta_title} placeholder={defaults.partnership_cta_title} onChange={updateField} />
+                                <Field label="CTA Button Text" fieldKey="partnership_cta_btn" value={form.data.customization.partnership_cta_btn} placeholder={defaults.partnership_cta_btn} onChange={updateField} />
+                                <Field label="CTA Body" fieldKey="partnership_cta_body" value={form.data.customization.partnership_cta_body} placeholder={defaults.partnership_cta_body} onChange={updateField} multiline rows={2} span2 />
+                                <Field label="CTA Link" fieldKey="partnership_cta_link" value={form.data.customization.partnership_cta_link} placeholder={defaults.partnership_cta_link} onChange={updateField} span2 />
+                            </div>
+
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Services Page (/services)</h3>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                                <Field label="Hero Title" fieldKey="services_hero_title" value={form.data.customization.services_hero_title} placeholder={defaults.services_hero_title} onChange={updateField} />
+                                <Field label="Hero Lead" fieldKey="services_hero_lead" value={form.data.customization.services_hero_lead} placeholder={defaults.services_hero_lead} onChange={updateField} multiline rows={2} />
+                                {[1, 2, 3].map((i) => (
+                                    <React.Fragment key={`svc-${i}`}>
+                                        <Field label={`Service ${i} Title`} fieldKey={`services_card${i}_title`} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
+                                        <Field label={`Service ${i} Description`} fieldKey={`services_card${i}_desc`} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
+                                    </React.Fragment>
+                                ))}
+                                <Field label="CTA Button" fieldKey="services_cta_btn" value={form.data.customization.services_cta_btn} placeholder={defaults.services_cta_btn} onChange={updateField} />
+                                <Field label="CTA Link" fieldKey="services_cta_link" value={form.data.customization.services_cta_link} placeholder={defaults.services_cta_link} onChange={updateField} />
+                            </div>
+
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Quality Page (/quality)</h3>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                                <Field label="Hero Title" fieldKey="quality_hero_title" value={form.data.customization.quality_hero_title} placeholder={defaults.quality_hero_title} onChange={updateField} />
+                                <Field label="Hero Lead" fieldKey="quality_hero_lead" value={form.data.customization.quality_hero_lead} placeholder={defaults.quality_hero_lead} onChange={updateField} multiline rows={2} />
+                                {[1, 2, 3].map((i) => (
+                                    <React.Fragment key={`q-${i}`}>
+                                        <Field label={`Pillar ${i} Title`} fieldKey={`quality_pillar${i}_title`} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
+                                        <Field label={`Pillar ${i} Description`} fieldKey={`quality_pillar${i}_desc`} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
+                                    </React.Fragment>
+                                ))}
+                                <Field label="CTA Button" fieldKey="quality_cta_btn" value={form.data.customization.quality_cta_btn} placeholder={defaults.quality_cta_btn} onChange={updateField} />
+                                <Field label="CTA Link" fieldKey="quality_cta_link" value={form.data.customization.quality_cta_link} placeholder={defaults.quality_cta_link} onChange={updateField} />
+                            </div>
+
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>FAQ Page (/faq)</h3>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 16 }}>
+                                <Field label="FAQ Hero Title" fieldKey="faq_hero_title" value={form.data.customization.faq_hero_title} placeholder={defaults.faq_hero_title} onChange={updateField} />
+                                <Field label="FAQ Hero Lead" fieldKey="faq_hero_lead" value={form.data.customization.faq_hero_lead} placeholder={defaults.faq_hero_lead} onChange={updateField} multiline rows={2} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+                                {(form.data.customization.faq_items || []).map((item, idx) => (
+                                    <div key={`faq-${idx}`} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, background: '#f8fafc' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                                            <strong style={{ fontSize: 13 }}>Question #{idx + 1}</strong>
+                                            <button
+                                                type="button"
+                                                className="button small"
+                                                style={{ color: '#ef4444' }}
+                                                onClick={() => {
+                                                    const next = [...(form.data.customization.faq_items || [])];
+                                                    next.splice(idx, 1);
+                                                    form.setData('customization', { ...form.data.customization, faq_items: next });
+                                                }}
+                                            >
+                                                <Trash2 size={14} /> Remove
+                                            </button>
+                                        </div>
+                                        <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+                                            <label style={{ fontSize: 12, fontWeight: 600 }}>
+                                                Question
+                                                <input
+                                                    value={item.question || ''}
+                                                    placeholder={defaults.faq_items?.[idx]?.question || 'Question'}
+                                                    onChange={(e) => {
+                                                        const next = [...(form.data.customization.faq_items || [])];
+                                                        next[idx] = { ...next[idx], question: e.target.value };
+                                                        form.setData('customization', { ...form.data.customization, faq_items: next });
+                                                    }}
+                                                />
+                                            </label>
+                                            <label style={{ fontSize: 12, fontWeight: 600 }}>
+                                                Answer
+                                                <textarea
+                                                    rows={3}
+                                                    value={item.answer || ''}
+                                                    placeholder={defaults.faq_items?.[idx]?.answer || 'Answer'}
+                                                    onChange={(e) => {
+                                                        const next = [...(form.data.customization.faq_items || [])];
+                                                        next[idx] = { ...next[idx], answer: e.target.value };
+                                                        form.setData('customization', { ...form.data.customization, faq_items: next });
+                                                    }}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    className="button small dark"
+                                    onClick={() => form.setData('customization', {
+                                        ...form.data.customization,
+                                        faq_items: [...(form.data.customization.faq_items || []), { question: '', answer: '' }],
+                                    })}
+                                >
+                                    <Plus size={14} /> Add FAQ Item
+                                </button>
+                            </div>
+
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Privacy & Terms (/privacy, /terms)</h3>
+                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                                <Field label="Privacy Title" fieldKey="privacy_hero_title" value={form.data.customization.privacy_hero_title} placeholder={defaults.privacy_hero_title} onChange={updateField} />
+                                <Field label="Privacy Lead" fieldKey="privacy_hero_lead" value={form.data.customization.privacy_hero_lead} placeholder={defaults.privacy_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label="Privacy Body" fieldKey="privacy_body" value={form.data.customization.privacy_body} placeholder={defaults.privacy_body} onChange={updateField} multiline rows={6} span2 />
+                                <Field label="Terms Title" fieldKey="terms_hero_title" value={form.data.customization.terms_hero_title} placeholder={defaults.terms_hero_title} onChange={updateField} />
+                                <Field label="Terms Lead" fieldKey="terms_hero_lead" value={form.data.customization.terms_hero_lead} placeholder={defaults.terms_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label="Terms Body" fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
                             </div>
                         </div>
                     )}

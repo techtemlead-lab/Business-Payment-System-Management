@@ -18,7 +18,7 @@ const icons: Record<string, LucideIcon> = {
     'data-imports': FileText, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
-    reports: FileText, customization: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
+    reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, earnings: Coins, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
@@ -34,8 +34,8 @@ const sectionKeys: Record<string, string> = {
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
-    salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'customization',
-    content: 'content', enquiries: 'enquiries', audit: 'audit', profile: 'profile', security: 'security',
+    salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
+    website: 'website', content: 'content', enquiries: 'enquiries', audit: 'audit', profile: 'profile', security: 'security',
     notifications: 'notifications', earnings: 'earnings', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
@@ -133,7 +133,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ...(capabilities.includes('finance') ? ['treasury'] : []),
         ...(capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) ? ['catalog'] : []),
         ...(capabilities.includes('inventory') ? ['inventory'] : []),
-        ...(capabilities.includes('content') ? ['customization', 'content', 'enquiries'] : []),
+        ...(capabilities.includes('content') ? ['website', 'content', 'enquiries'] : []),
         ...(capabilities.includes('audit') ? ['audit'] : [])
     ] : [];
 
@@ -174,7 +174,7 @@ export default function Shell({ section, children, action }: { section: string; 
     );
 
     const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'capital-flow', 'catalog', 'inventory', 'customization', 'content', 'enquiries', 'audit'].includes(section);
+    const isCompanyDomain = ['overview', 'employees', 'treasury', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
     const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
@@ -373,7 +373,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                             <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`}>{translate('portal', 'inventory')}</Link>
                                         )}
                                         {capabilities.includes('content') && (
-                                            <Link href="/customization" className={`button small ${section === 'customization' ? 'dark' : ''}`}>{translate('portal', 'customization')}</Link>
+                                            <Link href="/website" className={`button small ${['website', 'customization'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'website')}</Link>
                                         )}
                                         {capabilities.includes('audit') && (
                                             <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`}>{translate('portal', 'audit')}</Link>

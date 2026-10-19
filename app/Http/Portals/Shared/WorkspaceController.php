@@ -39,6 +39,9 @@ class WorkspaceController extends Controller
         if ($staff && $section === 'salary') {
             $section = 'settlements';
         }
+        if ($staff && $section === 'customization') {
+            $section = 'website';
+        }
         PortalCatalog::assertSection($u, $portal, $section);
         $r->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|string|max:40', 'page' => 'nullable|integer|min:1']);
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
@@ -246,9 +249,22 @@ class WorkspaceController extends Controller
         if ($section === 'content') {
             $data['pages'] = DB::table('content_pages')->orderBy('slug')->get();
         }
-        if ($section === 'customization') {
+        if ($section === 'website') {
             $data['customization'] = SiteCustomization::raw();
             $data['defaults'] = SiteCustomization::defaults();
+            $data['websitePages'] = [
+                ['slug' => '/', 'label' => 'Landing page'],
+                ['slug' => '/about', 'label' => 'About'],
+                ['slug' => '/products', 'label' => 'Products'],
+                ['slug' => '/dealers', 'label' => 'Dealer directory'],
+                ['slug' => '/partnership', 'label' => 'Partnership'],
+                ['slug' => '/services', 'label' => 'Services'],
+                ['slug' => '/quality', 'label' => 'Quality'],
+                ['slug' => '/faq', 'label' => 'FAQ'],
+                ['slug' => '/contact', 'label' => 'Contact'],
+                ['slug' => '/privacy', 'label' => 'Privacy'],
+                ['slug' => '/terms', 'label' => 'Terms'],
+            ];
             $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,

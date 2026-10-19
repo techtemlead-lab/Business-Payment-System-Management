@@ -68,8 +68,8 @@ class SiteCustomization
             'shortcuts_section_enabled' => '1',
             'shortcuts' => [
                 ['title' => 'Our Products', 'subtitle' => 'browse wellness items', 'icon' => 'fa-seedling', 'link' => '/products'],
-                ['title' => 'Share Feedback', 'subtitle' => 'Share your experience', 'icon' => 'fa-comments', 'link' => '/contact?topic=Complaint'],
-                ['title' => 'Our Services', 'subtitle' => 'Natural Health Care and Physiotherapy Center', 'icon' => 'fa-hand-holding-heart', 'link' => '/about'],
+                ['title' => 'Become a Partner', 'subtitle' => 'Dealer & sub-dealer programme', 'icon' => 'fa-handshake', 'link' => '/partnership'],
+                ['title' => 'Our Services', 'subtitle' => 'Natural Health Care and Physiotherapy Center', 'icon' => 'fa-hand-holding-heart', 'link' => '/services'],
                 ['title' => 'Contact Us', 'subtitle' => 'Support & Inquiries', 'icon' => 'fa-headset', 'link' => '/contact'],
                 ['title' => 'Our Network', 'subtitle' => 'Dealer Directory', 'icon' => 'fa-diagram-project', 'link' => '/dealers'],
             ],
@@ -228,7 +228,7 @@ class SiteCustomization
             'footer_link_about' => 'About Us',
             'footer_link_about_url' => '/about',
             'footer_link_vendor' => 'Vendor Program',
-            'footer_link_vendor_url' => '/contact',
+            'footer_link_vendor_url' => '/partnership',
             'footer_link_orders' => 'Order Tracking',
             'footer_link_orders_url' => '/workspace/orders',
             'footer_link_blog' => 'Blog & Tips',
@@ -236,7 +236,7 @@ class SiteCustomization
             'footer_link_contact' => 'Contact Us',
             'footer_link_contact_url' => '/contact',
             'footer_link_dealer_apply' => 'Apply for Dealership',
-            'footer_link_dealer_apply_url' => '/contact',
+            'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
             'footer_about_desc' => 'Products, partners and communities across Bangladesh.',
             'footer_logo_url' => '/madina-header-logo-white.png?v=6',
@@ -278,6 +278,89 @@ class SiteCustomization
             'auth_dealer_help_text' => 'Need a dealer account?',
             'auth_dealer_contact_text' => 'Contact the company',
 
+            // Partnership / Become a Dealer (/partnership)
+            'partnership_hero_title' => 'Become an Authorized Madina Partner',
+            'partnership_hero_lead' => 'Join our nationwide dealer and sub-dealer network. Grow a trusted wellness business with company-backed products, training and territory support across Bangladesh.',
+            'partnership_why_title' => 'Why partner with Madina',
+            'partnership_benefit1_title' => 'Trusted product range',
+            'partnership_benefit1_desc' => 'Offer authentic natural health, unani and wellness products with clear quality standards.',
+            'partnership_benefit2_title' => 'Structured onboarding',
+            'partnership_benefit2_desc' => 'Company staff review applications, create accounts and guide you through territory setup.',
+            'partnership_benefit3_title' => 'Partner workspace',
+            'partnership_benefit3_desc' => 'Use dedicated dealer and sub-dealer portals for orders, deliveries, dues and earnings visibility.',
+            'partnership_benefit4_title' => 'Local market support',
+            'partnership_benefit4_desc' => 'Connect communities with nearby authorized points while representing a recognized wellness brand.',
+            'partnership_steps_title' => 'How to apply',
+            'partnership_step1_title' => 'Share your details',
+            'partnership_step1_desc' => 'Send a dealer enquiry with your district, experience and preferred partnership type.',
+            'partnership_step2_title' => 'Company review',
+            'partnership_step2_desc' => 'Our team reviews coverage, documents and fit for the Madina network.',
+            'partnership_step3_title' => 'Account activation',
+            'partnership_step3_desc' => 'Approved partners receive secure portal access from company staff — no self-registration passwords.',
+            'partnership_cta_title' => 'Ready to grow with Madina?',
+            'partnership_cta_body' => 'Tell us about your location and goals. Approved partners are invited by the company after review.',
+            'partnership_cta_btn' => 'Apply for Dealership',
+            'partnership_cta_link' => '/contact?topic=Dealer%20enquiry',
+
+            // Services (/services)
+            'services_hero_title' => 'Natural Health Care & Physiotherapy Services',
+            'services_hero_lead' => 'Madina supports community wellness through authentic products and care-focused services at our Natural Health Care and Physiotherapy Center.',
+            'services_card1_title' => 'Natural health consultation',
+            'services_card1_desc' => 'Guidance on suitable wellness products and lifestyle support for everyday family health needs.',
+            'services_card2_title' => 'Physiotherapy center',
+            'services_card2_desc' => 'Care-oriented physiotherapy support at our registered facility for mobility and recovery needs.',
+            'services_card3_title' => 'Partner product access',
+            'services_card3_desc' => 'Find authorized dealers for product availability, local advice and purchase enquiries nationwide.',
+            'services_cta_btn' => 'Contact the Center',
+            'services_cta_link' => '/contact',
+
+            // Quality & Authenticity (/quality)
+            'quality_hero_title' => 'Quality & Authenticity Promise',
+            'quality_hero_lead' => 'We focus on reliable sourcing, clear product information and an authorized distribution network so customers receive genuine Madina wellness products.',
+            'quality_pillar1_title' => 'Verified product standards',
+            'quality_pillar1_desc' => 'Products are selected and presented with attention to safety, labeling clarity and consistent quality expectations.',
+            'quality_pillar2_title' => 'Authorized partners only',
+            'quality_pillar2_desc' => 'Published dealers are company-approved points — helping communities avoid unofficial or counterfeit channels.',
+            'quality_pillar3_title' => 'Audited partner operations',
+            'quality_pillar3_desc' => 'Orders, deliveries and manual payment claims follow staff-reviewed workflows with activity trails.',
+            'quality_cta_btn' => 'Browse Products',
+            'quality_cta_link' => '/products',
+
+            // FAQ (/faq)
+            'faq_hero_title' => 'Frequently Asked Questions',
+            'faq_hero_lead' => 'Quick answers about products, dealers, partnership and company support.',
+            'faq_items' => [
+                ['question' => 'Where can I buy Madina products?', 'answer' => 'Purchase through an authorized dealer listed in our Dealer Directory, or contact the company for help finding a nearby partner.'],
+                ['question' => 'How do I become a dealer or sub-dealer?', 'answer' => 'Submit a dealer enquiry on the Contact page. Company staff review applications and create approved partner accounts — there is no public self-registration with a shared password.'],
+                ['question' => 'Do you offer home delivery from this website?', 'answer' => 'The public website is informational. Partner product requests and deliveries are handled through authorized dealer and sub-dealer workspaces after company review.'],
+                ['question' => 'How can I verify an authorized dealer?', 'answer' => 'Use the Dealer Directory to find company-published dealers by division and district, or contact head office for confirmation.'],
+                ['question' => 'What should I do for product support or complaints?', 'answer' => 'Use the Contact form with the Support or Complaint topic, or call the published customer care number during service hours.'],
+            ],
+
+            // Privacy (/privacy)
+            'privacy_hero_title' => 'Privacy Policy',
+            'privacy_hero_lead' => 'How Madina Natural Health Care handles information shared through our public website and partner channels.',
+            'privacy_body' => "We collect enquiry details such as name, phone number and message content only to respond to product, partnership or support requests.\n\nPartner account data is managed inside secured company portals and used for order processing, delivery coordination, dues tracking and authorized communications.\n\nWe do not sell personal information. Access to partner and enquiry records is limited to authorized company staff with role-based permissions.\n\nFor privacy questions, contact head office using the details on our Contact page.",
+
+            // Terms (/terms)
+            'terms_hero_title' => 'Terms of Use',
+            'terms_hero_lead' => 'Please read these terms before using the Madina Natural Health Care public website and partner services.',
+            'terms_body' => "This website provides company information, product showcases and dealer directory access. Product availability and pricing for partners are confirmed through authorized company channels.\n\nDealer and sub-dealer accounts are created only by company staff after review. Misuse of branding, unauthorized resale claims or impersonation of Madina partners is prohibited.\n\nContent on this site may be updated without notice. For partnership, orders and support, use the Contact page or an approved portal account.\n\nGoverning operational details for partners are communicated through company policies and the partner workspace.",
+
+            // Footer legal links
+            'footer_link_services' => 'Our Services',
+            'footer_link_services_url' => '/services',
+            'footer_link_quality' => 'Quality Promise',
+            'footer_link_quality_url' => '/quality',
+            'footer_link_faq' => 'FAQ',
+            'footer_link_faq_url' => '/faq',
+            'footer_link_privacy' => 'Privacy Policy',
+            'footer_link_privacy_url' => '/privacy',
+            'footer_link_terms' => 'Terms of Use',
+            'footer_link_terms_url' => '/terms',
+            'footer_link_partnership' => 'Become a Partner',
+            'footer_link_partnership_url' => '/partnership',
+
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
         ];
@@ -317,7 +400,7 @@ class SiteCustomization
                     if (is_array($defaultVal)) {
                         if (is_array($stored[$key])) {
                             // Dynamic arrays: shortcuts, campaign_cards & featured_products_items support variable length!
-                            if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items') {
+                            if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items' || $key === 'faq_items') {
                                 $items = [];
                                 foreach ($stored[$key] as $subIdx => $subStored) {
                                     if (! is_array($subStored)) {
@@ -438,7 +521,7 @@ class SiteCustomization
                     $subItems = [];
                     $inputArray = $payload[$key] ?? null;
                     if (is_array($inputArray)) {
-                        if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items') {
+                        if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items' || $key === 'faq_items') {
                             // Dynamic list: preserve all items sent by client
                             $template = $defaultVal[0] ?? [];
                             foreach ($inputArray as $subInput) {

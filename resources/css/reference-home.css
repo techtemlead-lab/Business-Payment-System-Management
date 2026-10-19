@@ -984,3 +984,9 @@ body.locale-bn{font-family:'Noto Sans Bengali','Instrument Sans',ui-sans-serif,s
 .ref-locale-switch{display:inline-flex;align-items:center}
 .ref-locale-switch button{border:1px solid #36434e;background:#0f2433;color:#fff;border-radius:999px;padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
 .ref-locale-switch button:hover{border-color:#ef4a23;color:#ffd7cc}
+.ref-footer-legal{display:inline-flex;flex-wrap:wrap;gap:14px;align-items:center}
+.ref-footer-legal a{color:#91a0ad;font-weight:600}
+.ref-footer-legal a:hover{color:#fff}
+details.ref-content-card summary::-webkit-details-marker{display:none}
+details.ref-content-card[open] summary i{transform:rotate(180deg)}
+details.ref-content-card summary i{transition:transform .18s ease}
