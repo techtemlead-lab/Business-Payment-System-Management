@@ -19,6 +19,7 @@ use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -440,7 +441,8 @@ class CommandController extends Controller
         $d = $r->validate([
             'user_id' => 'required|exists:users,id',
             'level' => 'required|in:division,district,upazila,union',
-            'zone_name' => 'required|string|max:128',
+            'place_code_id' => 'nullable|integer|exists:place_codes,id',
+            'zone_name' => 'nullable|string|max:128',
             'division' => 'nullable|string|max:64',
             'district' => 'nullable|string|max:64',
             'upazila' => 'nullable|string|max:64',
@@ -448,33 +450,89 @@ class CommandController extends Controller
             'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
         ]);
 
-        $path = [];
-        foreach (['division', 'district', 'upazila', 'union'] as $field) {
-            if (empty($d[$field])) {
-                throw ValidationException::withMessages([$field => 'Specify the full territorial hierarchy for this assignment.']);
+        $place = null;
+        if (! empty($d['place_code_id'])) {
+            $place = PlaceCode::query()
+                ->whereKey($d['place_code_id'])
+                ->where('level', $d['level'])
+                ->where('is_active', true)
+                ->first();
+            if (! $place) {
+                throw ValidationException::withMessages(['place_code_id' => 'Choose an active place code that matches the assignment level.']);
             }
-            $d[$field] = trim($d[$field]);
-            $path[$field] = $d[$field];
-            if ($field === $d['level']) {
-                break;
+            $path = $place->loadMissing('parent.parent.parent')->pathNames();
+            foreach (['division', 'district', 'upazila', 'union'] as $field) {
+                if ($field === $d['level']) {
+                    $trimmed = [];
+                    foreach (['division', 'district', 'upazila', 'union'] as $step) {
+                        $trimmed[$step] = $path[$step];
+                        if ($step === $field) {
+                            break;
+                        }
+                    }
+                    $path = $trimmed;
+                    break;
+                }
+            }
+            foreach ($path as $field => $value) {
+                if (trim((string) $value) === '') {
+                    throw ValidationException::withMessages(['place_code_id' => 'The selected place code is missing its parent hierarchy.']);
+                }
+                $d[$field] = $value;
+            }
+            $d['zone_name'] = trim((string) ($d['zone_name'] ?? '')) !== ''
+                ? trim((string) $d['zone_name'])
+                : $place->name.' ('.$place->code.')';
+        } else {
+            $path = [];
+            foreach (['division', 'district', 'upazila', 'union'] as $field) {
+                if (empty($d[$field])) {
+                    throw ValidationException::withMessages([$field => 'Specify a place code or the full territorial hierarchy for this assignment.']);
+                }
+                $d[$field] = trim($d[$field]);
+                $path[$field] = $d[$field];
+                if ($field === $d['level']) {
+                    break;
+                }
+            }
+            if (trim((string) ($d['zone_name'] ?? '')) === '') {
+                throw ValidationException::withMessages(['zone_name' => 'Enter a zone name for legacy name-based assignments.']);
             }
         }
-        DB::transaction(function () use ($d, $path): void {
+
+        DB::transaction(function () use ($d, $path, $place): void {
             CommissionWallet::lock();
             $user = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active') {
                 throw ValidationException::withMessages(['user_id' => 'Choose an active dealer.']);
             }
             $query = AreaDealerAssignment::where('level', $d['level'])->where('is_active', true);
-            foreach ($path as $field => $value) {
-                $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower($value)]);
+            if ($place) {
+                $query->where('place_code_id', $place->id);
+            } else {
+                $query->whereNull('place_code_id');
+                foreach ($path as $field => $value) {
+                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower($value)]);
+                }
             }
             if ($query->exists()) {
-                throw ValidationException::withMessages(['zone_name' => 'This territory already has an active dealer. Remove that assignment before replacing it.']);
+                throw ValidationException::withMessages(['place_code_id' => 'This territory already has an active dealer. Remove that assignment before replacing it.']);
             }
-            AreaDealerAssignment::create([...$d, 'territory_key' => hash('sha256', $d['level'].'|'.mb_strtolower(implode('|', $path))), 'is_active' => true]);
+            $territoryKey = $place
+                ? hash('sha256', $d['level'].'|code:'.$place->code)
+                : hash('sha256', $d['level'].'|'.mb_strtolower(implode('|', $path)));
+            AreaDealerAssignment::create([
+                ...collect($d)->only(['user_id', 'level', 'zone_name', 'division', 'district', 'upazila', 'union', 'monthly_quota'])->all(),
+                'place_code_id' => $place?->id,
+                'territory_key' => $territoryKey,
+                'is_active' => true,
+            ]);
         }, 3);
-        Audit::record($r->user()->id, 'area_dealer.assigned', (string) $d['user_id'], ['level' => $d['level'], 'zone' => $d['zone_name']]);
+        Audit::record($r->user()->id, 'area_dealer.assigned', (string) $d['user_id'], [
+            'level' => $d['level'],
+            'zone' => $d['zone_name'],
+            'place_code' => $place?->code,
+        ]);
 
         return back()->with('success', "Assigned area dealer for {$d['zone_name']}.");
     }

@@ -96,6 +96,7 @@ return [
     'commissions' => 'Commission studio',
     'network_tree' => 'Network tree',
     'area_dealers' => 'Area dealers',
+    'place_codes' => 'Code management',
     'rewards' => 'Car & bike rewards',
     'capital_flow' => 'Capital waterfall',
     'settlements' => 'Settlements & payouts',

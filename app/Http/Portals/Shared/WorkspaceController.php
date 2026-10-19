@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
+use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
 use App\Http\Controllers\Controller;
@@ -15,6 +16,7 @@ use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
@@ -323,9 +325,38 @@ class WorkspaceController extends Controller
                 ]);
         }
         if ($section === 'area-dealers') {
-            $data['assignments'] = AreaDealerAssignment::where('is_active', true)->with('user:id,name,dealer_code,phone,district,division')->orderBy('id')->get();
-            $data['divisions'] = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
+            $data['assignments'] = AreaDealerAssignment::where('is_active', true)
+                ->with(['user:id,name,dealer_code,phone,district,division', 'placeCode:id,code,name,level'])
+                ->orderBy('id')
+                ->get();
+            $data['divisions'] = PlaceCode::query()
+                ->where('level', PlaceCode::LevelDivision)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('code')
+                ->pluck('name')
+                ->all();
+            if ($data['divisions'] === []) {
+                $data['divisions'] = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
+            }
+            $data['place_codes'] = PlaceCode::query()
+                ->whereIn('level', PlaceCode::AssignmentLevels)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('code')
+                ->get(['id', 'code', 'name', 'level', 'parent_id']);
             $data['dealers_list'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district', 'division']);
+        }
+        if ($section === 'place-codes') {
+            $level = (string) $r->query('level', PlaceCode::LevelDivision);
+            if (! in_array($level, PlaceCode::Levels, true)) {
+                $level = PlaceCode::LevelDivision;
+            }
+            $query = $r->query('q');
+            $data = array_merge($data, app(PlaceCodeCatalog::class)->modulePayload(
+                $level,
+                is_string($query) ? $query : null,
+            ));
         }
         if ($section === 'ranks') {
             $data['ranks'] = DealerRank::with('user:id,name,dealer_code,phone,district,division,sponsor_id')

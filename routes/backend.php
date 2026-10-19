@@ -10,6 +10,7 @@ use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
 use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OperationsController;
+use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
 use Illuminate\Http\Request;
@@ -47,6 +48,9 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
     Route::post('/finance/orders/{order}/commissions', [CommissionController::class, 'postOrder'])->name('finance.orders.commissions');
     Route::post('/finance/orders/{order}/commission-refunds', [CommissionController::class, 'refund'])->name('finance.orders.refund');
     Route::post('/finance/settlements', [CommissionController::class, 'settle'])->name('finance.settlements');
+    Route::get('/place-codes', [PlaceCodeController::class, 'index'])->name('place-codes.index');
+    Route::post('/place-codes', [PlaceCodeController::class, 'store'])->name('place-codes.store');
+    Route::patch('/place-codes/{placeCode}', [PlaceCodeController::class, 'update'])->name('place-codes.update');
 });
 
 /** Both the Inertia screens and independently developed clients use these services. */

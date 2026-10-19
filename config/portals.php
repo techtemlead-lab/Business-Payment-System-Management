@@ -40,7 +40,7 @@ return [
             'overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-orders', 'treasury', 'inventory',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'content', 'website', 'customization',
-            'enquiries', 'audit', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards',
+            'enquiries', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'capital-flow', 'settlements', 'simulator', 'payouts-hub',
         ],
         'staff_capabilities' => [
@@ -65,6 +65,7 @@ return [
             'commissions' => 'finance',
             'network-tree' => 'accounts',
             'area-dealers' => 'accounts',
+            'place-codes' => 'accounts',
             'ranks' => 'accounts',
             'rewards' => 'finance',
             'capital-flow' => 'finance',
@@ -73,7 +74,7 @@ return [
             'payouts-hub' => 'finance',
         ],
         'nav' => [
-            'company' => ['overview', 'employees', 'treasury', 'catalog', 'inventory', 'website', 'content', 'enquiries', 'audit', 'dashboards'],
+            'company' => ['overview', 'employees', 'treasury', 'place-codes', 'catalog', 'inventory', 'website', 'content', 'enquiries', 'audit', 'dashboards'],
             'dealers' => ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments'],
             'sub_dealers' => ['sub-dealers', 'sub-dealer-orders', 'salary'],
             'account' => ['profile', 'security', 'notifications'],
@@ -88,7 +89,7 @@ return [
             'overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-orders', 'treasury', 'inventory',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'content', 'website', 'customization',
-            'enquiries', 'audit', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards',
+            'enquiries', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'capital-flow', 'settlements', 'simulator', 'payouts-hub', 'benefits-fund',
         ],
         'staff_capabilities' => [
@@ -113,6 +114,7 @@ return [
             'commissions' => 'finance',
             'network-tree' => 'accounts',
             'area-dealers' => 'accounts',
+            'place-codes' => 'accounts',
             'ranks' => 'accounts',
             'rewards' => 'finance',
             'capital-flow' => 'finance',
@@ -121,7 +123,7 @@ return [
             'payouts-hub' => 'finance',
         ],
         'nav' => [
-            'owner' => ['overview', 'dashboards', 'employees', 'treasury', 'benefits-fund', 'catalog', 'inventory', 'website', 'audit'],
+            'owner' => ['overview', 'dashboards', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'catalog', 'inventory', 'website', 'audit'],
             'dealers' => ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments'],
             'sub_dealers' => ['sub-dealers', 'sub-dealer-orders', 'salary'],
             'content' => ['content', 'enquiries'],

@@ -8,6 +8,7 @@ interface AreaAssignment {
     user_id: number;
     level: 'division' | 'district' | 'upazila' | 'union';
     zone_name: string;
+    place_code_id?: number | null;
     division: string | null;
     district: string | null;
     upazila: string | null;
@@ -15,6 +16,12 @@ interface AreaAssignment {
     monthly_quota: string | number;
     is_active: boolean;
     created_at: string;
+    place_code?: {
+        id: number;
+        code: string;
+        name: string;
+        level: string;
+    } | null;
     user?: {
         id: number;
         name: string;
@@ -33,10 +40,19 @@ interface DealerOption {
     division: string;
 }
 
+interface PlaceCodeOption {
+    id: number;
+    code: string;
+    name: string;
+    level: 'division' | 'district' | 'upazila' | 'union';
+    parent_id: number | null;
+}
+
 interface AreaDealersHubProps {
     assignments: AreaAssignment[];
     divisions: string[];
     dealers_list: DealerOption[];
+    place_codes?: PlaceCodeOption[];
 }
 
 const levelLabels: Record<string, { label: string; bg: string; text: string; defaultQuota: number }> = {
@@ -46,7 +62,7 @@ const levelLabels: Record<string, { label: string; bg: string; text: string; def
     union: { label: 'Union Dealer', bg: '#fffbeb', text: '#b45309', defaultQuota: 10000 },
 };
 
-export default function AreaDealersHub({ assignments, divisions, dealers_list }: AreaDealersHubProps) {
+export default function AreaDealersHub({ assignments, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
     const [selectedDivision, setSelectedDivision] = useState<string>('all');
     const [selectedLevel, setSelectedLevel] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +72,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list }:
     const { data, setData, post, processing, errors, reset } = useForm({
         user_id: dealers_list[0]?.id ? String(dealers_list[0].id) : '',
         level: 'district' as 'division' | 'district' | 'upazila' | 'union',
+        place_code_id: '',
         zone_name: '',
         division: divisions[0] || 'Dhaka',
         district: '',
@@ -64,10 +81,17 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list }:
         monthly_quota: 40000,
     });
 
+    const placesForLevel = useMemo(
+        () => place_codes.filter((place) => place.level === data.level),
+        [place_codes, data.level],
+    );
+
     const handleLevelChange = (level: 'division' | 'district' | 'upazila' | 'union') => {
+        const first = place_codes.find((place) => place.level === level);
         setData(prev => ({
             ...prev,
             level,
+            place_code_id: first ? String(first.id) : '',
             monthly_quota: levelLabels[level]?.defaultQuota || 20000
         }));
     };
@@ -96,6 +120,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list }:
             const matchesLevel = selectedLevel === 'all' || a.level === selectedLevel;
             const matchesQuery = !searchQuery ||
                 a.zone_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (a.place_code?.code && a.place_code.code.includes(searchQuery)) ||
                 (a.user?.name && a.user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (a.user?.dealer_code && a.user.dealer_code.toLowerCase().includes(searchQuery.toLowerCase()));
             return matchesDiv && matchesLevel && matchesQuery;
@@ -317,6 +342,11 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list }:
                                     <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px 16px' }}>
                                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.zone_name}</div>
+                                            {a.place_code?.code && (
+                                                <div style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, marginTop: 2 }}>
+                                                    Code {a.place_code.code}
+                                                </div>
+                                            )}
                                             <div style={{ fontSize: 11, color: '#64748b' }}>Assigned: {date(a.created_at)}</div>
                                         </td>
                                         <td style={{ padding: '12px 16px' }}>
@@ -480,45 +510,48 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list }:
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Zone / Territory Label
+                                    Place code
+                                </label>
+                                <select
+                                    value={data.place_code_id}
+                                    onChange={e => {
+                                        const selected = placesForLevel.find((place) => String(place.id) === e.target.value);
+                                        setData(prev => ({
+                                            ...prev,
+                                            place_code_id: e.target.value,
+                                            zone_name: selected ? `${selected.name} (${selected.code})` : prev.zone_name,
+                                        }));
+                                    }}
+                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+                                    required={placesForLevel.length > 0}
+                                >
+                                    <option value="">Select place code…</option>
+                                    {placesForLevel.map((place) => (
+                                        <option key={place.id} value={place.id}>
+                                            {place.code} — {place.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.place_code_id && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.place_code_id}</div>}
+                                {placesForLevel.length === 0 && (
+                                    <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>
+                                        No {data.level} codes yet. Add them under Code management first.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                                    Zone label (optional)
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Uttara Thana Zone 01, Mirpur District Outlet"
+                                    placeholder="Defaults to place name and code"
                                     value={data.zone_name}
                                     onChange={e => setData('zone_name', e.target.value)}
                                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    required
                                 />
                                 {errors.zone_name && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.zone_name}</div>}
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                        Division
-                                    </label>
-                                    <select
-                                        value={data.division}
-                                        onChange={e => setData('division', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    >
-                                        {divisions.map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                        District (Optional)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Dhaka, Gazipur"
-                                        value={data.district}
-                                        onChange={e => setData('district', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    />
-                                </div>
                             </div>
 
                             <div>

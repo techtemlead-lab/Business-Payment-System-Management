@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Finance\Percentage;
+use App\Domain\Geography\PlaceGeographyResolver;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\Order;
@@ -14,7 +15,12 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionPosting
 {
-    public function __construct(private CommissionPolicy $policies, private CommissionWallet $wallets, private CommissionQualification $qualification) {}
+    public function __construct(
+        private CommissionPolicy $policies,
+        private CommissionWallet $wallets,
+        private CommissionQualification $qualification,
+        private PlaceGeographyResolver $geographyResolver,
+    ) {}
 
     /** @return array<string, mixed> */
     public function capture(Order $order, User $buyer, string $event = 'submission', array $replacements = [], ?User $actor = null): array
@@ -38,8 +44,7 @@ final class CommissionPosting
         }
         $existing = $order->commission_policy_snapshot;
         $snapshot['capture_event'] = $event;
-        $snapshot['geography'] = ['division' => $buyer->division, 'district' => $buyer->district,
-            'upazila' => $buyer->profile['upazila'] ?? null, 'union' => $buyer->profile['union'] ?? null];
+        $snapshot['geography'] = $this->geographyResolver->forBuyer($buyer);
         $snapshot['uplines'] = [];
         $seen = [$buyer->id];
         $next = $buyer->sponsor_id;
@@ -58,7 +63,16 @@ final class CommissionPosting
         }
         $snapshot['referral_replacements'] = $this->replacements($snapshot['uplines'], $buyer, $replacements, $actor, $event);
         $geography = $snapshot['geography'];
-        $areaUsers = AreaDealerAssignment::where('is_active', true)->where(function ($query) use ($geography): void {
+        $placeIds = array_filter([
+            $geography['place_ids']['division'] ?? null,
+            $geography['place_ids']['district'] ?? null,
+            $geography['place_ids']['upazila'] ?? null,
+            $geography['place_ids']['union'] ?? null,
+        ]);
+        $areaUsers = AreaDealerAssignment::where('is_active', true)->where(function ($query) use ($geography, $placeIds): void {
+            if ($placeIds !== []) {
+                $query->whereIn('place_code_id', $placeIds);
+            }
             $path = [];
             foreach (['division', 'district', 'upazila', 'union'] as $level) {
                 $value = trim((string) ($geography[$level] ?? ''));
@@ -67,13 +81,13 @@ final class CommissionPosting
                 }
                 $path[$level] = mb_strtolower($value);
                 $query->orWhere(function ($inner) use ($level, $path): void {
-                    $inner->where('level', $level);
+                    $inner->where('level', $level)->whereNull('place_code_id');
                     foreach ($path as $field => $value) {
                         $inner->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [$value]);
                     }
                 });
             }
-            if ($path === []) {
+            if ($placeIds === [] && $path === []) {
                 $query->whereRaw('1=0');
             }
         })->pluck('user_id')->all();
@@ -230,11 +244,22 @@ final class CommissionPosting
             $rate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters'][$level.'_share_pct'] : '0.00';
             $share = min($areaRemaining, Percentage::from($rate)->of($cash, 'half_up'));
             $areaRemaining -= $share;
-            $query = AreaDealerAssignment::where('level', $level)->where('is_active', true);
-            foreach ($path as $field => $value) {
-                $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
+            $placeId = $geography['place_ids'][$level] ?? null;
+            $placeCode = $geography['codes'][$level] ?? null;
+            $assignments = collect();
+            if ($placeId) {
+                $assignments = AreaDealerAssignment::where('level', $level)
+                    ->where('is_active', true)
+                    ->where('place_code_id', $placeId)
+                    ->get();
             }
-            $assignments = collect($path)->contains(fn ($value): bool => trim((string) $value) === '') ? collect() : $query->get();
+            if ($assignments->isEmpty() && ! collect($path)->contains(fn ($value): bool => trim((string) $value) === '')) {
+                $query = AreaDealerAssignment::where('level', $level)->where('is_active', true)->whereNull('place_code_id');
+                foreach ($path as $field => $value) {
+                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
+                }
+                $assignments = $query->get();
+            }
             $assignment = $assignments->count() === 1 ? $assignments->first() : null;
             $id = $assignment?->user_id;
             $status = $recipient($id);
@@ -242,7 +267,15 @@ final class CommissionPosting
                 $status = 'held';
             }
             $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
-                ['assignment_id' => $assignment?->id, 'monthly_quota' => $assignment?->monthly_quota, 'unassigned' => ! $id, 'retained_by' => $id ? null : 'company_geographic_reserve', 'account_type' => $type]);
+                [
+                    'assignment_id' => $assignment?->id,
+                    'monthly_quota' => $assignment?->monthly_quota,
+                    'unassigned' => ! $id,
+                    'retained_by' => $id ? null : 'company_geographic_reserve',
+                    'account_type' => $type,
+                    'place_code' => $placeCode,
+                    'place_code_id' => $placeId,
+                ]);
         }
         $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining,
             ['account_type' => $type, 'retained_by' => 'company_management_area_share']);
