@@ -166,3 +166,13 @@ Expose integrations through `routes/backend.php` and the `App\Domain\Pricing\Pro
 
 Run database tests against an isolated test instance, never a shared development database.
 </project-collaboration>
+
+## Cursor Cloud specific instructions
+
+The Cloud Agent image provides PHP 8.4, Composer, Node 24 on `/usr/local/bin`, and PostgreSQL 16. Prepend `/usr/local/bin` to `PATH` so Node 24 is used. Docker Compose is not the cloud runtime: `.env.example` uses `DB_HOST=db` for Compose, while this environment uses `127.0.0.1`.
+
+- App: `http://127.0.0.1:8088` (`php artisan serve`). Vite dev server: `http://127.0.0.1:5173`.
+- Development database `madina` (user `madina`). Isolated test database `madina_testing` (user `madina_test`). `php artisan test --compact` must keep using `madina_testing`.
+- Queue worker: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800`. Scheduler: `php artisan schedule:work`.
+- Leave `MADINA_FINANCIAL_ACTIVATION=false`. Do not run `php artisan madina:demo` against the development database.
+- Frontend assets: `npm ci --ignore-scripts` and `npm run build`. Dependency audits: `composer audit --locked` and `npm audit`.
