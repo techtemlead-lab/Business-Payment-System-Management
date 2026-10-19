@@ -482,7 +482,8 @@ class CommandController extends Controller
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->releaseMaturedCommissions($r->user()->id);
+        $d = $r->validate(['request_key' => 'required|uuid']);
+        $result = $commissionService->releaseMaturedCommissions($r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'no_matured_commissions') {
             return back()->with('success', 'No matured commissions pending release.');

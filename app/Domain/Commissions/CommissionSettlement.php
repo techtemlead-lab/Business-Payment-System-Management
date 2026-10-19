@@ -299,12 +299,23 @@ final class CommissionSettlement
     }
 
     /** @return array<string, mixed> */
-    public function release(?int $actorId = null): array
+    public function release(?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
+        $period = CommissionQualification::currentMonth();
 
-        return DB::transaction(function () use ($actorId): array {
+        return DB::transaction(function () use ($actorId, $requestKey, $period): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $period)
+                    ->where('kind', 'matured')
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                }
+            }
             $funds = CommissionAllocation::where('status', 'maturing')->whereNotNull('user_id')->orderBy('id')->lockForUpdate()->get();
             $count = 0;
             $total = 0;
@@ -329,10 +340,16 @@ final class CommissionSettlement
             }
 
             if ($count > 0) {
-                Audit::record($actorId, 'commissions.matured_released', 'batch', ['count' => $count, 'amount' => Money::decimal($total)]);
+                Audit::record($actorId, 'commissions.matured_released', 'batch', [
+                    'count' => $count, 'amount' => Money::decimal($total), 'request_key' => $requestKey,
+                ]);
             }
 
-            return ['status' => $count > 0 ? 'success' : 'no_matured_commissions', 'released_count' => $count, 'total_amount' => Money::decimal($total)];
+            return $this->rememberSettlement($period, 'matured', $requestKey, $actorId, [
+                'status' => $count > 0 ? 'success' : 'no_matured_commissions',
+                'released_count' => $count,
+                'total_amount' => Money::decimal($total),
+            ]);
         }, 3);
     }
 }

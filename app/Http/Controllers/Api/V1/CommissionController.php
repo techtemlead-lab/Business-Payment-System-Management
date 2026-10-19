@@ -37,8 +37,15 @@ class CommissionController extends Controller
     public function postOrder(Request $request, Order $order, CommissionService $service): JsonResponse
     {
         abort_unless($request->user()->allows('finance'), 403);
+        if (! config('madina.financial_activation')) {
+            return response()->json([
+                'data' => [],
+                'posted' => false,
+                'reason' => 'Financial posting is disabled until activation after approved policy and opening verification.',
+            ], 409);
+        }
 
-        return response()->json(['data' => $service->processOrder($order, $request->user()->id)]);
+        return response()->json(['data' => $service->processOrder($order, $request->user()->id), 'posted' => true]);
     }
 
     public function refund(Request $request, Order $order, CommissionService $service): JsonResponse

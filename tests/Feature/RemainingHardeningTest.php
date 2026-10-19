@@ -165,5 +165,19 @@ class RemainingHardeningTest extends TestCase
                 ->where('data.products.0.id', $product->id)
                 ->where('data.products.0.stock_status', $product->stockStatus())
                 ->missing('data.products.0.stock'));
+
+        $this->actingAs($editor)->getJson('/api/v1/catalog')
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.stock')
+            ->assertJsonPath('data.0.stock_status', $product->stockStatus());
+    }
+
+    public function test_account_manager_can_use_identity_lookup_endpoints(): void
+    {
+        $manager = User::factory()->create(['role' => 'account_manager', 'status' => 'active']);
+        $this->actingAs($manager)->onPortal('manage')->postJson('/commands/identity/bdris-lookup', [
+            'birth_certificate_number' => '19901234567890123',
+            'date_of_birth' => '1990-01-15',
+        ])->assertOk()->assertJsonPath('data.source', 'disabled');
     }
 }

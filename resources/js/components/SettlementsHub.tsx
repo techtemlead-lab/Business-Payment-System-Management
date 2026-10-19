@@ -75,7 +75,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
     const handleReleaseMatured = () => {
         setProcessingMatured(true);
-        router.post('/commands/commissions/release-matured', {}, {
+        router.post('/commands/commissions/release-matured', { request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingMatured(false)
         });
     };

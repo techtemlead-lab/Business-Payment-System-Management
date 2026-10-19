@@ -75,9 +75,9 @@ final class CommissionService
     }
 
     /** @return array<string, mixed> */
-    public function releaseMaturedCommissions(?int $actorId = null): array
+    public function releaseMaturedCommissions(?int $actorId = null, ?string $requestKey = null): array
     {
-        return $this->settlements->release($actorId);
+        return $this->settlements->release($actorId, $requestKey);
     }
 
     /** @return array<string, mixed> */

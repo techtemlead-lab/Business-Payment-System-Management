@@ -20,7 +20,8 @@ class CatalogController extends Controller
         $products = Product::query()->where('active', true)
             ->when(! empty($data['q']), fn ($q) => $q->where('name', 'like', '%'.$data['q'].'%'))
             ->orderBy('name')->orderBy('id')->paginate($data['per_page'] ?? 12)->withQueryString();
-        $products->through(function (Product $product) use ($user, $pricing): array {
+        $revealStock = ! $user->staff() || $user->allows('inventory');
+        $products->through(function (Product $product) use ($user, $pricing, $revealStock): array {
             $price = null;
             if (! $user->staff()) {
                 try {
@@ -29,12 +30,17 @@ class CatalogController extends Controller
                     $price = null;
                 }
             }
-
-            return [
-                ...$product->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'is_stock_paused']),
+            $base = [
+                ...$product->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'is_stock_paused']),
                 ...$product->media(), 'stock_status' => $product->stockStatus(), 'price' => $price, 'currency' => 'BDT',
                 ...($user->allows('cost_read') ? ['cost_price' => $product->cost_price] : []),
             ];
+            if ($revealStock) {
+                $base['stock'] = $product->stock;
+                $base['low_stock_at'] = $product->low_stock_at;
+            }
+
+            return $base;
         });
 
         return response()->json($products);

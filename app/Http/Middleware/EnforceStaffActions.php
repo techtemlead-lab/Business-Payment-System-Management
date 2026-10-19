@@ -94,8 +94,10 @@ class EnforceStaffActions
                 default => null,
             },
             'IntegrationSettingsController' => [['finance'], 'edit'],
+            'IdentityLookupController' => [['accounts'], 'view'],
             'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
             'LocaleController' => [['accounts', 'content', 'finance', 'orders'], 'view'],
+            'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };
         abort_unless($permission, 403, 'This action is not enabled for your staff permissions.');
