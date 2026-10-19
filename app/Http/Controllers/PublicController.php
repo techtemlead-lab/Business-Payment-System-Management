@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Integrations\MapsPresentation;
 use App\Models\Product;
 use App\Models\User;
@@ -11,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PublicController extends Controller
 {
@@ -144,5 +146,26 @@ class PublicController extends Controller
         DB::table('enquiries')->insert([...$data, 'created_at' => now(), 'updated_at' => now()]);
 
         return back()->with('success', 'Your enquiry has been received. The company will contact you.');
+    }
+
+    public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse
+    {
+        abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'email' => 'required|email|max:254',
+            'phone' => 'required|string|max:30',
+            'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
+            'division' => 'required|string|max:80',
+            'district' => 'required|string|max:80',
+            'upazila' => 'nullable|string|max:150',
+            'sponsor_code' => 'nullable|string|max:40',
+            'message' => 'nullable|string|max:2000',
+            'website' => 'nullable|max:0',
+        ]);
+        unset($data['website']);
+        $applications->submit($data);
+
+        return redirect('/partnership')->with('success', 'Your partnership application has been received. The company will review it and contact you.');
     }
 }

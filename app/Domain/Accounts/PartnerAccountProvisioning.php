@@ -25,7 +25,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, plain_password: string, place_label: ?string, commission_consumers: array<string, mixed>}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>}
      */
     public function create(User $actor, array $input): array
     {
@@ -204,11 +204,11 @@ final class PartnerAccountProvisioning
             return $user;
         }, 3);
 
+        // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $this->sms->send($user, $plainPassword);
 
         return [
             'user' => $user,
-            'plain_password' => $plainPassword,
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor),
         ];

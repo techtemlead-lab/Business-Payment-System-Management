@@ -41,6 +41,13 @@ final class AccountCreatedSms
 
         $driver = (string) config('madina.sms.driver', 'log');
         if ($driver === 'log' || $driver === 'array') {
+            if (app()->environment('production') && $driver === 'log') {
+                Log::critical('account.created.sms.log_driver_in_production', [
+                    'user_id' => $user->id,
+                    'phone' => $phone,
+                    'message' => 'MADINA_SMS_DRIVER=log will not deliver real SMS in production. Enable an SMS provider under Service integrations.',
+                ]);
+            }
             // Never persist plaintext passwords in application logs.
             Log::channel((string) config('madina.sms.log_channel', 'stack'))->info('account.created.sms', [
                 'user_id' => $user->id,

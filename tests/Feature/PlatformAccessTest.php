@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,13 +16,14 @@ class PlatformAccessTest extends TestCase
         $this->withoutVite();
     }
 
-    /**
-     * A basic feature test example.
-     */
-    public function test_example(): void
+    public function test_public_home_is_reachable(): void
     {
-        $response = $this->get('/');
+        $this->get('/')->assertOk();
+    }
 
-        $response->assertStatus(200);
+    public function test_inactive_users_are_blocked_from_api(): void
+    {
+        $user = User::factory()->create(['role' => 'dealer', 'status' => 'suspended']);
+        $this->actingAs($user)->getJson('/api/v1/me')->assertForbidden();
     }
 }

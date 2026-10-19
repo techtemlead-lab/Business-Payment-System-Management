@@ -29,7 +29,7 @@ final class CommissionSettlement
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private CommissionPolicy $policies) {}
 
     /** @return array<string, mixed> */
-    public function settle(string $month, string $kind, ?int $actorId = null): array
+    public function settle(string $month, string $kind, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
         [, $end] = CommissionQualification::period($month);
@@ -37,14 +37,27 @@ final class CommissionSettlement
             throw ValidationException::withMessages(['period_month' => 'Close the calendar month before settling its salary or royalty.']);
         }
 
-        return DB::transaction(function () use ($month, $kind, $actorId): array {
+        return DB::transaction(function () use ($month, $kind, $actorId, $requestKey): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $month)
+                    ->where('kind', $kind)
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                }
+            }
             $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
             $funds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $total = $funds->sum(fn (CommissionAllocation $a): int => Money::cents($a->amount));
             if ($total === 0) {
-                return ['status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0, 'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00'];
+                return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
+                    'status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0,
+                    'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00',
+                ]);
             }
             $distributed = [];
             $tiers = [];
@@ -110,12 +123,37 @@ final class CommissionSettlement
             Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
                 'distributed' => Money::decimal($totalPaid),
                 'rolled_to_reserve' => Money::decimal($rolled),
+                'request_key' => $requestKey,
             ]);
 
-            return ['status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
+            return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
+                'status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
                 'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => Money::decimal($rolled),
-                'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers];
+                'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
+            ]);
         }, 3);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function rememberSettlement(string $month, string $kind, ?string $requestKey, ?int $actorId, array $result): array
+    {
+        if ($requestKey === null) {
+            return $result;
+        }
+        DB::table('commission_settlement_runs')->insert([
+            'period_month' => $month,
+            'kind' => $kind,
+            'request_key' => $requestKey,
+            'actor_id' => $actorId,
+            'result' => json_encode($result, JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $result;
     }
 
     private function rollUndistributed(CommissionAllocation $fund, int $remainder, string $month, string $kind): int

@@ -6,7 +6,7 @@ Laravel 13 / PHP 8.4, PostgreSQL 16, Inertia 3 and React 19. The application pro
 
 Business installations start with no demonstration records. Use a separate database if a synthetic preview is needed. `MADINA_PREVIEW_MODE=true` labels the preview and blocks financial posting, even if activation is accidentally enabled. `MADINA_FINANCIAL_ACTIVATION=false` remains the deployment default. The commission simulator does not post earnings.
 
-Local setup uses the existing `compose.yaml`. Install the locked dependencies with `composer install` and `npm ci --ignore-scripts`, configure `.env`, run `php artisan migrate`, then `npm run build`. Run `php artisan madina:demo` only against a designated local preview database. Its access details stay in the ignored `.local/demo-access.json`; never commit or publish them. Do not rerun the demo command against a business dataset.
+Local setup uses the existing `compose.yaml` (PostgreSQL 16 to match CI, plus an `app` web process and a `worker` queue process). Install the locked dependencies with `composer install` and `npm ci --ignore-scripts`, configure `.env`, run `php artisan migrate`, then `npm run build`. Run `php artisan madina:demo` only against a designated local preview database. Its access details stay in the ignored `.local/demo-access.json`; never commit or publish them. Do not rerun the demo command against a business dataset. SMS defaults to the log driver for local development; enable a provider under Service integrations before production onboarding. Public Maps HTML never receives browser API keys — configure an embed URL instead.
 
 Local portals share one application and use separate hosts. Browsers resolve `*.localhost`, so the development server on port 8088 is:
 

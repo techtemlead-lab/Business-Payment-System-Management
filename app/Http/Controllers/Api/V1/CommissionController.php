@@ -53,9 +53,15 @@ class CommissionController extends Controller
     public function settle(Request $request, CommissionService $service): JsonResponse
     {
         abort_unless($request->user()->allows('finance'), 403);
-        $data = $request->validate(['period_month' => 'required|date_format:Y-m', 'kind' => ['required', Rule::in(['salary', 'royalty'])]]);
+        $data = $request->validate([
+            'period_month' => 'required|date_format:Y-m',
+            'kind' => ['required', Rule::in(['salary', 'royalty'])],
+            'request_key' => 'required|uuid',
+        ]);
 
-        return response()->json(['data' => $data['kind'] === 'salary' ? $service->settleMonthlySalaryPool($data['period_month'], $request->user()->id) : $service->settleRankRoyaltyPool($data['period_month'], $request->user()->id)]);
+        return response()->json(['data' => $data['kind'] === 'salary'
+            ? $service->settleMonthlySalaryPool($data['period_month'], $request->user()->id, $data['request_key'])
+            : $service->settleRankRoyaltyPool($data['period_month'], $request->user()->id, $data['request_key'])]);
     }
 
     public function earnings(Request $request, CommissionQualification $qualification): JsonResponse

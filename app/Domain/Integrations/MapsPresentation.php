@@ -14,24 +14,33 @@ final class MapsPresentation
         $maps = $this->settings->mapsPublicConfig();
         $query = rawurlencode($address);
         $directions = 'https://www.openstreetmap.org/search?query='.$query;
-        $embed = null;
-        $script = null;
+        $embed = 'https://www.openstreetmap.org/export/embed.html?bbox=90.0%2C23.5%2C90.6%2C24.0&layer=mapnik&marker=0%2C0';
+        if (filled($address)) {
+            $embed = 'https://maps.google.com/maps?q='.$query.'&z=15&output=embed';
+        }
+        if ($maps['enabled'] && filled($maps['map_embed_url'])) {
+            $embed = (string) $maps['map_embed_url'];
+            $directions = 'https://www.google.com/maps/search/?api=1&query='.$query;
+
+            return [
+                'provider' => 'google_embed',
+                'enabled' => true,
+                'embed_url' => $embed,
+                'directions_url' => $directions,
+                'script_url' => null,
+            ];
+        }
         if ($maps['enabled']) {
-            if (filled($maps['map_embed_url'])) {
-                $embed = (string) $maps['map_embed_url'];
-            } elseif (filled($maps['api_key'])) {
-                $embed = 'https://www.google.com/maps/embed/v1/place?key='.rawurlencode((string) $maps['api_key']).'&q='.$query;
-                $script = 'https://maps.googleapis.com/maps/api/js?key='.rawurlencode((string) $maps['api_key']).'&libraries=places';
-            }
             $directions = 'https://www.google.com/maps/search/?api=1&query='.$query;
         }
 
         return [
-            'provider' => $maps['enabled'] && $embed ? 'google' : 'openstreetmap',
+            'provider' => $maps['enabled'] ? 'google_search' : 'openstreetmap',
             'enabled' => (bool) $maps['enabled'],
             'embed_url' => $embed,
             'directions_url' => $directions,
-            'script_url' => $script,
+            // Intentionally omitted: browser Maps JavaScript API keys must not be published.
+            'script_url' => null,
         ];
     }
 }

@@ -10,7 +10,7 @@ class Product extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    protected $guarded = ['id', 'image_path', 'video_path', 'video_mime'];
 
     protected $hidden = ['cost_price', 'image_path', 'video_path', 'video_mime'];
 

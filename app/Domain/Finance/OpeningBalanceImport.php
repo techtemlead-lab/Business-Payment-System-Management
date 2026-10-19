@@ -190,6 +190,7 @@ final class OpeningBalanceImport
     /** @param array<string, string> $data */
     private function createOpening(User $actor, array $data, string $batchId): void
     {
+        $this->assertOpeningAllowed();
         $partner = User::where('dealer_code', $data['dealer_code'])->lockForUpdate()->firstOrFail();
         $available = Money::cents($data['available_commission']);
         $held = Money::cents($data['held_commission']);

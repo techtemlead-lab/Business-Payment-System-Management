@@ -294,13 +294,44 @@
     <h2>{{ $siteCustomization['partnership_cta_title'] ?? 'Ready to grow with Madina?' }}</h2>
     <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
     <div class="ref-information-links" style="margin-top:16px;">
-        @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['partnership_cta_link'] ?? '/contact?topic=Dealer%20enquiry'))
-        <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
-        @endif
+        <a href="#partner-apply" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
         @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> View Dealer Network</a>
         @endif
     </div>
+</section>
+<section id="partner-apply" class="ref-content-card" style="margin-top:24px;">
+    <h2>Submit a partnership application</h2>
+    <p>Tell us about your proposed dealership or sub-dealership. Applications are reviewed by company staff before any account is created.</p>
+    @if(session('success'))
+        <p class="ref-flash-success" role="status">{{ session('success') }}</p>
+    @endif
+    @if($errors->any())
+        <ul class="ref-form-errors" role="alert">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    @endif
+    <form method="post" action="/partnership/apply" class="ref-partner-apply-form" style="display:grid;gap:14px;margin-top:16px;">
+        @csrf
+        <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
+        <label>Full name<input name="name" value="{{ old('name') }}" required maxlength="150"></label>
+        <label>Email<input type="email" name="email" value="{{ old('email') }}" required maxlength="254"></label>
+        <label>Mobile<input name="phone" value="{{ old('phone') }}" required maxlength="30"></label>
+        <label>Partnership type
+            <select name="role" required>
+                <option value="dealer" @selected(old('role')==='dealer')>Dealer</option>
+                <option value="sub_dealer" @selected(old('role', 'sub_dealer')==='sub_dealer')>Sub-dealer</option>
+            </select>
+        </label>
+        <label>Division<input name="division" value="{{ old('division') }}" required maxlength="80"></label>
+        <label>District<input name="district" value="{{ old('district') }}" required maxlength="80"></label>
+        <label>Upazila (optional)<input name="upazila" value="{{ old('upazila') }}" maxlength="150"></label>
+        <label>Sponsor dealer code (optional)<input name="sponsor_code" value="{{ old('sponsor_code') }}" maxlength="40"></label>
+        <label>Message (optional)<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
+        <button type="submit" class="ref-primary-button">Submit application</button>
+    </form>
 </section>
 @endif
 

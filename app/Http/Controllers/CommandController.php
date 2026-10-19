@@ -435,8 +435,8 @@ class CommandController extends Controller
     public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id);
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m', 'request_key' => 'required|uuid']);
+        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
@@ -454,8 +454,8 @@ class CommandController extends Controller
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id);
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m', 'request_key' => 'required|uuid']);
+        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");

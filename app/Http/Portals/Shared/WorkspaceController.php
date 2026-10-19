@@ -77,7 +77,8 @@ class WorkspaceController extends Controller
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
-            $data['products'] = $products->map(function ($p) use ($u, $pricing) {
+            $revealStock = ! $staff || $u->allows('inventory');
+            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock) {
                 $price = $p->dealer_price;
                 if (! $u->staff()) {
                     try {
@@ -86,8 +87,13 @@ class WorkspaceController extends Controller
                         $price = null;
                     }
                 }
+                $base = [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                if ($revealStock) {
+                    $base['stock'] = $p->stock;
+                    $base['low_stock_at'] = $p->low_stock_at;
+                }
 
-                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                return $base;
             });
             if ($section === 'catalog') {
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
@@ -102,7 +108,7 @@ class WorkspaceController extends Controller
                         'dealer_price' => $p->dealer_price,
                         'category' => $p->category,
                         'featured' => (bool) $p->featured,
-                        'stock' => (int) $p->stock,
+                        ...($revealStock ? ['stock' => (int) $p->stock] : []),
                         'image' => $p->media()['image_url'] ?? '',
                     ]);
                 }

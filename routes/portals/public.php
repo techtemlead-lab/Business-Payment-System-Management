@@ -16,6 +16,7 @@ Route::get('/outlets', function () {
 
     return redirect('/dealers', 301);
 });
+Route::post('/partnership/apply', [PublicController::class, 'apply'])->middleware('throttle:5,1');
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');

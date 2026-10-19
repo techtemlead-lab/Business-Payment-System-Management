@@ -177,14 +177,14 @@ final class IntegrationSettings
         }, 3);
     }
 
-    /** @return array{enabled: bool, api_key:?string, map_embed_url:?string} */
+    /** @return array{enabled: bool, map_embed_url:?string} */
     public function mapsPublicConfig(): array
     {
         $maps = $this->provider('maps', 'google');
 
+        // Never expose browser API keys in public HTML. Prefer a server-configured embed URL.
         return [
             'enabled' => (bool) $maps['enabled'],
-            'api_key' => $maps['enabled'] ? (string) ($maps['api_key'] ?? '') : null,
             'map_embed_url' => $maps['enabled'] ? (string) ($maps['map_embed_url'] ?? '') : null,
         ];
     }

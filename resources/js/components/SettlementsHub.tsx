@@ -58,7 +58,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setProcessingSalary(true);
-        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth }, {
+        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingSalary(false)
         });
     };
@@ -68,7 +68,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setProcessingRank(true);
-        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth }, {
+        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingRank(false)
         });
     };

@@ -37,15 +37,15 @@ final class CommissionService
     }
 
     /** @return array<string, mixed> */
-    public function settleMonthlySalaryPool(string $periodMonth, ?int $actorId = null): array
+    public function settleMonthlySalaryPool(string $periodMonth, ?int $actorId = null, ?string $requestKey = null): array
     {
-        return $this->settlements->settle($periodMonth, 'salary', $actorId);
+        return $this->settlements->settle($periodMonth, 'salary', $actorId, $requestKey);
     }
 
     /** @return array<string, mixed> */
-    public function settleRankRoyaltyPool(string $periodMonth, ?int $actorId = null): array
+    public function settleRankRoyaltyPool(string $periodMonth, ?int $actorId = null, ?string $requestKey = null): array
     {
-        return $this->settlements->settle($periodMonth, 'royalty', $actorId);
+        return $this->settlements->settle($periodMonth, 'royalty', $actorId, $requestKey);
     }
 
     /** @return array<string, mixed> */

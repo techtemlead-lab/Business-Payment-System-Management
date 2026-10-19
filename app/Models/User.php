@@ -18,7 +18,7 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    protected $guarded = ['id'];
+    protected $guarded = ['id', 'remember_token'];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
 
