@@ -363,7 +363,9 @@ class WorkspaceController extends Controller
         if ($section === 'capital-flow' || $section === 'treasury') {
             $receipts = DB::table('receipts')->join('orders', 'orders.id', '=', 'receipts.order_id')->join('users', 'users.id', '=', 'orders.user_id');
             $cash = (clone $receipts)->sum('receipts.amount');
-            $allocated = CommissionAllocation::where('status', '!=', 'reversed')->sum('amount');
+            $allocated = CommissionAllocation::where('status', '!=', 'reversed')
+                ->where('category', '!=', 'company_commission_benefits_fund')
+                ->sum('amount');
             $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
             $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
             $management = CommissionAllocation::where('category', 'area_management')->where('status', '!=', 'reversed')->sum('amount');
@@ -384,11 +386,37 @@ class WorkspaceController extends Controller
                 'marketing_fund' => (float) CommissionAllocation::where('category', 'company_marketing_fund')->sum('amount'),
                 'car_bike_fund' => (float) CommissionAllocation::where('category', 'car_bike_incentive_fund')->sum('amount'),
                 'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
-                'unallocated_pool_buffer' => round((float) $buffer, 2),
                 'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
             ];
-            $data['allocations_by_category'] = CommissionAllocation::where('status', '!=', 'reversed')->selectRaw('category, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('category')->get();
-            $data['recent_allocations'] = CommissionAllocation::with('user:id,name,dealer_code')->latest()->limit(20)->get();
+            // Owner-only: purchase surplus after company share + commissions.
+            if ($u->owner() && $portal === 'sadmin') {
+                $data['flow']['unallocated_pool_buffer'] = round((float) $buffer, 2);
+                $data['flow']['commission_benefits_fund'] = round((float) $buffer, 2);
+                $data['flow']['owner_benefits_fund_visible'] = true;
+            }
+            $data['allocations_by_category'] = CommissionAllocation::where('status', '!=', 'reversed')
+                ->when(! ($u->owner() && $portal === 'sadmin'), fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
+                ->selectRaw('category, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('category')->get();
+            $data['recent_allocations'] = CommissionAllocation::with('user:id,name,dealer_code')
+                ->when(! ($u->owner() && $portal === 'sadmin'), fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
+                ->latest()->limit(20)->get();
+        }
+        if ($section === 'benefits-fund') {
+            $balance = DB::table('commission_batches')
+                ->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')
+                ->value('amount');
+            $entries = CommissionAllocation::query()
+                ->where('category', 'company_commission_benefits_fund')
+                ->with(['order:id,number,user_id,total', 'order.user:id,name,dealer_code,division,district'])
+                ->latest()
+                ->paginate(25)
+                ->withQueryString();
+            $data['benefits_fund'] = [
+                'balance' => round((float) $balance, 2),
+                'entry_count' => CommissionAllocation::where('category', 'company_commission_benefits_fund')->where('status', '!=', 'reversed')->count(),
+                'description' => 'Purchase surplus retained after the company MRP share and the approved commission schedule. Visible only to owners.',
+            ];
+            $data['benefits_entries'] = $entries;
         }
         if ($section === 'settlements') {
             $currentMonth = $r->input('period_month', now('Asia/Dhaka')->subMonthNoOverflow()->format('Y-m'));

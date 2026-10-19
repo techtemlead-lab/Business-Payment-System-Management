@@ -119,9 +119,10 @@ final class CommissionPosting
             $snapshot['funding_decisions'] = $decisions;
             $rules = $snapshot['rules'];
             $type = $snapshot['account_type'];
+            $unallocated = $cash - $company - $allocated;
             DB::table('commission_batches')->insert(['order_id' => $order->id, 'account_type' => $type, 'period_month' => CommissionQualification::currentMonth(),
                 'cash_basis' => Money::decimal($cash), 'mrp_basis' => Money::decimal($mrp), 'company_share' => Money::decimal($company),
-                'total_allocated' => Money::decimal($allocated), 'unallocated' => Money::decimal($cash - $company - $allocated),
+                'total_allocated' => Money::decimal($allocated), 'unallocated' => Money::decimal($unallocated),
                 'policy' => json_encode($snapshot, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $journal = [];
             foreach ($rows as $row) {
@@ -136,13 +137,38 @@ final class CommissionPosting
                     $this->wallets->credit($row['user_id'], $row['cents'], $held);
                 }
             }
+            if ($unallocated > 0) {
+                $rateBps = intdiv(($unallocated * 10000) + intdiv($cash, 2), max(1, $cash));
+                CommissionAllocation::create([
+                    'order_id' => $order->id,
+                    'user_id' => null,
+                    'category' => 'company_commission_benefits_fund',
+                    'rate_percentage' => number_format($rateBps / 100, 2, '.', ''),
+                    'cash_basis' => $order->total,
+                    'amount' => Money::decimal($unallocated),
+                    'original_amount' => Money::decimal($unallocated),
+                    'status' => 'reserved',
+                    'metadata' => [
+                        'basis' => 'purchase_value',
+                        'period_month' => CommissionQualification::currentMonth(),
+                        'retained_by' => 'owner_commission_benefits_fund',
+                        'owner_only' => true,
+                        'source' => 'purchase_surplus_after_company_share_and_commissions',
+                    ],
+                ]);
+            }
             $credited = array_sum(array_column($journal, 'credit'));
             if ($credited > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_expense', 'debit' => $credited, 'credit' => 0];
                 $this->wallets->journal('commissions.order.'.$order->id, 'Earned commissions for '.$order->number, $journal);
             }
             $this->qualification->record($buyer, $cash, $rules);
-            Audit::record($actorId, 'commissions.calculated', $order->id, ['buyer_id' => $buyer->id, 'cash_basis' => $order->total, 'allocated' => Money::decimal($allocated)]);
+            Audit::record($actorId, 'commissions.calculated', $order->id, [
+                'buyer_id' => $buyer->id,
+                'cash_basis' => $order->total,
+                'allocated' => Money::decimal($allocated),
+                'benefits_fund' => Money::decimal($unallocated),
+            ]);
 
             return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
         }, 3);

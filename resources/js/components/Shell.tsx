@@ -22,7 +22,7 @@ const icons: Record<string, LucideIcon> = {
     profile: Users, security: Settings, notifications: Bell, earnings: Coins, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
-    treasury: Landmark, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
+    treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
     employees: UserCheck, dashboards: SlidersHorizontal
 };
 
@@ -39,6 +39,7 @@ const sectionKeys: Record<string, string> = {
     notifications: 'notifications', earnings: 'earnings', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
+    'benefits-fund': 'benefits_fund',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders', employees: 'employees', dashboards: 'dashboards',
 };
 
@@ -131,6 +132,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ...(capabilities.some(cap => ['content', 'catalog'].includes(cap)) ? ['video-marketing'] : []),
         ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
+        ...(ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) ? ['benefits-fund'] : []),
         ...(capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) ? ['catalog'] : []),
         ...(capabilities.includes('inventory') ? ['inventory'] : []),
         ...(capabilities.includes('content') ? ['website', 'content', 'enquiries'] : []),
@@ -174,7 +176,7 @@ export default function Shell({ section, children, action }: { section: string; 
     );
 
     const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
+    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
     const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
@@ -369,6 +371,9 @@ export default function Shell({ section, children, action }: { section: string; 
                                         )}
                                         {capabilities.includes('finance') && (
                                             <Link href="/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'treasury')}</Link>
+                                        )}
+                                        {ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) && (
+                                            <Link href="/benefits-fund" className={`button small ${section === 'benefits-fund' ? 'dark' : ''}`}>{translate('portal', 'benefits_fund')}</Link>
                                         )}
                                         <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
                                         {capabilities.includes('inventory') && (
