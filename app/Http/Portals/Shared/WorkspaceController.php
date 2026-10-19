@@ -551,11 +551,19 @@ class WorkspaceController extends Controller
         if ($u->role === 'super_admin') {
             $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
-        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
+        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'refer_code', 'district']);
+        $divisions = PlaceCode::query()
+            ->where('level', PlaceCode::LevelDivision)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'level', 'parent_id']);
 
         return Inertia::render('AccountCreate', [
             'roles' => $roles,
             'sponsors' => $sponsors,
+            'place_divisions' => $divisions,
+            'default_identity_type' => 'birth_certificate',
         ]);
     }
 

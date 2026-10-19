@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
+use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
@@ -51,6 +52,10 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
     Route::get('/place-codes', [PlaceCodeController::class, 'index'])->name('place-codes.index');
     Route::post('/place-codes', [PlaceCodeController::class, 'store'])->name('place-codes.store');
     Route::patch('/place-codes/{placeCode}', [PlaceCodeController::class, 'update'])->name('place-codes.update');
+    Route::get('/place-codes/children', [PlaceCodeController::class, 'children'])->name('place-codes.children');
+    Route::post('/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->name('identity.bdris');
+    Route::get('/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->name('identity.place-preview');
+    Route::get('/identity/refer-preview', [IdentityLookupController::class, 'referPreview'])->name('identity.refer-preview');
 });
 
 /** Both the Inertia screens and independently developed clients use these services. */

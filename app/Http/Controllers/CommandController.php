@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -74,7 +75,7 @@ class CommandController extends Controller
         return back()->with('success', 'Shipment recorded and stock updated.');
     }
 
-    public function account(Request $r): RedirectResponse
+    public function account(Request $r, PartnerAccountProvisioning $partners): RedirectResponse
     {
         $this->permit($r, 'accounts');
         $roles = ['dealer', 'sub_dealer'];
@@ -82,6 +83,50 @@ class CommandController extends Controller
             $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
         $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
+        $usesPlaceOnboarding = $isPartner && ($r->filled('place_code') || $r->filled('identity_type') || $r->filled('refer_code'));
+
+        if ($usesPlaceOnboarding) {
+            if ($r->filled('nid')) {
+                $this->permit($r, 'identity_write');
+            }
+            $payload = $r->validate([
+                'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
+                'identity_type' => 'required|in:birth_certificate,nid',
+                'birth_certificate_number' => 'nullable|string|max:40',
+                'nid' => 'nullable|string|max:30',
+                'date_of_birth' => 'required|date',
+                'name' => 'required|string|max:150',
+                'name_bn' => 'required|string|max:150',
+                'father_name' => 'required|string|max:150',
+                'mother_name' => 'required|string|max:150',
+                'occupation' => 'nullable|string|max:150',
+                'division' => 'nullable|string|max:80',
+                'district' => 'nullable|string|max:80',
+                'upazila' => 'nullable|string|max:150',
+                'union' => 'nullable|string|max:150',
+                'village' => 'nullable|string|max:150',
+                'post_office' => 'nullable|string|max:150',
+                'place_code' => 'required|string|max:32',
+                'dealer_code' => 'nullable|string|max:40',
+                'reference_code' => 'nullable|string|max:40',
+                'refer_code' => 'required|string|max:40',
+                'phone' => 'required|string|max:30',
+                'email' => 'required|email|max:254',
+                'extra_contact' => 'nullable|string|max:80',
+                'pharmacy' => 'nullable|string|max:150',
+                'directory_visible' => 'sometimes|boolean',
+                'status' => 'sometimes|in:active,suspended',
+                'reason' => 'nullable|string|max:1000',
+            ]);
+            $created = $partners->create($r->user(), $payload);
+
+            return redirect('/accounts')->with(
+                'success',
+                ucfirst(str_replace('_', '-', $created['user']->role)).' account created. Code: '.$created['user']->dealer_code.
+                '. Login SMS sent to '.$created['user']->phone.' (username = mobile number).'
+            );
+        }
+
         $d = $r->validate([
             'role' => ['required', Rule::in($roles)],
             'dealer_code' => $isPartner ? ['required', 'string', 'max:40', 'unique:users,dealer_code'] : ['nullable', 'string', 'max:40', 'unique:users,dealer_code'],

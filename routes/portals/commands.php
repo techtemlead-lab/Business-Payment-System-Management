@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ReportController;
@@ -32,6 +33,10 @@ return function (string $portal): void {
     Route::post('/commands/accounts', [CommandController::class, 'account']);
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
+    Route::post('/commands/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->middleware('throttle:20,1');
+    Route::get('/commands/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->middleware('throttle:60,1');
+    Route::get('/commands/identity/refer-preview', [IdentityLookupController::class, 'referPreview'])->middleware('throttle:60,1');
+    Route::get('/commands/place-codes/children', [PlaceCodeController::class, 'children'])->middleware('throttle:60,1');
     Route::post('/commands/products', [ProductRegistryController::class, 'store']);
     Route::patch('/commands/products/{product}', [ProductRegistryController::class, 'update']);
     Route::delete('/commands/products/{product}', [ProductRegistryController::class, 'destroy']);
