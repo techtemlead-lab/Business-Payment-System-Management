@@ -478,6 +478,13 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 </tr>
                             </thead>
                             <tbody>
+                                {filteredDealers.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} style={{ padding: '28px 16px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+                                            No dealers match this search. Clear filters or broaden the query to continue exploring the network.
+                                        </td>
+                                    </tr>
+                                )}
                                 {filteredDealers.map(d => {
                                     const badge = rankBadges[d.rank] || rankBadges.dealer;
                                     const directCount = (childrenMap[d.id] || []).length;

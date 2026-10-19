@@ -115,6 +115,7 @@ export default function AccountCreate({
     } | null>(null);
     const [placeError, setPlaceError] = useState('');
     const [referWarnings, setReferWarnings] = useState<string[]>([]);
+    const [referPreviewError, setReferPreviewError] = useState<string | null>(null);
     const [consumers, setConsumers] = useState<{
         direct_referral: Consumer;
         d2d_gen2: Consumer;
@@ -259,10 +260,12 @@ export default function AccountCreate({
                 .then((json) => {
                     setReferWarnings(json.data.warnings || []);
                     setConsumers(json.data.consumers || null);
+                    setReferPreviewError(null);
                 })
                 .catch(() => {
                     setReferWarnings([]);
                     setConsumers(null);
+                    setReferPreviewError('Could not refresh refer-code preview. Check the codes and try again.');
                 });
         }, 350);
         return () => window.clearTimeout(handle);
@@ -594,6 +597,9 @@ export default function AccountCreate({
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>
+                                {referPreviewError && (
+                                    <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{referPreviewError}</p>
+                                )}
                                 {referWarnings.length > 0 && (
                                     <div className="error" style={{ marginTop: 10 }}>
                                         {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}

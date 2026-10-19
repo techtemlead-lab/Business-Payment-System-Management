@@ -151,6 +151,11 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
             {/* TAB 1: RULES EDITOR */}
             {activeTab === 'editor' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
+                    {Object.values(rules).length === 0 && (
+                        <div style={{ gridColumn: '1 / -1', padding: 24, border: '1px dashed #cbd5e1', borderRadius: 12, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
+                            No commission rules are loaded yet. Publish or restore the active policy schedule before editing rates here.
+                        </div>
+                    )}
                     {Object.values(rules).map(r => {
                         const pct = Number(r.percentage) || 0;
                         return (

@@ -1,6 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
-import {ArrowUpRight,ArrowRight,Plus,Search,ShoppingBag,Package,Wallet,Truck,Leaf,CheckCircle2,ShieldCheck,LockKeyhole,Download,Users,Clock3,LogOut} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,Plus,Search,ShoppingBag,CheckCircle2,ShieldCheck,LockKeyhole,Download,LogOut} from 'lucide-react';
 import Shell from '../components/Shell';
 import DashboardOverview from '../components/DashboardOverview';
 import AccountEditor from '../components/AccountEditor';
