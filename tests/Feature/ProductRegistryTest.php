@@ -172,9 +172,9 @@ class ProductRegistryTest extends TestCase
 
         // Pause ordering while preserving the counted inventory.
         $this->actingAs($admin)
-            ->from('/company/catalog')
+            ->from('/catalog')
             ->post('/commands/products/'.$product->id.'/toggle-stock')
-            ->assertRedirect('/company/catalog')
+            ->assertRedirect('/catalog')
             ->assertSessionHas('success');
 
         $product->refresh();
@@ -189,9 +189,9 @@ class ProductRegistryTest extends TestCase
 
         // Resume ordering without creating an artificial stock receipt.
         $this->actingAs($admin)
-            ->from('/company/inventory')
+            ->from('/inventory')
             ->post('/commands/products/'.$product->id.'/toggle-stock')
-            ->assertRedirect('/company/inventory')
+            ->assertRedirect('/inventory')
             ->assertSessionHas('success');
 
         $product->refresh();

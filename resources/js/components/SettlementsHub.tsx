@@ -130,7 +130,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         <input
                             type="month"
                             value={selectedMonth}
-                            onChange={e => {setSelectedMonth(e.target.value);router.get('/company/settlements',{period_month:e.target.value},{preserveScroll:true});}}
+                            onChange={e => {setSelectedMonth(e.target.value);router.get('/settlements',{period_month:e.target.value},{preserveScroll:true});}}
                             style={{
                                 padding: '6px 12px',
                                 border: '1px solid #cbd5e1',

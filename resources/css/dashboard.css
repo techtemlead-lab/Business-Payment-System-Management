@@ -132,3 +132,89 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .text-muted{color:#94a3b8}
 .flex-center{display:inline-flex;align-items:center;gap:6px}
 @media(max-width:980px){.account-create-layout{grid-template-columns:1fr}.account-create-layout .form-grid{grid-template-columns:1fr}.account-create-layout .span-2{grid-column:auto}}
+
+/* Audience portal themes + bilingual shell */
+:root{--portal-ink:#011627;--portal-accent:#ef4a23;--portal-brand:#2e3192;--portal-leaf:#377b5a;--portal-paper:#f4f7f5;--portal-gold:#c9a227}
+body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto Sans Bengali','Instrument Sans',ui-sans-serif,system-ui,sans-serif}
+.dealer-shell .workspace{background:
+  radial-gradient(1200px 420px at 8% -10%,#e8edff 0%,transparent 55%),
+  radial-gradient(900px 360px at 100% 0%,#fff1ec 0%,transparent 50%),
+  linear-gradient(180deg,#f5f7fb 0%,#f2f4f8 100%)}
+.subdealer-shell .workspace{background:
+  radial-gradient(1100px 400px at 0% -8%,#e7f4ee 0%,transparent 55%),
+  radial-gradient(800px 320px at 100% 0%,#fff4ee 0%,transparent 48%),
+  linear-gradient(180deg,#f3f8f5 0%,#f2f4f8 100%)}
+.company-shell .workspace{background:
+  linear-gradient(180deg,#f7f8fb 0%,#f2f4f8 100%)}
+.owner-shell .workspace{background:
+  radial-gradient(900px 360px at 100% 0%,#f7efd8 0%,transparent 55%),
+  linear-gradient(180deg,#fffdf8 0%,#f7f4ee 100%)}
+.owner-shell .sidebar{background:linear-gradient(180deg,#0b1f33 0%,#13293d 100%);transform:none}
+.owner-shell .workspace{margin-left:256px}
+.owner-shell .workspace-header{background:rgba(255,253,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e8e2d6;max-width:none;height:78px;padding:0 28px}
+.owner-shell .workspace-main{max-width:1600px;padding:28px}
+.owner-shell .workspace-menu-button{display:none}
+.owner-shell .nav-group>a.selected{background:#f8f1e7;color:#0b1f33}
+.owner-shell .nav-group>a.selected i{background:#c9a227}
+.owner-shell .button.dark{background:#0b1f33;border-color:#0b1f33}
+.owner-shell .page-heading .eyebrow,.company-shell .page-heading .eyebrow,.dealer-shell .page-heading .eyebrow,.subdealer-shell .page-heading .eyebrow{display:inline-block;letter-spacing:.12em;font-size:11px;font-weight:700;margin-bottom:8px}
+.owner-shell .page-heading .eyebrow{color:#8a7040}
+.company-shell .page-heading .eyebrow{color:#2e3192}
+.dealer-shell .page-heading .eyebrow{color:#2e3192}
+.subdealer-shell .page-heading .eyebrow{color:#1f4d3a}
+.subdealer-shell .sidebar{background:linear-gradient(180deg,#1f4d3a 0%,#275c46 100%)}
+.subdealer-shell .nav-group>a.selected{color:#1f4d3a}
+.subdealer-shell .button.dark{background:#1f4d3a;border-color:#1f4d3a}
+.subdealer-shell .text-link{color:#1f4d3a}
+.dealer-shell .sidebar{background:linear-gradient(180deg,#2e3192 0%,#252878 100%)}
+.company-shell .sidebar{background:linear-gradient(180deg,#011627 0%,#0b2233 100%)}
+.portal-theme-dealer .account-profile-card{background:linear-gradient(135deg,#ffffff 0%,#f3f7f4 100%)}
+.portal-theme-subdealer .account-profile-card{background:linear-gradient(135deg,#ffffff 0%,#eef7f2 100%)}
+.portal-theme-manage .page-heading h1{letter-spacing:-.02em}
+.portal-theme-sadmin .page-heading h1{color:#0b1f33}
+.language-switcher{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #d7dde5;border-radius:999px;background:#fff;box-shadow:0 1px 2px #0116270a}
+.language-switcher button{border:0;background:transparent;color:#475569;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer;font-family:inherit;transition:background .18s ease,color .18s ease}
+.language-switcher button.active{background:#011627;color:#fff}
+.language-switcher.compact button{padding:5px 9px;font-size:10px}
+.header-actions{display:flex;align-items:center;gap:10px}
+.domain-rail{background:rgba(255,255,255,.88);border:1px solid #e2e8f0;border-radius:14px;padding:14px 18px;margin-bottom:20px;box-shadow:0 8px 24px #01162708;backdrop-filter:blur(8px)}
+.domain-rail-top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.domain-rail-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.domain-tab{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;transition:transform .16s ease,background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+.domain-tab:hover{transform:translateY(-1px);box-shadow:0 4px 12px #01162712}
+.domain-tab.active{color:#fff;box-shadow:0 6px 16px #0116271a}
+.domain-tab-company.active{background:#011627;border-color:#011627}
+.domain-tab-dealers.active{background:#2e3192;border-color:#2e3192}
+.domain-tab-subdealers.active{background:#1f4d3a;border-color:#1f4d3a}
+.domain-tab-dashboards.active{background:#334155;border-color:#334155}
+.domain-rail-caption{font-size:11px;color:#64748b;font-weight:600}
+.domain-rail-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:12px;margin-top:12px;border-top:1px solid #f1f5f9}
+.domain-rail-links>span{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-right:4px}
+.domain-rail-links .button.small{font-size:11px}
+.domain-rail-links .button.small.accent:not(.dark){background:#eef0ff;color:#2e3192;border-color:#c7d2fe}
+.portal-notice{padding:12px 16px;margin-bottom:20px;border-radius:10px;display:flex;align-items:flex-start;gap:12px;font-size:13px;font-weight:500}
+.portal-notice svg{flex-shrink:0;margin-top:1px}
+.portal-notice strong{display:block;font-weight:700;font-size:14px}
+.portal-notice p{margin:2px 0 0;font-size:12px;font-weight:500}
+.portal-notice-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.portal-notice-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.portal-notice-warning{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+.portal-notice-danger{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+.portal-fade-in{animation:portalFadeUp .35s ease both}
+.portal-fade-in-delayed{animation:portalFadeUp .45s ease .06s both}
+@keyframes portalFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.company-auth{background:
+  radial-gradient(900px 380px at 10% -10%,#e8edff 0%,transparent 55%),
+  radial-gradient(700px 300px at 100% 0%,#fff1ec 0%,transparent 50%),
+  #f2f4f8}
+.company-auth-toolbar{display:flex;justify-content:flex-end;margin-bottom:16px}
+.company-auth-card{animation:portalFadeUp .4s ease both}
+@media(prefers-reduced-motion:reduce){.portal-fade-in,.portal-fade-in-delayed,.company-auth-card,.domain-tab{animation:none!important;transition:none!important}}
+@media(max-width:1023px){
+  .owner-shell .workspace,.company-shell .workspace{margin-left:0}
+  .owner-shell .sidebar,.company-shell .sidebar{transform:translateX(-100%)}
+  .owner-shell .sidebar.open,.company-shell .sidebar.open{transform:translateX(0)}
+  .owner-shell .workspace-menu-button,.company-shell .workspace-menu-button{display:flex}
+  .domain-rail{padding:12px 14px}
+  .domain-rail-caption{width:100%}
+}

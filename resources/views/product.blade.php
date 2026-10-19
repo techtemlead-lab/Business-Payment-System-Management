@@ -4,7 +4,7 @@
 <body class="public-site">
 <a class="skip-link" href="#main">Skip to content</a>
 @if(app()->environment('local'))<div class="demo-banner">LOCAL PREVIEW · Sample products and prices are not an approved client catalog.</div>@endif
-<header class="public-header"><a href="/" class="brand">madina<small>NATURAL HEALTH CARE</small></a><nav aria-label="Main navigation"><a href="/products">Our products</a><a href="/dealers">Find a dealer</a><a href="/contact">Contact</a></nav><a class="button dark" href="/login">Partner sign in ↗</a></header>
+<header class="public-header"><a href="/" class="brand">madina<small>NATURAL HEALTH CARE</small></a><nav aria-label="Main navigation"><a href="/products">Our products</a><a href="/dealers">Find a dealer</a><a href="/contact">Contact</a></nav><a class="button dark" href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">Partner sign in ↗</a></header>
 <main id="main" class="public-section">
     <a class="text-link" href="/products">← Back to products</a>
     <section class="product-detail">

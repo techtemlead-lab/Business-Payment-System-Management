@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\CommissionController;
 use App\Http\Controllers\Api\V1\FinancialPreviewController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
@@ -51,9 +50,6 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
 });
 
 /** Both the Inertia screens and independently developed clients use these services. */
-Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])
-    ->middleware(['auth', 'active', 'throttle:5,1'])->name('owner.contact');
-
 $operations = function (): void {
     $completion = ModuleCompletionController::class;
     Route::post('/orders/{order}/due-adjustments', [$completion, 'adjustment']);
@@ -95,8 +91,6 @@ $operations = function (): void {
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1'])->group($operations);
 Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group($operations);
 
-Route::get('/company/operations/data-imports', [DataImportController::class, 'index'])
-    ->middleware(['auth', 'active', 'portal:company'])->name('company.imports');
 foreach (['commands' => 'data-imports.', 'api/v1' => 'api.data-imports.'] as $prefix => $name) {
     Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
         $controller = DataImportController::class;

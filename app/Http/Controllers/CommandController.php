@@ -46,7 +46,7 @@ class CommandController extends Controller
     {
         $o = $service->create($r->user(), $r->validated());
 
-        return redirect('/workspace/orders/'.$o->id)->with('success', 'Order submitted for review.');
+        return redirect('/orders/'.$o->id)->with('success', 'Order submitted for review.');
     }
 
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -154,7 +154,7 @@ class CommandController extends Controller
             return $u;
         });
         Password::sendResetLink(['email' => $u->email]);
-        $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/company/employees' : '/company/accounts';
+        $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
         $accountTypeLabel = ($d['role'] ?? '') === 'employee' ? 'Employee' : 'Partner';
 
         return redirect($redirectUrl)->with('success', $accountTypeLabel.' account created. Unique code: '.($u->dealer_code ?? $u->name).'. A private password-setting invitation has been emailed.');

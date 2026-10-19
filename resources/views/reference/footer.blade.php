@@ -5,10 +5,12 @@
             <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
             <span><small>{{ $siteCustomization['footer_support_subtitle'] ?? 'Company support' }}</small><b>{{ $siteCustomization['footer_support_title'] ?? '+8801730532966' }}</b></span>
         </a>
-        <a class="ref-support-box" href="{{ $siteCustomization['footer_directory_link'] ?? '/dealers' }}">
+        @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
+        <a class="ref-support-box" href="{{ $href }}">
             <i class="{{ $siteCustomization['footer_directory_icon'] ?? 'fa-solid fa-location-dot' }}" aria-hidden="true"></i>
             <span><small>{{ $siteCustomization['footer_directory_subtitle'] ?? 'Find your local partner' }}</small><b>{{ $siteCustomization['footer_directory_title'] ?? 'Dealer Directory' }}</b></span>
         </a>
+        @endif
         @if(!empty($siteCustomization['footer_phone']) || !empty($siteCustomization['footer_email']) || !empty($siteCustomization['footer_address']))
         <div class="ref-footer-contact-info" style="margin-top:16px; font-size:12px; color:#cbd5e1; display:flex; flex-direction:column; gap:8px;">
             @if(!empty($siteCustomization['footer_phone']))
@@ -32,12 +34,31 @@
     <section>
         <h2>{{ $siteCustomization['footer_about_heading'] ?? 'ABOUT US' }}</h2>
         <div class="ref-footer-links">
-            <a href="{{ $siteCustomization['footer_link_about_url'] ?? '/about' }}">{{ $siteCustomization['footer_link_about'] ?? 'About Us' }}</a>
-            <a href="/products">Our Products</a>
-            <a href="/dealers">Dealer Network</a>
-            <a href="/login">Dealer / Sub-dealer Login</a>
-            <a href="{{ $siteCustomization['footer_link_contact_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_contact'] ?? 'Contact Us' }}</a>
-            <a href="{{ $siteCustomization['footer_link_dealer_apply_url'] ?? '/contact' }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_about_url'] ?? '/about'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_about'] ?? 'About Us' }}</a>
+            @endif
+            @if($publicPageEnabled['products'] ?? true)<a href="/products">Our Products</a>@endif
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_services_url'] ?? '/services'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_services'] ?? 'Our Services' }}</a>
+            @endif
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_quality_url'] ?? '/quality'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_quality'] ?? 'Quality Promise' }}</a>
+            @endif
+            @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers">Dealer Network</a>@endif
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_partnership_url'] ?? '/partnership'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_partnership'] ?? 'Become a Partner' }}</a>
+            @endif
+            <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">Dealer Login</a>
+            <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">Sub-dealer Login</a>
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_contact_url'] ?? '/contact'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_contact'] ?? 'Contact Us' }}</a>
+            @endif
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_faq_url'] ?? '/faq'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_faq'] ?? 'FAQ' }}</a>
+            @endif
+            @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_dealer_apply_url'] ?? '/partnership'))
+            <a href="{{ $href }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
+            @endif
         </div>
     </section>
     <section>
@@ -96,36 +117,82 @@
 </div>
 <div class="ref-container ref-footer-bottom">
     <span>{{ $siteCustomization['copyright_text'] ?? ('© ' . date('Y') . ' Madina Natural Health Care. All rights reserved.') }}</span>
-
+    <nav class="ref-footer-legal" aria-label="Legal">
+        @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_privacy_url'] ?? '/privacy'))
+        <a href="{{ $href }}">{{ $siteCustomization['footer_link_privacy'] ?? 'Privacy Policy' }}</a>
+        @endif
+        @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_terms_url'] ?? '/terms'))
+        <a href="{{ $href }}">{{ $siteCustomization['footer_link_terms'] ?? 'Terms of Use' }}</a>
+        @endif
+        @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_faq_url'] ?? '/faq'))
+        <a href="{{ $href }}">{{ $siteCustomization['footer_link_faq'] ?? 'FAQ' }}</a>
+        @endif
+    </nav>
 </div>
 </footer>
 <aside class="ref-floating-tools" aria-label="Company support">
     <a href="{{ $siteCustomization['whatsapp_link'] ?? '/contact' }}" class="ref-chat" aria-label="Customer support chat"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><b>{{ $siteCustomization['floating_chat_label'] ?? 'CHAT' }}</b></a>
 </aside>
 <nav class="ref-mobile-nav" aria-label="Mobile navigation">
+    @if($publicPageEnabled['products'] ?? true)
     <a href="/products" class="ref-mobile-nav-item">
         <i class="fa-solid fa-store" aria-hidden="true"></i>
         <span>Products</span>
     </a>
+    @elseif($publicPageEnabled['services'] ?? true)
+    <a href="/services" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
+        <span>Services</span>
+    </a>
+    @elseif($publicPageEnabled['about'] ?? true)
+    <a href="/about" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>About</span>
+    </a>
+    @endif
+    @if($publicPageEnabled['dealers'] ?? true)
     <a href="/dealers" class="ref-mobile-nav-item">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
         <span>Dealers</span>
     </a>
+    @elseif($publicPageEnabled['partnership'] ?? true)
+    <a href="/partnership" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-handshake" aria-hidden="true"></i>
+        <span>Partner</span>
+    </a>
+    @elseif($publicPageEnabled['contact'] ?? true)
+    <a href="/contact" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+        <span>Contact</span>
+    </a>
+    @endif
     <a href="/" class="ref-mobile-home" aria-label="Home">
         <span class="ref-mobile-home-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
         <span class="ref-mobile-home-label">Home</span>
     </a>
+    @if($publicPageEnabled['products'] ?? true)
     <button type="button" class="ref-mobile-nav-item" id="refMobileBottomCategories" aria-label="Product categories">
         <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
         <span>Categories</span>
     </button>
+    @elseif($publicPageEnabled['faq'] ?? true)
+    <a href="/faq" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+        <span>FAQ</span>
+    </a>
+    @elseif($publicPageEnabled['contact'] ?? true)
+    <a href="/contact" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+        <span>Contact</span>
+    </a>
+    @endif
     @auth
-    <a href="{{ auth()->user()->staff() ? '/company' : '/workspace' }}" class="ref-mobile-nav-item">
+    <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user-check" aria-hidden="true"></i>
         <span>Account</span>
     </a>
     @else
-    <a href="/login" class="ref-mobile-nav-item">
+    <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}" class="ref-mobile-nav-item">
         <i class="fa-solid fa-user" aria-hidden="true"></i>
         <span>Account</span>
     </a>
@@ -152,7 +219,11 @@
                 </div>
                 <p class="ref-qv-desc" id="qvDescription"></p>
                 <div class="ref-qv-actions">
+                    @if($publicPageEnabled['dealers'] ?? true)
                     <a href="/dealers" class="ref-primary-button">Find a Dealer</a>
+                    @elseif($publicPageEnabled['contact'] ?? true)
+                    <a href="/contact" class="ref-primary-button">Contact Us</a>
+                    @endif
                     <a href="#" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
                         View Full Details <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                     </a>

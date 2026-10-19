@@ -38,7 +38,7 @@ class DataImportTest extends TestCase
 
     public function test_guests_partners_and_view_only_finance_cannot_import(): void
     {
-        $this->get('/company/operations/data-imports')->assertRedirect('/company/login');
+        $this->get('/company/operations/data-imports')->assertRedirect('/login');
         $this->actingAs(User::factory()->dealer()->create())->get('/company/operations/data-imports')->assertForbidden();
         $this->actingAs(User::factory()->staff('chairman')->create())->postJson('/api/v1/operations/imports/preview', [
             'type' => 'opening_balances', 'source_reference' => 'Approved source',

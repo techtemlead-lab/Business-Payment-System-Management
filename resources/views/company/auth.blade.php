@@ -1,12 +1,46 @@
 @php($ownerPortal = $ownerPortal ?? false)
-@php($loginBase = $ownerPortal ? '/owner' : '/company')
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Company {{ $mode==='login'?'Sign In':'Password Recovery' }} · Madina</title><link rel="stylesheet" href="/reference/instrument-sans-local.css">@vite(['resources/css/app.css','resources/css/dashboard.css'])</head>
-<body class="company-auth"><main class="company-auth-main"><div class="company-auth-brand"><img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care"></div><section class="company-auth-card"><span class="eyebrow">{{ $ownerPortal?'COMPANY OWNERSHIP':'COMPANY EMPLOYEES' }}</span><h1>{{ $mode==='login'?($ownerPortal?'Owner Sign In':'Staff Sign In'):($mode==='forgot'?'Password Recovery':'Set New Password') }}</h1><p>{{ $mode==='login'?($ownerPortal?'Super Admin, Managing Director and Chairman access.':'Finance, staff and SR access.'):'Use your company account email to recover access.' }}</p>
-@if(session('success'))<div class="success" role="status">{{ session('success') }}</div>@endif @if($errors->any())<div class="error" role="alert">{{ $errors->first() }}</div>@endif
-<form class="action-form" method="post" action="{{ $mode==='login'?$loginBase.'/login':($mode==='forgot'?$loginBase.'/forgot-password':$loginBase.'/reset-password') }}">@csrf
-@if($mode==='reset')<input type="hidden" name="token" value="{{ $token }}">@endif
-<label>{{ $mode==='login'?'E-Mail / Phone Number':'E-Mail' }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?'Enter your e-mail or phone number':'Enter your e-mail' }}"></label>
-@if($mode!=='forgot')<label>Password<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="12" @endif></label>@endif
-@if($mode==='reset')<label>Confirm Password<input type="password" name="password_confirmation" required minlength="12" maxlength="200" autocomplete="new-password"></label><p class="muted">At least 12 characters, uppercase and lowercase letters, and a number.</p>@endif
-<button class="button dark" type="submit">{{ $mode==='login'?'Sign In':($mode==='forgot'?'Send Reset Link':'Reset Password') }}</button></form><div class="company-auth-help"><a href="{{ $mode==='login'?$loginBase.'/forgot-password':$loginBase.'/login' }}">{{ $mode==='login'?'Forgot password?':'Back to Sign In' }}</a></div><div class="company-auth-help"><a href="{{ $ownerPortal ? route('company.login') : route('owner.login') }}">{{ $ownerPortal ? 'Employee sign in' : 'Owner sign in' }}</a> · <a href="{{ route('login') }}">Dealer / Sub-dealer sign in</a></div></section><p class="company-auth-footer">Madina Natural Health Care · Company access</p></main></body></html>
-
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Company {{ $mode==='login'?'Sign In':'Password Recovery' }} · Madina</title>
+    <link rel="stylesheet" href="/reference/instrument-sans-local.css">
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css','resources/css/dashboard.css'])
+</head>
+<body class="company-auth locale-{{ app()->getLocale() }}">
+<main class="company-auth-main">
+    <div class="company-auth-toolbar">
+        <form method="post" action="/locale" class="language-switcher compact" aria-label="{{ __('portal.language') }}">@csrf
+            <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
+            <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
+        </form>
+    </div>
+    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care"></div>
+    <section class="company-auth-card">
+        <span class="eyebrow">{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</span>
+        <h1>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password')) }}</h1>
+        <p>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_help'):__('auth_ui.staff_help')):__('auth_ui.recovery_help') }}</p>
+        @if(session('success'))<div class="success" role="status">{{ session('success') }}</div>@endif
+        @if($errors->any())<div class="error" role="alert">{{ $errors->first() }}</div>@endif
+        <form class="action-form" method="post" action="{{ $mode==='login'?'/login':($mode==='forgot'?'/forgot-password':'/reset-password') }}">@csrf
+            @if($mode==='reset')<input type="hidden" name="token" value="{{ $token }}">@endif
+            <label>{{ $mode==='login'?__('auth_ui.email_or_phone'):__('auth_ui.email') }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?__('auth_ui.email_or_phone_placeholder'):__('auth_ui.email_placeholder') }}"></label>
+            @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="12" @endif></label>@endif
+            @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="12" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
+            <button class="button dark" type="submit">{{ $mode==='login'?__('auth_ui.sign_in'):($mode==='forgot'?__('auth_ui.send_reset'):__('auth_ui.reset_password')) }}</button>
+        </form>
+        <div class="company-auth-help"><a href="{{ $mode==='login'?'/forgot-password':'/login' }}">{{ $mode==='login'?__('auth_ui.forgot_password_link'):__('auth_ui.back_to_sign_in') }}</a></div>
+        <div class="company-auth-help">
+            <a href="{{ \App\Support\PortalHost::url($ownerPortal ? 'manage' : 'sadmin', '/login') }}">{{ $ownerPortal ? __('auth_ui.employee_sign_in') : __('auth_ui.owner_sign_in') }}</a>
+            · <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">{{ __('auth_ui.dealer_sign_in') }}</a>
+            · <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">{{ __('auth_ui.subdealer_sign_in') }}</a>
+        </div>
+    </section>
+    <p class="company-auth-footer">Madina Natural Health Care · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
+</main>
+</body>
+</html>

@@ -66,7 +66,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/company/employees', { q: search }, { preserveState: true });
+        router.get('/employees', { q: search }, { preserveState: true });
     };
 
     const handleOpenEdit = (employee: Row) => {
@@ -225,7 +225,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         </div>
                         <button className="button small">Search</button>
                         {filters.q && (
-                            <Link href="/company/employees" className="text-link">Clear</Link>
+                            <Link href="/employees" className="text-link">Clear</Link>
                         )}
                     </form>
                 </div>
@@ -636,7 +636,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
                             </div>
 
-                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">This account uses detailed action permissions. <Link href="/company/operations/access-management" className="text-link">Manage roles and permissions</Link></p> : <>
+                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">This account uses detailed action permissions. <Link href="/operations/access-management" className="text-link">Manage roles and permissions</Link></p> : <>
                             {/* Preset Buttons */}
                             <div style={{ marginTop: 20, marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

@@ -116,7 +116,7 @@ export default function SubDealerHub({
                         </button>
                     </div>
 
-                    <Link href="/company/accounts/create" className="button dark" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#059669', borderColor: '#059669' }}>
+                    <Link href="/accounts/create" className="button dark" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#059669', borderColor: '#059669' }}>
                         <Plus size={16} /> Add Sub-Dealer
                     </Link>
                 </div>

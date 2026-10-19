@@ -8,6 +8,18 @@ Business installations start with no demonstration records. Use a separate datab
 
 Local setup uses the existing `compose.yaml`. Install the locked dependencies with `composer install` and `npm ci --ignore-scripts`, configure `.env`, run `php artisan migrate`, then `npm run build`. Run `php artisan madina:demo` only against a designated local preview database. Its access details stay in the ignored `.local/demo-access.json`; never commit or publish them. Do not rerun the demo command against a business dataset.
 
+Local portals share one application and use separate hosts. Browsers resolve `*.localhost`, so the development server on port 8088 is:
+
+- Public site: `http://localhost:8088`
+- Dealer: `http://dealer.localhost:8088`
+- Sub-dealer: `http://subdealer.localhost:8088`
+- Staff: `http://manage.localhost:8088`
+- Owner: `http://sadmin.localhost:8088`
+
+`APP_DOMAIN=localhost` builds those hosts. `SESSION_DOMAIN` stays empty so each portal keeps its own sign-in cookie. Production nginx should list the apex domain and the four subdomains in `server_name`, using the real `APP_DOMAIN` in place of `example.com`.
+
+Each audience has its own route file under `routes/portals/`, HTTP controllers under `app/Http/Portals/`, and Inertia entry pages under `resources/js/pages/portals/`. Shared money rules stay in `app/Domain`. The UI supports English and Bangla (`en` / `bn`) through a language switcher on the public site, auth screens, and every portal shell.
+
 Start the web application with the existing development command. Run a queue worker separately:
 
 ```sh

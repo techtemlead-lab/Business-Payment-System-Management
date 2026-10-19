@@ -23,10 +23,10 @@ class OwnerContactTest extends TestCase
         DB::table('password_reset_tokens')->insert(['email' => $previousEmail, 'token' => 'obsolete-reset-token', 'created_at' => now()]);
         DB::table('sessions')->insert(['id' => 'other-owner-session', 'user_id' => $owner->id, 'payload' => '', 'last_activity' => now()->timestamp]);
 
-        $this->actingAs($owner)->from('/company/security')->post('/commands/owner/contact', [
+        $this->actingAs($owner)->from('/security')->post('/commands/owner/contact', [
             'email' => 'new-owner@example.com', 'current_password' => 'OwnerPassword12345',
             'role' => 'dealer', 'status' => 'suspended',
-        ])->assertRedirect('/company/security')->assertSessionHas('success');
+        ])->assertRedirect('/security')->assertSessionHas('success');
 
         $this->assertDatabaseHas('users', ['id' => $owner->id, 'email' => 'new-owner@example.com', 'role' => $role, 'status' => 'active', 'email_verified_at' => null]);
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $previousEmail]);

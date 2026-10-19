@@ -85,7 +85,7 @@ export default function AccountCreate({ roles = ['dealer', 'sub_dealer'], sponso
         <Shell section="accounts">
             <Head title="Add Partner Account" />
             <div className="section-header-row">
-                <Link href="/company/accounts" className="text-link flex-center">
+                <Link href="/accounts" className="text-link flex-center">
                     <ArrowLeft size={16} /> Back to Partner Accounts
                 </Link>
             </div>

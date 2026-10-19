@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\PortalHost;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,7 +17,7 @@ class ProtectPrivateResponses
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
-        if ($request->user() || $request->is('login', 'forgot-password', 'reset-password*', 'workspace*', 'owner/*', 'company', 'company/*', 'exports*')) {
+        if ($request->user() || $request->is('login', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true)) {
             $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
             $response->headers->set('Referrer-Policy', 'no-referrer');
         }

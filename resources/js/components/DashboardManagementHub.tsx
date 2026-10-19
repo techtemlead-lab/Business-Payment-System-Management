@@ -599,7 +599,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                     </p>
                                 </div>
                                 <Link
-                                    href="/company/employees"
+                                    href="/employees"
                                     className="button small dark"
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                                 >
