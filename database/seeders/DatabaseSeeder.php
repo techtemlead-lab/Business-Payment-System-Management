@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CommissionRuleSeeder::class,
             PlaceCodeSeeder::class,
+            BangladeshPlaceCodeSeeder::class,
         ]);
         $this->command?->info('No default accounts are seeded. Use madina:admin to create an administrator, or madina:demo for a local synthetic preview.');
     }
