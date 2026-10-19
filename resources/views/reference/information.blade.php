@@ -163,12 +163,17 @@
         <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> {{ $siteCustomization['map_title'] ?? 'Office & Healthcare Center Location' }}</h2>
         <p>{{ $siteCustomization['map_subtitle'] ?? 'Visit Madina Natural Health Care at our registered center or navigate with map directions.' }}</p>
     </div>
+    @if(!empty($maps['embed_url']))
+    <div class="ref-map-embed" style="margin:16px 0;">
+        <iframe title="Office location map" src="{{ $maps['embed_url'] }}" width="100%" height="320" style="border:0;border-radius:12px;" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+    </div>
+    @endif
     <div class="ref-map-footer">
         <div>
             <strong>{{ $siteCustomization['map_facility'] ?? 'Madina Natural Health Care & Physiotherapy Center' }}</strong>
             <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh' }}</p>
         </div>
-        <a href="{{ 'https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address']) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+        <a href="{{ $maps['directions_url'] ?? ('https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address'])) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
             <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $siteCustomization['map_directions_text'] ?? 'Open Map Directions' }}
         </a>
     </div>

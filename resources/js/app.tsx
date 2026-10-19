@@ -15,6 +15,7 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     AccountCreate: () => import('./pages/AccountCreate'),
     Operations: () => import('./pages/Operations'),
     DataImports: () => import('./pages/DataImports'),
+    ServiceIntegrations: () => import('./pages/ServiceIntegrations'),
 };
 
 createInertiaApp({

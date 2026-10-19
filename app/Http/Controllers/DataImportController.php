@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
+use App\Domain\Integrations\IntegrationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -47,7 +48,8 @@ class DataImportController extends Controller
                 default => $actor->canAct('finance', 'create'),
             }], $types), 'batches' => $batches, 'preview' => $preview,
             'openingLocked' => (bool) config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists(),
-            'templateBase' => '/commands/operations/imports/templates/'];
+            'templateBase' => '/commands/operations/imports/templates/',
+            'startup' => app(IntegrationSettings::class)->startupMode()];
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('DataImports', $data)->toResponse($request);
     }

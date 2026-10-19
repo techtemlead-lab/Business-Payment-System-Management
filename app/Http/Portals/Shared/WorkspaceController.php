@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
 use App\Domain\Geography\PlaceCodeCatalog;
+use App\Domain\Identity\BdrisLookup;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
 use App\Http\Controllers\Controller;
@@ -564,6 +565,7 @@ class WorkspaceController extends Controller
             'sponsors' => $sponsors,
             'place_divisions' => $divisions,
             'default_identity_type' => 'birth_certificate',
+            'bdris_enabled' => app(BdrisLookup::class)->enabled(),
         ]);
     }
 

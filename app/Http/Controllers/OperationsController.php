@@ -8,6 +8,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\CommissionAllocation;
@@ -112,6 +113,7 @@ class OperationsController extends Controller
         if ($section === 'financial-readiness') {
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
+            $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
             $tables['Opening balance reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
         }
         if ($section === 'dues-adjustments') {

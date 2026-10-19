@@ -12,6 +12,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(part.startsWith('staff/applications'))return any([part.endsWith('/review')?'accounts':'sr_onboarding'],part.endsWith('/review')?'approve':'create');
         if(part==='staff/orders')return any(['sr_orders'],'create');
         if(part==='marketing/homepage-video')return any(['content','catalog'],'edit');
+        if(part.startsWith('integrations/'))return any(['finance'],'edit');
         if(part==='payroll/prepare')return any(['payroll'],'create');
         if(part==='payroll/contracts'||part==='settings/withdrawal-minimum')return any(['finance'],'edit');
         if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');

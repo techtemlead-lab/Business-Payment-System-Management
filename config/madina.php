@@ -14,6 +14,7 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Legacy env fallbacks. Prefer Service integrations in the admin panel; all remain disabled by default.
     'bdris' => [
         'enabled' => env('MADINA_BDRIS_ENABLED', false),
         'base_url' => env('MADINA_BDRIS_BASE_URL', ''),

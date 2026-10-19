@@ -49,11 +49,13 @@ export default function AccountCreate({
     sponsors = [],
     place_divisions = [],
     default_identity_type = 'birth_certificate',
+    bdris_enabled = false,
 }: {
     roles: string[];
     sponsors: Row[];
     place_divisions?: PlaceOption[];
     default_identity_type?: 'birth_certificate' | 'nid';
+    bdris_enabled?: boolean;
 }) {
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
 
@@ -438,9 +440,13 @@ export default function AccountCreate({
                                 </div>
                                 {form.data.identity_type === 'birth_certificate' && (
                                     <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                                        <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
-                                            <Search size={16} /> {bdrisLoading ? 'Searching BDRIS…' : 'Search BDRIS'}
-                                        </button>
+                                        {bdris_enabled ? (
+                                            <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
+                                                <Search size={16} /> {bdrisLoading ? 'Searching BDRIS…' : 'Search BDRIS'}
+                                            </button>
+                                        ) : (
+                                            <span className="muted" style={{ fontSize: 13 }}>BDRIS autofill is disabled. Enter personal details manually, or enable BDRIS under Service integrations.</span>
+                                        )}
                                         {bdrisMessage && <span className="muted" style={{ fontSize: 13 }}>{bdrisMessage}</span>}
                                     </div>
                                 )}
