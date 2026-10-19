@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
@@ -128,11 +129,22 @@ class PlatformTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_withdrawals_and_policy_publication_remain_inactive(): void
+    public function test_withdrawals_remain_gated_and_policy_drafts_can_be_published_for_review(): void
     {
         $this->actingAs($this->user())->post('/commands/withdrawals', ['amount' => '200.00'])->assertSessionHasErrors('policy');
         $this->assertDatabaseCount('withdrawals', 0);
-        $this->actingAs($this->user('super_admin'))->post('/commands/policies/1/publish')->assertSessionHasErrors('policy');
+
+        $admin = $this->user('super_admin');
+        $id = app(PolicyDraftService::class)->create($admin, [
+            'name' => 'Review draft',
+            'account_type' => 'dealer',
+            'components' => [['name' => 'referral', 'rate' => '10']],
+            'notes' => 'Document purchase-value rates before go-live.',
+        ]);
+        $this->actingAs($admin)->onPortal('sadmin')->post("/commands/policies/{$id}/publish")
+            ->assertRedirect()
+            ->assertSessionHas('success');
+        $this->assertDatabaseHas('policy_drafts', ['id' => $id, 'status' => 'published']);
     }
 
     public function test_money_and_flat_salary_use_exact_minor_units(): void
@@ -156,6 +168,6 @@ class PlatformTest extends TestCase
     {
         $p = $this->product();
         $this->actingAs($this->user())->post('/commands/orders', ['items' => [['product_id' => $p->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'TEST', 'channel' => 'Bank', 'amount' => '900.00'])->assertSessionHasErrors('amount');
-        $this->assertDatabaseCount('orders',0);
+        $this->assertDatabaseCount('orders', 0);
     }
 }
