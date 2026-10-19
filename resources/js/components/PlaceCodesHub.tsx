@@ -149,7 +149,7 @@ export default function PlaceCodesHub({
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#0f766e', textTransform: 'uppercase' }}>
-                            <Hash size={15} /> Code management
+                            <Hash size={15} /> Place codes
                         </div>
                         <h2 style={{ margin: '6px 0' }}>{level_label} codes</h2>
                         <p className="muted" style={{ margin: 0, maxWidth: 640 }}>
@@ -205,7 +205,7 @@ export default function PlaceCodesHub({
                         {
                             key: 'base_place_name',
                             title: 'Base place',
-                            render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">Not set</span>),
+                            render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">—</span>),
                         },
                         {
                             key: 'is_active',
@@ -285,7 +285,7 @@ export default function PlaceCodesHub({
                             <label>
                                 Base place (last-serial child)
                                 <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
-                                    <option value="">Not set</option>
+                                    <option value="">—</option>
                                     {editRow.base_options?.map((option) => (
                                         <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
                                     ))}

@@ -90,7 +90,7 @@ class PublicWebsiteTest extends TestCase
         // Default view: shows location button and dealers
         $res = $this->get('/dealers');
         $res->assertOk();
-        $res->assertSee('Use My Current Location');
+        $res->assertSee('Find nearest dealers');
         $res->assertSee('Nearby Savar Dealer');
         $res->assertSee('Far Chittagong Dealer');
 

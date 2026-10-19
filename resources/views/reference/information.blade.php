@@ -187,7 +187,7 @@
 
     <div class="ref-location-search-bar">
         <button type="button" class="ref-location-btn" id="find-nearest-btn">
-            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $siteCustomization['directory_gps_btn'] ?? 'Use My Current Location (Nearest Dealers)' }}
+            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $siteCustomization['directory_gps_btn'] ?? 'Find nearest dealers' }}
         </button>
         <span class="ref-location-status" id="location-status" role="status" aria-live="polite"></span>
     </div>

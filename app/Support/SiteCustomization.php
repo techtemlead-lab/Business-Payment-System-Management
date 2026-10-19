@@ -180,7 +180,7 @@ class SiteCustomization
             // Dealer Directory Page (/dealers)
             'directory_title' => 'Dealer Directory',
             'directory_subtitle' => 'Find a company-approved dealer point or search nearest dealers in your area.',
-            'directory_gps_btn' => 'Use My Current Location (Nearest Dealers)',
+            'directory_gps_btn' => 'Find nearest dealers',
             'directory_empty_title' => 'No published dealers in this area yet.',
             'directory_empty_desc' => 'Contact us for help finding a local dealer.',
 
