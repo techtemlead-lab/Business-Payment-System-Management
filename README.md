@@ -18,6 +18,8 @@ Local portals share one application and use separate hosts. Browsers resolve `*.
 
 `APP_DOMAIN=localhost` builds those hosts. `SESSION_DOMAIN` stays empty so each portal keeps its own sign-in cookie. Production nginx should list the apex domain and the four subdomains in `server_name`, using the real `APP_DOMAIN` in place of `example.com`.
 
+Each audience has its own route file under `routes/portals/`, HTTP controllers under `app/Http/Portals/`, and Inertia entry pages under `resources/js/pages/portals/`. Shared money rules stay in `app/Domain`. The UI supports English and Bangla (`en` / `bn`) through a language switcher on the public site, auth screens, and every portal shell.
+
 Start the web application with the existing development command. Run a queue worker separately:
 
 ```sh

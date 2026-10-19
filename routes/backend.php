@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\V1\CommissionController;
 use App\Http\Controllers\Api\V1\FinancialPreviewController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
@@ -51,9 +50,6 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', BackendJson::class
 });
 
 /** Both the Inertia screens and independently developed clients use these services. */
-Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])
-    ->middleware(['auth', 'active', 'throttle:5,1'])->name('owner.contact');
-
 $operations = function (): void {
     $completion = ModuleCompletionController::class;
     Route::post('/orders/{order}/due-adjustments', [$completion, 'adjustment']);

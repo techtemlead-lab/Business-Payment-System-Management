@@ -32,7 +32,7 @@ class SiteCustomizationTest extends TestCase
         $this->actingAs($editor)->get('/company/customization')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->component('Portal')
+                ->component('portals/manage/Dashboard')
                 ->where('section', 'customization')
                 ->has('data.customization')
                 ->has('data.defaults')

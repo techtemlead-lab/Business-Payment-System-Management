@@ -50,6 +50,10 @@
             @else
             <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $siteCustomization['header_account_title'] ?? 'Account' }}</b><small>{{ $siteCustomization['header_account_subtitle'] ?? 'Partner Login' }}</small></span></a>
             @endauth
+            <form method="post" action="/locale" class="ref-locale-switch" aria-label="{{ __('portal.language') }}">@csrf
+                <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
+                <button type="submit">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
+            </form>
             <a href="/products" class="ref-shop"><i class="fa-solid fa-leaf" aria-hidden="true"></i><b>{{ $siteCustomization['header_catalog_title'] ?? 'Products' }}</b></a>
         </div>
     </div>

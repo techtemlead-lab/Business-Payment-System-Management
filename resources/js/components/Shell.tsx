@@ -4,10 +4,13 @@ import {
     LayoutDashboard, ShoppingBag, Package, Users, Truck, Wallet, GitBranch,
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
-    Trophy, TrendingUp, Percent, Store, Landmark, Building2, UserCheck, AlertTriangle, type LucideIcon
+    Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
+    Briefcase, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useT } from '../shared/i18n/t';
 
 const icons: Record<string, LucideIcon> = {
     'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
@@ -23,28 +26,66 @@ const icons: Record<string, LucideIcon> = {
     employees: UserCheck, dashboards: SlidersHorizontal
 };
 
-const names: Record<string, string> = {
-    'field-sales': 'Field sales', 'staff-operations': 'Territories & targets', 'payroll': 'Staff payroll', 'my-payroll': 'My payroll',
-    'payment-accounts': 'Payment accounts', 'policy-schedules': 'Commission schedules', 'reserve-payouts': 'Reserve payouts',
-    'data-imports': 'Excel data import', 'commission-holds': 'Commission holds', 'financial-readiness': 'Opening balance review', 'financial-reports': 'Financial reports', 'dues-adjustments':'Due adjustments', 'finance-settings':'Finance settings', 'access-management':'Roles & permissions', 'video-marketing':'Video marketing',
-    overview: 'Overview', orders: 'Orders', catalog: 'Product collection', accounts: 'Dealer Directory', inventory: 'Inventory',
-    deliveries: 'Deliveries', dues: 'Outstanding dues', payments: 'Payment review', network: 'My network', policies: 'Commission policies',
-    salary: 'Sub-dealer flat 3% salary', withdrawals: 'Withdrawals', ledger: 'Financial ledger', reports: 'Reports', customization: 'Site Customization',
-    content: 'Website content', enquiries: 'Enquiries', audit: 'Activity log', profile: 'My profile', security: 'Account security',
-    notifications: 'Notifications', earnings: 'My earnings', ranks: 'Ranks & Royalties',
-    commissions: 'Commission Studio', 'network-tree': 'Network Tree', 'area-dealers': 'Area Dealers', rewards: 'Car & Bike Rewards', 'capital-flow': 'Capital Waterfall',
-    settlements: 'Settlements & Payouts', simulator: 'What-If Simulator', 'payouts-hub': 'Disbursement Hub',
-    treasury: 'Treasury & Money Flow', 'sub-dealers': 'Sub-Dealer Directory', 'sub-dealer-orders': '40% Margin Orders',
-    employees: 'Employees & Staff', dashboards: 'Dashboard Management'
+const sectionKeys: Record<string, string> = {
+    'field-sales': 'field_sales', 'staff-operations': 'staff_operations', payroll: 'payroll', 'my-payroll': 'my_payroll',
+    'payment-accounts': 'payment_accounts', 'policy-schedules': 'policy_schedules', 'reserve-payouts': 'reserve_payouts',
+    'data-imports': 'data_imports', 'commission-holds': 'commission_holds', 'financial-readiness': 'financial_readiness',
+    'financial-reports': 'financial_reports', 'dues-adjustments': 'dues_adjustments', 'finance-settings': 'finance_settings',
+    'access-management': 'access_management', 'video-marketing': 'video_marketing',
+    overview: 'overview', orders: 'orders', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
+    deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
+    salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'customization',
+    content: 'content', enquiries: 'enquiries', audit: 'audit', profile: 'profile', security: 'security',
+    notifications: 'notifications', earnings: 'earnings', ranks: 'ranks', commissions: 'commissions',
+    'network-tree': 'network_tree', 'area-dealers': 'area_dealers', rewards: 'rewards', 'capital-flow': 'capital_flow',
+    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
+    'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders', employees: 'employees', dashboards: 'dashboards',
 };
 
+const operationsSections = new Set([
+    'data-imports', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
+    'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
+    'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing',
+]);
+
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice } = usePage<any>().props;
+    const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
     const staff = portal === 'manage' || portal === 'sadmin';
     const ownerPortal = portal === 'sadmin';
     const base = portalBase || '';
+    const shellClass = portal === 'sadmin' ? 'owner-shell' : portal === 'manage' ? 'company-shell' : portal === 'subdealer' ? 'subdealer-shell' : 'dealer-shell';
+    const portalLabel = ownerPortal
+        ? translate('portal', 'owner_portal')
+        : staff
+            ? translate('portal', 'company_portal')
+            : portal === 'subdealer'
+                ? translate('portal', 'subdealer_portal')
+                : translate('portal', 'dealer_portal');
+    const dashboardTitle = ownerPortal
+        ? translate('portal', 'owner_dashboard')
+        : staff
+            ? translate('portal', 'company_dashboard')
+            : translate('portal', 'my_account');
+    const sectionLabel = (item: string) => {
+        if (item === 'catalog' && staff) {
+            return translate('portal', 'product_management');
+        }
+        const key = sectionKeys[item];
+        return key ? translate('portal', key) : translate('portal', 'order_details');
+    };
+    const workspaceLabel = ownerPortal
+        ? translate('portal', 'owner_workspace')
+        : user.role === 'employee'
+            ? translate('portal', 'employee_workspace')
+            : staff
+                ? translate('portal', 'company_workspace')
+                : user.role === 'sub_dealer'
+                    ? translate('portal', 'subdealer_workspace')
+                    : translate('portal', 'dealer_workspace');
+
     const [mobile, setMobile] = useState(() => matchMedia('(max-width:1023px)').matches);
 
     useEffect(() => {
@@ -77,21 +118,20 @@ export default function Shell({ section, children, action }: { section: string; 
         return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); toggle.current?.focus(); };
     }, [open]);
 
-    // Grouping by 3 Pillars for Staff
     const companyGroup = staff ? [
         'overview',
         'my-payroll',
         ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
         ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
         ...(capabilities.includes('payroll') ? ['payroll'] : []),
-        ...(capabilities.some(cap=>['finance','accounts'].includes(cap)) ? ['data-imports'] : []),
-        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness','dues-adjustments','finance-settings'] : []),
-        ...(capabilities.some(cap=>['finance','reports','field_sales'].includes(cap)) ? ['financial-reports'] : []),
-        ...(user.role==='super_admin'?['access-management']:[]),
-        ...(capabilities.some(cap=>['content','catalog'].includes(cap))?['video-marketing']:[]),
+        ...(capabilities.some(cap => ['finance', 'accounts'].includes(cap)) ? ['data-imports'] : []),
+        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings'] : []),
+        ...(capabilities.some(cap => ['finance', 'reports', 'field_sales'].includes(cap)) ? ['financial-reports'] : []),
+        ...(user.role === 'super_admin' ? ['access-management'] : []),
+        ...(capabilities.some(cap => ['content', 'catalog'].includes(cap)) ? ['video-marketing'] : []),
         ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
-        ...(capabilities.some(cap=>['catalog','pricing','inventory','orders','finance'].includes(cap)) ? ['catalog'] : []),
+        ...(capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) ? ['catalog'] : []),
         ...(capabilities.includes('inventory') ? ['inventory'] : []),
         ...(capabilities.includes('content') ? ['customization', 'content', 'enquiries'] : []),
         ...(capabilities.includes('audit') ? ['audit'] : [])
@@ -116,17 +156,16 @@ export default function Shell({ section, children, action }: { section: string; 
             <span>{title}</span>
             {items.map(item => {
                 const Icon = icons[item] || LayoutDashboard;
-                const itemName = item === 'catalog' && staff ? 'Product Management' : names[item];
                 return (
                     <Link
                         onClick={() => setOpen(false)}
                         aria-current={section === item ? 'page' : undefined}
                         className={section === item ? 'selected' : ''}
-                        href={`${base}/${['data-imports','field-sales','staff-operations','payroll','my-payroll','payment-accounts','policy-schedules','reserve-payouts','commission-holds','financial-readiness','financial-reports','dues-adjustments','finance-settings','access-management','video-marketing'].includes(item)?'operations/':''}${item === 'overview' ? '' : item}`}
+                        href={`${base}/${operationsSections.has(item) ? 'operations/' : ''}${item === 'overview' ? '' : item}`}
                         key={item}
                     >
                         <Icon size={18} />
-                        {itemName}
+                        {sectionLabel(item)}
                         {section === item && <i />}
                     </Link>
                 );
@@ -134,16 +173,23 @@ export default function Shell({ section, children, action }: { section: string; 
         </nav>
     );
 
-    // Active Domain Determination for Top Pillar Bar
     const isDashboardsDomain = section === 'dashboards';
     const isCompanyDomain = ['overview', 'employees', 'treasury', 'capital-flow', 'catalog', 'inventory', 'customization', 'content', 'enquiries', 'audit'].includes(section);
     const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+    const currentSectionTitle = section === 'overview'
+        ? dashboardTitle
+        : sectionLabel(section);
+    const currentSectionHint = section === 'overview'
+        ? translate('portal', 'welcome_back', { name: user.name.split(' ')[0], scope: translate('portal', staff ? 'business' : 'account') })
+        : (section === 'catalog' && staff
+            ? translate('portal', 'catalog_staff_hint')
+            : translate('portal', 'section_hint'));
 
     return (
-        <div className={`app-shell ${staff ? 'company-shell' : 'dealer-shell'}`}>
-            <a className="skip-link" href="#workspace-main">Skip to content</a>
+        <div className={`app-shell ${shellClass}`}>
+            <a className="skip-link" href="#workspace-main">{translate('portal', 'skip_content')}</a>
             {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
 
             <aside
@@ -154,9 +200,9 @@ export default function Shell({ section, children, action }: { section: string; 
                 aria-hidden={!open && (!staff || mobile)}
                 role={open ? 'dialog' : undefined}
                 aria-modal={open || undefined}
-                aria-label={staff ? 'Company navigation' : 'Account navigation'}
+                aria-label={staff ? translate('portal', 'company_navigation') : translate('portal', 'account_navigation')}
             >
-                <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label="Close navigation" onClick={() => setOpen(false)}>
+                <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
                     <X size={18} />
                 </button>
                 <a href={base || '/'} className="portal-logo sidebar-logo" aria-label="Madina dashboard">
@@ -164,22 +210,22 @@ export default function Shell({ section, children, action }: { section: string; 
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />
-                    {ownerPortal ? 'Owner workspace' : user.role === 'employee' ? 'Employee workspace' : staff ? 'Company workspace' : user.role === 'sub_dealer' ? 'Sub-dealer workspace' : 'Dealer workspace'}
+                    {workspaceLabel}
                 </div>
 
                 {staff ? (
                     <>
-                        {group(ownerPortal ? 'OWNER SECTION' : '🏢 COMPANY SECTION', companyGroup)}
-                        {group('🤝 DEALER SECTION', dealerGroup)}
-                        {group('🏬 SUB-DEALER SECTION', subDealerGroup)}
-                        {group('⚙️ ACCOUNT', ['profile', 'security'])}
+                        {group(ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'), companyGroup)}
+                        {group(translate('portal', 'nav_dealer_section'), dealerGroup)}
+                        {group(translate('portal', 'nav_subdealer_section'), subDealerGroup)}
+                        {group(translate('portal', 'nav_account'), ['profile', 'security'])}
                     </>
                 ) : (
                     <>
-                        {user.role === 'dealer' && group('DEALER WORKSPACE', dealerGroup)}
-                        {user.role === 'sub_dealer' && group('SUB-DEALER WORKSPACE', subDealerGroup)}
-                        {group('MY EARNINGS', ['earnings', 'withdrawals'])}
-                        {group('ACCOUNT', ['profile', 'security'])}
+                        {user.role === 'dealer' && group(translate('portal', 'nav_dealer_workspace'), dealerGroup)}
+                        {user.role === 'sub_dealer' && group(translate('portal', 'nav_subdealer_workspace'), subDealerGroup)}
+                        {group(translate('portal', 'nav_my_earnings'), ['earnings', 'withdrawals'])}
+                        {group(translate('portal', 'nav_account'), ['profile', 'security'])}
                     </>
                 )}
 
@@ -187,13 +233,13 @@ export default function Shell({ section, children, action }: { section: string; 
                     {!staff && (
                         <div className="help-card">
                             <Leaf size={22} />
-                            <b>Growing, together.</b>
-                            <span>One connected Madina network.</span>
-                            <a href="/contact">Contact the company <ArrowUpRight size={14} /></a>
+                            <b>{translate('portal', 'help_title')}</b>
+                            <span>{translate('portal', 'help_body')}</span>
+                            <a href="/contact">{translate('portal', 'contact_company')} <ArrowUpRight size={14} /></a>
                         </div>
                     )}
                     <button className="sign-out" onClick={() => router.post('/logout')}>
-                        <LogOut size={17} />Log out
+                        <LogOut size={17} />{translate('portal', 'log_out')}
                     </button>
                 </div>
             </aside>
@@ -205,19 +251,20 @@ export default function Shell({ section, children, action }: { section: string; 
                         <button
                             ref={toggle}
                             className="icon-button workspace-menu-button"
-                            aria-label="Open navigation"
+                            aria-label={translate('portal', 'open_navigation')}
                             aria-controls="workspace-navigation"
                             aria-expanded={open}
                             onClick={() => setOpen(true)}
                         >
                             <Menu size={19} />
                         </button>
-                        <span>Workspace</span>
+                        <span>{translate('portal', 'workspace')}</span>
                         <span>/</span>
-                        <b>{section === 'catalog' && staff ? 'Product Management' : (names[section] ?? 'Order details')}</b>
+                        <b>{currentSectionTitle}</b>
                     </div>
                     <div className="header-actions">
-                        <Link href={base + '/notifications'} className="icon-button" aria-label="Notifications">
+                        <LanguageSwitcher compact />
+                        <Link href={base + '/notifications'} className="icon-button" aria-label={translate('portal', 'notifications')}>
                             <Bell size={19} />
                         </Link>
                         <div className="avatar">{user.name.slice(0, 1)}</div>
@@ -228,207 +275,143 @@ export default function Shell({ section, children, action }: { section: string; 
                         <button
                             type="button"
                             className="workspace-logout-btn"
-                            title="Log out"
-                            aria-label="Log out"
+                            title={translate('portal', 'log_out')}
+                            aria-label={translate('portal', 'log_out')}
                             onClick={() => router.post('/logout')}
                         >
                             <LogOut size={16} />
-                            <span>Log out</span>
+                            <span>{translate('portal', 'log_out')}</span>
                         </button>
                     </div>
                 </header>
 
                 <main id="workspace-main" className="workspace-main">
-                    <div className="page-heading">
+                    <div className="page-heading portal-fade-in">
                         <div>
-                            <div className="eyebrow">MADINA / {ownerPortal ? 'OWNER' : staff ? 'COMPANY' : portal === 'subdealer' ? 'SUB-DEALER' : 'DEALER'} PORTAL</div>
-                            <h1>
-                                {section === 'overview'
-                                    ? (ownerPortal ? 'Owner Dashboard' : staff ? 'Company Dashboard' : 'My Account')
-                                    : (section === 'catalog' && staff ? 'Product Management' : (names[section] ?? 'Order details'))}
-                            </h1>
-                            <p>
-                                {section === 'overview'
-                                    ? `Welcome back, ${user.name.split(' ')[0]}. Here’s what’s happening across your ${staff ? 'business' : 'account'}.`
-                                    : (section === 'catalog' && staff
-                                        ? 'Manage product information, partner pricing, stock availability and the public showcase.'
-                                        : 'Everything you need, with a clear trail of activity.')}
-                            </p>
+                            <div className="eyebrow">MADINA / {portalLabel}</div>
+                            <h1>{currentSectionTitle}</h1>
+                            <p>{currentSectionHint}</p>
                         </div>
                         {action}
                     </div>
 
-                    {/* Staff Top Domain Navigation Banner with 3 Pillars & Subsections */}
                     {staff && (
-                        <div style={{
-                            background: '#ffffff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 10,
-                            padding: '14px 18px',
-                            marginBottom: 20,
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
-                        }}>
-                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="domain-rail portal-fade-in">
+                            <div className="domain-rail-top">
+                                <div className="domain-rail-tabs" role="tablist" aria-label={translate('portal', 'workspace')}>
                                     <Link
                                         href="/"
-                                        style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            padding: '8px 16px',
-                                            borderRadius: 8,
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            textDecoration: 'none',
-                                            background: currentDomain === 'company' ? '#011627' : '#f8fafc',
-                                            color: currentDomain === 'company' ? '#ffffff' : '#475569',
-                                            border: currentDomain === 'company' ? '1px solid #011627' : '1px solid #e2e8f0',
-                                        }}
+                                        role="tab"
+                                        aria-selected={currentDomain === 'company'}
+                                        className={`domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
                                     >
-                                        <span>🏢</span> {ownerPortal ? 'OWNER SECTION' : 'COMPANY SECTION'}
+                                        <Briefcase size={15} />
+                                        {ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section')}
                                     </Link>
 
                                     {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
                                         <Link
                                             href={capabilities.includes('accounts') ? '/accounts' : (capabilities.includes('orders') ? '/orders' : '/commissions')}
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 8,
-                                                padding: '8px 16px',
-                                                borderRadius: 8,
-                                                fontSize: 12,
-                                                fontWeight: 700,
-                                                textDecoration: 'none',
-                                                background: currentDomain === 'dealers' ? '#2e3192' : '#f8fafc',
-                                                color: currentDomain === 'dealers' ? '#ffffff' : '#475569',
-                                                border: currentDomain === 'dealers' ? '1px solid #2e3192' : '1px solid #e2e8f0',
-                                            }}
+                                            role="tab"
+                                            aria-selected={currentDomain === 'dealers'}
+                                            className={`domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
                                         >
-                                            <span>🤝</span> DEALER SECTION
+                                            <Users size={15} />
+                                            {translate('portal', 'nav_dealer_section')}
                                         </Link>
                                     )}
 
                                     {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
                                         <Link
                                             href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('orders') ? '/sub-dealer-orders' : '/salary')}
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 8,
-                                                padding: '8px 16px',
-                                                borderRadius: 8,
-                                                fontSize: 12,
-                                                fontWeight: 700,
-                                                textDecoration: 'none',
-                                                background: currentDomain === 'sub_dealers' ? '#059669' : '#f8fafc',
-                                                color: currentDomain === 'sub_dealers' ? '#ffffff' : '#475569',
-                                                border: currentDomain === 'sub_dealers' ? '1px solid #059669' : '1px solid #e2e8f0',
-                                            }}
+                                            role="tab"
+                                            aria-selected={currentDomain === 'sub_dealers'}
+                                            className={`domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
                                         >
-                                            <span>🏬</span> SUB-DEALER SECTION
+                                            <Store size={15} />
+                                            {translate('portal', 'nav_subdealer_section')}
                                         </Link>
                                     )}
 
                                     {capabilities.includes('accounts') && (
                                         <Link
                                             href="/dashboards"
-                                            style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: 8,
-                                                padding: '8px 16px',
-                                                borderRadius: 8,
-                                                fontSize: 12,
-                                                fontWeight: 700,
-                                                textDecoration: 'none',
-                                                background: currentDomain === 'dashboards' ? '#2e3192' : '#f8fafc',
-                                                color: currentDomain === 'dashboards' ? '#ffffff' : '#475569',
-                                                border: currentDomain === 'dashboards' ? '1px solid #2e3192' : '1px solid #e2e8f0',
-                                            }}
+                                            role="tab"
+                                            aria-selected={currentDomain === 'dashboards'}
+                                            className={`domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
                                         >
-                                            <span>🎛️</span> DASHBOARD MANAGEMENT
+                                            <SlidersHorizontal size={15} />
+                                            {translate('portal', 'nav_dashboard_mgmt')}
                                         </Link>
                                     )}
                                 </div>
 
-                                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                                <span className="domain-rail-caption">
                                     {currentDomain === 'dashboards'
-                                        ? 'Managing Global Dashboards & Role Controls'
+                                        ? translate('portal', 'domain_dashboards')
                                         : currentDomain === 'company'
-                                            ? 'Managing Company & Treasury'
+                                            ? translate('portal', 'domain_company')
                                             : currentDomain === 'dealers'
-                                                ? 'Managing Dealer Network & Commissions'
-                                                : 'Managing Sub-Dealers & 40% Margin'}
+                                                ? translate('portal', 'domain_dealers')
+                                                : translate('portal', 'domain_sub_dealers')}
                                 </span>
                             </div>
 
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                flexWrap: 'wrap',
-                                paddingTop: 12,
-                                marginTop: 12,
-                                borderTop: '1px solid #f1f5f9'
-                            }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginRight: 4 }}>
-                                    Subsections:
-                                </span>
+                            <div className="domain-rail-links">
+                                <span>{translate('portal', 'subsections')}</span>
                                 {currentDomain === 'company' && (
                                     <>
-                                        <Link href="/" className={`button small ${section === 'overview' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Overview</Link>
+                                        <Link href="/" className={`button small ${section === 'overview' ? 'dark' : ''}`}>{translate('portal', 'overview')}</Link>
                                         {capabilities.includes('accounts') && (
-                                            <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Employees & Staff</Link>
+                                            <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
                                         )}
                                         {capabilities.includes('finance') && (
-                                            <Link href="/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`} style={{ fontSize: 11 }}>Treasury & Money Flow</Link>
+                                            <Link href="/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'treasury')}</Link>
                                         )}
-                                        <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Product Management</Link>
+                                        <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
                                         {capabilities.includes('inventory') && (
-                                            <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Inventory & Stock</Link>
+                                            <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`}>{translate('portal', 'inventory')}</Link>
                                         )}
                                         {capabilities.includes('content') && (
-                                            <Link href="/customization" className={`button small ${section === 'customization' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Site Customization</Link>
+                                            <Link href="/customization" className={`button small ${section === 'customization' ? 'dark' : ''}`}>{translate('portal', 'customization')}</Link>
                                         )}
                                         {capabilities.includes('audit') && (
-                                            <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Audit Trail</Link>
+                                            <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`}>{translate('portal', 'audit')}</Link>
                                         )}
                                     </>
                                 )}
 
                                 {currentDomain === 'dealers' && (
                                     <>
-                                        {capabilities.includes('accounts') && <Link href="/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Dealer Accounts</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Orders</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Deliveries</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Outstanding Dues</Link>}
-                                        {capabilities.includes('finance') && <Link href="/commissions" className={`button small ${section === 'commissions' ? 'dark' : ''}`} style={{ fontSize: 11, background: section === 'commissions' ? '#2e3192' : '#eef0ff', color: section === 'commissions' ? '#fff' : '#2e3192', borderColor: '#c7d2fe' }}>★ Commission Studio</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Network Tree</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Area Dealers</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Ranks & Royalties</Link>}
-                                        {capabilities.includes('finance') && <Link href="/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Car & Bike Rewards</Link>}
-                                        {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Settlements</Link>}
-                                        {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`} style={{ fontSize: 11 }}>What-If Simulator</Link>}
-                                        {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Disbursements</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`}>{translate('portal', 'accounts')}</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`}>{translate('portal', 'orders')}</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`}>{translate('portal', 'deliveries')}</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`}>{translate('portal', 'dues')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/commissions" className={`button small accent ${section === 'commissions' ? 'dark' : ''}`}>{translate('portal', 'commissions')}</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`}>{translate('portal', 'network_tree')}</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`}>{translate('portal', 'area_dealers')}</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`}>{translate('portal', 'ranks')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`}>{translate('portal', 'rewards')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`}>{translate('portal', 'settlements')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`}>{translate('portal', 'simulator')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`}>{translate('portal', 'payouts_hub')}</Link>}
                                     </>
                                 )}
 
                                 {currentDomain === 'sub_dealers' && (
                                     <>
-                                        {capabilities.includes('accounts') && <Link href="/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Sub-Dealer Accounts</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`} style={{ fontSize: 11 }}>40% Margin Orders</Link>}
-                                        {capabilities.includes('finance') && <Link href="/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Monthly Salary · 3%</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`}>{translate('portal', 'sub_dealers')}</Link>}
+                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`}>{translate('portal', 'sub_dealer_orders')}</Link>}
+                                        {capabilities.includes('finance') && <Link href="/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`}>{translate('portal', 'salary')}</Link>}
                                     </>
                                 )}
 
                                 {currentDomain === 'dashboards' && (
                                     <>
-                                        <Link href="/dashboards" className={`button small ${section === 'dashboards' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Control Center</Link>
-                                        <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`} style={{ fontSize: 11 }}>Employees & Staff</Link>
-                                        <Link href="/accounts" className="button small" style={{ fontSize: 11 }}>Dealer Accounts</Link>
-                                        <Link href="/sub-dealers" className="button small" style={{ fontSize: 11 }}>Sub-Dealer Accounts</Link>
+                                        <Link href="/dashboards" className={`button small ${section === 'dashboards' ? 'dark' : ''}`}>{translate('portal', 'dashboards')}</Link>
+                                        <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
+                                        <Link href="/accounts" className="button small">{translate('portal', 'accounts')}</Link>
+                                        <Link href="/sub-dealers" className="button small">{translate('portal', 'sub_dealers')}</Link>
                                     </>
                                 )}
                             </div>
@@ -436,49 +419,27 @@ export default function Shell({ section, children, action }: { section: string; 
                     )}
 
                     {dashboardNotice && dashboardNotice.text && (
-                        <div style={{
-                            padding: '12px 16px',
-                            marginBottom: 20,
-                            borderRadius: 8,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            fontSize: 13,
-                            fontWeight: 500,
-                            background: dashboardNotice.type === 'warning' ? '#fffbeb' : dashboardNotice.type === 'success' ? '#ecfdf5' : '#eff6ff',
-                            color: dashboardNotice.type === 'warning' ? '#92400e' : dashboardNotice.type === 'success' ? '#065f46' : '#1e40af',
-                            border: `1px solid ${dashboardNotice.type === 'warning' ? '#fde68a' : dashboardNotice.type === 'success' ? '#a7f3d0' : '#bfdbfe'}`
-                        }}>
-                            <Bell size={18} style={{ flexShrink: 0 }} />
-                            <div style={{ flex: 1 }}>{dashboardNotice.text}</div>
+                        <div className={`portal-notice portal-notice-${dashboardNotice.type || 'info'}`}>
+                            <Bell size={18} />
+                            <div>{dashboardNotice.text}</div>
                         </div>
                     )}
 
                     {dashboardNotice?.maintenance && !staff && (
-                        <div style={{
-                            padding: '16px 20px',
-                            marginBottom: 20,
-                            borderRadius: 8,
-                            background: '#fef2f2',
-                            border: '1px solid #fecaca',
-                            color: '#991b1b',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12
-                        }}>
-                            <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                        <div className="portal-notice portal-notice-danger">
+                            <AlertTriangle size={20} />
                             <div>
-                                <div style={{ fontWeight: 700, fontSize: 14 }}>System Notice: Portal Under Scheduled Maintenance</div>
-                                <div style={{ fontSize: 12, marginTop: 2 }}>Some workspace ordering and submission features may be temporarily limited while administrative maintenance is underway.</div>
+                                <strong>{translate('portal', 'maintenance_title')}</strong>
+                                <p>{translate('portal', 'maintenance_body')}</p>
                             </div>
                         </div>
                     )}
 
                     <Flash />
-                    {children}
+                    <div className="portal-workspace-body portal-fade-in-delayed">{children}</div>
                     {demoMode && (
                         <div className="demo-banner">
-                            LOCAL PREVIEW · Synthetic demonstration data. Earnings and payouts are not active.
+                            {translate('portal', 'demo_banner')}
                         </div>
                     )}
                     <footer className="workspace-footer">

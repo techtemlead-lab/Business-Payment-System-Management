@@ -6,6 +6,7 @@ use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
 use App\Http\Middleware\ProtectPrivateResponses;
+use App\Http\Middleware\SetLocale;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return $hosts;
         });
-        $middleware->web(append: [CoordinateBackups::class, ProtectPrivateResponses::class, EnforceStaffActions::class, HandleInertiaRequests::class]);
+        $middleware->web(append: [SetLocale::class, CoordinateBackups::class, ProtectPrivateResponses::class, EnforceStaffActions::class, HandleInertiaRequests::class]);
         $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class]);
         $middleware->redirectGuestsTo(fn (Request $r) => '/login');
         $middleware->redirectUsersTo(fn (Request $r) => $r->user() ? PortalHost::homeUrl($r->user()) : '/');

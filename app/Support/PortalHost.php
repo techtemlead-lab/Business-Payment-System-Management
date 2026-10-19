@@ -158,7 +158,7 @@ final class PortalHost
             return $actor instanceof User ? self::forUser($actor) : 'dealer';
         }
         if (str_starts_with($path, '/api/') || str_starts_with($path, '/commands/') || str_starts_with($path, '/exports/')) {
-            return $actor instanceof User ? self::forUser($actor) : null;
+            return $actor instanceof User ? self::forUser($actor) : 'dealer';
         }
 
         return null;
