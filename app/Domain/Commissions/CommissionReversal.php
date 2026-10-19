@@ -17,16 +17,16 @@ final class CommissionReversal
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification) {}
 
     /** @return list<array<string, mixed>> */
-    public function refund(Order $order, ?int $requested, string $reason, string $reference): array
+    public function refund(Order $order, ?int $requested, string $reason, string $reference, ?int $actorId = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order, $requested, $reason, $reference): array {
+        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
             if (! $batch) {
-                return [];
+                throw ValidationException::withMessages(['order' => 'This order has no posted commissions to reverse. No adjustment was recorded.']);
             }
             $existing = DB::table('commission_refunds')->where('order_id', $order->id)->where('reference', $reference)->first();
             if ($existing) {
@@ -65,11 +65,24 @@ final class CommissionReversal
                 }
                 $payouts = DB::table('commission_settlement_payouts')->where('allocation_id', $allocation->id)->orderBy('id')->lockForUpdate()->get();
                 foreach ($payouts as $payout) {
-                    $target = $this->proportion(Money::cents($payout->amount), $after, $cash);
+                    $basis = Money::cents($payout->refunded_basis);
+                    $target = $this->proportion(Money::cents($payout->amount), max(0, $after - $basis), $cash - $basis);
                     $delta = $target - Money::cents($payout->reversed_amount);
                     if ($delta > 0) {
                         $recipients[] = ['user_id' => $payout->user_id, 'amount' => $delta, 'held' => false];
                         DB::table('commission_settlement_payouts')->where('id', $payout->id)->update(['reversed_amount' => Money::decimal($target), 'updated_at' => now()]);
+                    }
+                }
+                foreach (DB::table('reserve_expense_sources as s')->join('reserve_disbursements as d', 'd.id', '=', 's.disbursement_id')
+                    ->where('s.allocation_id', $allocation->id)->where('d.status', 'paid')->get(['s.*']) as $expense) {
+                    $basis = Money::cents($expense->refunded_basis);
+                    $target = $this->proportion(Money::cents($expense->amount), max(0, $after - $basis), $cash - $basis);
+                    $delta = $target - Money::cents($expense->reversed_amount);
+                    if ($delta > 0) {
+                        DB::table('reserve_expense_sources')->where('id', $expense->id)->update(['reversed_amount' => Money::decimal($target), 'updated_at' => now()]);
+                        DB::table('reserve_expense_clawbacks')->insert(['refund_id' => $id, 'source_id' => $expense->id, 'amount' => Money::decimal($delta), 'created_at' => now(), 'updated_at' => now()]);
+                        $journal[] = ['account' => 'company_reserve_clawback_receivable', 'user_id' => null, 'debit' => $delta, 'credit' => 0];
+                        $unrecoveredTotal += $delta;
                     }
                 }
                 $ownDebt = 0;
@@ -116,7 +129,7 @@ final class CommissionReversal
             foreach (ReferralTreePath::getUplines($order->user_id, 100) as $path) {
                 $this->qualification->refreshMilestones($path->ancestor_id);
             }
-            Audit::record($order->user_id, 'commissions.reversed', $order->id, ['reference' => $reference, 'refund_amount' => Money::decimal($amount), 'reason' => $reason]);
+            Audit::record($actorId, 'commissions.reversed', $order->id, ['buyer_id' => $order->user_id, 'reference' => $reference, 'refund_amount' => Money::decimal($amount), 'reason' => $reason]);
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);

@@ -10,6 +10,9 @@ import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 
 const icons: Record<string, LucideIcon> = {
+    'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
+    'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
+    'data-imports': FileText, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
@@ -21,6 +24,9 @@ const icons: Record<string, LucideIcon> = {
 };
 
 const names: Record<string, string> = {
+    'field-sales': 'Field sales', 'staff-operations': 'Territories & targets', 'payroll': 'Staff payroll', 'my-payroll': 'My payroll',
+    'payment-accounts': 'Payment accounts', 'policy-schedules': 'Commission schedules', 'reserve-payouts': 'Reserve payouts',
+    'data-imports': 'Excel data import', 'commission-holds': 'Commission holds', 'financial-readiness': 'Opening balance review', 'financial-reports': 'Financial reports', 'dues-adjustments':'Due adjustments', 'finance-settings':'Finance settings', 'access-management':'Roles & permissions', 'video-marketing':'Video marketing',
     overview: 'Overview', orders: 'Orders', catalog: 'Product collection', accounts: 'Dealer Directory', inventory: 'Inventory',
     deliveries: 'Deliveries', dues: 'Outstanding dues', payments: 'Payment review', network: 'My network', policies: 'Commission policies',
     salary: 'Sub-dealer flat 3% salary', withdrawals: 'Withdrawals', ledger: 'Financial ledger', reports: 'Reports', customization: 'Site Customization',
@@ -73,6 +79,15 @@ export default function Shell({ section, children, action }: { section: string; 
     // Grouping by 3 Pillars for Staff
     const companyGroup = staff ? [
         'overview',
+        'my-payroll',
+        ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
+        ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
+        ...(capabilities.includes('payroll') ? ['payroll'] : []),
+        ...(capabilities.some(cap=>['finance','accounts'].includes(cap)) ? ['data-imports'] : []),
+        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness','dues-adjustments','finance-settings'] : []),
+        ...(capabilities.some(cap=>['finance','reports','field_sales'].includes(cap)) ? ['financial-reports'] : []),
+        ...(user.role==='super_admin'?['access-management']:[]),
+        ...(capabilities.some(cap=>['content','catalog'].includes(cap))?['video-marketing']:[]),
         ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
         ...(capabilities.includes('finance') ? ['treasury'] : []),
         ...(capabilities.some(cap=>['catalog','pricing','inventory','orders','finance'].includes(cap)) ? ['catalog'] : []),
@@ -106,7 +121,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         onClick={() => setOpen(false)}
                         aria-current={section === item ? 'page' : undefined}
                         className={section === item ? 'selected' : ''}
-                        href={`${base}/${item === 'overview' ? '' : item}`}
+                        href={`${base}/${['data-imports','field-sales','staff-operations','payroll','my-payroll','payment-accounts','policy-schedules','reserve-payouts','commission-holds','financial-readiness','financial-reports','dues-adjustments','finance-settings','access-management','video-marketing'].includes(item)?'operations/':''}${item === 'overview' ? '' : item}`}
                         key={item}
                     >
                         <Icon size={18} />
@@ -235,7 +250,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                 {section === 'overview'
                                     ? `Welcome back, ${user.name.split(' ')[0]}. Here’s what’s happening across your ${staff ? 'business' : 'account'}.`
                                     : (section === 'catalog' && staff
-                                        ? 'Manage catalog products, pricing, stock status, promotional discounts, and packages.'
+                                        ? 'Manage product information, partner pricing, stock availability and the public showcase.'
                                         : 'Everything you need, with a clear trail of activity.')}
                             </p>
                         </div>

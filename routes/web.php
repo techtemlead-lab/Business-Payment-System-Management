@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\PublicController;
@@ -10,7 +11,6 @@ use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'index']);
-Route::get('/products/preview/{id}', [PublicController::class, 'previewProduct']);
 Route::get('/products/{product}/image', [ProductRegistryController::class, 'image'])->name('products.image');
 Route::get('/products/{product}/video', [ProductRegistryController::class, 'video'])->name('products.video');
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
@@ -19,6 +19,12 @@ Route::get('/outlets', fn () => redirect('/dealers', 301));
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
 Route::middleware('guest')->group(function () {
+    Route::get('/owner/login', fn () => view('company.auth', ['mode' => 'login', 'ownerPortal' => true]))->name('owner.login');
+    Route::post('/owner/login', [AuthController::class, 'ownerLogin'])->middleware('throttle:20,1');
+    Route::get('/owner/forgot-password', fn () => view('company.auth', ['mode' => 'forgot', 'ownerPortal' => true]))->name('owner.password.request');
+    Route::post('/owner/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
+    Route::get('/owner/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'ownerPortal' => true, 'token' => $token, 'email' => request('email')]))->name('owner.password.reset');
+    Route::post('/owner/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
     Route::get('/company/login', fn () => view('company.auth', ['mode' => 'login']))->name('company.login');
     Route::post('/company/login', [AuthController::class, 'companyLogin'])->middleware('throttle:20,1');
     Route::get('/company/forgot-password', fn () => view('company.auth', ['mode' => 'forgot']))->name('company.password.request');
@@ -42,6 +48,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/workspace/{section?}', [PortalController::class, 'index']);
     });
     Route::prefix('company')->middleware('portal:company')->group(function () {
+        Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections)->name('company.operations');
         Route::get('/accounts/create', [PortalController::class, 'createAccount']);
         Route::get('/products/create', [ProductRegistryController::class, 'edit']);
         Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
@@ -82,9 +89,9 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/commands/commissions/settle-rank-royalty', [CommandController::class, 'settleRankRoyaltyPool']);
     Route::post('/commands/commissions/claim-incentive/{user}', [CommandController::class, 'claimRankIncentive']);
     Route::post('/commands/commissions/release-matured', [CommandController::class, 'releaseMaturedCommissions']);
-    Route::post('/commands/commissions/simulate',[CommandController::class, 'simulateCommissions']);
-    Route::post('/commands/area-dealers',[CommandController::class, 'assignAreaDealer']);
-    Route::delete('/commands/area-dealers/{id}',[CommandController::class, 'removeAreaDealer']);
+    Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
+    Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
+    Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
 });
 
 require __DIR__.'/backend.php';

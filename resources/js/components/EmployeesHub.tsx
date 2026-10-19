@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router, useForm, Link } from '@inertiajs/react';
+import { router, useForm, usePage, Link } from '@inertiajs/react';
 import {
     Users, ShieldCheck, UserPlus, CheckSquare, Square, Search,
     Lock, Mail, Phone, Key, AlertCircle, Sparkles, Filter, CheckCircle2,
@@ -32,6 +32,8 @@ export interface EmployeeHubProps {
 }
 
 export default function EmployeesHub({ employees, availablePermissions, stats, filters }: EmployeeHubProps) {
+    const {auth} = usePage<any>().props;
+    const canManageStaff = auth.user.role === 'super_admin';
     const [search, setSearch] = useState(filters.q || '');
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalEmployee, setEditModalEmployee] = useState<Row | null>(null);
@@ -71,7 +73,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
         setEditModalEmployee(employee);
         const currentPermissions: string[] = Array.isArray(employee.profile?.permissions)
             ? employee.profile.permissions
-            : [];
+            : employee.role === 'sr' ? ['field_sales','sr_orders','sr_dues','sr_onboarding'] : [];
         editForm.setData({
             name: employee.name || '',
             phone: employee.phone || '',
@@ -104,7 +106,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
     };
 
     const applyEditPreset = (keys: string[]) => {
-        editForm.setData('permissions', [...keys]);
+        editForm.setData('permissions', editModalEmployee?.role === 'sr' ? keys.filter(key=>['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(key)) : [...keys]);
     };
 
     const submitCreate = (e: React.FormEvent) => {
@@ -120,6 +122,11 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
     const submitEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editModalEmployee) return;
+        editForm.transform(data => {
+            if (!editModalEmployee.profile?.action_permissions && !editModalEmployee.role.startsWith('custom_')) return data;
+            const {permissions, ...accountDetails} = data;
+            return accountDetails as typeof data;
+        });
         editForm.patch(`/commands/accounts/${editModalEmployee.id}`, {
             onSuccess: () => {
                 setEditModalEmployee(null);
@@ -152,6 +159,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                     <button
                         type="button"
                         className="button dark"
+                        disabled={!canManageStaff}
                         onClick={() => setCreateModalOpen(true)}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', fontWeight: 700 }}
                     >
@@ -247,7 +255,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             key: 'permissions',
                             title: 'Granted Capabilities',
                             render: r => {
-                                const perms: string[] = Array.isArray(r.profile?.permissions) ? r.profile.permissions : [];
+                                const perms: string[] = r.effective_permissions ?? [];
                                 if (!perms.length) {
                                     return <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>No permissions granted (Restricted)</span>;
                                 }
@@ -293,14 +301,16 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         type="button"
                                         className="button small"
                                         style={{ fontSize: 11, padding: '4px 10px', background: '#011627', color: '#fff' }}
+                                        disabled={!canManageStaff}
                                         onClick={() => handleOpenEdit(r)}
                                     >
-                                        Edit Permissions
+                                        Edit staff details
                                     </button>
                                     <button
                                         type="button"
                                         className="text-link"
                                         style={{ fontSize: 11 }}
+                                        disabled={!canManageStaff || r.status !== 'active'}
                                         onClick={() => router.post(`/commands/accounts/${r.id}/invite`)}
                                     >
                                         Send Invite
@@ -583,7 +593,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     Edit Permissions for {editModalEmployee.name}
                                 </h3>
                                 <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                    {editModalEmployee.email} · Modifying granted dashboard permissions
+                                    {editModalEmployee.email} · Staff details and dashboard access
                                 </p>
                             </div>
                             <button
@@ -626,6 +636,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
                             </div>
 
+                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">This account uses detailed action permissions. <Link href="/company/operations/access-management" className="text-link">Manage roles and permissions</Link></p> : <>
                             {/* Preset Buttons */}
                             <div style={{ marginTop: 20, marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -689,7 +700,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                             {cat} Modules
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
-                                            {availablePermissions.filter(p => p.category === cat).map(p => {
+                                            {availablePermissions.filter(p => p.category === cat && (editModalEmployee?.role !== 'sr' || ['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(p.key))).map(p => {
                                                 const checked = editForm.data.permissions.includes(p.key);
                                                 return (
                                                     <label
@@ -732,8 +743,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 ))}
                             </div>
 
+                            </>}
+
                             <label style={{ marginTop: 14 }}>
-                                Reason for Permission Correction *
+                                Reason for staff correction *
                                 <textarea
                                     required
                                     rows={2}

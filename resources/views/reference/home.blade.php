@@ -1,7 +1,4 @@
 @php
-    $reference = json_decode(file_get_contents(public_path('reference/home-products.json')), true);
-    $referenceProducts = $referencePreview ? $reference['products'] : [];
-
     $slides = $siteCustomization['slides'] ?? [];
     if (empty($slides)) {
         $slides = [
@@ -33,10 +30,10 @@
     if (empty($shortcuts)) {
         $shortcuts = [
             ['title'=>'Our Products','subtitle'=>'browse wellness items','icon'=>'fa-seedling','link'=>'/products'],
-            ['title'=>'Raise a Complain','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=Complaint'],
+            ['title'=>'Share Feedback','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=Complaint'],
             ['title'=>'Our Services','subtitle'=>'Natural Health Care and Physiotherapy Center','icon'=>'fa-hand-holding-heart','link'=>'/about'],
             ['title'=>'Contact Us','subtitle'=>'Support & Inquiries','icon'=>'fa-headset','link'=>'/contact'],
-            ['title'=>'Our Projects','subtitle'=>'Entrepreneur','icon'=>'fa-diagram-project','link'=>'/dealers']
+            ['title'=>'Our Network','subtitle'=>'Dealer Directory','icon'=>'fa-diagram-project','link'=>'/dealers']
         ];
     }
 @endphp
@@ -45,12 +42,24 @@
 @section('title','Madina Natural Health Care · Products & Dealer Network')
 @section('content')
 <main id="main" class="ref-container ref-main">
+    <section class="ref-company-intro" aria-labelledby="company-intro-title">
+        <div>
+            <span class="ref-company-eyebrow">Company &amp; Partner Network</span>
+            <h1 id="company-intro-title">{{ $siteCustomization['company_intro_title'] ?? 'Madina Natural Health Care' }}</h1>
+            <p>{{ $siteCustomization['company_intro_body'] ?? 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.' }}</p>
+            <div class="ref-company-intro-actions"><a href="/about" class="ref-primary-button">About Our Company <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a><a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a></div>
+        </div>
+        <div class="ref-company-paths">
+            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>Our Product Range</strong><small>Product information &amp; specifications</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>Partner With Us</strong><small>Dealer &amp; sub-dealer enquiries</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        </div>
+    </section>
     <section class="ref-promotions" aria-label="Promotional banners">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Featured promotions">
             <div class="ref-slides">
                 @foreach($slides as $idx => $slide)
                 <a href="{{ $slide['link'] ?: '/products' }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}">
-                    <img src="{{ ($slide['image'] ?: ('/reference/slider-0' . ($idx + 1) . '.webp')) . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                 </a>
                 @endforeach
             </div>
@@ -134,76 +143,6 @@
     </section>
     @endif
     @php
-        $campaignEnabled = filter_var($siteCustomization['campaign_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        $campaignCards = \App\Support\SiteCustomization::getCampaignCards();
-    @endphp
-    @if($campaignEnabled && !empty($campaignCards))
-    <section class="ref-campaign-section" aria-label="Special Offers and Campaigns">
-        <div class="ref-section-title">
-            <span class="ref-campaign-badge"><i class="fa-solid fa-bolt" aria-hidden="true"></i> {{ $siteCustomization['campaign_badge'] ?? 'SPECIAL CAMPAIGN & OFFERS' }}</span>
-            <h2>{{ $siteCustomization['campaign_title'] ?? 'Special Discounts & Promotional Offers' }}</h2>
-            <p>{{ $siteCustomization['campaign_subtitle'] ?? 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.' }}</p>
-        </div>
-        <div class="ref-campaign-grid">
-            @foreach($campaignCards as $card)
-            @php
-                $cardLink = !empty($card['link']) ? $card['link'] : '/products';
-                $isHighlight = filter_var($card['highlight'] ?? false, FILTER_VALIDATE_BOOLEAN);
-                $cardTitle = $card['title'] ?? 'Special Offer';
-                $feat1 = $card['feat1'] ?? '';
-                $feat2 = $card['feat2'] ?? '';
-            @endphp
-            <div class="ref-campaign-card {{ $isHighlight ? 'highlight' : '' }}">
-                @if(!empty($card['image']))
-                <a href="{{ $cardLink }}" class="ref-campaign-thumb-link" aria-label="{{ $cardTitle }}">
-                    <div class="ref-campaign-thumb">
-                        <img src="{{ $card['image'] }}" alt="{{ $cardTitle }}" loading="lazy">
-                    </div>
-                </a>
-                @endif
-                @if(!empty($card['tag']))
-                <span class="ref-discount-tag"><span class="ref-pulse-dot" aria-hidden="true"></span>{{ $card['tag'] }}</span>
-                @endif
-                <div class="ref-campaign-body">
-                    <a href="{{ $cardLink }}" class="ref-campaign-title-link">
-                        <h3>{{ $cardTitle }}</h3>
-                    </a>
-                    @if(!empty($card['desc']))
-                    <p>{{ $card['desc'] }}</p>
-                    @endif
-                    @if(($card['type'] ?? 'bundle') === 'bundle' && !empty($card['bundle_items']))
-                    <div class="ref-bundle-preview" style="margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
-                        <div style="font-size: 11px; font-weight: 700; color: #0284c7; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;">
-                            <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Package Includes ({{ count($card['bundle_items']) }} Products):
-                        </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                            @foreach($card['bundle_items'] as $bItem)
-                            <span style="font-size: 11px; background: #fff; padding: 2px 7px; border-radius: 4px; border: 1px solid #e2e8f0; color: #334155;">
-                                {{ $bItem['name'] ?? 'Product' }} @if(!empty($bItem['mrp']))<small style="color: #64748b;">(৳{{ number_format((float)$bItem['mrp']) }})</small>@endif
-                            </span>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-                    @if(!empty($feat1) || !empty($feat2))
-                    <ul class="ref-campaign-features">
-                        @if(!empty($feat1))<li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ $feat1 }}</li>@endif
-                        @if(!empty($feat2))<li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> {{ $feat2 }}</li>@endif
-                    </ul>
-                    @endif
-                    <div class="ref-campaign-pricing">
-                        @if(!empty($card['price']))<strong>{{ $card['price'] }}</strong>@endif
-                        @if(!empty($card['mrp']))<del>{{ $card['mrp'] }}</del>@endif
-                        @if(!empty($card['save']))<span class="ref-save-pill">{{ $card['save'] }}</span>@endif
-                    </div>
-                    <a href="{{ $cardLink }}" class="ref-primary-button">{{ $card['btn'] ?? 'View Package' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
-                </div>
-            </div>
-            @endforeach
-        </div>
-    </section>
-    @endif
-    @php
         $categoriesEnabled = filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
     @endphp
@@ -211,7 +150,7 @@
     <section class="ref-featured-categories" aria-label="Featured Categories">
         <div class="ref-section-title">
             <h2>{{ $siteCustomization['featured_categories_title'] ?? 'Featured Categories' }}</h2>
-            <p>{{ $siteCustomization['featured_categories_subtitle'] ?? 'Get Your Desired Product from Featured Category!' }}</p>
+            <p>{{ $siteCustomization['featured_categories_subtitle'] ?? 'Explore products by category.' }}</p>
         </div>
         <div class="ref-category-grid is-collapsed" id="refCategoryGrid">
             @foreach($categoriesList as $cat)
@@ -268,7 +207,7 @@
                 </div>
                 <div>
                     <h3>{{ $siteCustomization['dealer_banner_title'] ?? 'Authorized Dealer Network' }}</h3>
-                    <p>{{ $siteCustomization['dealer_banner_subtitle'] ?? 'Find your nearest authorized dealer or sub-dealer pharmacy with GPS distance calculation!' }}</p>
+                    <p>{{ $siteCustomization['dealer_banner_subtitle'] ?? 'Connect with an authorized local dealer for product information and purchase enquiries.' }}</p>
                 </div>
             </div>
             <a href="/dealers" class="ref-dealer-banner-btn">
@@ -290,7 +229,7 @@
                     <span class="ref-featured-badge"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ $siteCustomization['featured_products_badge'] }}</span>
                 @endif
                 <h2>{{ $siteCustomization['featured_products_title'] ?? 'Featured Products' }}</h2>
-                <p>{{ $siteCustomization['featured_products_subtitle'] ?? 'Check & Get Your Desired Product!' }}</p>
+                <p>{{ $siteCustomization['public_products_subtitle'] ?? 'Discover our product range and connect with an authorized dealer.' }}</p>
             </div>
             <a href="{{ $viewAllLink }}" class="ref-view-all-link">{{ $siteCustomization['featured_products_view_all'] ?? 'View All Products' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
@@ -323,13 +262,18 @@
         </div>
     </section>
     @endif
-    <section class="ref-home-about">
-        <h1>{{ $siteCustomization['about_headline'] ?? 'Natural Food, Medicine & Wellness Product Shop in Bangladesh' }}</h1>
-        <p>{{ $siteCustomization['about_lead'] ?? 'Madina Natural Health Care connects products, dealers and communities across Bangladesh. Explore the collection and contact the company for product information and partnership enquiries.' }}</p>
-        <details>
-            <summary>{{ $siteCustomization['about_summary_title'] ?? 'Read More' }} <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></summary>
-            <p>{{ $siteCustomization['about_summary_body'] ?? 'Our partner workspace brings product requests, deliveries, verified manual payments and company support together. Dealer accounts are created by authorized company staff.' }}</p>
-        </details>
+    @php($homepageVideo = \App\Support\ProductVideo::homepage())
+    @if($homepageVideo)
+    <section class="ref-product-video ref-home-video" aria-labelledby="homepage-video-title">
+        <h2 id="homepage-video-title">{{ $homepageVideo['title'] }}</h2>
+        @if(!empty($homepageVideo['description']))<p>{{ $homepageVideo['description'] }}</p>@endif
+        @if($homepageVideo['media']['video_embed_url'])
+            <iframe src="{{ $homepageVideo['media']['video_embed_url'] }}" title="{{ $homepageVideo['product_name'] }} promotional video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+        @else
+            <video controls playsinline preload="metadata" @if($homepageVideo['media']['image_url']) poster="{{ $homepageVideo['media']['image_url'] }}" @endif><source src="{{ $homepageVideo['media']['video_url'] }}">Your browser does not support video playback.</video>
+        @endif
     </section>
+    @endif
+
 </main>
 @endsection

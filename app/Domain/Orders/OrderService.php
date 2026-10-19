@@ -4,8 +4,10 @@ namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Pricing\ProductPricing;
+use App\Domain\Staff\TerritoryAccess;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -20,13 +22,16 @@ class OrderService
 {
     public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions, private readonly StockNotifications $stockNotifications) {}
 
-    public function create(User $user, array $data): Order
+    public function create(User $user, array $data, ?User $submittedBy = null): Order
     {
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
 
-        return DB::transaction(function () use ($user, $data): Order {
+        return DB::transaction(function () use ($user, $data, $submittedBy): Order {
             CommissionWallet::lock();
             $user = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            if ($submittedBy) {
+                app(TerritoryAccess::class)->assertPartner($submittedBy->fresh(), $user->id, 'sr_orders');
+            }
             abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true) && $user->status === 'active', 403);
             $hash = $this->hash($data);
             $existing = Order::where('user_id', $user->id)->where('idempotency_key', $data['idempotency_key'])->first();
@@ -45,21 +50,21 @@ class OrderService
                 $price = $this->pricing->unitPrice($product, $user);
                 $lineTotal = $price * $item['quantity'];
                 $total += $lineTotal;
-                $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku,
+                $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'category_snapshot' => $product->category,
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {
                 throw ValidationException::withMessages(['items' => 'Order amount exceeds the allowed limit.']);
             }
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
-                'user_id' => $user->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
+                'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
             if (! empty($data['reference'])) {
                 $this->insertClaim($order, $data);
             }
-            $this->event($order, $user, 'order.submitted');
+            $this->event($order, $submittedBy ?? $user, 'order.submitted');
             Audit::notice($user->id, 'Order submitted', $order->number.' is awaiting review.');
 
             return $order->refresh();
@@ -83,19 +88,20 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false): void
+    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => 'Choose approved, held or rejected.']);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit, $replacements): void {
+            CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
                 throw ValidationException::withMessages(['status' => 'This order has already been decided.']);
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
-            if ($status === 'approved' && Money::cents($locked->paid) < Money::cents($locked->total)) {
+            if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 if (! $allowCredit || ! $actor->allows('finance')) {
                     throw ValidationException::withMessages(['allow_credit' => 'Verify full payment or have Finance explicitly authorize this credit sale.']);
                 }
@@ -105,8 +111,18 @@ class OrderService
             if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
                 throw ValidationException::withMessages(['status' => 'A paid order needs the approved refund workflow.']);
             }
+            if ($status === 'approved') {
+                $this->commissions->capture($locked, $locked->user, 'approval', $replacements, $actor);
+            } elseif ($replacements !== []) {
+                throw ValidationException::withMessages(['replacement' => 'Select replacement recipients only when approving the order.']);
+            }
             $locked->update($changes);
-            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by'])]);
+            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by']),
+                'referral_replacements' => $status === 'approved' ? $locked->commission_policy_snapshot['referral_replacements'] ?? [] : []]);
+            if ($status === 'approved') {
+                Audit::record($actor->id, 'commissions.policy_approved', $locked->id, ['reason' => $reason, 'revision_id' => $locked->commission_policy_snapshot['revision_id'],
+                    'referral_replacements' => $locked->commission_policy_snapshot['referral_replacements'], 'funding_decisions' => $locked->commission_policy_snapshot['funding_decisions']]);
+            }
             Audit::notice($locked->user_id, 'Order '.$status, $locked->number.': '.$reason);
         }, 3);
     }
@@ -132,14 +148,21 @@ class OrderService
                         throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
                     }
                     $paid = Money::cents($order->paid) + Money::cents($claim->amount);
-                    if ($paid > Money::cents($order->total)) {
+                    if ($paid > Money::cents($order->total) - Money::cents($order->due_credit)) {
                         throw ValidationException::withMessages(['payment' => 'This would overpay the order.']);
                     }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
-                        'reference' => $claim->reference, 'amount' => $claim->amount, 'created_at' => now(), 'updated_at' => now()]);
+                        'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
+                    if ($order->is_opening_balance) {
+                        CommissionWallet::requireActive();
+                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, 'Collection against imported receivable '.$order->number, [
+                            ['account' => 'manual_collection_clearing', 'user_id' => null, 'debit' => Money::cents($claim->amount), 'credit' => 0],
+                            ['account' => 'opening_receivables', 'user_id' => $order->user_id, 'debit' => 0, 'credit' => Money::cents($claim->amount)],
+                        ]);
+                    }
                     $order->update(['paid' => Money::decimal($paid)]);
                     if ($paid >= Money::cents($order->total)) {
-                        $this->commissions->process($order);
+                        $this->commissions->process($order, $actor->id);
                     }
                 }
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
@@ -216,7 +239,7 @@ class OrderService
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();
             if (! $remaining && ! $openShipment) {
                 $locked->update(['status' => 'delivered']);
-                $this->commissions->process($locked);
+                $this->commissions->process($locked, $actor->id);
             }
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
             Audit::notice($locked->user_id, 'Delivery confirmed', $locked->number.': shipment delivery recorded by company staff.');
@@ -225,12 +248,15 @@ class OrderService
 
     private function insertClaim(Order $order, array $data): int
     {
-        $amount = Money::cents($data['amount']);
-        if ($amount <= 0 || $amount > Money::cents($order->total) - Money::cents($order->paid ?? '0')) {
+        $amount = Money::cents((string) $data['amount']);
+        if ($amount <= 0 || $amount > Money::cents($order->outstanding())) {
             throw ValidationException::withMessages(['amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.']);
         }
 
+        $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
+
         return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
+            'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode($account, JSON_THROW_ON_ERROR) : null,
             'reference' => Str::upper(trim($data['reference'])), 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
     }
 

@@ -7,6 +7,7 @@ use App\Domain\Inventory\StockNotifications;
 use App\Models\Product;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use App\Support\YouTubeVideo;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,10 @@ class ProductRegistryController extends Controller
         $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'mrp', 'dealer_price', 'sub_dealer_price', 'stock', 'low_stock_at', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version] : null;
         if ($data && $r->user()->allows('cost_read')) {
             $data['cost_price'] = $product->cost_price;
+        }
+        if ($data) {
+            $data['vimeo_url'] = $product->video_vimeo_id ? 'https://vimeo.com/'.$product->video_vimeo_id.($product->video_vimeo_hash ? '/'.$product->video_vimeo_hash : '') : '';
+            $data['external_video_url'] = $product->video_external_url ?? '';
         }
 
         return Inertia::render('ProductEditor', ['product' => $data, 'categories' => SiteCustomization::getConfiguredCategoryNames()]);
@@ -105,7 +110,7 @@ class ProductRegistryController extends Controller
         $inventory = $r->user()->allows('inventory');
         $required = $product ? 'sometimes|required' : 'required';
         $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? $required.'|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? $required.'|string|max:30' : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
-            'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
+            'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
             'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:20,50|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited',
             'sub_dealer_discount_pct' => $pricing ? 'nullable|numeric|between:20,50|decimal:0,2' : 'prohibited',
@@ -140,6 +145,20 @@ class ProductRegistryController extends Controller
         }
         $source = $d['video_source'] ?? $product?->video_source ?? 'none';
         $id = null;
+        $vimeo = null;
+        $external = null;
+        if (array_key_exists('video_source', $d) && $source === 'vimeo') {
+            $vimeo = ProductVideo::vimeo($d['vimeo_url'] ?? '');
+            if (! $vimeo) {
+                throw ValidationException::withMessages(['vimeo_url' => 'Enter a valid HTTPS Vimeo video link.']);
+            }
+        }
+        if (array_key_exists('video_source', $d) && $source === 'url') {
+            $external = ProductVideo::direct($d['external_video_url'] ?? '');
+            if (! $external) {
+                throw ValidationException::withMessages(['external_video_url' => 'Use a public HTTPS domain and a direct MP4 or WebM link without embedded credentials.']);
+            }
+        }
         if (array_key_exists('video_source', $d) && $source === 'youtube') {
             $id = YouTubeVideo::id($d['youtube_url'] ?? '');
             if (! $id) {
@@ -171,7 +190,7 @@ class ProductRegistryController extends Controller
                 }
             }
             $initialStock = (! $product && $r->filled('initial_stock') && (int) $r->input('initial_stock') > 0) ? (int) $r->input('initial_stock') : 0;
-            $saved = DB::transaction(function () use ($r, $product, $d, $source, $id, $stored, &$old, $initialStock) {
+            $saved = DB::transaction(function () use ($r, $product, $d, $source, $id, $vimeo, $external, $stored, &$old, $initialStock) {
                 $p = $product ? Product::whereKey($product->id)->lockForUpdate()->firstOrFail() : new Product;
                 $previousStock = (int) ($p->stock ?? 0);
                 $wasAvailable = $p->exists && $p->active && $previousStock > 0 && ! $p->is_stock_paused;
@@ -189,6 +208,9 @@ class ProductRegistryController extends Controller
                 if (array_key_exists('video_source', $d)) {
                     $attributes['video_source'] = $source === 'none' ? null : $source;
                     $attributes['video_youtube_id'] = $source === 'youtube' ? $id : null;
+                    $attributes['video_vimeo_id'] = $source === 'vimeo' ? $vimeo['id'] : null;
+                    $attributes['video_vimeo_hash'] = $source === 'vimeo' ? $vimeo['hash'] : null;
+                    $attributes['video_external_url'] = $source === 'url' ? $external : null;
                     if ($source !== 'upload' || isset($stored['video'])) {
                         $old[] = $p->video_path;
                         $attributes['video_path'] = $source === 'upload' ? ($stored['video'] ?? null) : null;

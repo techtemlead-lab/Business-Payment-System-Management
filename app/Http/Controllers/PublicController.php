@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\User;
-use App\Support\Money;
-use App\Support\ReferenceCatalog;
 use App\Support\SiteCustomization;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -78,12 +76,11 @@ class PublicController extends Controller
         }
         $districts = (clone $directory)->whereNotNull('district')->orderBy('district')->distinct()->pluck('district');
         $divisions = (clone $directory)->whereNotNull('division')->orderBy('division')->distinct()->pluck('division');
-        $referencePreview = ReferenceCatalog::enabled() && ! Product::where('active', true)->where('sku', 'not like', 'DEMO-%')->exists();
         $featuredProducts = SiteCustomization::getFeaturedProducts();
         $featuredCategoryTabs = SiteCustomization::getFeaturedCategoryTabs($featuredProducts);
         $featuredItems = $featuredProducts;
 
-        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'referencePreview', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
+        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
             'content' => DB::table('content_pages')->where('slug', $page)->where('published', true)->first(),
             'notice' => DB::table('content_pages')->where('slug', 'notice')->where('published', true)->first(),
             'categories' => Product::where('active', true)->orderBy('category')->distinct()->pluck('category'),
@@ -97,26 +94,13 @@ class PublicController extends Controller
         return view('reference.product', ['item' => $this->publicProduct($product)]);
     }
 
-    public function previewProduct(string $id): View
-    {
-        abort_unless(ReferenceCatalog::enabled(), 404);
-        $item = ReferenceCatalog::find($id);
-        abort_unless($item, 404);
-
-        return view('reference.product', compact('item'));
-    }
-
     private function publicProduct(Product $p): array
     {
-        $campaign = SiteCustomization::getCampaignForProduct($p->id, $p->name);
-        $price = $campaign && ! empty($campaign['price']) ? $campaign['price'] : $p->mrp;
-        $mrp = $campaign && ! empty($campaign['mrp']) ? $campaign['mrp'] : $p->mrp;
-
         return [
             ...$p->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'stock']),
-            'price' => $price,
-            'mrp' => $mrp,
-            'campaign' => $campaign,
+            'price' => $p->mrp,
+            'mrp' => $p->mrp,
+            'stock_status' => $p->stockStatus(),
             'url' => route('products.show', $p->id),
             'image_path' => $p->media()['image_url'],
             ...$p->media(),
@@ -126,40 +110,22 @@ class PublicController extends Controller
 
     private function catalog(Request $r): View
     {
-        $preview = ReferenceCatalog::enabled() && ! Product::where('active', true)->where('sku', 'not like', 'DEMO-%')->exists();
-        if (! $preview) {
-            $query = Product::where('active', true)->when($r->filled('q'), fn ($q) => $q->where('name', 'ilike', '%'.$r->string('q').'%'))->when($r->filled('category'), fn ($q) => $q->where('category', 'ilike', trim((string) $r->string('category'))))->when($r->boolean('in_stock'), fn ($q) => $q->where('stock', '>', 0))->when($r->filled('min_price'), fn ($q) => $q->where('mrp', '>=', (string) $r->string('min_price')))->when($r->filled('max_price'), fn ($q) => $q->where('mrp', '<=', (string) $r->string('max_price')));
-            $sort = $r->string('sort', 'name')->toString();
-            $sort === 'price_desc' ? $query->orderByDesc('mrp') : ($sort === 'price_asc' ? $query->orderBy('mrp') : $query->orderBy('name'));
-            $query->orderBy('id');
-            $catalog = $query->paginate(12)->withQueryString()->through(fn (Product $p) => $this->publicProduct($p));
-            $catalogCategories = Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
+        $query = Product::where('active', true)
+            ->when($r->filled('q'), fn ($query) => $query->where('name', 'ilike', '%'.$r->string('q').'%'))
+            ->when($r->filled('category'), fn ($query) => $query->where('category', 'ilike', trim((string) $r->string('category'))))
+            ->when($r->boolean('in_stock'), fn ($query) => $query->where('stock', '>', 0))
+            ->when($r->filled('min_price'), fn ($query) => $query->where('mrp', '>=', (string) $r->string('min_price')))
+            ->when($r->filled('max_price'), fn ($query) => $query->where('mrp', '<=', (string) $r->string('max_price')));
+        match ($r->string('sort', 'name')->toString()) {
+            'price_desc' => $query->orderByDesc('mrp'),
+            'price_asc' => $query->orderBy('mrp'),
+            default => $query->orderBy('name'),
+        };
+        $catalog = $query->orderBy('id')->paginate(12)->withQueryString()
+            ->through(fn (Product $product) => $this->publicProduct($product));
+        $catalogCategories = Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
 
-            return view('reference.catalog', compact('catalog', 'catalogCategories', 'preview'));
-        }
-        $items = $preview ? collect(ReferenceCatalog::items()) : Product::where('active', true)->get()->map(fn (Product $p) => $this->publicProduct($p));
-        $catalogCategories = $items->pluck('category')->unique()->sort()->values();
-        if ($r->filled('q')) {
-            $items = $items->filter(fn ($p) => str_contains(mb_strtolower($p['name']), mb_strtolower((string) $r->string('q'))));
-        }
-        if ($r->filled('category')) {
-            $items = $items->filter(fn ($p) => mb_strtolower(trim($p['category'])) === mb_strtolower(trim((string) $r->string('category'))));
-        }
-        if ($r->boolean('in_stock')) {
-            $items = $items->filter(fn ($p) => $p['stock'] > 0);
-        }
-        if ($r->filled('min_price')) {
-            $items = $items->filter(fn ($p) => Money::cents($p['price']) >= Money::cents((string) $r->string('min_price')));
-        }
-        if ($r->filled('max_price')) {
-            $items = $items->filter(fn ($p) => Money::cents($p['price']) <= Money::cents((string) $r->string('max_price')));
-        }
-        $sort = $r->string('sort', 'name')->toString();
-        $items = $sort === 'price_desc' ? $items->sortByDesc(fn ($p) => Money::cents($p['price'])) : ($sort === 'price_asc' ? $items->sortBy(fn ($p) => Money::cents($p['price'])) : $items->sortBy('name'));
-        $page = $r->integer('page', 1);
-        $catalog = new LengthAwarePaginator($items->values()->slice(($page - 1) * 12, 12), $items->count(), 12, $page, ['path' => '/products', 'query' => $r->query()]);
-
-        return view('reference.catalog', compact('catalog', 'catalogCategories', 'preview'));
+        return view('reference.catalog', compact('catalog', 'catalogCategories'));
     }
 
     public function enquiry(Request $request): RedirectResponse

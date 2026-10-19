@@ -82,11 +82,11 @@ export interface CustomizationData {
     header_contact_subtitle?: string;
     header_offers_title?: string;
     header_offers_subtitle?: string;
-    header_projects_title?: string;
+    header_network_title?: string;
     header_projects_subtitle?: string;
     header_account_title?: string;
     header_account_subtitle?: string;
-    header_shop_title?: string;
+    header_catalog_title?: string;
     nav_categories?: string;
 
     // Announcement
@@ -182,6 +182,9 @@ export interface CustomizationData {
     product_tab_specification?: string;
 
     // Homepage Story
+    company_intro_title?: string;
+    company_intro_body?: string;
+    public_products_subtitle?: string;
     about_headline?: string;
     about_lead?: string;
     about_summary_title?: string;
@@ -3204,9 +3207,9 @@ export function FeaturedProductsManager({
                 />
                 <Field
                     label="Section Subtitle"
-                    fieldKey="featured_products_subtitle"
-                    value={customization.featured_products_subtitle}
-                    placeholder={defaults.featured_products_subtitle || 'Check & Get Your Desired Product!'}
+                    fieldKey="public_products_subtitle"
+                    value={customization.public_products_subtitle}
+                    placeholder={defaults.public_products_subtitle || 'Discover our product range and connect with an authorized dealer.'}
                     onChange={updateField}
                 />
                 <Field
@@ -4154,11 +4157,11 @@ export default function SiteCustomizationEditor({
             header_contact_subtitle: customization.header_contact_subtitle || '',
             header_offers_title: customization.header_offers_title || '',
             header_offers_subtitle: customization.header_offers_subtitle || '',
-            header_projects_title: customization.header_projects_title || '',
+            header_network_title: customization.header_network_title || '',
             header_projects_subtitle: customization.header_projects_subtitle || '',
             header_account_title: customization.header_account_title || '',
             header_account_subtitle: customization.header_account_subtitle || '',
-            header_shop_title: customization.header_shop_title || '',
+            header_catalog_title: customization.header_catalog_title || '',
             nav_categories: customization.nav_categories || '',
 
             announcement_text: customization.announcement_text || '',
@@ -4337,6 +4340,9 @@ export default function SiteCustomizationEditor({
             product_tab_specification: customization.product_tab_specification || '',
 
             // Homepage Story
+            company_intro_title: customization.company_intro_title || '',
+            company_intro_body: customization.company_intro_body || '',
+            public_products_subtitle: customization.public_products_subtitle || '',
             about_headline: customization.about_headline || '',
             about_lead: customization.about_lead || '',
             about_summary_title: customization.about_summary_title || '',
@@ -4512,7 +4518,7 @@ export default function SiteCustomizationEditor({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Package size={20} color="#15803d" />
                         <span style={{ fontSize: 13, color: '#166534', fontWeight: 500 }}>
-                            Looking for <strong>Special Discounts, Promotional Offers & Package Bundles</strong>? They are managed in the dedicated <strong>Product Management</strong> section.
+                            Manage the homepage <strong>Product Showcase</strong> in <strong>Product Management</strong>. Purchasing is available through the dealer and sub-dealer dashboards.
                         </span>
                     </div>
                     <a href="/company/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
@@ -4527,7 +4533,7 @@ export default function SiteCustomizationEditor({
                         { id: 'shortcuts', label: 'Feature Shortcuts', icon: Sparkles },
                         { id: 'catalog', label: 'Headings & Catalog', icon: Package },
                         { id: 'pages', label: 'About, Contact & Dealers', icon: BookOpen },
-                        { id: 'footer', label: 'Footer, Dialogs & Auth', icon: Share2 },
+                        { id: 'footer', label: 'Footer & Partner Access', icon: Share2 },
                     ].map(t => {
                         const Icon = t.icon;
                         const active = tab === t.id;
@@ -4556,7 +4562,7 @@ export default function SiteCustomizationEditor({
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
                                 <Field label="Top Company Bar Text" fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
                                 <Field label="Search Input Placeholder" fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
-                                <Field label="Shop Button Label" fieldKey="header_shop_title" value={form.data.customization.header_shop_title} placeholder={defaults.header_shop_title} onChange={updateField} />
+                                <Field label="Product Catalogue Link Label" fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
                                 
                                 <Field label="About Us Link Title" fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
                                 <Field label="About Us Link Subtitle" fieldKey="header_about_subtitle" value={form.data.customization.header_about_subtitle} placeholder={defaults.header_about_subtitle} onChange={updateField} />
@@ -4564,11 +4570,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Contact Link Title" fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
                                 <Field label="Contact Link Subtitle" fieldKey="header_contact_subtitle" value={form.data.customization.header_contact_subtitle} placeholder={defaults.header_contact_subtitle} onChange={updateField} />
 
-                                <Field label="Offers Link Title" fieldKey="header_offers_title" value={form.data.customization.header_offers_title} placeholder={defaults.header_offers_title} onChange={updateField} />
-                                <Field label="Offers Link Subtitle" fieldKey="header_offers_subtitle" value={form.data.customization.header_offers_subtitle} placeholder={defaults.header_offers_subtitle} onChange={updateField} />
 
-                                <Field label="Projects Link Title" fieldKey="header_projects_title" value={form.data.customization.header_projects_title} placeholder={defaults.header_projects_title} onChange={updateField} />
-                                <Field label="Projects Link Subtitle" fieldKey="header_projects_subtitle" value={form.data.customization.header_projects_subtitle} placeholder={defaults.header_projects_subtitle} onChange={updateField} />
+                                <Field label="Dealer Network Link Title" fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
 
                                 <Field label="Partner Account Link Title" fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
                                 <Field label="Partner Account Link Subtitle" fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
@@ -4889,16 +4892,10 @@ export default function SiteCustomizationEditor({
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
                                 <Field label="In Stock Badge Label" fieldKey="product_in_stock_label" value={form.data.customization.product_in_stock_label} placeholder={defaults.product_in_stock_label} onChange={updateField} />
                                 <Field label="Awaiting Stock Badge Label" fieldKey="product_out_of_stock_label" value={form.data.customization.product_out_of_stock_label} placeholder={defaults.product_out_of_stock_label} onChange={updateField} />
-                                <Field label="Add to Cart Button Text" fieldKey="product_add_to_cart_btn" value={form.data.customization.product_add_to_cart_btn} placeholder={defaults.product_add_to_cart_btn} onChange={updateField} />
-                                <Field label="Buy Now Button Text" fieldKey="product_buy_now_btn" value={form.data.customization.product_buy_now_btn} placeholder={defaults.product_buy_now_btn} onChange={updateField} />
                                 <Field label="Share Label" fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
-                                <Field label="Save / Bookmark Button Text" fieldKey="product_save_btn" value={form.data.customization.product_save_btn} placeholder={defaults.product_save_btn} onChange={updateField} />
-                                <Field label="Add to Compare Button Text" fieldKey="product_compare_btn" value={form.data.customization.product_compare_btn} placeholder={defaults.product_compare_btn} onChange={updateField} />
-                                <Field label="Payment Mode Label (e.g. Cash / Manual Payment)" fieldKey="product_payment_mode_label" value={form.data.customization.product_payment_mode_label} placeholder={defaults.product_payment_mode_label} onChange={updateField} />
                                 <Field label="Product Video Heading" fieldKey="product_video_title" value={form.data.customization.product_video_title} placeholder={defaults.product_video_title} onChange={updateField} />
                                 <Field label="Description Tab Title" fieldKey="product_tab_description" value={form.data.customization.product_tab_description} placeholder={defaults.product_tab_description} onChange={updateField} />
                                 <Field label="Specification Tab Title" fieldKey="product_tab_specification" value={form.data.customization.product_tab_specification} placeholder={defaults.product_tab_specification} onChange={updateField} />
-                                <Field label="Product Purchase Policy Note" fieldKey="product_purchase_note" value={form.data.customization.product_purchase_note} placeholder={defaults.product_purchase_note} onChange={updateField} span2 />
                             </div>
                         </div>
                     )}
@@ -4906,12 +4903,10 @@ export default function SiteCustomizationEditor({
                     {/* TAB 6: ABOUT, CONTACT & DEALERS PAGES */}
                     {tab === 'pages' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Homepage Story Section</h3>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Homepage Company Introduction</h3>
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
-                                <Field label="About Main Headline" fieldKey="about_headline" value={form.data.customization.about_headline} placeholder={defaults.about_headline} onChange={updateField} span2 />
-                                <Field label="About Lead Paragraph" fieldKey="about_lead" value={form.data.customization.about_lead} placeholder={defaults.about_lead} onChange={updateField} multiline rows={3} span2 />
-                                <Field label="Read More Summary Title" fieldKey="about_summary_title" value={form.data.customization.about_summary_title} placeholder={defaults.about_summary_title} onChange={updateField} />
-                                <Field label="Read More Summary Body" fieldKey="about_summary_body" value={form.data.customization.about_summary_body} placeholder={defaults.about_summary_body} onChange={updateField} multiline rows={3} span2 />
+                                <Field label="Company Introduction Title" fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
+                                <Field label="Company Introduction Text" fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
                             </div>
 
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>About Us Page (/about)</h3>
@@ -5006,14 +5001,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Footer Link 1 Text" fieldKey="footer_link_about" value={form.data.customization.footer_link_about} placeholder={defaults.footer_link_about} onChange={updateField} />
                                 <Field label="Footer Link 1 Target URL" fieldKey="footer_link_about_url" value={form.data.customization.footer_link_about_url} placeholder={defaults.footer_link_about_url} onChange={updateField} />
 
-                                <Field label="Footer Link 2 Text" fieldKey="footer_link_vendor" value={form.data.customization.footer_link_vendor} placeholder={defaults.footer_link_vendor} onChange={updateField} />
-                                <Field label="Footer Link 2 Target URL" fieldKey="footer_link_vendor_url" value={form.data.customization.footer_link_vendor_url} placeholder={defaults.footer_link_vendor_url} onChange={updateField} />
 
-                                <Field label="Footer Link 3 Text (Orders)" fieldKey="footer_link_orders" value={form.data.customization.footer_link_orders} placeholder={defaults.footer_link_orders} onChange={updateField} />
-                                <Field label="Footer Link 3 Target URL" fieldKey="footer_link_orders_url" value={form.data.customization.footer_link_orders_url} placeholder={defaults.footer_link_orders_url} onChange={updateField} />
 
-                                <Field label="Footer Link 4 Text (Blog)" fieldKey="footer_link_blog" value={form.data.customization.footer_link_blog} placeholder={defaults.footer_link_blog} onChange={updateField} />
-                                <Field label="Footer Link 4 Target URL" fieldKey="footer_link_blog_url" value={form.data.customization.footer_link_blog_url} placeholder={defaults.footer_link_blog_url} onChange={updateField} />
 
                                 <Field label="Footer Link 5 Text (Contact)" fieldKey="footer_link_contact" value={form.data.customization.footer_link_contact} placeholder={defaults.footer_link_contact} onChange={updateField} />
                                 <Field label="Footer Link 5 Target URL" fieldKey="footer_link_contact_url" value={form.data.customization.footer_link_contact_url} placeholder={defaults.footer_link_contact_url} onChange={updateField} />
@@ -5043,29 +5032,17 @@ export default function SiteCustomizationEditor({
                                 <Field label="Telegram Channel / Link (Optional)" fieldKey="social_telegram" value={form.data.customization.social_telegram} placeholder={defaults.social_telegram || 'https://t.me/...'} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Mobile App Stores & Payment Badges</h3>
-                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#475569' }}>
-                                💡 <b>App Store Links Note:</b> You can configure the links when mobile apps are ready. Currently both Google Play and Apple Store default to <code>#</code>.
-                            </div>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
-                                <Field label="Google Play Store Link" fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
-                                <Field label="Apple App Store Link" fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
-                                <Field label="Payment Methods Image URL" fieldKey="payment_methods_image" value={form.data.customization.payment_methods_image} placeholder={defaults.payment_methods_image} onChange={updateField} />
+                            <div className="form-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:20,marginBottom:28}}>
+                                <Field label="Google Play App Link (optional)" fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
+                                <Field label="Apple App Store Link (optional)" fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
                                 <Field label="Copyright Notice" fieldKey="copyright_text" value={form.data.customization.copyright_text} placeholder={defaults.copyright_text} onChange={updateField} span2 />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Floating Shopping Tools & Slide-Over Dialogs</h3>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Support & Partner Access</h3>
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-                                <Field label="Floating Compare Button Label" fieldKey="floating_compare_label" value={form.data.customization.floating_compare_label} placeholder={defaults.floating_compare_label} onChange={updateField} />
-                                <Field label="Floating Cart Button Label" fieldKey="floating_cart_label" value={form.data.customization.floating_cart_label} placeholder={defaults.floating_cart_label} onChange={updateField} />
                                 <Field label="Floating Chat Button Label" fieldKey="floating_chat_label" value={form.data.customization.floating_chat_label} placeholder={defaults.floating_chat_label} onChange={updateField} />
 
-                                <Field label="Cart Dialog Heading" fieldKey="cart_dialog_title" value={form.data.customization.cart_dialog_title} placeholder={defaults.cart_dialog_title} onChange={updateField} />
-                                <Field label="Cart Dialog Login Button" fieldKey="cart_dialog_btn" value={form.data.customization.cart_dialog_btn} placeholder={defaults.cart_dialog_btn} onChange={updateField} />
-                                <Field label="Cart Dialog Staff Review Notice" fieldKey="cart_dialog_notice" value={form.data.customization.cart_dialog_notice} placeholder={defaults.cart_dialog_notice} onChange={updateField} span2 />
 
-                                <Field label="Comparison Dialog Heading" fieldKey="compare_dialog_title" value={form.data.customization.compare_dialog_title} placeholder={defaults.compare_dialog_title} onChange={updateField} />
-                                <Field label="Comparison Dialog Description" fieldKey="compare_dialog_desc" value={form.data.customization.compare_dialog_desc} placeholder={defaults.compare_dialog_desc} onChange={updateField} />
 
                                 <Field label="Partner Portal Login Heading" fieldKey="auth_login_title" value={form.data.customization.auth_login_title} placeholder={defaults.auth_login_title} onChange={updateField} />
                                 <Field label="Partner Portal Login Subtitle" fieldKey="auth_login_subtitle" value={form.data.customization.auth_login_subtitle} placeholder={defaults.auth_login_subtitle} onChange={updateField} />

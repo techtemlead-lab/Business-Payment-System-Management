@@ -1,5 +1,7 @@
 # Reference homepage implementation
 
+Historical checkpoint: use [the current requirements-to-code review](COMMISSION-AND-NETWORK-SYSTEM.md#requirements-to-code-review---17-october-2026) for the latest status. Dashboard and financial implementation has advanced since this dated note.
+
 Completed local homepage pass,13 October2026, Asia/Dhaka. User direction: master visual copy of the reference website, public homepage first. This replaces the earlier independent green/cream visual direction.
 
 Implemented navy company/header strip, reference logo, search, Offers/Projects/Account/Shop groups, category navigation/dropdowns, five-slide banner carousel and two side banners, announcement strip, five quick-link cards, category tiles, twenty reference product cards, footer/social/app/payment imagery, floating compare/cart/chat controls, mobile bottom navigation and scroll-to-top. Client-specific company text and local application links replace external account actions. No private reference member data is used.

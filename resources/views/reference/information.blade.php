@@ -69,21 +69,24 @@
             </div>
         </div>
 
+        @if(!empty($siteCustomization['contact_email']))
         <div class="ref-contact-topic">
             <i class="fa-solid fa-envelope-open-text" aria-hidden="true" style="color:#0284c7;"></i>
             <div>
                 <h3>{{ $siteCustomization['contact_email_title'] ?? 'Official Email' }}</h3>
                 <p>
-                    <a href="mailto:{{ $siteCustomization['contact_email'] ?? 'contact@madinanatural.com' }}" style="color:#006837; font-weight:600; text-decoration:none;">
-                        {{ $siteCustomization['contact_email'] ?? 'contact@madinanatural.com' }}
+                    <a href="mailto:{{ $siteCustomization['contact_email'] ?? '' }}" style="color:#006837; font-weight:600; text-decoration:none;">
+                        {{ $siteCustomization['contact_email'] ?? '' }}
                     </a>
                 </p>
             </div>
         </div>
 
+        @endif
+
         <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic1_title'] ?? 'Dealer Enquiries' }}</h3><p>{{ $siteCustomization['contact_topic1_desc'] ?? 'Dealer accounts are created by company staff after review.' }}</p></div></div>
         <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic2_title'] ?? 'Products & Support' }}</h3><p>{{ $siteCustomization['contact_topic2_desc'] ?? 'Ask about availability, orders and your local dealer.' }}</p></div></div>
-        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic3_title'] ?? 'Head Office' }}</h3><p>{{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic3_title'] ?? 'Head Office' }}</h3><p>{{ $siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh' }}</p></div></div>
 
         @php
             $socialMap = [
@@ -105,7 +108,9 @@
                         $href = $cleaned ? 'https://wa.me/' . (str_starts_with($cleaned, '01') ? '88' . $cleaned : $cleaned) : '#';
                     }
                 @endphp
+                @if($href !== '#')
                 <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($social) }}"><img src="/reference/icons/{{ $social }}.png" alt="{{ ucfirst($social) }}"></a>
+                @endif
                 @endforeach
             </div>
         </div>
@@ -141,19 +146,12 @@
         <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> {{ $siteCustomization['map_title'] ?? 'Office & Healthcare Center Location' }}</h2>
         <p>{{ $siteCustomization['map_subtitle'] ?? 'Visit Madina Natural Health Care at our registered center or navigate with map directions.' }}</p>
     </div>
-    <div class="ref-map-wrapper">
-        <iframe 
-            src="{{ $siteCustomization['map_embed_url'] ?? 'https://www.openstreetmap.org/export/embed.html?bbox=90.22,23.88,90.30,23.95&amp;layer=mapnik&amp;marker=23.914,90.260' }}" 
-            title="Madina Natural Health Care Office Location Map" 
-            loading="lazy">
-        </iframe>
-    </div>
     <div class="ref-map-footer">
         <div>
             <strong>{{ $siteCustomization['map_facility'] ?? 'Madina Natural Health Care & Physiotherapy Center' }}</strong>
-            <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['office_address'] ?? 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh' }}</p>
+            <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh' }}</p>
         </div>
-        <a href="{{ $siteCustomization['map_directions_url'] ?? 'https://www.openstreetmap.org/?mlat=23.914&amp;mlon=90.260#map=15/23.914/90.260' }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+        <a href="{{ 'https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address']) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
             <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $siteCustomization['map_directions_text'] ?? 'Open Map Directions' }}
         </a>
     </div>

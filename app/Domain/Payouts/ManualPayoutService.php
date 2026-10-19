@@ -4,6 +4,8 @@ namespace App\Domain\Payouts;
 
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\PaymentAccounts;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -30,8 +32,9 @@ class ManualPayoutService
 
                 return $existing->id;
             }
-            if ($amount < Money::cents(config('madina.withdrawal_minimum'))) {
-                throw ValidationException::withMessages(['amount' => 'Minimum withdrawal is '.config('madina.withdrawal_minimum').' BDT.']);
+            $minimum = app(FinanceSettings::class)->withdrawalMinimum()['amount'];
+            if ($amount < Money::cents($minimum)) {
+                throw ValidationException::withMessages(['amount' => 'Minimum withdrawal is '.$minimum.' BDT.']);
             }
             if (CommissionWallet::hasDebt($actor->id)) {
                 throw ValidationException::withMessages(['amount' => 'Resolve prior commission clawbacks before requesting another withdrawal.']);
@@ -42,7 +45,7 @@ class ManualPayoutService
             }
             $tax = app(CommissionService::class)->calculatePayoutTds((float) $data['amount']);
             $id = (string) Str::uuid();
-            DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $actor->id, 'amount' => Money::decimal($amount),
+            DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $actor->id, 'amount' => Money::decimal($amount), 'minimum_snapshot' => $minimum,
                 'channel' => $data['channel'], 'destination' => encrypt(trim($data['destination'])), 'idempotency_key' => $data['idempotency_key'],
                 'withheld_amount' => $tax['tds_amount'], 'net_amount' => $tax['net_amount'], 'created_at' => now(), 'updated_at' => now()]);
             DB::table('wallets')->where('id', $wallet->id)->update(['available' => Money::decimal(Money::cents($wallet->available) - $amount),
@@ -88,15 +91,15 @@ class ManualPayoutService
         }, 3);
     }
 
-    public function settle(User $actor, string $id, UploadedFile $receipt, string $reference, string $paidAt, string $note): void
+    public function settle(User $actor, string $id, UploadedFile $receipt, string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): void
     {
         abort_unless($actor->allows('finance'), 403);
         if (! config('madina.financial_activation')) {
             throw ValidationException::withMessages(['policy' => 'Payout recording is inactive until an approved financial policy and opening balances are verified.']);
         }
-        $path = $receipt->store('payout-receipts', 'local');
+        $path = $receipt->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
         try {
-            DB::transaction(function () use ($actor, $id, $receipt, $path, $reference, $paidAt, $note) {
+            DB::transaction(function () use ($actor, $id, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId) {
                 CommissionWallet::lock();
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($w, 404);
@@ -112,6 +115,8 @@ class ManualPayoutService
                 if (DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
                     throw ValidationException::withMessages(['payment_reference' => 'This payment reference is already recorded.']);
                 }
+                app(PaymentAccounts::class)->recordReference($actor, $reference, 'withdrawal:'.$id, $paymentAccountId);
+                DB::table('withdrawals')->where('id', $id)->update(['payment_account_id' => $paymentAccountId]);
                 $wallet = DB::table('wallets')->where('user_id', $w->user_id)->lockForUpdate()->first();
                 if (! $wallet || Money::cents($wallet->held) - Money::cents($wallet->commission_held) < Money::cents($w->amount)) {
                     throw ValidationException::withMessages(['withdrawal' => 'Reserved funds do not reconcile.']);

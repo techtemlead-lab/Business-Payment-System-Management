@@ -8,6 +8,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\StaffPermissions;
 use App\Http\Requests\Backend\AdjustStockRequest;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
 use App\Http\Requests\Backend\ConfirmDeliveryRequest;
@@ -51,7 +52,7 @@ class CommandController extends Controller
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
-        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'));
+        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
         return back()->with('success', 'Order decision recorded.');
     }
@@ -77,7 +78,7 @@ class CommandController extends Controller
         $this->permit($r, 'accounts');
         $roles = ['dealer', 'sub_dealer'];
         if ($r->user()->role === 'super_admin') {
-            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles'))];
+            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
         }
         $isPartner = in_array($r->input('role'), ['dealer', 'sub_dealer'], true);
         $d = $r->validate([
@@ -95,8 +96,8 @@ class CommandController extends Controller
             'sponsor_id' => 'nullable|integer|exists:users,id',
             'nid' => 'nullable|string|max:30',
             'reason' => 'nullable|string|max:1000',
-            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $r->input('role') !== 'employee'), 'nullable', 'array'],
-            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code',
             'profile.name_bn' => 'nullable|string|max:150',
             'profile.father_name' => 'nullable|string|max:150',
@@ -168,8 +169,8 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
-            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || $user->role !== 'employee'), 'sometimes', 'nullable', 'array'],
-            'permissions.*' => ['string', Rule::in(config('madina.roles.super_admin'))],
+            'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
+            'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
         if ($r->has('sponsor_id')) {
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
@@ -194,6 +195,9 @@ class CommandController extends Controller
                 }
             }
             if ($r->has('permissions')) {
+                if (isset($existing['action_permissions'])) {
+                    throw ValidationException::withMessages(['permissions' => 'Manage this account in Roles & permissions to retain its detailed action controls.']);
+                }
                 $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
             }
             $d['profile'] = array_merge($existing, $incoming);
@@ -268,10 +272,7 @@ class CommandController extends Controller
     public function customization(Request $r): RedirectResponse
     {
         abort_unless($r->user()->allows('content') || $r->user()->allows('catalog') || $r->user()->role === 'super_admin', 403);
-        $payload = $r->input('customization', []);
-        if (! is_array($payload)) {
-            $payload = [];
-        }
+        $payload = $r->validate(['customization' => 'required|array'])['customization'];
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
 
@@ -284,7 +285,7 @@ class CommandController extends Controller
         SiteCustomization::reset();
         Audit::record($r->user()->id, 'customization.reset', 'frontend');
 
-        return back()->with('success', 'Customization reset to default placeholders.');
+        return back()->with('success', 'Customization reset to company defaults.');
     }
 
     public function saveDashboardSettings(Request $r): RedirectResponse
@@ -372,7 +373,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'finance');
         $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleMonthlySalaryPool($d['period_month']);
+        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
@@ -388,7 +389,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'finance');
         $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleRankRoyaltyPool($d['period_month']);
+        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
@@ -400,7 +401,7 @@ class CommandController extends Controller
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->claimOneTimeRankIncentive($user->id);
+        $result = $commissionService->claimOneTimeRankIncentive($user->id, actorId: $r->user()->id);
 
         if (! $result['success']) {
             throw ValidationException::withMessages(['incentive' => $result['message']]);
@@ -412,7 +413,7 @@ class CommandController extends Controller
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->releaseMaturedCommissions();
+        $result = $commissionService->releaseMaturedCommissions($r->user()->id);
 
         if ($result['status'] === 'no_matured_commissions') {
             return back()->with('success', 'No matured commissions pending release.');

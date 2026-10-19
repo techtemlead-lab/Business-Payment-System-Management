@@ -38,7 +38,7 @@ class CommissionController extends Controller
     {
         abort_unless($request->user()->allows('finance'), 403);
 
-        return response()->json(['data' => $service->processOrder($order)]);
+        return response()->json(['data' => $service->processOrder($order, $request->user()->id)]);
     }
 
     public function refund(Request $request, Order $order, CommissionService $service): JsonResponse
@@ -47,7 +47,7 @@ class CommissionController extends Controller
         $data = $request->validate(['refund_amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'],
             'reference' => 'required|string|max:100', 'reason' => 'required|string|min:5|max:1000']);
 
-        return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], $data['reason'], $data['reference']), 'records_commission_adjustment_only' => true]);
+        return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], $data['reason'], $data['reference'], $request->user()->id), 'records_commission_adjustment_only' => true]);
     }
 
     public function settle(Request $request, CommissionService $service): JsonResponse
@@ -55,7 +55,7 @@ class CommissionController extends Controller
         abort_unless($request->user()->allows('finance'), 403);
         $data = $request->validate(['period_month' => 'required|date_format:Y-m', 'kind' => ['required', Rule::in(['salary', 'royalty'])]]);
 
-        return response()->json(['data' => $data['kind'] === 'salary' ? $service->settleMonthlySalaryPool($data['period_month']) : $service->settleRankRoyaltyPool($data['period_month'])]);
+        return response()->json(['data' => $data['kind'] === 'salary' ? $service->settleMonthlySalaryPool($data['period_month'], $request->user()->id) : $service->settleRankRoyaltyPool($data['period_month'], $request->user()->id)]);
     }
 
     public function earnings(Request $request, CommissionQualification $qualification): JsonResponse

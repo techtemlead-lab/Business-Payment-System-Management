@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { SlidersHorizontal, Percent, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check, ArrowRight } from 'lucide-react';
 import { money } from './UI';
 
@@ -18,6 +18,8 @@ interface RuleRecord {
 }
 
 export default function CommissionStudio({ rules: initialRules }: { rules: RuleRecord[] }) {
+    const {staffActions} = usePage<any>().props;
+    const canEdit = staffActions?.finance?.edit ?? true;
     const [rules, setRules] = useState<Record<string, RuleRecord>>(() => {
         const map: Record<string, RuleRecord> = {};
         initialRules.forEach(r => { map[r.rule_key] = { ...r }; });
@@ -110,7 +112,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
 
                         <button
                             type="button"
-                            disabled={isOverAllocated || saving}
+                            disabled={!canEdit || isOverAllocated || saving}
                             onClick={handleSave}
                             style={{
                                 padding: '9px 20px',
@@ -211,7 +213,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                         onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                         style={{ width: '100%', accentColor: '#006837', cursor: 'pointer' }}
                                     />
-                                    {Object.entries(r.parameters??{}).filter(([,value])=>typeof value!=='object').map(([key,value])=><label key={key} style={{display:'block',fontSize:11,marginTop:8}}>{key.replaceAll('_',' ')}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))} style={{marginLeft:8,maxWidth:130}}/></label>)}
+                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&typeof value!=='object').map(([key,value])=><label key={key} style={{display:'block',fontSize:11,marginTop:8}}>{key.replaceAll('_',' ')}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))} style={{marginLeft:8,maxWidth:130}}/></label>)}
                                 </div>
                             </div>
                         );

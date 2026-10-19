@@ -25,20 +25,22 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string }) {
-    const { auth,portalBase:base } = usePage<any>().props;
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[] }) {
+    const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
     const open = !['rejected', 'cancelled'].includes(order.status);
     return <Shell section="order">
         <Head title={order.number} />
-        <Link className="text-link" href={base+'/orders'}>← All orders</Link>
+        <Link className="text-link" href={backUrl??base+'/orders'}>← All orders</Link>
         <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><Badge status={order.status} /></div>
         <div className="metric-grid three">
             <div className="metric"><span>Order total</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>Verified payment</span><strong>{money(order.paid)}</strong></div>
             <div className="metric"><span>Remaining payment</span><strong>{money(outstanding)}</strong><small>Only approved orders contribute to financial dues.</small></div>
         </div>
+        {Number(order.due_credit)>0&&<div className="notice"><strong>Approved due credits: {money(order.due_credit)}</strong><p>These notes reduce outstanding dues and are shown separately from verified payments.</p></div>}
+        {adjustments.length>0&&<section className="panel"><h2>Due adjustment history</h2><Table rows={adjustments} columns={[{key:'reference',title:'Reference'},{key:'kind',title:'Type'},{key:'amount',title:'Amount',render:r=>money(r.amount)},{key:'status',title:'Status',render:r=><Badge status={r.status}/>},{key:'before_outstanding',title:'Due before',render:r=>r.before_outstanding==null?'—':money(r.before_outstanding)},{key:'after_outstanding',title:'Due after',render:r=>r.after_outstanding==null?'—':money(r.after_outstanding)},{key:'reason',title:'Reason'},{key:'prepared_by',title:'Prepared by'},{key:'reviewed_by',title:'Reviewed by'}]}/></section>}
         <section className="panel"><div className="panel-heading"><h2>Products & fulfilment</h2><span>Prices saved at submission</span></div>
             <Table rows={order.lines} columns={[
                 { key: 'name', title: 'Product' }, { key: 'quantity', title: 'Ordered' }, { key: 'dispatched', title: 'Dispatched' },
@@ -79,18 +81,20 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <h2>Submit another payment reference</h2><p className="muted">Submit a payment made against this order. Company staff will verify receipt separately.</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
                 { name: 'channel', label: 'Payment method', required: true, options: ['Bank', 'bKash', 'Nagad', 'Rocket'].map(value => ({ value, label: value })) },
+                ...(collectionAccounts.length ? [{name:'payment_account_id',label:'Company collection account',required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
                 { name: 'reference', label: 'Transaction reference', required: true }, { name: 'amount', label: 'Claimed amount (BDT)', type: 'number', required: true },
             ]} submit="Submit for verification" />
         </section>}
         {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">
-            <h2>Review this order</h2><p className="muted">Approval is separate from payment and delivery. Only Finance may explicitly authorize an unpaid credit sale.</p>
+            <h2>Review this order</h2><p className="muted">Commission rules and individual rates are fixed when this order is approved. Original product prices remain unchanged. Only authorized Finance staff may approve unpaid credit.</p>{replacementSlots.length>0&&<div className="notice"><p>Inactive recipients can be replaced by an explicitly selected active partner. Leave a selection blank to retain the original recipient and hold their commission. Use the decision reason to explain each replacement.</p><form method="get"><label>Find replacement partners by name or code<input name="replacement_q" type="search"/></label><button className="button small">Find partners</button></form></div>}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
                 { name: 'status', label: 'Decision', required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value) })) },
                 ...(capabilities.includes('finance') ? [{ name: 'allow_credit', label: 'Credit authorization', value: '0', options: [{ value: '0', label: 'Full verified payment required' }, { value: '1', label: 'I authorize the unpaid amount as credit' }] }] : []),
-                { name: 'reason', label: 'Decision / credit authorization reason', type: 'textarea', required: true },
+                ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:`Replacement for generation ${slot.generation} · ${slot.name} (optional)`,options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??'Partner'}`}))})),
+                { name: 'reason', label: 'Decision / credit authorization / replacement reason', type: 'textarea', required: true },
             ]} submit="Record decision" />
         </section>}
-        {capabilities.includes('inventory') && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>Dispatch available items</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}
+        {capabilities.includes('inventory') && (staffActions?.inventory?.edit??true) && ['approved', 'partially_dispatched'].includes(order.status) && <section className="panel"><h2>Dispatch available items</h2><DispatchForm key={`${order.id}-${shipments.length}`} order={order} /></section>}
         <section className="panel"><h2>Order activity</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;

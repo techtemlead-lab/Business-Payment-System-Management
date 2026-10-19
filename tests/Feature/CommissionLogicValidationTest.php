@@ -264,7 +264,7 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals(16.00, $eval['percentage']); // 8L / 50L = 16%
     }
 
-    public function test_dynamic_compression_skips_suspended_uplines_and_finds_next_active_partners(): void
+    public function test_legacy_compression_setting_cannot_automatically_reassign_inactive_recipients(): void
     {
         $service = app(CommissionService::class);
 
@@ -301,25 +301,10 @@ class CommissionLogicValidationTest extends TestCase
 
         $allocations = $service->processOrder($order);
 
-        // Tier 1 (10% Direct Referral): Compressed past suspended Sponsor C -> Awarded to Mid B!
-        $midBWallet = DB::table('wallets')->where('user_id', $midB->id)->first();
-        $this->assertEquals(1000.00, (float) ($midBWallet?->available ?? 0));
-
-        // Tier 2 (2% Gen 2): Compressed to Leader A!
-        $leaderAWallet = DB::table('wallets')->where('user_id', $leaderA->id)->first();
-        $this->assertEquals(200.00, (float) ($leaderAWallet?->available ?? 0));
-
-        // Suspended Sponsor C received NOTHING!
-        $sponsorCWallet = DB::table('wallets')->where('user_id', $sponsorC->id)->first();
-        $this->assertEquals(0.00, (float) ($sponsorCWallet?->available ?? 0));
-
-        // Tier 3 (1% Gen 3 Breakage): Tree depth exhausted -> routed to company breakage reserve!
-        $breakageAlloc = CommissionAllocation::where('order_id', $order->id)
-            ->where('category', 'd2d_gen3_breakage')
-            ->first();
-        $this->assertNotNull($breakageAlloc);
-        $this->assertEquals(100.00, (float) $breakageAlloc->amount);
-        $this->assertNull($breakageAlloc->user_id);
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'user_id' => $sponsorC->id, 'category' => 'direct_referral', 'status' => 'held', 'amount' => '1000.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $midB->id, 'available' => '200.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $leaderA->id, 'available' => '100.00']);
+        $this->assertDatabaseMissing('wallets', ['user_id' => $sponsorC->id]);
     }
 
     public function test_exact_penny_remainder_reconciliation_eliminates_roundoff_drift(): void
