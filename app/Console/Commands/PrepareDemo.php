@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
 use App\Models\Product;
@@ -90,6 +91,31 @@ class PrepareDemo extends Command
                 $line = $o->lines()->first();
                 $service->dispatch($admin, $o, ['items' => [['line_id' => $line->id, 'quantity' => 4]], 'courier' => 'Demo courier', 'tracking' => 'DEMO-TRACK-001', 'idempotency_key' => (string) Str::uuid(), 'eta' => now()->addDays(3)->toDateString()]);
                 $service->create($sub, ['items' => [['product_id' => $p->id, 'quantity' => 5]], 'idempotency_key' => (string) Str::uuid(), 'note' => 'Synthetic sub-dealer request.']);
+            }
+            if (! DB::table('payment_accounts')->exists()) {
+                $accounts = app(PaymentAccounts::class);
+                $accounts->save($admin, [
+                    'label' => 'Demo Corporate Collection',
+                    'channel' => 'Bank',
+                    'holder' => 'Madina Natural Health Care',
+                    'account_number' => '205014500001',
+                    'details' => 'Synthetic demo collection account only.',
+                    'collects_payments' => true,
+                    'pays_out' => false,
+                    'is_active' => true,
+                    'reason' => 'Synthetic demo treasury collection account',
+                ]);
+                $accounts->save($admin, [
+                    'label' => 'Demo Partner Payout Wallet',
+                    'channel' => 'bKash',
+                    'holder' => 'Madina Natural Health Care',
+                    'account_number' => '01700123456',
+                    'details' => 'Synthetic demo payout wallet only.',
+                    'collects_payments' => false,
+                    'pays_out' => true,
+                    'is_active' => true,
+                    'reason' => 'Synthetic demo treasury payout account',
+                ]);
             }
             Audit::record($admin->id, 'demo.prepared', 'local');
         });

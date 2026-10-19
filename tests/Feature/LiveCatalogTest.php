@@ -78,6 +78,7 @@ class LiveCatalogTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'subdealer@madina.test', 'role' => 'sub_dealer']);
         $this->assertDatabaseCount('products', 4);
         $this->assertGreaterThanOrEqual(1, Order::query()->count());
+        $this->assertDatabaseCount('payment_accounts', 2);
         $this->assertFileExists(base_path('.local/demo-access.json'));
     }
 
