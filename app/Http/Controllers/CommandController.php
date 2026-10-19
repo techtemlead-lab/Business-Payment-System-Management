@@ -272,10 +272,7 @@ class CommandController extends Controller
     public function customization(Request $r): RedirectResponse
     {
         abort_unless($r->user()->allows('content') || $r->user()->allows('catalog') || $r->user()->role === 'super_admin', 403);
-        $payload = $r->input('customization', []);
-        if (! is_array($payload)) {
-            $payload = [];
-        }
+        $payload = $r->validate(['customization' => 'required|array'])['customization'];
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
 
@@ -288,7 +285,7 @@ class CommandController extends Controller
         SiteCustomization::reset();
         Audit::record($r->user()->id, 'customization.reset', 'frontend');
 
-        return back()->with('success', 'Customization reset to default placeholders.');
+        return back()->with('success', 'Customization reset to company defaults.');
     }
 
     public function saveDashboardSettings(Request $r): RedirectResponse

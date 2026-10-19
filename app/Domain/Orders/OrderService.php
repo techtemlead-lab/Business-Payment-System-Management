@@ -153,6 +153,13 @@ class OrderService
                     }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
+                    if ($order->is_opening_balance) {
+                        CommissionWallet::requireActive();
+                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, 'Collection against imported receivable '.$order->number, [
+                            ['account' => 'manual_collection_clearing', 'user_id' => null, 'debit' => Money::cents($claim->amount), 'credit' => 0],
+                            ['account' => 'opening_receivables', 'user_id' => $order->user_id, 'debit' => 0, 'credit' => Money::cents($claim->amount)],
+                        ]);
+                    }
                     $order->update(['paid' => Money::decimal($paid)]);
                     if ($paid >= Money::cents($order->total)) {
                         $this->commissions->process($order, $actor->id);

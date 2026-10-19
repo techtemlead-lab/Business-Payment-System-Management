@@ -18,7 +18,7 @@ class Order extends Model
 
     protected function casts(): array
     {
-        return ['total' => 'decimal:2', 'paid' => 'decimal:2', 'due_credit' => 'decimal:2', 'commission_policy_snapshot' => 'array'];
+        return ['is_opening_balance' => 'boolean', 'total' => 'decimal:2', 'paid' => 'decimal:2', 'due_credit' => 'decimal:2', 'commission_policy_snapshot' => 'array'];
     }
 
     public function outstanding(): string

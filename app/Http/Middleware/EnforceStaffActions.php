@@ -24,6 +24,9 @@ class EnforceStaffActions
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = $route?->getActionMethod();
+        if ($controller === 'DataImportController') {
+            return $next($request);
+        }
         if ($controller === 'AuthController' || $controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }

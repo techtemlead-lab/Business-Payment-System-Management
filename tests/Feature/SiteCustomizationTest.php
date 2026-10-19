@@ -73,7 +73,7 @@ class SiteCustomizationTest extends TestCase
         $response->assertSee('© 2026 Madina Natural Health Care Custom Copyright.');
 
         // Verify unset elements still show standard placeholders
-        $response->assertSee('Featured Categories');
+        $response->assertDontSee('Featured Categories');
         $response->assertSee('Our Products');
     }
 
@@ -437,17 +437,17 @@ class SiteCustomizationTest extends TestCase
         $response->assertDontSee('Buy Now');
         $this->get('/products/'.$p1->id)->assertOk()->assertSee('1000.00 BDT')->assertDontSee('400 Tk')->assertDontSee('Save 600 Tk');
 
-        // Verify single product catalog pricing uses promotional override while active in campaign
+        // Public product information always uses MRP, even with stored legacy campaign settings.
         $cardActive = SiteCustomization::formatPublicProductCard($p1);
-        $this->assertEquals(400.0, (float) $cardActive['price']);
+        $this->assertSame('1000.00', $cardActive['price']);
 
-        // Verify reversion rule: When removed from campaign cards, product price reverts to catalog dealer_price
+        // Removing an old campaign does not expose partner prices.
         SiteCustomization::save([
             'campaign_cards' => [],
         ]);
 
         $cardReverted = SiteCustomization::formatPublicProductCard($p1);
-        $this->assertEquals('500.00', (string) $cardReverted['price']);
+        $this->assertSame('1000.00', $cardReverted['price']);
     }
 
     public function test_footer_and_contact_support_phone_social_and_app_store_placeholders(): void
@@ -502,17 +502,10 @@ class SiteCustomizationTest extends TestCase
 
     public function test_header_navigation_categories_placeholders_and_customization(): void
     {
-        // 1. Initial state: verify default placeholders
-        $expectedDefaults = [
-            'Medical Equipment',
-            'Leather Items',
-            'Consumer Items',
-            'Medicine',
-            'Agriculture Product',
-            'Cosmetics',
-            'Furniture',
-            'Service',
-        ];
+        $this->assertSame([], SiteCustomization::getNavCategories());
+        Product::factory()->create(['category' => 'Published Company Range', 'active' => true]);
+        Product::factory()->create(['category' => 'Unpublished Range', 'active' => false]);
+        $expectedDefaults = ['Published Company Range'];
         $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
 
         $home = $this->get('/');
@@ -559,7 +552,7 @@ class SiteCustomizationTest extends TestCase
         $this->assertStringContainsString('All Organic Honey', $customHtml);
         $this->assertStringContainsString('All Black Seed Oil', $customHtml);
 
-        // 3. Resetting / clearing gracefully falls back to default placeholders
+        // Clearing the menu uses the published company inventory categories.
         $clearPayload = [
             'customization' => [
                 'nav_categories' => '',

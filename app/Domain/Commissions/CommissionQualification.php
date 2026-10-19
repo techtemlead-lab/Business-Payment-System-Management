@@ -126,7 +126,7 @@ final class CommissionQualification
         $legs = [];
         foreach (User::where('sponsor_id', $userId)->orderBy('id')->get() as $leg) {
             $ids = ReferralTreePath::where('ancestor_id', $leg->id)->pluck('descendant_id')->push($leg->id)->unique();
-            $volume = DB::table('orders')->leftJoin('commission_batches', 'commission_batches.order_id', '=', 'orders.id')
+            $volume = DB::table('orders')->where('orders.is_opening_balance', false)->leftJoin('commission_batches', 'commission_batches.order_id', '=', 'orders.id')
                 ->whereIn('orders.user_id', $ids)->where('orders.status', 'delivered')->whereColumn('orders.paid', 'orders.total')
                 ->selectRaw('COALESCE(SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)), 0) AS volume')->value('volume');
             $cents = Money::cents((string) $volume);

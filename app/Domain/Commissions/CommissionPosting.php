@@ -92,7 +92,7 @@ final class CommissionPosting
     /** @return list<array<string, mixed>> */
     public function process(Order $order, ?int $actorId = null): array
     {
-        if (! config('madina.financial_activation') || Money::cents($order->total) === 0) {
+        if ($order->is_opening_balance || ! config('madina.financial_activation') || Money::cents($order->total) === 0) {
             return [];
         }
         CommissionWallet::requireActive();
@@ -100,6 +100,9 @@ final class CommissionPosting
         return DB::transaction(function () use ($order, $actorId): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($order->is_opening_balance) {
+                return [];
+            }
             if (DB::table('commission_batches')->where('order_id', $order->id)->exists() || CommissionAllocation::where('order_id', $order->id)->exists()) {
                 return CommissionAllocation::where('order_id', $order->id)->get()->toArray();
             }

@@ -1,0 +1,17 @@
+.git
+.env*
+.local
+.claude
+.codex
+node_modules
+vendor
+docs
+tests
+storage/**
+!storage/**/.gitignore
+bootstrap/cache/**
+!bootstrap/cache/.gitignore
+public/hot
+public/storage
+public/build
+*.log

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SiteCustomization
 {
@@ -32,10 +33,10 @@ class SiteCustomization
             'company_intro_title' => 'Madina Natural Health Care',
             'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
-            'nav_categories' => "Medical Equipment\nLeather Items\nConsumer Items\nMedicine\nAgriculture Product\nCosmetics\nFurniture\nService",
+            'nav_categories' => '',
 
             // Announcement & Ticker
-            'announcement_text' => 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.',
+            'announcement_text' => 'For product availability and dealership enquiries, please contact the company.',
 
             // Carousel Slides (1 to 5)
             // Carousel Slides (3 Dedicated Hero Banners)
@@ -74,74 +75,33 @@ class SiteCustomization
             ],
 
             // Campaign & Special Offers
-            'campaign_section_enabled' => '1',
+            'campaign_section_enabled' => '0',
             'campaign_badge' => 'SPECIAL CAMPAIGN & OFFERS',
             'campaign_title' => 'Special Discounts & Promotional Offers',
             'campaign_subtitle' => 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.',
-            'campaign_cards' => [
-                [
-                    'id' => 'card-1',
-                    'type' => 'bundle',
-                    'product_id' => '',
-                    'tag' => 'Featured Campaign',
-                    'title' => 'Healthcare Entrepreneur & Partner Package',
-                    'desc' => 'Comprehensive natural health package including diagnostic machine and physiotherapy equipment support for regional centers.',
-                    'feat1' => 'Complete Health & Equipment Support',
-                    'feat2' => 'Authorized Distribution Rights',
-                    'price' => '20,000 Tk',
-                    'mrp' => '30,000 Tk',
-                    'save' => 'Save 10,000 Tk',
-                    'btn' => 'View Package',
-                    'link' => '/products',
-                    'image' => '',
-                    'highlight' => '1',
-                    'bundle_discount_mode' => 'total',
-                    'bundle_discount_pct' => 33,
-                    'bundle_items' => [],
-                ],
-                [
-                    'id' => 'card-2',
-                    'type' => 'bundle',
-                    'product_id' => '',
-                    'tag' => 'Seasonal Offer',
-                    'title' => 'Family Wellness & Immunity Kit',
-                    'desc' => 'Selected organic food supplements, unani tonics and herbal wellness essentials for full family vitality.',
-                    'feat1' => '100% Pure Botanical Extracts & Honey',
-                    'feat2' => 'Everyday Family Vitality & Immunity',
-                    'price' => '6,100 Tk',
-                    'mrp' => '7,000 Tk',
-                    'save' => 'Save 900 Tk',
-                    'btn' => 'Explore Kit',
-                    'link' => '/products',
-                    'image' => '',
-                    'highlight' => '0',
-                    'bundle_discount_mode' => 'total',
-                    'bundle_discount_pct' => 13,
-                    'bundle_items' => [],
-                ],
-            ],
+            'campaign_cards' => [],
             // Retain legacy flat keys for backward compatibility
             'campaign_card1_product_id' => '',
-            'campaign_card1_tag' => 'Featured Campaign',
-            'campaign_card1_title' => 'Healthcare Entrepreneur & Partner Package',
-            'campaign_card1_desc' => 'Comprehensive natural health package including diagnostic machine and physiotherapy equipment support for regional centers.',
-            'campaign_card1_feat1' => 'Complete Health & Equipment Support',
-            'campaign_card1_feat2' => 'Authorized Distribution Rights',
-            'campaign_card1_price' => '20,000 Tk',
-            'campaign_card1_mrp' => '30,000 Tk',
-            'campaign_card1_save' => 'Save 10,000 Tk',
+            'campaign_card1_tag' => '',
+            'campaign_card1_title' => '',
+            'campaign_card1_desc' => '',
+            'campaign_card1_feat1' => '',
+            'campaign_card1_feat2' => '',
+            'campaign_card1_price' => '',
+            'campaign_card1_mrp' => '',
+            'campaign_card1_save' => '',
             'campaign_card1_btn' => 'View Package',
             'campaign_card1_link' => '/products',
             'campaign_card1_image' => '',
             'campaign_card2_product_id' => '',
-            'campaign_card2_tag' => 'Seasonal Offer',
-            'campaign_card2_title' => 'Family Wellness & Immunity Kit',
-            'campaign_card2_desc' => 'Selected organic food supplements, unani tonics and herbal wellness essentials for full family vitality.',
-            'campaign_card2_feat1' => '100% Pure Botanical Extracts & Honey',
-            'campaign_card2_feat2' => 'Everyday Family Vitality & Immunity',
-            'campaign_card2_price' => '6,100 Tk',
-            'campaign_card2_mrp' => '7,000 Tk',
-            'campaign_card2_save' => 'Save 900 Tk',
+            'campaign_card2_tag' => '',
+            'campaign_card2_title' => '',
+            'campaign_card2_desc' => '',
+            'campaign_card2_feat1' => '',
+            'campaign_card2_feat2' => '',
+            'campaign_card2_price' => '',
+            'campaign_card2_mrp' => '',
+            'campaign_card2_save' => '',
             'campaign_card2_btn' => 'Explore Kit',
             'campaign_card2_link' => '/products',
             'campaign_card2_image' => '',
@@ -150,7 +110,7 @@ class SiteCustomization
             'featured_categories_enabled' => '1',
             'featured_categories_title' => 'Featured Categories',
             'featured_categories_subtitle' => 'Explore products by category.',
-            'featured_categories_items' => "Medical Equipment | fa-briefcase-medical\nMeat & Fish | fa-drumstick-bite\nFood Supplement | fa-seedling\nPersonal Care | fa-spa\nWater Purifier | fa-droplet\nLeather Items | fa-briefcase\nUnani Medicine | fa-mortar-pestle\nConsumer Items | fa-basket-shopping\nMedicine | fa-capsules\nElectric Kettle | fa-mug-hot\nAgriculture Product | fa-leaf\nCookeries Items | fa-kitchen-set\nCosmetics | fa-wand-magic-sparkles\nRoom Heater | fa-temperature-high\nFurniture | fa-couch\nService | fa-hand-holding-heart\nElectronic Devices | fa-plug\nFashion & Lifestyle | fa-vest",
+            'featured_categories_items' => '',
             'dealer_banner_title' => 'Authorized Dealer Network',
             'dealer_banner_subtitle' => 'Connect with an authorized local dealer for product information and purchase enquiries.',
             'dealer_banner_btn_text' => 'Find Nearest Dealer',
@@ -177,7 +137,7 @@ class SiteCustomization
             'about_hero_title' => 'About Madina Natural Health Care',
             'about_hero_lead' => 'Madina Natural Health Care connects quality wellness products, dealers, healthcare practitioners and communities through an approved distribution network across Bangladesh.',
             'about_history_title' => 'Company History',
-            'about_history' => 'Established with a commitment to pure wellness, Madina Natural Health Care began by addressing the growing need for authentic natural food supplements, unani medicines and accessible community healthcare. Over the years, our organization has expanded from local healthcare service points into a nationwide network connecting dedicated dealers, sub-dealers and health centers across Bangladesh.',
+            'about_history' => 'Established with a commitment to pure wellness, Madina Natural Health Care began by addressing the growing need for authentic natural food supplements, unani medicines and accessible community healthcare. Our distribution model connects the company with authorized dealers and sub-dealers. Contact us for current service coverage and product availability.',
             'about_mission_title' => 'Our Mission',
             'about_mission' => 'To formulate, source and deliver reliable, high-standard natural health products while empowering local entrepreneurship through a transparent, staff-verified dealer and distribution ecosystem.',
             'about_vision_title' => 'Our Vision',
@@ -201,16 +161,16 @@ class SiteCustomization
             'contact_company_desc' => 'For product information, dealer enquiries or support, send us a message or visit our head office.',
             'contact_phone_title' => 'Customer Care & Hotline',
             'contact_phone' => '+8801730532966',
-            'contact_phone_hours' => 'Sat - Thu: 9:00 AM - 8:00 PM',
+            'contact_phone_hours' => '',
             'contact_email_title' => 'Official Email',
-            'contact_email' => 'contact@madinanatural.com',
+            'contact_email' => '',
             'contact_topic1_title' => 'Dealer Enquiries',
             'contact_topic1_desc' => 'Dealer accounts are created by company staff after review.',
             'contact_topic2_title' => 'Products & Support',
             'contact_topic2_desc' => 'Ask about availability, orders and your local dealer.',
             'contact_topic3_title' => 'Head Office',
             'contact_social_title' => 'Connect With Us Online',
-            'office_address' => 'Noyarhat, Ashulia, Savar, Dhaka, Bangladesh',
+            'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
             'contact_form_title' => 'Send an Enquiry',
             'map_title' => 'Office & Healthcare Center Location',
             'map_subtitle' => 'Visit Madina Natural Health Care at our registered center or navigate with map directions.',
@@ -263,8 +223,8 @@ class SiteCustomization
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             'footer_phone' => '+8801730532966',
-            'footer_email' => 'contact@madinanatural.com',
-            'footer_address' => 'Noyarhat, Ashulia, Savar, Dhaka',
+            'footer_email' => '',
+            'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
             'footer_link_about' => 'About Us',
             'footer_link_about_url' => '/about',
             'footer_link_vendor' => 'Vendor Program',
@@ -409,7 +369,7 @@ class SiteCustomization
             }
 
             // Fallback for campaign_cards if missing from stored but stored has legacy flat keys
-            if (empty($stored['campaign_cards'])) {
+            if (! array_key_exists('campaign_cards', $stored)) {
                 $hasLegacy = isset($stored['campaign_card1_title']) || isset($stored['campaign_card2_title']) || isset($stored['campaign_card1_price']);
                 if ($hasLegacy) {
                     $c1 = [
@@ -448,7 +408,7 @@ class SiteCustomization
                 }
             }
 
-            return $merged;
+            return SafeSiteUrl::clean($merged);
         } catch (\Throwable $e) {
             return $defaults;
         }
@@ -456,110 +416,151 @@ class SiteCustomization
 
     public static function save(array $payload): void
     {
-        $defaults = self::defaults();
-        $clean = [];
+        self::validateShape(self::defaults(), $payload);
+        SafeSiteUrl::clean($payload, true);
+        DB::transaction(function () use ($payload): void {
+            DB::select('SELECT pg_advisory_xact_lock(?)', [81416002]);
+            $payload = array_replace(self::all(), $payload);
+            $defaults = self::defaults();
+            $clean = [];
 
-        foreach ($defaults as $key => $defaultVal) {
-            if ($key === 'nav_categories') {
-                if (is_array($payload[$key] ?? null)) {
-                    $clean[$key] = implode("\n", array_map('trim', array_filter($payload[$key])));
-                } else {
-                    $clean[$key] = trim((string) ($payload[$key] ?? ''));
+            foreach ($defaults as $key => $defaultVal) {
+                if ($key === 'nav_categories') {
+                    if (is_array($payload[$key] ?? null)) {
+                        $clean[$key] = implode("\n", array_map('trim', array_filter($payload[$key])));
+                    } else {
+                        $clean[$key] = trim((string) ($payload[$key] ?? ''));
+                    }
+
+                    continue;
                 }
-
-                continue;
-            }
-            if (is_array($defaultVal)) {
-                $subItems = [];
-                $inputArray = $payload[$key] ?? null;
-                if (is_array($inputArray)) {
-                    if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items') {
-                        // Dynamic list: preserve all items sent by client
-                        $template = $defaultVal[0] ?? [];
-                        foreach ($inputArray as $subInput) {
-                            if (! is_array($subInput)) {
-                                continue;
-                            }
-                            $cleanSub = [];
-                            foreach ($template as $k => $v) {
-                                if (isset($subInput[$k])) {
-                                    $cleanSub[$k] = is_array($subInput[$k]) ? $subInput[$k] : trim((string) $subInput[$k]);
-                                } else {
-                                    $cleanSub[$k] = is_array($v) ? [] : '';
+                if (is_array($defaultVal)) {
+                    $subItems = [];
+                    $inputArray = $payload[$key] ?? null;
+                    if (is_array($inputArray)) {
+                        if ($key === 'shortcuts' || $key === 'campaign_cards' || $key === 'featured_products_items') {
+                            // Dynamic list: preserve all items sent by client
+                            $template = $defaultVal[0] ?? [];
+                            foreach ($inputArray as $subInput) {
+                                if (! is_array($subInput)) {
+                                    continue;
                                 }
-                            }
-                            foreach ($subInput as $k => $v) {
-                                if (! array_key_exists($k, $cleanSub)) {
-                                    $cleanSub[$k] = is_array($v) ? $v : (is_scalar($v) ? trim((string) $v) : $v);
+                                $cleanSub = [];
+                                foreach ($template as $k => $v) {
+                                    if (isset($subInput[$k])) {
+                                        $cleanSub[$k] = is_array($subInput[$k]) ? $subInput[$k] : trim((string) $subInput[$k]);
+                                    } else {
+                                        $cleanSub[$k] = is_array($v) ? [] : '';
+                                    }
                                 }
+                                foreach ($subInput as $k => $v) {
+                                    if (! array_key_exists($k, $cleanSub)) {
+                                        $cleanSub[$k] = is_array($v) ? $v : (is_scalar($v) ? trim((string) $v) : $v);
+                                    }
+                                }
+                                $subItems[] = $cleanSub;
                             }
-                            $subItems[] = $cleanSub;
+                        } else {
+                            // Fixed lists like carousel slides
+                            foreach ($defaultVal as $idx => $subDefault) {
+                                $subInput = $inputArray[$idx] ?? [];
+                                $cleanSub = [];
+                                foreach ($subDefault as $k => $v) {
+                                    $val = isset($subInput[$k]) ? trim((string) $subInput[$k]) : '';
+                                    $cleanSub[$k] = $val;
+                                }
+                                $subItems[] = $cleanSub;
+                            }
                         }
                     } else {
-                        // Fixed lists like carousel slides
-                        foreach ($defaultVal as $idx => $subDefault) {
-                            $subInput = $inputArray[$idx] ?? [];
-                            $cleanSub = [];
-                            foreach ($subDefault as $k => $v) {
-                                $val = isset($subInput[$k]) ? trim((string) $subInput[$k]) : '';
-                                $cleanSub[$k] = $val;
+                        $subItems = $defaultVal;
+                    }
+                    $clean[$key] = $subItems;
+                } else {
+                    $val = isset($payload[$key]) ? trim((string) $payload[$key]) : '';
+                    $clean[$key] = $val;
+                }
+            }
+
+            // Backward compatibility sync for legacy flat keys if campaign_cards are saved
+            if (! empty($clean['campaign_cards']) && is_array($clean['campaign_cards'])) {
+                $c1 = $clean['campaign_cards'][0] ?? null;
+                if ($c1) {
+                    $clean['campaign_card1_product_id'] = $c1['product_id'] ?? '';
+                    $clean['campaign_card1_tag'] = $c1['tag'] ?? '';
+                    $clean['campaign_card1_title'] = $c1['title'] ?? '';
+                    $clean['campaign_card1_desc'] = $c1['desc'] ?? '';
+                    $clean['campaign_card1_feat1'] = $c1['feat1'] ?? '';
+                    $clean['campaign_card1_feat2'] = $c1['feat2'] ?? '';
+                    $clean['campaign_card1_price'] = $c1['price'] ?? '';
+                    $clean['campaign_card1_mrp'] = $c1['mrp'] ?? '';
+                    $clean['campaign_card1_save'] = $c1['save'] ?? '';
+                    $clean['campaign_card1_btn'] = $c1['btn'] ?? '';
+                    $clean['campaign_card1_link'] = $c1['link'] ?? '';
+                    $clean['campaign_card1_image'] = $c1['image'] ?? '';
+                }
+                $c2 = $clean['campaign_cards'][1] ?? null;
+                if ($c2) {
+                    $clean['campaign_card2_product_id'] = $c2['product_id'] ?? '';
+                    $clean['campaign_card2_tag'] = $c2['tag'] ?? '';
+                    $clean['campaign_card2_title'] = $c2['title'] ?? '';
+                    $clean['campaign_card2_desc'] = $c2['desc'] ?? '';
+                    $clean['campaign_card2_feat1'] = $c2['feat1'] ?? '';
+                    $clean['campaign_card2_feat2'] = $c2['feat2'] ?? '';
+                    $clean['campaign_card2_price'] = $c2['price'] ?? '';
+                    $clean['campaign_card2_mrp'] = $c2['mrp'] ?? '';
+                    $clean['campaign_card2_save'] = $c2['save'] ?? '';
+                    $clean['campaign_card2_btn'] = $c2['btn'] ?? '';
+                    $clean['campaign_card2_link'] = $c2['link'] ?? '';
+                    $clean['campaign_card2_image'] = $c2['image'] ?? '';
+                }
+            }
+
+            DB::table('content_pages')->updateOrInsert(
+                ['slug' => self::SLUG],
+                [
+                    'title' => 'Frontend Customization',
+                    'body' => json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'published' => true,
+                    'updated_at' => now(),
+                ]
+            );
+        }, 3);
+    }
+
+    /** @param array<string, mixed> $defaults @param array<string, mixed> $payload */
+    private static function validateShape(array $defaults, array $payload): void
+    {
+        foreach ($defaults as $key => $default) {
+            if (! array_key_exists($key, $payload)) {
+                continue;
+            }
+            $value = $payload[$key];
+            $valid = true;
+            if ($key === 'nav_categories' && is_array($value)) {
+                $valid = count($value) <= 100 && count(array_filter($value, is_scalar(...))) === count($value);
+            } elseif (is_array($default)) {
+                $valid = is_array($value) && count($value) <= 100;
+                if ($valid) {
+                    foreach ($value as $item) {
+                        if (! is_array($item)) {
+                            $valid = false;
+                            break;
+                        }
+                        foreach ($default[0] ?? [] as $field => $example) {
+                            if (isset($item[$field]) && is_array($item[$field]) !== is_array($example)) {
+                                $valid = false;
                             }
-                            $subItems[] = $cleanSub;
                         }
                     }
-                } else {
-                    $subItems = $defaultVal;
                 }
-                $clean[$key] = $subItems;
             } else {
-                $val = isset($payload[$key]) ? trim((string) $payload[$key]) : '';
-                $clean[$key] = $val;
+                $valid = $value === null || is_scalar($value);
+            }
+            if (! $valid) {
+                throw ValidationException::withMessages(['customization.'.$key => 'This content field has an invalid format. Reload the form and try again.']);
             }
         }
-
-        // Backward compatibility sync for legacy flat keys if campaign_cards are saved
-        if (! empty($clean['campaign_cards']) && is_array($clean['campaign_cards'])) {
-            $c1 = $clean['campaign_cards'][0] ?? null;
-            if ($c1) {
-                $clean['campaign_card1_product_id'] = $c1['product_id'] ?? '';
-                $clean['campaign_card1_tag'] = $c1['tag'] ?? '';
-                $clean['campaign_card1_title'] = $c1['title'] ?? '';
-                $clean['campaign_card1_desc'] = $c1['desc'] ?? '';
-                $clean['campaign_card1_feat1'] = $c1['feat1'] ?? '';
-                $clean['campaign_card1_feat2'] = $c1['feat2'] ?? '';
-                $clean['campaign_card1_price'] = $c1['price'] ?? '';
-                $clean['campaign_card1_mrp'] = $c1['mrp'] ?? '';
-                $clean['campaign_card1_save'] = $c1['save'] ?? '';
-                $clean['campaign_card1_btn'] = $c1['btn'] ?? '';
-                $clean['campaign_card1_link'] = $c1['link'] ?? '';
-                $clean['campaign_card1_image'] = $c1['image'] ?? '';
-            }
-            $c2 = $clean['campaign_cards'][1] ?? null;
-            if ($c2) {
-                $clean['campaign_card2_product_id'] = $c2['product_id'] ?? '';
-                $clean['campaign_card2_tag'] = $c2['tag'] ?? '';
-                $clean['campaign_card2_title'] = $c2['title'] ?? '';
-                $clean['campaign_card2_desc'] = $c2['desc'] ?? '';
-                $clean['campaign_card2_feat1'] = $c2['feat1'] ?? '';
-                $clean['campaign_card2_feat2'] = $c2['feat2'] ?? '';
-                $clean['campaign_card2_price'] = $c2['price'] ?? '';
-                $clean['campaign_card2_mrp'] = $c2['mrp'] ?? '';
-                $clean['campaign_card2_save'] = $c2['save'] ?? '';
-                $clean['campaign_card2_btn'] = $c2['btn'] ?? '';
-                $clean['campaign_card2_link'] = $c2['link'] ?? '';
-                $clean['campaign_card2_image'] = $c2['image'] ?? '';
-            }
-        }
-
-        DB::table('content_pages')->updateOrInsert(
-            ['slug' => self::SLUG],
-            [
-                'title' => 'Frontend Customization',
-                'body' => json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'published' => true,
-                'updated_at' => now(),
-            ]
-        );
     }
 
     public static function getShortcuts(): array
@@ -922,6 +923,15 @@ class SiteCustomization
             }
         }
 
+        if ($items === []) {
+            return Product::where('active', true)->where('category', '!=', '')
+                ->orderBy('category')->distinct()->pluck('category')
+                ->map(fn (string $name): array => [
+                    'name' => $name, 'is_image' => false, 'image' => '', 'icon' => 'fa-tag',
+                    'link' => '/products?category='.urlencode($name), 'badge' => '',
+                ])->all();
+        }
+
         return $items;
     }
 
@@ -933,16 +943,8 @@ class SiteCustomization
             ? array_filter(array_map('trim', $raw))
             : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw)));
         if (empty($cats)) {
-            return [
-                'Medical Equipment',
-                'Leather Items',
-                'Consumer Items',
-                'Medicine',
-                'Agriculture Product',
-                'Cosmetics',
-                'Furniture',
-                'Service',
-            ];
+            return Product::where('active', true)->where('category', '!=', '')
+                ->orderBy('category')->distinct()->pluck('category')->all();
         }
 
         return array_values($cats);
@@ -990,50 +992,13 @@ class SiteCustomization
         }
 
         if (empty($items)) {
-            $referencePreview = ReferenceCatalog::enabled() && ! Product::where('active', true)->where('sku', 'not like', 'DEMO-%')->exists();
-            if ($referencePreview) {
-                $refItems = ReferenceCatalog::items();
-                foreach ($refItems as $idx => $p) {
-                    $cat = $p['category'] ?? 'General';
-                    $priceRaw = (string) $p['price'];
-                    $mrpRaw = (string) $p['mrp'];
-                    $numPrice = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', $priceRaw));
-                    $numMrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', $mrpRaw));
-                    $discountPct = ($numMrp > $numPrice && $numMrp > 0) ? (int) round((($numMrp - $numPrice) / $numMrp) * 100) : 0;
-                    $saveText = $discountPct > 0 ? ('Save '.number_format($numMrp - $numPrice).' Tk') : '';
-
-                    $items[] = [
-                        'id' => $p['id'],
-                        'name' => $p['name'],
-                        'sku' => $p['sku'],
-                        'category' => $cat,
-                        'category_slug' => Str::slug($cat),
-                        'description' => $p['description'],
-                        'unit' => $p['unit'] ?? 'pack',
-                        'stock' => $p['stock'] ?? 1,
-                        'stock_status' => 'in_stock',
-                        'stock_badge' => '',
-                        'price' => $p['price'],
-                        'mrp' => $p['mrp'],
-                        'discount_pct' => $discountPct,
-                        'savings_text' => $saveText,
-                        'marketing_badge' => $idx === 0 ? '★ Best Seller' : ($idx === 1 ? '🔥 Hot Deal' : ($idx === 2 ? 'New Arrival' : '')),
-                        'campaign' => null,
-                        'url' => $p['url'],
-                        'image_path' => $p['image_path'],
-                        'preview' => true,
-                    ];
-                }
-            } else {
-                $products = Product::where('active', true)
-                    ->orderByDesc('featured')
-                    ->orderBy('name')
-                    ->limit(20)
-                    ->get();
-
-                foreach ($products as $p) {
-                    $items[] = self::formatPublicProductCard($p);
-                }
+            $products = Product::where('active', true)
+                ->orderByDesc('featured')
+                ->orderBy('name')
+                ->limit(20)
+                ->get();
+            foreach ($products as $product) {
+                $items[] = self::formatPublicProductCard($product);
             }
         }
 
@@ -1042,41 +1007,20 @@ class SiteCustomization
 
     public static function formatPublicProductCard(Product $p, array $config = []): array
     {
-        $campaign = self::getCampaignForProduct($p->id, $p->name);
-        $price = $campaign && ! empty($campaign['price']) ? $campaign['price'] : ($p->dealer_price ?: $p->mrp);
-        $mrp = $p->mrp;
-
-        $numPrice = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) $price));
-        $numMrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) $mrp));
-
-        $discountPct = 0;
-        $savingsText = '';
-        if ($numMrp > $numPrice && $numMrp > 0) {
-            $discountPct = (int) round((($numMrp - $numPrice) / $numMrp) * 100);
-            $diff = $numMrp - $numPrice;
-            $savingsText = 'Save '.number_format($diff).' Tk';
-        } elseif ($campaign && ! empty($campaign['save'])) {
-            $savingsText = $campaign['save'];
-        }
-
         $stock = (int) ($p->stock ?? 0);
-        $stockStatus = 'in_stock';
+        $stockStatus = $p->stockStatus();
         $stockBadge = '';
-        if ($stock <= 0) {
+        if ($stockStatus === 'out_of_stock') {
             $stockStatus = 'out_of_stock';
             $stockBadge = 'Out of Stock';
-        } elseif ($stock <= 5) {
+        } elseif ($stockStatus === 'low_stock') {
             $stockStatus = 'low_stock';
-            $stockBadge = "⚡ Only {$stock} Left!";
+            $stockBadge = 'Low Stock';
         }
 
         $marketingBadge = trim((string) ($config['marketing_badge'] ?? ''));
-        if ($marketingBadge === '') {
-            if ($campaign) {
-                $marketingBadge = $campaign['tag'] ?: '🔥 Deal';
-            } elseif ($p->featured) {
-                $marketingBadge = '★ Featured';
-            }
+        if ($marketingBadge === '' && $p->featured) {
+            $marketingBadge = 'Featured';
         }
 
         $media = $p->media();
@@ -1093,12 +1037,12 @@ class SiteCustomization
             'stock' => $stock,
             'stock_status' => $stockStatus,
             'stock_badge' => $stockBadge,
-            'price' => $price,
-            'mrp' => $mrp,
-            'discount_pct' => $discountPct,
-            'savings_text' => $savingsText,
+            'price' => $p->mrp,
+            'mrp' => $p->mrp,
+            'discount_pct' => 0,
+            'savings_text' => '',
             'marketing_badge' => $marketingBadge,
-            'campaign' => $campaign,
+            'campaign' => null,
             'url' => route('products.show', $p->id),
             'image_path' => $media['image_url'] ?? '',
             'media' => $media,

@@ -1,7 +1,4 @@
 @php
-    $reference = json_decode(file_get_contents(public_path('reference/home-products.json')), true);
-    $referenceProducts = $referencePreview ? $reference['products'] : [];
-
     $slides = $siteCustomization['slides'] ?? [];
     if (empty($slides)) {
         $slides = [

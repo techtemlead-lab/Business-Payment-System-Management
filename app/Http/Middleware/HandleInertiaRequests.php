@@ -21,7 +21,7 @@ class HandleInertiaRequests extends Middleware
         return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
             'collectionAccounts' => fn () => $u ? app(PaymentAccounts::class)->listing($u, true) : [],
             'portalBase' => $u?->staff() ? '/company' : '/workspace',
-            'flash' => ['success' => fn () => $request->session()->get('success')], 'financeActive' => (bool) config('madina.financial_activation'), 'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'), 'demoMode' => app()->environment('local'),
+            'flash' => ['success' => fn () => $request->session()->get('success')], 'financeActive' => (bool) config('madina.financial_activation'), 'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'), 'demoMode' => (bool) config('madina.preview_mode'),
             'staffRoles' => fn () => $u?->role === 'super_admin' ? ['employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()] : [],
             'staffActions' => fn () => $u?->staff() ? app(StaffPermissions::class)->matrix($u) : [],
             'dashboardNotice' => DashboardManagement::noticeForUser($u),

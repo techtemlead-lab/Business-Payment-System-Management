@@ -32,7 +32,7 @@ class CatalogController extends Controller
 
             return [
                 ...$product->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'is_stock_paused']),
-                ...$product->media(), 'price' => $price, 'currency' => 'BDT',
+                ...$product->media(), 'stock_status' => $product->stockStatus(), 'price' => $price, 'currency' => 'BDT',
                 ...($user->allows('cost_read') ? ['cost_price' => $product->cost_price] : []),
             ];
         });

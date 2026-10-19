@@ -1,0 +1,64 @@
+name: madina-production
+x-application: &application
+  build:
+    context: .
+    dockerfile: Dockerfile.production
+    target: app
+  image: madina-application:release
+  env_file: .env.production
+  environment:
+    APP_ENV: production
+    APP_DEBUG: "false"
+    DB_CONNECTION: pgsql
+    DB_HOST: db
+    DB_PORT: "5432"
+    DB_DATABASE: madina
+    DB_USERNAME: madina
+    DB_QUEUE_RETRY_AFTER: "2100"
+    MADINA_BACKUP_PATH: /var/backups/madina
+  volumes:
+    - application-storage:/var/www/html/storage
+    - private-backups:/var/backups/madina
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+services:
+  app:
+    <<: *application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      target: web
+    ports: ["127.0.0.1:8095:80"]
+    depends_on: [app]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  queue:
+    <<: *application
+    command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=1", "--timeout=1800", "--max-time=3600"]
+  scheduler:
+    <<: *application
+    command: ["php", "-d", "max_execution_time=0", "artisan", "schedule:work", "--no-interaction"]
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: madina
+      POSTGRES_USER: madina
+      POSTGRES_PASSWORD: $DB_PASSWORD
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U madina -d madina"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+volumes:
+  application-storage:
+  private-backups:
+  database:

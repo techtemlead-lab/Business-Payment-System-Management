@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ActiveAccount;
+use App\Http\Middleware\CoordinateBackups;
 use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [ProtectPrivateResponses::class, EnforceStaffActions::class, HandleInertiaRequests::class]);
+        $middleware->web(append: [CoordinateBackups::class, ProtectPrivateResponses::class, EnforceStaffActions::class, HandleInertiaRequests::class]);
         $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class]);
         $middleware->redirectGuestsTo(fn (Request $r) => $r->is('company', 'company/*') ? '/company/login' : '/login');
         $middleware->redirectUsersTo(fn (Request $r) => $r->user()?->staff() ? '/company' : '/workspace');

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CommissionController;
 use App\Http\Controllers\Api\V1\FinancialPreviewController;
 use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
 use App\Http\Controllers\ModuleCompletionController;
@@ -89,3 +90,17 @@ $operations = function (): void {
 };
 Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1'])->group($operations);
 Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group($operations);
+
+Route::get('/company/operations/data-imports', [DataImportController::class, 'index'])
+    ->middleware(['auth', 'active', 'portal:company'])->name('company.imports');
+foreach (['commands' => 'data-imports.', 'api/v1' => 'api.data-imports.'] as $prefix => $name) {
+    Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
+        $controller = DataImportController::class;
+        Route::get('/', [$controller, 'index'])->name('index');
+        Route::get('/templates/{type}', [$controller, 'template'])->name('template');
+        Route::post('/preview', [$controller, 'preview'])->name('preview');
+        Route::post('/{id}/apply', [$controller, 'apply'])->whereUuid('id')->name('apply');
+        Route::get('/{id}/source', [$controller, 'source'])->whereUuid('id')->name('source');
+        Route::post('/opening-holds/{id}/release', [$controller, 'releaseHold'])->whereNumber('id')->name('release-hold');
+    });
+}

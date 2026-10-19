@@ -4518,7 +4518,7 @@ export default function SiteCustomizationEditor({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Package size={20} color="#15803d" />
                         <span style={{ fontSize: 13, color: '#166534', fontWeight: 500 }}>
-                            Looking for <strong>Special Discounts, Promotional Offers & Package Bundles</strong>? They are managed in the dedicated <strong>Product Management</strong> section.
+                            Manage the homepage <strong>Product Showcase</strong> in <strong>Product Management</strong>. Purchasing is available through the dealer and sub-dealer dashboards.
                         </span>
                     </div>
                     <a href="/company/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>

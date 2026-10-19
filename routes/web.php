@@ -11,7 +11,6 @@ use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'index']);
-Route::get('/products/preview/{id}', [PublicController::class, 'previewProduct']);
 Route::get('/products/{product}/image', [ProductRegistryController::class, 'image'])->name('products.image');
 Route::get('/products/{product}/video', [ProductRegistryController::class, 'video'])->name('products.video');
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
@@ -49,7 +48,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/workspace/{section?}', [PortalController::class, 'index']);
     });
     Route::prefix('company')->middleware('portal:company')->group(function () {
-        Route::get('/operations/{section}', [OperationsController::class, 'index'])->name('company.operations');
+        Route::get('/operations/{section}', [OperationsController::class, 'index'])->whereIn('section', OperationsController::Sections)->name('company.operations');
         Route::get('/accounts/create', [PortalController::class, 'createAccount']);
         Route::get('/products/create', [ProductRegistryController::class, 'edit']);
         Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);

@@ -26,7 +26,7 @@ final class CommissionReversal
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
             if (! $batch) {
-                return [];
+                throw ValidationException::withMessages(['order' => 'This order has no posted commissions to reverse. No adjustment was recorded.']);
             }
             $existing = DB::table('commission_refunds')->where('order_id', $order->id)->where('reference', $reference)->first();
             if ($existing) {

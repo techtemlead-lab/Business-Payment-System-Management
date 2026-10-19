@@ -107,7 +107,9 @@ class PublicWebsiteTest extends TestCase
         $res = $this->get('/contact');
         $res->assertOk();
         $res->assertSee('Office &amp; Healthcare Center Location', false);
-        $res->assertSee('openstreetmap.org/export/embed.html', false);
+        $res->assertSee('openstreetmap.org/search?query=', false);
+        $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
+        $res->assertDontSee('23.914')->assertDontSee('contact@madinanatural.com');
         $res->assertSee('Open Map Directions');
     }
 
@@ -166,9 +168,9 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('Find Nearest Dealer');
         $res->assertSee('/dealers');
         $res->assertSee('View All Products');
-        $res->assertSee('Medical Equipment');
-        $res->assertSee('Electronic Devices');
-        $res->assertSee('Fashion &amp; Lifestyle', false);
+        $res->assertDontSee('Medical Equipment');
+        $res->assertDontSee('Electronic Devices');
+        $res->assertDontSee('Fashion &amp; Lifestyle', false);
     }
 
     public function test_outlets_url_redirects_to_dealers_directory(): void

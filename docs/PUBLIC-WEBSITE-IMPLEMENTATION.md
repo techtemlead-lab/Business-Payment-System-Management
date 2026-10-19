@@ -1,3 +1,5 @@
+> Current behavior (19 October 2026): public pages are a company/product catalogue. Ordering is restricted to authenticated dealer and sub-dealer dashboards. Public cart, Buy Now, wishlist/comparison and discount campaign sections are retired. Product Management controls the public product showcase; historical campaign records remain for compatibility. See the root README for current deployment and preview instructions. Older implementation notes below describe the earlier design and are not the current acceptance criteria.
+
 # Public website checkpoint
 
 Historical checkpoint: use [the current requirements-to-code review](COMMISSION-AND-NETWORK-SYSTEM.md#requirements-to-code-review---17-october-2026) for the latest status. Later code supersedes this page's dated remaining-work list.

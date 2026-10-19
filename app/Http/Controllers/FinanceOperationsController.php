@@ -189,7 +189,7 @@ class FinanceOperationsController extends Controller
     public function opening(Request $request, FinancialReadiness $readiness): Response
     {
         $data = $request->validate(['wallet_available' => self::Amount, 'wallet_held' => self::Amount, 'order_paid' => self::Amount,
-            'withdrawal_paid' => self::Amount, 'source_reference' => 'required|string|min:5|max:150', 'evidence' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240']);
+            'withdrawal_paid' => self::Amount, 'source_reference' => 'required|string|min:5|max:150', 'evidence' => 'required|file|mimes:pdf,jpg,jpeg,png,xlsx|max:10240']);
         $id = $readiness->submit($request->user(), collect($data)->only(['wallet_available', 'wallet_held', 'order_paid', 'withdrawal_paid'])->all(), $data['source_reference'], $request->file('evidence'));
 
         return $this->done($request, ['id' => $id]);

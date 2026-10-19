@@ -30,7 +30,7 @@ final class ReportData
             'product-summary', 'category-summary' => $this->salesSummary($type),
             'rank-achievements' => [DB::table('dealer_ranks as r')->join('users as u', 'u.id', '=', 'r.user_id')
                 ->crossJoin(DB::raw("LATERAL json_array_elements(CASE WHEN json_array_length(COALESCE(r.qualification_history,'[]'::json))>0 THEN r.qualification_history ELSE json_build_array(json_build_object('rank',r.current_rank,'achieved_at',r.achieved_at)) END) AS h(value)"))->whereRaw("h.value->>'rank' <> 'dealer'"),
-                ['u.name', 'u.dealer_code', DB::raw("h.value->>'rank' AS rank"), DB::raw("(h.value->>'achieved_at')::timestamptz AS achieved_at")], [], DB::raw("(h.value->>'achieved_at')::timestamptz"), 'r.user_id'],
+                ['u.name', 'u.dealer_code', DB::raw("h.value->>'rank' AS rank"), DB::raw("(h.value->>'achieved_at')::timestamptz AS achieved_at")], [], DB::raw("((h.value->>'achieved_at')::timestamptz AT TIME ZONE 'UTC')"), 'r.user_id'],
             'rank-incentives' => [DB::table('rank_incentive_awards as r')->join('users as u', 'u.id', '=', 'r.user_id')
                 ->leftJoinSub(DB::table('commission_settlement_payouts')->where('kind', 'like', 'rank_%')->selectRaw('user_id,kind,SUM(reversed_amount) AS reversed_amount')->groupBy('user_id', 'kind'), 'p', fn ($join) => $join->on('p.user_id', '=', 'r.user_id')->whereRaw("p.kind='rank_' || r.rank")),
                 ['r.id', 'u.name', 'u.dealer_code', 'r.rank', 'r.amount', DB::raw('COALESCE(p.reversed_amount,0) AS reversed_amount'), DB::raw('(r.amount-COALESCE(p.reversed_amount,0)) AS net_award'), 'r.created_at'], ['amount', 'reversed_amount', 'net_award'], 'r.created_at', 'r.user_id'],

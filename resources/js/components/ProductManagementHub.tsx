@@ -13,9 +13,7 @@ import {
     Eye
 } from 'lucide-react';
 import {
-    CampaignOffersManager,
     FeaturedProductsManager,
-    type CampaignCardItem,
     type CustomizationData
 } from './SiteCustomizationEditor';
 import { Row, money } from './UI';
@@ -45,31 +43,18 @@ export default function ProductManagementHub({
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
     const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
-    const validTabs: ('products' | 'offers' | 'featured')[] = ['products', 'offers', 'featured'];
-    const getInitialTab = (): 'products' | 'offers' | 'featured' => {
+    const validTabs: ('products' | 'featured')[] = ['products', 'featured'];
+    const getInitialTab = (): 'products' | 'featured' => {
         if (typeof window !== 'undefined') {
             const urlTab = new URLSearchParams(window.location.search).get('tab');
             if (urlTab && validTabs.includes(urlTab as any)) {
-                return urlTab as 'products' | 'offers' | 'featured';
+                return urlTab as 'products' | 'featured';
             }
         }
-        return validTabs.includes(initialTab as any) ? (initialTab as 'products' | 'offers' | 'featured') : 'products';
+        return validTabs.includes(initialTab as any) ? (initialTab as 'products' | 'featured') : 'products';
     };
-    const [activeTab, setActiveTab] = useState<'products' | 'offers' | 'featured'>(getInitialTab);
+    const [activeTab, setActiveTab] = useState<'products' | 'featured'>(getInitialTab);
     const [searchQuery, setSearchQuery] = useState(filters?.q || '');
-
-    // Form for Special Discounts & Promotional Offers
-    const campaignForm = useForm({
-        customization: {
-            campaign_section_enabled: customization.campaign_section_enabled !== undefined ? customization.campaign_section_enabled : '1',
-            campaign_badge: customization.campaign_badge || '',
-            campaign_title: customization.campaign_title || '',
-            campaign_subtitle: customization.campaign_subtitle || '',
-            campaign_cards: Array.isArray(customization.campaign_cards) && customization.campaign_cards.length > 0
-                ? customization.campaign_cards
-                : (defaults.campaign_cards || []),
-        }
-    });
 
     // Form for Featured Products Showcase
     const featuredForm = useForm({
@@ -77,7 +62,7 @@ export default function ProductManagementHub({
             featured_products_enabled: customization.featured_products_enabled !== undefined ? customization.featured_products_enabled : '1',
             featured_products_badge: customization.featured_products_badge || '',
             featured_products_title: customization.featured_products_title || '',
-            featured_products_subtitle: customization.featured_products_subtitle || '',
+            public_products_subtitle: customization.public_products_subtitle || '',
             featured_products_view_all: customization.featured_products_view_all || '',
             featured_products_tabs_enabled: customization.featured_products_tabs_enabled !== undefined ? customization.featured_products_tabs_enabled : '1',
             featured_products_mode: customization.featured_products_mode || 'auto',
@@ -87,13 +72,6 @@ export default function ProductManagementHub({
         }
     });
 
-    const handleSaveCampaign = (e: React.FormEvent) => {
-        e.preventDefault();
-        campaignForm.post('/commands/customization', {
-            preserveScroll: true,
-        });
-    };
-
     const handleSaveFeatured = (e: React.FormEvent) => {
         e.preventDefault();
         featuredForm.post('/commands/customization', {
@@ -101,7 +79,7 @@ export default function ProductManagementHub({
         });
     };
 
-    const handleTabChange = (t: 'products' | 'offers' | 'featured') => {
+    const handleTabChange = (t: 'products' | 'featured') => {
         setActiveTab(t);
         const url = new URL(window.location.href);
         if (t === 'products') {
@@ -117,7 +95,6 @@ export default function ProductManagementHub({
         router.get('/company/catalog', { q: searchQuery, tab: activeTab !== 'products' ? activeTab : undefined }, { preserveState: true });
     };
 
-    const activeCards = campaignForm.data.customization.campaign_cards || [];
 
     return (
         <div>
@@ -158,37 +135,7 @@ export default function ProductManagementHub({
                         <span>All Products Catalog ({products.length})</span>
                     </button>
 
-                    <button
-                        type="button"
-                        onClick={() => handleTabChange('offers')}
-                        style={{
-                            padding: '9px 16px',
-                            borderRadius: 7,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: activeTab === 'offers' ? '#006837' : 'transparent',
-                            color: activeTab === 'offers' ? '#ffffff' : '#475569',
-                            transition: 'all 0.15s ease'
-                        }}
-                    >
-                        <Tag size={16} />
-                        <span>Special Discounts & Promotional Offers ({activeCards.length})</span>
-                        <span style={{
-                            background: activeTab === 'offers' ? '#10b981' : '#e2e8f0',
-                            color: activeTab === 'offers' ? '#fff' : '#475569',
-                            fontSize: 10,
-                            fontWeight: 800,
-                            padding: '1px 6px',
-                            borderRadius: 10
-                        }}>
-                            NEW DUAL MODE
-                        </span>
-                    </button>
+
 
                     <button
                         type="button"
@@ -288,11 +235,6 @@ export default function ProductManagementHub({
                     {/* Products Grid */}
                     <div className="product-grid portal-products">
                         {products.map(p => {
-                            const mrpVal = Number(p.mrp) || 0;
-                            const priceVal = Number(p.price) || 0;
-                            const hasDiscount = mrpVal > 0 && priceVal > 0 && priceVal < mrpVal;
-                            const savings = hasDiscount ? (mrpVal - priceVal) : 0;
-                            const discountPct = hasDiscount ? Math.round((savings / mrpVal) * 100) : 0;
 
                             return (
                                 <article className="product-card" key={p.id} style={{ position: 'relative' }}>
@@ -326,7 +268,7 @@ export default function ProductManagementHub({
                                         )}
                                         <span className="product-category">{p.category}</span>
                                         <span className={`stock-label ${p.stock === 0 ? 'out' : ''}`}>
-                                            {p.stock > 0 && !p.is_stock_paused ? `${p.stock} in stock` : 'Awaiting stock'}
+                                            {!p.active ? `Draft · ${p.stock} units` : p.stock_status === 'low_stock' ? `Low stock · ${p.stock} units` : p.stock > 0 && !p.is_stock_paused ? `${p.stock} in stock` : 'Awaiting stock'}
                                         </span>
                                     </div>
 
@@ -339,36 +281,9 @@ export default function ProductManagementHub({
 
                                         <div className="product-bottom">
                                             <div>
-                                                <div>
-                                                    <b>{money(p.price ?? p.mrp)}</b>
-                                                    {hasDiscount && (
-                                                        <del style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'line-through', marginLeft: 6 }}>
-                                                            {money(p.mrp)}
-                                                        </del>
-                                                    )}
-                                                </div>
-                                                {hasDiscount ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                                                        <span style={{
-                                                            background: '#ecfdf5',
-                                                            color: '#047857',
-                                                            fontSize: 11,
-                                                            fontWeight: 700,
-                                                            padding: '1px 6px',
-                                                            borderRadius: 4,
-                                                            border: '1px solid #a7f3d0'
-                                                        }}>
-                                                            {discountPct}% OFF
-                                                        </span>
-                                                        <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                                                            Save ৳{savings.toFixed(0)}
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <small className="cell-sub">
-                                                        {p.price ? 'Partner price' : 'MRP · partner price pending'}
-                                                    </small>
-                                                )}
+                                                <b>{money(p.price ?? p.mrp)}</b>
+                                                <small className="cell-sub">{p.price ? 'Dealer price' : 'Partner price pending'}</small>
+                                                <small className="cell-sub">MRP {money(p.mrp)}</small>
                                             </div>
                                         </div>
 
@@ -448,115 +363,6 @@ export default function ProductManagementHub({
                         </div>
                     )}
                 </div>
-            )}
-
-            {/* TAB 2: SPECIAL DISCOUNTS & PROMOTIONAL OFFERS */}
-            {activeTab === 'offers' && (
-                <form onSubmit={handleSaveCampaign}>
-                    <div style={{
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 20px',
-                        marginBottom: 20
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                            <div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
-                                    Special Discounts & Promotional Offers Manager
-                                </h3>
-                                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                                    Create single-product promotional discounts or multi-product packages. All items are selected from your existing catalog.
-                                </p>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={!canEditMarketing || campaignForm.processing}
-                                style={{
-                                    background: '#006837',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '10px 22px',
-                                    borderRadius: 7,
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
-                                }}
-                            >
-                                <Save size={16} />
-                                {campaignForm.processing ? 'Saving Changes…' : 'Save Promotional Offers'}
-                            </button>
-                        </div>
-                    </div>
-
-                    <CampaignOffersManager
-                        cards={campaignForm.data.customization.campaign_cards || []}
-                        defaultCards={defaults.campaign_cards || []}
-                        enabled={campaignForm.data.customization.campaign_section_enabled !== '0'}
-                        badge={campaignForm.data.customization.campaign_badge || ''}
-                        title={campaignForm.data.customization.campaign_title || ''}
-                        subtitle={campaignForm.data.customization.campaign_subtitle || ''}
-                        defaultBadge={defaults.campaign_badge || 'SPECIAL CAMPAIGN & OFFERS'}
-                        defaultTitle={defaults.campaign_title || 'Special Discounts & Promotional Offers'}
-                        defaultSubtitle={defaults.campaign_subtitle || 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.'}
-                        onToggleEnabled={val => campaignForm.setData('customization', {
-                            ...campaignForm.data.customization,
-                            campaign_section_enabled: val ? '1' : '0'
-                        })}
-                        onUpdateHeaderField={(key, val) => campaignForm.setData('customization', {
-                            ...campaignForm.data.customization,
-                            [key]: val
-                        })}
-                        onChange={nextCards => campaignForm.setData('customization', {
-                            ...campaignForm.data.customization,
-                            campaign_cards: nextCards
-                        })}
-                        products={allProducts.length > 0 ? allProducts : products as any}
-                    />
-
-                    {/* Bottom Save Bar */}
-                    <div style={{
-                        marginTop: 24,
-                        padding: '16px 20px',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: 12
-                    }}>
-                        <div style={{ fontSize: 13, color: '#64748b' }}>
-                            Ensure you click <strong>Save Promotional Offers</strong> to apply any added or updated offers to the public homepage.
-                        </div>
-                        <button
-                            type="submit"
-                            disabled={!canEditMarketing || campaignForm.processing}
-                            style={{
-                                background: '#006837',
-                                color: '#ffffff',
-                                border: 'none',
-                                padding: '10px 24px',
-                                borderRadius: 7,
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
-                            }}
-                        >
-                            <Save size={16} />
-                            {campaignForm.processing ? 'Saving Changes…' : 'Save Promotional Offers'}
-                        </button>
-                    </div>
-                </form>
             )}
 
             {/* TAB 3: FEATURED PRODUCTS SHOWCASE */}

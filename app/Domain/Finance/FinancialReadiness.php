@@ -23,13 +23,15 @@ final class FinancialReadiness
             $checks = [
                 'balanced_journals' => ! DB::table('journal_lines')->select('entry_id')->groupBy('entry_id')->havingRaw('SUM(debit) <> SUM(credit)')->exists(),
                 'wallet_liabilities' => ! DB::table('wallets as w')->whereRaw("w.available + w.held <> COALESCE((SELECT SUM(credit-debit) FROM journal_lines j WHERE j.user_id=w.user_id AND j.account IN ('wallet_liability','commission_held_liability')),0)")->exists(),
-                'maturing_holds' => ! DB::table('wallets as w')->whereRaw("w.commission_held <> COALESCE((SELECT SUM(amount) FROM commission_allocations a WHERE a.user_id=w.user_id AND a.status='maturing'),0)")->exists(),
+                'maturing_holds' => ! DB::table('wallets as w')->whereRaw("w.commission_held <> COALESCE((SELECT SUM(amount) FROM commission_allocations a WHERE a.user_id=w.user_id AND a.status='maturing'),0) + COALESCE((SELECT SUM(held-held_released) FROM opening_balance_entries e WHERE e.user_id=w.user_id),0)")->exists(),
                 'withdrawal_reservations' => ! DB::table('wallets as w')->whereRaw("w.held-w.commission_held <> COALESCE((SELECT SUM(amount) FROM withdrawals x WHERE x.user_id=w.user_id AND x.status IN ('requested','approved')),0)")->exists(),
                 'order_receipts' => ! DB::table('orders as o')->whereRaw('o.paid <> COALESCE((SELECT SUM(amount) FROM receipts r WHERE r.order_id=o.id),0)')->exists(),
                 'funded_batches' => ! DB::table('commission_batches')->whereRaw('cash_basis <> company_share + total_allocated + unallocated OR refunded_amount > cash_basis')->exists(),
                 'allocation_totals' => ! DB::table('commission_batches as b')->whereRaw('b.total_allocated <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id),0)')->exists(),
                 'nonnegative_balances' => ! DB::table('wallets')->whereRaw('available < 0 OR held < 0 OR commission_held < 0 OR commission_held > held')->exists(),
                 'nonnegative_stock' => ! DB::table('products')->where('stock', '<', 0)->exists(),
+                'opening_receivables' => ! DB::table('orders as o')->where('o.is_opening_balance', true)
+                    ->whereRaw("o.total-o.paid-o.due_credit <> COALESCE((SELECT SUM(j.debit-j.credit) FROM journal_lines j WHERE j.user_id=o.user_id AND j.account='opening_receivables'),0)")->exists(),
                 'due_adjustments' => ! DB::table('orders as o')->whereRaw("o.due_credit <> COALESCE((SELECT SUM(CASE WHEN a.kind='credit' THEN a.amount ELSE -a.amount END) FROM due_adjustments a WHERE a.order_id=o.id AND a.status='approved'),0) OR o.due_credit < 0 OR o.paid+o.due_credit > o.total")->exists(),
             ];
             $totals = [];

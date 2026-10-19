@@ -21,6 +21,12 @@ class Product extends Model
         return ['active' => 'boolean', 'is_stock_paused' => 'boolean', 'registry_version' => 'integer', 'featured' => 'boolean', 'mrp' => 'decimal:2', 'dealer_price' => 'decimal:2', 'sub_dealer_price' => 'decimal:2', 'cost_price' => 'decimal:2'];
     }
 
+    public function stockStatus(): string
+    {
+        return $this->is_stock_paused || $this->stock <= 0 ? 'out_of_stock'
+            : ($this->stock <= $this->low_stock_at ? 'low_stock' : 'in_stock');
+    }
+
     public function media(): array
     {
         $youtube = $this->video_source === 'youtube' && preg_match('/^[A-Za-z0-9_-]{11}$/D', $this->video_youtube_id ?? '') ? 'https://www.youtube-nocookie.com/embed/'.$this->video_youtube_id : null;

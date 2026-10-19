@@ -29,6 +29,10 @@ return [
     */
 
     'disks' => [
+        'backups' => [
+            'driver' => 'local', 'root' => env('MADINA_BACKUP_PATH', storage_path('app/private/backups')),
+            'visibility' => 'private', 'throw' => true,
+        ],
 
         'local' => [
             'driver' => 'local',

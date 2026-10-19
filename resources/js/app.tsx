@@ -9,5 +9,6 @@ const pages: Record<string,()=>Promise<{default:React.ComponentType<any>}>>={
     ProductEditor:()=>import('./pages/ProductEditor'),
     AccountCreate:()=>import('./pages/AccountCreate'),
     Operations:()=>import('./pages/Operations'),
+    DataImports:()=>import('./pages/DataImports'),
 };
 createInertiaApp({title:title=>`${title} · Madina`,resolve:async name=>(await pages[name]()).default,setup({el,App,props}){createRoot(el).render(<App {...props}/>);},progress:{color:'#377b5a'}});

@@ -2,9 +2,10 @@ import React,{useEffect,useRef} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X,Inbox} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
+import {businessDate} from '../business-date';
 export type Row=Record<string,any>;
 export const money=(value:unknown)=>new Intl.NumberFormat('en-BD',{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
-export const date=(value:string)=>value?new Date(value).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Dhaka'}):'—';
+export const date=businessDate;
 const businessLabels:Record<string,string>={direct_referral:'Direct referral · Generation 1',d2d_gen2:'D2D · Generation 2',d2d_gen3:'D2D · Generation 3'};
 export const label=(text:string)=>businessLabels[text]??text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 export function Badge({status}:{status:string}) {return <span className={`badge ${status}`}>{label(status)}</span>}

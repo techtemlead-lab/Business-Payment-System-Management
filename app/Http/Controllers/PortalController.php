@@ -122,7 +122,7 @@ class PortalController extends Controller
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
-            $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where('name', 'like', '%'.$r->string('q').'%'))->orderBy('name')->get();
+            $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
             $data['products'] = $products->map(function ($p) use ($u, $pricing) {
                 $price = $p->dealer_price;
                 if (! $u->staff()) {
@@ -133,7 +133,7 @@ class PortalController extends Controller
                     }
                 }
 
-                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             });
             if ($section === 'catalog') {
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();

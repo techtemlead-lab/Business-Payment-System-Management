@@ -14,6 +14,7 @@ use App\Models\CommissionAllocation;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\DeploymentReadiness;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,15 +36,16 @@ class OperationsController extends Controller
             'financial-reports' => $actor->allows('finance') ? 'finance' : ($actor->allows('field_sales') ? 'field_sales' : 'reports'), default => 'finance'
         };
         abort_unless(in_array($section, self::Sections, true) && $actor->staff() && ($capability === null || $actor->allows($capability)), 403);
+        $request->validate(['q' => 'nullable|string|max:100']);
         $tables = [];
-        $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => []];
+        $data = ['section' => $section, 'tables' => [], 'paymentAccounts' => [], 'partners' => [], 'staff' => [], 'summary' => [], 'partnerSearch' => (string) $request->string('q')];
         $staff = User::staffAccounts()->orderBy('name')->get(['id', 'name', 'role', 'status', 'profile']);
         if ($actor->allows('staff_admin') || $actor->allows('finance')) {
             $data['staff'] = $staff->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'field_sales' => $u->allows('field_sales')])->all();
         }
         if (in_array($section, ['policy-schedules', 'reserve-payouts', 'field-sales', 'commission-holds'], true)) {
             $partners = $section === 'field-sales' ? app(TerritoryAccess::class)->partners($actor) : User::whereIn('role', ['dealer', 'sub_dealer']);
-            $data['partners'] = $partners->when($request->filled('q'), fn ($q) => $q->where('name', 'ilike', '%'.$request->string('q').'%'))
+            $data['partners'] = $partners->when($request->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$request->string('q').'%')->orWhere('dealer_code', 'ilike', '%'.$request->string('q').'%')))
                 ->orderBy('name')->limit(200)->get(['id', 'name', 'dealer_code', 'role', 'status', 'division', 'district'])->toArray();
         }
         if ($section === 'payment-accounts' || in_array($section, ['payroll', 'reserve-payouts'], true) && $actor->allows('finance')) {
@@ -103,8 +105,13 @@ class OperationsController extends Controller
             $tables['Held allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
                 ->select(['a.id', 'u.name', 'u.status as partner_status', 'a.order_id', 'a.category', 'a.amount', 'a.metadata'])->orderBy('a.id');
         }
+        if ($section === 'commission-holds') {
+            $tables['Opening commission holds'] = DB::table('opening_balance_entries as e')->join('users as u', 'u.id', '=', 'e.user_id')
+                ->whereColumn('e.held', '>', 'e.held_released')->select(['e.id', 'u.name', 'e.reference', 'e.held', 'e.as_of_date'])->orderBy('e.id');
+        }
         if ($section === 'financial-readiness') {
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
+            $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $tables['Opening balance reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
         }
         if ($section === 'dues-adjustments') {
