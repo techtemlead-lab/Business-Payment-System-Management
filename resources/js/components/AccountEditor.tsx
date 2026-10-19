@@ -11,6 +11,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         phone: account.phone ?? '',
         division: account.division ?? '',
         district: account.district ?? '',
+        latitude: account.latitude ?? '',
+        longitude: account.longitude ?? '',
         directory_visible: account.directory_visible ? '1' : '0',
         status: account.status,
         profile: Object.fromEntries(profileFields.map(field => [field, account.profile?.[field] ?? ''])),
@@ -37,6 +39,14 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             <label>District
                 <input value={form.data.district} onChange={event => form.setData('district', event.target.value)} />
             </label>
+            {isPartner && <>
+                <label>Map latitude
+                    <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={event => form.setData('latitude', event.target.value)} placeholder="e.g. 25.7701" />
+                </label>
+                <label>Map longitude
+                    <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder="e.g. 88.8240" />
+                </label>
+            </>}
             {profileFields.map(field => <label key={field}>{label(field)}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>)}
             <label>Status<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">Active</option><option value="suspended">Suspended</option></select></label>
             {account.role === 'dealer' && <label>Approved business contact visibility<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">Private</option><option value="1">Publish name, business phone and district</option></select></label>}

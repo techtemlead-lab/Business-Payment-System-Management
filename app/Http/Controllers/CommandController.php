@@ -106,6 +106,8 @@ class CommandController extends Controller
                 'union' => 'nullable|string|max:150',
                 'village' => 'nullable|string|max:150',
                 'post_office' => 'nullable|string|max:150',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
                 'place_code' => 'required|string|max:32',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',

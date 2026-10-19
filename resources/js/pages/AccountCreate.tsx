@@ -295,6 +295,8 @@ export default function AccountCreate({
             union: data.union,
             village: data.village,
             post_office: data.post_office,
+            latitude: data.latitude,
+            longitude: data.longitude,
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
@@ -502,7 +504,20 @@ export default function AccountCreate({
                                     </label>
                                     <label>Village / street<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
                                     <label>Post office<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
+                                    <label>
+                                        Map latitude
+                                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder="e.g. 25.7701" />
+                                        {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
+                                    </label>
+                                    <label>
+                                        Map longitude
+                                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder="e.g. 88.8240" />
+                                        {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
+                                    </label>
                                 </div>
+                                <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+                                    Optional GPS coordinates power the public “nearest dealer” directory. Leave blank when the business address is not yet verified on a map.
+                                </p>
                             </section>
 
                             <section className="panel">

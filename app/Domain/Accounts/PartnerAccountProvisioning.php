@@ -161,6 +161,8 @@ final class PartnerAccountProvisioning
                 'district' => $path['district'] ?? ($input['district'] ?? null),
                 'sponsor_id' => $sponsor?->id,
                 'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
+                'latitude' => isset($input['latitude']) && $input['latitude'] !== '' ? (float) $input['latitude'] : null,
+                'longitude' => isset($input['longitude']) && $input['longitude'] !== '' ? (float) $input['longitude'] : null,
                 'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
                 'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
                 'password' => $plainPassword,

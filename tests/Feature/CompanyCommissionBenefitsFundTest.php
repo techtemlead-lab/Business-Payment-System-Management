@@ -89,13 +89,15 @@ class CompanyCommissionBenefitsFundTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->missing('data.flow.unallocated_pool_buffer')
                 ->missing('data.flow.commission_benefits_fund')
-                ->missing('data.flow.owner_benefits_fund_visible'));
+                ->missing('data.flow.owner_benefits_fund_visible')
+                ->has('data.payment_accounts'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.flow.owner_benefits_fund_visible', true)
-                ->where('data.flow.commission_benefits_fund', 12));
+                ->where('data.flow.commission_benefits_fund', 12)
+                ->has('data.payment_accounts'));
     }
 
     public function test_sub_dealer_purchase_surplus_funds_the_owner_benefits_fund(): void

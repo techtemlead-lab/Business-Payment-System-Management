@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
+use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Pricing\ProductPricing;
@@ -42,6 +43,9 @@ class WorkspaceController extends Controller
         $staff = in_array($portal, ['manage', 'sadmin'], true);
         if ($staff && $section === 'customization') {
             $section = 'website';
+        }
+        if ($staff && $section === 'capital-flow') {
+            $section = 'treasury';
         }
         PortalCatalog::assertSection($u, $portal, $section);
         $r->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|string|max:40', 'page' => 'nullable|integer|min:1']);
@@ -128,7 +132,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {
@@ -140,7 +144,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
             $data['subdealer_stats'] = [
                 'total' => User::where('role', 'sub_dealer')->count(),
@@ -465,6 +469,9 @@ class WorkspaceController extends Controller
                 ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
                 ->latest()->limit(20)->get();
             $data['retained_fund_details'] = app(RetainedFundLedger::class)->detail($ownerBenefits);
+            $data['payment_accounts'] = $u->allows('finance')
+                ? app(PaymentAccounts::class)->listing($u, false, false)
+                : [];
         }
         if ($section === 'benefits-fund') {
             $ledger = app(RetainedFundLedger::class);

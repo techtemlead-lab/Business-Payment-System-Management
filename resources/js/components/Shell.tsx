@@ -222,14 +222,14 @@ export default function Shell({ section, children, action }: { section: string; 
                         {group(ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'), companyGroup)}
                         {group(translate('portal', 'nav_dealer_section'), dealerGroup)}
                         {group(translate('portal', 'nav_subdealer_section'), subDealerGroup)}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security'])}
+                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
                     </>
                 ) : (
                     <>
                         {user.role === 'dealer' && group(translate('portal', 'nav_dealer_workspace'), dealerGroup)}
                         {user.role === 'sub_dealer' && group(translate('portal', 'nav_subdealer_workspace'), subDealerGroup)}
                         {group(translate('portal', 'nav_my_earnings'), ['earnings', 'withdrawals'])}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security'])}
+                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
                     </>
                 )}
 
