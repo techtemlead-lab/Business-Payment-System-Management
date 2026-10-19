@@ -5209,15 +5209,15 @@ export default function SiteCustomizationEditor({
                                 <Field label="Why Partner Heading" fieldKey="partnership_why_title" value={form.data.customization.partnership_why_title} placeholder={defaults.partnership_why_title} onChange={updateField} span2 />
                                 {[1, 2, 3, 4].map((i) => (
                                     <React.Fragment key={`pb-${i}`}>
-                                        <Field label={`Benefit ${i} Title`} fieldKey={`partnership_benefit${i}_title`} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
-                                        <Field label={`Benefit ${i} Description`} fieldKey={`partnership_benefit${i}_desc`} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
+                                        <Field label={`Benefit ${i} Title`} fieldKey={`partnership_benefit${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
+                                        <Field label={`Benefit ${i} Description`} fieldKey={`partnership_benefit${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="Steps Heading" fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`ps-${i}`}>
-                                        <Field label={`Step ${i} Title`} fieldKey={`partnership_step${i}_title`} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
-                                        <Field label={`Step ${i} Description`} fieldKey={`partnership_step${i}_desc`} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
+                                        <Field label={`Step ${i} Title`} fieldKey={`partnership_step${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
+                                        <Field label={`Step ${i} Description`} fieldKey={`partnership_step${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Title" fieldKey="partnership_cta_title" value={form.data.customization.partnership_cta_title} placeholder={defaults.partnership_cta_title} onChange={updateField} />
@@ -5232,8 +5232,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Hero Lead" fieldKey="services_hero_lead" value={form.data.customization.services_hero_lead} placeholder={defaults.services_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`svc-${i}`}>
-                                        <Field label={`Service ${i} Title`} fieldKey={`services_card${i}_title`} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
-                                        <Field label={`Service ${i} Description`} fieldKey={`services_card${i}_desc`} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
+                                        <Field label={`Service ${i} Title`} fieldKey={`services_card${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
+                                        <Field label={`Service ${i} Description`} fieldKey={`services_card${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Button" fieldKey="services_cta_btn" value={form.data.customization.services_cta_btn} placeholder={defaults.services_cta_btn} onChange={updateField} />
@@ -5246,8 +5246,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Hero Lead" fieldKey="quality_hero_lead" value={form.data.customization.quality_hero_lead} placeholder={defaults.quality_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`q-${i}`}>
-                                        <Field label={`Pillar ${i} Title`} fieldKey={`quality_pillar${i}_title`} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
-                                        <Field label={`Pillar ${i} Description`} fieldKey={`quality_pillar${i}_desc`} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
+                                        <Field label={`Pillar ${i} Title`} fieldKey={`quality_pillar${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
+                                        <Field label={`Pillar ${i} Description`} fieldKey={`quality_pillar${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Button" fieldKey="quality_cta_btn" value={form.data.customization.quality_cta_btn} placeholder={defaults.quality_cta_btn} onChange={updateField} />
