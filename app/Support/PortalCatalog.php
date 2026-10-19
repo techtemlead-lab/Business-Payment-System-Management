@@ -46,6 +46,9 @@ final class PortalCatalog
     public static function assertSection(User $user, string $portal, string $section): void
     {
         abort_unless(self::allowsSection($portal, $section), 404);
+        if ($section === 'benefits-fund') {
+            abort_unless($portal === 'sadmin' && $user->owner(), 403);
+        }
         $capability = self::staffCapabilities($portal)[$section] ?? null;
         if ($capability !== null) {
             abort_unless($user->allows($capability), 403);

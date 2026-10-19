@@ -102,6 +102,7 @@ return [
     'simulator' => 'What-if simulator',
     'payouts_hub' => 'Disbursement hub',
     'treasury' => 'Treasury & money flow',
+    'benefits_fund' => 'Commission benefits fund',
     'sub_dealers' => 'Sub-dealer directory',
     'sub_dealer_orders' => '40% margin orders',
     'employees' => 'Employees & staff',

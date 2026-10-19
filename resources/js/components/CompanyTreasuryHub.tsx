@@ -23,6 +23,8 @@ interface CapitalFlowData {
     car_bike_fund?: number;
     tds_tax_withheld?: number;
     unallocated_pool_buffer?: number;
+    commission_benefits_fund?: number;
+    owner_benefits_fund_visible?: boolean;
 }
 
 interface CategoryAllocation {
@@ -71,7 +73,10 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
     const marketingFund = Number(flow.marketing_fund) || 0;
     const carBikeFund = Number(flow.car_bike_fund) || 0;
     const tdsTax = Number(flow.tds_tax_withheld) || 0;
-    const unallocatedBuffer = Number(flow.unallocated_pool_buffer) || Math.max(0, maxPool - allocated);
+    const ownerBenefitsVisible = Boolean(flow.owner_benefits_fund_visible);
+    const unallocatedBuffer = ownerBenefitsVisible
+        ? (Number(flow.commission_benefits_fund ?? flow.unallocated_pool_buffer) || 0)
+        : 0;
 
     // Channel breakdown
     const channels = flow.channel_breakdown ?? [];
@@ -224,16 +229,29 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                     <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>Dealer 40% · Sub-dealer 50%</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>Unallocated Cash Surplus</span>
-                        <ShieldCheck size={18} color="#2563eb" />
+                {ownerBenefitsVisible ? (
+                    <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>Commission Benefits Fund</span>
+                            <ShieldCheck size={18} color="#2563eb" />
+                        </div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 6 }}>
+                            {money(unallocatedBuffer)}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>Owner-only purchase surplus</div>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 6 }}>
-                        {money(unallocatedBuffer)}
+                ) : (
+                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Settled Disbursements</span>
+                            <ShieldCheck size={18} color="#94a3b8" />
+                        </div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
+                            {money(Number(flow.settled_disbursements) || 0)}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Paid partner withdrawals</div>
                     </div>
-                    <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>Remaining in company reserve</div>
-                </div>
+                )}
             </div>
 
             {/* TAB CONTENT: Overview */}
