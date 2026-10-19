@@ -171,8 +171,9 @@ final class OpeningBalanceImport
     private function createPartner(array $data): void
     {
         $sponsor = $data['sponsor_code'] ? User::where('dealer_code', $data['sponsor_code'])->value('id') : null;
-        $partner = User::create([...collect($data)->except('sponsor_code')->all(), 'sponsor_id' => $sponsor, 'status' => 'active',
+        $partner = (new User)->forceFill([...collect($data)->except('sponsor_code')->all(), 'sponsor_id' => $sponsor, 'status' => 'active',
             'directory_visible' => false, 'password' => Str::random(64), 'profile' => ['imported_account' => true, 'requires_password_setup' => true]]);
+        $partner->save();
         ReferralTreePath::attachUser($partner->id, $sponsor);
         DB::table('wallets')->insert(['user_id' => $partner->id, 'created_at' => now(), 'updated_at' => now()]);
     }
@@ -190,6 +191,7 @@ final class OpeningBalanceImport
     /** @param array<string, string> $data */
     private function createOpening(User $actor, array $data, string $batchId): void
     {
+        $this->assertOpeningAllowed();
         $partner = User::where('dealer_code', $data['dealer_code'])->lockForUpdate()->firstOrFail();
         $available = Money::cents($data['available_commission']);
         $held = Money::cents($data['held_commission']);

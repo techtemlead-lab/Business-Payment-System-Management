@@ -32,7 +32,15 @@ class ProductRegistryController extends Controller
         if (! $product) {
             abort_unless($r->user()->allows('catalog') && $r->user()->allows('pricing'), 403);
         }
-        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'mrp', 'dealer_price', 'sub_dealer_price', 'stock', 'low_stock_at', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version] : null;
+        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
+        if ($data && ($r->user()->allows('pricing') || $r->user()->allows('orders') || $r->user()->allows('finance'))) {
+            $data['dealer_price'] = $product->dealer_price;
+            $data['sub_dealer_price'] = $product->sub_dealer_price;
+        }
+        if ($data && $r->user()->allows('inventory')) {
+            $data['stock'] = $product->stock;
+            $data['low_stock_at'] = $product->low_stock_at;
+        }
         if ($data && $r->user()->allows('cost_read')) {
             $data['cost_price'] = $product->cost_price;
         }

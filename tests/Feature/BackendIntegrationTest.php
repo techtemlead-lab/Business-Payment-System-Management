@@ -136,9 +136,9 @@ class BackendIntegrationTest extends TestCase
     {
         $product = Product::factory()->create();
         $this->actingAs(User::factory()->create(['role' => 'editor']))->patch('/commands/products/'.$product->id,
-            ['version' => (string) $product->registry_version, 'dealer_discount_pct' => '50.00', 'reason' => 'Attempted discount change'])->assertSessionHasErrors('dealer_discount_pct');
+            ['version' => (string) $product->registry_version, 'dealer_discount_pct' => '50.00', 'reason' => 'Attempted discount change'])->assertForbidden();
         $this->patch('/commands/products/'.$product->id,
-            ['version' => (string) $product->registry_version, 'initial_stock' => 999, 'reason' => 'Attempted stock injection'])->assertSessionHasErrors('initial_stock');
+            ['version' => (string) $product->registry_version, 'initial_stock' => 999, 'reason' => 'Attempted stock injection'])->assertForbidden();
         $this->post('/commands/products/'.$product->id.'/toggle-stock')->assertForbidden();
     }
 

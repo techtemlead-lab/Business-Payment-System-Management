@@ -62,13 +62,13 @@ class ProductRegistryTest extends TestCase
         $p = $this->product();
         $this->actingAs(User::factory()->create(['role' => 'dealer']))->patch('/commands/products/'.$p->id, ['version' => '0', 'name' => 'Unauthorized', 'reason' => 'Wrong scope'])->assertForbidden();
         $editor = User::factory()->create(['role' => 'editor']);
-        $this->actingAs($editor)->patch('/commands/products/'.$p->id, ['version' => '0', 'dealer_price' => '100', 'reason' => 'Price override'])->assertSessionHasErrors('dealer_price');
-        $this->patch('/commands/products/'.$p->id, ['version' => '0', 'cost_price' => '2', 'reason' => 'Cost override'])->assertSessionHasErrors('cost_price');
+        $this->actingAs($editor)->patch('/commands/products/'.$p->id, ['version' => '0', 'dealer_price' => '100', 'reason' => 'Price override'])->assertForbidden();
+        $this->patch('/commands/products/'.$p->id, ['version' => '0', 'cost_price' => '2', 'reason' => 'Cost override'])->assertForbidden();
         $this->patch('/commands/products/'.$p->id, ['version' => '0', 'name' => 'Edited Description', 'image' => $this->photo(), 'reason' => 'Approved photo update'])->assertRedirect();
         $this->assertSame('140.00', $p->fresh()->dealer_price);
         $this->actingAs(User::factory()->create(['role' => 'inventory']))->patch('/commands/products/'.$p->id, ['version' => '1', 'low_stock_at' => 25, 'reason' => 'Revised stock threshold'])->assertRedirect();
         $this->assertSame(25, $p->fresh()->low_stock_at);
-        $this->patch('/commands/products/'.$p->id, ['version' => '2', 'stock' => 999, 'reason' => 'Bypass stock history'])->assertSessionHasErrors('stock');
+        $this->patch('/commands/products/'.$p->id, ['version' => '2', 'stock' => 999, 'reason' => 'Bypass stock history'])->assertForbidden();
         $this->assertSame(0, $p->fresh()->stock);
     }
 

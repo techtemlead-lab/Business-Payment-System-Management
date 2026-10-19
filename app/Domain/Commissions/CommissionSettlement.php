@@ -29,7 +29,7 @@ final class CommissionSettlement
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private CommissionPolicy $policies) {}
 
     /** @return array<string, mixed> */
-    public function settle(string $month, string $kind, ?int $actorId = null): array
+    public function settle(string $month, string $kind, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
         [, $end] = CommissionQualification::period($month);
@@ -37,14 +37,27 @@ final class CommissionSettlement
             throw ValidationException::withMessages(['period_month' => 'Close the calendar month before settling its salary or royalty.']);
         }
 
-        return DB::transaction(function () use ($month, $kind, $actorId): array {
+        return DB::transaction(function () use ($month, $kind, $actorId, $requestKey): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $month)
+                    ->where('kind', $kind)
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                }
+            }
             $categories = $kind === 'salary' ? ['dealer_monthly_salary_pool', 'sub_dealer_salary'] : ['rank_royalty_pool'];
             $funds = CommissionAllocation::whereIn('category', $categories)->where('status', 'pending')
                 ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
             $total = $funds->sum(fn (CommissionAllocation $a): int => Money::cents($a->amount));
             if ($total === 0) {
-                return ['status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0, 'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00'];
+                return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
+                    'status' => 'empty_pool', 'total_pool' => '0.00', 'qualifiers_count' => 0,
+                    'total_distributed' => '0.00', 'total_rolled_to_reserve' => '0.00',
+                ]);
             }
             $distributed = [];
             $tiers = [];
@@ -110,12 +123,37 @@ final class CommissionSettlement
             Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
                 'distributed' => Money::decimal($totalPaid),
                 'rolled_to_reserve' => Money::decimal($rolled),
+                'request_key' => $requestKey,
             ]);
 
-            return ['status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
+            return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
+                'status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
                 'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => Money::decimal($rolled),
-                'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers];
+                'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
+            ]);
         }, 3);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function rememberSettlement(string $month, string $kind, ?string $requestKey, ?int $actorId, array $result): array
+    {
+        if ($requestKey === null) {
+            return $result;
+        }
+        DB::table('commission_settlement_runs')->insert([
+            'period_month' => $month,
+            'kind' => $kind,
+            'request_key' => $requestKey,
+            'actor_id' => $actorId,
+            'result' => json_encode($result, JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $result;
     }
 
     private function rollUndistributed(CommissionAllocation $fund, int $remainder, string $month, string $kind): int
@@ -207,12 +245,36 @@ final class CommissionSettlement
     }
 
     /** @return array<string, mixed> */
-    public function incentive(int $userId, ?int $actorId = null): array
+    public function incentive(int $userId, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
+        $period = CommissionQualification::currentMonth();
 
-        return DB::transaction(function () use ($userId, $actorId): array {
+        return DB::transaction(function () use ($userId, $actorId, $requestKey, $period): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $period)
+                    ->where('kind', 'rank_incentive')
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    $result = json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                    if ((int) ($result['user_id'] ?? 0) !== $userId) {
+                        abort(409, 'Request key already used with different incentive data.');
+                    }
+
+                    return $result;
+                }
+                $award = DB::table('rank_incentive_awards')->where('request_key', $requestKey)->first();
+                if ($award) {
+                    if ((int) $award->user_id !== $userId) {
+                        abort(409, 'Request key already used with different incentive data.');
+                    }
+
+                    return ['success' => true, 'user_id' => $userId, 'rank' => $award->rank, 'amount' => (string) $award->amount, 'paid_at' => $award->created_at];
+                }
+            }
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active' || $rank->current_rank === 'dealer') {
@@ -225,7 +287,7 @@ final class CommissionSettlement
                 return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
             }
             $rules = $this->policies->snapshot()['rules'];
-            $paidAs = $this->qualification->paidAs($userId, CommissionQualification::currentMonth(), $rules);
+            $paidAs = $this->qualification->paidAs($userId, $period, $rules);
             if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
                 return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
             }
@@ -241,7 +303,7 @@ final class CommissionSettlement
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
                 $take = min($remaining, Money::cents($fund->amount) - $used);
                 if ($take > 0) {
-                    $this->pay($fund, $userId, $take, CommissionQualification::currentMonth(), 'rank_'.$rank->current_rank);
+                    $this->pay($fund, $userId, $take, $period, 'rank_'.$rank->current_rank);
                     $sources[$fund->id] = Money::decimal($take);
                     $fund->update(['status' => $used + $take === Money::cents($fund->amount) ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
@@ -252,21 +314,38 @@ final class CommissionSettlement
                 }
             }
             DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
-                'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                'request_key' => $requestKey, 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);
-            Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, ['beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'sources' => $sources]);
+            Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, [
+                'beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
+                'sources' => $sources, 'request_key' => $requestKey,
+            ]);
 
-            return ['success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String()];
+            return $this->rememberSettlement($period, 'rank_incentive', $requestKey, $actorId, [
+                'success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank,
+                'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String(),
+            ]);
         }, 3);
     }
 
     /** @return array<string, mixed> */
-    public function release(?int $actorId = null): array
+    public function release(?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
+        $period = CommissionQualification::currentMonth();
 
-        return DB::transaction(function () use ($actorId): array {
+        return DB::transaction(function () use ($actorId, $requestKey, $period): array {
             CommissionWallet::lock();
+            if ($requestKey !== null) {
+                $existing = DB::table('commission_settlement_runs')
+                    ->where('period_month', $period)
+                    ->where('kind', 'matured')
+                    ->where('request_key', $requestKey)
+                    ->first();
+                if ($existing) {
+                    return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
+                }
+            }
             $funds = CommissionAllocation::where('status', 'maturing')->whereNotNull('user_id')->orderBy('id')->lockForUpdate()->get();
             $count = 0;
             $total = 0;
@@ -291,10 +370,16 @@ final class CommissionSettlement
             }
 
             if ($count > 0) {
-                Audit::record($actorId, 'commissions.matured_released', 'batch', ['count' => $count, 'amount' => Money::decimal($total)]);
+                Audit::record($actorId, 'commissions.matured_released', 'batch', [
+                    'count' => $count, 'amount' => Money::decimal($total), 'request_key' => $requestKey,
+                ]);
             }
 
-            return ['status' => $count > 0 ? 'success' : 'no_matured_commissions', 'released_count' => $count, 'total_amount' => Money::decimal($total)];
+            return $this->rememberSettlement($period, 'matured', $requestKey, $actorId, [
+                'status' => $count > 0 ? 'success' : 'no_matured_commissions',
+                'released_count' => $count,
+                'total_amount' => Money::decimal($total),
+            ]);
         }, 3);
     }
 }

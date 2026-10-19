@@ -112,7 +112,7 @@ class AuthController extends Controller
         DB::transaction(function () use ($owner, $data, $request): void {
             $previousEmail = $owner->email;
             if ($previousEmail !== $data['email']) {
-                $owner->update(['email' => $data['email'], 'email_verified_at' => null, 'remember_token' => Str::random(60)]);
+                $owner->forceFill(['email' => $data['email'], 'email_verified_at' => null, 'remember_token' => Str::random(60)])->save();
                 DB::table('password_reset_tokens')->whereIn('email', [$previousEmail, $data['email']])->delete();
                 DB::table('sessions')->where('user_id', $owner->id)->where('id', '!=', $request->session()->getId())->delete();
                 Audit::record($owner->id, 'owner.contact_updated', (string) $owner->id, ['changed_fields' => ['email']]);
@@ -126,7 +126,7 @@ class AuthController extends Controller
     public function password(Request $r): Response
     {
         $data = $r->validate(['current_password' => 'required|current_password', 'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()]]);
-        $r->user()->update(['password' => $data['password'], 'remember_token' => Str::random(60)]);
+        $r->user()->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60)])->save();
         DB::table('sessions')->where('user_id', $r->user()->id)->where('id', '!=', $r->session()->getId())->delete();
         $r->session()->regenerate();
         Audit::record($r->user()->id, 'password.change', 'account');

@@ -134,17 +134,21 @@ class PlatformTest extends TestCase
         $this->actingAs($this->user())->post('/commands/withdrawals', ['amount' => '200.00'])->assertSessionHasErrors('policy');
         $this->assertDatabaseCount('withdrawals', 0);
 
-        $admin = $this->user('super_admin');
-        $id = app(PolicyDraftService::class)->create($admin, [
+        $preparer = $this->user('finance');
+        $reviewer = $this->user('super_admin');
+        $id = app(PolicyDraftService::class)->create($preparer, [
             'name' => 'Review draft',
             'account_type' => 'dealer',
             'components' => [['name' => 'referral', 'rate' => '10']],
             'notes' => 'Document purchase-value rates before go-live.',
         ]);
-        $this->actingAs($admin)->onPortal('sadmin')->post("/commands/policies/{$id}/publish")
+        $this->actingAs($preparer)->onPortal('manage')->post("/commands/policies/{$id}/publish")
+            ->assertRedirect()
+            ->assertSessionHasErrors('policy');
+        $this->actingAs($reviewer)->onPortal('sadmin')->post("/commands/policies/{$id}/publish")
             ->assertRedirect()
             ->assertSessionHas('success');
-        $this->assertDatabaseHas('policy_drafts', ['id' => $id, 'status' => 'published']);
+        $this->assertDatabaseHas('policy_drafts', ['id' => $id, 'status' => 'published', 'published_by' => $reviewer->id]);
     }
 
     public function test_money_and_flat_salary_use_exact_minor_units(): void

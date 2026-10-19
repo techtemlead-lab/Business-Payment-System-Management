@@ -11,6 +11,7 @@ use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
 use App\Support\Audit;
 use App\Support\Money;
+use App\Support\SpreadsheetCell;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,11 @@ class FinanceOperationsController extends Controller
 
     public function accounts(Request $request, PaymentAccounts $accounts): Response
     {
-        return response()->json(['data' => $accounts->listing($request->user(), ! $request->user()->allows('finance'))]);
+        $user = $request->user();
+        abort_unless($user->allows('finance') || $accounts->mayReceiveCollectionAccounts($user), 403);
+        $finance = $user->allows('finance');
+
+        return response()->json(['data' => $accounts->listing($user, ! $finance, true)]);
     }
 
     public function contract(Request $request, PayrollService $payroll): Response
@@ -262,7 +267,7 @@ class FinanceOperationsController extends Controller
                                 $totals[$column] += Money::cents((string) ($value === '' ? '0' : $value));
                             }
                             $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00'))
-                                : (in_array($column, ['quantity', 'dispatched', 'order_count'], true) ? new NumericCell((int) $value) : new StringCell((string) $value));
+                                : (in_array($column, ['quantity', 'dispatched', 'order_count'], true) ? new NumericCell((int) $value) : new StringCell(SpreadsheetCell::text($value)));
                         }
                         $writer->addRow(new Row($cells));
                     }

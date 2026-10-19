@@ -307,8 +307,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                 <div className="domain-rail-tabs" role="tablist" aria-label={translate('portal', 'workspace')}>
                                     <Link
                                         href="/"
+                                        id="domain-tab-company"
                                         role="tab"
                                         aria-selected={currentDomain === 'company'}
+                                        aria-controls="domain-panel"
+                                        tabIndex={currentDomain === 'company' ? 0 : -1}
                                         className={`domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
                                     >
                                         <Briefcase size={15} />
@@ -318,8 +321,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                     {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
                                         <Link
                                             href={capabilities.includes('accounts') ? '/accounts' : (capabilities.includes('orders') ? '/orders' : '/commissions')}
+                                            id="domain-tab-dealers"
                                             role="tab"
                                             aria-selected={currentDomain === 'dealers'}
+                                            aria-controls="domain-panel"
+                                            tabIndex={currentDomain === 'dealers' ? 0 : -1}
                                             className={`domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
                                         >
                                             <Users size={15} />
@@ -330,8 +336,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                     {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
                                         <Link
                                             href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('orders') ? '/sub-dealer-orders' : '/salary')}
+                                            id="domain-tab-subdealers"
                                             role="tab"
                                             aria-selected={currentDomain === 'sub_dealers'}
+                                            aria-controls="domain-panel"
+                                            tabIndex={currentDomain === 'sub_dealers' ? 0 : -1}
                                             className={`domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
                                         >
                                             <Store size={15} />
@@ -342,8 +351,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                     {capabilities.includes('accounts') && (
                                         <Link
                                             href="/dashboards"
+                                            id="domain-tab-dashboards"
                                             role="tab"
                                             aria-selected={currentDomain === 'dashboards'}
+                                            aria-controls="domain-panel"
+                                            tabIndex={currentDomain === 'dashboards' ? 0 : -1}
                                             className={`domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
                                         >
                                             <SlidersHorizontal size={15} />
@@ -458,7 +470,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     )}
 
                     <Flash />
-                    <div className="portal-workspace-body portal-fade-in-delayed">{children}</div>
+                    <div id="domain-panel" role="tabpanel" aria-live="polite" className="portal-workspace-body portal-fade-in-delayed">{children}</div>
                     {demoMode && (
                         <div className="demo-banner">
                             {translate('portal', 'demo_banner')}

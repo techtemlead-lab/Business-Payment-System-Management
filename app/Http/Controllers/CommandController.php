@@ -183,11 +183,12 @@ class CommandController extends Controller
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
             $reason = $d['reason'] ?? 'Account created by company staff';
             unset($d['reason']);
-            $u = User::create([
+            $u = (new User)->forceFill([
                 ...$d,
                 'dealer_code' => $dealerCode,
                 'password' => Str::random(48),
             ]);
+            $u->save();
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($u->id, $u->sponsor_id);
             DealerRank::firstOrCreate(['user_id' => $u->id], ['current_rank' => 'dealer']);
@@ -261,7 +262,7 @@ class CommandController extends Controller
 
             $locked->update($d);
             if (($d['status'] ?? '') === 'suspended') {
-                $locked->update(['remember_token' => Str::random(60)]);
+                $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
@@ -435,8 +436,8 @@ class CommandController extends Controller
     public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id);
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m', 'request_key' => 'required|uuid']);
+        $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
@@ -454,8 +455,8 @@ class CommandController extends Controller
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $d = $r->validate(['period_month' => 'required|date_format:Y-m']);
-        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id);
+        $d = $r->validate(['period_month' => 'required|date_format:Y-m', 'request_key' => 'required|uuid']);
+        $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
@@ -470,7 +471,8 @@ class CommandController extends Controller
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->claimOneTimeRankIncentive($user->id, actorId: $r->user()->id);
+        $d = $r->validate(['request_key' => 'required|uuid']);
+        $result = $commissionService->claimOneTimeRankIncentive($user->id, actorId: $r->user()->id, requestKey: $d['request_key']);
 
         if (! $result['success']) {
             throw ValidationException::withMessages(['incentive' => $result['message']]);
@@ -482,7 +484,8 @@ class CommandController extends Controller
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $result = $commissionService->releaseMaturedCommissions($r->user()->id);
+        $d = $r->validate(['request_key' => 'required|uuid']);
+        $result = $commissionService->releaseMaturedCommissions($r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'no_matured_commissions') {
             return back()->with('success', 'No matured commissions pending release.');

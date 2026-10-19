@@ -58,7 +58,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setProcessingSalary(true);
-        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth }, {
+        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingSalary(false)
         });
     };
@@ -68,14 +68,14 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setProcessingRank(true);
-        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth }, {
+        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingRank(false)
         });
     };
 
     const handleReleaseMatured = () => {
         setProcessingMatured(true);
-        router.post('/commands/commissions/release-matured', {}, {
+        router.post('/commands/commissions/release-matured', { request_key: crypto.randomUUID() }, {
             onFinish: () => setProcessingMatured(false)
         });
     };
@@ -85,7 +85,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             return;
         }
         setClaimingIncentive(userId);
-        router.post(`/commands/commissions/claim-incentive/${userId}`, {}, {
+        router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
             onFinish: () => setClaimingIncentive(null)
         });
     };

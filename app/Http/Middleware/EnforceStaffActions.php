@@ -17,17 +17,23 @@ class EnforceStaffActions
     public function handle(Request $request, Closure $next): Response
     {
         $actor = $request->user();
-        if (! $actor?->staff() || $actor->role === 'super_admin' || $request->isMethodSafe()
-            || (! $actor->owner() && ! str_starts_with($actor->role, 'custom_') && ! isset($actor->profile['action_permissions']))) {
+        if (! $actor?->staff() || $actor->role === 'super_admin' || $request->isMethodSafe()) {
             return $next($request);
         }
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
         $method = $route?->getActionMethod();
-        if ($controller === 'DataImportController') {
+        if ($controller === 'AuthController' || $controller === 'LocaleController' || ($controller === 'CommandController' && $method === 'readNotice')) {
             return $next($request);
         }
-        if ($controller === 'AuthController' || $controller === 'CommandController' && $method === 'readNotice') {
+        if ($controller === 'DataImportController') {
+            $ok = $actor->canAct('accounts', 'create')
+                || $actor->canAct('catalog', 'create')
+                || $actor->canAct('finance', 'create')
+                || $actor->canAct('finance', 'approve')
+                || $actor->canAct('accounts', 'approve');
+            abort_unless($ok, 403, 'Your role does not allow data imports.');
+
             return $next($request);
         }
         if ($controller === 'ProductRegistryController') {
@@ -61,6 +67,7 @@ class EnforceStaffActions
                 'prepare' => [['payroll'], 'create'],
                 'payrollReview', 'payrollPay', 'scheduleReview', 'reserveReview', 'reservePay', 'release', 'reassignHeld', 'recover', 'openingVerify' => [['finance'], 'approve'],
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
+                'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
             },
             'FieldSalesController' => match ($method) {
@@ -82,8 +89,14 @@ class EnforceStaffActions
                 'content', 'resetCustomization', 'enquiry' => [['content'], 'edit'], 'customization' => [['content', 'catalog'], 'edit'],
                 'policy' => [['finance'], 'create'], 'publishPolicy' => [['finance'], 'approve'], 'updateCommissionRules' => [['finance'], 'edit'],
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
-                'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'], default => null,
+                'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
+                'order', 'claim' => [['orders', 'sr_orders'], 'create'],
+                default => null,
             },
+            'IntegrationSettingsController' => [['finance'], 'edit'],
+            'IdentityLookupController' => [['accounts'], 'view'],
+            'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
+            'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };
         abort_unless($permission, 403, 'This action is not enabled for your staff permissions.');

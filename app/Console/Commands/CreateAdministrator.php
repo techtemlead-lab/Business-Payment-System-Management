@@ -49,7 +49,8 @@ class CreateAdministrator extends Command
             return self::FAILURE;
         }
         $user = DB::transaction(function () use ($data): User {
-            $user = User::create([...$data, 'role' => 'super_admin', 'status' => 'active']);
+            $user = (new User)->forceFill(['name' => $data['name'], 'email' => $data['email'], 'role' => 'super_admin', 'status' => 'active', 'password' => $data['password']]);
+            $user->save();
             DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
             Audit::record(null, 'administrator.bootstrapped', (string) $user->id, ['source' => 'authorized_cli']);
 

@@ -75,7 +75,8 @@ final class StaffOperations
             }
             $id = (string) Str::uuid();
             DB::table('dealer_applications')->insert(['id' => $id, 'submitted_by' => $actor->id, 'email' => mb_strtolower(trim($data['email'])),
-                'data' => json_encode($data, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
+                'data' => json_encode($data, JSON_THROW_ON_ERROR), 'status' => 'pending', 'source' => 'staff',
+                'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'dealer_application.submitted', $id);
 
             return $id;
@@ -90,7 +91,7 @@ final class StaffOperations
             abort_unless($actor->fresh()->allows('accounts'), 403);
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
             abort_unless($application, 404);
-            if ($application->status !== 'pending' || $application->submitted_by === $actor->id) {
+            if ($application->status !== 'pending' || ($application->submitted_by !== null && (int) $application->submitted_by === $actor->id)) {
                 throw ValidationException::withMessages(['application' => 'A different authorized reviewer must review a pending application.']);
             }
             $userId = null;
@@ -99,14 +100,23 @@ final class StaffOperations
                 if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
                     throw ValidationException::withMessages(['email' => 'This email already has an account.']);
                 }
-                if (! empty($data['sponsor_id']) && ! User::whereKey($data['sponsor_id'])->where('status', 'active')->where('role', 'dealer')->exists()) {
+                $sponsorId = $data['sponsor_id'] ?? null;
+                if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
+                    $sponsorId = User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->value('id');
+                    if (! $sponsorId) {
+                        throw ValidationException::withMessages(['sponsor_code' => 'The nominated sponsor code is not an active dealer.']);
+                    }
+                }
+                if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->where('role', 'dealer')->exists()) {
                     throw ValidationException::withMessages(['sponsor_id' => 'The nominated sponsor is no longer an active dealer.']);
                 }
-                $user = User::create(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
+                $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
-                    'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $data['sponsor_id'] ?? null,
+                    'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $sponsorId,
                     'division' => $data['division'], 'district' => $data['district'],
-                    'profile' => ['upazila' => $data['upazila'] ?? null, 'union' => $data['union'] ?? null, 'area_code' => $data['area_code'] ?? null]]);
+                    'profile' => ['upazila' => $data['upazila'] ?? null, 'union' => $data['union'] ?? null, 'area_code' => $data['area_code'] ?? null,
+                        'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null]]);
+                $user->save();
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);
                 DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
@@ -115,8 +125,10 @@ final class StaffOperations
             }
             DB::table('dealer_applications')->where('id', $id)->update(['status' => $decision, 'reviewed_by' => $actor->id,
                 'user_id' => $userId, 'reason' => $reason, 'updated_at' => now()]);
-            Audit::notice($application->submitted_by, 'Dealer application '.$decision, $application->email.': '.$reason);
-            Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId]);
+            if ($application->submitted_by !== null) {
+                Audit::notice((int) $application->submitted_by, 'Dealer application '.$decision, $application->email.': '.$reason);
+            }
+            Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId, 'source' => $application->source ?? 'staff']);
         }, 3);
     }
 }

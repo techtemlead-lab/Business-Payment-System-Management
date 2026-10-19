@@ -17,20 +17,32 @@ final class CommissionReversal
     public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification) {}
 
     /** @return list<array<string, mixed>> */
-    public function refund(Order $order, ?int $requested, string $reason, string $reference, ?int $actorId = null): array
+    public function refund(Order $order, ?int $requested, string $reason, string $reference, ?int $actorId = null, ?string $requestKey = null): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId): array {
+        return DB::transaction(function () use ($order, $requested, $reason, $reference, $actorId, $requestKey): array {
             CommissionWallet::lock();
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
             if (! $batch) {
                 throw ValidationException::withMessages(['order' => 'This order has no posted commissions to reverse. No adjustment was recorded.']);
             }
+            if ($requestKey !== null) {
+                $byKey = DB::table('commission_refunds')->where('request_key', $requestKey)->first();
+                if ($byKey) {
+                    if ($byKey->order_id !== $order->id || $byKey->reference !== $reference
+                        || ($requested !== null && Money::cents($byKey->amount) !== $requested) || $byKey->reason !== $reason) {
+                        abort(409, 'Request key already used with different refund data.');
+                    }
+
+                    return DB::table('commission_reversals')->where('refund_id', $byKey->id)->get()->map(fn ($r): array => (array) $r)->all();
+                }
+            }
             $existing = DB::table('commission_refunds')->where('order_id', $order->id)->where('reference', $reference)->first();
             if ($existing) {
-                if (($requested !== null && Money::cents($existing->amount) !== $requested) || $existing->reason !== $reason) {
+                if (($requested !== null && Money::cents($existing->amount) !== $requested) || $existing->reason !== $reason
+                    || ($requestKey !== null && $existing->request_key !== null && $existing->request_key !== $requestKey)) {
                     abort(409, 'Refund reference already used with different data.');
                 }
 
@@ -45,7 +57,7 @@ final class CommissionReversal
             $after = $before + $amount;
             $id = (string) Str::uuid();
             DB::table('commission_refunds')->insert(['id' => $id, 'order_id' => $order->id, 'reference' => $reference,
-                'amount' => Money::decimal($amount), 'reason' => $reason, 'created_at' => now(), 'updated_at' => now()]);
+                'request_key' => $requestKey, 'amount' => Money::decimal($amount), 'reason' => $reason, 'created_at' => now(), 'updated_at' => now()]);
             $allocations = CommissionAllocation::where('order_id', $order->id)->orderBy('id')->lockForUpdate()->get();
             $journal = [];
             $recoveredTotal = 0;
@@ -129,7 +141,10 @@ final class CommissionReversal
             foreach (ReferralTreePath::getUplines($order->user_id, 100) as $path) {
                 $this->qualification->refreshMilestones($path->ancestor_id);
             }
-            Audit::record($actorId, 'commissions.reversed', $order->id, ['buyer_id' => $order->user_id, 'reference' => $reference, 'refund_amount' => Money::decimal($amount), 'reason' => $reason]);
+            Audit::record($actorId, 'commissions.reversed', $order->id, [
+                'buyer_id' => $order->user_id, 'reference' => $reference, 'request_key' => $requestKey,
+                'refund_amount' => Money::decimal($amount), 'reason' => $reason,
+            ]);
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);

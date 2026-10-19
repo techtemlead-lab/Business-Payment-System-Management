@@ -77,17 +77,25 @@ class WorkspaceController extends Controller
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
-            $data['products'] = $products->map(function ($p) use ($u, $pricing) {
-                $price = $p->dealer_price;
-                if (! $u->staff()) {
+            $revealStock = ! $staff || $u->allows('inventory');
+            $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
+            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {
+                $base = [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                if (! $staff) {
                     try {
-                        $price = Money::decimal($pricing->unitPrice($p, $u));
+                        $base['price'] = Money::decimal($pricing->unitPrice($p, $u));
                     } catch (ValidationException) {
-                        $price = null;
+                        $base['price'] = null;
                     }
+                } elseif ($revealDealerPrice) {
+                    $base['price'] = $p->dealer_price;
+                }
+                if ($revealStock) {
+                    $base['stock'] = $p->stock;
+                    $base['low_stock_at'] = $p->low_stock_at;
                 }
 
-                return [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'stock', 'low_stock_at', 'active', 'featured', 'tone', 'is_stock_paused']), 'price' => $price, 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                return $base;
             });
             if ($section === 'catalog') {
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
@@ -99,10 +107,10 @@ class WorkspaceController extends Controller
                         'name' => $p->name,
                         'sku' => $p->sku,
                         'mrp' => $p->mrp,
-                        'dealer_price' => $p->dealer_price,
+                        ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
                         'category' => $p->category,
                         'featured' => (bool) $p->featured,
-                        'stock' => (int) $p->stock,
+                        ...($revealStock ? ['stock' => (int) $p->stock] : []),
                         'image' => $p->media()['image_url'] ?? '',
                     ]);
                 }
@@ -209,7 +217,9 @@ class WorkspaceController extends Controller
             $data['recent_employees'] = User::where('role', 'employee')->latest()->limit(6)->get(['id', 'name', 'email', 'status', 'profile', 'created_at']);
         }
         if ($section === 'payments') {
-            $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')->select('payment_claims.*', 'orders.number', 'users.name')->orderByDesc('payment_claims.id')->paginate(20);
+            $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')
+                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name')
+                ->orderByDesc('payment_claims.id')->paginate(20);
         }
         if ($section === 'policies') {
             $data['policies'] = DB::table('policy_drafts')->orderByDesc('id')->get();
@@ -295,15 +305,17 @@ class WorkspaceController extends Controller
                     'flag' => $toggleable ? 'page_enabled_'.$key : null,
                 ];
             })->values()->all();
+            $revealStock = $u->allows('inventory');
+            $revealDealerPrice = $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
             $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
                 'sku' => $p->sku,
                 'mrp' => $p->mrp,
-                'dealer_price' => $p->dealer_price,
+                ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
                 'category' => $p->category,
                 'featured' => (bool) $p->featured,
-                'stock' => (int) $p->stock,
+                ...($revealStock ? ['stock' => (int) $p->stock] : []),
                 'image' => $p->media()['image_url'] ?? '',
             ]);
         }
@@ -314,9 +326,14 @@ class WorkspaceController extends Controller
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);
         }
         if ($section === 'commissions') {
+            $ownerBenefits = $u->owner() && $portal === 'sadmin';
             $data['rules'] = array_values(app(CommissionPolicy::class)->snapshot(false)['rules']);
-            $data['allocations'] = CommissionAllocation::with(['order:id,number,total', 'user:id,name,dealer_code'])->latest()->paginate(20);
-            $data['pools_summary'] = CommissionAllocation::selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
+            $data['allocations'] = CommissionAllocation::with(['order:id,number,total', 'user:id,name,dealer_code'])
+                ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', RetainedFundLedger::BenefitsCategory))
+                ->latest()->paginate(20);
+            $data['pools_summary'] = CommissionAllocation::query()
+                ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', RetainedFundLedger::BenefitsCategory))
+                ->selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
         }
         if ($section === 'network-tree' || ($staff && $section === 'network')) {
             $data['dealers'] = User::whereIn('role', ['dealer', 'sub_dealer'])

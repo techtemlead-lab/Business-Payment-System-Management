@@ -12,7 +12,6 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -25,7 +24,7 @@ final class PartnerAccountProvisioning
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{user: User, plain_password: string, place_label: ?string, commission_consumers: array<string, mixed>}
+     * @return array{user: User, place_label: ?string, commission_consumers: array<string, mixed>}
      */
     public function create(User $actor, array $input): array
     {
@@ -151,7 +150,7 @@ final class PartnerAccountProvisioning
 
         $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword): User {
             CommissionWallet::lock();
-            $user = User::create([
+            $user = (new User)->forceFill([
                 'role' => $role,
                 'dealer_code' => $dealerCode,
                 'refer_code' => $referCode,
@@ -164,9 +163,10 @@ final class PartnerAccountProvisioning
                 'nid' => trim((string) ($input['nid'] ?? '')) ?: null,
                 'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
                 'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
-                'password' => Hash::make($plainPassword),
+                'password' => $plainPassword,
                 'profile' => $profile,
             ]);
+            $user->save();
             DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
             ReferralTreePath::attachUser($user->id, $user->sponsor_id);
             DealerRank::firstOrCreate(['user_id' => $user->id], ['current_rank' => 'dealer']);
@@ -204,11 +204,11 @@ final class PartnerAccountProvisioning
             return $user;
         }, 3);
 
+        // One-time credentials travel only through the SMS channel — never JSON/Inertia props.
         $this->sms->send($user, $plainPassword);
 
         return [
             'user' => $user,
-            'plain_password' => $plainPassword,
             'place_label' => $this->placeLabel($place),
             'commission_consumers' => $this->commissionConsumers($sponsor),
         ];

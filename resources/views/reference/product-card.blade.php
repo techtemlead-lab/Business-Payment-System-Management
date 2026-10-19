@@ -2,9 +2,9 @@
     $catName = $item['category'] ?? 'General';
     $catSlug = $item['category_slug'] ?? \Illuminate\Support\Str::slug($catName);
     $imageSrc = ($item['image_path'] ?? '') ?: '/madina-header-logo.png?v=6';
-    $stock = (int) ($item['stock'] ?? 0);
-    $stockStatus = $item['stock_status'] ?? ($stock > 0 ? 'in_stock' : 'out_of_stock');
-    $stockLabel = $stock <= 0 || $stockStatus === 'out_of_stock'
+    $stockStatus = $item['stock_status'] ?? 'out_of_stock';
+    $inStock = $stockStatus !== 'out_of_stock';
+    $stockLabel = ! $inStock
         ? ($siteCustomization['product_out_of_stock_label'] ?? 'Awaiting Stock')
         : ($stockStatus === 'low_stock' ? 'Low Stock' : ($siteCustomization['product_in_stock_label'] ?? 'In Stock'));
     $mrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($item['mrp'] ?? '0')));
@@ -18,7 +18,6 @@
     data-image="{{ $imageSrc }}"
     data-category-name="{{ $catName }}"
     data-stock-status="{{ $stockStatus }}"
-    data-stock-count="{{ $stock }}"
     data-desc="{{ $item['description'] ?? '' }}"
     data-url="{{ $item['url'] }}">
     <div class="ref-product-photo-wrap">
@@ -36,7 +35,7 @@
     <div class="ref-product-info">
         <div class="ref-product-cat-tag">{{ $catName }}</div>
         <h3 class="ref-product-title"><a href="{{ $item['url'] }}">{{ $item['name'] }}</a></h3>
-        <span class="ref-stock-pill {{ $stock <= 0 ? 'out-of-stock' : ($stockStatus === 'low_stock' ? 'low-stock' : 'in-stock') }}">
+        <span class="ref-stock-pill {{ ! $inStock ? 'out-of-stock' : ($stockStatus === 'low_stock' ? 'low-stock' : 'in-stock') }}">
             <span class="ref-stock-dot"></span> {{ $stockLabel }}
         </span>
         <div class="ref-catalog-mrp"><span>MRP</span><strong>{{ $displayMrp }} BDT</strong></div>

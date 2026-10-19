@@ -75,22 +75,33 @@ class ProjectHardeningTest extends TestCase
         $this->assertStringNotContainsString('SecretPass1', json_encode($entry['context']));
     }
 
-    public function test_policy_draft_can_be_published_for_review(): void
+    public function test_policy_draft_requires_a_second_finance_publisher(): void
     {
-        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
-        $id = app(PolicyDraftService::class)->create($admin, [
+        $preparer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $id = app(PolicyDraftService::class)->create($preparer, [
             'name' => 'Sub-dealer schedule',
             'account_type' => 'sub_dealer',
             'components' => [['name' => 'referral', 'rate' => '10']],
             'notes' => 'Document purchase-value rates before go-live.',
         ]);
 
-        $this->actingAs($admin)->onPortal('sadmin')
+        $this->actingAs($preparer)->onPortal('manage')
+            ->post("/commands/policies/{$id}/publish")
+            ->assertRedirect()
+            ->assertSessionHasErrors('policy');
+
+        $this->actingAs($reviewer)->onPortal('sadmin')
             ->post("/commands/policies/{$id}/publish")
             ->assertRedirect()
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('policy_drafts', ['id' => $id, 'status' => 'published', 'basis' => 'purchase_value']);
+        $this->assertDatabaseHas('policy_drafts', [
+            'id' => $id,
+            'status' => 'published',
+            'basis' => 'purchase_value',
+            'published_by' => $reviewer->id,
+        ]);
     }
 
     public function test_payment_claim_reference_is_unique_across_orders(): void

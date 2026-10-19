@@ -1175,16 +1175,12 @@ class SiteCustomization
 
     public static function formatPublicProductCard(Product $p, array $config = []): array
     {
-        $stock = (int) ($p->stock ?? 0);
         $stockStatus = $p->stockStatus();
-        $stockBadge = '';
-        if ($stockStatus === 'out_of_stock') {
-            $stockStatus = 'out_of_stock';
-            $stockBadge = 'Out of Stock';
-        } elseif ($stockStatus === 'low_stock') {
-            $stockStatus = 'low_stock';
-            $stockBadge = 'Low Stock';
-        }
+        $stockBadge = match ($stockStatus) {
+            'out_of_stock' => 'Out of Stock',
+            'low_stock' => 'Low Stock',
+            default => '',
+        };
 
         $marketingBadge = trim((string) ($config['marketing_badge'] ?? ''));
         if ($marketingBadge === '' && $p->featured) {
@@ -1202,7 +1198,6 @@ class SiteCustomization
             'category_slug' => Str::slug($p->category ?: 'general'),
             'description' => $p->description,
             'unit' => $p->unit ?: 'pack',
-            'stock' => $stock,
             'stock_status' => $stockStatus,
             'stock_badge' => $stockBadge,
             'price' => $p->mrp,

@@ -89,7 +89,7 @@ final class RetainedFundLedger
             $groups[$key] = array_slice($rows, 0, $limit);
         }
 
-        $groups['company_share_batches'] = $this->companyShareRows($limit);
+        $groups['company_share_batches'] = $this->companyShareRows($limit, $includeOwnerBenefits);
         $groups['totals'] = [
             'unassigned_geographic' => $this->sumAmount($groups['unassigned_geographic']),
             'management_area' => $this->sumAmount($groups['management_area']),
@@ -171,7 +171,7 @@ final class RetainedFundLedger
     }
 
     /** @return list<array<string, mixed>> */
-    private function companyShareRows(int $limit): array
+    private function companyShareRows(int $limit, bool $includeOwnerBenefits = false): array
     {
         $batches = DB::table('commission_batches')
             ->join('orders', 'orders.id', '=', 'commission_batches.order_id')
@@ -197,13 +197,12 @@ final class RetainedFundLedger
                 'users.district',
             ]);
 
-        return $batches->map(function ($batch): array {
+        return $batches->map(function ($batch) use ($includeOwnerBenefits): array {
             $cash = Money::cents((string) $batch->cash_basis);
             $refunded = Money::cents((string) $batch->refunded_amount);
             $factor = $cash > 0 ? ($cash - $refunded) / $cash : 0;
             $company = (int) round(Money::cents((string) $batch->company_share) * $factor);
-
-            return [
+            $row = [
                 'id' => $batch->id,
                 'fund' => 'Company operating share (30% of MRP)',
                 'category' => 'company_share',
@@ -215,7 +214,6 @@ final class RetainedFundLedger
                 'purchase_value' => (string) $batch->cash_basis,
                 'mrp_basis' => (string) $batch->mrp_basis,
                 'total_allocated' => (string) $batch->total_allocated,
-                'batch_unallocated' => (string) $batch->unallocated,
                 'refunded_amount' => (string) $batch->refunded_amount,
                 'order_id' => $batch->order_id,
                 'order_number' => $batch->order_number,
@@ -232,6 +230,12 @@ final class RetainedFundLedger
                 'reason' => 'Company share retained from purchase to cover product cost and operating margin.',
                 'created_at' => $batch->created_at,
             ];
+            // Owner benefits surplus stays out of company-staff treasury payloads.
+            if ($includeOwnerBenefits) {
+                $row['batch_unallocated'] = (string) $batch->unallocated;
+            }
+
+            return $row;
         })->all();
     }
 

@@ -53,6 +53,7 @@ class RetainedFundDetailsTest extends TestCase
                 ->where('data.retained_fund_details.company_share_batches.0.division', 'Rangpur')
                 ->where('data.retained_fund_details.unassigned_geographic.0.district', 'Pirganj')
                 ->where('data.retained_fund_details.unassigned_geographic.0.amount', '2.40')
+                ->missing('data.retained_fund_details.company_share_batches.0.batch_unallocated')
                 ->missing('data.retained_fund_details.benefits_fund.0'));
 
         $owner = User::factory()->create(['role' => 'super_admin']);

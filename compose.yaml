@@ -5,7 +5,7 @@ services:
     command: ["php", "-d", "opcache.enable_cli=1", "-d", "upload_max_filesize=100M", "-d", "post_max_size=112M", "-S", "0.0.0.0:8000", "-t", "public", "infra/dev-router.php"]
     ports: ["127.0.0.1:8088:8000"]
     volumes: [".:/var/www/html", "dependencies:/var/www/html/vendor"]
-    environment:
+    environment: &app_env
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432
@@ -14,6 +14,7 @@ services:
       DB_PASSWORD: local-development-only
       APP_URL: http://localhost:8088
       APP_DOMAIN: localhost
+      QUEUE_CONNECTION: database
       MAIL_MAILER: smtp
       MAIL_HOST: mail
       MAIL_PORT: 1025
@@ -22,13 +23,21 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  worker:
+    build: .
+    command: ["php", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=1", "--timeout=1800"]
+    volumes: [".:/var/www/html", "dependencies:/var/www/html/vendor"]
+    environment: *app_env
+    depends_on:
+      db:
+        condition: service_healthy
   db:
-    image: postgres:18
+    image: postgres:16
     environment:
       POSTGRES_DB: madina
       POSTGRES_USER: madina
       POSTGRES_PASSWORD: local-development-only
-    volumes: ["database:/var/lib/postgresql"]
+    volumes: ["database:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U madina"]
       interval: 5s

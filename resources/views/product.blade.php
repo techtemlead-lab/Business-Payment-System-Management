@@ -9,7 +9,7 @@
     <a class="text-link" href="/products">← Back to products</a>
     <section class="product-detail">
         <div class="product-art {{ $product['tone'] }}" aria-hidden="true"><div class="mini-bottle"><div class="mini-cap"></div><b>madina</b><span>{{ $product['category'] }}</span><small>NATURAL CARE</small></div></div>
-        <div><div class="eyebrow">{{ $product['category'] }} · {{ $product['sku'] }}</div><h1>{{ $product['name'] }}</h1><p class="prose">{{ $product['description'] }}</p><h2>৳{{ $product['mrp'] }} <small>MRP / {{ $product['unit'] }}</small></h2><p class="muted">{{ $product['stock'] > 0 ? 'In stock' : 'Awaiting stock' }}</p><a href="/contact" class="button dark">Enquire about this product ↗</a><p class="muted">Existing partners can request products from their workspace.</p></div>
+        <div><div class="eyebrow">{{ $product['category'] }} · {{ $product['sku'] }}</div><h1>{{ $product['name'] }}</h1><p class="prose">{{ $product['description'] }}</p><h2>৳{{ $product['mrp'] }} <small>MRP / {{ $product['unit'] }}</small></h2><p class="muted">{{ ($product['stock_status'] ?? 'out_of_stock') === 'out_of_stock' ? 'Awaiting stock' : 'In stock' }}</p><a href="/contact" class="button dark">Enquire about this product ↗</a><p class="muted">Existing partners can request products from their workspace.</p></div>
     </section>
 </main>
 <footer class="public-footer"><span>Madina Natural Health Care</span><a href="/contact">Contact the company →</a></footer>
