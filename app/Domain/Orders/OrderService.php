@@ -82,8 +82,9 @@ class OrderService
                 throw ValidationException::withMessages(['reference' => 'This order is closed.']);
             }
             $reference = Str::upper(trim($data['reference']));
-            if (DB::table('payment_claims')->where('order_id', $locked->id)->where('channel', $data['channel'])->where('reference', $reference)->where('status', '!=', 'rejected')->exists()) {
-                throw ValidationException::withMessages(['reference' => 'This payment reference is already submitted for this order.']);
+            if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
+                || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
+                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
             }
             $id = $this->insertClaim($locked, $data);
             $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
@@ -284,10 +285,22 @@ class OrderService
         }
 
         $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
+        $reference = Str::upper(trim($data['reference']));
+        if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
+            || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
+            throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+        }
 
-        return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
-            'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode($account, JSON_THROW_ON_ERROR) : null,
-            'reference' => Str::upper(trim($data['reference'])), 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
+        try {
+            return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
+                'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode($account, JSON_THROW_ON_ERROR) : null,
+                'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
+        } catch (QueryException $exception) {
+            if ($exception->getCode() === '23505') {
+                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+            }
+            throw $exception;
+        }
     }
 
     private function event(Order $order, User $actor, string $action, array $metadata = []): void

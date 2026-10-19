@@ -33,6 +33,7 @@ final class AccountCreatedSms
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'provider' => $remote['provider'],
+                'password_delivered' => true,
             ]);
 
             return true;
@@ -40,10 +41,15 @@ final class AccountCreatedSms
 
         $driver = (string) config('madina.sms.driver', 'log');
         if ($driver === 'log' || $driver === 'array') {
+            // Never persist plaintext passwords in application logs.
             Log::channel((string) config('madina.sms.log_channel', 'stack'))->info('account.created.sms', [
                 'user_id' => $user->id,
                 'phone' => $phone,
-                'message' => $message,
+                'password_delivered' => true,
+                'message_redacted' => sprintf(
+                    'Madina account created. Username: %s Password: [REDACTED]. Please sign in and change your password.',
+                    $phone
+                ),
             ]);
             if ($driver === 'array') {
                 $bag = config('madina.sms.sent', []);

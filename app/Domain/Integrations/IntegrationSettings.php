@@ -278,12 +278,29 @@ final class IntegrationSettings
     /** @param  array<string, mixed>  $value */
     private function persist(string $key, array $value, int $version, int $actorId): void
     {
-        $existing = DB::table('business_settings')->where('key', $key)->first();
-        DB::table('business_settings')->updateOrInsert(['key' => $key], [
+        $existing = DB::table('business_settings')->where('key', $key)->lockForUpdate()->first();
+        if ($existing && (int) $existing->version !== $version) {
+            throw ValidationException::withMessages(['version' => 'Integration settings changed. Reload before saving.']);
+        }
+        if ($existing) {
+            $updated = DB::table('business_settings')->where('key', $key)->where('version', $version)->update([
+                'value' => json_encode($value, JSON_THROW_ON_ERROR),
+                'version' => $version + 1,
+                'updated_by' => $actorId,
+                'updated_at' => now(),
+            ]);
+            if ($updated !== 1) {
+                throw ValidationException::withMessages(['version' => 'Integration settings changed. Reload before saving.']);
+            }
+
+            return;
+        }
+        DB::table('business_settings')->insert([
+            'key' => $key,
             'value' => json_encode($value, JSON_THROW_ON_ERROR),
             'version' => $version + 1,
             'updated_by' => $actorId,
-            'created_at' => $existing?->created_at ?? now(),
+            'created_at' => now(),
             'updated_at' => now(),
         ]);
     }

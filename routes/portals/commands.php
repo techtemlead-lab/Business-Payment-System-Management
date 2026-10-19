@@ -51,7 +51,7 @@ return function (string $portal): void {
     Route::post('/commands/enquiries/{id}', [CommandController::class, 'enquiry']);
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review']);
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle']);
-    Route::post('/commands/policies/{id}/publish', [CommandController::class, 'financialGate']);
+    Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);
     Route::post('/commands/commissions/settle-rank-royalty', [CommandController::class, 'settleRankRoyaltyPool']);

@@ -23,8 +23,21 @@ class HandleInertiaRequests extends Middleware
         $capabilities = $u?->capabilities() ?? [];
         $portal = PortalHost::current($request) ?? 'public';
 
+        $payments = app(PaymentAccounts::class);
+
         return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
-            'collectionAccounts' => fn () => $u ? app(PaymentAccounts::class)->listing($u, true) : [],
+            'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
+                ? $payments->listing($u, true, true)
+                : [],
+            'navCategories' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
+                ? SiteCustomization::getNavCategories()
+                : [],
+            'siteCustomization' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
+                ? collect(SiteCustomization::all())->only([
+                    'header_offers_title', 'header_offers_subtitle',
+                    'header_projects_title', 'header_projects_subtitle',
+                ])->all()
+                : [],
             'portalBase' => '',
             'portal' => $portal,
             'portalCatalog' => in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true)

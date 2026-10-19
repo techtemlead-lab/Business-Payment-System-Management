@@ -40,9 +40,6 @@ class WorkspaceController extends Controller
         $u = $r->user();
         $portal = PortalHost::current($r) ?? PortalHost::forUser($u);
         $staff = in_array($portal, ['manage', 'sadmin'], true);
-        if ($staff && $section === 'salary') {
-            $section = 'settlements';
-        }
         if ($staff && $section === 'customization') {
             $section = 'website';
         }
@@ -233,10 +230,26 @@ class WorkspaceController extends Controller
         if ($section === 'salary') {
             $month = CommissionQualification::currentMonth();
             $rules = app(CommissionPolicy::class)->snapshot()['rules'];
-            $data['salary'] = ['month' => $month, 'monthly_purchases' => Money::decimal(app(CommissionQualification::class)->monthlyVolume($u->id, $month)),
-                'salary_rate' => $rules['sub_dealer_salary']['percentage'], 'tour_rate' => $rules['sub_dealer_tour']['percentage'],
-                'salary_accrued' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_salary')->where('metadata->period_month', $month)->sum('amount'),
-                'tour_reserved' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_tour')->where('metadata->period_month', $month)->sum('amount')];
+            if ($staff) {
+                $pool = CommissionAllocation::where('category', 'sub_dealer_salary')->where('metadata->period_month', $month);
+                $tour = CommissionAllocation::where('category', 'sub_dealer_tour')->where('metadata->period_month', $month);
+                $data['salary'] = [
+                    'month' => $month,
+                    'staff_view' => true,
+                    'monthly_purchases' => Money::decimal(Money::cents((string) DB::table('commission_batches')
+                        ->where('account_type', 'sub_dealer')->where('period_month', $month)->sum('cash_basis'))),
+                    'salary_rate' => $rules['sub_dealer_salary']['percentage'],
+                    'tour_rate' => $rules['sub_dealer_tour']['percentage'],
+                    'salary_accrued' => (string) (clone $pool)->sum('amount'),
+                    'salary_pending' => (string) (clone $pool)->where('status', 'pending')->sum('amount'),
+                    'tour_reserved' => (string) $tour->sum('amount'),
+                ];
+            } else {
+                $data['salary'] = ['month' => $month, 'staff_view' => false, 'monthly_purchases' => Money::decimal(app(CommissionQualification::class)->monthlyVolume($u->id, $month)),
+                    'salary_rate' => $rules['sub_dealer_salary']['percentage'], 'tour_rate' => $rules['sub_dealer_tour']['percentage'],
+                    'salary_accrued' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_salary')->where('metadata->period_month', $month)->sum('amount'),
+                    'tour_reserved' => (string) CommissionAllocation::where('user_id', $u->id)->where('category', 'sub_dealer_tour')->where('metadata->period_month', $month)->sum('amount')];
+            }
         }
         if (in_array($section, ['withdrawals', 'earnings'])) {
             $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held', 'commission_held']);

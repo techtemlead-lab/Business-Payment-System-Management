@@ -66,6 +66,7 @@ return [
     'policy_schedules' => 'কমিশন সূচি',
     'reserve_payouts' => 'রিজার্ভ পেআউট',
     'data_imports' => 'এক্সেল ডেটা আমদানি',
+    'service_integrations' => 'সার্ভিস ইন্টিগ্রেশন',
     'commission_holds' => 'কমিশন হোল্ড',
     'financial_readiness' => 'উদ্বোধনী ব্যালেন্স পর্যালোচনা',
     'financial_reports' => 'আর্থিক প্রতিবেদন',

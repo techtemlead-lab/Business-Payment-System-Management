@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from '@inertiajs/react';
 import { Trophy, ShieldCheck, AlertCircle, ChevronRight, Eye, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
 import { money, date } from './UI';
 
@@ -247,24 +248,35 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                             </span>
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSelectedCandidate(m)}
-                                                style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                    padding: '4px 10px',
-                                                    background: '#f8fafc',
-                                                    border: '1px solid #cbd5e1',
-                                                    borderRadius: 4,
-                                                    cursor: 'pointer',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: 4
-                                                }}
-                                            >
-                                                <Eye size={12} /> Inspect Branches
-                                            </button>
+                                            <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                                                {isAchieved && !m.is_claimed && (
+                                                    <Link
+                                                        href="/operations/reserve-payouts"
+                                                        className="button small"
+                                                        style={{ fontSize: 11, padding: '4px 10px' }}
+                                                    >
+                                                        Record payout
+                                                    </Link>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setSelectedCandidate(m)}
+                                                    style={{
+                                                        fontSize: 11,
+                                                        fontWeight: 600,
+                                                        padding: '4px 10px',
+                                                        background: '#f8fafc',
+                                                        border: '1px solid #cbd5e1',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: 4
+                                                    }}
+                                                >
+                                                    <Eye size={12} /> Inspect Branches
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );
