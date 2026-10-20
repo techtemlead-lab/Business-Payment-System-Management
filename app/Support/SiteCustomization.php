@@ -300,7 +300,7 @@ class SiteCustomization
             'partnership_cta_title' => 'Ready to grow with Madina?',
             'partnership_cta_body' => 'Tell us about your location and goals. Approved partners are invited by the company after review.',
             'partnership_cta_btn' => 'Apply for Dealership',
-            'partnership_cta_link' => '/contact?topic=Dealer%20enquiry',
+            'partnership_cta_link' => '#partner-apply',
 
             // Services (/services)
             'services_hero_title' => 'Natural Health Care & Physiotherapy Services',

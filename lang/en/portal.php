@@ -89,6 +89,7 @@ return [
     'website' => 'Website Manage',
     'content' => 'Website content',
     'enquiries' => 'Enquiries',
+    'partnerships' => 'Partnership applications',
     'audit' => 'Activity log',
     'profile' => 'My profile',
     'security' => 'Account security',

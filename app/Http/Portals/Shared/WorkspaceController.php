@@ -339,6 +339,42 @@ class WorkspaceController extends Controller
                 'closed' => (int) DB::table('enquiries')->where('status', 'closed')->count(),
             ];
         }
+        if ($section === 'partnerships') {
+            $data['applications'] = DB::table('dealer_applications')
+                ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
+                ->orderByDesc('created_at')
+                ->paginate(20)
+                ->through(function ($row) {
+                    $payload = json_decode((string) ($row->data ?? '{}'), true);
+                    if (! is_array($payload)) {
+                        $payload = [];
+                    }
+
+                    return [
+                        'id' => $row->id,
+                        'email' => $row->email,
+                        'name' => $payload['name'] ?? '—',
+                        'phone' => $payload['phone'] ?? null,
+                        'role' => $payload['role'] ?? null,
+                        'division' => $payload['division'] ?? null,
+                        'district' => $payload['district'] ?? null,
+                        'upazila' => $payload['upazila'] ?? null,
+                        'message' => $payload['message'] ?? null,
+                        'status' => $row->status,
+                        'source' => $row->source ?? 'staff',
+                        'submitted_by' => $row->submitted_by,
+                        'user_id' => $row->user_id,
+                        'reason' => $row->reason,
+                        'created_at' => $row->created_at,
+                    ];
+                });
+            $data['application_counts'] = [
+                'total' => (int) DB::table('dealer_applications')->count(),
+                'pending' => (int) DB::table('dealer_applications')->where('status', 'pending')->count(),
+                'approved' => (int) DB::table('dealer_applications')->where('status', 'approved')->count(),
+                'rejected' => (int) DB::table('dealer_applications')->where('status', 'rejected')->count(),
+            ];
+        }
         if ($section === 'notifications') {
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);
         }

@@ -294,7 +294,7 @@
     <h2>{{ $siteCustomization['partnership_cta_title'] ?? 'Ready to grow with Madina?' }}</h2>
     <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
     <div class="ref-information-links" style="margin-top:16px;">
-        <a href="#partner-apply" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
+        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
         @if($publicPageEnabled['dealers'] ?? true)
         <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> View Dealer Network</a>
         @endif

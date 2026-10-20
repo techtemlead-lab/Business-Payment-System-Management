@@ -18,7 +18,7 @@ const icons: Record<string, LucideIcon> = {
     'data-imports': FileText, 'service-integrations': Settings, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
-    reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, audit: ShieldCheck,
+    reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, earnings: Coins, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
@@ -35,7 +35,7 @@ const sectionKeys: Record<string, string> = {
     overview: 'overview', orders: 'orders', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
-    website: 'website', content: 'content', enquiries: 'enquiries', audit: 'audit', profile: 'profile', security: 'security',
+    website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
     notifications: 'notifications', earnings: 'earnings', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
@@ -142,7 +142,7 @@ export default function Shell({ section, children, action }: { section: string; 
     ] : [];
 
     const dealerGroup = staff ? [
-        ...(capabilities.includes('accounts') ? ['accounts'] : []),
+        ...(capabilities.includes('accounts') ? ['accounts', 'partnerships'] : []),
         ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['orders', 'deliveries', 'dues'] : []),
         ...(capabilities.includes('finance') ? ['commissions', 'policies', 'ledger', 'reports'] : []),
         ...(capabilities.includes('accounts') ? ['network-tree', 'area-dealers', 'ranks'] : []),
@@ -179,7 +179,7 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const isDashboardsDomain = section === 'dashboards';
     const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
-    const isDealerDomain = ['accounts', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
+    const isDealerDomain = ['accounts', 'partnerships', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
     const currentSectionTitle = section === 'overview'
@@ -414,6 +414,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                 {currentDomain === 'dealers' && (
                                     <>
                                         {capabilities.includes('accounts') && <Link href="/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`}>{translate('portal', 'accounts')}</Link>}
+                                        {capabilities.includes('accounts') && <Link href="/partnerships" className={`button small ${section === 'partnerships' ? 'dark' : ''}`}>{translate('portal', 'partnerships')}</Link>}
                                         {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`}>{translate('portal', 'orders')}</Link>}
                                         {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`}>{translate('portal', 'deliveries')}</Link>}
                                         {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`}>{translate('portal', 'dues')}</Link>}
