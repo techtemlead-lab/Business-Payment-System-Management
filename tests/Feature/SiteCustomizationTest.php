@@ -576,12 +576,9 @@ class SiteCustomizationTest extends TestCase
 
         $home = $this->get('/');
         $home->assertOk();
-        foreach ($expectedDefaults as $cat) {
-            $home->assertSee($cat);
-            $home->assertSee('/products?category='.urlencode($cat));
-        }
+        $home->assertDontSee('ref-category-nav', false);
+        $home->assertDontSee('aria-label="Product categories"', false);
 
-        // 2. Staff customizes categories (e.g. adding 3 new categories, removing Furniture and Leather Items)
         $editor = User::factory()->create(['role' => 'editor']);
         $customCategories = [
             'Organic Honey',
@@ -591,48 +588,26 @@ class SiteCustomizationTest extends TestCase
             'Medicine',
         ];
 
-        $payload = [
+        $this->actingAs($editor)->post('/commands/customization', [
             'customization' => [
                 'nav_categories' => implode("\n", $customCategories),
             ],
-        ];
+        ])->assertSessionHas('success');
 
-        $this->actingAs($editor)->post('/commands/customization', $payload)
-            ->assertSessionHas('success');
-
-        // Verify backend helper returns custom items
         $this->assertEquals($customCategories, SiteCustomization::getNavCategories());
 
-        // Verify public home page reflects custom categories
         $customHome = $this->get('/');
         $customHome->assertOk();
-        foreach ($customCategories as $cat) {
-            $customHome->assertSee($cat);
-            $customHome->assertSee('/products?category='.urlencode($cat));
-        }
+        $customHome->assertDontSee('ref-category-nav', false);
+        $customHome->assertDontSee('/products?category='.urlencode('Organic Honey'));
+        $customHome->assertDontSee('All Organic Honey');
 
-        // Removed items must no longer appear in header category dropdown
-        $customHtml = $customHome->getContent();
-        $this->assertStringNotContainsString('All Furniture', $customHtml);
-        $this->assertStringNotContainsString('All Leather Items', $customHtml);
-        $this->assertStringContainsString('All Organic Honey', $customHtml);
-        $this->assertStringContainsString('All Black Seed Oil', $customHtml);
-
-        // Clearing the menu uses the published company inventory categories.
-        $clearPayload = [
+        $this->actingAs($editor)->post('/commands/customization', [
             'customization' => [
                 'nav_categories' => '',
             ],
-        ];
-        $this->actingAs($editor)->post('/commands/customization', $clearPayload)
-            ->assertSessionHas('success');
+        ])->assertSessionHas('success');
 
         $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
-
-        $fallbackHome = $this->get('/');
-        $fallbackHome->assertOk();
-        foreach ($expectedDefaults as $cat) {
-            $fallbackHome->assertSee($cat);
-        }
     }
 }
