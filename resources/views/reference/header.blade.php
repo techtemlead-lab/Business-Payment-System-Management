@@ -1,5 +1,4 @@
 @php
-    $headerCats = \App\Support\SiteCustomization::getNavCategories();
     $isBangla = app()->getLocale() === 'bn';
     $chrome = function (string $key, ?string $custom = null) use ($isBangla): string {
         if ($isBangla) {
@@ -126,21 +125,6 @@
                 @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> FAQ</a></li>@endif
             </ul>
         </div>
-        @if($publicPageEnabled['products'] ?? true)
-        <div class="ref-mobile-drawer-group">
-            <div class="ref-mobile-drawer-group-title">Product Categories</div>
-            <ul class="ref-mobile-drawer-cat-list">
-                @foreach($headerCats as $category)
-                <li>
-                    <a href="/products?category={{ urlencode($category) }}">
-                        <span>{{ $category }}</span>
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </a>
-                </li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-drawer-btn ref-drawer-btn-primary">
@@ -165,11 +149,3 @@
         </div>
     </div>
 </aside>
-
-@if($publicPageEnabled['products'] ?? true)
-<nav class="ref-category-nav" aria-label="Product categories"><div class="ref-container">
-    @foreach($headerCats as $category)
-    <div class="ref-nav-item"><a href="/products?category={{ urlencode($category) }}">{{ $category }}</a><div class="ref-category-dropdown"><a href="/products?category={{ urlencode($category) }}">All {{ $category }}</a><a href="/products">Browse all products</a></div></div>
-    @endforeach
-</div></nav>
-@endif

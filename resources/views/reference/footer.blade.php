@@ -170,11 +170,11 @@
         <span class="ref-mobile-home-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
         <span class="ref-mobile-home-label">Home</span>
     </a>
-    @if($publicPageEnabled['products'] ?? true)
-    <button type="button" class="ref-mobile-nav-item" id="refMobileBottomCategories" aria-label="Product categories">
-        <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
-        <span>Categories</span>
-    </button>
+    @if($publicPageEnabled['about'] ?? true)
+    <a href="/about" class="ref-mobile-nav-item">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>About</span>
+    </a>
     @elseif($publicPageEnabled['faq'] ?? true)
     <a href="/faq" class="ref-mobile-nav-item">
         <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
