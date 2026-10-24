@@ -23,13 +23,13 @@ class BangladeshPlaceCodeSeederTest extends TestCase
         $this->assertGreaterThanOrEqual(495, PlaceCode::query()->where('level', 'upazila')->count());
         $this->assertGreaterThanOrEqual(4540 + 328 + 12, PlaceCode::query()->where('level', 'union')->count());
 
-        $this->assertDatabaseHas('place_codes', ['code' => '101', 'name' => 'Dhaka', 'level' => 'division']);
-        $this->assertDatabaseHas('place_codes', ['code' => '102', 'name' => 'Rangpur', 'level' => 'division']);
+        $this->assertDatabaseHas('place_codes', ['code' => 'MNHC-101', 'name' => 'Dhaka', 'level' => 'division']);
+        $this->assertDatabaseHas('place_codes', ['code' => 'MNHC-102', 'name' => 'Rangpur', 'level' => 'division']);
         $this->assertDatabaseHas('place_codes', ['name' => 'Rangpur City Corporation', 'level' => 'union']);
         $this->assertDatabaseHas('place_codes', ['name' => 'Dhaka North City Corporation', 'level' => 'union']);
         $this->assertDatabaseHas('place_codes', ['name' => 'Dhaka South City Corporation', 'level' => 'union']);
 
-        $rangpur = PlaceCode::query()->where('code', '102')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
         $this->assertNotNull($rangpur->base_place_id);
         $district = PlaceCode::query()->whereKey($rangpur->base_place_id)->firstOrFail();
         $this->assertSame('district', $district->level);

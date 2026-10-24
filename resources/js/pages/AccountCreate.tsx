@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
-type CommissionPlace = { level: string; code: string | null; name: string | null };
+type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
 type Consumer = { id: number; name: string; refer_code: string | null; rate: string } | null;
 
 const availablePermissions = [
@@ -84,6 +84,7 @@ export default function AccountCreate({
         email: '',
         extra_contact: '',
         pharmacy: '',
+        shop_name: '',
         directory_visible: false,
         status: 'active',
         reason: 'Physical agreement verified and onboarding authorized by company staff.',
@@ -100,6 +101,7 @@ export default function AccountCreate({
             upazila: '',
             union: '',
             pharmacy: '',
+            shop_name: '',
             area_code: '',
         },
     });
@@ -111,6 +113,8 @@ export default function AccountCreate({
         label: string;
         available: boolean;
         commission_places: CommissionPlace[];
+        area_pool_rate?: string;
+        management_rate?: string;
         next_sub_dealer_code?: string | null;
     } | null>(null);
     const [placeError, setPlaceError] = useState('');
@@ -307,7 +311,8 @@ export default function AccountCreate({
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
-            pharmacy: data.pharmacy,
+            pharmacy: data.role === 'sub_dealer' ? (data.shop_name || data.pharmacy) : data.pharmacy,
+            shop_name: data.role === 'sub_dealer' ? data.shop_name : '',
             directory_visible: data.directory_visible,
             status: data.status,
             reason: data.reason,
@@ -330,7 +335,7 @@ export default function AccountCreate({
                 <div>
                     <h2>Add Dealer / Sub-Dealer Account</h2>
                     <p>
-                        Prefer birth certificate lookup (BDRIS). Assign by place code, set unique refer codes, then create the account and SMS the mobile login.
+                        Prefer birth certificate lookup (BDRIS). Assign by MNHC place code (example MNHC-100), set unique refer codes, then create the account and SMS the mobile login.
                     </p>
                 </div>
             </div>
@@ -566,12 +571,18 @@ export default function AccountCreate({
                                         </div>
                                         {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>This area code already has an active dealer.</p>}
                                         <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
-                                            {commissionLines.map((row) => (
-                                                <div key={row.level} style={{ fontSize: 13 }}>
-                                                    <b>{row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union'}:</b>{' '}
-                                                    {row.code ? `${row.code} — ${row.name}` : '— (not on last-serial path)'}
-                                                </div>
-                                            ))}
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e' }}>
+                                                Area dealer pool {placePreview.area_pool_rate || '10.00'}% · Management share {placePreview.management_rate || '2.00'}%
+                                            </div>
+                                            {commissionLines.map((row) => {
+                                                const title = row.level === 'management' ? 'Management' : row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union';
+                                                return (
+                                                    <div key={row.level} style={{ fontSize: 13 }}>
+                                                        <b>{title}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
+                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? 'Company management reserve' : '— (not on last-serial path)')}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -638,10 +649,18 @@ export default function AccountCreate({
                                         Extra contact (optional)
                                         <input value={form.data.extra_contact} onChange={(e) => form.setData('extra_contact', e.target.value)} />
                                     </label>
-                                    <label>
-                                        Pharmacy / chamber
-                                        <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
-                                    </label>
+                                    {form.data.role === 'sub_dealer' ? (
+                                        <label>
+                                            Shop name *
+                                            <input required value={form.data.shop_name} onChange={(e) => form.setData('shop_name', e.target.value)} placeholder="Trading / shop name" />
+                                            {form.errors.shop_name && <span className="field-error">{form.errors.shop_name}</span>}
+                                        </label>
+                                    ) : (
+                                        <label>
+                                            Pharmacy / chamber
+                                            <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
+                                        </label>
+                                    )}
                                 </div>
                             </section>
                         </>

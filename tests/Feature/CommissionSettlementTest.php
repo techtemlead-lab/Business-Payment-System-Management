@@ -221,13 +221,13 @@ class CommissionSettlementTest extends TestCase
         ]);
     }
 
-    public function test_mo_requires_twenty_five_thousand_in_qualifying_own_purchases(): void
+    public function test_mo_requires_one_lakh_in_qualifying_own_purchases(): void
     {
         $buyer = User::factory()->create();
-        $this->purchase($buyer, '20000.00', '40000.00');
+        $this->purchase($buyer, '90000.00', '180000.00');
         $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'dealer']);
-        $this->purchase($buyer, '5000.00', '10000.00');
-        $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'mo', 'lifetime_purchase_total' => '25000.00']);
+        $this->purchase($buyer, '10000.00', '20000.00');
+        $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'mo', 'lifetime_purchase_total' => '100000.00']);
         $this->assertDatabaseCount('rank_incentive_awards', 0);
     }
 

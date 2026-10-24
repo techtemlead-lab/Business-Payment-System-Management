@@ -78,7 +78,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             {isOverAllocated
                                 ? 'Review dealer and sub-dealer pool limits before saving.'
-                                : 'Allocations use purchase value. The company share is 30% of MRP; each product must fund both.'}
+                                : 'Admin-editable global rates (not hard-locked). Change any percentage below and save. For one dealer or sub-dealer, open the partner account editor and propose a custom buyer commission plan.'}
                         </div>
                     </div>
 

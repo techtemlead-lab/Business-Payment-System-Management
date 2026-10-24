@@ -23,10 +23,10 @@ class PlaceCodeManagementTest extends TestCase
     public function test_owner_can_open_code_management_submodules_and_search_districts(): void
     {
         $owner = User::factory()->create(['role' => 'super_admin']);
-        $management = PlaceCode::query()->where('code', '100')->firstOrFail();
-        $dhaka = PlaceCode::query()->where('code', '101')->firstOrFail();
-        PlaceCode::factory()->district($dhaka)->create(['code' => '201', 'name' => 'Dhaka', 'sort_order' => 1]);
-        PlaceCode::factory()->district($dhaka)->create(['code' => '202', 'name' => 'Gazipur', 'sort_order' => 2]);
+        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
+        $dhaka = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC-201', 'name' => 'Dhaka', 'sort_order' => 1]);
+        PlaceCode::factory()->district($dhaka)->create(['code' => 'MNHC-202', 'name' => 'Gazipur', 'sort_order' => 2]);
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=management')
             ->assertOk()
@@ -35,7 +35,7 @@ class PlaceCodeManagementTest extends TestCase
                 ->where('section', 'place-codes')
                 ->where('data.level', 'management')
                 ->where('data.searchable', false)
-                ->where('data.places.data.0.code', '100')
+                ->where('data.places.data.0.code', 'MNHC-100')
                 ->where('data.places.data.0.name', 'Management'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=division')
@@ -43,8 +43,8 @@ class PlaceCodeManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.level', 'division')
                 ->where('data.searchable', false)
-                ->where('data.places.data.0.code', '101')
-                ->where('data.places.data.1.code', '102'));
+                ->where('data.places.data.0.code', 'MNHC-101')
+                ->where('data.places.data.1.code', 'MNHC-102'));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=district&q=201')
             ->assertOk()
@@ -52,8 +52,8 @@ class PlaceCodeManagementTest extends TestCase
                 ->where('data.level', 'district')
                 ->where('data.searchable', true)
                 ->where('data.places.total', 1)
-                ->where('data.places.data.0.code', '201')
-                ->where('data.places.data.0.parent_code', '101'));
+                ->where('data.places.data.0.code', 'MNHC-201')
+                ->where('data.places.data.0.parent_code', 'MNHC-101'));
 
         $this->assertSame($management->id, $dhaka->parent_id);
     }
@@ -61,7 +61,7 @@ class PlaceCodeManagementTest extends TestCase
     public function test_admin_can_add_district_code_and_set_base_place_chain(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $rangpur = PlaceCode::query()->where('code', '102')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
             'level' => 'district',
@@ -70,7 +70,7 @@ class PlaceCodeManagementTest extends TestCase
             'parent_id' => $rangpur->id,
         ])->assertRedirect();
 
-        $district = PlaceCode::query()->where('code', '301')->firstOrFail();
+        $district = PlaceCode::query()->where('code', 'MNHC-301')->firstOrFail();
         $this->assertSame('district', $district->level);
         $this->assertSame($rangpur->id, $district->parent_id);
 
@@ -81,7 +81,7 @@ class PlaceCodeManagementTest extends TestCase
             'parent_id' => $district->id,
         ])->assertRedirect();
 
-        $upazila = PlaceCode::query()->where('code', '401')->firstOrFail();
+        $upazila = PlaceCode::query()->where('code', 'MNHC-401')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
             'level' => 'union',
@@ -90,7 +90,7 @@ class PlaceCodeManagementTest extends TestCase
             'parent_id' => $upazila->id,
         ])->assertRedirect();
 
-        $union = PlaceCode::query()->where('code', '501')->firstOrFail();
+        $union = PlaceCode::query()->where('code', 'MNHC-501')->firstOrFail();
 
         $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/place-codes/'.$upazila->id, [
             'base_place_id' => $union->id,
@@ -114,6 +114,6 @@ class PlaceCodeManagementTest extends TestCase
         $this->actingAs($admin)->getJson('/api/v1/place-codes?level=division')
             ->assertOk()
             ->assertJsonPath('data.level', 'division')
-            ->assertJsonPath('data.places.data.0.code', '101');
+            ->assertJsonPath('data.places.data.0.code', 'MNHC-101');
     }
 }

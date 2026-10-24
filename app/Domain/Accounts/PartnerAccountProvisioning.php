@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
@@ -20,6 +21,7 @@ final class PartnerAccountProvisioning
     public function __construct(
         private PlaceGeographyResolver $geography,
         private AccountCreatedSms $sms,
+        private CommissionPolicy $policies,
     ) {}
 
     /**
@@ -76,13 +78,13 @@ final class PartnerAccountProvisioning
         $placeCodeValue = trim((string) ($input['place_code'] ?? ''));
         if ($placeCodeValue === '') {
             throw ValidationException::withMessages(['place_code' => $role === 'sub_dealer'
-                ? 'Enter a union / city corporation code.'
-                : 'Enter the area place code.']);
+                ? 'Enter a union / city corporation code (for example MNHC-501).'
+                : 'Enter the area place code (for example MNHC-101).']);
         }
 
-        $place = PlaceCode::query()->where('code', $placeCodeValue)->where('is_active', true)->first();
+        $place = PlaceCode::findByCode($placeCodeValue);
         if (! $place) {
-            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code.']);
+            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code. Use the MNHC- form (example: MNHC-100).']);
         }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
             throw ValidationException::withMessages(['place_code' => 'Sub-dealers must be linked to a union / city corporation code.']);
@@ -99,10 +101,7 @@ final class PartnerAccountProvisioning
             if ($taken) {
                 throw ValidationException::withMessages(['place_code' => 'This area code already has an active dealer.']);
             }
-            $dealerCode = trim((string) ($input['dealer_code'] ?? ''));
-            if ($dealerCode === '') {
-                $dealerCode = $place->code;
-            }
+            $dealerCode = PlaceCode::brandSerial(trim((string) ($input['dealer_code'] ?? ''))) ?: $place->code;
             if (User::query()->where('dealer_code', $dealerCode)->exists()) {
                 throw ValidationException::withMessages(['dealer_code' => 'This dealer code is already in use.']);
             }
@@ -112,6 +111,7 @@ final class PartnerAccountProvisioning
 
         $path = $this->geography->expandFromAnchor($place);
         $plainPassword = $this->temporaryPassword();
+        $shopName = trim((string) ($input['shop_name'] ?? $input['pharmacy'] ?? ''));
         $profile = [
             'name_bn' => trim((string) ($input['name_bn'] ?? '')),
             'father_name' => trim((string) ($input['father_name'] ?? '')),
@@ -121,7 +121,8 @@ final class PartnerAccountProvisioning
             'post_office' => trim((string) ($input['post_office'] ?? '')),
             'upazila' => $path['upazila'] ?? trim((string) ($input['upazila'] ?? '')),
             'union' => $path['union'] ?? trim((string) ($input['union'] ?? '')),
-            'pharmacy' => trim((string) ($input['pharmacy'] ?? '')),
+            'pharmacy' => $shopName,
+            'shop_name' => $shopName,
             'area_code' => $role === 'sub_dealer' ? $dealerCode : $place->code,
             'place_code' => $place->code,
             'place_code_id' => $place->id,
@@ -226,13 +227,21 @@ final class PartnerAccountProvisioning
     }
 
     /**
-     * @return array{label:string,path:array<string,mixed>,commission_places:list<array{level:string,code:?string,name:?string}>,available:bool}
+     * @return array{
+     *   label:string,
+     *   path:array<string,mixed>,
+     *   commission_places:list<array{level:string,code:?string,name:?string,rate:?string,pool:?string}>,
+     *   area_pool_rate:string,
+     *   management_rate:string,
+     *   available:bool,
+     *   next_sub_dealer_code:?string
+     * }
      */
     public function resolvePlacePreview(string $code, string $role = 'dealer'): array
     {
-        $place = PlaceCode::query()->where('code', trim($code))->where('is_active', true)->first();
+        $place = PlaceCode::findByCode($code);
         if (! $place) {
-            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code.']);
+            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code. Use the MNHC- form (example: MNHC-100).']);
         }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
             throw ValidationException::withMessages(['place_code' => 'Sub-dealers must use a union / city corporation code.']);
@@ -242,12 +251,21 @@ final class PartnerAccountProvisioning
             ->where('place_code_id', $place->id)
             ->where('is_active', true)
             ->exists();
+        $areaRules = $this->policies->snapshot(false)['rules']['area_dealer_pool'] ?? [];
+        $areaParams = is_array($areaRules['parameters'] ?? null) ? $areaRules['parameters'] : [];
+        $areaPoolRate = (string) ($areaRules['percentage'] ?? '10.00');
+        $managementRate = (string) ($areaParams['management_share_pct'] ?? '2.00');
         $commissionPlaces = [];
-        foreach (['division', 'district', 'upazila', 'union'] as $level) {
+        foreach (['management', 'division', 'district', 'upazila', 'union'] as $level) {
+            $rateKey = $level.'_share_pct';
             $commissionPlaces[] = [
                 'level' => $level,
                 'code' => $path['codes'][$level] ?? null,
-                'name' => $path[$level] ?? null,
+                'name' => $level === 'management'
+                    ? ($path['management'] ?? 'Company management')
+                    : ($path[$level] ?? null),
+                'rate' => isset($areaParams[$rateKey]) ? (string) $areaParams[$rateKey] : null,
+                'pool' => $areaPoolRate,
             ];
         }
 
@@ -255,6 +273,8 @@ final class PartnerAccountProvisioning
             'label' => $this->placeLabel($place),
             'path' => $path,
             'commission_places' => $commissionPlaces,
+            'area_pool_rate' => $areaPoolRate,
+            'management_rate' => $managementRate,
             'available' => $available,
             'next_sub_dealer_code' => $role === 'sub_dealer' ? $this->nextSubDealerCode($place->code) : null,
         ];
@@ -291,14 +311,19 @@ final class PartnerAccountProvisioning
 
     public function nextSubDealerCode(string $unionCode): string
     {
-        $prefix = $unionCode.'-';
+        $brandedUnion = PlaceCode::normalizeCode($unionCode) ?? PlaceCode::brandSerial($unionCode) ?? $unionCode;
+        $prefix = rtrim((string) $brandedUnion, '-').'-';
+        $legacyPrefix = (PlaceCode::normalizeCode($unionCode) ? substr((string) PlaceCode::normalizeCode($unionCode), strlen(PlaceCode::BrandPrefix) + 1) : $unionCode).'-';
         $latest = User::query()
             ->where('role', 'sub_dealer')
-            ->where('dealer_code', 'like', $prefix.'%')
+            ->where(function ($q) use ($prefix, $legacyPrefix): void {
+                $q->where('dealer_code', 'like', $prefix.'%')
+                    ->orWhere('dealer_code', 'like', $legacyPrefix.'%');
+            })
             ->orderByDesc('dealer_code')
             ->value('dealer_code');
         $next = 1;
-        if (is_string($latest) && preg_match('/^'.preg_quote($prefix, '/').'(\d{6})$/', $latest, $matches)) {
+        if (is_string($latest) && preg_match('/(?:^'.preg_quote($prefix, '/').'|^'.preg_quote($legacyPrefix, '/').')(\d{6})$/', $latest, $matches)) {
             $next = ((int) $matches[1]) + 1;
         }
 

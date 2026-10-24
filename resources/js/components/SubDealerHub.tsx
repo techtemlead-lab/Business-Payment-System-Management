@@ -184,9 +184,9 @@ export default function SubDealerHub({
                                     render: r => (
                                         <div>
                                             <b>{r.name}</b>
-                                            {r.profile?.pharmacy_name && (
+                                            {(r.profile?.shop_name || r.profile?.pharmacy_name || r.profile?.pharmacy) && (
                                                 <div style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                                                    {r.profile.pharmacy_name}
+                                                    {r.profile.shop_name || r.profile.pharmacy_name || r.profile.pharmacy}
                                                 </div>
                                             )}
                                             <small className="cell-sub">{r.phone ? `${r.phone} · ` : ''}{r.email}</small>

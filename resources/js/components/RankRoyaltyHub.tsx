@@ -44,7 +44,7 @@ const defaultHierarchy = [
         key: 'mo',
         name: 'Marketing Officer (MO)',
         badge: { label: 'MO (MKT OFFICER)', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-        requirement: '৳2,50,000 (৳2.5L) Cumulative Purchase',
+        requirement: '৳1,00,000 (৳1L) Cumulative Purchase',
         incentive: '৳5,000 One-time Cash Bonus',
         royaltyShare: '2.00% Monthly Company Turnover Pool'
     },
@@ -78,7 +78,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
     const q=policy?.qualification??{};
     const bonuses=policy?.incentives??{};
     const rankHierarchy=defaultHierarchy.map(row=>row.key==='dealer'?row:{...row,
-        requirement: row.key==='mo'?`${money(q.mo_target??25000)} cumulative own purchases`:`${q[row.key+'_count']??10} ${row.key==='am'?'MO':row.key==='sm'?'AM':'SM'} leaders within ${q.qualification_depth??3} generations`,
+        requirement: row.key==='mo'?`${money(q.mo_target??100000)} cumulative own purchases`:`${q[row.key+'_count']??10} ${row.key==='am'?'MO':row.key==='sm'?'AM':'SM'} leaders within ${q.qualification_depth??3} generations`,
         incentive:`${money(bonuses[row.key+'_bonus']??0)} one-time funded award`,
         royaltyShare:`${q[row.key+'_share_pct']??1}% purchase-value pool shared within the qualifying rank`,
     });
@@ -419,26 +419,35 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                         <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '14px 0' }} />
 
                         {/* Progress Towards MO Target */}
+                        {(() => {
+                            const moTarget = Number(q.mo_target ?? 100000);
+                            const progress = moTarget > 0
+                                ? Math.min(100, (Number(auditingPartner.lifetime_purchase_total) / moTarget) * 100)
+                                : 0;
+
+                            return (
                         <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700 }}>
-                                <span>MO Promotion Milestone (৳2.5L Turnover)</span>
+                                <span>MO Promotion Milestone ({money(moTarget)} Turnover)</span>
                                 <span style={{ color: '#006837' }}>
-                                    {Math.min(100, Math.round((auditingPartner.lifetime_purchase_total / 250000) * 100))}%
+                                    {Math.round(progress)}%
                                 </span>
                             </div>
                             <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
                                 <div style={{
                                     height: '100%',
-                                    width: `${Math.min(100, (auditingPartner.lifetime_purchase_total / 250000) * 100)}%`,
+                                    width: `${progress}%`,
                                     background: '#006837',
                                     borderRadius: 4
                                 }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginTop: 6 }}>
                                 <span>Current: {money(auditingPartner.lifetime_purchase_total)}</span>
-                                <span>Target: {money(250000)}</span>
+                                <span>Target: {money(moTarget)}</span>
                             </div>
                         </div>
+                            );
+                        })()}
 
                         {/* AM Downline Qualification Progress */}
                         <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, marginTop: 12 }}>
@@ -455,7 +464,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             <div style={{ fontWeight: 700, color: '#047857' }}>Royalty Pool Participation</div>
                             <div style={{ color: '#065f46', marginTop: 2 }}>
                                 {auditingPartner.current_rank === 'dealer'
-                                    ? 'Requires promotion to MO (৳2.5L cumulative) to qualify for 2% company turnover royalty.'
+                                    ? 'Requires promotion to MO (৳1L cumulative) to qualify for 2% company turnover royalty.'
                                     : `Active participant in the ${(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).royaltyShare}.`}
                             </div>
                         </div>

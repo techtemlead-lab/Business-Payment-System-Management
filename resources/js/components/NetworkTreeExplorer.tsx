@@ -252,7 +252,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#006837', marginTop: 4 }}>
                         {stats.moCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>৳2.5L cumulative turnover</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>৳1L cumulative turnover</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>

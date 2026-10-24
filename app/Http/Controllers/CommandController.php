@@ -116,6 +116,7 @@ class CommandController extends Controller
                 'email' => 'required|email|max:254',
                 'extra_contact' => 'nullable|string|max:80',
                 'pharmacy' => 'nullable|string|max:150',
+                'shop_name' => 'nullable|string|max:150',
                 'directory_visible' => 'sometimes|boolean',
                 'status' => 'sometimes|in:active,suspended',
                 'reason' => 'nullable|string|max:1000',
@@ -146,7 +147,7 @@ class CommandController extends Controller
             'reason' => 'nullable|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($r->input('role'), ['employee', 'sr'], true)), 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($r->input('role') === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
-            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code',
+            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code',
             'profile.name_bn' => 'nullable|string|max:150',
             'profile.father_name' => 'nullable|string|max:150',
             'profile.mother_name' => 'nullable|string|max:150',
@@ -155,9 +156,10 @@ class CommandController extends Controller
             'profile.upazila' => 'nullable|string|max:150',
             'profile.union' => 'nullable|string|max:150',
             'profile.pharmacy' => 'nullable|string|max:150',
+            'profile.shop_name' => 'nullable|string|max:150',
             'profile.area_code' => 'nullable|string|max:80',
         ]);
-        $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'area_code'];
+        $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         $profileData = $d['profile'] ?? [];
         foreach ($profileKeys as $key) {
@@ -167,6 +169,9 @@ class CommandController extends Controller
         }
         if ($r->has('permissions')) {
             $profileData['permissions'] = array_values(array_filter((array) $r->input('permissions')));
+        }
+        if (! empty($profileData['shop_name']) && empty($profileData['pharmacy'])) {
+            $profileData['pharmacy'] = $profileData['shop_name'];
         }
         $d['profile'] = $profileData;
         unset($d['permissions']);
@@ -220,7 +225,7 @@ class CommandController extends Controller
         $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
-            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
+            'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
         if ($r->has('sponsor_id')) {
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
             if ($newSponsorId) {
@@ -233,7 +238,7 @@ class CommandController extends Controller
                 }
             }
         }
-        $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'area_code'];
+        $profileKeys = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
         $rootProfile = $r->validate([...array_fill_keys($profileKeys, 'nullable|string|max:150'), 'area_code' => 'nullable|string|max:80']);
         if ($r->has('profile') || $r->hasAny($profileKeys) || $r->has('permissions')) {
             $existing = $user->profile ?? [];
@@ -248,6 +253,9 @@ class CommandController extends Controller
                     throw ValidationException::withMessages(['permissions' => 'Manage this account in Roles & permissions to retain its detailed action controls.']);
                 }
                 $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
+            }
+            if (! empty($incoming['shop_name']) && empty($incoming['pharmacy'])) {
+                $incoming['pharmacy'] = $incoming['shop_name'];
             }
             $d['profile'] = array_merge($existing, $incoming);
         }
