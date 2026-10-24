@@ -28,6 +28,11 @@ class DashboardController
         return $this->workspace->idCardPdf($request);
     }
 
+    public function referralQrSvg(Request $request): \Illuminate\Http\Response
+    {
+        return $this->workspace->referralQrSvg($request);
+    }
+
     public function show(Request $request, Order $order): Response
     {
         return $this->workspace->show($request, $order);

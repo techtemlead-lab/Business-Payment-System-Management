@@ -282,6 +282,7 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .partner-home-referral{background:#fff;border:1px solid #e8ecf2;border-radius:12px;box-shadow:0 8px 24px #01162708;padding:18px}
 .partner-home-referral-body{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;align-items:center}
 .partner-home-referral-poster{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;padding:14px 10px;border-radius:12px;background:linear-gradient(160deg,#011627 0%,#1f2a6b 55%,#ef4a23 160%);color:#fff;text-align:center}
+.partner-home-referral-poster .partner-home-referral-qr{width:96px;height:96px;border-radius:8px;background:#fff;padding:6px;box-sizing:border-box}
 .partner-home-referral-poster small{font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
 .partner-home-referral-poster b{font-size:22px;letter-spacing:.08em}
 .partner-home-referral-poster span{font-size:10px;opacity:.75}

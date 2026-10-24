@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts;
 
 use App\Models\User;
+use App\Support\JoinQr;
 use App\Support\PortalHost;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -41,21 +42,28 @@ final class PartnerIdCard
         $roleLabel = $user->role === 'sub_dealer' ? 'Sub-dealer' : 'Dealer';
         $issued = now('Asia/Dhaka')->format('d M Y');
 
+        $qrPng = $dir.'/partner-id-qr-'.$safeCode.'-'.Str::lower(Str::random(6)).'.png';
+        file_put_contents($qrPng, JoinQr::png($joinUrl, 140));
+
         $html = '<html><head><style>
             body{font-family:freeserif,sans-serif;color:#011627;margin:0}
-            .card{border:2px solid #2e3192;border-radius:10px;padding:18px 20px;width:100%}
-            .brand{font-size:11pt;letter-spacing:.08em;text-transform:uppercase;color:#2e3192;font-weight:700}
-            .role{display:inline-block;margin-top:6px;padding:2px 8px;background:#eef0fb;color:#2e3192;font-size:9pt;border-radius:4px}
-            h1{font-size:18pt;margin:14px 0 4px}
-            .meta{font-size:10pt;color:#475569;margin:0 0 12px}
-            table{width:100%;border-collapse:collapse;font-size:10pt}
-            td{padding:4px 0;vertical-align:top}
-            td.k{width:28%;color:#64748b}
+            .card{border:2px solid #2e3192;border-radius:10px;padding:14px 16px;width:100%}
+            .row{width:100%}
+            .brand{font-size:10pt;letter-spacing:.08em;text-transform:uppercase;color:#2e3192;font-weight:700}
+            .role{display:inline-block;margin-top:4px;padding:2px 8px;background:#eef0fb;color:#2e3192;font-size:8pt;border-radius:4px}
+            h1{font-size:15pt;margin:10px 0 2px}
+            .meta{font-size:9pt;color:#475569;margin:0 0 8px}
+            table{width:100%;border-collapse:collapse;font-size:9pt}
+            td{padding:3px 0;vertical-align:top}
+            td.k{width:30%;color:#64748b}
             td.v{font-weight:600}
-            .code{font-size:16pt;letter-spacing:.12em;color:#ef4a23}
-            .foot{margin-top:14px;padding-top:10px;border-top:1px solid #e2e8f0;font-size:8pt;color:#64748b}
-            .url{word-break:break-all;font-size:8pt;color:#334155}
+            .code{font-size:13pt;letter-spacing:.1em;color:#ef4a23}
+            .foot{margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:7pt;color:#64748b}
+            .url{word-break:break-all;font-size:7pt;color:#334155}
+            .qr{width:28mm;height:28mm}
         </style></head><body><div class="card">
+            <table class="row"><tr>
+            <td style="width:68%;padding-right:8px;vertical-align:top">
             <div class="brand">Madina Natural Health Care</div>
             <div class="role">'.e($roleLabel).' identity card</div>
             <h1>'.e($user->name).'</h1>
@@ -64,9 +72,14 @@ final class PartnerIdCard
                 <tr><td class="k">Dealer code</td><td class="v">'.e($code).'</td></tr>
                 <tr><td class="k">Refer code</td><td class="v code">'.e($refer).'</td></tr>
                 <tr><td class="k">Mobile</td><td class="v">'.e((string) ($user->phone ?: '—')).'</td></tr>
-                <tr><td class="k">Status</td><td class="v">'.e(ucfirst((string) $user->status)).'</td></tr>
                 <tr><td class="k">Join link</td><td class="url">'.e($joinUrl).'</td></tr>
             </table>
+            </td>
+            <td style="width:32%;text-align:center;vertical-align:middle">
+                <img class="qr" src="'.e($qrPng).'" alt="Join QR"/>
+                <div style="font-size:7pt;color:#64748b;margin-top:3px">Scan to join</div>
+            </td>
+            </tr></table>
             <div class="foot">Issued '.$issued.' Asia/Dhaka · Company-managed identity · Not a government ID · Preview only</div>
         </div></body></html>';
 
@@ -87,8 +100,10 @@ final class PartnerIdCard
             $pdf->Output($path, Destination::FILE);
         } catch (\Throwable $exception) {
             @unlink($path);
+            @unlink($qrPng);
             throw $exception;
         }
+        @unlink($qrPng);
 
         return response()->download(
             $path,

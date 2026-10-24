@@ -27,6 +27,7 @@ use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\DashboardManagement;
+use App\Support\JoinQr;
 use App\Support\Money;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
@@ -770,6 +771,19 @@ class WorkspaceController extends Controller
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
 
         return app(PartnerIdCard::class)->downloadPdf($u);
+    }
+
+    public function referralQrSvg(Request $r): \Illuminate\Http\Response
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+        abort_unless(filled($u->refer_code), 404);
+        $url = PortalHost::url('public', '/join/'.$u->refer_code);
+
+        return response(JoinQr::svg($url, 180), 200, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
     }
 
     private function optionalDate(mixed $value): ?string

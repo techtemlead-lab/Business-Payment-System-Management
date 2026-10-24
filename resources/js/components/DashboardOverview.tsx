@@ -44,7 +44,7 @@ function PieChart({ slices }: { slices: ChartSlice[] }) {
     );
 }
 
-function ReferralShare({ referral }: { referral: { code?: string; url?: string; hint?: string } | null }) {
+function ReferralShare({ referral }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null }) {
     const translate = useT();
     const [copied, setCopied] = useState(false);
     if (!referral?.url || !referral?.code) {
@@ -87,7 +87,10 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                 <Share2 size={18} />
             </div>
             <div className="partner-home-referral-body">
-                <div className="partner-home-referral-poster" aria-hidden="true">
+                <div className="partner-home-referral-poster">
+                    {referral.qr_url
+                        ? <img src={referral.qr_url} alt="" width={96} height={96} className="partner-home-referral-qr" />
+                        : null}
                     <small>Madina Natural Health Care</small>
                     <b>{referral.code}</b>
                     <span>{translate('portal', 'open_join_page')}</span>

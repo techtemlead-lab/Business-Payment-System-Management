@@ -45,4 +45,23 @@ class PartnerIdCardTest extends TestCase
             ->get('/places')
             ->assertRedirect('/place-codes');
     }
+
+    public function test_dealer_referral_qr_svg_is_scannable_matrix(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'refer_code' => 'MNHC-QR-1',
+        ]);
+
+        $response = $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/referral-qr.svg')
+            ->assertOk()
+            ->assertHeader('content-type', 'image/svg+xml; charset=UTF-8');
+
+        $svg = (string) $response->getContent();
+        $this->assertStringContainsString('<svg', $svg);
+        $this->assertStringContainsString('<rect', $svg);
+        $this->assertGreaterThan(1000, strlen($svg));
+    }
 }
