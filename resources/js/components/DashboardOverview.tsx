@@ -5,6 +5,7 @@ import {
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
 } from 'lucide-react';
 import { Badge, money, type Row } from './UI';
+import { useT } from '../shared/i18n/t';
 
 type ChartSlice = { key: string; label: string; value: string; cents: number; color: string };
 type TargetRow = { key: string; label: string; current: string; target: string; remaining: string; percent: number; hint: string };
@@ -43,6 +44,7 @@ function PieChart({ slices }: { slices: ChartSlice[] }) {
 }
 
 function ReferralShare({ referral }: { referral: { code?: string; url?: string; hint?: string } | null }) {
+    const translate = useT();
     const [copied, setCopied] = useState(false);
     if (!referral?.url || !referral?.code) {
         return null;
@@ -75,11 +77,11 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
     };
 
     return (
-        <section className="partner-home-referral" aria-label="Referral share">
+        <section className="partner-home-referral" aria-label={translate('portal', 'invite_partners')}>
             <div className="partner-home-metrics-head">
                 <div>
-                    <h3>Invite partners</h3>
-                    <p>{referral.hint || 'Share your join link so new partners apply under your code.'}</p>
+                    <h3>{translate('portal', 'invite_partners')}</h3>
+                    <p>{referral.hint || translate('portal', 'invite_partners_hint')}</p>
                 </div>
                 <Share2 size={18} />
             </div>
@@ -87,23 +89,23 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                 <div className="partner-home-referral-poster" aria-hidden="true">
                     <small>Madina Natural Health Care</small>
                     <b>{referral.code}</b>
-                    <span>Scan / open join link</span>
+                    <span>{translate('portal', 'open_join_page')}</span>
                 </div>
                 <div className="partner-home-referral-meta">
                     <div className="partner-home-referral-code">
-                        <span>Refer code</span>
+                        <span>{translate('portal', 'refer_code')}</span>
                         <strong>{referral.code}</strong>
                     </div>
                     <code className="partner-home-referral-url">{referral.url}</code>
                     <div className="partner-home-referral-actions">
                         <button type="button" className="button small" onClick={copyLink}>
                             {copied ? <Check size={14} /> : <Copy size={14} />}
-                            {copied ? 'Copied' : 'Copy link'}
+                            {copied ? translate('portal', 'copied') : translate('portal', 'copy_link')}
                         </button>
                         <button type="button" className="button small dark" onClick={shareNative}>
-                            <Share2 size={14} /> Share
+                            <Share2 size={14} /> {translate('portal', 'share')}
                         </button>
-                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">Open join page ↗</a>
+                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
                     </div>
                 </div>
             </div>
@@ -113,6 +115,7 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
 
 function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     const { portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const profile = home.profile ?? {};
     const targets: TargetRow[] = home.targets ?? [];
     const chart: ChartSlice[] = home.chart ?? [];
@@ -150,8 +153,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 <section className="partner-home-metrics">
                     <div className="partner-home-metrics-head">
                         <div>
-                            <h3>Today’s activity</h3>
-                            <p>Company purchase, team sales and this month’s commission.</p>
+                            <h3>{translate('portal', 'today_activity')}</h3>
+                            <p>{translate('portal', 'today_activity_hint')}</p>
                         </div>
                         <TrendingUp size={18} />
                     </div>
@@ -178,8 +181,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 <section className="partner-home-targets">
                     <div className="partner-home-metrics-head">
                         <div>
-                            <h3>Targets</h3>
-                            <p>Monthly salary, rank reward and bike incentive.</p>
+                            <h3>{translate('portal', 'targets')}</h3>
+                            <p>{translate('portal', 'targets_hint')}</p>
                         </div>
                         <Target size={18} />
                     </div>

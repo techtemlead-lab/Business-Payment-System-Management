@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Payouts\ManualPayoutService;
 use App\Support\Audit;
 use Carbon\Carbon;
@@ -25,6 +26,11 @@ class WithdrawalController extends Controller
         $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'], 'channel' => 'required|in:Bank,bKash,Nagad',
             'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
         $id = $service->request($r->user(), $data);
+        app(PartnerEventSms::class)->send(
+            $r->user(),
+            'withdrawal.requested',
+            'Madina: withdrawal of BDT '.$data['amount'].' via '.$data['channel'].' was requested and reserved for review.',
+        );
         if ($r->expectsJson()) {
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
         }

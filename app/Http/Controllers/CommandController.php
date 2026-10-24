@@ -9,6 +9,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffPermissions;
 use App\Http\Requests\Backend\AdjustStockRequest;
@@ -462,6 +463,11 @@ class CommandController extends Controller
         Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
             'topic' => $data['topic'],
         ]);
+        app(PartnerEventSms::class)->send(
+            $user,
+            'support.requested',
+            'Madina: your support request ('.$data['topic'].') was received. The company will follow up.',
+        );
 
         return back()->with('success', 'Your support request was sent to the company.');
     }
