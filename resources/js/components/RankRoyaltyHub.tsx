@@ -464,7 +464,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             <div style={{ fontWeight: 700, color: '#047857' }}>Royalty Pool Participation</div>
                             <div style={{ color: '#065f46', marginTop: 2 }}>
                                 {auditingPartner.current_rank === 'dealer'
-                                    ? 'Requires promotion to MO (৳1L cumulative) to qualify for 2% company turnover royalty.'
+                                    ? `Requires promotion to MO (${money(q.mo_target ?? 100000)} cumulative) to qualify for 2% company turnover royalty.`
                                     : `Active participant in the ${(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).royaltyShare}.`}
                             </div>
                         </div>
