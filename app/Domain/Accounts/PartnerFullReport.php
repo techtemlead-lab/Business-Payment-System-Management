@@ -7,6 +7,11 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PartnerFullReport
 {
@@ -166,5 +171,96 @@ final class PartnerFullReport
             'team_activity' => $teamActivity,
             'team_active_buyers' => $teamOrderUserIds->count(),
         ];
+    }
+
+    public function downloadPdf(User $user): BinaryFileResponse
+    {
+        $report = $this->for($user);
+        $summary = $report['summary'];
+        $dir = Storage::disk('local')->path('report-exports');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $safeCode = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) ($user->dealer_code ?: $user->id)) ?: (string) $user->id;
+        $path = $dir.'/partner-full-report-'.$safeCode.'-'.now('Asia/Dhaka')->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.pdf';
+
+        $rows = static function (array $items, callable $cells): string {
+            if ($items === []) {
+                return '<tr><td colspan="6">None</td></tr>';
+            }
+            $html = '';
+            foreach ($items as $item) {
+                $html .= '<tr>';
+                foreach ($cells($item) as $cell) {
+                    $html .= '<td>'.e((string) $cell).'</td>';
+                }
+                $html .= '</tr>';
+            }
+
+            return $html;
+        };
+
+        $commissionRows = $rows($report['commissions'], fn (array $row) => [$row['label'], $row['entries'], $row['amount']]);
+        $orderRows = $rows($report['orders'], fn (array $row) => [
+            $row['number'],
+            $row['status'],
+            $row['total'],
+            $row['paid'],
+            $row['due'],
+            collect($row['payments'] ?? [])->map(fn ($p) => ($p['channel'] ?? '').' '.$p['amount'].' ('.$p['status'].')')->implode('; ') ?: '—',
+        ]);
+        $teamRows = $rows($report['team_members'], fn (array $row) => [
+            $row['name'],
+            $row['dealer_code'] ?? '—',
+            $row['role'],
+            $row['phone'] ?? '—',
+            $row['status'],
+            '',
+        ]);
+
+        $html = '<html><head><style>
+            body{font-family:freeserif,dejavusans,sans-serif;font-size:10pt;color:#111}
+            h1{font-size:16pt;margin:0 0 4px} h2{font-size:12pt;margin:18px 0 6px}
+            table{width:100%;border-collapse:collapse;margin-top:6px}
+            th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
+            th{background:#f3f4f6} .muted{color:#555;font-size:9pt}
+            .metrics td{border:0;padding:2px 8px 2px 0}
+        </style></head><body>';
+        $html .= '<h1>Partner full report</h1>';
+        $html .= '<p class="muted">'.e($user->name).' · '.e((string) ($user->dealer_code ?: '—')).' · '.e(str_replace('_', ' ', (string) $user->role)).'</p>';
+        $html .= '<table class="metrics"><tr>
+            <td><b>Ordered</b><br>'.e($summary['ordered']).' ('.e((string) $summary['orders_count']).')</td>
+            <td><b>Paid</b><br>'.e($summary['paid']).'</td>
+            <td><b>Due</b><br>'.e($summary['due']).'</td>
+            <td><b>Commission</b><br>'.e($summary['commission']).'</td>
+            <td><b>Team</b><br>'.e((string) $summary['team_members']).' · '.e($summary['team_commission']).'</td>
+        </tr></table>';
+        $html .= '<h2>Commission by head</h2><table><thead><tr><th>Head</th><th>Entries</th><th>Amount</th></tr></thead><tbody>'.$commissionRows.'</tbody></table>';
+        $html .= '<h2>Orders &amp; payments</h2><table><thead><tr><th>Order</th><th>Status</th><th>Ordered</th><th>Paid</th><th>Due</th><th>Payments</th></tr></thead><tbody>'.$orderRows.'</tbody></table>';
+        $html .= '<h2>Team members</h2><table><thead><tr><th>Name</th><th>Code</th><th>Role</th><th>Phone</th><th>Status</th><th></th></tr></thead><tbody>'.$teamRows.'</tbody></table>';
+        $html .= '<p class="muted">Generated '.e(now('Asia/Dhaka')->format('d M Y H:i')).' Asia/Dhaka · Amounts in BDT · Preview only — not a bank statement.</p></body></html>';
+
+        try {
+            $pdf = new Mpdf([
+                'tempDir' => $dir,
+                'format' => 'A4',
+                'default_font' => 'freeserif',
+                'autoScriptToLang' => true,
+                'autoLangToFont' => true,
+            ]);
+            $pdf->SetTitle('Madina partner full report');
+            $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">Madina Natural Health Care · Page {PAGENO} of {nbpg}</div>');
+            $pdf->WriteHTML($html);
+            $pdf->Output($path, Destination::FILE);
+        } catch (\Throwable $exception) {
+            @unlink($path);
+            throw $exception;
+        }
+
+        return response()->download(
+            $path,
+            'Madina-partner-report-'.$safeCode.'.pdf',
+            ['Cache-Control' => 'private, no-store'],
+        )->deleteFileAfterSend();
     }
 }

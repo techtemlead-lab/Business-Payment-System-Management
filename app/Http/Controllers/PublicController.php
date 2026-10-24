@@ -163,6 +163,15 @@ class PublicController extends Controller
         return view('reference.partner-login');
     }
 
+    public function join(string $code): RedirectResponse
+    {
+        abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
+        $normalized = strtoupper(trim($code));
+        abort_if($normalized === '' || strlen($normalized) > 40, 404);
+
+        return redirect('/partnership?sponsor_code='.rawurlencode($normalized).'#partner-apply');
+    }
+
     public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse
     {
         abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
@@ -179,6 +188,9 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        if (! empty($data['sponsor_code'])) {
+            $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
+        }
         $applications->submit($data);
 
         return redirect('/partnership')->with('success', 'Your partnership application has been received. The company will review it and contact you.');

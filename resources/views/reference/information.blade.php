@@ -328,7 +328,7 @@
         <label>Division<input name="division" value="{{ old('division') }}" required maxlength="80"></label>
         <label>District<input name="district" value="{{ old('district') }}" required maxlength="80"></label>
         <label>Upazila (optional)<input name="upazila" value="{{ old('upazila') }}" maxlength="150"></label>
-        <label>Sponsor dealer code (optional)<input name="sponsor_code" value="{{ old('sponsor_code') }}" maxlength="40"></label>
+        <label>Sponsor refer / dealer code (optional)<input name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off"></label>
         <label>Message (optional)<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
         <button type="submit" class="ref-primary-button">Submit application</button>
     </form>

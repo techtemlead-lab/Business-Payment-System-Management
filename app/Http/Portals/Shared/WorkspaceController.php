@@ -36,6 +36,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class WorkspaceController extends Controller
 {
@@ -588,31 +589,39 @@ class WorkspaceController extends Controller
             $salaryRule = CommissionRuleParameter::getRule('dealer_monthly_salary');
             $minSalaryVolume = $salaryRule && isset($salaryRule->parameters['min_monthly_volume']) ? (float) $salaryRule->parameters['min_monthly_volume'] : 10000.00;
 
-            $qualifiedSalaryDealers = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
+            $qualification = app(CommissionQualification::class);
+            $salaryCandidates = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
                 ->with('user:id,name,dealer_code,phone,district')
-                ->get()->filter(fn ($rank) => app(CommissionQualification::class)->monthlyVolume($rank->user_id, $currentMonth) >= Money::cents((string) $minSalaryVolume));
-
-            $commissionService = app(CommissionService::class);
-            $qualifiedRankLeaders = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
+                ->get();
+            $rankCandidates = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
                 ->whereHas('user', fn ($q) => $q->where('status', 'active'))
                 ->with('user:id,name,dealer_code,phone,district')
-                ->get()
-                ->map(function ($r) use ($currentMonth) {
-                    $eval = app(CommissionQualification::class)->paidAs($r->user_id, $currentMonth);
+                ->get();
+            $volumeByUser = $qualification->monthlyVolumesFor(
+                $salaryCandidates->pluck('user_id')->merge($rankCandidates->pluck('user_id'))->unique()->values()->all(),
+                $currentMonth,
+            );
+            $minSalaryCents = Money::cents((string) $minSalaryVolume);
+            $qualifiedSalaryDealers = $salaryCandidates
+                ->filter(fn ($rank) => ($volumeByUser[$rank->user_id] ?? 0) >= $minSalaryCents)
+                ->values();
 
-                    return [
-                        'id' => $r->id,
-                        'user_id' => $r->user_id,
-                        'name' => $r->user?->name,
-                        'dealer_code' => $r->user?->dealer_code,
-                        'rank' => $r->current_rank,
-                        'paid_as_rank' => $eval['paid_as_rank'],
-                        'is_qualified' => $eval['is_qualified'],
-                        'in_grace_period' => $eval['in_grace_period'],
-                        'monthly_volume' => (float) $eval['monthly_volume'],
-                        'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
-                    ];
-                });
+            $qualifiedRankLeaders = $rankCandidates->map(function ($r) use ($currentMonth, $qualification, $volumeByUser) {
+                $eval = $qualification->paidAs($r->user_id, $currentMonth);
+
+                return [
+                    'id' => $r->id,
+                    'user_id' => $r->user_id,
+                    'name' => $r->user?->name,
+                    'dealer_code' => $r->user?->dealer_code,
+                    'rank' => $r->current_rank,
+                    'paid_as_rank' => $eval['paid_as_rank'],
+                    'is_qualified' => $eval['is_qualified'],
+                    'in_grace_period' => $eval['in_grace_period'],
+                    'monthly_volume' => (float) ($eval['monthly_volume'] ?? Money::decimal($volumeByUser[$r->user_id] ?? 0)),
+                    'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                ];
+            });
 
             $settledHistory = DB::table('journal_entries')
                 ->where('event_key', 'like', 'commissions.%')
@@ -632,7 +641,7 @@ class WorkspaceController extends Controller
                     'user_id' => $d->user_id,
                     'name' => $d->user?->name,
                     'dealer_code' => $d->user?->dealer_code,
-                    'monthly_volume' => app(CommissionQualification::class)->monthlyVolume($d->user_id, $currentMonth) / 100,
+                    'monthly_volume' => ($volumeByUser[$d->user_id] ?? 0) / 100,
                 ])->values(),
                 'rank_pool_pending' => (float) $rankPoolAllocations->sum('amount'),
                 'rank_pool_allocations_count' => $rankPoolAllocations->count(),
@@ -684,6 +693,14 @@ class WorkspaceController extends Controller
             'default_identity_type' => 'birth_certificate',
             'bdris_enabled' => app(BdrisLookup::class)->enabled(),
         ]);
+    }
+
+    public function fullReportPdf(Request $r): BinaryFileResponse
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+
+        return app(PartnerFullReport::class)->downloadPdf($u);
     }
 
     public function show(Request $r, Order $order): Response

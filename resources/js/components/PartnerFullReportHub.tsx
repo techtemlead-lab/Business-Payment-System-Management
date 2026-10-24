@@ -1,7 +1,9 @@
-import { FileBarChart2 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { Download, FileBarChart2 } from 'lucide-react';
 import { Badge, money, date, Table, type Row } from './UI';
 
 export default function PartnerFullReportHub({ report }: { report: Row }) {
+    const { portalBase: base } = usePage<any>().props;
     const summary = report?.summary ?? {};
     const commissions: Row[] = report?.commissions ?? [];
     const orders: Row[] = report?.orders ?? [];
@@ -18,6 +20,9 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         </h2>
                         <p className="muted">Orders, commission by ledger head, payments, and team activity in one place.</p>
                     </div>
+                    <a className="button small dark" href={`${base}/full-report/pdf`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Download size={15} /> Download PDF
+                    </a>
                 </div>
                 <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
                     <div className="metric"><span>Total ordered</span><strong>{money(summary.ordered)}</strong><small>{summary.orders_count ?? 0} orders</small></div>

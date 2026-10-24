@@ -59,4 +59,29 @@ class PartnerFullReportTest extends TestCase
                 ->where('section', 'full-report')
                 ->has('data.full_report.summary'));
     }
+
+    public function test_dealer_can_download_full_report_pdf(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MNHC-PDF-1',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/full-report/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=Madina-partner-report-MNHC-PDF-1.pdf');
+    }
+
+    public function test_staff_cannot_download_partner_full_report_pdf(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->get('/full-report/pdf')
+            ->assertNotFound();
+    }
 }

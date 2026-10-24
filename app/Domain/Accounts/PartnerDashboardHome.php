@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +22,8 @@ final class PartnerDashboardHome
      *   profile: array<string, mixed>,
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
      *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
-     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>
+     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
+     *   referral: array{code: string, url: string, hint: string}|null
      * }
      */
     public function for(User $user): array
@@ -74,6 +76,7 @@ final class PartnerDashboardHome
                 'photo_url' => $profile['photo_url'] ?? $profile['avatar_url'] ?? null,
                 'initial' => mb_strtoupper(mb_substr($user->name, 0, 1)),
                 'status' => $user->status,
+                'refer_code' => $user->refer_code,
             ],
             'snapshot' => [
                 'own_sales_today' => Money::decimal($ownSalesToday),
@@ -82,6 +85,11 @@ final class PartnerDashboardHome
             ],
             'chart' => $chart,
             'targets' => $this->targets($user, $rules, $month),
+            'referral' => $user->refer_code ? [
+                'code' => $user->refer_code,
+                'url' => PortalHost::url('public', '/join/'.$user->refer_code),
+                'hint' => 'Share this link so new partners apply under your referral code.',
+            ] : null,
         ];
     }
 

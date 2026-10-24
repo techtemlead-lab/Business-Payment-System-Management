@@ -1,7 +1,8 @@
 import { Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp,
+    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
 } from 'lucide-react';
 import { Badge, money, type Row } from './UI';
 
@@ -41,6 +42,66 @@ function PieChart({ slices }: { slices: ChartSlice[] }) {
     );
 }
 
+function ReferralShare({ referral }: { referral: { code?: string; url?: string; hint?: string } | null }) {
+    const [copied, setCopied] = useState(false);
+    if (!referral?.url || !referral?.code) {
+        return null;
+    }
+
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(referral.url!);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopied(false);
+        }
+    };
+
+    const shareNative = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Join Madina Natural Health Care',
+                    text: `Apply with my referral code ${referral.code}`,
+                    url: referral.url,
+                });
+                return;
+            } catch {
+                // Fall through to copy when the share sheet is dismissed or unavailable.
+            }
+        }
+        await copyLink();
+    };
+
+    return (
+        <section className="partner-home-referral" aria-label="Referral share">
+            <div className="partner-home-metrics-head">
+                <div>
+                    <h3>Invite partners</h3>
+                    <p>{referral.hint || 'Share your join link so new partners apply under your code.'}</p>
+                </div>
+                <Share2 size={18} />
+            </div>
+            <div className="partner-home-referral-code">
+                <span>Refer code</span>
+                <strong>{referral.code}</strong>
+            </div>
+            <code className="partner-home-referral-url">{referral.url}</code>
+            <div className="partner-home-referral-actions">
+                <button type="button" className="button small" onClick={copyLink}>
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    {copied ? 'Copied' : 'Copy link'}
+                </button>
+                <button type="button" className="button small dark" onClick={shareNative}>
+                    <Share2 size={14} /> Share
+                </button>
+                <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">Open join page ↗</a>
+            </div>
+        </section>
+    );
+}
+
 function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     const { portalBase: base } = usePage<any>().props;
     const profile = home.profile ?? {};
@@ -67,8 +128,14 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                         {(profile.district || profile.division) && (
                             <div><dt>Location</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
                         )}
+                        {profile.refer_code && (
+                            <div><dt>Refer code</dt><dd>{profile.refer_code}</dd></div>
+                        )}
                     </dl>
                     <Link href={`${base}/profile`} className="text-link">Full profile ↗</Link>
+                    <Link href={`${base}/full-report`} className="text-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <FileBarChart2 size={14} /> Full report
+                    </Link>
                 </aside>
 
                 <section className="partner-home-metrics">
@@ -130,6 +197,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     </div>
                 </section>
             </section>
+
+            <ReferralShare referral={home.referral ?? null} />
 
             <section className="panel table-panel dense-panel">
                 <div className="panel-heading">

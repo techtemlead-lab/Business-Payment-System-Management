@@ -7,6 +7,7 @@ use App\Http\Portals\Shared\WorkspaceController;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DashboardController
 {
@@ -15,6 +16,11 @@ class DashboardController
     public function index(Request $request, ProductPricing $pricing, string $section = 'overview'): Response
     {
         return $this->workspace->index($request, $pricing, $section);
+    }
+
+    public function fullReportPdf(Request $request): BinaryFileResponse
+    {
+        return $this->workspace->fullReportPdf($request);
     }
 
     public function show(Request $request, Order $order): Response

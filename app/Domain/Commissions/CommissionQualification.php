@@ -32,12 +32,36 @@ final class CommissionQualification
 
     public function monthlyVolume(int $userId, string $month): int
     {
-        self::period($month);
-        $total = DB::table('commission_batches')->join('orders', 'orders.id', '=', 'commission_batches.order_id')
-            ->where('orders.user_id', $userId)->where('period_month', $month)
-            ->selectRaw('COALESCE(SUM(cash_basis - refunded_amount), 0) AS volume')->value('volume');
+        return $this->monthlyVolumesFor([$userId], $month)[$userId] ?? 0;
+    }
 
-        return Money::cents((string) $total);
+    /**
+     * Batch monthly volumes for many users in one query (settlements UI).
+     *
+     * @param  list<int>  $userIds
+     * @return array<int, int> user_id => cents
+     */
+    public function monthlyVolumesFor(array $userIds, string $month): array
+    {
+        self::period($month);
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
+        if ($userIds === []) {
+            return [];
+        }
+        $rows = DB::table('commission_batches')
+            ->join('orders', 'orders.id', '=', 'commission_batches.order_id')
+            ->whereIn('orders.user_id', $userIds)
+            ->where('period_month', $month)
+            ->groupBy('orders.user_id')
+            ->selectRaw('orders.user_id, COALESCE(SUM(cash_basis - refunded_amount), 0) AS volume')
+            ->pluck('volume', 'user_id');
+
+        $volumes = [];
+        foreach ($userIds as $userId) {
+            $volumes[$userId] = Money::cents((string) ($rows[$userId] ?? '0'));
+        }
+
+        return $volumes;
     }
 
     /** @param array<string, array<string, mixed>> $rules */
