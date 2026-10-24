@@ -168,10 +168,14 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .subdealer-shell .text-link{color:#1f4d3a}
 .dealer-shell .sidebar{background:linear-gradient(180deg,#2e3192 0%,#252878 100%)}
 .company-shell .sidebar{background:linear-gradient(180deg,#011627 0%,#0b2233 100%)}
-.portal-theme-dealer .account-profile-card{background:linear-gradient(135deg,#ffffff 0%,#f3f7f4 100%)}
-.portal-theme-subdealer .account-profile-card{background:linear-gradient(135deg,#ffffff 0%,#eef7f2 100%)}
-.portal-theme-manage .page-heading h1{letter-spacing:-.02em}
+.portal-theme-dealer .account-profile-card,.portal-theme-dealer .partner-home-profile{background:linear-gradient(160deg,#ffffff 0%,#f4f7ff 100%)}
+.portal-theme-subdealer .account-profile-card,.portal-theme-subdealer .partner-home-profile{background:linear-gradient(160deg,#ffffff 0%,#f2fbf6 100%)}
+.portal-theme-dealer .partner-home-bar>i{background:linear-gradient(90deg,#2e3192,#ef4a23)}
+.portal-theme-subdealer .partner-home-bar>i{background:linear-gradient(90deg,#0f766e,#16a34a)}
+.portal-theme-manage .page-heading h1,.portal-theme-sadmin .page-heading h1{letter-spacing:-.02em}
 .portal-theme-sadmin .page-heading h1{color:#0b1f33}
+.portal-theme-dealer .panel,.portal-theme-subdealer .panel{border:1px solid #eef2f7}
+.portal-theme-dealer .section-note,.portal-theme-subdealer .section-note{font-size:11px;padding:10px 12px}
 .language-switcher{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #d7dde5;border-radius:999px;background:#fff;box-shadow:0 1px 2px #0116270a}
 .language-switcher button{border:0;background:transparent;color:#475569;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer;font-family:inherit;transition:background .18s ease,color .18s ease}
 .language-switcher button.active{background:#011627;color:#fff}
@@ -217,4 +221,75 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
   .owner-shell .workspace-menu-button,.company-shell .workspace-menu-button{display:flex}
   .domain-rail{padding:12px 14px}
   .domain-rail-caption{width:100%}
+}
+
+/* Partner / admin mixed home */
+.partner-home,.admin-home{display:flex;flex-direction:column;gap:18px}
+.partner-home-grid{display:grid;grid-template-columns:minmax(210px,240px) minmax(0,1.4fr) minmax(240px,300px);gap:14px;align-items:stretch}
+.partner-home-profile,.partner-home-metrics,.partner-home-targets,.admin-home-hero{background:#fff;border:1px solid #e8ecf2;border-radius:12px;box-shadow:0 8px 24px #01162708;padding:18px}
+.partner-home-profile{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.partner-home-profile.compact{padding:16px}
+.partner-home-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(145deg,#2e3192,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;overflow:hidden;box-shadow:0 10px 22px #2e319233}
+.partner-home-avatar img{width:100%;height:100%;object-fit:cover}
+.partner-home-profile h2{font-size:18px;margin:4px 0 0;color:#011627}
+.partner-home-shop{font-size:12px;font-weight:600;color:#0f766e;margin:0}
+.partner-home-profile>small{color:#64748b;font-size:11px}
+.partner-home-profile dl{width:100%;margin:8px 0 0;display:grid;gap:8px}
+.partner-home-profile dt{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
+.partner-home-profile dd{font-size:12px;color:#0f172a;margin:2px 0 0;word-break:break-word}
+.partner-home-metrics-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.partner-home-metrics-head h3{font-size:15px;margin:0 0 4px}
+.partner-home-metrics-head p{font-size:11px;color:#64748b;margin:0;line-height:1.5}
+.partner-home-metrics-head svg{color:#94a3b8;flex-shrink:0}
+.partner-home-metric-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.partner-home-metric-cards>div{background:linear-gradient(180deg,#f8fafc,#fff);border:1px solid #eef2f7;border-radius:10px;padding:10px 12px}
+.partner-home-metric-cards span{display:block;font-size:10px;color:#64748b;margin-bottom:4px}
+.partner-home-metric-cards strong{display:block;font-size:16px;color:#011627;letter-spacing:-.02em}
+.partner-home-metric-cards small{display:block;font-size:10px;color:#94a3b8;margin-top:3px}
+.home-pie-wrap{display:grid;grid-template-columns:120px minmax(0,1fr);gap:14px;align-items:center}
+.home-pie{width:120px;height:120px;border-radius:50%;box-shadow:inset 0 0 0 10px #fff,0 8px 18px #01162712}
+.home-pie.empty{display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#94a3b8;font-size:11px;text-align:center;padding:12px}
+.home-pie-legend{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.home-pie-legend li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:11px;color:#475569}
+.home-pie-legend i{width:10px;height:10px;border-radius:50%;display:block}
+.home-pie-legend b{color:#011627;font-size:11px}
+.partner-home-target-list{display:grid;gap:12px}
+.partner-home-target-list article{padding:10px 0;border-top:1px solid #f1f5f9}
+.partner-home-target-list article:first-child{border-top:0;padding-top:0}
+.partner-home-target-top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;margin-bottom:6px}
+.partner-home-target-top b{display:inline-flex;align-items:center;gap:6px;color:#0f172a}
+.partner-home-target-top span{font-weight:700;color:#2e3192}
+.partner-home-bar{height:7px;background:#eef2f7;border-radius:999px;overflow:hidden}
+.partner-home-bar>i{display:block;height:100%;background:linear-gradient(90deg,#2e3192,#ef4a23);border-radius:inherit}
+.partner-home-target-meta{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#64748b;margin-top:5px}
+.partner-home-target-list small{display:block;margin-top:5px;font-size:10px;color:#94a3b8;line-height:1.45}
+.admin-home-hero{display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:14px;padding:0;background:transparent;border:0;box-shadow:none}
+.admin-home-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.admin-home-stats>div{background:#fff;border:1px solid #e8ecf2;border-radius:12px;padding:14px 12px;box-shadow:0 8px 24px #01162708}
+.admin-home-stats span{display:block;font-size:10px;color:#64748b;margin-bottom:6px}
+.admin-home-stats strong{font-size:18px;color:#2e3192;letter-spacing:-.02em}
+
+/* Compact rows for denser partner / admin lists */
+.app-shell.dealer-shell th,.app-shell.subdealer-shell th,.company-shell th,.owner-shell th{padding:8px 12px;font-size:10px}
+.app-shell.dealer-shell td,.app-shell.subdealer-shell td,.company-shell td,.owner-shell td{padding:8px 12px;font-size:12px;line-height:1.35}
+.app-shell.dealer-shell .panel,.app-shell.subdealer-shell .panel{padding:16px}
+.app-shell.dealer-shell .table-panel>.panel-heading,.app-shell.subdealer-shell .table-panel>.panel-heading,.company-shell .table-panel>.panel-heading{padding:14px 16px 0}
+.app-shell .dense-panel .panel-heading{padding:14px 16px 0}
+.account-actions.dense-actions{gap:10px;margin-bottom:18px}
+.account-actions.dense-actions .account-action-card{padding:14px 12px;min-height:84px;gap:10px}
+.account-actions.dense-actions .account-action-card h2{font-size:13px;margin:0 0 4px}
+.account-actions.dense-actions .account-action-card p{font-size:10px;line-height:1.45}
+.app-shell.dealer-shell .page-heading,.app-shell.subdealer-shell .page-heading{margin-bottom:14px}
+.app-shell.dealer-shell .page-heading h1,.app-shell.subdealer-shell .page-heading h1{font-size:22px;margin-bottom:4px}
+.app-shell.dealer-shell .workspace-main,.app-shell.subdealer-shell .workspace-main{padding-bottom:22px}
+
+@media(max-width:1100px){
+  .partner-home-grid{grid-template-columns:1fr 1fr}
+  .partner-home-targets{grid-column:1 / -1}
+  .admin-home-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:767px){
+  .partner-home-grid,.admin-home-hero{grid-template-columns:1fr}
+  .partner-home-metric-cards,.home-pie-wrap,.admin-home-stats{grid-template-columns:1fr}
+  .home-pie{margin:0 auto}
 }

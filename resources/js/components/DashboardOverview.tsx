@@ -1,9 +1,305 @@
-import {Link,usePage} from '@inertiajs/react';
-import {ArrowUpRight,ShoppingBag,Package,Truck,Wallet,Users,ShieldCheck,FileText,Bell,Settings,GitBranch,Coins,BadgeCheck} from 'lucide-react';
-import {Badge,money,type Row} from './UI';
-export default function DashboardOverview({data,orders}:{data:Row;orders:React.ReactNode}){
- const {auth,portalBase:base}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=caps.length>0;const s=data.stats??{};const commerce=!staff||caps.includes('orders')||caps.includes('finance');
- const cards=[{route:'catalog',name:'Product collection',description:'Products, prices and available stock',icon:Package,show:true},{route:'orders',name:'Orders',description:'Purchase requests and order history',icon:ShoppingBag,show:commerce},{route:'deliveries',name:'Pending supply & deliveries',description:'Remaining quantities and courier updates',icon:Truck,show:commerce},{route:'dues',name:'Outstanding dues',description:'Unpaid balances and verified payments',icon:Wallet,show:commerce},{route:'accounts',name:'Partner accounts',description:'Dealers, sub-dealers and staff access',icon:Users,show:caps.includes('accounts')},{route:'partnerships',name:'Partnership applications',description:'Public and field-sales dealership applications awaiting review',icon:Users,show:caps.includes('accounts')},{route:'inventory',name:'Inventory',description:'Stock receipts, issues and adjustments',icon:Package,show:caps.includes('inventory')},{route:'payments',name:'Payment review',description:'Verify manual payment references',icon:Coins,show:caps.includes('finance')},{route:'policies',name:'Commission policies',description:'Inactive drafts and policy status',icon:ShieldCheck,show:caps.includes('finance')},{route:'earnings',name:'My earnings',description:'View earnings and payouts',icon:Coins,show:!staff},{route:'withdrawals',name:'Withdrawals',description:'Request withdrawals',icon:Wallet,show:!staff||caps.includes('finance')},{route:'salary',name:'Salary & tour',description:'Flat 3% sub-dealer salary and separate tour reserve',icon:BadgeCheck,show:u.role==='sub_dealer'||caps.includes('finance')},{route:'network',name:'My network',description:'Direct referrals and permitted member fields',icon:GitBranch,show:u.role==='dealer'},{route:'ranks',name:'Rank progress',description:'Qualification and approved rule status',icon:BadgeCheck,show:u.role==='dealer'},{route:'ledger',name:'Financial ledger',description:'Posted financial history',icon:FileText,show:caps.includes('finance')},{route:'reports',name:'Reports',description:'Order reports and permitted exports',icon:FileText,show:caps.includes('reports')},{route:'content',name:'Website content',description:'Published company pages and notices',icon:FileText,show:caps.includes('content')},{route:'enquiries',name:'Contact enquiries',description:'Public contact-form messages and follow-up status',icon:Users,show:caps.includes('content')},{route:'audit',name:'Activity log',description:'Staff actions and recorded changes',icon:ShieldCheck,show:caps.includes('audit')},{route:'profile',name:'My profile',description:'Company-maintained account information',icon:Users,show:true},{route:'security',name:'Account security',description:'Change your account password',icon:Settings,show:true},{route:'notifications',name:'Notifications',description:'Stock, order and account updates',icon:Bell,show:true}].filter(x=>x.show);
- const stats=[{name:'Total orders',value:s.order_count??0,tone:'blue'},{name:'Approved purchases',value:money(s.purchases),tone:'orange'},{name:'Outstanding dues',value:money(s.dues),tone:'purple'},{name:'Pending supply',value:`${s.supply??0} units`,tone:'green'},{name:'Awaiting review',value:s.pending??0,tone:'pink'}];
- return <><section className="account-profile-card"><div className="account-profile-info"><div className="account-avatar" aria-hidden="true">{u.name[0]}</div><div><p>Hello,</p><h2>{u.name}</h2><small>{u.dealer_code??'Company staff'} · {u.role.replaceAll('_',' ')}</small><Badge status={u.status}/></div></div><dl className="account-profile-stats">{stats.map(stat=><div key={stat.name}><dt>{stat.name}</dt><dd className={'stat-'+stat.tone}>{stat.value}</dd></div>)}</dl></section><section className="account-actions" aria-label={staff?'Company modules':'Account actions'}>{cards.map(card=>{const Icon=card.icon;return <Link href={`${base}/${card.route}`} className="account-action-card" key={card.route}><div className="account-action-icon"><Icon size={25}/></div><div><h2>{card.name}</h2><p>{card.description}</p></div><ArrowUpRight size={15}/></Link>;})}</section>{commerce&&<section className="panel table-panel"><div className="panel-heading"><div><h2>Recent orders</h2><p>Purchase requests and fulfilment progress.</p></div><Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15}/></Link></div>{orders}</section>}{data.lowStock?.length>0&&<section className="notice"><h2>Low-stock alerts</h2><p>{data.lowStock.map((p:Row)=>`${p.name} (${p.stock} left)`).join(' · ')}</p><Link href={`${base}/inventory`} className="text-link">Review inventory</Link></section>}<p className="dashboard-definitions">Purchases and dues include approved orders. Payments count after staff verification. Pending supply counts units remaining to dispatch.</p></>;
+import { Link, usePage } from '@inertiajs/react';
+import {
+    ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
+    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp,
+} from 'lucide-react';
+import { Badge, money, type Row } from './UI';
+
+type ChartSlice = { key: string; label: string; value: string; cents: number; color: string };
+type TargetRow = { key: string; label: string; current: string; target: string; remaining: string; percent: number; hint: string };
+
+function PieChart({ slices }: { slices: ChartSlice[] }) {
+    const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.cents), 0);
+    if (total <= 0) {
+        return (
+            <div className="home-pie empty" aria-hidden="true">
+                <span>No activity yet</span>
+            </div>
+        );
+    }
+    let cursor = 0;
+    const stops = slices.map((slice) => {
+        const share = (Math.max(0, slice.cents) / total) * 100;
+        const start = cursor;
+        cursor += share;
+        return `${slice.color} ${start}% ${cursor}%`;
+    }).join(', ');
+
+    return (
+        <div className="home-pie-wrap">
+            <div className="home-pie" style={{ background: `conic-gradient(${stops})` }} aria-hidden="true" />
+            <ul className="home-pie-legend">
+                {slices.map((slice) => (
+                    <li key={slice.key}>
+                        <i style={{ background: slice.color }} />
+                        <span>{slice.label}</span>
+                        <b>{money(slice.value)}</b>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
+function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
+    const { portalBase: base } = usePage<any>().props;
+    const profile = home.profile ?? {};
+    const targets: TargetRow[] = home.targets ?? [];
+    const chart: ChartSlice[] = home.chart ?? [];
+
+    return (
+        <div className="partner-home">
+            <section className="partner-home-grid">
+                <aside className="partner-home-profile">
+                    <div className="partner-home-avatar" aria-hidden="true">
+                        {profile.photo_url
+                            ? <img src={profile.photo_url} alt="" />
+                            : <span>{profile.initial || '?'}</span>}
+                    </div>
+                    <h2>{profile.name}</h2>
+                    {profile.shop_name && <p className="partner-home-shop">{profile.shop_name}</p>}
+                    <small>{profile.dealer_code || '—'} · {String(profile.role || '').replaceAll('_', ' ')}</small>
+                    <Badge status={profile.status || 'active'} />
+                    <dl>
+                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>Email</dt><dd>{profile.email || '—'}</dd></div>
+                        <div><dt>Area code</dt><dd>{profile.area_code || '—'}</dd></div>
+                        {(profile.district || profile.division) && (
+                            <div><dt>Location</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
+                        )}
+                    </dl>
+                    <Link href={`${base}/profile`} className="text-link">Full profile ↗</Link>
+                </aside>
+
+                <section className="partner-home-metrics">
+                    <div className="partner-home-metrics-head">
+                        <div>
+                            <h3>Today’s activity</h3>
+                            <p>Company purchase, team sales and this month’s commission.</p>
+                        </div>
+                        <TrendingUp size={18} />
+                    </div>
+                    <div className="partner-home-metric-cards">
+                        <div>
+                            <span>Today purchase</span>
+                            <strong>{money(home.snapshot?.own_sales_today)}</strong>
+                            <small>From company (Kubani)</small>
+                        </div>
+                        <div>
+                            <span>Team sales</span>
+                            <strong>{money(home.snapshot?.team_sales_today)}</strong>
+                            <small>Downline today</small>
+                        </div>
+                        <div>
+                            <span>Commission</span>
+                            <strong>{money(home.snapshot?.commission_month)}</strong>
+                            <small>This month</small>
+                        </div>
+                    </div>
+                    <PieChart slices={chart} />
+                </section>
+
+                <section className="partner-home-targets">
+                    <div className="partner-home-metrics-head">
+                        <div>
+                            <h3>Targets</h3>
+                            <p>Monthly salary, rank reward and bike incentive.</p>
+                        </div>
+                        <Target size={18} />
+                    </div>
+                    <div className="partner-home-target-list">
+                        {targets.map((target) => (
+                            <article key={target.key}>
+                                <div className="partner-home-target-top">
+                                    <b>
+                                        {target.key === 'bike_incentive' ? <Bike size={14} /> : null}
+                                        {target.label}
+                                    </b>
+                                    <span>{target.percent}%</span>
+                                </div>
+                                <div className="partner-home-bar" aria-hidden="true">
+                                    <i style={{ width: `${Math.min(100, target.percent)}%` }} />
+                                </div>
+                                <div className="partner-home-target-meta">
+                                    <span>Done {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
+                                    <span>Left {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
+                                </div>
+                                <small>{target.hint}</small>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+            </section>
+
+            <section className="panel table-panel dense-panel">
+                <div className="panel-heading">
+                    <div>
+                        <h2>Recent orders</h2>
+                        <p>Latest purchase requests and fulfilment.</p>
+                    </div>
+                    <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                </div>
+                {orders}
+            </section>
+        </div>
+    );
+}
+
+function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
+    const { auth, portalBase: base } = usePage<any>().props;
+    const u = auth.user;
+    const caps: string[] = auth.capabilities;
+    const staff = caps.length > 0;
+    const commerce = !staff || caps.includes('orders') || caps.includes('finance');
+    const profile = home.profile ?? {};
+    const snapshot = home.snapshot ?? {};
+    const cards = [
+        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
+        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
+        { route: 'deliveries', name: 'Pending supply & deliveries', description: 'Remaining quantities and courier updates', icon: Truck, show: commerce },
+        { route: 'dues', name: 'Outstanding dues', description: 'Unpaid balances and verified payments', icon: Wallet, show: commerce },
+        { route: 'accounts', name: 'Partner accounts', description: 'Dealers, sub-dealers and staff access', icon: Users, show: caps.includes('accounts') },
+        { route: 'partnerships', name: 'Partnership applications', description: 'Dealership applications awaiting review', icon: Users, show: caps.includes('accounts') },
+        { route: 'inventory', name: 'Inventory', description: 'Stock receipts, issues and adjustments', icon: Package, show: caps.includes('inventory') },
+        { route: 'payments', name: 'Payment review', description: 'Verify manual payment references', icon: Coins, show: caps.includes('finance') },
+        { route: 'policies', name: 'Commission policies', description: 'Inactive drafts and policy status', icon: ShieldCheck, show: caps.includes('finance') },
+        { route: 'ledger', name: 'Financial ledger', description: 'Posted financial history', icon: FileText, show: caps.includes('finance') },
+        { route: 'reports', name: 'Reports', description: 'Order reports and permitted exports', icon: FileText, show: caps.includes('reports') },
+        { route: 'content', name: 'Website content', description: 'Published company pages and notices', icon: FileText, show: caps.includes('content') },
+        { route: 'enquiries', name: 'Contact enquiries', description: 'Public contact-form messages', icon: Users, show: caps.includes('content') },
+        { route: 'audit', name: 'Activity log', description: 'Staff actions and recorded changes', icon: ShieldCheck, show: caps.includes('audit') },
+        { route: 'profile', name: 'My profile', description: 'Company-maintained account information', icon: Users, show: true },
+        { route: 'security', name: 'Account security', description: 'Change your account password', icon: Settings, show: true },
+        { route: 'notifications', name: 'Notifications', description: 'Stock, order and account updates', icon: Bell, show: true },
+    ].filter((x) => x.show);
+
+    return (
+        <div className="admin-home">
+            <section className="admin-home-hero">
+                <aside className="partner-home-profile compact">
+                    <div className="partner-home-avatar" aria-hidden="true"><span>{profile.initial || u.name?.[0]}</span></div>
+                    <h2>{profile.name || u.name}</h2>
+                    <small>{labelRole(profile.role || u.role)}</small>
+                    <Badge status={profile.status || u.status} />
+                    <dl>
+                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>Email</dt><dd>{profile.email || u.email || '—'}</dd></div>
+                    </dl>
+                </aside>
+                <div className="admin-home-stats">
+                    <div><span>Orders today</span><strong>{snapshot.orders_today ?? 0}</strong></div>
+                    <div><span>Awaiting review</span><strong>{snapshot.pending_review ?? 0}</strong></div>
+                    <div><span>Partner accounts</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
+                    <div><span>Approved purchases</span><strong>{money(snapshot.purchases)}</strong></div>
+                    <div><span>Outstanding dues</span><strong>{money(snapshot.dues)}</strong></div>
+                </div>
+            </section>
+
+            <section className="account-actions dense-actions" aria-label="Company modules">
+                {cards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                        <Link href={`${base}/${card.route}`} className="account-action-card" key={card.route}>
+                            <div className="account-action-icon"><Icon size={20} /></div>
+                            <div>
+                                <h2>{card.name}</h2>
+                                <p>{card.description}</p>
+                            </div>
+                            <ArrowUpRight size={14} />
+                        </Link>
+                    );
+                })}
+            </section>
+
+            {commerce && (
+                <section className="panel table-panel dense-panel">
+                    <div className="panel-heading">
+                        <div>
+                            <h2>Recent orders</h2>
+                            <p>Purchase requests and fulfilment progress.</p>
+                        </div>
+                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                    </div>
+                    {orders}
+                </section>
+            )}
+            {data.lowStock?.length > 0 && (
+                <section className="notice">
+                    <h2>Low-stock alerts</h2>
+                    <p>{data.lowStock.map((p: Row) => `${p.name} (${p.stock} left)`).join(' · ')}</p>
+                    <Link href={`${base}/inventory`} className="text-link">Review inventory</Link>
+                </section>
+            )}
+        </div>
+    );
+}
+
+function labelRole(role: string) {
+    return String(role || '').replaceAll('_', ' ');
+}
+
+export default function DashboardOverview({ data, orders }: { data: Row; orders: React.ReactNode }) {
+    const { auth, portalBase: base } = usePage<any>().props;
+    const u = auth.user;
+    const caps: string[] = auth.capabilities;
+    const staff = caps.length > 0;
+
+    if (data.partner_home && (u.role === 'dealer' || u.role === 'sub_dealer')) {
+        return <PartnerHome home={data.partner_home} orders={orders} />;
+    }
+    if (data.admin_home && staff) {
+        return <AdminHome home={data.admin_home} data={data} orders={orders} />;
+    }
+
+    // Fallback for edge roles
+    const commerce = !staff || caps.includes('orders') || caps.includes('finance');
+    const cards = [
+        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
+        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
+        { route: 'earnings', name: 'My earnings', description: 'View earnings and payouts', icon: Coins, show: !staff },
+        { route: 'network', name: 'My network', description: 'Direct referrals', icon: GitBranch, show: u.role === 'dealer' },
+        { route: 'ranks', name: 'Rank progress', description: 'Qualification status', icon: BadgeCheck, show: u.role === 'dealer' },
+        { route: 'profile', name: 'My profile', description: 'Account information', icon: Users, show: true },
+        { route: 'security', name: 'Account security', description: 'Change password', icon: Settings, show: true },
+    ].filter((x) => x.show);
+
+    return (
+        <>
+            <section className="account-profile-card">
+                <div className="account-profile-info">
+                    <div className="account-avatar" aria-hidden="true">{u.name[0]}</div>
+                    <div>
+                        <p>Hello,</p>
+                        <h2>{u.name}</h2>
+                        <small>{u.dealer_code ?? 'Company staff'} · {labelRole(u.role)}</small>
+                        <Badge status={u.status} />
+                    </div>
+                </div>
+            </section>
+            <section className="account-actions dense-actions" aria-label="Account actions">
+                {cards.map((card) => {
+                    const Icon = card.icon;
+                    return (
+                        <Link href={`${base}/${card.route}`} className="account-action-card" key={card.route}>
+                            <div className="account-action-icon"><Icon size={20} /></div>
+                            <div>
+                                <h2>{card.name}</h2>
+                                <p>{card.description}</p>
+                            </div>
+                            <ArrowUpRight size={14} />
+                        </Link>
+                    );
+                })}
+            </section>
+            {commerce && (
+                <section className="panel table-panel dense-panel">
+                    <div className="panel-heading">
+                        <div><h2>Recent orders</h2></div>
+                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                    </div>
+                    {orders}
+                </section>
+            )}
+        </>
+    );
 }

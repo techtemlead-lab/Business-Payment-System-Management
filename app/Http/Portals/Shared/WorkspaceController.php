@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared;
 
+use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -78,6 +79,27 @@ class WorkspaceController extends Controller
                 'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true)) {
+                $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
+            } elseif ($staff) {
+                $data['admin_home'] = [
+                    'profile' => [
+                        'name' => $u->name,
+                        'role' => $u->role,
+                        'phone' => $u->phone,
+                        'email' => $u->email,
+                        'initial' => mb_strtoupper(mb_substr($u->name, 0, 1)),
+                        'status' => $u->status,
+                    ],
+                    'snapshot' => [
+                        'orders_today' => (clone $orders)->whereDate('created_at', now(config('madina.business_timezone')))->count(),
+                        'pending_review' => (clone $orders)->whereIn('status', ['submitted', 'held'])->count(),
+                        'partner_accounts' => User::whereIn('role', ['dealer', 'sub_dealer'])->count(),
+                        'purchases' => $data['stats']['purchases'],
+                        'dues' => $data['stats']['dues'],
+                    ],
+                ];
+            }
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
