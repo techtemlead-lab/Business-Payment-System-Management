@@ -30,6 +30,7 @@ use App\Support\Money;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -93,7 +94,7 @@ class WorkspaceController extends Controller
                         'status' => $u->status,
                     ],
                     'snapshot' => [
-                        'orders_today' => (clone $orders)->whereDate('created_at', now(config('madina.business_timezone')))->count(),
+                        'orders_today' => (clone $orders)->where('created_at', '>=', CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc())->count(),
                         'pending_review' => (clone $orders)->whereIn('status', ['submitted', 'held'])->count(),
                         'partner_accounts' => User::whereIn('role', ['dealer', 'sub_dealer'])->count(),
                         'purchases' => $data['stats']['purchases'],
@@ -103,7 +104,10 @@ class WorkspaceController extends Controller
             }
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
-            $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
+            $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
+            $productLimit = $staff ? 250 : 120;
+            $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
+            $products = (clone $productQuery)->limit($productLimit)->get();
             $revealStock = ! $staff || $u->allows('inventory');
             $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
             $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {

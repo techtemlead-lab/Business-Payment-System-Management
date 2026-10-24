@@ -104,6 +104,10 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .dashboard-definitions{font-size:11px;color:#64748b;line-height:1.8;margin:18px 0 20px}
 .app-shell .workspace-footer{border-color:#e4e7ec;color:#64748b;font-size:10px}
 .portal-bottom-nav{display:none}
+.portal-bottom-nav a,.portal-bottom-nav button{color:inherit;background:transparent;border:0;font:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;padding:6px 4px;border-radius:8px}
+.portal-bottom-nav a.is-active{color:#ef4a23;font-weight:700}
+.portal-bottom-nav a.is-active svg{stroke-width:2.25}
+
 .company-auth{background:#f2f4f8;min-height:100vh;color:#011627}
 .company-auth-main{max-width:440px;margin:auto;padding:55px 16px 30px;min-height:100vh}
 .company-auth-brand{width:auto;max-width:240px;height:95px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;background:transparent;border-radius:0;padding:0;box-shadow:none;overflow:visible}

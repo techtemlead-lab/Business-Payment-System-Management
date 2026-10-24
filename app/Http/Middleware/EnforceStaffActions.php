@@ -17,13 +17,34 @@ class EnforceStaffActions
     public function handle(Request $request, Closure $next): Response
     {
         $actor = $request->user();
-        if (! $actor?->staff() || $actor->role === 'super_admin' || $request->isMethodSafe()) {
-            return $next($request);
-        }
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
-        $method = $route?->getActionMethod();
-        if ($controller === 'AuthController' || $controller === 'LocaleController' || ($controller === 'CommandController' && $method === 'readNotice')) {
+        $method = (string) ($route?->getActionMethod() ?? '');
+        if ($request->isMethodSafe() || $controller === 'AuthController' || $controller === 'LocaleController') {
+            return $next($request);
+        }
+        if (! $actor) {
+            return $next($request);
+        }
+        if (! $actor->staff()) {
+            $partnerAllowed = match ($controller) {
+                '' => true,
+                'CommandController' => in_array($method, ['order', 'claim', 'readNotice'], true),
+                'OrderController' => in_array($method, ['index', 'show', 'store', 'claim'], true),
+                'WithdrawalController' => $method === 'store',
+                'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
+                'CatalogController' => $method === 'index',
+                'ReportController' => $method === 'export',
+                default => false,
+            };
+            abort_unless($partnerAllowed, 403, 'This action is only available to company staff.');
+
+            return $next($request);
+        }
+        if ($actor->role === 'super_admin') {
+            return $next($request);
+        }
+        if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
         if ($controller === 'DataImportController') {
@@ -83,7 +104,8 @@ class EnforceStaffActions
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
             },
             'CommandController' => match ($method) {
-                'account' => [['accounts'], 'create'], 'accountUpdate', 'benefitControls', 'invite', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization', 'enquiry' => [['content'], 'edit'], 'customization' => [['content', 'catalog'], 'edit'],

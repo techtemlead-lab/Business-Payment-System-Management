@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class DashboardManagement
 {
@@ -63,7 +64,41 @@ class DashboardManagement
 
     public static function save(array $settings): void
     {
-        $clean = array_intersect_key($settings, self::defaults());
+        $defaults = self::defaults();
+        $clean = array_intersect_key($settings, $defaults);
+        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'company_treasury_enabled', 'company_commissions_enabled', 'company_customization_enabled', 'company_audit_enabled'] as $flag) {
+            if (array_key_exists($flag, $clean)) {
+                $clean[$flag] = filter_var($clean[$flag], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+        foreach (['dealer_announcement_type', 'subdealer_announcement_type', 'employee_announcement_type'] as $typeKey) {
+            if (array_key_exists($typeKey, $clean) && ! in_array($clean[$typeKey], ['info', 'warning', 'danger', 'success'], true)) {
+                $clean[$typeKey] = $defaults[$typeKey];
+            }
+        }
+        foreach (['dealer_announcement', 'subdealer_announcement', 'employee_announcement'] as $textKey) {
+            if (array_key_exists($textKey, $clean)) {
+                $clean[$textKey] = mb_substr(trim((string) $clean[$textKey]), 0, 500);
+            }
+        }
+        foreach (['dealer_min_order', 'subdealer_min_order'] as $moneyKey) {
+            if (! array_key_exists($moneyKey, $clean)) {
+                continue;
+            }
+            $amount = (string) $clean[$moneyKey];
+            if (! preg_match('/^\d{1,8}(\.\d{1,2})?$/', $amount)) {
+                throw ValidationException::withMessages([$moneyKey => 'Enter a valid minimum order amount.']);
+            }
+            $clean[$moneyKey] = Money::decimal(Money::cents($amount));
+        }
+        if (array_key_exists('employee_default_permissions', $clean)) {
+            $known = array_unique(array_merge(...array_values(config('madina.roles'))));
+            $clean['employee_default_permissions'] = array_values(array_intersect(
+                array_map('strval', (array) $clean['employee_default_permissions']),
+                $known,
+            ));
+        }
+
         DB::table('content_pages')->updateOrInsert(
             ['slug' => self::SLUG],
             [
@@ -73,6 +108,42 @@ class DashboardManagement
                 'updated_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Enforce dashboard maintenance lockout and optional minimum order for partners.
+     */
+    public static function assertPartnerCanOrder(User $user, int $orderTotalCents): void
+    {
+        if (! in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            return;
+        }
+        $settings = self::get();
+        $maintenance = $user->role === 'dealer'
+            ? (bool) ($settings['dealer_maintenance_mode'] ?? false)
+            : (bool) ($settings['subdealer_maintenance_mode'] ?? false);
+        if ($maintenance) {
+            throw ValidationException::withMessages([
+                'items' => $user->role === 'dealer'
+                    ? 'Dealer ordering is temporarily paused for maintenance. Please try again later.'
+                    : 'Sub-dealer ordering is temporarily paused for maintenance. Please try again later.',
+            ]);
+        }
+        $ordersEnabled = $user->role === 'dealer'
+            ? (bool) ($settings['dealer_orders_enabled'] ?? true)
+            : (bool) ($settings['subdealer_orders_enabled'] ?? true);
+        if (! $ordersEnabled) {
+            throw ValidationException::withMessages(['items' => 'Ordering is currently disabled for your account type.']);
+        }
+        $minimum = $user->role === 'dealer'
+            ? (string) ($settings['dealer_min_order'] ?? '0.00')
+            : (string) ($settings['subdealer_min_order'] ?? '0.00');
+        $minimumCents = Money::cents($minimum);
+        if ($minimumCents > 0 && $orderTotalCents < $minimumCents) {
+            throw ValidationException::withMessages([
+                'items' => 'Minimum order amount is BDT '.Money::decimal($minimumCents).'.',
+            ]);
+        }
     }
 
     public static function reset(): void

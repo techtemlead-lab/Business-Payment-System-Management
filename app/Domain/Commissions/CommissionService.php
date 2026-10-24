@@ -7,6 +7,7 @@ use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -144,9 +145,16 @@ final class CommissionService
         } catch (\InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['overrides' => $exception->getMessage()]);
         }
+        $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $orders = Order::with(['lines', 'user'])->where('status', 'delivered')->whereColumn('paid', 'total')
-            ->when($dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->whereDate('created_at', '<=', $dateTo))->orderBy('id')->limit(max(1, min($limitOrders, 1000)))->get();
+            ->when($dateFrom, function ($q) use ($dateFrom, $tz) {
+                $start = CarbonImmutable::parse($dateFrom, $tz)->startOfDay()->utc();
+                $q->where('created_at', '>=', $start);
+            })
+            ->when($dateTo, function ($q) use ($dateTo, $tz) {
+                $end = CarbonImmutable::parse($dateTo, $tz)->addDay()->startOfDay()->utc();
+                $q->where('created_at', '<', $end);
+            })->orderBy('id')->limit(max(1, min($limitOrders, 1000)))->get();
         $refunds = DB::table('commission_batches')->whereIn('order_id', $orders->modelKeys())->pluck('refunded_amount', 'order_id');
         $cash = 0;
         $subCash = 0;

@@ -1,8 +1,10 @@
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search,Gift,Layers,UserRound,Store,Menu,ShoppingBag,Home,LogOut} from 'lucide-react';
+import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2} from 'lucide-react';
+import {useT} from '../shared/i18n/t';
 
 export function DealerHeader(){
     const page = usePage<any>().props;
+    const translate = useT();
     const publicBase = String(page.publicBase ?? '');
     const customize = page.siteCustomization ?? {};
     const offersTitle = customize.header_offers_title || 'Offers';
@@ -18,17 +20,17 @@ export function DealerHeader(){
                     <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care"/>
                 </a>
                 <form method="get" action={`${publicBase}/products`} className="portal-site-search">
-                    <input name="q" placeholder="Search" aria-label="Search products"/>
-                    <button aria-label="Search"><Search size={22}/></button>
+                    <input name="q" placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>
+                    <button aria-label={translate('portal', 'search_products')}><Search size={22}/></button>
                 </form>
                 <div className="portal-header-links">
                     <a href={`${publicBase}/#featured-products`}><Gift/><span><b>{offersTitle}</b><small>{offersSubtitle}</small></span></a>
                     <a href={`${publicBase}/dealers`}><Layers/><span><b>{networkTitle}</b><small>{networkSubtitle}</small></span></a>
-                    <Link href="/profile"><UserRound/><span><b>Account</b><small>My Profile</small></span></Link>
-                    <button type="button" onClick={()=>router.post('/logout')} className="portal-header-logout" aria-label="Log out" title="Log out">
-                        <LogOut size={18}/><span><b>Log out</b><small>Exit Session</small></span>
+                    <Link href="/profile"><UserRound/><span><b>{translate('portal', 'nav_module_account')}</b><small>{translate('portal', 'profile')}</small></span></Link>
+                    <button type="button" onClick={()=>router.post('/logout')} className="portal-header-logout" aria-label={translate('portal', 'log_out')} title={translate('portal', 'log_out')}>
+                        <LogOut size={18}/><span><b>{translate('portal', 'log_out')}</b><small>{translate('portal', 'exit_session')}</small></span>
                     </button>
-                    <Link href="/catalog" className="portal-shop"><Store size={18}/><b>Shop</b></Link>
+                    <Link href="/catalog" className="portal-shop"><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>
                 </div>
             </div>
         </header>
@@ -36,12 +38,29 @@ export function DealerHeader(){
 }
 
 export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
-    return <nav className="portal-bottom-nav" aria-label="Mobile account navigation">
-        <button onClick={onMenu}><Menu size={20}/>Menu</button>
-        <Link href="/catalog"><Store size={20}/>Shop</Link>
-        <Link href="/" className="portal-mobile-home"><Home size={22}/>Dashboard</Link>
-        <Link href="/orders"><ShoppingBag size={20}/>Orders</Link>
-        <Link href="/earnings"><Gift size={20}/>Earnings</Link>
-        <button type="button" onClick={()=>router.post('/logout')} aria-label="Log out" className="portal-mobile-logout"><LogOut size={20}/>Log out</button>
-    </nav>;
+    const translate = useT();
+    const {url} = usePage();
+    const path = url.split('?')[0] || '/';
+    const item = (href: string, label: string, Icon: typeof Home, className = '') => {
+        const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
+        return (
+            <Link href={href} className={`${className} ${active ? 'is-active' : ''}`.trim()} aria-current={active ? 'page' : undefined}>
+                <Icon size={href === '/' ? 22 : 20}/>
+                {label}
+            </Link>
+        );
+    };
+
+    return (
+        <nav className="portal-bottom-nav" aria-label={translate('portal', 'account_navigation')}>
+            <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')}>
+                <Menu size={20}/>{translate('portal', 'menu')}
+            </button>
+            {item('/catalog', translate('portal', 'shop'), Store)}
+            {item('/', translate('portal', 'overview'), Home, 'portal-mobile-home')}
+            {item('/orders', translate('portal', 'orders'), ShoppingBag)}
+            {item('/full-report', translate('portal', 'full-report'), FileBarChart2)}
+            {item('/earnings', translate('portal', 'earnings'), Gift)}
+        </nav>
+    );
 }

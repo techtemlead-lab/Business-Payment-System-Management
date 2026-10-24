@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\DashboardManagement;
 use App\Support\Money;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,7 @@ class OrderService
             if ($total <= 0 || $total > 9999999999900) {
                 throw ValidationException::withMessages(['items' => 'Order amount exceeds the allowed limit.']);
             }
+            DashboardManagement::assertPartnerCanOrder($user, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);

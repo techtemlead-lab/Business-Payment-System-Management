@@ -64,7 +64,7 @@ class PhoneLoginTest extends TestCase
         $u = User::factory()->create(['role' => 'super_admin', 'phone' => '01000000004', 'status' => 'suspended', 'password' => 'SyntheticPassword123']);
         $this->post('/company/login', ['email' => '01000000004', 'password' => 'SyntheticPassword123'])->assertSessionHasErrors('email');
         $this->assertGuest();
-        $u->update(['status' => 'active']);
+        $u->forceFill(['status' => 'active'])->save();
         $this->post('/company/login', ['email' => '01000000004', 'password' => 'WrongPassword123'])->assertSessionHasErrors('email');
         $this->assertGuest();
     }

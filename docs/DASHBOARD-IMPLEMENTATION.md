@@ -1,5 +1,7 @@
 # Dashboard and company access checkpoint
 
+**Current (25 Oct 2026):** Partner/staff dashboards use audience Inertia pages + `Shell` mother-module sidebars; partner mobile nav includes Full report; dealer salary follows flat 3% (not superseded tier tables below). Prefer [COMMISSION-AND-NETWORK-SYSTEM.md](COMMISSION-AND-NETWORK-SYSTEM.md) for live module status.
+
 Historical checkpoint: use [the current requirements-to-code review](COMMISSION-AND-NETWORK-SYSTEM.md#requirements-to-code-review---17-october-2026) for the latest status. Later code supersedes the dated missing-module table and salary-tier references below.
 
 13 October 2026, Asia/Dhaka. The user requested dashboard options from the PDFs, a separate company entry, and supplied a final header logo (`h1.png`). The PNG is copied unchanged into `public/madina-header-logo.png`; it supersedes the two earlier logo images.

@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Orders\OrderService;
+use App\Models\Product;
+use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\PortalHost;
@@ -9,6 +12,8 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -177,6 +182,19 @@ class CompanyAccessTest extends TestCase
         $this->assertSame('Special promotion week for all dealers!', $notice['text']);
         $this->assertSame('warning', $notice['type']);
         $this->assertTrue($notice['maintenance']);
+
+        // 4b. Maintenance is enforced on the order service, not only in the UI copy.
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'active' => true, 'stock' => 20]);
+        ReferralTreePath::attachUser($dealer->id, null);
+        try {
+            app(OrderService::class)->create($dealer, [
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            $this->fail('Maintenance mode should block dealer orders.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('maintenance', strtolower($exception->errors()['items'][0] ?? ''));
+        }
 
         // 5. Non-staff dealer cannot access /company/dashboards or POST /commands/dashboards
         $this->actingAs($dealer)->get('/company/dashboards')->assertForbidden();

@@ -254,7 +254,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $this->actingAs(User::factory()->staff('account_manager')->create())->postJson('/api/v1/orders/'.$order->id.'/decision', $data)->assertForbidden();
         $finance = User::factory()->staff('finance')->create();
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [...$data, 'referral_replacement_1' => $buyer->id])->assertUnprocessable();
-        $sponsor->update(['status' => 'active']);
+        $sponsor->forceFill(['status' => 'active'])->save();
         $this->postJson('/api/v1/orders/'.$order->id.'/decision', $data)->assertUnprocessable();
         $this->assertSame('submitted', $order->fresh()->status);
     }

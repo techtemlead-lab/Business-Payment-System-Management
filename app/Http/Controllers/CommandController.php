@@ -271,7 +271,8 @@ class CommandController extends Controller
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
             }
 
-            $locked->update($d);
+            // Privilege fields are guarded on User; forceFill only after accounts authorization above.
+            $locked->forceFill($d)->save();
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
@@ -284,7 +285,11 @@ class CommandController extends Controller
 
     public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
     {
-        $this->permit($r, 'accounts');
+        abort_unless(
+            $r->user()->canAct('finance', 'approve') || $r->user()->role === 'super_admin',
+            403,
+            'Unconditional benefit controls require finance approval authority.',
+        );
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, 'Benefit controls apply only to dealers and sub-dealers.');
         $d = $r->validate([
             'unconditional_salary' => 'sometimes|boolean',

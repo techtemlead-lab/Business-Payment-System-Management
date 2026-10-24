@@ -175,7 +175,7 @@ class OperationsCompletionTest extends TestCase
         $admin = User::factory()->create(['role' => 'finance']);
         $url = '/api/v1/operations/holds/'.$hold->id.'/release';
         $this->actingAs($admin)->postJson($url, ['reason' => 'Recipient status reviewed'])->assertUnprocessable();
-        $sponsor->update(['status' => 'active']);
+        $sponsor->forceFill(['status' => 'active'])->save();
         $this->postJson($url, ['reason' => 'Recipient status reviewed'])->assertOk();
         $this->assertDatabaseHas('wallets', ['user_id' => $sponsor->id, 'available' => '10.00']);
         $this->postJson($url, ['reason' => 'Repeat release attempt'])->assertUnprocessable();

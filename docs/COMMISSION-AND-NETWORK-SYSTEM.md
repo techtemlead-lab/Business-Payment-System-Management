@@ -1,6 +1,8 @@
 # Madina Natural Health Care — Backend and Commission Integration
 
-Updated: 17 October 2026. This document describes the implemented services and release controls. The quotation and client business plan remain separate documents.
+Updated: 25 October 2026. This document describes the implemented services and release controls. The quotation and client business plan remain separate documents.
+
+**Current codebase checkpoint (25 Oct 2026):** ~25 database migrations; PHPUnit Feature/Unit suite well above 300 methods; default public address/contact copy uses Pirganj, Rangpur (`SiteCustomization` defaults); Marketing Officer volume target defaults to **BDT 250,000** (`mo_target`); financial posting remains off until `MADINA_FINANCIAL_ACTIVATION=true` after approved policy and verified opening balances. Older “14 migrations / 225 tests / Noyarhat address / ৳25,000 MO” figures below are historical checkpoints only.
 
 ## Requirements-to-code review - 17 October 2026
 
@@ -203,7 +205,7 @@ Default leadership criteria and funded awards:
 
 | Rank | Qualification | One-time award |
 |---|---|---:|
-| MO | BDT 25,000 qualifying own purchases | BDT 5,000 |
+| MO | BDT 250,000 qualifying own purchases | BDT 5,000 |
 | AM | 10 MO-or-higher leaders within 3 generations | BDT 50,000 |
 | SM | 10 AM-or-higher leaders within 3 generations | BDT 250,000 |
 | ME | 10 SM-or-higher leaders within 3 generations | BDT 300,000 |
