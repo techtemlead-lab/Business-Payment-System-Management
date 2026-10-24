@@ -19,6 +19,7 @@ return function (string $portal): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/security/password', [AuthController::class, 'password'])->middleware('throttle:5,1');
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
+    Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders', [CommandController::class, 'order']);

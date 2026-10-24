@@ -432,6 +432,16 @@ class CommandController extends Controller
         return back();
     }
 
+    public function readAllNotices(Request $r): RedirectResponse
+    {
+        DB::table('account_notices')
+            ->where('user_id', $r->user()->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now(), 'updated_at' => now()]);
+
+        return back()->with('success', 'All updates marked as read.');
+    }
+
     public function financialGate(): never
     {
         throw ValidationException::withMessages(['policy' => 'This action is unavailable until the financial policy is approved and verified.']);

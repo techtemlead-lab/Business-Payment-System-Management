@@ -280,12 +280,22 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .partner-home-target-meta{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#64748b;margin-top:5px}
 .partner-home-target-list small{display:block;margin-top:5px;font-size:10px;color:#94a3b8;line-height:1.45}
 .partner-home-referral{background:#fff;border:1px solid #e8ecf2;border-radius:12px;box-shadow:0 8px 24px #01162708;padding:18px}
-.partner-home-referral-code{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:4px 0 10px}
+.partner-home-referral-body{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;align-items:center}
+.partner-home-referral-poster{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:140px;padding:14px 10px;border-radius:12px;background:linear-gradient(160deg,#011627 0%,#1f2a6b 55%,#ef4a23 160%);color:#fff;text-align:center}
+.partner-home-referral-poster small{font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.partner-home-referral-poster b{font-size:22px;letter-spacing:.08em}
+.partner-home-referral-poster span{font-size:10px;opacity:.75}
+.partner-home-referral-code{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}
 .partner-home-referral-code span{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
 .partner-home-referral-code strong{font-size:20px;letter-spacing:.04em;color:#2e3192}
 .partner-home-referral-url{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;padding:8px 10px;font-size:11px;color:#334155}
 .partner-home-referral-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
 .partner-home-referral-actions .button{display:inline-flex;align-items:center;gap:6px}
+.notice-bell{position:relative}
+.notice-bell-count{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4a23;color:#fff;font-size:9px;font-weight:700;line-height:16px;text-align:center}
+.notification.is-unread{background:linear-gradient(90deg,#fff7ed,#fff);border-color:#fed7aa}
+.notification.is-unread .step-icon{color:#ef4a23}
+@media(max-width:720px){.partner-home-referral-body{grid-template-columns:1fr}}
 .admin-home-hero{display:grid;grid-template-columns:minmax(200px,240px) minmax(0,1fr);gap:14px;padding:0;background:transparent;border:0;box-shadow:none}
 .admin-home-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .admin-home-stats>div{background:#fff;border:1px solid #e8ecf2;border-radius:12px;padding:14px 12px;box-shadow:0 8px 24px #01162708}

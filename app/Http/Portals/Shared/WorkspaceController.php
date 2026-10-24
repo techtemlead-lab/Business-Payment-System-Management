@@ -257,7 +257,37 @@ class WorkspaceController extends Controller
             $data['policies'] = DB::table('policy_drafts')->orderByDesc('id')->get();
         }
         if ($section === 'profile') {
-            $data['profile'] = [...$u->safe(), 'phone' => $u->phone, 'fields' => $u->profile ?? [], 'nid_status' => $u->nid ? 'On file — access restricted' : 'Not provided'];
+            $profile = is_array($u->profile) ? $u->profile : [];
+            $identityType = (string) ($profile['identity_type'] ?? ($u->nid ? 'nid' : ''));
+            $hasBirthCert = filled($profile['birth_certificate_number'] ?? null);
+            $identityOnFile = ($identityType === 'nid' && filled($u->nid))
+                || ($identityType === 'birth_certificate' && $hasBirthCert)
+                || filled($u->nid)
+                || $hasBirthCert;
+            $data['profile'] = [
+                ...$u->safe(),
+                'phone' => $u->phone,
+                'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
+                'place_code' => $profile['place_code'] ?? $profile['area_code'] ?? null,
+                'name_bn' => $profile['name_bn'] ?? null,
+                'upazila' => $profile['upazila'] ?? null,
+                'union' => $profile['union'] ?? null,
+                'village' => $profile['village'] ?? null,
+                'refer_code' => $u->refer_code,
+                'kyc' => [
+                    'identity_type' => $identityType !== '' ? $identityType : null,
+                    'identity_label' => match ($identityType) {
+                        'nid' => 'National ID',
+                        'birth_certificate' => 'Birth certificate',
+                        default => 'Identity document',
+                    },
+                    'identity_status' => $identityOnFile ? 'on_file' : 'missing',
+                    'identity_status_label' => $identityOnFile
+                        ? 'On file — access restricted'
+                        : 'Not provided',
+                    'date_of_birth_on_file' => filled($profile['date_of_birth'] ?? null),
+                ],
+            ];
         }
         if ($section === 'network') {
             $data['members'] = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')->where('ancestor_id', $u->id)

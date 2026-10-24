@@ -68,7 +68,8 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
+    const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
@@ -413,8 +414,13 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                     <div className="header-actions">
                         <LanguageSwitcher compact />
-                        <Link href={base + '/notifications'} className="icon-button" aria-label={translate('portal', 'notifications')}>
+                        <Link href={base + '/notifications'} className="icon-button notice-bell" aria-label={translate('portal', 'notifications')}>
                             <Bell size={19} />
+                            {unreadCount > 0 && (
+                                <span className="notice-bell-count" aria-hidden="true">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
                         </Link>
                         <div className="avatar">{user.name.slice(0, 1)}</div>
                         <div className="user-caption">

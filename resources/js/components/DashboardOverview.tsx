@@ -83,20 +83,29 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                 </div>
                 <Share2 size={18} />
             </div>
-            <div className="partner-home-referral-code">
-                <span>Refer code</span>
-                <strong>{referral.code}</strong>
-            </div>
-            <code className="partner-home-referral-url">{referral.url}</code>
-            <div className="partner-home-referral-actions">
-                <button type="button" className="button small" onClick={copyLink}>
-                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                    {copied ? 'Copied' : 'Copy link'}
-                </button>
-                <button type="button" className="button small dark" onClick={shareNative}>
-                    <Share2 size={14} /> Share
-                </button>
-                <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">Open join page ↗</a>
+            <div className="partner-home-referral-body">
+                <div className="partner-home-referral-poster" aria-hidden="true">
+                    <small>Madina Natural Health Care</small>
+                    <b>{referral.code}</b>
+                    <span>Scan / open join link</span>
+                </div>
+                <div className="partner-home-referral-meta">
+                    <div className="partner-home-referral-code">
+                        <span>Refer code</span>
+                        <strong>{referral.code}</strong>
+                    </div>
+                    <code className="partner-home-referral-url">{referral.url}</code>
+                    <div className="partner-home-referral-actions">
+                        <button type="button" className="button small" onClick={copyLink}>
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            {copied ? 'Copied' : 'Copy link'}
+                        </button>
+                        <button type="button" className="button small dark" onClick={shareNative}>
+                            <Share2 size={14} /> Share
+                        </button>
+                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">Open join page ↗</a>
+                    </div>
+                </div>
             </div>
         </section>
     );

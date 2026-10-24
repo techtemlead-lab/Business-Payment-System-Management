@@ -1,5 +1,5 @@
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2} from 'lucide-react';
+import {Search, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2, Bell} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 
 export function DealerHeader(){
@@ -60,7 +60,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
             {item('/', translate('portal', 'overview'), Home, 'portal-mobile-home')}
             {item('/orders', translate('portal', 'orders'), ShoppingBag)}
             {item('/full-report', translate('portal', 'full-report'), FileBarChart2)}
-            {item('/earnings', translate('portal', 'earnings'), Gift)}
+            {item('/notifications', translate('portal', 'notifications'), Bell)}
         </nav>
     );
 }
