@@ -26,6 +26,11 @@ return [
         'log_channel' => env('MADINA_SMS_LOG_CHANNEL', 'stack'),
         'sent' => [],
     ],
+    // Partner (dealer/sub-dealer) password login requires a one-time SMS code when a valid mobile is on file.
+    'login_otp' => [
+        'enabled' => env('MADINA_LOGIN_OTP', true),
+        'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
+    ],
     'roles' => [
         'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'payroll'],
         'md' => ['orders', 'finance', 'reports', 'audit'],

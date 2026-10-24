@@ -26,4 +26,10 @@ return [
     'password' => 'Password',
     'confirm_password' => 'Confirm Password',
     'password_rules' => 'At least 12 characters, uppercase and lowercase letters, and a number.',
+    'otp_title' => 'Verify mobile code',
+    'otp_subtitle' => 'Enter the 6-digit code sent to your registered mobile number.',
+    'otp_code' => 'One-time code',
+    'otp_placeholder' => '6-digit code',
+    'otp_hint' => 'The code expires in a few minutes. Request a new sign-in if it expires.',
+    'otp_verify' => 'Verify and continue',
 ];

@@ -44,6 +44,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 ## Bangladesh field readiness
 
 - [ ] SMS driver configured (`MADINA_SMS_DRIVER`) or consciously left on `log` with an ops process
+- [ ] Partner login OTP verified end-to-end (`MADINA_LOGIN_OTP=true`) with a real provider before go-live
 - [ ] Place-code catalog covers live divisions / districts / upazilas needed for onboarding
 - [ ] BDRIS / identity lookup credentials set only if the feature is contracted
 - [ ] Public dealer directory GPS + district filters verified on mobile

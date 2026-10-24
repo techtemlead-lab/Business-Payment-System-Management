@@ -12,10 +12,11 @@ type TargetRow = { key: string; label: string; current: string; target: string; 
 
 function PieChart({ slices }: { slices: ChartSlice[] }) {
     const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.cents), 0);
+    const translate = useT();
     if (total <= 0) {
         return (
             <div className="home-pie empty" aria-hidden="true">
-                <span>No activity yet</span>
+                <span>{translate('portal', 'no_activity_yet')}</span>
             </div>
         );
     }
@@ -64,8 +65,8 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Join Madina Natural Health Care',
-                    text: `Apply with my referral code ${referral.code}`,
+                    title: translate('portal', 'share_join_title'),
+                    text: translate('portal', 'share_join_text', { code: String(referral.code) }),
                     url: referral.url,
                 });
                 return;
@@ -134,19 +135,19 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <small>{profile.dealer_code || '—'} · {String(profile.role || '').replaceAll('_', ' ')}</small>
                     <Badge status={profile.status || 'active'} />
                     <dl>
-                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>Email</dt><dd>{profile.email || '—'}</dd></div>
-                        <div><dt>Area code</dt><dd>{profile.area_code || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
                         {(profile.district || profile.division) && (
-                            <div><dt>Location</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
+                            <div><dt>{translate('portal', 'label_location')}</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
                         )}
                         {profile.refer_code && (
-                            <div><dt>Refer code</dt><dd>{profile.refer_code}</dd></div>
+                            <div><dt>{translate('portal', 'refer_code')}</dt><dd>{profile.refer_code}</dd></div>
                         )}
                     </dl>
-                    <Link href={`${base}/profile`} className="text-link">Full profile ↗</Link>
+                    <Link href={`${base}/profile`} className="text-link">{translate('portal', 'full_profile')}</Link>
                     <Link href={`${base}/full-report`} className="text-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <FileBarChart2 size={14} /> Full report
+                        <FileBarChart2 size={14} /> {translate('portal', 'full_report')}
                     </Link>
                 </aside>
 
@@ -160,19 +161,19 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     </div>
                     <div className="partner-home-metric-cards">
                         <div>
-                            <span>Today purchase</span>
+                            <span>{translate('portal', 'today_purchase')}</span>
                             <strong>{money(home.snapshot?.own_sales_today)}</strong>
-                            <small>From company (Kubani)</small>
+                            <small>{translate('portal', 'today_purchase_hint')}</small>
                         </div>
                         <div>
-                            <span>Team sales</span>
+                            <span>{translate('portal', 'team_sales')}</span>
                             <strong>{money(home.snapshot?.team_sales_today)}</strong>
-                            <small>Downline today</small>
+                            <small>{translate('portal', 'team_sales_hint')}</small>
                         </div>
                         <div>
-                            <span>Commission</span>
+                            <span>{translate('portal', 'commission_month')}</span>
                             <strong>{money(home.snapshot?.commission_month)}</strong>
-                            <small>This month</small>
+                            <small>{translate('portal', 'commission_month_hint')}</small>
                         </div>
                     </div>
                     <PieChart slices={chart} />
@@ -200,8 +201,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                                     <i style={{ width: `${Math.min(100, target.percent)}%` }} />
                                 </div>
                                 <div className="partner-home-target-meta">
-                                    <span>Done {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
-                                    <span>Left {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
+                                    <span>{translate('portal', 'target_done')} {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
+                                    <span>{translate('portal', 'target_left')} {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
                                 </div>
                                 <small>{target.hint}</small>
                             </article>
@@ -215,8 +216,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
             <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
-                        <h2>Recent orders</h2>
-                        <p>Latest purchase requests and fulfilment.</p>
+                        <h2>{translate('portal', 'recent_orders')}</h2>
+                        <p>{translate('portal', 'recent_orders_hint')}</p>
                     </div>
                     <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
                 </div>

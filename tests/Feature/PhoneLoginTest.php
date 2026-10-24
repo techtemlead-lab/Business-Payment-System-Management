@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class PhoneLoginTest extends TestCase
@@ -15,6 +16,19 @@ class PhoneLoginTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        Config::set('madina.login_otp.enabled', true);
+    }
+
+    private function completePartnerOtp(string $portal): void
+    {
+        $sent = config('madina.sms.sent');
+        $this->assertNotEmpty($sent);
+        $this->assertSame('login.otp', $sent[array_key_last($sent)]['event'] ?? null);
+        preg_match('/Madina login code: (\d{6})/', (string) ($sent[array_key_last($sent)]['message'] ?? ''), $matches);
+        $this->assertNotEmpty($matches[1] ?? null);
+        $this->onPortal($portal)->post('/login/otp', ['code' => $matches[1]])->assertRedirect('/');
     }
 
     public function test_bangladesh_phone_formats_log_in_the_registered_staff_account(): void
@@ -33,7 +47,10 @@ class PhoneLoginTest extends TestCase
             $u = User::factory()->create(['role' => $role, 'phone' => '01000000002', 'password' => 'SyntheticPassword123']);
             $this->post('/company/login', ['email' => '01000000002', 'password' => 'SyntheticPassword123'])->assertSessionHasErrors('email');
             $this->assertGuest();
-            $this->onPortal($portal)->post('/login', ['email' => '+8801000000002', 'password' => 'SyntheticPassword123'])->assertRedirect('/');
+            $this->onPortal($portal)->post('/login', ['email' => '+8801000000002', 'password' => 'SyntheticPassword123'])
+                ->assertRedirect('/login/otp');
+            $this->assertGuest();
+            $this->completePartnerOtp($portal);
             $this->assertAuthenticatedAs($u);
             $this->post('/logout');
             $u->update(['phone' => null]);
@@ -55,7 +72,10 @@ class PhoneLoginTest extends TestCase
             $this->post('/login', ['email' => $phone, 'password' => 'SyntheticPassword123'])->assertSessionHasErrors('email');
             $this->assertGuest();
         }
-        $this->post('/login', ['email' => 'PHONE-FALLBACK@example.test', 'password' => 'SyntheticPassword123'])->assertRedirect('/');
+        $this->post('/login', ['email' => 'PHONE-FALLBACK@example.test', 'password' => 'SyntheticPassword123'])
+            ->assertRedirect('/login/otp');
+        $this->assertGuest();
+        $this->completePartnerOtp('dealer');
         $this->assertAuthenticatedAs($u);
     }
 
