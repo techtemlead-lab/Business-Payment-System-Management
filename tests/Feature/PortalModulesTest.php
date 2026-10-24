@@ -121,6 +121,7 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
                 ->where('translations.portal.ops_download_reports', 'আর্থিক প্রতিবেদন ডাউনলোড')
+                ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
                 ->where('translations.portal.financial_readiness', 'উদ্বোধনী ব্যালেন্স পর্যালোচনা'));
     }
 }
