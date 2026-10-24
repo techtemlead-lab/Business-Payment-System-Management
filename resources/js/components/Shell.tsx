@@ -518,82 +518,27 @@ export default function Shell({ section, children, action }: { section: string; 
                                 </span>
                             </div>
 
-                            <div className="domain-rail-links">
-                                <span>{translate('portal', 'subsections')}</span>
-                                {currentDomain === 'company' && (
-                                    <>
-                                        <Link href="/" className={`button small ${section === 'overview' ? 'dark' : ''}`}>{translate('portal', 'overview')}</Link>
-                                        {capabilities.includes('accounts') && (
-                                            <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
-                                        )}
-                                        {capabilities.includes('finance') && (
-                                            <Link href="/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'treasury')}</Link>
-                                        )}
-                                        {ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) && (
-                                            <Link href="/benefits-fund" className={`button small ${section === 'benefits-fund' ? 'dark' : ''}`}>{translate('portal', 'benefits_fund')}</Link>
-                                        )}
-                                        {capabilities.includes('accounts') && (
-                                            <Link href="/place-codes" className={`button small ${section === 'place-codes' ? 'dark' : ''}`}>{translate('portal', 'place_codes')}</Link>
-                                        )}
-                                        {capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) && (
-                                            <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
-                                        )}
-                                        {capabilities.includes('inventory') && (
-                                            <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`}>{translate('portal', 'inventory')}</Link>
-                                        )}
-                                        {capabilities.includes('content') && (
-                                            <>
-                                                <Link href="/website" className={`button small ${['website', 'customization'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'website')}</Link>
-                                                <Link href="/content" className={`button small ${section === 'content' ? 'dark' : ''}`}>{translate('portal', 'content')}</Link>
-                                                <Link href="/enquiries" className={`button small ${section === 'enquiries' ? 'dark' : ''}`}>{translate('portal', 'enquiries')}</Link>
-                                            </>
-                                        )}
-                                        {capabilities.includes('audit') && (
-                                            <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`}>{translate('portal', 'audit')}</Link>
-                                        )}
-                                    </>
-                                )}
-
-                                {currentDomain === 'dealers' && (
-                                    <>
-                                        {capabilities.includes('accounts') && <Link href="/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`}>{translate('portal', 'accounts')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/partnerships" className={`button small ${section === 'partnerships' ? 'dark' : ''}`}>{translate('portal', 'partnerships')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`}>{translate('portal', 'orders')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`}>{translate('portal', 'deliveries')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`}>{translate('portal', 'dues')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/commissions" className={`button small accent ${section === 'commissions' ? 'dark' : ''}`}>{translate('portal', 'commissions')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/policies" className={`button small ${section === 'policies' ? 'dark' : ''}`}>{translate('portal', 'policies')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/ledger" className={`button small ${section === 'ledger' ? 'dark' : ''}`}>{translate('portal', 'ledger')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/reports" className={`button small ${section === 'reports' ? 'dark' : ''}`}>{translate('portal', 'reports')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`}>{translate('portal', 'network_tree')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`}>{translate('portal', 'area_dealers')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`}>{translate('portal', 'ranks')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`}>{translate('portal', 'rewards')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`}>{translate('portal', 'settlements')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`}>{translate('portal', 'simulator')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`}>{translate('portal', 'payouts_hub')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/payments" className={`button small ${section === 'payments' ? 'dark' : ''}`}>{translate('portal', 'payments')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/withdrawals" className={`button small ${section === 'withdrawals' ? 'dark' : ''}`}>{translate('portal', 'withdrawals')}</Link>}
-                                    </>
-                                )}
-
-                                {currentDomain === 'sub_dealers' && (
-                                    <>
-                                        {capabilities.includes('accounts') && <Link href="/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`}>{translate('portal', 'sub_dealers')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`}>{translate('portal', 'sub_dealer_orders')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`}>{translate('portal', 'salary')}</Link>}
-                                    </>
-                                )}
-
-                                {currentDomain === 'dashboards' && (
-                                    <>
-                                        <Link href="/dashboards" className={`button small ${section === 'dashboards' ? 'dark' : ''}`}>{translate('portal', 'dashboards')}</Link>
-                                        <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
-                                        <Link href="/accounts" className="button small">{translate('portal', 'accounts')}</Link>
-                                        <Link href="/sub-dealers" className="button small">{translate('portal', 'sub_dealers')}</Link>
-                                    </>
-                                )}
-                            </div>
+                            {(() => {
+                                const activeMother = domainMothers.find((entry) => entry.items.includes(section) && entry.id !== 'account')
+                                    ?? domainMothers.find((entry) => entry.id !== 'account');
+                                if (!activeMother) {
+                                    return null;
+                                }
+                                return (
+                                    <div className="domain-rail-links">
+                                        <span>{translate('portal', activeMother.labelKey)}</span>
+                                        {activeMother.items.map((item) => (
+                                            <Link
+                                                key={item}
+                                                href={sectionHref(item)}
+                                                className={`button small ${section === item ? 'dark' : ''} ${item === 'commissions' ? 'accent' : ''}`}
+                                            >
+                                                {sectionLabel(item)}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
