@@ -56,6 +56,7 @@
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_faq_url'] ?? '/faq'))
             <a href="{{ $href }}">{{ $siteCustomization['footer_link_faq'] ?? 'FAQ' }}</a>
             @endif
+            <a href="/notice">{{ $siteCustomization['footer_link_notice'] ?? 'Company Notice' }}</a>
             @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_dealer_apply_url'] ?? '/partnership'))
             <a href="{{ $href }}">{{ $siteCustomization['footer_link_dealer_apply'] ?? 'Apply for Dealership' }}</a>
             @endif
