@@ -90,73 +90,97 @@ final class PartnerDashboardHome
     private function targets(User $user, array $rules, string $month): array
     {
         $targets = [];
+        $controls = PartnerBenefitControls::for($user);
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $salaryTarget = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
-        $targets[] = $this->progress(
-            key: 'monthly_salary',
-            label: $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
-            current: $monthlyVolume,
-            target: $salaryTarget,
-            hint: $user->role === 'sub_dealer'
-                ? 'Buy this much more from the company this month to stay on a healthy activity track.'
-                : 'Remaining company purchase needed this month to qualify for the monthly salary pool.',
-        );
+        if ($controls['unconditional_salary']) {
+            $targets[] = [
+                'key' => 'monthly_salary',
+                'label' => $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                'current' => Money::decimal($monthlyVolume),
+                'target' => Money::decimal($salaryTarget),
+                'remaining' => '0.00',
+                'percent' => 100.0,
+                'hint' => 'Admin granted unconditional salary access — volume target is waived.',
+            ];
+        } else {
+            $targets[] = $this->progress(
+                key: 'monthly_salary',
+                label: $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                current: $monthlyVolume,
+                target: $salaryTarget,
+                hint: $user->role === 'sub_dealer'
+                    ? 'Buy this much more from the company this month to stay on a healthy activity track.'
+                    : 'Remaining company purchase needed this month to qualify for the monthly salary pool.',
+            );
+        }
 
-        if ($user->role === 'dealer') {
-            $rank = DealerRank::query()->firstOrCreate(['user_id' => $user->id]);
-            $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
-            $lifetime = Money::cents((string) $rank->lifetime_purchase_total);
-            if (($rank->current_rank ?? 'dealer') === 'dealer') {
-                $targets[] = $this->progress(
-                    key: 'rank_reward',
-                    label: 'MO rank reward',
-                    current: $lifetime,
-                    target: $moTarget,
-                    hint: 'Cumulative own purchases required to promote to Marketing Officer.',
-                );
+        $rank = DealerRank::query()->firstOrCreate(['user_id' => $user->id]);
+        $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
+        $lifetime = Money::cents((string) $rank->lifetime_purchase_total);
+
+        if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
+            $targets[] = [
+                'key' => 'rank_reward',
+                'label' => 'Rank reward',
+                'current' => Money::decimal($lifetime),
+                'target' => Money::decimal($moTarget),
+                'remaining' => '0.00',
+                'percent' => 100.0,
+                'hint' => 'Admin granted unconditional rank benefit access for this partner.',
+            ];
+        } elseif ($user->role === 'sub_dealer' || ($rank->current_rank ?? 'dealer') === 'dealer') {
+            $targets[] = $this->progress(
+                key: 'rank_reward',
+                label: 'MO rank reward',
+                current: $lifetime,
+                target: $moTarget,
+                hint: $user->role === 'sub_dealer'
+                    ? 'Cumulative own purchases toward the Marketing Officer (৳2.5L) rank reward track.'
+                    : 'Cumulative own purchases required to promote to Marketing Officer.',
+            );
+        } else {
+            $next = match ($rank->current_rank) {
+                'mo' => ['am', 'am_count', 'mo'],
+                'am' => ['sm', 'sm_count', 'am'],
+                'sm' => ['me', 'me_count', 'sm'],
+                default => null,
+            };
+            if ($next) {
+                [$code, $countKey, $requiredRank] = $next;
+                $needed = (int) ($rules['rank_royalty']['parameters'][$countKey] ?? 10);
+                $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
+                $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
+                $minimumIndex = (int) array_search($requiredRank, $levels, true);
+                $count = DB::table('referral_tree_paths')
+                    ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
+                    ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
+                    ->where('ancestor_id', $user->id)
+                    ->whereBetween('depth', [1, $depth])
+                    ->where('users.status', 'active')
+                    ->where('users.role', 'dealer')
+                    ->whereIn('current_rank', array_slice($levels, $minimumIndex))
+                    ->count();
+                $requiredLabel = strtoupper($requiredRank);
+                $targets[] = [
+                    'key' => 'rank_reward',
+                    'label' => strtoupper($code).' rank reward',
+                    'current' => (string) $count,
+                    'target' => (string) $needed,
+                    'remaining' => (string) max(0, $needed - $count),
+                    'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
+                    'hint' => "Need {$needed} {$requiredLabel} leaders in {$depth}-gen downline.",
+                ];
             } else {
-                $next = match ($rank->current_rank) {
-                    'mo' => ['am', 'am_count', 'mo'],
-                    'am' => ['sm', 'sm_count', 'am'],
-                    'sm' => ['me', 'me_count', 'sm'],
-                    default => null,
-                };
-                if ($next) {
-                    [$code, $countKey, $requiredRank] = $next;
-                    $needed = (int) ($rules['rank_royalty']['parameters'][$countKey] ?? 10);
-                    $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
-                    $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
-                    $minimumIndex = (int) array_search($requiredRank, $levels, true);
-                    $count = DB::table('referral_tree_paths')
-                        ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-                        ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
-                        ->where('ancestor_id', $user->id)
-                        ->whereBetween('depth', [1, $depth])
-                        ->where('users.status', 'active')
-                        ->where('users.role', 'dealer')
-                        ->whereIn('current_rank', array_slice($levels, $minimumIndex))
-                        ->count();
-                    $requiredLabel = strtoupper($requiredRank);
-                    $targets[] = [
-                        'key' => 'rank_reward',
-                        'label' => strtoupper($code).' rank reward',
-                        'current' => (string) $count,
-                        'target' => (string) $needed,
-                        'remaining' => (string) max(0, $needed - $count),
-                        'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
-                        'hint' => "Need {$needed} {$requiredLabel} leaders in {$depth}-gen downline.",
-                    ];
-                } else {
-                    $targets[] = [
-                        'key' => 'rank_reward',
-                        'label' => 'Rank reward',
-                        'current' => 'ME',
-                        'target' => 'ME',
-                        'remaining' => '0',
-                        'percent' => 100.0,
-                        'hint' => 'Highest rank achieved.',
-                    ];
-                }
+                $targets[] = [
+                    'key' => 'rank_reward',
+                    'label' => 'Rank reward',
+                    'current' => 'ME',
+                    'target' => 'ME',
+                    'remaining' => '0',
+                    'percent' => 100.0,
+                    'hint' => 'Highest rank achieved.',
+                ];
             }
         }
 

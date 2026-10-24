@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Models\DealerRank;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
@@ -96,6 +97,18 @@ final class CommissionQualification
         $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
         $qualified = $volume >= $required;
         $grace = $achievedAt && CarbonImmutable::parse($achievedAt)->addDays((int) $parameters['grace_period_days'])->gte($asOf);
+        $user = User::query()->find($userId);
+        if ($user && ($forced = PartnerBenefitControls::forcedRoyaltyRank($user))) {
+            return [
+                'lifetime_rank' => $lifetime,
+                'paid_as_rank' => $forced,
+                'monthly_volume' => Money::decimal($volume),
+                'required_volume' => Money::decimal($required),
+                'is_qualified' => true,
+                'in_grace_period' => false,
+                'status' => 'admin_unconditional',
+            ];
+        }
 
         return ['lifetime_rank' => $lifetime, 'paid_as_rank' => $qualified || $grace ? $code : 'dealer',
             'monthly_volume' => Money::decimal($volume), 'required_volume' => Money::decimal($required), 'is_qualified' => $qualified,

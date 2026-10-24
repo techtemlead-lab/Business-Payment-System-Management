@@ -83,7 +83,7 @@ class EnforceStaffActions
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
             },
             'CommandController' => match ($method) {
-                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'account' => [['accounts'], 'create'], 'accountUpdate', 'benefitControls', 'invite', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization', 'enquiry' => [['content'], 'edit'], 'customization' => [['content', 'catalog'], 'edit'],

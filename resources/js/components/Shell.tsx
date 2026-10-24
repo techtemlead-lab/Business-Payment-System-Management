@@ -5,7 +5,7 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, type LucideIcon
+    Briefcase, Hash, FileBarChart2, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -19,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, earnings: Coins, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
@@ -36,7 +36,7 @@ const sectionKeys: Record<string, string> = {
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
-    notifications: 'notifications', earnings: 'earnings', ranks: 'ranks', commissions: 'commissions',
+    notifications: 'notifications', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
@@ -147,13 +147,13 @@ export default function Shell({ section, children, action }: { section: string; 
         ...(capabilities.includes('finance') ? ['commissions', 'policies', 'ledger', 'reports'] : []),
         ...(capabilities.includes('accounts') ? ['network-tree', 'area-dealers', 'ranks'] : []),
         ...(capabilities.includes('finance') ? ['rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals'] : []),
-    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'withdrawals'] : []);
+    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals'] : []);
 
     const subDealerGroup = staff ? [
         ...(capabilities.includes('accounts') ? ['sub-dealers'] : []),
         ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['sub-dealer-orders'] : []),
         ...(capabilities.includes('finance') ? ['salary'] : []),
-    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'withdrawals'] : []);
+    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals'] : []);
 
     const group = (title: string, items: string[]) => items.length > 0 && (
         <nav className="nav-group" aria-label={title}>

@@ -18,7 +18,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');
         return any(['finance'],method==='patch'?'edit':'create');
     }
-    if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/invite$/.test(path)?'edit':'create');
+    if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/(invite|benefit-controls)$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/products'))return any(['catalog','pricing','inventory'],method==='post'&&path==='/commands/products'?'create':'edit');
     if(path.startsWith('/commands/area-dealers')||path.startsWith('/commands/dashboards'))return any(['accounts'],'edit');
     if(path==='/commands/stock')return any(['inventory'],'create');

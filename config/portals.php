@@ -16,9 +16,9 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'earnings', 'network', 'ranks', 'withdrawals'],
+        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'earnings', 'network', 'ranks', 'withdrawals', 'full-report'],
         'nav' => [
-            'account' => ['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'withdrawals', 'notifications', 'profile', 'security'],
+            'account' => ['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'notifications', 'profile', 'security'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -26,9 +26,9 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'earnings', 'salary', 'withdrawals'],
+        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'earnings', 'salary', 'withdrawals', 'full-report'],
         'nav' => [
-            'account' => ['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'withdrawals', 'notifications', 'profile', 'security'],
+            'account' => ['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'notifications', 'profile', 'security'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,

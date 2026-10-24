@@ -1,6 +1,7 @@
 import { useForm } from '@inertiajs/react';
 import { Row, label } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
+import PartnerBenefitControls from './PartnerBenefitControls';
 
 const profileFields = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
 
@@ -77,5 +78,6 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             <button className="button dark" disabled={form.processing}>Save recorded correction</button>
         </form>
         <PartnerCommissionOverride account={account} />
+        <PartnerBenefitControls account={account} />
     </>;
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountProvisioning;
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -279,6 +280,30 @@ class CommandController extends Controller
         });
 
         return back()->with('success', 'Account updated.');
+    }
+
+    public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, 'Benefit controls apply only to dealers and sub-dealers.');
+        $d = $r->validate([
+            'unconditional_salary' => 'sometimes|boolean',
+            'unconditional_rank_royalty' => 'sometimes|boolean',
+            'forced_royalty_rank' => 'nullable|in:mo,am,sm,me',
+            'unconditional_rank_incentive' => 'sometimes|boolean',
+            'note' => 'nullable|string|max:500',
+            'reason' => 'required|string|min:5|max:1000',
+        ]);
+        $controls->save($r->user(), $user, [
+            'unconditional_salary' => $r->boolean('unconditional_salary'),
+            'unconditional_rank_royalty' => $r->boolean('unconditional_rank_royalty'),
+            'forced_royalty_rank' => $d['forced_royalty_rank'] ?? 'mo',
+            'unconditional_rank_incentive' => $r->boolean('unconditional_rank_incentive'),
+            'note' => $d['note'] ?? null,
+            'reason' => $d['reason'],
+        ]);
+
+        return back()->with('success', 'Unconditional benefit controls saved for '.$user->name.'.');
     }
 
     public function product(Request $r): RedirectResponse

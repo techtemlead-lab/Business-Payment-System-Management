@@ -94,6 +94,7 @@ return [
     'profile' => 'My profile',
     'security' => 'Account security',
     'earnings' => 'My earnings',
+    'full-report' => 'Full report',
     'ranks' => 'Ranks & royalties',
     'commissions' => 'Commission studio',
     'network_tree' => 'Network tree',

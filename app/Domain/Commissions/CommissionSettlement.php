@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
@@ -67,7 +68,9 @@ final class CommissionSettlement
                 $rules = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR)['rules'] : $this->policies->snapshot()['rules'];
                 $parameters = $rules['dealer_monthly_salary']['parameters'];
                 $qualified = User::where('role', 'dealer')->where('status', 'active')->orderBy('id')->get()
-                    ->filter(fn (User $user): bool => $this->qualification->monthlyVolume($user->id, $month) >= Money::cents((string) $parameters['min_monthly_volume']))->values();
+                    ->filter(fn (User $user): bool => PartnerBenefitControls::waivesSalaryVolume($user)
+                        || $this->qualification->monthlyVolume($user->id, $month) >= Money::cents((string) $parameters['min_monthly_volume']))
+                    ->values();
                 $cents = Money::cents($fund->amount);
                 $shares = [];
                 if ($fund->category === 'sub_dealer_salary') {
@@ -80,8 +83,9 @@ final class CommissionSettlement
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
                     foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
-                        $ids = DealerRank::where('current_rank', '!=', 'dealer')->whereHas('user', fn ($q) => $q->where('role', 'dealer')->where('status', 'active'))
-                            ->orderBy('user_id')->get()->filter(fn (DealerRank $rank): bool => $this->qualification->paidAs($rank->user_id, $month, $rules)['paid_as_rank'] === $code)
+                        $ids = DealerRank::whereHas('user', fn ($q) => $q->where('role', 'dealer')->where('status', 'active'))
+                            ->orderBy('user_id')->get()
+                            ->filter(fn (DealerRank $rank): bool => $this->qualification->paidAs($rank->user_id, $month, $rules)['paid_as_rank'] === $code)
                             ->pluck('user_id')->all();
                         $tierShares = $this->divide($buckets[$index], $ids);
                         foreach ($tierShares as $id => $amount) {
@@ -277,21 +281,28 @@ final class CommissionSettlement
             }
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
-            if ($user->role !== 'dealer' || $user->status !== 'active' || $rank->current_rank === 'dealer') {
+            $unconditionalIncentive = PartnerBenefitControls::waivesRankIncentive($user);
+            $awardRank = $rank->current_rank;
+            if ($unconditionalIncentive && ($awardRank === 'dealer' || $awardRank === null)) {
+                $awardRank = PartnerBenefitControls::forcedRoyaltyRank($user) ?? 'mo';
+            }
+            if ($user->role !== 'dealer' || $user->status !== 'active' || ($awardRank === 'dealer' && ! $unconditionalIncentive)) {
                 return ['success' => false, 'message' => 'An active dealer with an achieved leadership rank is required.'];
             }
-            if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $rank->current_rank)->exists()) {
+            if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $awardRank)->exists()) {
                 return ['success' => false, 'message' => 'This rank incentive was already paid.'];
             }
             if ($rank->one_time_incentive_paid && ! DB::table('rank_incentive_awards')->where('user_id', $userId)->exists()) {
                 return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
             }
             $rules = $this->policies->snapshot()['rules'];
-            $paidAs = $this->qualification->paidAs($userId, $period, $rules);
-            if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
-                return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
+            if (! $unconditionalIncentive) {
+                $paidAs = $this->qualification->paidAs($userId, $period, $rules);
+                if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
+                    return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
+                }
             }
-            $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$rank->current_rank.'_bonus']);
+            $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$awardRank.'_bonus']);
             $funds = CommissionAllocation::where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])->orderBy('id')->lockForUpdate()->get();
             $available = $funds->sum(fn ($fund): int => Money::cents($fund->amount) - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00')));
             if ($amount <= 0 || $available < $amount) {
@@ -303,7 +314,7 @@ final class CommissionSettlement
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
                 $take = min($remaining, Money::cents($fund->amount) - $used);
                 if ($take > 0) {
-                    $this->pay($fund, $userId, $take, $period, 'rank_'.$rank->current_rank);
+                    $this->pay($fund, $userId, $take, $period, 'rank_'.$awardRank);
                     $sources[$fund->id] = Money::decimal($take);
                     $fund->update(['status' => $used + $take === Money::cents($fund->amount) ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
@@ -313,16 +324,16 @@ final class CommissionSettlement
                     break;
                 }
             }
-            DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
+            DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $awardRank, 'amount' => Money::decimal($amount),
                 'request_key' => $requestKey, 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);
             Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, [
-                'beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
-                'sources' => $sources, 'request_key' => $requestKey,
+                'beneficiary_id' => $userId, 'rank' => $awardRank, 'amount' => Money::decimal($amount),
+                'sources' => $sources, 'request_key' => $requestKey, 'unconditional' => $unconditionalIncentive,
             ]);
 
             return $this->rememberSettlement($period, 'rank_incentive', $requestKey, $actorId, [
-                'success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank,
+                'success' => true, 'user_id' => $userId, 'rank' => $awardRank,
                 'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String(),
             ]);
         }, 3);

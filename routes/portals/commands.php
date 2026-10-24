@@ -32,6 +32,7 @@ return function (string $portal): void {
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/accounts', [CommandController::class, 'account']);
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
+    Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::post('/commands/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->middleware('throttle:20,1');
     Route::get('/commands/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->middleware('throttle:60,1');
