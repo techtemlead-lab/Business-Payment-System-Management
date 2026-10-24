@@ -1,5 +1,5 @@
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2, Bell} from 'lucide-react';
+import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2, Bell} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 
 export function DealerHeader(){
