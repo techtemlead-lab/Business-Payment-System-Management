@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -39,11 +40,14 @@ final class PartnerFullReport
     /**
      * @return array<string, mixed>
      */
-    public function for(User $user): array
+    public function for(User $user, ?string $from = null, ?string $to = null): array
     {
+        [$fromUtc, $toUtc] = $this->bounds($from, $to);
         $orders = Order::query()
             ->where('user_id', $user->id)
             ->whereIn('status', ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
+            ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
             ->orderByDesc('created_at')
             ->get(['id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at']);
 
@@ -86,6 +90,8 @@ final class PartnerFullReport
         $allocations = DB::table('commission_allocations')
             ->where('user_id', $user->id)
             ->whereNotIn('status', ['reversed'])
+            ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
+            ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
             ->selectRaw('category, COALESCE(SUM(amount), 0) as total, COUNT(*) as entries')
             ->groupBy('category')
             ->orderBy('category')
@@ -118,6 +124,8 @@ final class PartnerFullReport
             : Order::query()
                 ->whereIn('user_id', $teamIds)
                 ->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+                ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
+                ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
                 ->latest()
                 ->limit(40)
                 ->get(['id', 'user_id', 'number', 'status', 'total', 'paid', 'due_credit', 'created_at']);
@@ -146,9 +154,15 @@ final class PartnerFullReport
             : Money::decimal(Money::cents((string) DB::table('commission_allocations')
                 ->whereIn('user_id', $teamIds)
                 ->whereNotIn('status', ['reversed'])
+                ->when($fromUtc, fn ($query) => $query->where('created_at', '>=', $fromUtc))
+                ->when($toUtc, fn ($query) => $query->where('created_at', '<', $toUtc))
                 ->sum('amount')));
 
         return [
+            'filters' => [
+                'from' => $from,
+                'to' => $to,
+            ],
             'summary' => [
                 'orders_count' => $orders->count(),
                 'ordered' => Money::decimal($ordered),
@@ -173,9 +187,9 @@ final class PartnerFullReport
         ];
     }
 
-    public function downloadPdf(User $user): BinaryFileResponse
+    public function downloadPdf(User $user, ?string $from = null, ?string $to = null): BinaryFileResponse
     {
-        $report = $this->for($user);
+        $report = $this->for($user, $from, $to);
         $summary = $report['summary'];
         $dir = Storage::disk('local')->path('report-exports');
         if (! is_dir($dir)) {
@@ -262,5 +276,23 @@ final class PartnerFullReport
             'Madina-partner-report-'.$safeCode.'.pdf',
             ['Cache-Control' => 'private, no-store'],
         )->deleteFileAfterSend();
+    }
+
+    /**
+     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
+     */
+    private function bounds(?string $from, ?string $to): array
+    {
+        $tz = (string) config('madina.business_timezone', 'Asia/Dhaka');
+        $fromUtc = null;
+        $toUtc = null;
+        if (is_string($from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
+            $fromUtc = CarbonImmutable::createFromFormat('Y-m-d', $from, $tz)->startOfDay()->utc();
+        }
+        if (is_string($to) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            $toUtc = CarbonImmutable::createFromFormat('Y-m-d', $to, $tz)->addDay()->startOfDay()->utc();
+        }
+
+        return [$fromUtc, $toUtc];
     }
 }

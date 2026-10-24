@@ -116,6 +116,7 @@ return [
     'security' => 'Account security',
     'earnings' => 'My earnings',
     'full-report' => 'Full report',
+    'circulars' => 'Notices & support',
     'ranks' => 'Ranks & royalties',
     'commissions' => 'Commission studio',
     'network_tree' => 'Network tree',

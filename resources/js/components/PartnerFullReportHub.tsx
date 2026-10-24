@@ -1,14 +1,22 @@
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import { Download, FileBarChart2 } from 'lucide-react';
 import { Badge, money, date, Table, type Row } from './UI';
 
 export default function PartnerFullReportHub({ report }: { report: Row }) {
     const { portalBase: base } = usePage<any>().props;
     const summary = report?.summary ?? {};
+    const filters = report?.filters ?? {};
+    const [from, setFrom] = useState(String(filters.from ?? ''));
+    const [to, setTo] = useState(String(filters.to ?? ''));
     const commissions: Row[] = report?.commissions ?? [];
     const orders: Row[] = report?.orders ?? [];
     const teamActivity: Row[] = report?.team_activity ?? [];
     const teamMembers: Row[] = report?.team_members ?? [];
+    const query = new URLSearchParams();
+    if (from) query.set('from', from);
+    if (to) query.set('to', to);
+    const querySuffix = query.toString() ? `?${query.toString()}` : '';
 
     return (
         <div className="partner-full-report">
@@ -20,10 +28,28 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         </h2>
                         <p className="muted">Orders, commission by ledger head, payments, and team activity in one place.</p>
                     </div>
-                    <a className="button small dark" href={`${base}/full-report/pdf`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Download size={15} /> Download PDF
                     </a>
                 </div>
+                <form
+                    className="filter-bar"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        router.get(`${base}/full-report`, { from: from || undefined, to: to || undefined }, { preserveState: true });
+                    }}
+                >
+                    <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
+                        From
+                        <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+                    </label>
+                    <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
+                        To
+                        <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+                    </label>
+                    <button className="button small" type="submit">Apply dates</button>
+                    {(filters.from || filters.to) && <button type="button" className="text-link" onClick={() => router.get(`${base}/full-report`)}>Clear</button>}
+                </form>
                 <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
                     <div className="metric"><span>Total ordered</span><strong>{money(summary.ordered)}</strong><small>{summary.orders_count ?? 0} orders</small></div>
                     <div className="metric"><span>Payments received</span><strong>{money(summary.paid)}</strong></div>

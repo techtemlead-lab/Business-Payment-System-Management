@@ -348,7 +348,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'content');
         $d = $r->validate([
-            'slug' => 'required|in:home,about,contact,notice,partnership,services,quality,faq,privacy,terms,products,dealers',
+            'slug' => 'required|in:home,about,contact,notice,circular-training,circular-price,circular-meeting,partnership,services,quality,faq,privacy,terms,products,dealers',
             'title' => 'required|string|max:150',
             'body' => 'required|string|max:10000',
             'published' => 'required|boolean',
@@ -440,6 +440,30 @@ class CommandController extends Controller
             ->update(['read_at' => now(), 'updated_at' => now()]);
 
         return back()->with('success', 'All updates marked as read.');
+    }
+
+    public function partnerSupport(Request $r): RedirectResponse
+    {
+        $user = $r->user();
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+        $data = $r->validate([
+            'topic' => ['required', Rule::in(['Support', 'Complaint', 'Order dispute', 'KYC correction', 'Payout question'])],
+            'message' => 'required|string|min:10|max:2000',
+        ]);
+        DB::table('enquiries')->insert([
+            'name' => $user->name,
+            'phone' => $user->phone ?: ($user->dealer_code ?: 'partner-'.$user->id),
+            'topic' => $data['topic'],
+            'message' => '['.($user->dealer_code ?: $user->email).'] '.$data['message'],
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
+            'topic' => $data['topic'],
+        ]);
+
+        return back()->with('success', 'Your support request was sent to the company.');
     }
 
     public function financialGate(): never

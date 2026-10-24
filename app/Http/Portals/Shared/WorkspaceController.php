@@ -52,7 +52,13 @@ class WorkspaceController extends Controller
             $section = 'treasury';
         }
         PortalCatalog::assertSection($u, $portal, $section);
-        $r->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|string|max:40', 'page' => 'nullable|integer|min:1']);
+        $r->validate([
+            'q' => 'nullable|string|max:100',
+            'status' => 'nullable|string|max:40',
+            'page' => 'nullable|integer|min:1',
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+        ]);
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         $data = [];
         if (in_array($section, ['overview', 'orders', 'deliveries', 'dues', 'reports'])) {
@@ -324,14 +330,34 @@ class WorkspaceController extends Controller
             }
         }
         if (in_array($section, ['withdrawals', 'earnings'])) {
+            $earningsFrom = $this->optionalDate($r->input('from'));
+            $earningsTo = $this->optionalDate($r->input('to'));
+            [$earningsFromUtc, $earningsToUtc] = $this->businessDayBounds($earningsFrom, $earningsTo);
             $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held', 'commission_held']);
-            $data['earnings'] = CommissionAllocation::where('user_id', $u->id)->latest()->limit(30)->get();
+            $data['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo];
+            $data['earnings'] = CommissionAllocation::where('user_id', $u->id)
+                ->when($earningsFromUtc, fn ($query) => $query->where('created_at', '>=', $earningsFromUtc))
+                ->when($earningsToUtc, fn ($query) => $query->where('created_at', '<', $earningsToUtc))
+                ->latest()->limit(50)->get();
             $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
             $data['withdrawals'] = DB::table('withdrawals')->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->latest()->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
         }
         if ($section === 'full-report') {
             abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
-            $data['full_report'] = app(PartnerFullReport::class)->for($u);
+            $reportFrom = $this->optionalDate($r->input('from'));
+            $reportTo = $this->optionalDate($r->input('to'));
+            $data['full_report'] = app(PartnerFullReport::class)->for($u, $reportFrom, $reportTo);
+        }
+        if ($section === 'circulars') {
+            abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+            $data['circulars'] = DB::table('content_pages')
+                ->where('published', true)
+                ->where(function ($query): void {
+                    $query->where('slug', 'notice')
+                        ->orWhere('slug', 'like', 'circular-%');
+                })
+                ->orderByDesc('updated_at')
+                ->get(['id', 'slug', 'title', 'body', 'updated_at']);
         }
         if ($section === 'ledger') {
             $data['entries'] = DB::table('journal_entries')->latest()->paginate(20);
@@ -341,7 +367,7 @@ class WorkspaceController extends Controller
         }
         if ($section === 'content') {
             $data['pages'] = DB::table('content_pages')
-                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
+                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'circular-training', 'circular-price', 'circular-meeting', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
                 ->orderBy('slug')
                 ->get();
         }
@@ -730,7 +756,36 @@ class WorkspaceController extends Controller
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
 
-        return app(PartnerFullReport::class)->downloadPdf($u);
+        return app(PartnerFullReport::class)->downloadPdf(
+            $u,
+            $this->optionalDate($r->input('from')),
+            $this->optionalDate($r->input('to')),
+        );
+    }
+
+    private function optionalDate(mixed $value): ?string
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
+     */
+    private function businessDayBounds(?string $from, ?string $to): array
+    {
+        $tz = (string) config('madina.business_timezone', 'Asia/Dhaka');
+        $fromUtc = $from
+            ? CarbonImmutable::createFromFormat('Y-m-d', $from, $tz)->startOfDay()->utc()
+            : null;
+        $toUtc = $to
+            ? CarbonImmutable::createFromFormat('Y-m-d', $to, $tz)->addDay()->startOfDay()->utc()
+            : null;
+
+        return [$fromUtc, $toUtc];
     }
 
     public function show(Request $r, Order $order): Response

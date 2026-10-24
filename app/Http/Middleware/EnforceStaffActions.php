@@ -29,7 +29,7 @@ class EnforceStaffActions
         if (! $actor->staff()) {
             $partnerAllowed = match ($controller) {
                 '' => true,
-                'CommandController' => in_array($method, ['order', 'claim', 'readNotice', 'readAllNotices'], true),
+                'CommandController' => in_array($method, ['order', 'claim', 'readNotice', 'readAllNotices', 'partnerSupport'], true),
                 'OrderController' => in_array($method, ['index', 'show', 'store', 'claim'], true),
                 'WithdrawalController' => $method === 'store',
                 'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
