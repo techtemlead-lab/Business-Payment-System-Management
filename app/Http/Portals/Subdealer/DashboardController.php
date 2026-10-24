@@ -23,6 +23,11 @@ class DashboardController
         return $this->workspace->fullReportPdf($request);
     }
 
+    public function idCardPdf(Request $request): BinaryFileResponse
+    {
+        return $this->workspace->idCardPdf($request);
+    }
+
     public function show(Request $request, Order $order): Response
     {
         return $this->workspace->show($request, $order);

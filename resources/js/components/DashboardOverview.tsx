@@ -149,6 +149,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <Link href={`${base}/full-report`} className="text-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         <FileBarChart2 size={14} /> {translate('portal', 'full_report')}
                     </Link>
+                    <a href={`${base}/id-card/pdf`} className="text-link">{translate('portal', 'download_id_card')}</a>
                 </aside>
 
                 <section className="partner-home-metrics">

@@ -193,4 +193,6 @@ return [
     'support_topic_payout' => 'Payout',
     'support_message' => 'Message',
     'support_send' => 'Send to company',
+    'partner_id_card' => 'Partner ID card',
+    'download_id_card' => 'Download ID card',
 ];

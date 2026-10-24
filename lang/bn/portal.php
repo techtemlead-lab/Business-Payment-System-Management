@@ -193,4 +193,6 @@ return [
     'support_topic_payout' => 'পেআউট',
     'support_message' => 'বার্তা',
     'support_send' => 'কোম্পানিতে পাঠান',
+    'partner_id_card' => 'পার্টনার আইডি কার্ড',
+    'download_id_card' => 'আইডি কার্ড ডাউনলোড',
 ];
