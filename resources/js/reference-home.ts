@@ -75,7 +75,6 @@ qvDialog?.addEventListener('click', event => { if (event.target === qvDialog) qv
 
 // Mobile Navigation Drawer & Search Overlay Handlers
 const mobileMenuBtn = document.getElementById('refMobileMenuToggle');
-const mobileBottomCatBtn = document.getElementById('refMobileBottomCategories');
 const mobileDrawer = document.getElementById('refMobileDrawer');
 const mobileDrawerClose = document.getElementById('refMobileDrawerClose');
 const mobileMenuOverlay = document.getElementById('refMobileMenuOverlay');
@@ -95,11 +94,6 @@ function closeMobileDrawer() {
 }
 
 mobileMenuBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    openMobileDrawer();
-});
-
-mobileBottomCatBtn?.addEventListener('click', (e) => {
     e.preventDefault();
     openMobileDrawer();
 });

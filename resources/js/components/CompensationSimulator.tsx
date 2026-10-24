@@ -138,8 +138,11 @@ export default function CompensationSimulator({
         setRates({ ...preset.rates });
     };
 
+    const [error, setError] = useState<string | null>(null);
+
     const runSimulation = async () => {
         setLoading(true);
+        setError(null);
         try {
             const csrfToken = document.cookie
                 .split('; ')
@@ -159,9 +162,16 @@ export default function CompensationSimulator({
             if (response.ok) {
                 const result = await response.json();
                 setSimData(result);
+                return;
             }
-        } catch (e) {
-            console.error('Failed to run simulation', e);
+
+            const payload = await response.json().catch(() => null);
+            const message = payload?.message
+                || (payload?.errors ? Object.values(payload.errors).flat().join(' ') : null)
+                || `Simulation failed (${response.status}). Adjust the rates and try again.`;
+            setError(String(message));
+        } catch {
+            setError('Could not reach the compensation simulator. Check your connection and try again.');
         } finally {
             setLoading(false);
         }
@@ -169,6 +179,22 @@ export default function CompensationSimulator({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {error && (
+                <div role="alert" style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#991b1b',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    fontSize: 13,
+                    display: 'flex',
+                    gap: 8,
+                    alignItems: 'flex-start',
+                }}>
+                    <AlertTriangle size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span>{error}</span>
+                </div>
+            )}
             {/* Header Banner & Cap Guardrail */}
             <div style={{
                 background: isExceedingCap ? '#fef2f2' : '#f0fdf4',

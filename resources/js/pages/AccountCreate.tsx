@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
-type CommissionPlace = { level: string; code: string | null; name: string | null };
+type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
 type Consumer = { id: number; name: string; refer_code: string | null; rate: string } | null;
 
 const availablePermissions = [
@@ -84,6 +84,7 @@ export default function AccountCreate({
         email: '',
         extra_contact: '',
         pharmacy: '',
+        shop_name: '',
         directory_visible: false,
         status: 'active',
         reason: 'Physical agreement verified and onboarding authorized by company staff.',
@@ -100,6 +101,7 @@ export default function AccountCreate({
             upazila: '',
             union: '',
             pharmacy: '',
+            shop_name: '',
             area_code: '',
         },
     });
@@ -111,10 +113,13 @@ export default function AccountCreate({
         label: string;
         available: boolean;
         commission_places: CommissionPlace[];
+        area_pool_rate?: string;
+        management_rate?: string;
         next_sub_dealer_code?: string | null;
     } | null>(null);
     const [placeError, setPlaceError] = useState('');
     const [referWarnings, setReferWarnings] = useState<string[]>([]);
+    const [referPreviewError, setReferPreviewError] = useState<string | null>(null);
     const [consumers, setConsumers] = useState<{
         direct_referral: Consumer;
         d2d_gen2: Consumer;
@@ -259,10 +264,12 @@ export default function AccountCreate({
                 .then((json) => {
                     setReferWarnings(json.data.warnings || []);
                     setConsumers(json.data.consumers || null);
+                    setReferPreviewError(null);
                 })
                 .catch(() => {
                     setReferWarnings([]);
                     setConsumers(null);
+                    setReferPreviewError('Could not refresh refer-code preview. Check the codes and try again.');
                 });
         }, 350);
         return () => window.clearTimeout(handle);
@@ -295,6 +302,8 @@ export default function AccountCreate({
             union: data.union,
             village: data.village,
             post_office: data.post_office,
+            latitude: data.latitude,
+            longitude: data.longitude,
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
@@ -302,7 +311,8 @@ export default function AccountCreate({
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
-            pharmacy: data.pharmacy,
+            pharmacy: data.role === 'sub_dealer' ? (data.shop_name || data.pharmacy) : data.pharmacy,
+            shop_name: data.role === 'sub_dealer' ? data.shop_name : '',
             directory_visible: data.directory_visible,
             status: data.status,
             reason: data.reason,
@@ -325,7 +335,7 @@ export default function AccountCreate({
                 <div>
                     <h2>Add Dealer / Sub-Dealer Account</h2>
                     <p>
-                        Prefer birth certificate lookup (BDRIS). Assign by place code, set unique refer codes, then create the account and SMS the mobile login.
+                        Prefer birth certificate lookup (BDRIS). Assign by MNHC place code (example MNHC-100), set unique refer codes, then create the account and SMS the mobile login.
                     </p>
                 </div>
             </div>
@@ -502,7 +512,20 @@ export default function AccountCreate({
                                     </label>
                                     <label>Village / street<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
                                     <label>Post office<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
+                                    <label>
+                                        Map latitude
+                                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder="e.g. 25.7701" />
+                                        {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
+                                    </label>
+                                    <label>
+                                        Map longitude
+                                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder="e.g. 88.8240" />
+                                        {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
+                                    </label>
                                 </div>
+                                <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+                                    Optional GPS coordinates power the public “nearest dealer” directory. Leave blank when the business address is not yet verified on a map.
+                                </p>
                             </section>
 
                             <section className="panel">
@@ -548,12 +571,18 @@ export default function AccountCreate({
                                         </div>
                                         {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>This area code already has an active dealer.</p>}
                                         <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
-                                            {commissionLines.map((row) => (
-                                                <div key={row.level} style={{ fontSize: 13 }}>
-                                                    <b>{row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union'}:</b>{' '}
-                                                    {row.code ? `${row.code} — ${row.name}` : '— (not on last-serial path)'}
-                                                </div>
-                                            ))}
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e' }}>
+                                                Area dealer pool {placePreview.area_pool_rate || '10.00'}% · Management share {placePreview.management_rate || '2.00'}%
+                                            </div>
+                                            {commissionLines.map((row) => {
+                                                const title = row.level === 'management' ? 'Management' : row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union';
+                                                return (
+                                                    <div key={row.level} style={{ fontSize: 13 }}>
+                                                        <b>{title}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
+                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? 'Company management reserve' : '— (not on last-serial path)')}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
@@ -579,6 +608,9 @@ export default function AccountCreate({
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>
+                                {referPreviewError && (
+                                    <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{referPreviewError}</p>
+                                )}
                                 {referWarnings.length > 0 && (
                                     <div className="error" style={{ marginTop: 10 }}>
                                         {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
@@ -617,10 +649,18 @@ export default function AccountCreate({
                                         Extra contact (optional)
                                         <input value={form.data.extra_contact} onChange={(e) => form.setData('extra_contact', e.target.value)} />
                                     </label>
-                                    <label>
-                                        Pharmacy / chamber
-                                        <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
-                                    </label>
+                                    {form.data.role === 'sub_dealer' ? (
+                                        <label>
+                                            Shop name *
+                                            <input required value={form.data.shop_name} onChange={(e) => form.setData('shop_name', e.target.value)} placeholder="Trading / shop name" />
+                                            {form.errors.shop_name && <span className="field-error">{form.errors.shop_name}</span>}
+                                        </label>
+                                    ) : (
+                                        <label>
+                                            Pharmacy / chamber
+                                            <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
+                                        </label>
+                                    )}
                                 </div>
                             </section>
                         </>

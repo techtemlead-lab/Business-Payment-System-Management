@@ -166,10 +166,10 @@ class CommissionEngineTest extends TestCase
 
         DealerRank::firstOrCreate(
             ['user_id' => $dealer->id],
-            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 240000.00]
+            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 230000.00]
         );
 
-        // Buyer makes a ৳20,000 order, taking cumulative to ৳260,000 (> ৳250,000 MO target)
+        // Buyer makes a ৳20,000 order, taking cumulative to ৳250,000 (৳2.5L MO target)
         $order = $this->commissionOrder([
             'idempotency_key' => (string) Str::uuid(),
             'payload_hash' => hash('sha256', 'test2'),
@@ -185,7 +185,7 @@ class CommissionEngineTest extends TestCase
         $rankRecord = DealerRank::where('user_id', $dealer->id)->first();
         $this->assertEquals('mo', $rankRecord->current_rank);
         $this->assertNotNull($rankRecord->achieved_at);
-        $this->assertEquals(260000.00, (float) $rankRecord->lifetime_purchase_total);
+        $this->assertEquals(250000.00, (float) $rankRecord->lifetime_purchase_total);
     }
 
     public function test_anti_whale_branch_capping_truncates_excess_volume(): void

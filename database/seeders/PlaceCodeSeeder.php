@@ -9,8 +9,9 @@ class PlaceCodeSeeder extends Seeder
 {
     public function run(): void
     {
+        $managementCode = PlaceCode::normalizeCode('100') ?? 'MNHC-100';
         $management = PlaceCode::query()->firstOrCreate(
-            ['code' => '100'],
+            ['code' => $managementCode],
             [
                 'level' => PlaceCode::LevelManagement,
                 'name' => 'Management',
@@ -32,8 +33,9 @@ class PlaceCodeSeeder extends Seeder
         ];
 
         foreach ($divisions as $division) {
+            $code = PlaceCode::normalizeCode($division['code']) ?? $division['code'];
             PlaceCode::query()->firstOrCreate(
-                ['code' => $division['code']],
+                ['code' => $code],
                 [
                     'level' => PlaceCode::LevelDivision,
                     'name' => $division['name'],

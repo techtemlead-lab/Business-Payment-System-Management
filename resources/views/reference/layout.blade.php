@@ -7,7 +7,7 @@
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
 @include('reference.header')
 @if(config('madina.preview_mode'))
-<aside class="ref-container" style="padding:12px 20px;background:#fff8df;color:#664b00" role="status">Client preview · Demonstration data is retained. Financial posting is disabled.</aside>
+<aside class="ref-preview-banner" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Preview mode · Demonstration data only. Financial posting stays disabled until activation.</span></aside>
 @endif
 @yield('content')
 @include('reference.footer')

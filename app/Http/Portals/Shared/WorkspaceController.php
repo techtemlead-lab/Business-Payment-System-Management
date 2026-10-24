@@ -2,11 +2,13 @@
 
 namespace App\Http\Portals\Shared;
 
+use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
+use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Pricing\ProductPricing;
@@ -43,6 +45,9 @@ class WorkspaceController extends Controller
         if ($staff && $section === 'customization') {
             $section = 'website';
         }
+        if ($staff && $section === 'capital-flow') {
+            $section = 'treasury';
+        }
         PortalCatalog::assertSection($u, $portal, $section);
         $r->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|string|max:40', 'page' => 'nullable|integer|min:1']);
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
@@ -74,6 +79,27 @@ class WorkspaceController extends Controller
                 'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true)) {
+                $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
+            } elseif ($staff) {
+                $data['admin_home'] = [
+                    'profile' => [
+                        'name' => $u->name,
+                        'role' => $u->role,
+                        'phone' => $u->phone,
+                        'email' => $u->email,
+                        'initial' => mb_strtoupper(mb_substr($u->name, 0, 1)),
+                        'status' => $u->status,
+                    ],
+                    'snapshot' => [
+                        'orders_today' => (clone $orders)->whereDate('created_at', now(config('madina.business_timezone')))->count(),
+                        'pending_review' => (clone $orders)->whereIn('status', ['submitted', 'held'])->count(),
+                        'partner_accounts' => User::whereIn('role', ['dealer', 'sub_dealer'])->count(),
+                        'purchases' => $data['stats']['purchases'],
+                        'dues' => $data['stats']['dues'],
+                    ],
+                ];
+            }
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
@@ -128,7 +154,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {
@@ -140,7 +166,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
             $data['subdealer_stats'] = [
                 'total' => User::where('role', 'sub_dealer')->count(),
@@ -274,7 +300,10 @@ class WorkspaceController extends Controller
             $data['events'] = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id')->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')->orderByDesc('audit_events.id')->paginate(25);
         }
         if ($section === 'content') {
-            $data['pages'] = DB::table('content_pages')->orderBy('slug')->get();
+            $data['pages'] = DB::table('content_pages')
+                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
+                ->orderBy('slug')
+                ->get();
         }
         if ($section === 'website') {
             $data['customization'] = SiteCustomization::raw();
@@ -320,7 +349,53 @@ class WorkspaceController extends Controller
             ]);
         }
         if ($section === 'enquiries') {
-            $data['enquiries'] = DB::table('enquiries')->latest()->paginate(20);
+            $data['enquiries'] = DB::table('enquiries')
+                ->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->paginate(20);
+            $data['enquiry_counts'] = [
+                'total' => (int) DB::table('enquiries')->count(),
+                'new' => (int) DB::table('enquiries')->where('status', 'new')->count(),
+                'contacted' => (int) DB::table('enquiries')->where('status', 'contacted')->count(),
+                'closed' => (int) DB::table('enquiries')->where('status', 'closed')->count(),
+            ];
+        }
+        if ($section === 'partnerships') {
+            $data['applications'] = DB::table('dealer_applications')
+                ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
+                ->orderByDesc('created_at')
+                ->paginate(20)
+                ->through(function ($row) {
+                    $payload = json_decode((string) ($row->data ?? '{}'), true);
+                    if (! is_array($payload)) {
+                        $payload = [];
+                    }
+
+                    return [
+                        'id' => $row->id,
+                        'email' => $row->email,
+                        'name' => $payload['name'] ?? '—',
+                        'phone' => $payload['phone'] ?? null,
+                        'role' => $payload['role'] ?? null,
+                        'division' => $payload['division'] ?? null,
+                        'district' => $payload['district'] ?? null,
+                        'upazila' => $payload['upazila'] ?? null,
+                        'message' => $payload['message'] ?? null,
+                        'status' => $row->status,
+                        'source' => $row->source ?? 'staff',
+                        'submitted_by' => $row->submitted_by,
+                        'user_id' => $row->user_id,
+                        'reason' => $row->reason,
+                        'created_at' => $row->created_at,
+                    ];
+                });
+            $data['application_counts'] = [
+                'total' => (int) DB::table('dealer_applications')->count(),
+                'pending' => (int) DB::table('dealer_applications')->where('status', 'pending')->count(),
+                'approved' => (int) DB::table('dealer_applications')->where('status', 'approved')->count(),
+                'rejected' => (int) DB::table('dealer_applications')->where('status', 'rejected')->count(),
+            ];
         }
         if ($section === 'notifications') {
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);
@@ -465,6 +540,9 @@ class WorkspaceController extends Controller
                 ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
                 ->latest()->limit(20)->get();
             $data['retained_fund_details'] = app(RetainedFundLedger::class)->detail($ownerBenefits);
+            $data['payment_accounts'] = $u->allows('finance')
+                ? app(PaymentAccounts::class)->listing($u, false, false)
+                : [];
         }
         if ($section === 'benefits-fund') {
             $ledger = app(RetainedFundLedger::class);

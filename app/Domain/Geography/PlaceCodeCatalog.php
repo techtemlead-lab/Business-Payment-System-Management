@@ -137,17 +137,19 @@ final class PlaceCodeCatalog
      */
     private function validatedPayload(string $level, array $input, ?PlaceCode $existing = null): array
     {
-        $code = trim((string) ($input['code'] ?? ''));
+        $rawCode = trim((string) ($input['code'] ?? ''));
         $name = trim((string) ($input['name'] ?? ''));
-        if ($code === '' || ! preg_match('/^\d{2,8}$/', $code)) {
-            throw ValidationException::withMessages(['code' => 'Enter a numeric place code between 2 and 8 digits.']);
+        $code = PlaceCode::normalizeCode($rawCode);
+        if ($code === null) {
+            throw ValidationException::withMessages(['code' => 'Enter a place code as MNHC-100 (or 100). Use 2–8 digits after the MNHC- prefix.']);
         }
         if ($name === '') {
             throw ValidationException::withMessages(['name' => 'Enter the place name.']);
         }
 
+        $legacy = substr($code, strlen(PlaceCode::BrandPrefix) + 1);
         $duplicate = PlaceCode::query()
-            ->where('code', $code)
+            ->whereIn('code', [$code, $legacy])
             ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
             ->exists();
         if ($duplicate) {

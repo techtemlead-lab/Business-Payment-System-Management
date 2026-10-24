@@ -159,5 +159,36 @@ class ProjectHardeningTest extends TestCase
         ])->assertRedirect()->assertSessionHas('success');
 
         $this->assertDatabaseHas('content_pages', ['slug' => 'partnership', 'title' => 'Partnership', 'published' => true]);
+        $this->get('/partnership')->assertOk()->assertSee('Become an authorized Madina partner.', false);
+    }
+
+    public function test_content_workspace_hides_frontend_customization_and_publishes_legal_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        DB::table('content_pages')->insert([
+            'slug' => 'frontend_customization',
+            'title' => 'SiteCustomization JSON',
+            'body' => '{"secret":true}',
+            'published' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $content = $this->actingAs($admin)->onPortal('sadmin')->get('/content')->assertOk();
+        $content->assertInertia(fn (Assert $page) => $page->has('data.pages'));
+        $pageSlugs = collect(data_get($content->original->getData(), 'page.props.data.pages', []))->pluck('slug');
+        $this->assertFalse($pageSlugs->contains('frontend_customization'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/content', [
+            'slug' => 'privacy',
+            'title' => 'Published Privacy Policy',
+            'body' => 'Staff-edited privacy body for public display.',
+            'published' => true,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->get('/privacy')
+            ->assertOk()
+            ->assertSee('Published Privacy Policy', false)
+            ->assertSee('Staff-edited privacy body for public display.', false);
     }
 }

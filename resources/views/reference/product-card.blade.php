@@ -25,7 +25,7 @@
             @if(!empty($item['image_path']))
                 <img src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy">
             @else
-                <div class="ref-no-image" aria-hidden="true">No Image</div>
+                <div class="ref-no-image" aria-hidden="true"><i class="fa-solid fa-leaf"></i><span>Photo coming soon</span></div>
             @endif
         </a>
         <button type="button" class="ref-quick-view-btn" data-quick-view="{{ $item['id'] }}" aria-label="Preview {{ $item['name'] }}">

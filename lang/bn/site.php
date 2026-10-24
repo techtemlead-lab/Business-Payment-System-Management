@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'company_bar' => 'মদিনা ন্যাচারাল হেলথ কেয়ার',
+    'about' => 'আমাদের সম্পর্কে',
+    'about_sub' => 'আমাদের গল্প',
+    'contact' => 'যোগাযোগ',
+    'contact_sub' => 'সহায়তা নিন',
+    'network' => 'ডিলার নেটওয়ার্ক',
+    'network_sub' => 'স্থানীয় অংশীদার খুঁজুন',
+    'account' => 'অ্যাকাউন্ট',
+    'account_sub' => 'পার্টনার লগইন',
+    'products' => 'পণ্য',
+    'search_placeholder' => 'পণ্য খুঁজুন...',
+    'search_label' => 'পণ্য খুঁজুন',
+    'partner_login_title' => 'পার্টনার লগইন',
+    'partner_login_subtitle' => 'আপনার অ্যাকাউন্টের ধরন অনুযায়ী পোর্টাল বেছে নিন।',
+    'dealer_login' => 'ডিলার লগইন',
+    'dealer_login_help' => 'অনুমোদিত ডিলার — অর্ডার, নেটওয়ার্ক ও আয়।',
+    'subdealer_login' => 'সাব-ডিলার লগইন',
+    'subdealer_login_help' => 'সাব-ডিলার — পণ্য অর্ডার ও মাসিক স্যালারি।',
+    'staff_login' => 'স্টাফ লগইন',
+    'staff_login_help' => 'কোম্পানি স্টাফ — অপারেশন, ফাইন্যান্স ও ইনভেন্টরি।',
+    'back_home' => 'হোমপেজে ফিরে যান',
+    'language' => 'ভাষা',
+];

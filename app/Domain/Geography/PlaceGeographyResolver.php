@@ -103,7 +103,7 @@ final class PlaceGeographyResolver
 
         $profileCode = trim((string) ($buyer->profile['place_code'] ?? $buyer->profile['area_code'] ?? ''));
         if ($profileCode !== '') {
-            $place = PlaceCode::query()->where('code', $profileCode)->where('is_active', true)->first();
+            $place = PlaceCode::findByCode($profileCode);
             if ($place && $place->level !== PlaceCode::LevelManagement) {
                 return $place;
             }
@@ -146,6 +146,7 @@ final class PlaceGeographyResolver
     private function writeLevel(array &$geography, PlaceCode $place): void
     {
         if ($place->level === PlaceCode::LevelManagement) {
+            $geography['management'] = $place->name;
             $geography['codes']['management'] = $place->code;
             $geography['place_ids']['management'] = $place->id;
 
@@ -163,6 +164,7 @@ final class PlaceGeographyResolver
     private function emptyGeography(): array
     {
         return [
+            'management' => null,
             'division' => null,
             'district' => null,
             'upazila' => null,

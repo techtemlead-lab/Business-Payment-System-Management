@@ -620,7 +620,7 @@ function CategoryManager({
     };
 
     const handleReset = () => {
-        if (window.confirm('Reset all categories back to the 18 default reference placeholders?')) {
+        if (window.confirm('Reset all categories back to the 18 reference defaults?')) {
             onChange(defaultValue || '');
             setPickerOpenIdx(null);
         }
@@ -760,7 +760,7 @@ function CategoryManager({
                         className="button small"
                         style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
                     >
-                        ↺ Reset to 18 Placeholders
+                        ↺ Reset to reference defaults
                     </button>
                     <button
                         type="button"
@@ -781,7 +781,7 @@ function CategoryManager({
                             <div style={{ fontSize: 24, marginBottom: 8 }}>🏷️</div>
                             <strong style={{ fontSize: 15, color: '#334155', display: 'block' }}>No categories added yet</strong>
                             <p style={{ margin: '4px 0 16px', fontSize: 13, color: '#64748b' }}>
-                                Add your first category using the button below, or reset to the 18 reference placeholders.
+                                Add your first category using the button below, or reset to the 18 reference defaults.
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
                                 <button
@@ -1269,7 +1269,7 @@ function ShortcutsManager({
     };
 
     const handleReset = () => {
-        if (window.confirm('Reset shortcuts back to the 5 default reference placeholders?')) {
+        if (window.confirm('Reset shortcuts back to the 5 reference defaults?')) {
             onChange(defaultShortcuts);
             setPickerOpenIdx(null);
         }

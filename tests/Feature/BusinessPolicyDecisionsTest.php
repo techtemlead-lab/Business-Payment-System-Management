@@ -261,14 +261,15 @@ class BusinessPolicyDecisionsTest extends TestCase
 
     public function test_partner_salary_and_royalty_use_direct_authorized_settlement_without_a_second_reviewer(): void
     {
-        $order = $this->purchase(User::factory()->dealer()->create(), 250);
+        // 2500 × ৳100 dealer price reaches the ৳2.5L MO threshold so royalty settles with cashback + salary.
+        $order = $this->purchase(User::factory()->dealer()->create(), 2500);
         $this->approve($order);
         $this->postEarnings($order);
         $this->travelTo(CarbonImmutable::parse('2026-10-01T06:00:00Z'));
         $finance = User::factory()->staff('finance')->create();
         $this->actingAs($finance)->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
         $this->postJson('/api/v1/finance/settlements', ['kind' => 'royalty', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
-        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '2000.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '20000.00']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.royalty_pool_settled']);
     }

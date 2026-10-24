@@ -16,7 +16,7 @@ class PlaceCodeFactory extends Factory
     {
         return [
             'level' => PlaceCode::LevelDivision,
-            'code' => (string) fake()->unique()->numberBetween(110, 9999),
+            'code' => PlaceCode::normalizeCode((string) fake()->unique()->numberBetween(110, 9999)),
             'name' => fake()->unique()->city(),
             'parent_id' => null,
             'base_place_id' => null,
@@ -27,9 +27,11 @@ class PlaceCodeFactory extends Factory
 
     public function management(string $code = '100'): static
     {
+        $normalized = PlaceCode::normalizeCode($code) ?? $code;
+
         return $this->state(fn (): array => [
             'level' => PlaceCode::LevelManagement,
-            'code' => $code,
+            'code' => $normalized,
             'name' => 'Management',
             'parent_id' => null,
         ]);

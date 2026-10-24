@@ -33,9 +33,10 @@ class BangladeshPlaceCodeSeeder extends Seeder
 
             foreach (array_chunk($places, 250) as $chunk) {
                 foreach ($chunk as $place) {
-                    $code = (string) $place['code'];
-                    $parentCode = $place['parent_code'] ?? null;
-                    $parentId = $parentCode ? ($idByCode[(string) $parentCode] ?? null) : null;
+                    $code = PlaceCode::normalizeCode((string) $place['code']) ?? (string) $place['code'];
+                    $parentCodeRaw = $place['parent_code'] ?? null;
+                    $parentCode = $parentCodeRaw ? (PlaceCode::normalizeCode((string) $parentCodeRaw) ?? (string) $parentCodeRaw) : null;
+                    $parentId = $parentCode ? ($idByCode[$parentCode] ?? $idByCode[(string) $parentCodeRaw] ?? null) : null;
                     if ($parentCode && ! $parentId) {
                         throw new RuntimeException('Parent code '.$parentCode.' missing while inserting '.$code);
                     }
@@ -48,21 +49,27 @@ class BangladeshPlaceCodeSeeder extends Seeder
                         'is_active' => true,
                     ];
 
-                    if (isset($idByCode[$code])) {
-                        PlaceCode::query()->whereKey($idByCode[$code])->update($attributes);
+                    $existingId = $idByCode[$code] ?? $idByCode[(string) $place['code']] ?? null;
+                    if ($existingId) {
+                        PlaceCode::query()->whereKey($existingId)->update(['code' => $code, ...$attributes]);
+                        $idByCode[$code] = $existingId;
+                        $idByCode[(string) $place['code']] = $existingId;
                     } else {
                         $model = PlaceCode::query()->create([
                             'code' => $code,
                             ...$attributes,
                         ]);
                         $idByCode[$code] = $model->id;
+                        $idByCode[(string) $place['code']] = $model->id;
                     }
                 }
             }
 
             foreach ($payload['base_links'] ?? [] as $link) {
-                $placeId = $idByCode[(string) $link['code']] ?? null;
-                $baseId = $idByCode[(string) $link['base_code']] ?? null;
+                $placeKey = PlaceCode::normalizeCode((string) $link['code']) ?? (string) $link['code'];
+                $baseKey = PlaceCode::normalizeCode((string) $link['base_code']) ?? (string) $link['base_code'];
+                $placeId = $idByCode[$placeKey] ?? $idByCode[(string) $link['code']] ?? null;
+                $baseId = $idByCode[$baseKey] ?? $idByCode[(string) $link['base_code']] ?? null;
                 if (! $placeId || ! $baseId) {
                     continue;
                 }

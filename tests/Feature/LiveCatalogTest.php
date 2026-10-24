@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
@@ -63,6 +64,22 @@ class LiveCatalogTest extends TestCase
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('products', 0);
         $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_demo_provisioning_creates_accounts_when_local_preview_mode_is_enabled(): void
+    {
+        $this->app->detectEnvironment(fn () => 'local');
+        config(['madina.preview_mode' => true]);
+
+        $this->artisan('madina:demo')->assertSuccessful();
+
+        $this->assertDatabaseHas('users', ['email' => 'admin@madina.test', 'role' => 'super_admin']);
+        $this->assertDatabaseHas('users', ['email' => 'dealer@madina.test', 'role' => 'dealer']);
+        $this->assertDatabaseHas('users', ['email' => 'subdealer@madina.test', 'role' => 'sub_dealer']);
+        $this->assertDatabaseCount('products', 4);
+        $this->assertGreaterThanOrEqual(1, Order::query()->count());
+        $this->assertDatabaseCount('payment_accounts', 2);
+        $this->assertFileExists(base_path('.local/demo-access.json'));
     }
 
     #[TestWith([false])]

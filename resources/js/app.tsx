@@ -3,7 +3,6 @@ import {createRoot} from 'react-dom/client';
 import {createInertiaApp} from '@inertiajs/react';
 
 const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> = {
-    Auth: () => import('./pages/Auth'),
     Portal: () => import('./pages/Portal'),
     'portals/dealer/Dashboard': () => import('./pages/portals/dealer/Dashboard'),
     'portals/subdealer/Dashboard': () => import('./pages/portals/subdealer/Dashboard'),

@@ -15,7 +15,7 @@ class SiteCustomization
     {
         return [
             // Top Bar & Header Branding
-            'top_bar_text' => 'MADINA NATURAL HEALTH CARE',
+            'top_bar_text' => 'Madina Natural Health Care',
             'search_placeholder' => 'Search products...',
             'header_about_title' => 'About Us',
             'header_about_subtitle' => 'Our Story',
@@ -180,7 +180,7 @@ class SiteCustomization
             // Dealer Directory Page (/dealers)
             'directory_title' => 'Dealer Directory',
             'directory_subtitle' => 'Find a company-approved dealer point or search nearest dealers in your area.',
-            'directory_gps_btn' => 'Use My Current Location (Nearest Dealers)',
+            'directory_gps_btn' => 'Find nearest dealers',
             'directory_empty_title' => 'No published dealers in this area yet.',
             'directory_empty_desc' => 'Contact us for help finding a local dealer.',
 
@@ -230,7 +230,7 @@ class SiteCustomization
             'footer_link_vendor' => 'Vendor Program',
             'footer_link_vendor_url' => '/partnership',
             'footer_link_orders' => 'Order Tracking',
-            'footer_link_orders_url' => '/workspace/orders',
+            'footer_link_orders_url' => '/login',
             'footer_link_blog' => 'Blog & Tips',
             'footer_link_blog_url' => '/about',
             'footer_link_contact' => 'Contact Us',
@@ -300,7 +300,7 @@ class SiteCustomization
             'partnership_cta_title' => 'Ready to grow with Madina?',
             'partnership_cta_body' => 'Tell us about your location and goals. Approved partners are invited by the company after review.',
             'partnership_cta_btn' => 'Apply for Dealership',
-            'partnership_cta_link' => '/contact?topic=Dealer%20enquiry',
+            'partnership_cta_link' => '#partner-apply',
 
             // Services (/services)
             'services_hero_title' => 'Natural Health Care & Physiotherapy Services',

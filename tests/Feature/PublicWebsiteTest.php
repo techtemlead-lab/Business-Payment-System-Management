@@ -47,8 +47,13 @@ class PublicWebsiteTest extends TestCase
         $this->from('/contact')->post('/enquiries', $data)->assertRedirect('/contact')->assertSessionHas('success');
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('enquiries', 1);
+        $this->assertDatabaseHas('enquiries', ['name' => 'Synthetic Visitor', 'status' => 'new']);
         $this->post('/enquiries', [...$data, 'website' => 'spam'])->assertSessionHasErrors('website');
         $this->assertDatabaseCount('enquiries', 1);
+
+        $partnership = [...$data, 'name' => 'Partner Applicant', 'topic' => 'Partnership enquiry', 'message' => 'Interested in a dealership partnership in Chittagong.'];
+        $this->from('/contact')->post('/enquiries', $partnership)->assertRedirect('/contact')->assertSessionHas('success');
+        $this->assertDatabaseHas('enquiries', ['name' => 'Partner Applicant', 'topic' => 'Partnership enquiry', 'status' => 'new']);
     }
 
     public function test_cms_text_is_escaped_and_login_uses_staff_created_accounts(): void
@@ -90,7 +95,7 @@ class PublicWebsiteTest extends TestCase
         // Default view: shows location button and dealers
         $res = $this->get('/dealers');
         $res->assertOk();
-        $res->assertSee('Use My Current Location');
+        $res->assertSee('Find nearest dealers');
         $res->assertSee('Nearby Savar Dealer');
         $res->assertSee('Far Chittagong Dealer');
 
@@ -176,7 +181,7 @@ class PublicWebsiteTest extends TestCase
 
     public function test_legacy_apex_paths_redirect_to_the_portal_that_owns_them(): void
     {
-        $this->onPortal('public')->get('/login')->assertRedirect(PortalHost::url('dealer', '/login'));
+        $this->onPortal('public')->get('/login')->assertOk()->assertSee('Dealer Login')->assertSee('Staff Login');
         $this->onPortal('public')->get('/workspace/orders?q=KEEP')->assertRedirect(PortalHost::url('dealer', '/orders').'?q=KEEP');
         $this->onPortal('public')->get('/company/catalog')->assertRedirect(PortalHost::url('manage', '/catalog'));
         $this->onPortal('public')->get('/owner/login')->assertRedirect(PortalHost::url('sadmin', '/login'));

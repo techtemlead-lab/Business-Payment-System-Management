@@ -132,7 +132,7 @@ export default function ProductManagementHub({
                         }}
                     >
                         <Package size={16} />
-                        <span>All Products Catalog ({products.length})</span>
+                        <span>All Products · {products.length}</span>
                     </button>
 
 
@@ -156,7 +156,7 @@ export default function ProductManagementHub({
                         }}
                     >
                         <Sparkles size={16} />
-                        <span>Featured Products Showcase</span>
+                        <span>Featured Showcase</span>
                     </button>
                 </div>
 
@@ -298,7 +298,7 @@ export default function ProductManagementHub({
                                         }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <Link className="button small product-details-link" href={`/products/${p.id}`}>
-                                                    Details & media ↗
+                                                    Details
                                                 </Link>
                                                 <button
                                                     type="button"
@@ -317,22 +317,22 @@ export default function ProductManagementHub({
                                                     }}
                                                     onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
                                                 >
-                                                    {!p.is_stock_paused ? 'Pause ordering' : 'Resume ordering'}
+                                                    {!p.is_stock_paused ? 'Pause' : 'Resume'}
                                                 </button>
                                             </div>
                                             <button
                                                 type="button"
                                                 className="text-link"
-                                                style={{ color: '#ef4444', fontSize: 12, padding: '4px 6px' }}
+                                                style={{ color: '#b91c1c', fontSize: 12, padding: '4px 6px', marginLeft: 'auto' }}
                                                 disabled={!canEditCatalog}
                                                 onClick={() => {
-                                                    const reason = window.prompt(`Are you sure you want to delete or archive "${p.name}"? Reason:`);
+                                                    const reason = window.prompt(`Archive "${p.name}"? Enter a reason (required):`);
                                                     if (reason !== null && reason.trim().length >= 3) {
                                                         router.delete(`/commands/products/${p.id}`, { data: { reason } });
                                                     }
                                                 }}
                                             >
-                                                Delete
+                                                Archive
                                             </button>
                                         </div>
                                     </div>
@@ -378,10 +378,10 @@ export default function ProductManagementHub({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                             <div>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
-                                    Featured Products Showcase Manager
+                                    Featured Showcase
                                 </h3>
                                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                                    Select which catalog products appear in the featured tab grid on the public storefront.
+                                    Choose which catalog products appear on the public homepage featured grid.
                                 </p>
                             </div>
                             <button

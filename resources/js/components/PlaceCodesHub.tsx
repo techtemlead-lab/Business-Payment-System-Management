@@ -71,7 +71,7 @@ export default function PlaceCodesHub({
 
     const createForm = useForm({
         level,
-        code: '',
+        code: level === 'management' ? 'MNHC-100' : 'MNHC-',
         name: '',
         parent_id: parent_options[0] ? String(parent_options[0].id) : '',
         sort_order: 0,
@@ -117,7 +117,7 @@ export default function PlaceCodesHub({
                 createForm.reset();
                 createForm.setData({
                     level,
-                    code: '',
+                    code: level === 'management' ? 'MNHC-100' : 'MNHC-',
                     name: '',
                     parent_id: parent_options[0] ? String(parent_options[0].id) : '',
                     sort_order: 0,
@@ -149,11 +149,11 @@ export default function PlaceCodesHub({
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#0f766e', textTransform: 'uppercase' }}>
-                            <Hash size={15} /> Code management
+                            <Hash size={15} /> Place codes
                         </div>
                         <h2 style={{ margin: '6px 0' }}>{level_label} codes</h2>
                         <p className="muted" style={{ margin: 0, maxWidth: 640 }}>
-                            Assign dealers by place code (for example 101 for Dhaka division). Base places define the last-serial path used when a higher-level assignee purchases.
+                            Assign dealers by branded place code (for example MNHC-101 for Dhaka division, MNHC-100 for management). Enter digits alone and the MNHC- prefix is applied automatically. Base places define the last-serial path used when a higher-level assignee purchases.
                         </p>
                     </div>
                     {(level !== 'management' || places.data.length === 0) && (
@@ -205,7 +205,7 @@ export default function PlaceCodesHub({
                         {
                             key: 'base_place_name',
                             title: 'Base place',
-                            render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">Not set</span>),
+                            render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">—</span>),
                         },
                         {
                             key: 'is_active',
@@ -232,7 +232,7 @@ export default function PlaceCodesHub({
                     <form onSubmit={submitCreate} className="action-form">
                         <label>
                             Code
-                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value)} required placeholder="e.g. 201" />
+                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} required placeholder="e.g. MNHC-201" />
                             {createForm.errors.code && <span className="field-error">{createForm.errors.code}</span>}
                         </label>
                         <label>
@@ -285,7 +285,7 @@ export default function PlaceCodesHub({
                             <label>
                                 Base place (last-serial child)
                                 <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
-                                    <option value="">Not set</option>
+                                    <option value="">—</option>
                                     {editRow.base_options?.map((option) => (
                                         <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
                                     ))}

@@ -87,11 +87,24 @@ interface RetainedFundDetails {
     totals?: Record<string, number>;
 }
 
+interface PaymentAccountCard {
+    id: number;
+    label: string;
+    channel: string;
+    holder: string;
+    account_number_masked?: string;
+    account_number?: string;
+    collects_payments?: boolean;
+    pays_out?: boolean;
+    is_active?: boolean;
+}
+
 interface CompanyTreasuryHubProps {
     flow: CapitalFlowData;
     allocations_by_category: CategoryAllocation[];
     recent_allocations: AllocationRecord[];
     retained_fund_details?: RetainedFundDetails | null;
+    payment_accounts?: PaymentAccountCard[];
 }
 
 function placeLabel(row: RetainedFundRow): string {
@@ -153,7 +166,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
     );
 }
 
-export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null }: CompanyTreasuryHubProps) {
+export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null, payment_accounts = [] }: CompanyTreasuryHubProps) {
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -612,28 +625,34 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             rows={settlementRows}
                         />
 
-                        {/* Company Bank Accounts */}
                         <div style={{ marginTop: 24 }}>
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
                                 Designated Corporate Bank & Treasury Accounts
                             </h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
-                                <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
-                                    <b style={{ fontSize: 13, color: '#0f172a' }}>Islami Bank Bangladesh Ltd (Principal Account)</b>
-                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>A/C: 2050-1450-XXXX-001 · Head Office Branch</div>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#006837', marginTop: 8 }}>Primary Corporate Collection</div>
+                            {payment_accounts.length === 0 ? (
+                                <div style={{ padding: 14, border: '1px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
+                                    No company payment accounts are configured yet. Add collection and payout accounts under Operations → Payment accounts.
                                 </div>
-                                <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
-                                    <b style={{ fontSize: 13, color: '#0f172a' }}>Dutch-Bangla Bank Ltd (Disbursement Account)</b>
-                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>A/C: 110-120-XXXX-002 · Motijheel Branch</div>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#2e3192', marginTop: 8 }}>Partner Payout & Operational Outflows</div>
+                            ) : (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                                    {payment_accounts.map((account) => {
+                                        const roles = [
+                                            account.collects_payments ? 'Collection' : null,
+                                            account.pays_out ? 'Payout' : null,
+                                            account.is_active === false ? 'Inactive' : null,
+                                        ].filter(Boolean).join(' · ');
+                                        return (
+                                            <div key={account.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
+                                                <b style={{ fontSize: 13, color: '#0f172a' }}>{account.label}</b>
+                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                                    {account.channel} · {account.account_number_masked || account.account_number || '••••'} · {account.holder}
+                                                </div>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e', marginTop: 8 }}>{roles || 'Configured account'}</div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                                <div style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
-                                    <b style={{ fontSize: 13, color: '#0f172a' }}>bKash Merchant Master Wallet</b>
-                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Wallet: 01700-XXXXXX · Enterprise Settlement</div>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#e11d48', marginTop: 8 }}>Instant MFS Collection</div>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
