@@ -28,6 +28,11 @@ class DashboardController
         return $this->workspace->idCardPdf($request);
     }
 
+    public function joinPosterPdf(Request $request): BinaryFileResponse
+    {
+        return $this->workspace->joinPosterPdf($request);
+    }
+
     public function referralQrSvg(Request $request): \Illuminate\Http\Response
     {
         return $this->workspace->referralQrSvg($request);

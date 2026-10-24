@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared;
 use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
+use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -771,6 +772,14 @@ class WorkspaceController extends Controller
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
 
         return app(PartnerIdCard::class)->downloadPdf($u);
+    }
+
+    public function joinPosterPdf(Request $r): BinaryFileResponse
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+
+        return app(PartnerJoinPoster::class)->downloadPdf($u);
     }
 
     public function referralQrSvg(Request $r): \Illuminate\Http\Response

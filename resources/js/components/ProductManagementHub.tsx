@@ -17,6 +17,7 @@ import {
     type CustomizationData
 } from './SiteCustomizationEditor';
 import { Row, money } from './UI';
+import { useT } from '../shared/i18n/t';
 
 export default function ProductManagementHub({
     products,
@@ -39,6 +40,7 @@ export default function ProductManagementHub({
     onCreateProduct: () => void;
     initialTab?: string;
 }) {
+    const translate = useT();
     const {auth,staffActions}=usePage<any>().props;
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
@@ -132,7 +134,7 @@ export default function ProductManagementHub({
                         }}
                     >
                         <Package size={16} />
-                        <span>All Products · {products.length}</span>
+                        <span>{translate('portal', 'all_products_count', { count: String(products.length) })}</span>
                     </button>
 
 
@@ -156,7 +158,7 @@ export default function ProductManagementHub({
                         }}
                     >
                         <Sparkles size={16} />
-                        <span>Featured Showcase</span>
+                        <span>{translate('portal', 'featured_showcase')}</span>
                     </button>
                 </div>
 
@@ -179,7 +181,7 @@ export default function ProductManagementHub({
                             textDecoration: 'none'
                         }}
                     >
-                        <Eye size={14} /> View Homepage
+                        <Eye size={14} /> {translate('portal', 'view_homepage')}
                     </a>
                 </div>
             </div>
@@ -200,16 +202,16 @@ export default function ProductManagementHub({
                             <div className="search-input" style={{ flex: 1 }}>
                                 <Search size={17} />
                                 <input
-                                    aria-label="Search records"
-                                    placeholder="Search by product name, SKU, or category…"
+                                    aria-label={translate('portal', 'search_records')}
+                                    placeholder={translate('portal', 'search_products_catalog')}
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <button className="button small">Search</button>
+                            <button className="button small">{translate('portal', 'search')}</button>
                             {filters?.q && (
                                 <Link href="/catalog" className="text-link" style={{ alignSelf: 'center' }}>
-                                    Clear
+                                    {translate('portal', 'clear')}
                                 </Link>
                             )}
                         </form>
@@ -227,7 +229,7 @@ export default function ProductManagementHub({
                                     boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
                                 }}
                             >
-                                <Plus size={17} /> + Add New Product
+                                <Plus size={17} /> {translate('portal', 'add_new_product')}
                             </button>
                         )}
                     </div>
@@ -251,7 +253,7 @@ export default function ProductManagementHub({
                                             fontWeight: 700,
                                             zIndex: 2
                                         }}>
-                                            ★ FEATURED
+                                            {translate('portal', 'featured_badge')}
                                         </span>
                                     )}
 
@@ -268,7 +270,13 @@ export default function ProductManagementHub({
                                         )}
                                         <span className="product-category">{p.category}</span>
                                         <span className={`stock-label ${p.stock === 0 ? 'out' : ''}`}>
-                                            {!p.active ? `Draft · ${p.stock} units` : p.stock_status === 'low_stock' ? `Low stock · ${p.stock} units` : p.stock > 0 && !p.is_stock_paused ? `${p.stock} in stock` : 'Awaiting stock'}
+                                            {!p.active
+                                                ? translate('portal', 'draft_units', { count: String(p.stock) })
+                                                : p.stock_status === 'low_stock'
+                                                    ? translate('portal', 'low_stock_units', { count: String(p.stock) })
+                                                    : p.stock > 0 && !p.is_stock_paused
+                                                        ? translate('portal', 'stock_in_units', { count: String(p.stock) })
+                                                        : translate('portal', 'stock_awaiting')}
                                         </span>
                                     </div>
 
@@ -282,8 +290,8 @@ export default function ProductManagementHub({
                                         <div className="product-bottom">
                                             <div>
                                                 <b>{money(p.price ?? p.mrp)}</b>
-                                                <small className="cell-sub">{p.price ? 'Dealer price' : 'Partner price pending'}</small>
-                                                <small className="cell-sub">MRP {money(p.mrp)}</small>
+                                                <small className="cell-sub">{p.price ? translate('portal', 'dealer_price') : translate('portal', 'partner_price_pending')}</small>
+                                                <small className="cell-sub">{translate('portal', 'mrp_label', { amount: money(p.mrp) })}</small>
                                             </div>
                                         </div>
 
@@ -298,12 +306,12 @@ export default function ProductManagementHub({
                                         }}>
                                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                                                 <Link className="button small product-details-link" href={`/products/${p.id}`}>
-                                                    Details
+                                                    {translate('portal', 'details')}
                                                 </Link>
                                                 <button
                                                     type="button"
                                                     className="button small"
-                                                    disabled={!canStock} title={!p.is_stock_paused ? 'Click to instantly mark Out of Stock' : 'Click to instantly mark In Stock'}
+                                                    disabled={!canStock} title={!p.is_stock_paused ? translate('portal', 'pause_ordering') : translate('portal', 'resume_ordering')}
                                                     style={{
                                                         fontSize: 11,
                                                         padding: '4px 8px',
@@ -317,7 +325,7 @@ export default function ProductManagementHub({
                                                     }}
                                                     onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
                                                 >
-                                                    {!p.is_stock_paused ? 'Pause' : 'Resume'}
+                                                    {!p.is_stock_paused ? translate('portal', 'pause_ordering') : translate('portal', 'resume_ordering')}
                                                 </button>
                                             </div>
                                             <button
@@ -351,13 +359,13 @@ export default function ProductManagementHub({
                             marginTop: 16
                         }}>
                             <Package size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
-                            <h3 style={{ margin: '0 0 6px', fontSize: 16, color: '#334155' }}>No matching products</h3>
+                            <h3 style={{ margin: '0 0 6px', fontSize: 16, color: '#334155' }}>{translate('portal', 'no_matching_products')}</h3>
                             <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>
-                                Try changing your search query or add a new product to your catalog.
+                                {translate('portal', 'no_matching_products_body')}
                             </p>
                             {canCreate && (
                                 <button type="button" className="button dark" onClick={onCreateProduct}>
-                                    <Plus size={16} /> Add Product
+                                    <Plus size={16} /> {translate('portal', 'add_product')}
                                 </button>
                             )}
                         </div>
@@ -378,10 +386,10 @@ export default function ProductManagementHub({
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                             <div>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
-                                    Featured Showcase
+                                    {translate('portal', 'featured_showcase')}
                                 </h3>
                                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                                    Choose which catalog products appear on the public homepage featured grid.
+                                    {translate('portal', 'catalog_staff_hint')}
                                 </p>
                             </div>
                             <button

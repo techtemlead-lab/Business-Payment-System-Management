@@ -107,13 +107,18 @@ class PortalModulesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'Commerce')
-                ->where('translations.portal.nav_module_earnings', 'Earnings & payouts'));
+                ->where('translations.portal.nav_module_earnings', 'Earnings & payouts')
+                ->where('translations.portal.download_join_poster', 'Download join poster')
+                ->where('translations.portal.new_purchase_request', 'New purchase request'));
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/locale', ['locale' => 'bn'])->assertRedirect();
         $this->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'কমার্স')
-                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট'));
+                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
+                ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
+                ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }
 }

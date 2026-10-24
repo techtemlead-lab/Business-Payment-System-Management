@@ -26,6 +26,7 @@ Route::middleware(['auth', 'active', 'portal:dealer'])->group(function () use ($
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
+    Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');
     Route::get('/referral-qr.svg', [DashboardController::class, 'referralQrSvg'])->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);

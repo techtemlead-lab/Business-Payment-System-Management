@@ -64,4 +64,22 @@ class PartnerIdCardTest extends TestCase
         $this->assertStringContainsString('<rect', $svg);
         $this->assertGreaterThan(1000, strlen($svg));
     }
+
+    public function test_dealer_can_download_join_poster_pdf(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MNHC-POSTER-1',
+            'refer_code' => 'MNHC-POSTER-1',
+            'division' => 'Dhaka',
+            'district' => 'Dhaka',
+        ]);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/join-poster/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf')
+            ->assertHeader('content-disposition', 'attachment; filename=Madina-join-poster-MNHC-POSTER-1.pdf');
+    }
 }
