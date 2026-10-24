@@ -223,5 +223,6 @@ class PublicWebsiteTest extends TestCase
             ->assertSee('Dealer purchase value schedule');
         $this->get('/circular-training')->assertOk();
         $this->get('/circular-meeting')->assertOk();
+        $this->get('/')->assertOk()->assertSee('Company Notice')->assertSee('/notice', false);
     }
 }
