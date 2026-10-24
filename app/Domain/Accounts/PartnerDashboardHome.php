@@ -27,13 +27,15 @@ final class PartnerDashboardHome
     public function for(User $user): array
     {
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
-        $today = CarbonImmutable::now($tz)->startOfDay();
+        // Business-day bounds are Asia/Dhaka; timestamps in the DB are UTC.
+        $todayUtc = CarbonImmutable::now($tz)->startOfDay()->utc();
         $month = CommissionQualification::currentMonth();
+        $monthStartUtc = CarbonImmutable::createFromFormat('!Y-m', $month, $tz)->utc();
         $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
         $profile = is_array($user->profile) ? $user->profile : [];
 
         $ownSalesToday = $this->purchaseTotal(
-            Order::query()->where('user_id', $user->id)->where('created_at', '>=', $today),
+            Order::query()->where('user_id', $user->id)->where('created_at', '>=', $todayUtc),
         );
         $teamIds = ReferralTreePath::query()
             ->where('ancestor_id', $user->id)
@@ -42,11 +44,11 @@ final class PartnerDashboardHome
         $teamSalesToday = $teamIds->isEmpty()
             ? 0
             : $this->purchaseTotal(
-                Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $today),
+                Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
             );
         $commissionMonth = Money::cents((string) DB::table('commission_allocations')
             ->where('user_id', $user->id)
-            ->where('created_at', '>=', CarbonImmutable::createFromFormat('!Y-m', $month, $tz))
+            ->where('created_at', '>=', $monthStartUtc)
             ->whereIn('status', ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'])
             ->sum('amount'));
 
