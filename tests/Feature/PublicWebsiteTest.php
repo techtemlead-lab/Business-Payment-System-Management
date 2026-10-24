@@ -193,4 +193,35 @@ class PublicWebsiteTest extends TestCase
         $res->assertRedirect('/dealers');
         $this->assertEquals(301, $res->getStatusCode());
     }
+
+    public function test_public_notice_and_circular_pages_render_published_cms_content(): void
+    {
+        DB::table('content_pages')->insert([
+            'slug' => 'notice',
+            'title' => 'Ramadan training schedule',
+            'body' => 'Partners should attend the Friday briefing in Pirganj.',
+            'published' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('content_pages')->insert([
+            'slug' => 'circular-price',
+            'title' => 'April price circular',
+            'body' => 'Dealer purchase value schedule updates next week.',
+            'published' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->get('/notice')
+            ->assertOk()
+            ->assertSee('Ramadan training schedule')
+            ->assertSee('Friday briefing in Pirganj');
+        $this->get('/circular-price')
+            ->assertOk()
+            ->assertSee('April price circular')
+            ->assertSee('Dealer purchase value schedule');
+        $this->get('/circular-training')->assertOk();
+        $this->get('/circular-meeting')->assertOk();
+    }
 }

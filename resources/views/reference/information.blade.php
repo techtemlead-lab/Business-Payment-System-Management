@@ -9,6 +9,10 @@
         'faq' => $siteCustomization['faq_hero_title'] ?? 'FAQ',
         'privacy' => $siteCustomization['privacy_hero_title'] ?? 'Privacy Policy',
         'terms' => $siteCustomization['terms_hero_title'] ?? 'Terms of Use',
+        'notice' => 'Company Notice',
+        'circular-training' => 'Training Circular',
+        'circular-price' => 'Price Circular',
+        'circular-meeting' => 'Meeting Circular',
     ];
     $pageTitle = filled($content->title ?? null) ? $content->title : ($pageTitles[$page] ?? ucfirst($page));
 @endphp
@@ -401,21 +405,27 @@
 </div>
 @endif
 
-@if(in_array($page, ['privacy', 'terms'], true))
+@if(in_array($page, ['privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ucfirst($page)) }}</h1>
+    <h1>{{ $content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page))) }}</h1>
     @unless(filled($content->body ?? null))
-        <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? '' }}</div>
+        <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? (in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true) ? 'No published notice is available yet. Check back after company staff publish an update.' : '') }}</div>
     @endunless
 </article>
+@if(filled($content->body ?? null) || in_array($page, ['privacy', 'terms'], true))
 <section class="ref-content-card" style="margin-top:22px;">
     <div class="ref-content-prose" style="white-space:pre-line;">{{ $content->body ?? ($siteCustomization[$page.'_body'] ?? '') }}</div>
 </section>
+@endif
 <div class="ref-information-links">
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Head Office</a>@endif
-    @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
-    @if($publicPageEnabled[$altLegal] ?? true)
-    <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    @if(in_array($page, ['privacy', 'terms'], true))
+        @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
+        @if($publicPageEnabled[$altLegal] ?? true)
+        <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        @endif
+    @elseif($publicPageEnabled['partnership'] ?? true)
+        <a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
     @endif
 </div>
 @endif

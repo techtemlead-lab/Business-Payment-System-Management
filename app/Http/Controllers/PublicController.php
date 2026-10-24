@@ -18,7 +18,7 @@ class PublicController extends Controller
 {
     public function index(Request $request, string $page = 'home'): View
     {
-        abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'], true), 404);
+        abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true), 404);
         abort_unless(SiteCustomization::isPageEnabled($page), 404);
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
