@@ -400,4 +400,13 @@ return [
     'ops_add_product' => 'পণ্য যোগ',
     'ops_remove_last_product' => 'শেষ পণ্য সরান',
     'ops_upload_progress' => 'আপলোড অগ্রগতি',
+    'ops_review_due_adjustment' => 'বকেয়া সমন্বয় পর্যালোচনা',
+    'ops_review_application' => 'আবেদন পর্যালোচনা',
+    'ops_review_payroll' => 'পে-রোল পর্যালোচনা',
+    'ops_record_salary_payment' => 'স্যালারি পেমেন্ট রেকর্ড',
+    'ops_review_schedule' => 'সূচি পর্যালোচনা',
+    'ops_review_reserve_request' => 'রিজার্ভ অনুরোধ পর্যালোচনা',
+    'ops_record_expense_payment' => 'খরচ পেমেন্ট রেকর্ড',
+    'ops_cancel_unpaid_expense' => 'অপরিশোধিত খরচ বাতিল',
+    'ops_record_recovered_reserve' => 'পুনরুদ্ধারকৃত রিজার্ভ রেকর্ড',
 ];

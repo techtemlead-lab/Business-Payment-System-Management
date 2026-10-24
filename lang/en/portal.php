@@ -400,4 +400,13 @@ return [
     'ops_add_product' => 'Add product',
     'ops_remove_last_product' => 'Remove last product',
     'ops_upload_progress' => 'Upload progress',
+    'ops_review_due_adjustment' => 'Review due adjustment',
+    'ops_review_application' => 'Review application',
+    'ops_review_payroll' => 'Review payroll',
+    'ops_record_salary_payment' => 'Record salary payment',
+    'ops_review_schedule' => 'Review schedule',
+    'ops_review_reserve_request' => 'Review reserve request',
+    'ops_record_expense_payment' => 'Record expense payment',
+    'ops_cancel_unpaid_expense' => 'Cancel unpaid expense',
+    'ops_record_recovered_reserve' => 'Record recovered reserve',
 ];
