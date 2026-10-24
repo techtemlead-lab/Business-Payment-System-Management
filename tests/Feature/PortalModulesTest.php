@@ -87,4 +87,31 @@ class PortalModulesTest extends TestCase
         $this->actingAs($dealer)->onPortal('manage')->get('/')->assertForbidden();
         $this->assertSame('http://dealer.example.test/', PortalHost::homeUrl($dealer));
     }
+
+    public function test_partner_nav_is_grouped_into_mother_modules(): void
+    {
+        $this->assertSame(['overview'], PortalCatalog::nav('dealer')['home']);
+        $this->assertSame(['orders', 'deliveries', 'dues', 'catalog'], PortalCatalog::nav('dealer')['commerce']);
+        $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
+        $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
+        $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
+        $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
+    }
+
+    public function test_mother_module_labels_are_available_in_english_and_bangla(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'locale' => 'en']);
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('translations.portal.nav_module_commerce', 'Commerce')
+                ->where('translations.portal.nav_module_earnings', 'Earnings & payouts'));
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+        $this->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('translations.portal.nav_module_commerce', 'কমার্স')
+                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট'));
+    }
 }

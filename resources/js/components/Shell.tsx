@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import {
     LayoutDashboard, ShoppingBag, Package, Users, Truck, Wallet, GitBranch,
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -48,6 +48,24 @@ const operationsSections = new Set([
     'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
     'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing',
 ]);
+
+type NavMother = {
+    id: string;
+    labelKey: string;
+    items: string[];
+};
+
+function pick(available: Set<string>, items: string[]): string[] {
+    return items.filter((item) => available.has(item));
+}
+
+function mother(id: string, labelKey: string, items: string[]): NavMother | null {
+    return items.length > 0 ? { id, labelKey, items } : null;
+}
+
+function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
+    return mothers.filter((entry): entry is NavMother => entry !== null);
+}
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
     const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase } = usePage<any>().props;
@@ -119,69 +137,196 @@ export default function Shell({ section, children, action }: { section: string; 
         return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); toggle.current?.focus(); };
     }, [open]);
 
-    const companyGroup = staff ? [
-        'overview',
-        'my-payroll',
-        ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
-        ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
-        ...(capabilities.includes('payroll') ? ['payroll'] : []),
-        ...(capabilities.some(cap => ['finance', 'accounts'].includes(cap)) ? ['data-imports'] : []),
-        ...(capabilities.includes('finance') || user.role === 'super_admin' ? ['service-integrations'] : []),
-        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings'] : []),
-        ...(capabilities.some(cap => ['finance', 'reports', 'field_sales'].includes(cap)) ? ['financial-reports'] : []),
-        ...(user.role === 'super_admin' ? ['access-management'] : []),
-        ...(capabilities.some(cap => ['content', 'catalog'].includes(cap)) ? ['video-marketing'] : []),
-        ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
-        ...(capabilities.includes('finance') ? ['treasury'] : []),
-        ...(ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) ? ['benefits-fund'] : []),
-        ...(capabilities.includes('accounts') ? ['place-codes'] : []),
-        ...(capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) ? ['catalog'] : []),
-        ...(capabilities.includes('inventory') ? ['inventory'] : []),
-        ...(capabilities.includes('content') ? ['website', 'content', 'enquiries'] : []),
-        ...(capabilities.includes('audit') ? ['audit'] : [])
-    ] : [];
-
-    const dealerGroup = staff ? [
-        ...(capabilities.includes('accounts') ? ['accounts', 'partnerships'] : []),
-        ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['orders', 'deliveries', 'dues'] : []),
-        ...(capabilities.includes('finance') ? ['commissions', 'policies', 'ledger', 'reports'] : []),
-        ...(capabilities.includes('accounts') ? ['network-tree', 'area-dealers', 'ranks'] : []),
-        ...(capabilities.includes('finance') ? ['rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals'] : []),
-    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals'] : []);
-
-    const subDealerGroup = staff ? [
-        ...(capabilities.includes('accounts') ? ['sub-dealers'] : []),
-        ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['sub-dealer-orders'] : []),
-        ...(capabilities.includes('finance') ? ['salary'] : []),
-    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals'] : []);
-
-    const group = (title: string, items: string[]) => items.length > 0 && (
-        <nav className="nav-group" aria-label={title}>
-            <span>{title}</span>
-            {items.map(item => {
-                const Icon = icons[item] || LayoutDashboard;
-                return (
-                    <Link
-                        onClick={() => setOpen(false)}
-                        aria-current={section === item ? 'page' : undefined}
-                        className={section === item ? 'selected' : ''}
-                        href={`${base}/${operationsSections.has(item) ? 'operations/' : ''}${item === 'overview' ? '' : item}`}
-                        key={item}
-                    >
-                        <Icon size={18} />
-                        {sectionLabel(item)}
-                        {section === item && <i />}
-                    </Link>
-                );
-            })}
-        </nav>
-    );
-
     const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
+    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit',
+        'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts',
+        'data-imports', 'service-integrations', 'commission-holds', 'financial-readiness', 'financial-reports',
+        'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'].includes(section);
     const isDealerDomain = ['accounts', 'partnerships', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+
+    const staffAvailable = useMemo(() => {
+        const items = new Set<string>(['overview', 'profile', 'security', 'notifications']);
+        if (capabilities.includes('field_sales')) items.add('field-sales');
+        if (capabilities.includes('staff_admin')) items.add('staff-operations');
+        if (capabilities.includes('payroll')) items.add('payroll');
+        items.add('my-payroll');
+        if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
+        if (capabilities.includes('finance') || user.role === 'super_admin') items.add('service-integrations');
+        if (capabilities.includes('finance')) {
+            ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings', 'treasury',
+                'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
+        }
+        if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
+        if (user.role === 'super_admin') items.add('access-management');
+        if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
+        if (capabilities.includes('accounts')) {
+            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers'].forEach((item) => items.add(item));
+        }
+        if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('benefits-fund');
+        if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
+        if (capabilities.includes('inventory')) items.add('inventory');
+        if (capabilities.includes('content')) {
+            ['website', 'content', 'enquiries'].forEach((item) => items.add(item));
+        }
+        if (capabilities.includes('audit')) items.add('audit');
+        if (capabilities.includes('orders') || capabilities.includes('finance')) {
+            ['orders', 'deliveries', 'dues', 'sub-dealer-orders'].forEach((item) => items.add(item));
+        }
+        return items;
+    }, [capabilities, ownerPortal, user.role]);
+
+    const partnerAvailable = useMemo(() => {
+        if (user.role === 'dealer') {
+            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications']);
+        }
+        if (user.role === 'sub_dealer') {
+            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications']);
+        }
+        return new Set(['profile', 'security', 'notifications']);
+    }, [user.role]);
+
+    const domainMothers = useMemo((): NavMother[] => {
+        if (!staff) {
+            if (user.role === 'dealer') {
+                return compactMothers([
+                    mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
+                    mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+                ]);
+            }
+            if (user.role === 'sub_dealer') {
+                return compactMothers([
+                    mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+                ]);
+            }
+            return compactMothers([
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+            ]);
+        }
+
+        const company = compactMothers([
+            mother('home', 'nav_module_home', pick(staffAvailable, ['overview'])),
+            mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales'])),
+            mother('finance_ops', 'nav_module_finance_ops', pick(staffAvailable, [
+                'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
+                'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+            ])),
+            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
+            mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries'])),
+            mother('control', 'nav_module_control', pick(staffAvailable, ['audit'])),
+        ]);
+
+        const dealers = compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
+            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
+            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
+            mother('payouts', 'nav_module_payouts', pick(staffAvailable, ['rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals'])),
+            mother('books', 'nav_module_books', pick(staffAvailable, ['ledger', 'reports'])),
+        ]);
+
+        const subDealers = compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['sub-dealer-orders'])),
+            mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
+        ]);
+
+        const dashboards = compactMothers([
+            mother('controls', 'nav_module_dashboards', pick(staffAvailable, ['dashboards', 'employees'])),
+        ]);
+
+        const account = compactMothers([
+            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications'])),
+        ]);
+
+        const domainModules = currentDomain === 'dashboards'
+            ? dashboards
+            : currentDomain === 'dealers'
+                ? dealers
+                : currentDomain === 'sub_dealers'
+                    ? subDealers
+                    : company;
+
+        return [...domainModules, ...account];
+    }, [staff, user.role, partnerAvailable, staffAvailable, currentDomain]);
+
+    const activeMotherIds = useMemo(
+        () => domainMothers.filter((entry) => entry.items.includes(section)).map((entry) => entry.id),
+        [domainMothers, section],
+    );
+
+    const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds);
+
+    useEffect(() => {
+        setExpandedMothers((previous) => {
+            const next = new Set(previous);
+            activeMotherIds.forEach((id) => next.add(id));
+            if (next.size === 0 && domainMothers[0]) {
+                next.add(domainMothers[0].id);
+            }
+            return Array.from(next);
+        });
+    }, [activeMotherIds, domainMothers]);
+
+    const toggleMother = (id: string) => {
+        setExpandedMothers((previous) => (
+            previous.includes(id) ? previous.filter((entry) => entry !== id) : [...previous, id]
+        ));
+    };
+
+    const sectionHref = (item: string) => `${base}/${operationsSections.has(item) ? 'operations/' : ''}${item === 'overview' ? '' : item}`;
+
+    const renderLink = (item: string) => {
+        const Icon = icons[item] || LayoutDashboard;
+        return (
+            <Link
+                onClick={() => setOpen(false)}
+                aria-current={section === item ? 'page' : undefined}
+                className={section === item ? 'selected' : ''}
+                href={sectionHref(item)}
+                key={item}
+            >
+                <Icon size={17} />
+                {sectionLabel(item)}
+                {section === item && <i />}
+            </Link>
+        );
+    };
+
+    const renderMothers = (mothers: NavMother[]) => mothers.map((entry) => {
+        const expanded = expandedMothers.includes(entry.id);
+        const hasActive = entry.items.includes(section);
+        return (
+            <nav
+                key={entry.id}
+                className={`nav-group nav-mother ${hasActive ? 'has-active' : ''} ${expanded ? 'is-open' : ''}`}
+                aria-label={translate('portal', entry.labelKey)}
+            >
+                <button
+                    type="button"
+                    className="nav-mother-toggle"
+                    aria-expanded={expanded}
+                    onClick={() => toggleMother(entry.id)}
+                >
+                    <span>{translate('portal', entry.labelKey)}</span>
+                    <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
+                </button>
+                {expanded && (
+                    <div className="nav-mother-body">
+                        {entry.items.map(renderLink)}
+                    </div>
+                )}
+            </nav>
+        );
+    });
+
     const currentSectionTitle = section === 'overview'
         ? dashboardTitle
         : sectionLabel(section);
@@ -217,21 +362,19 @@ export default function Shell({ section, children, action }: { section: string; 
                     {workspaceLabel}
                 </div>
 
-                {staff ? (
-                    <>
-                        {group(ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'), companyGroup)}
-                        {group(translate('portal', 'nav_dealer_section'), dealerGroup)}
-                        {group(translate('portal', 'nav_subdealer_section'), subDealerGroup)}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
-                    </>
-                ) : (
-                    <>
-                        {user.role === 'dealer' && group(translate('portal', 'nav_dealer_workspace'), dealerGroup)}
-                        {user.role === 'sub_dealer' && group(translate('portal', 'nav_subdealer_workspace'), subDealerGroup)}
-                        {group(translate('portal', 'nav_my_earnings'), ['earnings', 'withdrawals'])}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
-                    </>
+                {staff && (
+                    <div className="sidebar-domain-label">
+                        {currentDomain === 'dashboards'
+                            ? translate('portal', 'nav_dashboard_mgmt')
+                            : currentDomain === 'company'
+                                ? (ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'))
+                                : currentDomain === 'dealers'
+                                    ? translate('portal', 'nav_dealer_section')
+                                    : translate('portal', 'nav_subdealer_section')}
+                    </div>
                 )}
+
+                {renderMothers(domainMothers)}
 
                 <div className="sidebar-footer">
                     {!staff && (

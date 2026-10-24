@@ -8,11 +8,19 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .sidebar.open{transform:translateX(0)}
 .company-shell .sidebar{background:#011627;transform:none}
 .company-shell .workspace{margin-left:256px}
+.app-shell .nav-group{margin-bottom:6px}
 .app-shell .nav-group>span{color:#d0d4fb;font-size:10px;letter-spacing:.08em;padding-left:12px}
-.app-shell .nav-group>a{color:white;padding:11px 12px;font-size:12px;border-radius:6px;margin:4px 0}
-.app-shell .nav-group>a:hover{background:#ffffff1a}
-.app-shell .nav-group>a.selected{background:white;color:#2e3192}
-.app-shell .nav-group>a.selected i{background:#ef4a23}
+.app-shell .sidebar-domain-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9aa3d8;padding:4px 12px 10px;opacity:.9}
+.app-shell .nav-mother-toggle{width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:0;color:#e8ebff;padding:9px 10px;border-radius:7px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;font-family:inherit;text-align:left}
+.app-shell .nav-mother-toggle:hover{background:#ffffff14}
+.app-shell .nav-mother.has-active>.nav-mother-toggle{color:#fff;background:#ffffff12}
+.app-shell .nav-mother-toggle .nav-chevron{margin-left:auto;opacity:.75;transition:transform .18s ease;flex-shrink:0}
+.app-shell .nav-mother.is-open>.nav-mother-toggle .nav-chevron{transform:rotate(180deg)}
+.app-shell .nav-mother-body{display:flex;flex-direction:column;padding:2px 0 6px 4px;border-left:1px solid #ffffff22;margin:0 0 4px 10px}
+.app-shell .nav-group a,.app-shell .nav-mother-body>a{color:white;padding:9px 10px;font-size:12px;border-radius:6px;margin:2px 0;display:flex;align-items:center;gap:10px;position:relative}
+.app-shell .nav-group a:hover,.app-shell .nav-mother-body>a:hover{background:#ffffff1a}
+.app-shell .nav-group a.selected,.app-shell .nav-mother-body>a.selected{background:white;color:#2e3192}
+.app-shell .nav-group a.selected i,.app-shell .nav-mother-body>a.selected i{background:#ef4a23;position:absolute;right:10px;width:4px;height:4px;border-radius:50%}
 .app-shell .workspace-label{background:#ffffff12;border-color:#ffffff25;color:#e5e7ff}
 .app-shell .live-dot{background:#38d184}
 .app-shell .help-card{background:#ffffff0e;border-color:#ffffff22;color:white}
@@ -154,8 +162,11 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .owner-shell .workspace-header{background:rgba(255,253,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e8e2d6;max-width:none;height:78px;padding:0 28px}
 .owner-shell .workspace-main{max-width:1600px;padding:28px}
 .owner-shell .workspace-menu-button{display:none}
-.owner-shell .nav-group>a.selected{background:#f8f1e7;color:#0b1f33}
-.owner-shell .nav-group>a.selected i{background:#c9a227}
+.owner-shell .nav-group a.selected,.owner-shell .nav-mother-body>a.selected{background:#f8f1e7;color:#0b1f33}
+.owner-shell .nav-group a.selected i,.owner-shell .nav-mother-body>a.selected i{background:#c9a227}
+.owner-shell .sidebar-domain-label{color:#d4c39a}
+.owner-shell .nav-mother-toggle{color:#f3ead6}
+.owner-shell .nav-mother.has-active>.nav-mother-toggle{background:#ffffff14}
 .owner-shell .button.dark{background:#0b1f33;border-color:#0b1f33}
 .owner-shell .page-heading .eyebrow,.company-shell .page-heading .eyebrow,.dealer-shell .page-heading .eyebrow,.subdealer-shell .page-heading .eyebrow{display:inline-block;letter-spacing:.12em;font-size:11px;font-weight:700;margin-bottom:8px}
 .owner-shell .page-heading .eyebrow{color:#8a7040}
@@ -163,7 +174,8 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .dealer-shell .page-heading .eyebrow{color:#2e3192}
 .subdealer-shell .page-heading .eyebrow{color:#1f4d3a}
 .subdealer-shell .sidebar{background:linear-gradient(180deg,#1f4d3a 0%,#275c46 100%)}
-.subdealer-shell .nav-group>a.selected{color:#1f4d3a}
+.subdealer-shell .nav-group a.selected,.subdealer-shell .nav-mother-body>a.selected{color:#1f4d3a}
+.subdealer-shell .sidebar-domain-label{color:#b7e0c8}
 .subdealer-shell .button.dark{background:#1f4d3a;border-color:#1f4d3a}
 .subdealer-shell .text-link{color:#1f4d3a}
 .dealer-shell .sidebar{background:linear-gradient(180deg,#2e3192 0%,#252878 100%)}
