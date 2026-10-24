@@ -50,11 +50,11 @@ class ClientDeliveryAdjustmentsTest extends TestCase
             ->assertJsonPath('data.commission_places.4.code', 'MNHC-501');
     }
 
-    public function test_mo_target_default_is_one_lakh(): void
+    public function test_mo_target_default_is_two_point_five_lakh(): void
     {
-        $this->assertSame('100000.00', CommissionPolicy::defaults()['rank_royalty']['parameters']['mo_target']);
+        $this->assertSame('250000.00', CommissionPolicy::defaults()['rank_royalty']['parameters']['mo_target']);
         $snapshot = app(CommissionPolicy::class)->snapshot(false);
-        $this->assertSame('100000.00', $snapshot['rules']['rank_royalty']['parameters']['mo_target']);
+        $this->assertSame('250000.00', $snapshot['rules']['rank_royalty']['parameters']['mo_target']);
     }
 
     public function test_sub_dealer_onboarding_stores_shop_name(): void

@@ -27,7 +27,7 @@ final class CommissionPolicy
             'd2d_multitier' => ['d2d', 'Dealer-to-dealer referral', '3.00', ['gen2_pct' => '2.00', 'gen3_pct' => '1.00', 'dynamic_compression' => false]],
             'area_dealer_pool' => ['area', 'Area dealer pool', '10.00', ['management_share_pct' => '2.00', 'division_share_pct' => '2.00', 'district_share_pct' => '2.00', 'upazila_share_pct' => '2.00', 'union_share_pct' => '2.00']],
             'dealer_monthly_salary' => ['salary', 'Dealer monthly salary pool', '2.00', ['min_monthly_volume' => '10000.00']],
-            'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '100000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
+            'rank_royalty' => ['rank', 'Rank royalty pool', '4.00', ['mo_target' => '250000.00', 'am_count' => 10, 'sm_count' => 10, 'me_count' => 10, 'qualification_depth' => 3, 'mo_share_pct' => '1.00', 'am_share_pct' => '1.00', 'sm_share_pct' => '1.00', 'me_share_pct' => '1.00']],
             'rank_incentive' => ['incentive', 'Rank incentive reserve', '2.00', ['mo_bonus' => '5000.00', 'am_bonus' => '50000.00', 'sm_bonus' => '250000.00', 'me_bonus' => '300000.00']],
             'company_marketing' => ['marketing', 'Marketing reserve', '2.00', []],
             'car_bike_incentive' => ['rewards', 'Car and motorcycle reserve', '2.00', ['bike_target' => '5000000.00', 'bike_leg_cap' => '800000.00', 'car_target' => '250000000.00', 'car_leg_cap' => '20000000.00']],
