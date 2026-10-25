@@ -6,6 +6,7 @@ import {
     XCircle, Clock, ArrowRight, ShieldAlert, Award
 } from 'lucide-react';
 import { Table, Pagination, Badge, Empty, date, type Row } from './UI';
+import { useT } from '../shared/i18n/t';
 
 export interface PermissionDefinition {
     key: string;
@@ -32,6 +33,7 @@ export interface EmployeeHubProps {
 }
 
 export default function EmployeesHub({ employees, availablePermissions, stats, filters }: EmployeeHubProps) {
+    const translate = useT();
     const {auth} = usePage<any>().props;
     const canManageStaff = auth.user.role === 'super_admin';
     const [search, setSearch] = useState(filters.q || '');
@@ -145,14 +147,13 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                     <div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#011627', textTransform: 'uppercase', marginBottom: 4 }}>
                             <ShieldCheck size={16} color="#059669" />
-                            STAFF ACCESS &amp; PERMISSION CONTROL
+                            {translate('portal', 'emp_badge')}
                         </div>
                         <h2 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
-                            Company Employee Dashboard &amp; Role Delegation
+                            {translate('portal', 'emp_heading')}
                         </h2>
                         <p style={{ margin: 0, color: '#64748b', fontSize: 13, maxWidth: 760 }}>
-                            Super Admin can create employee accounts and manually select which capabilities to grant.
-                            Employees logging into the company portal will have their visible sections, actions, and features strictly limited to their manually assigned permissions.
+                            {translate('portal', 'emp_heading_hint')}
                         </p>
                     </div>
 
@@ -164,7 +165,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', fontWeight: 700 }}
                     >
                         <UserPlus size={18} />
-                        Add New Employee
+                        {translate('portal', 'emp_add')}
                     </button>
                 </div>
             </div>
@@ -172,35 +173,35 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
             {/* Metrics cards */}
             <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 16, marginBottom: 24 }}>
                 <div className="metric" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '18px 20px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Total Staff / Employees</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>{translate('portal', 'emp_kpi_total')}</span>
                     <strong style={{ fontSize: 28, fontWeight: 800, color: '#011627', display: 'block', marginTop: 4 }}>
                         {stats.total}
                     </strong>
-                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Accounts with company portal access</small>
+                    <small style={{ color: '#94a3b8', fontSize: 11 }}>{translate('portal', 'emp_kpi_total_hint')}</small>
                 </div>
 
                 <div className="metric" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '18px 20px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#059669' }}>Active Employees</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#059669' }}>{translate('portal', 'emp_kpi_active')}</span>
                     <strong style={{ fontSize: 28, fontWeight: 800, color: '#059669', display: 'block', marginTop: 4 }}>
                         {stats.active}
                     </strong>
-                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Can log in with granted permissions</small>
+                    <small style={{ color: '#94a3b8', fontSize: 11 }}>{translate('portal', 'emp_kpi_active_hint')}</small>
                 </div>
 
                 <div className="metric" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '18px 20px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e11d48' }}>Suspended Accounts</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e11d48' }}>{translate('portal', 'emp_kpi_suspended')}</span>
                     <strong style={{ fontSize: 28, fontWeight: 800, color: '#e11d48', display: 'block', marginTop: 4 }}>
                         {stats.suspended}
                     </strong>
-                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Access blocked immediately</small>
+                    <small style={{ color: '#94a3b8', fontSize: 11 }}>{translate('portal', 'emp_kpi_suspended_hint')}</small>
                 </div>
 
                 <div className="metric" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '18px 20px' }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#2563eb' }}>Configurable Permissions</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#2563eb' }}>{translate('portal', 'emp_kpi_perms')}</span>
                     <strong style={{ fontSize: 28, fontWeight: 800, color: '#2563eb', display: 'block', marginTop: 4 }}>
                         {availablePermissions.length}
                     </strong>
-                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Granular feature isolation modules</small>
+                    <small style={{ color: '#94a3b8', fontSize: 11 }}>{translate('portal', 'emp_kpi_perms_hint')}</small>
                 </div>
             </div>
 
@@ -208,9 +209,9 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
             <section className="panel table-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                     <div>
-                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Employee Directory &amp; Assigned Capabilities</h3>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{translate('portal', 'emp_directory_title')}</h3>
                         <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                            Click "Edit Permissions" on any employee to modify their access capabilities at any time.
+                            {translate('portal', 'emp_directory_hint')}
                         </p>
                     </div>
 
@@ -218,14 +219,14 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         <div className="search-input">
                             <Search size={16} />
                             <input
-                                placeholder="Search employees by name, email, phone…"
+                                placeholder={translate('portal', 'emp_search_ph')}
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                             />
                         </div>
-                        <button className="button small">Search</button>
+                        <button className="button small">{translate('portal', 'emp_search')}</button>
                         {filters.q && (
-                            <Link href="/employees" className="text-link">Clear</Link>
+                            <Link href="/employees" className="text-link">{translate('portal', 'clear')}</Link>
                         )}
                     </form>
                 </div>
@@ -235,7 +236,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                     columns={[
                         {
                             key: 'name',
-                            title: 'Employee',
+                            title: translate('portal', 'emp_col_employee'),
                             render: r => (
                                 <div>
                                     <b style={{ color: '#0f172a', display: 'block' }}>{r.name}</b>
@@ -248,16 +249,16 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         },
                         {
                             key: 'status',
-                            title: 'Status',
+                            title: translate('portal', 'col_status'),
                             render: r => <Badge status={r.status} />
                         },
                         {
                             key: 'permissions',
-                            title: 'Granted Capabilities',
+                            title: translate('portal', 'emp_col_capabilities'),
                             render: r => {
                                 const perms: string[] = r.effective_permissions ?? [];
                                 if (!perms.length) {
-                                    return <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>No permissions granted (Restricted)</span>;
+                                    return <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>{translate('portal', 'emp_no_perms')}</span>;
                                 }
                                 return (
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 380 }}>
@@ -289,12 +290,12 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         },
                         {
                             key: 'created_at',
-                            title: 'Onboarded',
+                            title: translate('portal', 'emp_col_onboarded'),
                             render: r => <small style={{ color: '#64748b' }}>{date(r.created_at)}</small>
                         },
                         {
                             key: 'actions',
-                            title: 'Management Actions',
+                            title: translate('portal', 'emp_col_actions'),
                             render: r => (
                                 <div className="inline-actions" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                                     <button
@@ -304,7 +305,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         disabled={!canManageStaff}
                                         onClick={() => handleOpenEdit(r)}
                                     >
-                                        Edit staff details
+                                        {translate('portal', 'emp_edit_details')}
                                     </button>
                                     <button
                                         type="button"
@@ -313,7 +314,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         disabled={!canManageStaff || r.status !== 'active'}
                                         onClick={() => router.post(`/commands/accounts/${r.id}/invite`)}
                                     >
-                                        Send Invite
+                                        {translate('portal', 'emp_send_invite')}
                                     </button>
                                 </div>
                             )
@@ -323,8 +324,8 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
 
                 {!employees.data.length && (
                     <Empty
-                        title="No employee accounts found"
-                        body="Click '+ Add New Employee' above to create an employee account and grant permissions manually."
+                        title={translate('portal', 'emp_empty_title')}
+                        body={translate('portal', 'emp_empty_body')}
                     />
                 )}
 
