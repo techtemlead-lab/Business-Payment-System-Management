@@ -208,6 +208,23 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertSame($union->code, $second->profile['union_place_code']);
     }
 
+    public function test_refer_preview_warnings_use_portal_locale_copy(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'locale' => 'bn']);
+        User::factory()->dealer()->create(['refer_code' => 'REF-TAKEN', 'dealer_code' => 'D-TAKEN']);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->getJson('/commands/identity/refer-preview?reference_code=REF-MISSING&refer_code=REF-TAKEN')
+            ->assertOk()
+            ->assertJsonPath('data.warnings.0', __('portal.acct_val_refer_taken', [], 'bn'))
+            ->assertJsonPath('data.warnings.1', __('portal.acct_val_reference_missing', [], 'bn'));
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->getJson('/commands/identity/refer-preview?reference_code=SAME&refer_code=SAME')
+            ->assertOk()
+            ->assertJsonPath('data.warnings.0', __('portal.acct_val_reference_same_as_refer', [], 'bn'));
+    }
+
     public function test_duplicate_refer_code_is_rejected(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
