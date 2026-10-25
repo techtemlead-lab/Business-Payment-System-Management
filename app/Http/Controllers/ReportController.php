@@ -12,7 +12,7 @@ class ReportController extends Controller
     public function export(Request $r)
     {
         $u = $r->user();
-        abort_unless(! $u->staff() || $u->allows('reports'), 403);
+        abort_unless(! $u->staff() || $u->allows('reports') || $u->allows('orders') || $u->allows('finance'), 403);
         $d = $r->validate(['from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from']);
         $q = Order::when(! $u->staff(), fn ($q) => $q->where('user_id', $u->id))->when(isset($d['from']), fn ($q) => $q->where('created_at', '>=', Carbon::parse($d['from'], 'Asia/Dhaka')->utc()))->when(isset($d['to']), fn ($q) => $q->where('created_at', '<', Carbon::parse($d['to'], 'Asia/Dhaka')->addDay()->utc()))->orderBy('created_at');
         Audit::record($u->id, 'report.exported', 'orders', $d);

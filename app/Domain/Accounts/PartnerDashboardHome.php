@@ -55,9 +55,9 @@ final class PartnerDashboardHome
             ->sum('amount'));
 
         $chart = [
-            ['key' => 'own', 'label' => 'Today purchase', 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
-            ['key' => 'team', 'label' => 'Team sales', 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
-            ['key' => 'commission', 'label' => 'Commission (month)', 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
+            ['key' => 'own', 'label' => __('portal.today_purchase'), 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
+            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
+            ['key' => 'commission', 'label' => __('portal.commission_month'), 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
         ];
 
         return [

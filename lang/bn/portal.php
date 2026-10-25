@@ -443,4 +443,5 @@ return [
     'target_highest_rank_hint' => 'সর্বোচ্চ র‍্যাঙ্ক অর্জিত।',
     'target_bike_incentive' => 'বাইক ইনসেনটিভ',
     'target_bike_incentive_hint' => 'মোটরসাইকেল ইনসেনটিভের দিকে যোগ্য টিম ভলিউম (লেগ ক্যাপ প্রযোজ্য)।',
+    'view_all' => 'সব দেখুন',
 ];

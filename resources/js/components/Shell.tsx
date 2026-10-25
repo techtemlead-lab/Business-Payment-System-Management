@@ -160,6 +160,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
         }
         if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
+        if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) items.add('reports');
         if (user.role === 'super_admin') items.add('access-management');
         if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
         if (capabilities.includes('accounts')) {

@@ -443,4 +443,5 @@ return [
     'target_highest_rank_hint' => 'Highest rank achieved.',
     'target_bike_incentive' => 'Bike incentive',
     'target_bike_incentive_hint' => 'Qualified team volume toward the motorcycle incentive (leg caps applied).',
+    'view_all' => 'View all',
 ];

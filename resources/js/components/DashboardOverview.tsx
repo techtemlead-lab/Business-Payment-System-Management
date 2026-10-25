@@ -230,7 +230,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                         <h2>{translate('portal', 'recent_orders')}</h2>
                         <p>{translate('portal', 'recent_orders_hint')}</p>
                     </div>
-                    <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                    <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                 </div>
                 {orders}
             </section>
@@ -240,6 +240,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
 
 function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const u = auth.user;
     const caps: string[] = auth.capabilities;
     const staff = caps.length > 0;
@@ -311,7 +312,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                             <h2>Recent orders</h2>
                             <p>Purchase requests and fulfilment progress.</p>
                         </div>
-                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                        <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
                     {orders}
                 </section>
@@ -333,6 +334,7 @@ function labelRole(role: string) {
 
 export default function DashboardOverview({ data, orders }: { data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const u = auth.user;
     const caps: string[] = auth.capabilities;
     const staff = caps.length > 0;
@@ -388,7 +390,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
                 <section className="panel table-panel dense-panel">
                     <div className="panel-heading">
                         <div><h2>Recent orders</h2></div>
-                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                        <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
                     {orders}
                 </section>
