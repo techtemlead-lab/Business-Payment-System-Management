@@ -232,6 +232,108 @@ final class PartnerAccountProvisioning
     }
 
     /**
+     * Re-anchor a partner's commission geography to a catalog place code.
+     * Dealers move their active AreaDealerAssignment seat; sub-dealers keep
+     * their serial dealer_code while updating union_place_code / place_code.
+     */
+    public function rebindGeography(User $actor, User $partner, string $placeCodeValue, string $reason): void
+    {
+        if (! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_role')]);
+        }
+
+        $placeCodeValue = trim($placeCodeValue);
+        if ($placeCodeValue === '') {
+            throw ValidationException::withMessages(['place_code' => $partner->role === 'sub_dealer'
+                ? __('portal.acct_val_place_sub')
+                : __('portal.acct_val_place_dealer')]);
+        }
+
+        $place = PlaceCode::findByCode($placeCodeValue);
+        if (! $place) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
+        }
+        if ($partner->role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_level')]);
+        }
+        if ($partner->role === 'dealer' && $place->level === PlaceCode::LevelManagement) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_management')]);
+        }
+
+        $currentCode = (string) (($partner->profile['place_code'] ?? '') ?: '');
+        if ($currentCode !== '' && strcasecmp($currentCode, $place->code) === 0) {
+            return;
+        }
+
+        if ($partner->role === 'dealer') {
+            $taken = AreaDealerAssignment::query()
+                ->where('place_code_id', $place->id)
+                ->where('is_active', true)
+                ->where('user_id', '!=', $partner->id)
+                ->exists();
+            if ($taken) {
+                throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
+            }
+        }
+
+        $path = $this->geography->expandFromAnchor($place);
+
+        DB::transaction(function () use ($actor, $partner, $place, $path, $reason, $currentCode): void {
+            CommissionWallet::lock();
+            $locked = User::whereKey($partner->id)->lockForUpdate()->firstOrFail();
+            $profile = is_array($locked->profile) ? $locked->profile : [];
+            $profile['place_code'] = $place->code;
+            $profile['place_code_id'] = $place->id;
+            $profile['upazila'] = $path['upazila'] ?? ($profile['upazila'] ?? null);
+            $profile['union'] = $path['union'] ?? ($profile['union'] ?? null);
+            if ($locked->role === 'dealer') {
+                $profile['area_code'] = $place->code;
+                $profile['union_place_code'] = null;
+            } else {
+                $profile['union_place_code'] = $place->code;
+            }
+
+            $locked->forceFill([
+                'division' => $path['division'] ?? $locked->division,
+                'district' => $path['district'] ?? $locked->district,
+                'profile' => $profile,
+            ])->save();
+
+            if ($locked->role === 'dealer') {
+                AreaDealerAssignment::query()
+                    ->where('user_id', $locked->id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false, 'updated_at' => now()]);
+                AreaDealerAssignment::create([
+                    'user_id' => $locked->id,
+                    'level' => $place->level,
+                    'place_code_id' => $place->id,
+                    'zone_name' => $place->name.' ('.$place->code.')',
+                    'division' => $path['division'],
+                    'district' => $path['district'],
+                    'upazila' => $path['upazila'],
+                    'union' => $path['union'],
+                    'monthly_quota' => match ($place->level) {
+                        'division' => '50000.00',
+                        'district' => '40000.00',
+                        'upazila' => '20000.00',
+                        default => '10000.00',
+                    },
+                    'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
+                    'is_active' => true,
+                ]);
+            }
+
+            Audit::record($actor->id, 'account.geography_updated', (string) $locked->id, [
+                'from_place_code' => $currentCode !== '' ? $currentCode : null,
+                'to_place_code' => $place->code,
+                'role' => $locked->role,
+                'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
+    /**
      * @return array{
      *   label:string,
      *   path:array<string,mixed>,

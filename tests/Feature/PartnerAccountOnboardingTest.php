@@ -249,4 +249,89 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertJsonPath('data.commission_places.4.code', 'MNHC-501')
             ->assertJsonPath('data.available', true);
     }
+
+    public function test_account_update_rebinds_dealer_place_code_and_moves_area_assignment(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $from = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $to = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456789',
+            'date_of_birth' => '1985-05-01',
+            'name' => 'Moveable Dealer',
+            'name_bn' => 'স্থানান্তরযোগ্য',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => $from->code,
+            'refer_code' => 'REF-MOVE',
+            'phone' => '01710000011',
+            'email' => 'moveable@example.com',
+            'reason' => 'Create under Dhaka before geography correction',
+        ])->assertRedirect('/accounts');
+
+        $dealer = User::query()->where('email', 'moveable@example.com')->firstOrFail();
+        $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $from->id)->where('is_active', true)->exists());
+
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'name' => 'Moveable Dealer',
+            'place_code' => $to->code,
+            'reason' => 'Correct territory to Rangpur division catalog code',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $dealer->refresh();
+        $this->assertSame($to->code, $dealer->profile['place_code']);
+        $this->assertSame($to->id, $dealer->profile['place_code_id']);
+        $this->assertSame($to->code, $dealer->profile['area_code']);
+        $this->assertFalse(AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $from->id)->where('is_active', true)->exists());
+        $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $to->id)->where('is_active', true)->exists());
+    }
+
+    public function test_account_update_rejects_rebinding_dealer_onto_taken_place_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456701',
+            'date_of_birth' => '1985-05-01',
+            'name' => 'Seat Holder',
+            'name_bn' => 'অধিকারী',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-101',
+            'refer_code' => 'REF-SEAT',
+            'phone' => '01710000021',
+            'email' => 'seat@example.com',
+            'reason' => 'Owns Dhaka seat',
+        ])->assertRedirect('/accounts');
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456702',
+            'date_of_birth' => '1986-05-01',
+            'name' => 'Other Dealer',
+            'name_bn' => 'অন্য',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-102',
+            'refer_code' => 'REF-OTHER',
+            'phone' => '01710000022',
+            'email' => 'other-seat@example.com',
+            'reason' => 'Owns Rangpur seat',
+        ])->assertRedirect('/accounts');
+
+        $other = User::query()->where('email', 'other-seat@example.com')->firstOrFail();
+        $this->actingAs($admin)->onPortal('sadmin')->from('/accounts')->patch('/commands/accounts/'.$other->id, [
+            'name' => 'Other Dealer',
+            'place_code' => 'MNHC-101',
+            'reason' => 'Attempt to steal Dhaka seat',
+        ])->assertRedirect('/accounts')->assertSessionHasErrors('place_code');
+
+        $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $other->id)->where('place_code_id', PlaceCode::query()->where('code', 'MNHC-102')->value('id'))->where('is_active', true)->exists());
+    }
 }

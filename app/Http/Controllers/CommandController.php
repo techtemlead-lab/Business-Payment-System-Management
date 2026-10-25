@@ -223,7 +223,7 @@ class CommandController extends Controller
         ]));
     }
 
-    public function accountUpdate(Request $r, User $user): RedirectResponse
+    public function accountUpdate(Request $r, User $user, PartnerAccountProvisioning $partners): RedirectResponse
     {
         $this->permit($r, 'accounts');
         abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
@@ -231,7 +231,8 @@ class CommandController extends Controller
         if ($r->exists('nid')) {
             $this->permit($r, 'identity_write');
         }
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
+        $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
@@ -269,7 +270,16 @@ class CommandController extends Controller
             $d['profile'] = array_merge($existing, $incoming);
         }
         unset($d['permissions']);
-        DB::transaction(function () use ($r, $user, $d) {
+        $placeCode = isset($d['place_code']) ? trim((string) $d['place_code']) : '';
+        unset($d['place_code']);
+        if ($isPartner && $placeCode !== '') {
+            // Catalog place code is the geography source of truth — ignore free-text geo overrides on the same request.
+            unset($d['division'], $d['district']);
+            if (isset($d['profile']) && is_array($d['profile'])) {
+                unset($d['profile']['upazila'], $d['profile']['union'], $d['profile']['area_code']);
+            }
+        }
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
@@ -281,6 +291,9 @@ class CommandController extends Controller
 
             // Privilege fields are guarded on User; forceFill only after accounts authorization above.
             $locked->forceFill($d)->save();
+            if ($isPartner && $placeCode !== '') {
+                $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
+            }
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();

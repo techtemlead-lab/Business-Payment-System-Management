@@ -31,6 +31,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         phone: account.phone ?? '',
         division: account.division ?? '',
         district: account.district ?? '',
+        place_code: account.profile?.place_code ?? account.profile?.area_code ?? '',
         latitude: account.latitude ?? '',
         longitude: account.longitude ?? '',
         directory_visible: account.directory_visible ? '1' : '0',
@@ -98,13 +99,17 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 <label>{translate('portal', 'acct_phone_number')}
                     <input value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} />
                 </label>
-                <label>{translate('portal', 'acct_division')}
-                    <input value={form.data.division} onChange={event => form.setData('division', event.target.value)} />
-                </label>
-                <label>{translate('portal', 'acct_district_plain')}
-                    <input value={form.data.district} onChange={event => form.setData('district', event.target.value)} />
-                </label>
-                {isPartner && <>
+                {isPartner ? <>
+                    <label>{isSubDealer ? translate('portal', 'acct_union_code') : translate('portal', 'acct_place_code')}
+                        <input required value={form.data.place_code} onChange={event => form.setData('place_code', event.target.value.toUpperCase())} placeholder={isSubDealer ? translate('portal', 'acct_union_code_ph') : translate('portal', 'acct_place_code_ph')} />
+                        {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
+                    </label>
+                    <label>{translate('portal', 'acct_division')}
+                        <input readOnly value={form.data.division} />
+                    </label>
+                    <label>{translate('portal', 'acct_district_plain')}
+                        <input readOnly value={form.data.district} />
+                    </label>
                     <label>{translate('portal', 'acct_latitude')}
                         <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={event => form.setData('latitude', event.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} />
                         {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
@@ -113,6 +118,13 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                     </label>
+                </> : <>
+                    <label>{translate('portal', 'acct_division')}
+                        <input value={form.data.division} onChange={event => form.setData('division', event.target.value)} />
+                    </label>
+                    <label>{translate('portal', 'acct_district_plain')}
+                        <input value={form.data.district} onChange={event => form.setData('district', event.target.value)} />
+                    </label>
                 </>}
                 {profileFields.map(field => {
                     if (field === 'shop_name' && !isSubDealer) {
@@ -120,6 +132,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     }
                     if (field === 'pharmacy' && isSubDealer) {
                         return null;
+                    }
+                    if (isPartner && ['upazila', 'union', 'area_code'].includes(field)) {
+                        const fieldLabel = label(field);
+                        return <label key={field}>{fieldLabel}<input readOnly maxLength={150} value={form.data.profile[field]} /></label>;
                     }
                     const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : label(field);
                     return <label key={field}>{fieldLabel}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
