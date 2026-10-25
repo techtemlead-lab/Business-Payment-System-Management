@@ -243,7 +243,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
                         {stats.total}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Enrolled dealers & sub-dealers</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{translate('portal','net_enrolled')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
@@ -273,7 +273,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#7e22ce', marginTop: 4 }}>
                         {stats.smCount + stats.meCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>Higher leadership ranks</div>
+                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>{translate('portal','net_higher_ranks')}</div>
                 </div>
             </div>
 
@@ -294,7 +294,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }} />
                         <input
                             type="text"
-                            placeholder="Search dealer, code, or phone…"
+                            placeholder={translate('portal','net_search_placeholder')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             style={{
@@ -321,12 +321,12 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 color: '#334155'
                             }}
                         >
-                            <option value="all">All Ranks</option>
+                            <option value="all">{translate('portal','net_all_ranks')}</option>
                             <option value="dealer">Dealer</option>
-                            <option value="mo">Marketing Officer (MO)</option>
-                            <option value="am">Area Manager (AM)</option>
-                            <option value="sm">Sales Manager (SM)</option>
-                            <option value="me">Marketing Executive (ME)</option>
+                            <option value="mo">{translate('portal','net_rank_mo')}</option>
+                            <option value="am">{translate('portal','net_rank_am')}</option>
+                            <option value="sm">{translate('portal','net_rank_sm')}</option>
+                            <option value="me">{translate('portal','net_rank_me')}</option>
                         </select>
                     </div>
 
@@ -453,7 +453,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         {/* Tree Nodes Rendering */}
                         <div style={{ paddingTop: 8 }}>
                             {focusedRootId ? (
-                                dealerMap[focusedRootId] ? renderTreeNode(dealerMap[focusedRootId], 0) : <p>Selected root not found</p>
+                                dealerMap[focusedRootId] ? renderTreeNode(dealerMap[focusedRootId], 0) : <p>{translate('portal','net_root_missing')}</p>
                             ) : roots.length > 0 ? (
                                 roots.map(rootNode => renderTreeNode(rootNode, 0))
                             ) : (
@@ -521,7 +521,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                                 {d.sponsor_name ? (
                                                     <span>{d.sponsor_name}</span>
                                                 ) : (
-                                                    <span style={{ color: '#94a3b8' }}>Company Direct</span>
+                                                    <span style={{ color: '#94a3b8' }}>{translate('portal','net_company_direct')}</span>
                                                 )}
                                             </td>
                                             <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
@@ -649,20 +649,20 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     <div style={{ fontSize: 18, fontWeight: 800, color: '#0369a1' }}>
                                         {(childrenMap[activeDealer.id] || []).length}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Direct Referrals (Gen 1)</div>
+                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{translate('portal','net_direct_referrals')}</div>
                                 </div>
                                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, textAlign: 'center' }}>
                                     <div style={{ fontSize: 18, fontWeight: 800, color: '#006837' }}>
                                         {getDownlineCount(activeDealer.id)}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Total Downline Team</div>
+                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{translate('portal','net_total_downline')}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Sponsor info */}
                         <div style={{ marginTop: 14, background: '#f8fafc', padding: 12, borderRadius: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Direct Sponsor (Upline)</div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal','net_direct_sponsor')}</div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginTop: 2 }}>
                                 {activeDealer.sponsor_name || 'Direct Company Placement'}
                             </div>
