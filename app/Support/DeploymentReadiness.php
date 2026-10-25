@@ -121,6 +121,12 @@ final class DeploymentReadiness
             && ! Cache::has('operations:queue-heartbeat')) {
             $warnings[] = 'queue_worker_heartbeat_missing';
         }
+        if (! $strict && config('app.debug') === true) {
+            $warnings[] = 'debug_mode_enabled';
+        }
+        if (! $strict && (! config('madina.backups_enabled') || strlen((string) config('madina.backup_password')) < 32)) {
+            $warnings[] = 'backups_not_configured';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),

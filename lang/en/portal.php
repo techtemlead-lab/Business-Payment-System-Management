@@ -401,6 +401,8 @@ return [
     'ops_warn_queue_driver_is_sync' => 'Queue driver is sync/null — run a durable queue worker (database/redis) before imports and background payouts go live.',
     'ops_warn_scheduler_heartbeat_missing' => 'Scheduler heartbeat missing — run `php artisan schedule:work` (or cron) so maturity release and backups stay on schedule.',
     'ops_warn_queue_worker_heartbeat_missing' => 'Queue worker heartbeat missing — run `php artisan queue:work --queue=imports,default` so imports and background jobs process.',
+    'ops_warn_debug_mode_enabled' => 'APP_DEBUG is enabled — disable debug before production traffic so stack traces and environment details stay private.',
+    'ops_warn_backups_not_configured' => 'Encrypted backups are not configured — set MADINA_BACKUPS_ENABLED and a 32+ character MADINA_BACKUP_PASSWORD, then verify with app:backup-verify.',
     'ops_no_go_live_warnings' => 'No go-live mail/SMS warnings on this host.',
     'ops_account_registry' => 'Company account registry',
     'ops_account' => 'Account',

@@ -401,6 +401,8 @@ return [
     'ops_warn_queue_driver_is_sync' => 'কিউ ড্রাইভার sync/null — আমদানি ও ব্যাকগ্রাউন্ড পে-আউট গো-লাইভের আগে টেকসই কিউ ওয়ার্কার (database/redis) চালান।',
     'ops_warn_scheduler_heartbeat_missing' => 'সিডিউলার হার্টবিট নেই — পরিপক্কতা রিলিজ ও ব্যাকআপ সময়মতো রাখতে `php artisan schedule:work` (বা cron) চালান।',
     'ops_warn_queue_worker_heartbeat_missing' => 'কিউ ওয়ার্কার হার্টবিট নেই — আমদানি ও ব্যাকগ্রাউন্ড জব চালাতে `php artisan queue:work --queue=imports,default` চালান।',
+    'ops_warn_debug_mode_enabled' => 'APP_DEBUG চালু আছে — প্রোডাকশন ট্রাফিকের আগে ডিবাগ বন্ধ করুন যাতে স্ট্যাক ট্রেস ও পরিবেশের বিস্তারিত গোপন থাকে।',
+    'ops_warn_backups_not_configured' => 'এনক্রিপ্টেড ব্যাকআপ কনফিগার নেই — MADINA_BACKUPS_ENABLED ও ৩২+ অক্ষরের MADINA_BACKUP_PASSWORD সেট করুন, তারপর app:backup-verify দিয়ে যাচাই করুন।',
     'ops_no_go_live_warnings' => 'এই হোস্টে কোনো গো-লাইভ মেইল/SMS সতর্কতা নেই।',
     'ops_account_registry' => 'কোম্পানি অ্যাকাউন্ট রেজিস্ট্রি',
     'ops_account' => 'অ্যাকাউন্ট',

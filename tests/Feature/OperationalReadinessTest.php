@@ -59,6 +59,35 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('queue_driver_is_sync', $result['warnings']);
         $this->assertContains('scheduler_heartbeat_missing', $result['warnings']);
         $this->assertNotContains('queue_worker_heartbeat_missing', $result['warnings']);
+        $this->assertContains('backups_not_configured', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_debug_is_enabled_and_clears_when_disabled(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'madina.backups_enabled' => true,
+            'madina.backup_password' => str_repeat('Private-backup-secret-', 3),
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+            'queue.default' => 'database',
+            'app.debug' => true,
+        ]);
+        Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
+        Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertContains('debug_mode_enabled', $result['warnings']);
+        $this->assertNotContains('backups_not_configured', $result['warnings']);
+
+        config(['app.debug' => false]);
+        $cleared = app(DeploymentReadiness::class)->inspect();
+        $this->assertNotContains('debug_mode_enabled', $cleared['warnings']);
     }
 
     public function test_application_readiness_clears_queue_and_scheduler_heartbeat_warnings_when_workers_signal(): void
