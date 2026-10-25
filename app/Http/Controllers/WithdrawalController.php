@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Models\User;
 use App\Support\Audit;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -27,16 +28,13 @@ class WithdrawalController extends Controller
             'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
         $id = $service->request($r->user(), $data);
         $user = $r->user();
-        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
-            ? $user->locale
-            : app()->getLocale();
         app(PartnerEventSms::class)->send(
             $user,
             'withdrawal.requested',
             __('sms.withdrawal_requested', [
                 'amount' => $data['amount'],
                 'channel' => $data['channel'],
-            ], $locale),
+            ], $user->preferredLocale()),
         );
         if ($r->expectsJson()) {
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
@@ -64,6 +62,7 @@ class WithdrawalController extends Controller
         abort_unless($r->user()->allows('finance'), 403);
         $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|max:1000']);
         $s->review($r->user(), $id, $d['decision'], $d['reason']);
+        $this->notifyPartnerWithdrawal($id, $d['decision']);
 
         return back()->with('success', __('portal.flash_withdrawal_review'));
     }
@@ -73,12 +72,42 @@ class WithdrawalController extends Controller
         abort_unless($r->user()->allows('finance'), 403);
         $d = $r->validate(['payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'payment_reference' => 'required|string|max:100', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
-                $fail('Payment time cannot be in the future.');
+                $fail(__('portal.err_wd_paid_at_future'));
             }
         }], 'note' => 'required|string|max:1000']);
         $s->settle($r->user(), $id, $r->file('receipt'), strtoupper(trim($d['payment_reference'])), Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $this->notifyPartnerWithdrawal($id, 'paid');
 
         return back()->with('success', __('portal.flash_withdrawal_paid'));
+    }
+
+    private function notifyPartnerWithdrawal(string $id, string $event): void
+    {
+        $withdrawal = DB::table('withdrawals')->where('id', $id)->first();
+        if (! $withdrawal) {
+            return;
+        }
+        $partner = User::find($withdrawal->user_id);
+        if (! $partner) {
+            return;
+        }
+        $template = match ($event) {
+            'approved' => 'sms.withdrawal_approved',
+            'rejected' => 'sms.withdrawal_rejected',
+            'paid' => 'sms.withdrawal_paid',
+            default => null,
+        };
+        if ($template === null) {
+            return;
+        }
+        app(PartnerEventSms::class)->send(
+            $partner,
+            'withdrawal.'.$event,
+            __($template, [
+                'amount' => $withdrawal->amount,
+                'channel' => $withdrawal->channel,
+            ], $partner->preferredLocale()),
+        );
     }
 
     public function receipt(Request $r, string $id): StreamedResponse

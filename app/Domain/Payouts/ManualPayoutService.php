@@ -66,17 +66,17 @@ class ManualPayoutService
             $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
             abort_unless($w, 404);
             if ($w->status !== 'requested' && ! ($w->status === 'approved' && $decision === 'rejected')) {
-                throw ValidationException::withMessages(['withdrawal' => 'This request has already been reviewed.']);
+                throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_already_reviewed')]);
             }
             if ($actor->id === $w->user_id) {
-                throw ValidationException::withMessages(['withdrawal' => 'You cannot review your own withdrawal.']);
+                throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_self_review')]);
             }
             if ($decision === 'approved' && CommissionWallet::hasDebt($w->user_id)) {
-                throw ValidationException::withMessages(['withdrawal' => 'Outstanding commission clawbacks must be reconciled before payout approval. Reject this unpaid request to release its funds against the debt.']);
+                throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_clawback_before_approve')]);
             }
             $wallet = DB::table('wallets')->where('user_id', $w->user_id)->lockForUpdate()->first();
             if (! $wallet || Money::cents($wallet->held) - Money::cents($wallet->commission_held) < Money::cents($w->amount)) {
-                throw ValidationException::withMessages(['withdrawal' => 'Reserved funds do not reconcile. Review the ledger first.']);
+                throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_held_mismatch')]);
             }
             if ($decision === 'rejected') {
                 DB::table('wallets')->where('id', $wallet->id)->update(['held' => Money::decimal(Money::cents($wallet->held) - Money::cents($w->amount)), 'updated_at' => now()]);
@@ -85,7 +85,14 @@ class ManualPayoutService
             DB::table('withdrawals')->where('id', $id)->update(['status' => $decision, 'reviewed_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
             DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => $decision, 'note' => $reason, 'created_at' => now()]);
             Audit::record($actor->id, 'withdrawal.'.$decision, $id);
-            Audit::notice($w->user_id, 'Withdrawal reviewed', 'Your withdrawal was '.$decision.'. '.$reason);
+            $partner = User::find($w->user_id);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            $decisionLabel = __('portal.wd_decision_'.$decision, [], $locale);
+            Audit::notice(
+                $w->user_id,
+                __('portal.notice_wd_reviewed_title', [], $locale),
+                __('portal.notice_wd_reviewed_body', ['decision' => $decisionLabel, 'reason' => $reason], $locale),
+            );
         }, 3);
     }
 
@@ -100,22 +107,22 @@ class ManualPayoutService
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($w, 404);
                 if ($w->status !== 'approved') {
-                    throw ValidationException::withMessages(['withdrawal' => 'Only an approved request can be recorded as paid.']);
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_not_approved')]);
                 }
                 if (CommissionWallet::hasDebt($w->user_id)) {
-                    throw ValidationException::withMessages(['withdrawal' => 'Reconcile outstanding commission clawbacks before recording payment.']);
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_clawback_before_pay')]);
                 }
                 if ($actor->id === $w->user_id || $actor->id === $w->reviewed_by) {
-                    throw ValidationException::withMessages(['withdrawal' => 'Payment recording needs a different authorized staff member from the reviewer.']);
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
                 if (DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
-                    throw ValidationException::withMessages(['payment_reference' => 'This payment reference is already recorded.']);
+                    throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
                 }
                 app(PaymentAccounts::class)->recordReference($actor, $reference, 'withdrawal:'.$id, $paymentAccountId);
                 DB::table('withdrawals')->where('id', $id)->update(['payment_account_id' => $paymentAccountId]);
                 $wallet = DB::table('wallets')->where('user_id', $w->user_id)->lockForUpdate()->first();
                 if (! $wallet || Money::cents($wallet->held) - Money::cents($wallet->commission_held) < Money::cents($w->amount)) {
-                    throw ValidationException::withMessages(['withdrawal' => 'Reserved funds do not reconcile.']);
+                    throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_held_settle_mismatch')]);
                 }
                 DB::table('wallets')->where('id', $wallet->id)->update(['held' => Money::decimal(Money::cents($wallet->held) - Money::cents($w->amount)), 'updated_at' => now()]);
                 $entry = (string) Str::uuid();
@@ -124,7 +131,13 @@ class ManualPayoutService
                 DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference, 'paid_at' => $paidAt, 'paid_by' => $actor->id, 'receipt_path' => $path, 'receipt_mime' => $receipt->getMimeType(), 'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
                 DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'paid', 'note' => $note, 'created_at' => now()]);
                 Audit::record($actor->id, 'withdrawal.paid', $id, ['receipt_sha256' => hash_file('sha256', $receipt->getRealPath())]);
-                Audit::notice($w->user_id, 'Manual payment recorded', 'Your withdrawal payment and receipt are available in withdrawal history.');
+                $partner = User::find($w->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                Audit::notice(
+                    $w->user_id,
+                    __('portal.notice_wd_paid_title', [], $locale),
+                    __('portal.notice_wd_paid_body', [], $locale),
+                );
             }, 3);
         } catch (\Throwable $e) {
             Storage::disk('local')->delete($path);
