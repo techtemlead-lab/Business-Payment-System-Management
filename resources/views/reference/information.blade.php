@@ -437,11 +437,15 @@
 
 @if(in_array($page, ['privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page))) }}</h1>
+    <h1>{{ $content->title ?? (in_array($page, ['privacy', 'terms'], true)
+        ? $chrome($page.'_hero_title', $siteCustomization[$page.'_hero_title'] ?? null)
+        : ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))) }}</h1>
     @unless(filled($content->body ?? null))
         <div class="ref-content-prose">
             @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
                 {{ app()->getLocale() === 'bn' || blank($siteCustomization[$page.'_hero_lead'] ?? null) ? __('site.notice_empty') : $siteCustomization[$page.'_hero_lead'] }}
+            @elseif(in_array($page, ['privacy', 'terms'], true))
+                {{ $chrome($page.'_hero_lead', $siteCustomization[$page.'_hero_lead'] ?? null) }}
             @else
                 {{ $siteCustomization[$page.'_hero_lead'] ?? '' }}
             @endif
@@ -450,7 +454,9 @@
 </article>
 @if(filled($content->body ?? null) || in_array($page, ['privacy', 'terms'], true))
 <section class="ref-content-card" style="margin-top:22px;">
-    <div class="ref-content-prose" style="white-space:pre-line;">{{ $content->body ?? ($siteCustomization[$page.'_body'] ?? '') }}</div>
+    <div class="ref-content-prose" style="white-space:pre-line;">{{ $content->body ?? (in_array($page, ['privacy', 'terms'], true)
+        ? $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null)
+        : ($siteCustomization[$page.'_body'] ?? '')) }}</div>
 </section>
 @endif
 <div class="ref-information-links">

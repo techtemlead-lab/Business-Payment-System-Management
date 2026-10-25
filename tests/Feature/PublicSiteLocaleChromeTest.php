@@ -110,6 +110,38 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('এখনও সাহায্য দরকার? যোগাযোগ করুন', false)
             ->assertDontSee('Frequently Asked Questions', false)
             ->assertDontSee('Where can I buy Madina products?', false);
+
+        $product = Product::create([
+            'sku' => 'BN-DETAIL-1',
+            'name' => 'Bangla Detail Product',
+            'category' => 'Care',
+            'mrp' => '150.00',
+            'dealer_price' => '90.00',
+            'stock' => 8,
+            'active' => true,
+        ]);
+
+        $this->onPortal('public')->get('/products/'.$product->id)
+            ->assertOk()
+            ->assertSee('আমাদের ডিলারদের মাধ্যমে পাওয়া যায়', false)
+            ->assertSee('ডিলার / সাব-ডিলার লগইন', false)
+            ->assertSee('প্রাপ্যতা', false)
+            ->assertSee('পণ্য কোড', false)
+            ->assertDontSee('Available through our dealers', false)
+            ->assertDontSee('Dealer / Sub-dealer Login', false)
+            ->assertDontSee('Availability:', false);
+
+        $this->onPortal('public')->get('/privacy')
+            ->assertOk()
+            ->assertSee('গোপনীয়তা নীতি', false)
+            ->assertSee('ব্যক্তিগত তথ্য বিক্রি করি না', false)
+            ->assertDontSee('How Madina Natural Health Care handles information', false);
+
+        $this->onPortal('public')->get('/terms')
+            ->assertOk()
+            ->assertSee('ব্যবহারের শর্তাবলী', false)
+            ->assertSee('অনুমোদিত কোম্পানি চ্যানেল', false)
+            ->assertDontSee('Please read these terms before using', false);
     }
 
     public function test_english_locale_keeps_familiar_public_chrome(): void
