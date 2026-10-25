@@ -82,6 +82,8 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('section', 'payouts-hub')
                 ->where('translations.portal.pay_heading', 'পার্টনার পেআউট ও ডিসবার্সমেন্ট হাব')
                 ->where('translations.portal.pay_review_title', 'পার্টনার উত্তোলন অনুরোধ পর্যালোচনা')
-                ->where('translations.portal.pay_record_ledger', 'রেকর্ড ও লেজার পোস্ট'));
+                ->where('translations.portal.pay_record_ledger', 'রেকর্ড ও লেজার পোস্ট')
+                ->where('translations.portal.pco_title', 'কাস্টম কমিশন প্ল্যান')
+                ->where('translations.portal.pco_submit', 'পার্টনার কমিশন প্ল্যান প্রস্তাব'));
     }
 }
