@@ -40,8 +40,12 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('চ্যাট', false)
             ->assertSee('id="ref-site-ui"', false)
             ->assertSee('অবস্থান সনাক্ত করা হচ্ছে', false)
+            ->assertSee('মাদিনা পণ্য, কোম্পানি তথ্য', false)
+            ->assertSee('আমাদের পণ্য', false)
+            ->assertSee('পার্টনার হোন', false)
             ->assertDontSee('Natural food supplements, unani medicine', false)
             ->assertDontSee('Detecting your location...', false)
+            ->assertDontSee('Madina products, company information and dealer network.', false)
             ->assertDontSee('>CHAT<', false);
 
         $this->onPortal('public')->get('/products')

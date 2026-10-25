@@ -2,15 +2,20 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Orders\OrderService;
+use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
+use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 use ZipArchive;
@@ -110,6 +115,22 @@ class OperationalReadinessTest extends TestCase
         config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);
         $this->expectException(ValidationException::class);
         CommissionWallet::requireActive();
+    }
+
+    public function test_preview_mode_delivery_fulfills_without_posting_when_activation_is_misconfigured(): void
+    {
+        config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);
+        $this->seed(CommissionRuleSeeder::class);
+        $buyer = User::factory()->create();
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 3]);
+        $order = app(OrderService::class)->create($buyer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $order->update(['status' => 'delivered', 'paid' => '100.00']);
+        $this->assertSame([], app(CommissionPosting::class)->process($order->fresh()));
+        $this->assertDatabaseCount('commission_batches', 0);
+        $this->assertDatabaseCount('commission_allocations', 0);
     }
 
     public function test_scheduled_release_is_disabled_by_default(): void

@@ -12,6 +12,12 @@ use Illuminate\Validation\ValidationException;
 
 final class PaymentAccounts
 {
+    /** @return list<string> */
+    public static function channels(): array
+    {
+        return ['Bank', 'bKash', 'Nagad', 'Rocket'];
+    }
+
     /** @return list<array<string, mixed>> */
     public function listing(User $actor, bool $collectionOnly = false, bool $revealSecrets = true): array
     {
@@ -37,7 +43,7 @@ final class PaymentAccounts
     public function save(User $actor, array $data, ?int $id = null): int
     {
         abort_unless($actor->allows('finance'), 403);
-        $data = Validator::make($data, ['label' => 'required|string|max:120', 'channel' => 'required|in:Bank,bKash,Nagad,Rocket',
+        $data = Validator::make($data, ['label' => 'required|string|max:120', 'channel' => 'required|in:'.implode(',', self::channels()),
             'holder' => 'required|string|max:150', 'account_number' => ($id ? 'nullable' : 'required').'|string|max:120',
             'details' => 'nullable|string|max:1500', 'collects_payments' => 'required|boolean', 'pays_out' => 'required|boolean',
             'is_active' => 'required|boolean', 'version' => $id ? 'required|integer|min:1' : 'nullable', 'reason' => 'required|string|min:5|max:1000'])->validate();

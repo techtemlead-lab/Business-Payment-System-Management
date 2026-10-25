@@ -24,7 +24,7 @@ class WithdrawalController extends Controller
     {
         abort_unless(in_array($r->user()->role, ['dealer', 'sub_dealer'], true), 403);
         CommissionWallet::requireActive();
-        $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'], 'channel' => 'required|in:Bank,bKash,Nagad',
+        $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'], 'channel' => 'required|in:'.implode(',', PaymentAccounts::channels()),
             'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
         $id = $service->request($r->user(), $data);
         $user = $r->user();

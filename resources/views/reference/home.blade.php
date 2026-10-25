@@ -11,7 +11,7 @@
     $sideBanner1Slides = $siteCustomization['side_banner_1_slides'] ?? [];
     if (empty($sideBanner1Slides)) {
         $sideBanner1Slides = [
-            ['image' => $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg', 'link' => $siteCustomization['side_banner_1_link'] ?? '/products', 'alt' => $siteCustomization['side_banner_1_alt'] ?? 'Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
+            ['image' => $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg', 'link' => $siteCustomization['side_banner_1_link'] ?? '/products', 'alt' => \App\Support\SiteChrome::text('side_banner_1_alt', $siteCustomization['side_banner_1_alt'] ?? null)],
             ['image' => '/branding/madina-top-skincare.jpg', 'link' => '/products', 'alt' => 'Madina Pure Herbal Skincare & Hair Vitality'],
             ['image' => '/branding/madina-top-immunity.jpg', 'link' => '/products', 'alt' => 'Madina Daily Immunity & Vitality Boosters'],
         ];
@@ -20,7 +20,7 @@
     $sideBanner2Slides = $siteCustomization['side_banner_2_slides'] ?? [];
     if (empty($sideBanner2Slides)) {
         $sideBanner2Slides = [
-            ['image' => $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg', 'link' => $siteCustomization['side_banner_2_link'] ?? '/dealers', 'alt' => $siteCustomization['side_banner_2_alt'] ?? 'Madina Authorized Dealer Network - Nationwide Distribution'],
+            ['image' => $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg', 'link' => $siteCustomization['side_banner_2_link'] ?? '/dealers', 'alt' => \App\Support\SiteChrome::text('side_banner_2_alt', $siteCustomization['side_banner_2_alt'] ?? null)],
             ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
             ['image' => '/branding/madina-bottom-pharmacy.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
         ];
@@ -39,7 +39,7 @@
 @endphp
 
 @extends('reference.layout')
-@section('title','Madina Natural Health Care · Products & Dealer Network')
+@section('title', __('site.home_document_title'))
 @section('content')
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
@@ -68,8 +68,8 @@
             @endif
         </div>
     </section>
-    <section class="ref-promotions" aria-label="Promotional banners">
-        <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Featured promotions">
+    <section class="ref-promotions" aria-label="{{ __('site.promotional_banners') }}">
+        <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.featured_promotions') }}">
             <div class="ref-slides">
                 @foreach($slides as $idx => $slide)
                 @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
@@ -78,16 +78,16 @@
                 </a>
                 @endforeach
             </div>
-            <button class="ref-carousel-arrow prev" aria-label="Previous promotion"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-            <button class="ref-carousel-arrow next" aria-label="Next promotion"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+            <button class="ref-carousel-arrow prev" aria-label="{{ __('site.previous_promotion') }}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+            <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
             <div class="ref-carousel-dots">
                 @foreach($slides as $idx => $slide)
-                <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="Show promotion {{ $idx + 1 }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                 @endforeach
             </div>
         </div>
         <div class="ref-side-banners">
-            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Top side promotion">
+            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.top_side_promotion') }}">
                 <div class="ref-slides">
                     @foreach($sideBanner1Slides as $idx => $slide)
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
@@ -96,15 +96,15 @@
                     </a>
                     @endforeach
                 </div>
-                <button class="ref-carousel-arrow prev" aria-label="Previous promotion"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-                <button class="ref-carousel-arrow next" aria-label="Next promotion"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow prev" aria-label="{{ __('site.previous_promotion') }}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                 <div class="ref-carousel-dots">
                     @foreach($sideBanner1Slides as $idx => $slide)
-                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="Show promotion {{ $idx + 1 }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                     @endforeach
                 </div>
             </div>
-            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="Bottom side promotion">
+            <div class="ref-side-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.bottom_side_promotion') }}">
                 <div class="ref-slides">
                     @foreach($sideBanner2Slides as $idx => $slide)
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/dealers') ?? '#'; @endphp
@@ -113,11 +113,11 @@
                     </a>
                     @endforeach
                 </div>
-                <button class="ref-carousel-arrow prev" aria-label="Previous promotion"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
-                <button class="ref-carousel-arrow next" aria-label="Next promotion"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow prev" aria-label="{{ __('site.previous_promotion') }}"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i></button>
+                <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                 <div class="ref-carousel-dots">
                     @foreach($sideBanner2Slides as $idx => $slide)
-                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="Show promotion {{ $idx + 1 }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                     @endforeach
                 </div>
             </div>
@@ -129,7 +129,7 @@
         $shortcutsList = \App\Support\SiteCustomization::getShortcuts();
     @endphp
     @if($shortcutsEnabled && !empty($shortcutsList))
-    <section class="ref-shortcuts" aria-label="Quick links">
+    <section class="ref-shortcuts" aria-label="{{ __('site.quick_links') }}">
         @foreach($shortcutsList as $idx => $s)
         @php
             $icon = trim($s['icon'] ?? 'fa-circle');
@@ -143,7 +143,9 @@
                 }
                 $icon = 'fa-solid ' . $icon;
             }
-            $title = $s['title'] ?: 'Shortcut';
+            $n = $idx + 1;
+            $title = $chrome('shortcut'.$n.'_title', filled($s['title'] ?? null) ? $s['title'] : null);
+            $subtitle = filled($s['subtitle'] ?? null) ? $chrome('shortcut'.$n.'_subtitle', $s['subtitle']) : '';
         @endphp
         <a href="{{ $s['link'] ?: '#' }}">
             @if($isImage)
@@ -153,7 +155,7 @@
             @endif
             <div>
                 <h3>{{ $title }}</h3>
-                @if(!empty($s['subtitle']))<p>{{ $s['subtitle'] }}</p>@endif
+                @if($subtitle !== '')<p>{{ $subtitle }}</p>@endif
             </div>
         </a>
         @endforeach
@@ -256,7 +258,7 @@
         </div>
 
         @if($tabsEnabled && !empty($featuredCategoryTabs) && count($featuredCategoryTabs) > 1)
-        <div class="ref-featured-tabs" role="tablist" aria-label="Product category filters">
+        <div class="ref-featured-tabs" role="tablist" aria-label="{{ __('site.product_category_filters') }}">
             @foreach($featuredCategoryTabs as $tab)
             <button type="button" class="ref-tab-btn {{ $loop->first ? 'is-active' : '' }}" role="tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-category-filter="{{ $tab['slug'] }}">
                 <span>{{ $tab['name'] }}</span>

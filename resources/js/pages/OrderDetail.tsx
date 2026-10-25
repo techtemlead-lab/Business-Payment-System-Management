@@ -83,7 +83,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {owner && open && outstanding !== '0.00' && <section className="panel narrow-panel">
             <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
-                { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: ['Bank', 'bKash', 'Nagad', 'Rocket'].map(value => ({ value, label: value })) },
+                { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: [
+                    { value: 'Bank', label: translate('portal', 'pay_channel_bank') },
+                    { value: 'bKash', label: translate('portal', 'pay_channel_bkash') },
+                    { value: 'Nagad', label: translate('portal', 'pay_channel_nagad') },
+                    { value: 'Rocket', label: translate('portal', 'pay_channel_rocket') },
+                ] },
                 ...(collectionAccounts.length ? [{name:'payment_account_id',label:translate('portal','company_collection_account'),required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
                 { name: 'reference', label: translate('portal', 'transaction_reference'), required: true }, { name: 'amount', label: translate('portal', 'claimed_amount_bdt'), type: 'number', required: true },
             ]} submit={translate('portal', 'submit_for_verification')} />

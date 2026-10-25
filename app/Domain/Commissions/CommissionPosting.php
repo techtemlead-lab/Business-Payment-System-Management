@@ -106,7 +106,12 @@ final class CommissionPosting
     /** @return list<array<string, mixed>> */
     public function process(Order $order, ?int $actorId = null): array
     {
-        if ($order->is_opening_balance || ! config('madina.financial_activation') || Money::cents($order->total) === 0) {
+        if (
+            $order->is_opening_balance
+            || config('madina.preview_mode')
+            || ! config('madina.financial_activation')
+            || Money::cents($order->total) === 0
+        ) {
             return [];
         }
         CommissionWallet::requireActive();
