@@ -10,13 +10,22 @@ export const money=(value:unknown)=>{
  return new Intl.NumberFormat(locale,{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
 };
 export const date=businessDate;
-const businessLabels:Record<string,string>={direct_referral:'Direct referral · Generation 1',d2d_gen2:'D2D · Generation 2',d2d_gen3:'D2D · Generation 3'};
-export const label=(text:string)=>businessLabels[text]??text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+const businessLabelKeys=['direct_referral','d2d_gen2','d2d_gen3'] as const;
+export const label=(text:string,translate?:(group:string,key:string)=>string)=>{
+ if(translate&&(businessLabelKeys as readonly string[]).includes(text)){
+  const key=`label_${text}`;
+  const localized=translate('portal',key);
+  if(localized!==key){
+   return localized;
+  }
+ }
+ return text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+};
 export function Badge({status}:{status:string}) {
  const translate=useT();
  const key=`status_${status}`;
  const localized=translate('portal',key);
- return <span className={`badge ${status}`}>{localized!==key?localized:label(status)}</span>;
+ return <span className={`badge ${status}`}>{localized!==key?localized:label(status,translate)}</span>;
 }
 export function Empty({title,body}:{title?:string,body?:string}) {
  const translate=useT();

@@ -106,11 +106,11 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 </label>
                 {isPartner && <>
                     <label>{translate('portal', 'acct_latitude')}
-                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={event => form.setData('latitude', event.target.value)} placeholder="e.g. 25.7701" />
+                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={event => form.setData('latitude', event.target.value)} placeholder={translate('portal', 'acct_latitude_ph')} />
                         {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
                     </label>
                     <label>{translate('portal', 'acct_longitude')}
-                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder="e.g. 88.8240" />
+                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={event => form.setData('longitude', event.target.value)} placeholder={translate('portal', 'acct_longitude_ph')} />
                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                     </label>
                 </>}

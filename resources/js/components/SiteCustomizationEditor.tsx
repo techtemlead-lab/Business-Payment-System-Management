@@ -944,12 +944,12 @@ function CategoryManager({
                                             {/* Category Name */}
                                             <label style={{ display: 'block' }}>
                                                 <span style={{ fontSize: 11, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
-                                                    Category Name *
+                                                    {translate('portal', 'sce_category_name')}
                                                 </span>
                                                 <input
                                                     type="text"
                                                     value={item.name}
-                                                    placeholder="e.g. Food Supplement"
+                                                    placeholder={translate('portal', 'sce_category_name_ph')}
                                                     onChange={e => handleFieldChange(idx, 'name', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
@@ -959,7 +959,7 @@ function CategoryManager({
                                             <label style={{ display: 'block' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                                     <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
-                                                        Icon (FA class or image URL)
+                                                        {translate('portal', 'sce_icon_label')}
                                                     </span>
                                                     <button
                                                         type="button"
@@ -975,13 +975,13 @@ function CategoryManager({
                                                             cursor: 'pointer',
                                                         }}
                                                     >
-                                                        {isPickerOpen ? '✕ Close Picker' : '🎨 Pick Icon'}
+                                                        {isPickerOpen ? translate('portal', 'sce_close_picker') : translate('portal', 'sce_pick_icon')}
                                                     </button>
                                                 </div>
                                                 <input
                                                     type="text"
                                                     value={item.icon}
-                                                    placeholder="e.g. fa-capsules or /branding/icon.png"
+                                                    placeholder={translate('portal', 'sce_icon_ph')}
                                                     onChange={e => handleFieldChange(idx, 'icon', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
@@ -1045,7 +1045,7 @@ function CategoryManager({
                                                                     cursor: 'pointer',
                                                                 }}
                                                             >
-                                                                {tag || 'Clear'}
+                                                                {tag || translate('portal', 'sce_clear')}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1053,7 +1053,7 @@ function CategoryManager({
                                                 <input
                                                     type="text"
                                                     value={item.badge || ''}
-                                                    placeholder="e.g. HOT, NEW, POPULAR, SALE"
+                                                    placeholder={translate('portal', 'sce_badge_ph')}
                                                     onChange={e => handleFieldChange(idx, 'badge', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
@@ -1485,7 +1485,7 @@ function ShortcutsManager({
                                     <button
                                         type="button"
                                         onClick={() => handleRemove(idx)}
-                                        title="Delete Shortcut"
+                                        title={translate('portal', 'sce_delete_shortcut')}
                                         style={{
                                             border: '1px solid #fecaca',
                                             background: '#fef2f2',
@@ -2431,7 +2431,7 @@ export function CampaignOffersManager({
                                     <button
                                         type="button"
                                         onClick={() => handleRemove(idx)}
-                                        title="Delete Offer Card"
+                                        title={translate('portal', 'sce_delete_offer_card')}
                                         style={{
                                             border: '1px solid #fecaca',
                                             background: '#fef2f2',

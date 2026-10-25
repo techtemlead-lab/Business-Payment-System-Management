@@ -47,10 +47,10 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
     const recipientKeys = ['own_dealer_cashback','direct_referral','d2d_gen2','d2d_gen3','area_division','area_district','area_upazila','area_union'];
     const parameters = policy && form.data.scope!=='recipient' ? Object.fromEntries(Object.entries(policyRules[form.data.rule_key]?.parameters??{}).filter(([key])=>key!=='dynamic_compression')) : {};
     const parameterFields:Field[] = Object.entries(parameters).map(([key,value])=>typeof value==='boolean'
-        ? {...options('parameters.'+key,label(key),['1','0'],true,translate('portal','ops_fld_yes'),translate('portal','ops_fld_no')),value:value?'1':'0'}
-        : {...field('parameters.'+key,label(key.replace(/_pct$/,' (%)')),'number'),value:String(value)});
+        ? {...options('parameters.'+key,label(key,translate),['1','0'],true,translate('portal','ops_fld_yes'),translate('portal','ops_fld_no')),value:value?'1':'0'}
+        : {...field('parameters.'+key,label(key.replace(/_pct$/,' (%)'),translate),'number'),value:String(value)});
     const fundingFields:Field[]=policy&&form.data.scope==='recipient'?[{name:'funding_mode',label:translate('portal','ops_fld_funding_mode'),required:true,options:[{value:'company',label:translate('portal','ops_fld_funding_company')},{value:'allocations',label:translate('portal','ops_fld_funding_allocations')}]},...(form.data.funding_mode==='allocations'?Array.from({length:fundCount},(_,index)=>[
-        {name:`funding_sources.${index}.category`,label:translate('portal','ops_fld_funding_source',{n:String(index+1)}),required:true,options:fundingSources.filter(category=>category!==form.data.rule_key&&!Array.from({length:fundCount},(_,other)=>other===index?'':form.data[`funding_sources.${other}.category`]).includes(category)).map(value=>({value,label:label(value)}))},field(`funding_sources.${index}.percentage`,translate('portal','ops_fld_funding_rate',{n:String(index+1)}),'number')
+        {name:`funding_sources.${index}.category`,label:translate('portal','ops_fld_funding_source',{n:String(index+1)}),required:true,options:fundingSources.filter(category=>category!==form.data.rule_key&&!Array.from({length:fundCount},(_,other)=>other===index?'':form.data[`funding_sources.${other}.category`]).includes(category)).map(value=>({value,label:label(value,translate)}))},field(`funding_sources.${index}.percentage`,translate('portal','ops_fld_funding_rate',{n:String(index+1)}),'number')
     ]).flat():[])]:[];
     const visibleFields = [...fields.flatMap(f=>f.name.startsWith('items.0.')
         ? Array.from({length:itemCount},(_,index)=>({...f,name:f.name.replace('items.0.',`items.${index}.`),label:`${f.label} ${index+1}`})) : [f]), ...parameterFields, ...fundingFields];
@@ -89,7 +89,7 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
         form.post(action,{preserveScroll:true,onSuccess:()=>{form.reset();setItemCount(1);for(const key of ['idempotency_key','request_key'])if(key in form.data)form.setData(key,crypto.randomUUID());onDone?.();}});
     }} aria-label={title}>
         {visibleFields.map(f=>{
-            const choices = policy&&f.name==='rule_key'&&form.data.scope==='recipient' ? recipientKeys.map(value=>({value,label:label(value)})) : f.options;
+            const choices = policy&&f.name==='rule_key'&&form.data.scope==='recipient' ? recipientKeys.map(value=>({value,label:label(value,translate)})) : f.options;
             const value=form.data[f.name]??f.value??'';
             return <label key={f.name}>{f.label}{choices?<select required={f.required} value={String(value)} onChange={e=>change(f.name,e.target.value)}><option value="">{translate('portal','ops_fld_select')}</option>{choices.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:f.type==='textarea'?<textarea rows={3} required={f.required} value={value} onChange={e=>change(f.name,e.target.value)}/>:f.type==='file'?<input required={f.required} type="file" accept={f.name==='evidence'?'application/pdf,image/jpeg,image/png,.xlsx':'application/pdf,image/jpeg,image/png'} onChange={e=>change(f.name,e.target.files?.[0]??null)}/>:<input required={f.required} type={f.type??'text'} step={f.type==='number'?(f.name.endsWith('.quantity')?'1':'0.01'):undefined} value={value} onChange={e=>change(f.name,e.target.value)}/>} {form.errors[f.name]&&<span className="field-error">{String(form.errors[f.name])}</span>}</label>;
         })}
