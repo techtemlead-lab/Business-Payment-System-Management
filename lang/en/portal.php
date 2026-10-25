@@ -1034,6 +1034,7 @@ return [
     'policy_modal_title' => 'Draft commission policy',
     'benefits_fund_title' => 'Company commission benefits fund',
     'benefits_fund_desc_default' => 'Owner-only purchase surplus after company share and commissions.',
+    'benefits_fund_desc_full' => 'Purchase surplus from dealer and sub-dealer orders after the company MRP share and the approved commission schedule. Visible only to owners. Each row shows the source order, buyer role, geography, purchase value, company share, distributed commissions, and benefits amount.',
     'benefits_fund_entries' => ':count entries',
     'benefits_fund_balance' => 'Fund balance',
     'benefits_fund_funded_entries' => 'Funded entries',
