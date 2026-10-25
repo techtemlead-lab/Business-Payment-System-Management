@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
 import { money, date } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -23,16 +24,18 @@ interface NetworkTreeExplorerProps {
     dealers: DealerNode[];
 }
 
-const rankBadges: Record<string, { label: string; bg: string; text: string; border: string }> = {
-    dealer: { label: 'DEALER', bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
-    mo: { label: 'MO (MKT OFFICER)', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-    am: { label: 'AM (AREA MGR)', bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
-    sm: { label: 'SM (SALES MGR)', bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff' },
-    me: { label: 'ME (EXEC MGR)', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+const rankBadgeStyles: Record<string, { labelKey: string; bg: string; text: string; border: string }> = {
+    dealer: { labelKey: 'net_badge_dealer', bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
+    mo: { labelKey: 'net_badge_mo', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
+    am: { labelKey: 'net_badge_am', bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
+    sm: { labelKey: 'net_badge_sm', bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff' },
+    me: { labelKey: 'net_badge_me', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
 };
 
 export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProps) {
     const translate = useT();
+    const { portal } = usePage<any>().props;
+    const isDealerPortal = portal === 'dealer';
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState('all');
     const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
@@ -48,7 +51,10 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
 
         dealers.forEach(d => {
             dMap[d.id] = d;
-            if (d.sponsor_id) {
+        });
+        dealers.forEach(d => {
+            // Treat as a root when the sponsor is outside this payload (dealer downline views).
+            if (d.sponsor_id && dMap[d.sponsor_id]) {
                 if (!cMap[d.sponsor_id]) cMap[d.sponsor_id] = [];
                 cMap[d.sponsor_id].push(d);
             } else {
@@ -101,7 +107,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
         const children = childrenMap[dealer.id] || [];
         const isCollapsed = !!collapsedNodes[dealer.id];
         const isSelected = selectedDealerId === dealer.id;
-        const badge = rankBadges[dealer.rank] || rankBadges.dealer;
+        const badge = rankBadgeStyles[dealer.rank] || rankBadgeStyles.dealer;
         const directCount = children.length;
         const totalDownline = getDownlineCount(dealer.id);
 
@@ -179,7 +185,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 color: badge.text,
                                 border: `1px solid ${badge.border}`
                             }}>
-                                {badge.label}
+                                {translate('portal', badge.labelKey)}
                             </span>
                             <span style={{
                                 fontSize: 9,
@@ -238,7 +244,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 12, fontWeight: 600 }}>
-                        <Users size={16} /> Total Network Partners
+                        <Users size={16} /> {translate('portal','net_kpi_total')}
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
                         {stats.total}
@@ -253,22 +259,22 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#006837', marginTop: 4 }}>
                         {stats.moCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>৳2.5L cumulative turnover</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal','net_mo_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>
-                        <ShieldCheck size={16} /> Area Managers (AM)
+                        <ShieldCheck size={16} /> {translate('portal','net_kpi_am')}
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
                         {stats.amCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>10 MOs in 3-gen downline</div>
+                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{translate('portal','net_kpi_am_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#7e22ce', fontSize: 12, fontWeight: 600 }}>
-                        <Award size={16} /> Sales & Executive (SM/ME)
+                        <Award size={16} /> {translate('portal','net_kpi_sm_me')}
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#7e22ce', marginTop: 4 }}>
                         {stats.smCount + stats.meCount}
@@ -345,7 +351,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 cursor: 'pointer'
                             }}
                         >
-                            ✕ Reset Tree Focus to Top
+                            ✕ {translate('portal','net_reset_focus')}
                         </button>
                     )}
                 </div>
@@ -377,7 +383,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             gap: 5
                         }}
                     >
-                        <GitFork size={14} /> Tree Graph View
+                        <GitFork size={14} /> {translate('portal','net_view_tree')}
                     </button>
                     <button
                         type="button"
@@ -396,7 +402,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             gap: 5
                         }}
                     >
-                        <Users size={14} /> Table Roster View
+                        <Users size={14} /> {translate('portal','net_view_table')}
                     </button>
                 </div>
                 </div>
@@ -416,10 +422,10 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                             <div>
                                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                                    {focusedRootId ? `Sub-Tree for ${dealerMap[focusedRootId]?.name}` : 'Company Direct Referral Tree'}
+                                    {focusedRootId ? translate('portal','net_subtree_for',{name: dealerMap[focusedRootId]?.name || '—'}) : translate('portal','net_company_tree')}
                                 </h3>
                                 <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0 0' }}>
-                                    Click any dealer node to inspect details or refocus tree. Expand (+) or collapse (-) branches.
+                                    {translate('portal', 'net_tree_hint')}
                                 </p>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -436,7 +442,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Expand All
+                                    {translate('portal','net_expand_all')}
                                 </button>
                                 <button
                                     type="button"
@@ -455,7 +461,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Collapse All
+                                    {translate('portal','net_collapse_all')}
                                 </button>
                             </div>
                         </div>
@@ -468,7 +474,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 roots.map(rootNode => renderTreeNode(rootNode, 0))
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                                    No root dealers found in network tree.
+                                    {translate('portal','net_no_roots')}
                                 </div>
                             )}
                         </div>
@@ -492,12 +498,12 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 {filteredDealers.length === 0 && (
                                     <tr>
                                         <td colSpan={7} style={{ padding: '28px 16px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            No dealers match this search. Clear filters or broaden the query to continue exploring the network.
+                                            {translate('portal','net_no_match')}
                                         </td>
                                     </tr>
                                 )}
                                 {filteredDealers.map(d => {
-                                    const badge = rankBadges[d.rank] || rankBadges.dealer;
+                                    const badge = rankBadgeStyles[d.rank] || rankBadgeStyles.dealer;
                                     const directCount = (childrenMap[d.id] || []).length;
                                     return (
                                         <tr
@@ -511,7 +517,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         >
                                             <td style={{ padding: '12px 16px' }}>
                                                 <div style={{ fontWeight: 600, color: '#0f172a' }}>{d.name}</div>
-                                                <div style={{ fontSize: 11, color: '#64748b' }}>{d.phone || 'No phone'}</div>
+                                                <div style={{ fontSize: 11, color: '#64748b' }}>{d.phone || translate('portal','net_no_phone')}</div>
                                             </td>
                                             <td style={{ padding: '12px 16px', fontWeight: 600 }}>{d.dealer_code || '—'}</td>
                                             <td style={{ padding: '12px 16px' }}>
@@ -524,7 +530,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                                     color: badge.text,
                                                     border: `1px solid ${badge.border}`
                                                 }}>
-                                                    {badge.label}
+                                                    {translate('portal', badge.labelKey)}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '12px 16px', color: '#475569' }}>
@@ -568,7 +574,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                                         cursor: 'pointer'
                                                     }}
                                                 >
-                                                    View Tree ↗
+                                                    {translate('portal','net_view_tree_btn')} ↗
                                                 </button>
                                             </td>
                                         </tr>
@@ -597,11 +603,11 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     fontWeight: 700,
                                     padding: '2px 6px',
                                     borderRadius: 4,
-                                    background: (rankBadges[activeDealer.rank] || rankBadges.dealer).bg,
-                                    color: (rankBadges[activeDealer.rank] || rankBadges.dealer).text,
-                                    border: `1px solid ${(rankBadges[activeDealer.rank] || rankBadges.dealer).border}`
+                                    background: (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).bg,
+                                    color: (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).text,
+                                    border: `1px solid ${(rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).border}`
                                 }}>
-                                    {(rankBadges[activeDealer.rank] || rankBadges.dealer).label}
+                                    {translate('portal', (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).labelKey)}
                                 </span>
                                 <h3 style={{ fontSize: 17, fontWeight: 800, margin: '8px 0 2px 0', color: '#0f172a' }}>
                                     {activeDealer.name}
@@ -652,7 +658,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         {/* Network Stats */}
                         <div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>
-                                Network Sub-Tree Stats
+                                {translate('portal','net_subtree_stats')}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                                 <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, textAlign: 'center' }}>
@@ -699,6 +705,23 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             )}
                         </div>
 
+                        {isDealerPortal && activeDealer.id && (
+                            <Link
+                                href={`/network?member_id=${activeDealer.id}`}
+                                className="button small"
+                                style={{
+                                    marginTop: 12,
+                                    width: '100%',
+                                    justifyContent: 'center',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                }}
+                            >
+                                <Eye size={14} /> {translate('portal', 'net_view_timeline')}
+                            </Link>
+                        )}
+
                         {/* Focus Subtree Button */}
                         <button
                             type="button"
@@ -723,7 +746,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 gap: 6
                             }}
                         >
-                            <GitFork size={15} /> Focus Subtree as Root
+                            <GitFork size={15} /> {translate('portal','net_focus_subtree')}
                         </button>
                     </div>
                 )}
