@@ -70,4 +70,27 @@ class FinanceStartupModeTest extends TestCase
                 ->where('startupMode.mode', 'fresh')
                 ->where('readiness.posting_enabled', false));
     }
+
+    public function test_financial_readiness_exposes_deployment_go_live_warnings(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.sms.driver' => 'log',
+            'madina.login_otp.enabled' => true,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'hello@example.com',
+            'mail.mailers.smtp.host' => 'mail',
+        ]);
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/operations/financial-readiness')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Operations')
+                ->has('deploymentStatus.warnings')
+                ->whereContains('deploymentStatus.warnings', 'sms_driver_logging_only')
+                ->whereContains('deploymentStatus.warnings', 'mail_from_address_is_example_placeholder')
+                ->whereContains('deploymentStatus.warnings', 'mail_smtp_host_is_local_development')
+                ->whereContains('deploymentStatus.warnings', 'login_otp_requires_real_sms_before_go_live'));
+    }
 }
