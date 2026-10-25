@@ -353,18 +353,18 @@
     <form method="post" action="/partnership/apply" class="ref-partner-apply-form" style="display:grid;gap:14px;margin-top:16px;">
         @csrf
         <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
-        <label>{{ __('site.full_name') }}<input name="name" value="{{ old('name') }}" required maxlength="150"></label>
-        <label>{{ __('site.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="254"></label>
-        <label>{{ __('site.mobile') }}<input name="phone" value="{{ old('phone') }}" required maxlength="30"></label>
+        <label>{{ __('site.full_name') }}<input name="name" value="{{ old('name') }}" required maxlength="150" autocomplete="name"></label>
+        <label>{{ __('site.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="254" autocomplete="email"></label>
+        <label>{{ __('site.mobile') }}<input type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel"></label>
         <label>{{ __('site.partnership_type') }}
             <select name="role" required>
                 <option value="dealer" @selected(old('role')==='dealer')>{{ __('site.role_dealer') }}</option>
                 <option value="sub_dealer" @selected(old('role', 'sub_dealer')==='sub_dealer')>{{ __('site.role_sub_dealer') }}</option>
             </select>
         </label>
-        <label>{{ __('site.division') }}<input name="division" value="{{ old('division') }}" required maxlength="80"></label>
-        <label>{{ __('site.district') }}<input name="district" value="{{ old('district') }}" required maxlength="80"></label>
-        <label>{{ __('site.upazila_optional') }}<input name="upazila" value="{{ old('upazila') }}" maxlength="150"></label>
+        <label>{{ __('site.division') }}<input name="division" value="{{ old('division') }}" required maxlength="80" autocomplete="address-level1"></label>
+        <label>{{ __('site.district') }}<input name="district" value="{{ old('district') }}" required maxlength="80" autocomplete="address-level2"></label>
+        <label>{{ __('site.upazila_optional') }}<input name="upazila" value="{{ old('upazila') }}" maxlength="150" autocomplete="address-level3"></label>
         <label>{{ __('site.sponsor_code_optional') }}<input name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off"></label>
         <label>{{ __('site.message_optional') }}<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
         <button type="submit" class="ref-primary-button">{{ __('site.submit_application') }}</button>
