@@ -2291,5 +2291,10 @@ return [
     'ops_val_pdf_row_limit' => 'PDF supports up to 5,000 rows. Narrow the date range or select Excel for the full dataset.',
     'ops_val_homepage_stale' => 'Homepage video settings changed. Reload before saving.',
     'ops_val_homepage_product' => 'Select a published product with a valid video.',
+    'cmd_val_incentive_rank_required' => 'An active dealer with an achieved leadership rank is required.',
+    'cmd_val_incentive_already_paid' => 'This rank incentive was already paid.',
+    'cmd_val_incentive_legacy' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.',
+    'cmd_val_incentive_qualification' => 'Rank incentive requires current maintenance qualification or grace for :rank.',
+    'cmd_val_incentive_unfunded' => 'The rank incentive reserve does not yet fund this award.',
 
 ];

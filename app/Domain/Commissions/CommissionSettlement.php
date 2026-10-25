@@ -314,26 +314,28 @@ final class CommissionSettlement
                 $awardRank = PartnerBenefitControls::forcedRoyaltyRank($user) ?? 'mo';
             }
             if ($user->role !== 'dealer' || $user->status !== 'active' || ($awardRank === 'dealer' && ! $unconditionalIncentive)) {
-                return ['success' => false, 'message' => 'An active dealer with an achieved leadership rank is required.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_rank_required')];
             }
             if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $awardRank)->exists()) {
-                return ['success' => false, 'message' => 'This rank incentive was already paid.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_already_paid')];
             }
             if ($rank->one_time_incentive_paid && ! DB::table('rank_incentive_awards')->where('user_id', $userId)->exists()) {
-                return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_legacy')];
             }
             $rules = $this->policies->snapshot()['rules'];
             if (! $unconditionalIncentive) {
                 $paidAs = $this->qualification->paidAs($userId, $period, $rules);
                 if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
-                    return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
+                    return ['success' => false, 'message' => __('portal.cmd_val_incentive_qualification', [
+                        'rank' => $rank->current_rank,
+                    ])];
                 }
             }
             $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$awardRank.'_bonus']);
             $funds = CommissionAllocation::where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])->orderBy('id')->lockForUpdate()->get();
             $available = $funds->sum(fn ($fund): int => Money::cents($fund->amount) - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00')));
             if ($amount <= 0 || $available < $amount) {
-                return ['success' => false, 'message' => 'The rank incentive reserve does not yet fund this award.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_unfunded')];
             }
             $remaining = $amount;
             $sources = [];
