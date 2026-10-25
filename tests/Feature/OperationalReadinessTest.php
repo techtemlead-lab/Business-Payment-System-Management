@@ -56,7 +56,9 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
         $this->assertContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertNotContains('partners_missing_place_codes', $result['warnings']);
         $this->assertContains('opening_balances_unverified', $result['warnings']);
+        $this->assertNotContains('app_domain_mismatches_app_url', $result['warnings']);
         $this->assertContains('payment_collection_accounts_missing', $result['warnings']);
         $this->assertContains('payment_payout_accounts_missing', $result['warnings']);
         $this->assertContains('queue_driver_is_sync', $result['warnings']);
@@ -197,7 +199,11 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
         ]);
         $this->seed(BangladeshPlaceCodeSeeder::class);
-        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'profile' => ['place_code' => 'MNHC-101', 'place_code_id' => 1],
+        ]);
         DB::table('area_dealer_assignments')->insert([
             'user_id' => $dealer->id,
             'level' => 'division',
@@ -216,7 +222,49 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue($result['ready']);
         $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertNotContains('partners_missing_place_codes', $result['warnings']);
         $this->assertNotContains('opening_balances_unverified', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_app_domain_mismatches_app_url_host(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+            'app.url' => 'https://madina.example.test',
+            'madina.app_domain' => 'wrong.example.test',
+        ]);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertContains('app_domain_mismatches_app_url', $result['warnings']);
+
+        config(['madina.app_domain' => 'madina.example.test']);
+        $cleared = app(DeploymentReadiness::class)->inspect();
+        $this->assertNotContains('app_domain_mismatches_app_url', $cleared['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_active_partners_lack_place_codes(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'profile' => ['imported_account' => true],
+        ]);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertContains('partners_missing_place_codes', $result['warnings']);
     }
 
     public function test_application_readiness_clears_payment_account_warnings_when_collection_and_payout_accounts_exist(): void

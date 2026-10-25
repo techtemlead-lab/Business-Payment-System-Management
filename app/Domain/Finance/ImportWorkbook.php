@@ -2,7 +2,9 @@
 
 namespace App\Domain\Finance;
 
+use App\Models\AreaDealerAssignment;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\PhoneIdentity;
@@ -18,7 +20,7 @@ use ZipArchive;
 final class ImportWorkbook
 {
     public const Columns = [
-        'partners' => ['dealer_code', 'name', 'email', 'phone', 'role', 'sponsor_code', 'division', 'district'],
+        'partners' => ['dealer_code', 'name', 'email', 'phone', 'role', 'sponsor_code', 'place_code'],
         'products' => ['sku', 'name', 'category', 'unit', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'stock', 'low_stock_at'],
         'opening_balances' => ['dealer_code', 'reference', 'as_of_date', 'available_commission', 'held_commission', 'historical_order_total', 'historical_order_paid'],
     ];
@@ -116,7 +118,7 @@ final class ImportWorkbook
         foreach ($rows as $row) {
             $data = $row['data'];
             foreach ($data as $key => $value) {
-                if (in_array($key, ['dealer_code', 'sponsor_code', 'sku', 'reference'], true)) {
+                if (in_array($key, ['dealer_code', 'sponsor_code', 'sku', 'reference', 'place_code'], true)) {
                     $data[$key] = Str::upper($value);
                 }
                 if ($key === 'email') {
@@ -134,7 +136,7 @@ final class ImportWorkbook
             $rules = match ($type) {
                 'partners' => ['dealer_code' => 'required|regex:/^[A-Z0-9][A-Z0-9_-]{1,39}$/D|unique:users,dealer_code', 'name' => 'required|string|max:150',
                     'email' => 'required|email|max:255|unique:users,email', 'phone' => 'required|string|max:30', 'role' => 'required|in:dealer,sub_dealer',
-                    'sponsor_code' => 'nullable|string|max:40', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80'],
+                    'sponsor_code' => 'nullable|string|max:40', 'place_code' => 'required|string|max:40'],
                 'products' => ['sku' => 'required|regex:/^[A-Z0-9][A-Z0-9_-]{1,63}$/D|unique:products,sku', 'name' => 'required|string|max:255',
                     'category' => 'required|string|max:255', 'unit' => 'required|string|max:30', 'mrp' => [...$money, 'gt:0'],
                     'dealer_price' => [...$money, 'gt:0', 'lte:mrp'], 'sub_dealer_price' => [...$money, 'gte:dealer_price', 'lte:mrp'],
@@ -162,6 +164,26 @@ final class ImportWorkbook
                 }
                 if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->exists()) {
                     $errors[] = __('portal.err_wb_sponsor_missing');
+                }
+                $normalizedPlace = PlaceCode::normalizeCode($data['place_code']) ?? $data['place_code'];
+                $data['place_code'] = $normalizedPlace;
+                $place = PlaceCode::findByCode($normalizedPlace);
+                if (! $place) {
+                    $errors[] = __('portal.err_wb_place_unknown');
+                } elseif ($data['role'] === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
+                    $errors[] = __('portal.err_wb_place_sub_level');
+                } elseif ($data['role'] === 'dealer' && $place->level === PlaceCode::LevelManagement) {
+                    $errors[] = __('portal.err_wb_place_management');
+                } elseif ($data['role'] === 'dealer') {
+                    $taken = AreaDealerAssignment::query()
+                        ->where('place_code_id', $place->id)
+                        ->where('is_active', true)
+                        ->exists();
+                    if ($taken || isset($seen['place_code'][$place->code])) {
+                        $errors[] = __('portal.err_wb_place_taken');
+                    } else {
+                        $seen['place_code'][$place->code] = $row['row'];
+                    }
                 }
             }
             if ($type === 'opening_balances') {

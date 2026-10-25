@@ -107,8 +107,14 @@ final class DeploymentReadiness
         if ($checks['database'] && $this->placeCodeCatalogReady() && ! $this->areaDealerAssignmentsReady()) {
             $warnings[] = 'area_dealer_assignments_missing';
         }
+        if ($checks['database'] && $this->activePartnersMissingPlaceCodes()) {
+            $warnings[] = 'partners_missing_place_codes';
+        }
         if ($checks['database'] && ! $this->openingBalancesVerified()) {
             $warnings[] = 'opening_balances_unverified';
+        }
+        if ($this->appDomainMismatchesAppUrl()) {
+            $warnings[] = 'app_domain_mismatches_app_url';
         }
         if ($checks['database'] && ! $this->paymentCollectionAccountsReady()) {
             $warnings[] = 'payment_collection_accounts_missing';
@@ -211,6 +217,43 @@ final class DeploymentReadiness
 
             return false;
         }
+    }
+
+    /**
+     * Active dealers/sub-dealers without a canonical place_code cannot route
+     * geographic commission pools correctly after go-live.
+     */
+    private function activePartnersMissingPlaceCodes(): bool
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNull('profile')
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                })
+                ->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Portal hosts come from APP_DOMAIN while scheme/port come from APP_URL.
+     * A host mismatch breaks dealer/manage/sadmin login and reset links.
+     */
+    private function appDomainMismatchesAppUrl(): bool
+    {
+        $appHost = strtolower((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: ''));
+        $domain = strtolower(trim((string) config('madina.app_domain')));
+        if ($appHost === '' || $domain === '') {
+            return true;
+        }
+
+        return $appHost !== $domain;
     }
 
     /**

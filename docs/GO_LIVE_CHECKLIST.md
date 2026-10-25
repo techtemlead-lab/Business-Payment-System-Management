@@ -5,7 +5,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 ## Environment
 
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, strong `APP_KEY` — `app:readiness` must not warn `debug_mode_enabled` or `app_environment_not_production`
-- [ ] `APP_URL` and `APP_DOMAIN` match the live public host over HTTPS; portal subdomains resolve (`dealer.`, `subdealer.`, `manage.`, `sadmin.`) — `app:readiness` must not warn `app_url_not_https`
+- [ ] `APP_URL` and `APP_DOMAIN` match the live public host over HTTPS; portal subdomains resolve (`dealer.`, `subdealer.`, `manage.`, `sadmin.`) — `app:readiness` must not warn `app_url_not_https` or `app_domain_mismatches_app_url`
 - [ ] `SESSION_SECURE_COOKIE=true` and `SESSION_ENCRYPT=true` on the live HTTPS host — `app:readiness` must not warn `session_cookies_not_hardened`
 - [ ] Strong `APP_KEY` present — `app:readiness` must not warn `app_key_missing_or_weak`
 - [ ] Behind TLS termination, set `TRUSTED_PROXIES` to the load-balancer/proxy CIDRs — `app:readiness` must not warn `trusted_proxies_not_configured`
@@ -29,7 +29,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 ## Access and portals
 
 - [ ] Owner (`sadmin`) and company (`manage`) staff accounts created with least privilege
-- [ ] Seed dealer / sub-dealer accounts use real place codes and unique refer codes
+- [ ] Seed dealer / sub-dealer accounts use real place codes and unique refer codes — partner Excel import requires `place_code`; `app:readiness` must not warn `partners_missing_place_codes` or `area_dealer_assignments_missing`
 - [ ] Public partnership page + `/join/{refer_code}` deep-link smoke-tested
 - [ ] Partner home shows referral share URL; full-report PDF downloads for dealer and sub-dealer
 - [ ] Locale (EN/BN) toggles on each portal without breaking forms

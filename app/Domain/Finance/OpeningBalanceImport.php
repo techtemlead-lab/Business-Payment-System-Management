@@ -3,7 +3,11 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\PlaceGeographyResolver;
 use App\Jobs\ApplyDataImport;
+use App\Models\AreaDealerAssignment;
+use App\Models\DealerRank;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -18,7 +22,11 @@ use Illuminate\Validation\ValidationException;
 
 final class OpeningBalanceImport
 {
-    public function __construct(private CommissionWallet $wallets, private ImportWorkbook $workbooks) {}
+    public function __construct(
+        private CommissionWallet $wallets,
+        private ImportWorkbook $workbooks,
+        private PlaceGeographyResolver $geography,
+    ) {}
 
     public function authorize(User $actor, string $type, string $action): void
     {
@@ -170,12 +178,72 @@ final class OpeningBalanceImport
     /** @param array<string, string> $data */
     private function createPartner(array $data): void
     {
-        $sponsor = $data['sponsor_code'] ? User::where('dealer_code', $data['sponsor_code'])->value('id') : null;
-        $partner = (new User)->forceFill([...collect($data)->except('sponsor_code')->all(), 'sponsor_id' => $sponsor, 'status' => 'active',
-            'directory_visible' => false, 'password' => Str::random(64), 'profile' => ['imported_account' => true, 'requires_password_setup' => true]]);
+        $role = (string) $data['role'];
+        $place = PlaceCode::findByCode((string) $data['place_code']);
+        if (! $place) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_unknown')]);
+        }
+        if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_sub_level')]);
+        }
+        if ($role === 'dealer' && $place->level === PlaceCode::LevelManagement) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_management')]);
+        }
+        if ($role === 'dealer' && AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_taken')]);
+        }
+
+        $path = $this->geography->expandFromAnchor($place);
+        $sponsor = $data['sponsor_code'] !== '' ? User::where('dealer_code', $data['sponsor_code'])->value('id') : null;
+        $profile = [
+            'imported_account' => true,
+            'requires_password_setup' => true,
+            'place_code' => $place->code,
+            'place_code_id' => $place->id,
+            'area_code' => $role === 'sub_dealer' ? (string) $data['dealer_code'] : $place->code,
+            'upazila' => $path['upazila'] ?? null,
+            'union' => $path['union'] ?? null,
+            'union_place_code' => $role === 'sub_dealer' ? $place->code : null,
+        ];
+        $partner = (new User)->forceFill([
+            'dealer_code' => $data['dealer_code'],
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'role' => $role,
+            'sponsor_id' => $sponsor,
+            'division' => $path['division'] ?? null,
+            'district' => $path['district'] ?? null,
+            'status' => 'active',
+            'directory_visible' => false,
+            'password' => Str::random(64),
+            'profile' => $profile,
+        ]);
         $partner->save();
         ReferralTreePath::attachUser($partner->id, $sponsor);
         DB::table('wallets')->insert(['user_id' => $partner->id, 'created_at' => now(), 'updated_at' => now()]);
+        DealerRank::firstOrCreate(['user_id' => $partner->id], ['current_rank' => 'dealer']);
+
+        if ($role === 'dealer') {
+            AreaDealerAssignment::create([
+                'user_id' => $partner->id,
+                'level' => $place->level,
+                'place_code_id' => $place->id,
+                'zone_name' => $place->name.' ('.$place->code.')',
+                'division' => $path['division'],
+                'district' => $path['district'],
+                'upazila' => $path['upazila'],
+                'union' => $path['union'],
+                'monthly_quota' => match ($place->level) {
+                    'division' => '50000.00',
+                    'district' => '40000.00',
+                    'upazila' => '20000.00',
+                    default => '10000.00',
+                },
+                'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
+                'is_active' => true,
+            ]);
+        }
     }
 
     /** @param array<string, string> $data */
