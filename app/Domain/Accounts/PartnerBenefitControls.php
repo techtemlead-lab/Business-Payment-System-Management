@@ -68,7 +68,7 @@ final class PartnerBenefitControls
     public function save(User $actor, User $partner, array $input): array
     {
         if (! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
-            throw ValidationException::withMessages(['user_id' => 'Benefit controls apply only to dealers and sub-dealers.']);
+            throw ValidationException::withMessages(['user_id' => __('portal.err_benefit_partners_only')]);
         }
 
         $rank = self::normalizeRank($input['forced_royalty_rank'] ?? 'mo') ?? 'mo';

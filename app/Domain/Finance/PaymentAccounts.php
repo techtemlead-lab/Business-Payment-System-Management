@@ -48,7 +48,7 @@ final class PaymentAccounts
             $old = $id ? DB::table('payment_accounts')->where('id', $id)->lockForUpdate()->first() : null;
             abort_if($id && ! $old, 404);
             if ($old && $old->version !== (int) $data['version']) {
-                throw ValidationException::withMessages(['version' => 'This payment account changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.err_pay_acct_stale')]);
             }
             $record = collect($data)->only(['label', 'channel', 'holder', 'collects_payments', 'pays_out', 'is_active'])->all();
             $record['account_number'] = ! empty($data['account_number']) ? encrypt(trim($data['account_number'])) : $old->account_number;
@@ -76,7 +76,7 @@ final class PaymentAccounts
         }
         $account = DB::table('payment_accounts')->where('id', $id)->where('is_active', true)->where('collects_payments', true)->where('channel', $channel)->first();
         if (! $account) {
-            throw ValidationException::withMessages(['payment_account_id' => 'Choose an active company collection account for this payment method.']);
+            throw ValidationException::withMessages(['payment_account_id' => __('portal.err_pay_acct_collection')]);
         }
 
         return $this->display($account, true);
@@ -86,7 +86,7 @@ final class PaymentAccounts
     {
         $account = DB::table('payment_accounts')->where('id', $id)->where('is_active', true)->where('pays_out', true)->first();
         if (! $account) {
-            throw ValidationException::withMessages(['payment_account_id' => 'Choose an active company payout account.']);
+            throw ValidationException::withMessages(['payment_account_id' => __('portal.err_pay_acct_payout')]);
         }
 
         return $account;
@@ -99,12 +99,12 @@ final class PaymentAccounts
         if ($accountId !== null) {
             $account = $this->assertPayout($accountId);
         } elseif (DB::table('payment_accounts')->where('is_active', true)->where('pays_out', true)->exists()) {
-            throw ValidationException::withMessages(['payment_account_id' => 'Choose the company account used for this payment.']);
+            throw ValidationException::withMessages(['payment_account_id' => __('portal.err_pay_acct_required')]);
         }
         $reference = Str::upper(trim($reference));
         if (DB::table('manual_payment_references')->where('reference', $reference)->exists()
             || DB::table('withdrawals')->whereRaw('UPPER(TRIM(payment_reference)) = ?', [$reference])->exists()) {
-            throw ValidationException::withMessages(['payment_reference' => 'This outgoing payment reference is already recorded.']);
+            throw ValidationException::withMessages(['payment_reference' => __('portal.err_pay_ref_duplicate')]);
         }
         DB::table('manual_payment_references')->insert(['reference' => $reference, 'source' => $source,
             'payment_account_id' => $accountId, 'actor_id' => $actor->id, 'created_at' => now()]);

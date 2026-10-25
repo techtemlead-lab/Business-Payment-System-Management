@@ -62,10 +62,10 @@ final class PartnerKycDocuments
     public function store(User $actor, User $partner, string $kind, UploadedFile $file, ?string $note = null): array
     {
         if (! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
-            throw ValidationException::withMessages(['user' => 'KYC scans apply only to partner accounts.']);
+            throw ValidationException::withMessages(['user' => __('portal.err_kyc_partners_only')]);
         }
         if (! in_array($kind, self::Kinds, true)) {
-            throw ValidationException::withMessages(['kind' => 'Choose a valid document kind.']);
+            throw ValidationException::withMessages(['kind' => __('portal.err_kyc_kind')]);
         }
 
         $id = (string) Str::uuid();
