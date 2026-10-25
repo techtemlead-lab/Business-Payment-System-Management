@@ -37,6 +37,7 @@ final class PublicPartnerApplication
                     'upazila' => $data['upazila'] ?? null,
                     'message' => $data['message'] ?? null,
                     'sponsor_code' => $data['sponsor_code'] ?? null,
+                    'locale' => app()->getLocale(),
                 ], JSON_THROW_ON_ERROR),
                 'status' => 'pending',
                 'source' => 'public',

@@ -2594,6 +2594,8 @@ return [
     'app_decision_rejected' => 'rejected',
     'notice_dealer_app_title' => 'Dealer application :decision',
     'notice_dealer_app_body' => ':email: :reason',
+    'notice_partnership_approved_title' => 'Partnership approved',
+    'notice_partnership_approved_body' => 'Your :role partnership account is active. Use the password-reset email to sign in.',
     'err_payroll_contract' => 'Choose active staff and a deduction within the contracted gross salary.',
     'err_payroll_month_open' => 'Close the calendar month before preparing payroll.',
     'err_payroll_reviewer' => 'A different Finance reviewer must review a draft payroll entry.',

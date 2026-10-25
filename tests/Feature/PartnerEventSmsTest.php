@@ -506,4 +506,90 @@ class PartnerEventSmsTest extends TestCase
             $sent['message'] ?? null,
         );
     }
+
+    public function test_partnership_approval_sms_and_notice_use_applicant_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Approve SMS Applicant',
+                'email' => 'approve.sms@example.test',
+                'phone' => '01720000095',
+                'role' => 'dealer',
+                'division' => 'Khulna',
+                'district' => 'Khulna',
+            ])
+            ->assertRedirect('/partnership');
+        $id = DB::table('dealer_applications')->where('email', 'approve.sms@example.test')->value('id');
+        Config::set('madina.sms.sent', []);
+
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($reviewer)->onPortal('sadmin')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', [
+                'decision' => 'approved',
+                'reason' => 'Territory verified for SMS coverage.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_approved', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000095', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_approved', [
+                'role' => __('portal.acct_role_dealer', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $partner = User::where('email', 'approve.sms@example.test')->firstOrFail();
+        $this->assertSame('bn', $partner->locale);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_partnership_approved_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_partnership_rejection_sms_reaches_applicant_phone(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'en'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Reject SMS Applicant',
+                'email' => 'reject.sms@example.test',
+                'phone' => '01720000096',
+                'role' => 'sub_dealer',
+                'division' => 'Barisal',
+                'district' => 'Barisal',
+            ])
+            ->assertRedirect('/partnership');
+        $id = DB::table('dealer_applications')->where('email', 'reject.sms@example.test')->value('id');
+        Config::set('madina.sms.sent', []);
+
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($reviewer)->onPortal('sadmin')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', [
+                'decision' => 'rejected',
+                'reason' => 'Incomplete territory documentation.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_rejected', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000096', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_rejected', [
+                'role' => __('portal.acct_role_sub_dealer', [], 'en'),
+                'reason' => 'Incomplete territory documentation.',
+            ], 'en'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseMissing('users', ['email' => 'reject.sms@example.test']);
+    }
 }

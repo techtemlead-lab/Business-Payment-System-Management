@@ -2594,6 +2594,8 @@ return [
     'app_decision_rejected' => 'প্রত্যাখ্যাত',
     'notice_dealer_app_title' => 'ডিলার আবেদন :decision',
     'notice_dealer_app_body' => ':email: :reason',
+    'notice_partnership_approved_title' => 'পার্টনারশিপ অনুমোদিত',
+    'notice_partnership_approved_body' => 'আপনার :role পার্টনারশিপ অ্যাকাউন্ট সক্রিয়। সাইন ইন করতে পাসওয়ার্ড-রিসেট ইমেইল ব্যবহার করুন।',
     'err_payroll_contract' => 'সক্রিয় স্টাফ এবং চুক্তিভিত্তিক গ্রস স্যালারির মধ্যে কর্তন বেছে নিন।',
     'err_payroll_month_open' => 'পে-রোল প্রস্তুত করার আগে ক্যালেন্ডার মাস শেষ করুন।',
     'err_payroll_reviewer' => 'ড্রাফ্ট পে-রোল এন্ট্রি পর্যালোচনায় আলাদা ফাইন্যান্স পর্যালোচক প্রয়োজন।',
