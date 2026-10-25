@@ -29,6 +29,7 @@ class ProjectAuditTest extends TestCase
     {
         $dealer = User::factory()->create();
         $subDealer = User::factory()->create(['role' => 'sub_dealer']);
+        $banglaDealer = User::factory()->create(['locale' => 'bn']);
         User::factory()->create(['status' => 'suspended']);
         $admin = User::factory()->create(['role' => 'super_admin']);
         $product = Product::factory()->create(['stock' => 0]);
@@ -37,14 +38,22 @@ class ProjectAuditTest extends TestCase
         $this->actingAs($admin)->postJson('/api/v1/inventory/adjustments', $data)->assertOk();
         $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
         $this->assertDatabaseHas('account_notices', ['user_id' => $subDealer->id, 'title' => 'Product available']);
-        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $banglaDealer->id,
+            'title' => __('portal.notice_product_available_title', [], 'bn'),
+            'body' => __('portal.notice_product_available_body', [
+                'name' => $product->name,
+                'sku' => $product->sku,
+            ], 'bn'),
+        ]);
+        $this->assertDatabaseCount('account_notices', 3);
 
         $this->postJson('/api/v1/inventory/adjustments', $data)->assertUnprocessable()->assertJsonValidationErrors('reference');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'quantity' => -6, 'reference' => (string) Str::uuid()])
             ->assertUnprocessable()->assertJsonValidationErrors('quantity');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'reference' => (string) Str::uuid()])->assertOk();
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 10]);
-        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseCount('account_notices', 3);
         $this->actingAs($dealer)->get('/workspace/notifications')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.notices.total', 1)->where('data.notices.data.0.title', 'Product available'));
     }
