@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Integrations\MapsPresentation;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
@@ -162,6 +163,21 @@ class PublicController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $locale = app()->getLocale();
+        $topicLabel = match ($data['topic']) {
+            'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
+            'partnership_enquiry' => __('portal.enquiry_topic_partnership', [], $locale),
+            'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
+            'support' => __('portal.support_topic_support', [], $locale),
+            'complaint' => __('portal.support_topic_complaint', [], $locale),
+            default => $data['topic'],
+        };
+        app(PartnerEventSms::class)->sendToPhone(
+            (string) $data['phone'],
+            'enquiry.public_received',
+            __('sms.public_enquiry_received', ['topic' => $topicLabel], $locale),
+        );
 
         return back()->with('success', __('portal.flash_enquiry_received'));
     }

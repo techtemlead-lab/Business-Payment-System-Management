@@ -20,6 +20,8 @@ return [
     'commission_matured' => 'মদিনা: BDT :amount কুলিং-অফ কমিশন এখন আপনার ওয়ালেটে উপলব্ধ।',
     'reward_credited' => 'মদিনা: :program এর জন্য BDT :amount জমা হয়েছে। আপনার আয় দেখুন।',
     'commission_released' => 'মদিনা: BDT :amount :category হোল্ড আপনার ওয়ালেটে মুক্ত হয়েছে।',
+    'public_enquiry_received' => 'মদিনা: আপনার :topic গ্রহণ করা হয়েছে। কোম্পানি এই নম্বরে ফলো-আপ করবে।',
+    'payroll_paid' => 'মদিনা: :month এর পে-রোল পরিশোধ রেকর্ড হয়েছে (BDT :amount)। রসিদ কোম্পানি ফাইন্যান্সের কাছে আছে।',
     'err_otp_expired' => 'লগইন কোডের মেয়াদ শেষ। নতুন কোড পেতে আবার সাইন ইন করুন।',
     'err_otp_too_many' => 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার সাইন ইন করুন।',
     'err_otp_incorrect' => 'লগইন কোডটি ভুল।',

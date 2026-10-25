@@ -48,6 +48,9 @@ class CommerceWorkflowTest extends TestCase
         foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
             $this->onPortal($portal)->get('/login')->assertOk();
         }
+
+        $this->onPortal('public')->get('/join/REF-SMOKE-01')
+            ->assertRedirect('/partnership?sponsor_code=REF-SMOKE-01#partner-apply');
     }
 
     public function test_authenticated_dealer_and_staff_module_surfaces_load(): void

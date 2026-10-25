@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\Audit;
@@ -142,14 +143,31 @@ final class PayrollService
                 $this->event($actor, $id, 'paid', $data['reason']);
                 $staff = User::find($entry->staff_id);
                 $locale = $staff?->preferredLocale() ?? app()->getLocale();
+                $amountDecimal = Money::decimal($amount);
                 Audit::notice(
                     $entry->staff_id,
                     __('portal.notice_payroll_paid_title', [], $locale),
                     __('portal.notice_payroll_paid_body', [
                         'month' => $entry->period_month,
-                        'amount' => Money::decimal($amount),
+                        'amount' => $amountDecimal,
                     ], $locale),
                 );
+                $staffId = (int) $entry->staff_id;
+                $periodMonth = (string) $entry->period_month;
+                DB::afterCommit(function () use ($staffId, $periodMonth, $amountDecimal, $locale): void {
+                    $staff = User::find($staffId);
+                    if (! $staff) {
+                        return;
+                    }
+                    app(PartnerEventSms::class)->send(
+                        $staff,
+                        'payroll.paid',
+                        __('sms.payroll_paid', [
+                            'month' => $periodMonth,
+                            'amount' => $amountDecimal,
+                        ], $staff->preferredLocale() ?: $locale),
+                    );
+                });
             }, 3);
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($path);

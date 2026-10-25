@@ -51,6 +51,35 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame('01720000088', $sent[0]['phone'] ?? null);
     }
 
+    public function test_public_enquiry_acknowledges_phone_in_request_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/contact')
+            ->post('/enquiries', [
+                'name' => 'Public SMS Visitor',
+                'phone' => '01720000093',
+                'topic' => 'partnership_enquiry',
+                'message' => 'I want to join as an authorized dealer in Sylhet.',
+            ])
+            ->assertRedirect('/contact');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('enquiry.public_received', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000093', $sent[0]['phone'] ?? null);
+        $this->assertArrayHasKey('user_id', $sent[0]);
+        $this->assertNull($sent[0]['user_id']);
+        $this->assertSame(
+            __('sms.public_enquiry_received', [
+                'topic' => __('portal.enquiry_topic_partnership', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
     public function test_partner_support_sms_uses_localized_topic_label(): void
     {
         Config::set('madina.sms.driver', 'array');
