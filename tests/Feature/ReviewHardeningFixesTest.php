@@ -192,6 +192,11 @@ class ReviewHardeningFixesTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/catalog')->assertForbidden();
         $this->assertFalse(DashboardManagement::partnerFeatureEnabled($dealer, 'catalog'));
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('dashboardControls.dealer_catalog_enabled', false)
+                ->where('dashboardControls.dealer_network_tree_enabled', true));
     }
 
     public function test_disabled_claims_toggle_blocks_payment_claim(): void

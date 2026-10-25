@@ -1,6 +1,7 @@
 import {Link, router, usePage} from '@inertiajs/react';
 import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, Network, Wallet, Banknote} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
+import {partnerChromeEnabled} from '../shared/partnerChromeNav';
 
 export function DealerHeader(){
     const page = usePage<any>().props;
@@ -8,6 +9,8 @@ export function DealerHeader(){
     const locale = String(page.locale ?? 'en');
     const publicBase = String(page.publicBase ?? '');
     const customize = page.siteCustomization ?? {};
+    const role = String(page.auth?.user?.role ?? 'dealer');
+    const showShop = partnerChromeEnabled(role, page.dashboardControls, 'catalog');
     const chrome = (custom: unknown, key: string) =>
         locale === 'bn' || !custom ? translate('portal', key) : String(custom);
     const offersTitle = chrome(customize.header_offers_title, 'header_offers');
@@ -33,7 +36,7 @@ export function DealerHeader(){
                     <button type="button" onClick={()=>router.post('/logout')} className="portal-header-logout" aria-label={translate('portal', 'log_out')} title={translate('portal', 'log_out')}>
                         <LogOut size={18}/><span><b>{translate('portal', 'log_out')}</b><small>{translate('portal', 'exit_session')}</small></span>
                     </button>
-                    <Link href="/catalog" className="portal-shop"><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>
+                    {showShop && <Link href="/catalog" className="portal-shop"><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>}
                 </div>
             </div>
         </header>
@@ -45,6 +48,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
     const page = usePage<any>();
     const {url} = page;
     const role = String(page.props.auth?.user?.role ?? 'dealer');
+    const controls = page.props.dashboardControls;
     const path = url.split('?')[0] || '/';
     const item = (href: string, label: string, Icon: typeof Home, className = '') => {
         const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
@@ -61,13 +65,13 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
             <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')}>
                 <Menu size={20}/>{translate('portal', 'menu')}
             </button>
-            {item('/catalog', translate('portal', 'shop'), Store)}
+            {partnerChromeEnabled(role, controls, 'catalog') && item('/catalog', translate('portal', 'shop'), Store)}
             {item('/', translate('portal', 'overview'), Home, 'portal-mobile-home')}
-            {item('/orders', translate('portal', 'orders'), ShoppingBag)}
+            {partnerChromeEnabled(role, controls, 'orders') && item('/orders', translate('portal', 'orders'), ShoppingBag)}
             {role === 'dealer'
-                ? item('/network', translate('portal', 'network'), Network)
-                : item('/salary', translate('portal', 'salary'), Banknote)}
-            {item('/earnings', translate('portal', 'earnings'), Wallet)}
+                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'network'), Network))
+                : (partnerChromeEnabled(role, controls, 'salary') && item('/salary', translate('portal', 'salary'), Banknote))}
+            {partnerChromeEnabled(role, controls, 'earnings') && item('/earnings', translate('portal', 'earnings'), Wallet)}
         </nav>
     );
 }
