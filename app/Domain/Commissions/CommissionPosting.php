@@ -180,7 +180,12 @@ final class CommissionPosting
             $credited = array_sum(array_column($journal, 'credit'));
             if ($credited > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_expense', 'debit' => $credited, 'credit' => 0];
-                $this->wallets->journal('commissions.order.'.$order->id, __('portal.jr_commissions_earned', ['number' => $order->number]), $journal);
+                $locale = $buyer->preferredLocale();
+                $this->wallets->journal(
+                    'commissions.order.'.$order->id,
+                    __('portal.jr_commissions_earned', ['number' => $order->number], $locale),
+                    $journal,
+                );
             }
             $this->qualification->record($buyer, $cash, $rules);
             Audit::record($actorId, 'commissions.calculated', $order->id, [

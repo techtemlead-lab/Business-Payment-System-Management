@@ -6,6 +6,7 @@ use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
+use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -130,7 +131,13 @@ final class CommissionReversal
             $expenseReversed = $recoveredTotal + $unrecoveredTotal;
             if ($expenseReversed > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_clawback_recovery', 'debit' => 0, 'credit' => $expenseReversed];
-                $this->wallets->journal('commissions.reversal.'.$id, __('portal.jr_commission_reversal', ['reason' => $reason]), $journal);
+                $buyer = User::find($order->user_id);
+                $locale = $buyer?->preferredLocale() ?? app()->getLocale();
+                $this->wallets->journal(
+                    'commissions.reversal.'.$id,
+                    __('portal.jr_commission_reversal', ['reason' => $reason], $locale),
+                    $journal,
+                );
             }
             DB::table('commission_batches')->where('id', $batch->id)->update(['refunded_amount' => Money::decimal($after), 'updated_at' => now()]);
             $rank = DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();

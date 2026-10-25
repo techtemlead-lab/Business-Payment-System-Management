@@ -280,7 +280,8 @@ final class ReserveService
         if ($amount <= 0) {
             throw ValidationException::withMessages(['hold' => __('portal.err_hold_zero')]);
         }
-        $this->wallets->journal('commission.hold_release.'.$fund->id, __('portal.jr_hold_release'), [
+        $locale = $partner->preferredLocale();
+        $this->wallets->journal('commission.hold_release.'.$fund->id, __('portal.jr_hold_release', [], $locale), [
             ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
             ['account' => $held ? 'commission_held_liability' : 'wallet_liability', 'user_id' => $partner->id, 'debit' => 0, 'credit' => $amount],
         ]);
@@ -288,12 +289,15 @@ final class ReserveService
         $fund->update(['status' => $held ? 'maturing' : 'available', 'metadata' => [...$fund->metadata,
             'released_by' => $actorId, 'release_reason' => $reason, 'released_at' => now()->toIso8601String()]]);
         Audit::record($actorId, 'commission.hold_released', (string) $fund->id, ['reason' => $reason]);
-        $locale = $partner->preferredLocale();
+        $categoryLabel = __('portal.report_cat_'.$fund->category, [], $locale);
+        if ($categoryLabel === 'portal.report_cat_'.$fund->category) {
+            $categoryLabel = (string) $fund->category;
+        }
         Audit::notice(
             $partner->id,
             __('portal.notice_commission_released_title', [], $locale),
             __('portal.notice_commission_released_body', [
-                'category' => $fund->category,
+                'category' => $categoryLabel,
                 'amount' => Money::decimal($amount),
             ], $locale),
         );

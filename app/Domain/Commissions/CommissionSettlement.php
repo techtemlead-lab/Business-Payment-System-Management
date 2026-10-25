@@ -462,7 +462,9 @@ final class CommissionSettlement
                 if ($result['unrecovered'] !== 0) {
                     throw ValidationException::withMessages(['commissions' => __('portal.err_settle_holds')]);
                 }
-                $this->wallets->journal('commissions.matured.'.$fund->id, __('portal.jr_commission_matured'), [
+                $partner = User::find($fund->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                $this->wallets->journal('commissions.matured.'.$fund->id, __('portal.jr_commission_matured', [], $locale), [
                     ['user_id' => $fund->user_id, 'account' => 'commission_held_liability', 'debit' => $amount, 'credit' => 0],
                     ['user_id' => $fund->user_id, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
                 ]);

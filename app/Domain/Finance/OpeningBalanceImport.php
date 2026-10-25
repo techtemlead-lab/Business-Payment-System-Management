@@ -153,12 +153,14 @@ final class OpeningBalanceImport
             if ($entry->released_at) {
                 return;
             }
-            abort_unless(User::whereKey($entry->user_id)->where('status', 'active')->exists(), 422, __('portal.err_import_partner_inactive'));
+            $partner = User::whereKey($entry->user_id)->where('status', 'active')->first();
+            abort_unless($partner, 422, __('portal.err_import_partner_inactive'));
             $amount = Money::cents($entry->held);
             if ($amount <= 0 || $this->wallets->debit($entry->user_id, $amount, true)['unrecovered'] !== 0) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_import_hold_mismatch')]);
             }
-            $this->wallets->journal('opening.hold_release.'.$id, __('portal.jr_opening_hold_release'), [
+            $locale = $partner->preferredLocale();
+            $this->wallets->journal('opening.hold_release.'.$id, __('portal.jr_opening_hold_release', [], $locale), [
                 ['account' => 'commission_held_liability', 'user_id' => $entry->user_id, 'debit' => $amount, 'credit' => 0],
                 ['account' => 'wallet_liability', 'user_id' => $entry->user_id, 'debit' => 0, 'credit' => $amount],
             ]);
@@ -296,7 +298,12 @@ final class OpeningBalanceImport
             ];
         }
         if ($lines !== []) {
-            $this->wallets->journal('opening.import.'.$batchId.'.'.$partner->id, __('portal.ob_journal_approved', ['reference' => $data['reference']]), $lines);
+            $locale = $partner->preferredLocale();
+            $this->wallets->journal(
+                'opening.import.'.$batchId.'.'.$partner->id,
+                __('portal.ob_journal_approved', ['reference' => $data['reference']], $locale),
+                $lines,
+            );
         }
         DB::table('opening_balance_entries')->insert(['import_id' => $batchId, 'user_id' => $partner->id, 'reference' => $data['reference'], 'as_of_date' => $data['as_of_date'],
             'available' => Money::decimal($available), 'held' => Money::decimal($held), 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now()]);
