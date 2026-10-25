@@ -554,6 +554,58 @@ class PartnerEventSmsTest extends TestCase
         ]);
     }
 
+    public function test_partner_suspend_and_reactivate_send_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000102',
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'status' => 'suspended',
+                'reason' => 'Policy review pending for territory documents.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.suspended', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000102', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.account_suspended', [
+                'reason' => 'Policy review pending for territory documents.',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_account_suspended_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'suspended']);
+
+        Config::set('madina.sms.sent', []);
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'status' => 'active',
+                'reason' => 'Documents verified; restore portal access.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.reactivated', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.account_reactivated', [], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'active']);
+    }
+
     public function test_staff_target_save_sends_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

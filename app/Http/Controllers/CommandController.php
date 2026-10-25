@@ -280,11 +280,13 @@ class CommandController extends Controller
                 unset($d['profile']['upazila'], $d['profile']['union'], $d['profile']['area_code']);
             }
         }
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode) {
+        $statusChange = null;
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $previousStatus = (string) $locked->status;
 
             if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
@@ -300,7 +302,44 @@ class CommandController extends Controller
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
+            if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
+                $statusChange = [
+                    'from' => $previousStatus,
+                    'to' => (string) $d['status'],
+                    'reason' => $reason,
+                    'user_id' => $locked->id,
+                ];
+            }
         });
+        if (is_array($statusChange)) {
+            $partner = User::find($statusChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                if ($statusChange['to'] === 'suspended') {
+                    Audit::notice(
+                        $partner->id,
+                        __('portal.notice_account_suspended_title', [], $locale),
+                        __('portal.notice_account_suspended_body', ['reason' => $statusChange['reason']], $locale),
+                    );
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'account.suspended',
+                        __('sms.account_suspended', ['reason' => $statusChange['reason']], $locale),
+                    );
+                } elseif ($statusChange['to'] === 'active' && $statusChange['from'] === 'suspended') {
+                    Audit::notice(
+                        $partner->id,
+                        __('portal.notice_account_reactivated_title', [], $locale),
+                        __('portal.notice_account_reactivated_body', [], $locale),
+                    );
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'account.reactivated',
+                        __('sms.account_reactivated', [], $locale),
+                    );
+                }
+            }
+        }
 
         return back()->with('success', __('portal.flash_account_updated'));
     }
