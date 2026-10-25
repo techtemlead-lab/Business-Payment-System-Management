@@ -379,6 +379,76 @@ class PartnerEventSmsTest extends TestCase
         ]);
     }
 
+    public function test_reward_milestone_achievement_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $rule = CommissionRuleParameter::getRule('car_bike_incentive');
+        $parameters = $rule?->parameters ?? [];
+        $rule?->update([
+            'is_active' => true,
+            'parameters' => [
+                ...$parameters,
+                'bike_target' => '100.00',
+                'bike_leg_cap' => '100.00',
+                'car_target' => '250000000.00',
+                'car_leg_cap' => '20000000.00',
+            ],
+        ]);
+
+        $leader = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000097',
+        ]);
+        ReferralTreePath::attachUser($leader->id, null);
+        $buyer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'sponsor_id' => $leader->id,
+        ]);
+        ReferralTreePath::attachUser($buyer->id, $leader->id);
+
+        $order = Order::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'milestone-sms'),
+            'number' => 'ORD-MILE-SMS',
+            'user_id' => $buyer->id,
+            'status' => 'delivered',
+            'total' => '100.00',
+            'paid' => '100.00',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
+        $order->lines()->create([
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'quantity' => 1,
+            'mrp' => $product->mrp,
+            'unit_price' => '100.00',
+            'total' => '100.00',
+        ]);
+
+        app(CommissionService::class)->processOrder($order);
+
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'milestone.achieved');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.milestone_achieved', [
+                'milestone' => __('portal.milestone_label_bike', [], 'bn'),
+            ], 'bn'),
+            $sent['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $leader->id,
+            'title' => __('portal.notice_milestone_achieved_title', [], 'bn'),
+        ]);
+    }
+
     public function test_order_refund_sends_localized_partner_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

@@ -67,7 +67,14 @@ class CommerceWorkflowTest extends TestCase
             $this->actingAs($subDealer)->onPortal('subdealer')->get($path)->assertOk();
         }
 
-        foreach (['/', '/orders', '/operations/financial-reports', '/operations/payment-accounts', '/treasury'] as $path) {
+        foreach ([
+            '/', '/orders', '/treasury',
+            '/operations/financial-reports', '/operations/payment-accounts',
+            '/operations/financial-readiness', '/operations/dues-adjustments',
+            '/operations/policy-schedules', '/operations/reserve-payouts',
+            '/operations/commission-holds', '/operations/data-imports',
+            '/operations/service-integrations',
+        ] as $path) {
             $this->actingAs($finance)->onPortal('manage')->get($path)->assertOk();
         }
 

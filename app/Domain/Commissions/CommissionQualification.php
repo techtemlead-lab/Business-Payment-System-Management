@@ -346,12 +346,42 @@ final class CommissionQualification
             $data = $this->milestone($userId, $type);
             $row = RewardMilestoneProgress::firstOrCreate(['user_id' => $userId, 'milestone_type' => $type],
                 ['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount']]);
+            $wasAchieved = (bool) $row->achieved;
             $row->update(['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount'],
                 'raw_team_volume' => $data['raw_team_volume'], 'qualifying_volume' => $data['qualifying_volume'], 'achieved' => $data['achieved'],
                 'achieved_at' => $data['achieved'] ? ($row->achieved_at ?? now()) : null, 'leg_breakdown' => $data['legs']]);
+            if ($data['achieved'] && ! $wasAchieved) {
+                $this->notifyMilestoneAchieved($userId, $type);
+            }
             $result[$type] = $data;
         }
 
         return $result;
+    }
+
+    private function notifyMilestoneAchieved(int $userId, string $type): void
+    {
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $milestoneLabel = __('portal.milestone_label_'.$type, [], $locale);
+        if ($milestoneLabel === 'portal.milestone_label_'.$type) {
+            $milestoneLabel = $type;
+        }
+        Audit::notice(
+            $userId,
+            __('portal.notice_milestone_achieved_title', [], $locale),
+            __('portal.notice_milestone_achieved_body', ['milestone' => $milestoneLabel], $locale),
+        );
+        DB::afterCommit(function () use ($userId, $milestoneLabel, $locale): void {
+            $partner = User::find($userId);
+            if (! $partner) {
+                return;
+            }
+            app(PartnerEventSms::class)->send(
+                $partner,
+                'milestone.achieved',
+                __('sms.milestone_achieved', ['milestone' => $milestoneLabel], $partner->preferredLocale() ?: $locale),
+            );
+        });
     }
 }

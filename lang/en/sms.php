@@ -23,6 +23,7 @@ return [
     'public_enquiry_received' => 'Madina: we received your :topic. The company will follow up on this phone.',
     'partnership_application_received' => 'Madina: your :role partnership application was received. Company staff will review and contact this phone.',
     'rank_achieved' => 'Madina: congratulations — you achieved :rank. Check ranks in your partner portal.',
+    'milestone_achieved' => 'Madina: congratulations — your :milestone qualifying volume target was reached. Finance can review the reserve award.',
     'order_refunded' => 'Madina: refund of BDT :amount was recorded for order :number. :reason',
     'payroll_paid' => 'Madina: payroll for :month was recorded as paid (BDT :amount). Receipt is with company finance.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
