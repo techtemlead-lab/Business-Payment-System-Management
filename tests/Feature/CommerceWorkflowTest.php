@@ -40,6 +40,7 @@ class CommerceWorkflowTest extends TestCase
         foreach ([
             '/', '/products', '/contact', '/dealers', '/about', '/services', '/quality',
             '/faq', '/privacy', '/terms', '/partnership', '/notice',
+            '/circular-training', '/circular-price', '/circular-meeting',
         ] as $path) {
             $this->onPortal('public')->get($path)->assertOk();
         }

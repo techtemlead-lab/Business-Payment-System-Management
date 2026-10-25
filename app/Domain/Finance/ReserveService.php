@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\User;
 use App\Support\Audit;
@@ -126,6 +127,22 @@ final class ReserveService
                             'amount' => $row->amount,
                         ], $locale),
                     );
+                    $userId = (int) $row->user_id;
+                    $amountText = (string) $row->amount;
+                    DB::afterCommit(function () use ($userId, $programLabel, $amountText, $locale): void {
+                        $partner = User::find($userId);
+                        if (! $partner) {
+                            return;
+                        }
+                        app(PartnerEventSms::class)->send(
+                            $partner,
+                            'reserve.credited',
+                            __('sms.reward_credited', [
+                                'program' => $programLabel,
+                                'amount' => $amountText,
+                            ], $partner->preferredLocale() ?: $locale),
+                        );
+                    });
                     if (in_array($row->program, ['bike', 'car'], true)) {
                         $this->qualification->refreshMilestones($row->user_id);
                         DB::table('reward_milestone_progress')->where('user_id', $row->user_id)->where('milestone_type', $row->program)
@@ -293,14 +310,30 @@ final class ReserveService
         if ($categoryLabel === 'portal.report_cat_'.$fund->category) {
             $categoryLabel = (string) $fund->category;
         }
+        $amountDecimal = Money::decimal($amount);
         Audit::notice(
             $partner->id,
             __('portal.notice_commission_released_title', [], $locale),
             __('portal.notice_commission_released_body', [
                 'category' => $categoryLabel,
-                'amount' => Money::decimal($amount),
+                'amount' => $amountDecimal,
             ], $locale),
         );
+        $userId = (int) $partner->id;
+        DB::afterCommit(function () use ($userId, $categoryLabel, $amountDecimal, $locale): void {
+            $notified = User::find($userId);
+            if (! $notified) {
+                return;
+            }
+            app(PartnerEventSms::class)->send(
+                $notified,
+                'commission.hold_released',
+                __('sms.commission_released', [
+                    'category' => $categoryLabel,
+                    'amount' => $amountDecimal,
+                ], $notified->preferredLocale() ?: $locale),
+            );
+        });
 
         return $amount;
     }

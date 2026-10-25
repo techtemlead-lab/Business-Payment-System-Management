@@ -18,6 +18,8 @@ return [
     'delivery_confirmed' => 'মদিনা: অর্ডার :number ডেলিভারি নিশ্চিত হয়েছে।',
     'due_adjustment' => 'মদিনা: অর্ডার :number এর বকেয়া :decision হয়েছে (:reference)। বর্তমান বকেয়া BDT :amount।',
     'commission_matured' => 'মদিনা: BDT :amount কুলিং-অফ কমিশন এখন আপনার ওয়ালেটে উপলব্ধ।',
+    'reward_credited' => 'মদিনা: :program এর জন্য BDT :amount জমা হয়েছে। আপনার আয় দেখুন।',
+    'commission_released' => 'মদিনা: BDT :amount :category হোল্ড আপনার ওয়ালেটে মুক্ত হয়েছে।',
     'err_otp_expired' => 'লগইন কোডের মেয়াদ শেষ। নতুন কোড পেতে আবার সাইন ইন করুন।',
     'err_otp_too_many' => 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার সাইন ইন করুন।',
     'err_otp_incorrect' => 'লগইন কোডটি ভুল।',

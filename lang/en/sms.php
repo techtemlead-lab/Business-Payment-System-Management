@@ -18,6 +18,8 @@ return [
     'delivery_confirmed' => 'Madina: order :number delivery was confirmed.',
     'due_adjustment' => 'Madina: dues on order :number were :decision (:reference). Outstanding now BDT :amount.',
     'commission_matured' => 'Madina: BDT :amount cooling-off commission is now available in your wallet.',
+    'reward_credited' => 'Madina: BDT :amount credited for :program. Check your earnings.',
+    'commission_released' => 'Madina: BDT :amount :category hold was released to your wallet.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',
