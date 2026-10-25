@@ -129,6 +129,8 @@ class FinanceStartupModeTest extends TestCase
                 ->component('Operations')
                 ->where('translations.portal.ops_fld_reason', 'কারণ ও অনুমোদনের বিবরণ')
                 ->where('translations.portal.ops_fld_wallet_available', 'যাচাইকৃত উপলব্ধ ওয়ালেট মোট (BDT)')
-                ->where('translations.portal.ops_fld_brand_line', 'মাদিনা ন্যাচারাল হেলথ কেয়ার · BDT · Asia/Dhaka'));
+                ->where('translations.portal.ops_fld_brand_line', 'মাদিনা ন্যাচারাল হেলথ কেয়ার · BDT · Asia/Dhaka')
+                ->where('translations.portal.ops_chk_wallet_available', 'ওয়ালেট উপলব্ধ')
+                ->where('translations.portal.ops_chk_balanced_journals', 'ব্যালান্সড জার্নাল'));
     }
 }
