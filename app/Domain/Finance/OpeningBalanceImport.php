@@ -214,12 +214,12 @@ final class OpeningBalanceImport
             DB::table('orders')->insert(['id' => $orderId, 'number' => 'OPEN-'.$data['reference'], 'user_id' => $partner->id, 'status' => 'delivered',
                 'total' => Money::decimal($total), 'paid' => Money::decimal($paid), 'is_opening_balance' => true, 'idempotency_key' => $batchId,
                 'payload_hash' => hash('sha256', json_encode($data, JSON_THROW_ON_ERROR)), 'commission_policy_snapshot' => json_encode(['source' => 'opening_import', 'non_commissionable' => true], JSON_THROW_ON_ERROR),
-                'note' => 'Historical delivered order balance. No inventory movement or new commission entitlement.', 'credit_authorized_by' => $actor->id,
+                'note' => __('portal.ob_order_note'), 'credit_authorized_by' => $actor->id,
                 'credit_authorized_at' => now(), 'created_at' => $date, 'updated_at' => now()]);
             if ($paid > 0) {
-                $claim = DB::table('payment_claims')->insertGetId(['order_id' => $orderId, 'channel' => 'Opening balance', 'reference' => 'OPEN-'.$data['reference'],
-                    'amount' => Money::decimal($paid), 'status' => 'verified', 'verified_by' => $actor->id, 'reason' => 'Approved historical payment imported from workbook', 'created_at' => $date, 'updated_at' => now()]);
-                DB::table('receipts')->insert(['order_id' => $orderId, 'claim_id' => $claim, 'channel' => 'Opening balance', 'reference' => 'OPEN-'.$data['reference'], 'amount' => Money::decimal($paid), 'created_at' => $date, 'updated_at' => now()]);
+                $claim = DB::table('payment_claims')->insertGetId(['order_id' => $orderId, 'channel' => __('portal.opening_balance'), 'reference' => 'OPEN-'.$data['reference'],
+                    'amount' => Money::decimal($paid), 'status' => 'verified', 'verified_by' => $actor->id, 'reason' => __('portal.ob_claim_reason'), 'created_at' => $date, 'updated_at' => now()]);
+                DB::table('receipts')->insert(['order_id' => $orderId, 'claim_id' => $claim, 'channel' => __('portal.opening_balance'), 'reference' => 'OPEN-'.$data['reference'], 'amount' => Money::decimal($paid), 'created_at' => $date, 'updated_at' => now()]);
             }
             $lines = [...$lines,
                 ['account' => 'opening_receivables', 'user_id' => $partner->id, 'debit' => $total - $paid, 'credit' => 0],
@@ -228,7 +228,7 @@ final class OpeningBalanceImport
             ];
         }
         if ($lines !== []) {
-            $this->wallets->journal('opening.import.'.$batchId.'.'.$partner->id, 'Approved opening balances: '.$data['reference'], $lines);
+            $this->wallets->journal('opening.import.'.$batchId.'.'.$partner->id, __('portal.ob_journal_approved', ['reference' => $data['reference']]), $lines);
         }
         DB::table('opening_balance_entries')->insert(['import_id' => $batchId, 'user_id' => $partner->id, 'reference' => $data['reference'], 'as_of_date' => $data['as_of_date'],
             'available' => Money::decimal($available), 'held' => Money::decimal($held), 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now()]);
