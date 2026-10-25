@@ -6,31 +6,17 @@ import {
     ArrowLeft, UserPlus, ShieldAlert, MapPin, Store, Building2, BadgeCheck,
     Search, IdCard, Phone, Hash, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
+import { useT } from '../shared/i18n/t';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
 type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
 type Consumer = { id: number; name: string; refer_code: string | null; rate: string } | null;
 
-const availablePermissions = [
-    { key: 'field_sales', label: 'Field Sales Workspace', description: 'Work with partners inside assigned territories' },
-    { key: 'sr_orders', label: 'Territory Orders', description: 'Submit and track orders for assigned partners' },
-    { key: 'sr_dues', label: 'Territory Dues', description: 'Read assigned partner dues and reports' },
-    { key: 'sr_onboarding', label: 'Dealer Applications', description: 'Submit new partner applications for review' },
-    { key: 'staff_admin', label: 'Territories & Targets', description: 'Assign sales territories and monthly targets' },
-    { key: 'payroll', label: 'Payroll Preparation', description: 'Prepare closed-month salaries from effective contracts' },
-    { key: 'orders', label: 'Orders & Deliveries', description: 'View orders, shipments, deliveries and payment claims' },
-    { key: 'order_review', label: 'Order Review & Approvals', description: 'Approve purchase requests and verify credit allocations' },
-    { key: 'inventory', label: 'Inventory & Stock Movements', description: 'Track stock levels, record receipts and stock adjustments' },
-    { key: 'catalog', label: 'Product Catalogue & Pricing', description: 'Manage products, units, descriptions and promotional flags' },
-    { key: 'accounts', label: 'Partner Directory & Accounts', description: 'Manage dealer and sub-dealer profiles and KYC' },
-    { key: 'finance', label: 'Treasury, Commissions & Payouts', description: 'View capital waterfall, settlements, commissions and payouts' },
-    { key: 'reports', label: 'Export Reports', description: 'Export order CSVs and financial summaries' },
-    { key: 'content', label: 'Content Management & Customization', description: 'Manage site content pages and visual hero customization' },
-    { key: 'audit', label: 'Audit & Security Logs', description: 'Inspect append-only system activity and security events' },
-    { key: 'pricing', label: 'Price Modification', description: 'Change MRP and wholesale pricing structures' },
-    { key: 'cost_read', label: 'Cost Price Visibility', description: 'View manufacturing/cost prices on products' },
-    { key: 'identity_write', label: 'KYC / NID Management', description: 'View and edit sensitive NID credentials' },
-];
+const availablePermissionKeys = [
+    'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'staff_admin', 'payroll',
+    'orders', 'order_review', 'inventory', 'catalog', 'accounts', 'finance', 'reports',
+    'content', 'audit', 'pricing', 'cost_read', 'identity_write',
+] as const;
 
 async function fetchJson<T>(url: string): Promise<T> {
     const response = await fetch(url, {
@@ -57,6 +43,7 @@ export default function AccountCreate({
     default_identity_type?: 'birth_certificate' | 'nid';
     bdris_enabled?: boolean;
 }) {
+    const translate = useT();
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
 
     const form = useForm({
@@ -205,7 +192,7 @@ export default function AccountCreate({
             });
             const json = await response.json();
             const result = json.data;
-            setBdrisMessage(result?.message || 'Lookup finished.');
+            setBdrisMessage(result?.message || translate('portal','acct_lookup_finished'));
             if (result?.success && result.details) {
                 form.setData((prev) => ({
                     ...prev,
@@ -218,7 +205,7 @@ export default function AccountCreate({
                 }));
             }
         } catch {
-            setBdrisMessage('Could not reach BDRIS. Enter the personal details manually.');
+            setBdrisMessage(translate('portal','acct_bdris_unreachable'));
         } finally {
             setBdrisLoading(false);
         }
@@ -250,7 +237,7 @@ export default function AccountCreate({
                 }));
             }
         } catch (error: any) {
-            setPlaceError(error.message || 'Place code not found.');
+            setPlaceError(error.message || translate('portal','acct_place_not_found'));
         }
     };
 
@@ -269,7 +256,7 @@ export default function AccountCreate({
                 .catch(() => {
                     setReferWarnings([]);
                     setConsumers(null);
-                    setReferPreviewError('Could not refresh refer-code preview. Check the codes and try again.');
+                    setReferPreviewError(translate('portal','acct_refer_preview_failed'));
                 });
         }, 350);
         return () => window.clearTimeout(handle);
@@ -324,18 +311,18 @@ export default function AccountCreate({
 
     return (
         <Shell section="accounts">
-            <Head title="Add Partner Account" />
+            <Head title={translate('portal','acct_head_title')} />
             <div className="section-header-row">
                 <Link href="/accounts" className="text-link flex-center">
-                    <ArrowLeft size={16} /> Back to Partner Accounts
+                    <ArrowLeft size={16} /> {translate('portal','acct_back')}
                 </Link>
             </div>
 
             <div className="registry-heading">
                 <div>
-                    <h2>Add Dealer / Sub-Dealer Account</h2>
+                    <h2>{translate('portal','acct_heading')}</h2>
                     <p>
-                        Prefer birth certificate lookup (BDRIS). Assign by MNHC place code (example MNHC-100), set unique refer codes, then create the account and SMS the mobile login.
+                        {translate('portal','acct_intro')}
                     </p>
                 </div>
             </div>
@@ -345,14 +332,14 @@ export default function AccountCreate({
                     <section className="panel">
                         <div className="panel-heading">
                             <div>
-                                <h3>1. Account type</h3>
-                                <p>Dealer uses any place code (one dealer per code). Sub-dealer uses a union/city corporation code with unlimited seats.</p>
+                                <h3>{translate('portal','acct_step_type')}</h3>
+                                <p>{translate('portal','acct_step_type_hint')}</p>
                             </div>
                             <UserPlus size={22} className="text-muted" />
                         </div>
                         <div className="form-grid">
                             <label>
-                                Account Type / Role *
+                                {translate('portal','acct_role')}
                                 <select
                                     value={form.data.role}
                                     onChange={(e) => {
@@ -370,7 +357,7 @@ export default function AccountCreate({
                                 >
                                     {roles.map((r) => (
                                         <option key={r} value={r}>
-                                            {r === 'dealer' ? 'Dealer' : r === 'sub_dealer' ? 'Sub-Dealer' : label(r)}
+                                            {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
                                         </option>
                                     ))}
                                 </select>
@@ -382,34 +369,34 @@ export default function AccountCreate({
                         <section className="panel" style={{ borderLeft: '4px solid #059669' }}>
                             <div className="panel-heading">
                                 <div>
-                                    <h3>Employee Privileges &amp; Permissions</h3>
+                                    <h3>{translate('portal','acct_employee_privileges')}</h3>
                                 </div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
-                                {availablePermissions.filter((p) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'].includes(p.key)).map((p) => {
-                                    const checked = form.data.permissions.includes(p.key);
+                                {availablePermissionKeys.filter((key) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'].includes(key)).map((key) => {
+                                    const checked = form.data.permissions.includes(key);
                                     return (
                                         <label
-                                            key={p.key}
+                                            key={key}
                                             onClick={() => {
                                                 const cur = form.data.permissions;
-                                                form.setData('permissions', cur.includes(p.key) ? cur.filter((k) => k !== p.key) : [...cur, p.key]);
+                                                form.setData('permissions', cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]);
                                             }}
                                             style={{ display: 'flex', gap: 10, padding: 10, border: checked ? '1px solid #10b981' : '1px solid #e2e8f0', borderRadius: 6, background: checked ? '#ecfdf5' : '#fff' }}
                                         >
                                             <input type="checkbox" checked={checked} onChange={() => {}} />
                                             <div>
-                                                <b style={{ fontSize: 12 }}>{p.label}</b>
-                                                <small style={{ display: 'block', color: '#64748b' }}>{p.description}</small>
+                                                <b style={{ fontSize: 12 }}>{translate('portal',`perm_${key}`)}</b>
+                                                <small style={{ display: 'block', color: '#64748b' }}>{translate('portal',`perm_${key}_hint`)}</small>
                                             </div>
                                         </label>
                                     );
                                 })}
                             </div>
                             <div className="form-grid" style={{ marginTop: 16 }}>
-                                <label>Full Name *<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
-                                <label>Email *<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
-                                <label>Phone<input value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
+                                <label>{translate('portal','acct_full_name')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
+                                <label>{translate('portal','acct_email')}<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
+                                <label>{translate('portal','acct_phone')}<input value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
                             </div>
                         </section>
                     )}
@@ -419,31 +406,31 @@ export default function AccountCreate({
                             <section className="panel">
                                 <div className="panel-heading">
                                     <div>
-                                        <h3>2. Identity (NID / Birth certificate)</h3>
-                                        <p>Birth certificate is preferred and selected by default. NID requires full manual entry.</p>
+                                        <h3>{translate('portal','acct_step_identity')}</h3>
+                                        <p>{translate('portal','acct_step_identity_hint')}</p>
                                     </div>
                                     <IdCard size={22} className="text-muted" />
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                                    <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>Birth certificate</button>
-                                    <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>NID</button>
+                                    <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>{translate('portal','acct_birth_certificate')}</button>
+                                    <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>{translate('portal','acct_nid')}</button>
                                 </div>
                                 <div className="form-grid">
                                     {form.data.identity_type === 'birth_certificate' ? (
                                         <label>
-                                            Birth certificate number *
+                                            {translate('portal','acct_birth_cert_number')}
                                             <input required value={form.data.birth_certificate_number} onChange={(e) => form.setData('birth_certificate_number', e.target.value)} />
                                             {form.errors.birth_certificate_number && <span className="field-error">{form.errors.birth_certificate_number}</span>}
                                         </label>
                                     ) : (
                                         <label>
-                                            NID number *
+                                            {translate('portal','acct_nid_number')}
                                             <input required value={form.data.nid} onChange={(e) => form.setData('nid', e.target.value)} />
                                             {form.errors.nid && <span className="field-error">{form.errors.nid}</span>}
                                         </label>
                                     )}
                                     <label>
-                                        Date of birth *
+                                        {translate('portal','acct_dob')}
                                         <input type="date" required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
                                         {form.errors.date_of_birth && <span className="field-error">{form.errors.date_of_birth}</span>}
                                     </label>
@@ -452,113 +439,113 @@ export default function AccountCreate({
                                     <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                                         {bdris_enabled ? (
                                             <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
-                                                <Search size={16} /> {bdrisLoading ? 'Searching BDRIS…' : 'Search BDRIS'}
+                                                <Search size={16} /> {bdrisLoading ? translate('portal','acct_searching_bdris') : translate('portal','acct_search_bdris')}
                                             </button>
                                         ) : (
-                                            <span className="muted" style={{ fontSize: 13 }}>BDRIS autofill is disabled. Enter personal details manually, or enable BDRIS under Service integrations.</span>
+                                            <span className="muted" style={{ fontSize: 13 }}>{translate('portal','acct_bdris_disabled')}</span>
                                         )}
                                         {bdrisMessage && <span className="muted" style={{ fontSize: 13 }}>{bdrisMessage}</span>}
                                     </div>
                                 )}
                                 <div className="form-grid" style={{ marginTop: 16 }}>
-                                    <label>Name (English) *<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />{form.errors.name && <span className="field-error">{form.errors.name}</span>}</label>
-                                    <label>Name (Bangla) *<input required value={form.data.name_bn} onChange={(e) => form.setData('name_bn', e.target.value)} />{form.errors.name_bn && <span className="field-error">{form.errors.name_bn}</span>}</label>
-                                    <label>Father's name *<input required value={form.data.father_name} onChange={(e) => form.setData('father_name', e.target.value)} />{form.errors.father_name && <span className="field-error">{form.errors.father_name}</span>}</label>
-                                    <label>Mother's name *<input required value={form.data.mother_name} onChange={(e) => form.setData('mother_name', e.target.value)} />{form.errors.mother_name && <span className="field-error">{form.errors.mother_name}</span>}</label>
-                                    <label>Occupation<input value={form.data.occupation} onChange={(e) => form.setData('occupation', e.target.value)} /></label>
+                                    <label>{translate('portal','acct_name_en')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />{form.errors.name && <span className="field-error">{form.errors.name}</span>}</label>
+                                    <label>{translate('portal','acct_name_bn')}<input required value={form.data.name_bn} onChange={(e) => form.setData('name_bn', e.target.value)} />{form.errors.name_bn && <span className="field-error">{form.errors.name_bn}</span>}</label>
+                                    <label>{translate('portal','acct_father_name')}<input required value={form.data.father_name} onChange={(e) => form.setData('father_name', e.target.value)} />{form.errors.father_name && <span className="field-error">{form.errors.father_name}</span>}</label>
+                                    <label>{translate('portal','acct_mother_name')}<input required value={form.data.mother_name} onChange={(e) => form.setData('mother_name', e.target.value)} />{form.errors.mother_name && <span className="field-error">{form.errors.mother_name}</span>}</label>
+                                    <label>{translate('portal','acct_occupation')}<input value={form.data.occupation} onChange={(e) => form.setData('occupation', e.target.value)} /></label>
                                 </div>
                             </section>
 
                             <section className="panel">
                                 <div className="panel-heading">
                                     <div>
-                                        <h3>3. Address</h3>
-                                        <p>Select division → zila → upazila → union/city corporation. Search filters the next lists.</p>
+                                        <h3>{translate('portal','acct_step_address')}</h3>
+                                        <p>{translate('portal','acct_step_address_hint')}</p>
                                     </div>
                                     <MapPin size={22} className="text-muted" />
                                 </div>
                                 <label style={{ display: 'block', marginBottom: 12 }}>
-                                    Search places
-                                    <input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder="Filter by code or name…" />
+                                    {translate('portal','acct_search_places')}
+                                    <input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder={translate('portal','acct_filter_places')} />
                                 </label>
                                 <div className="form-grid">
                                     <label>
-                                        Division
+                                        {translate('portal','acct_division')}
                                         <select value={divisionId} onChange={(e) => { setDivisionId(e.target.value); setDistrictId(''); setUpazilaId(''); setUnionId(''); }}>
-                                            <option value="">Select division…</option>
+                                            <option value="">{translate('portal','acct_select_division')}</option>
                                             {place_divisions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
                                     </label>
                                     <label>
-                                        District / Zila
+                                        {translate('portal','acct_district')}
                                         <select value={districtId} onChange={(e) => { setDistrictId(e.target.value); setUpazilaId(''); setUnionId(''); }} disabled={!divisionId}>
-                                            <option value="">Select district…</option>
+                                            <option value="">{translate('portal','acct_select_district')}</option>
                                             {districts.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
                                     </label>
                                     <label>
-                                        Upazila
+                                        {translate('portal','acct_upazila')}
                                         <select value={upazilaId} onChange={(e) => { setUpazilaId(e.target.value); setUnionId(''); }} disabled={!districtId}>
-                                            <option value="">Select upazila…</option>
+                                            <option value="">{translate('portal','acct_select_upazila')}</option>
                                             {upazilas.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
                                     </label>
                                     <label>
-                                        Union / City corporation
+                                        {translate('portal','acct_union')}
                                         <select value={unionId} onChange={(e) => setUnionId(e.target.value)} disabled={!upazilaId}>
-                                            <option value="">Select union…</option>
+                                            <option value="">{translate('portal','acct_select_union')}</option>
                                             {unions.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
                                         </select>
                                     </label>
-                                    <label>Village / street<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
-                                    <label>Post office<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
+                                    <label>{translate('portal','acct_village')}<input value={form.data.village} onChange={(e) => form.setData('village', e.target.value)} /></label>
+                                    <label>{translate('portal','acct_post_office')}<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
                                     <label>
-                                        Map latitude
+                                        {translate('portal','acct_latitude')}
                                         <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder="e.g. 25.7701" />
                                         {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
                                     </label>
                                     <label>
-                                        Map longitude
+                                        {translate('portal','acct_longitude')}
                                         <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder="e.g. 88.8240" />
                                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                                     </label>
                                 </div>
                                 <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
-                                    Optional GPS coordinates power the public “nearest dealer” directory. Leave blank when the business address is not yet verified on a map.
+                                    {translate('portal','acct_gps_hint')}
                                 </p>
                             </section>
 
                             <section className="panel">
                                 <div className="panel-heading">
                                     <div>
-                                        <h3>4. Area code</h3>
+                                        <h3>{translate('portal','acct_step_area')}</h3>
                                         <p>
                                             {form.data.role === 'sub_dealer'
-                                                ? 'Enter a union / city corporation code. Sub-dealer area code is auto-generated (e.g. 457482-000001). Unlimited sub-dealers per union.'
-                                                : 'Enter the place code. Only one dealer may be associated with each area code.'}
+                                                ? translate('portal','acct_area_hint_sub')
+                                                : translate('portal','acct_area_hint_dealer')}
                                         </p>
                                     </div>
                                     <Hash size={22} className="text-muted" />
                                 </div>
                                 <div className="form-grid">
                                     <label>
-                                        {form.data.role === 'sub_dealer' ? 'Union / city corporation code *' : 'Place / area code *'}
+                                        {form.data.role === 'sub_dealer' ? translate('portal','acct_union_code') : translate('portal','acct_place_code')}
                                         <div style={{ display: 'flex', gap: 8 }}>
                                             <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? 'e.g. 457482' : 'e.g. 102'} />
-                                            <button type="button" className="button dark" onClick={previewPlace}>Resolve</button>
+                                            <button type="button" className="button dark" onClick={previewPlace}>{translate('portal','acct_resolve')}</button>
                                         </div>
                                         {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
                                         {placeError && <span className="field-error">{placeError}</span>}
                                     </label>
                                     {form.data.role === 'dealer' && (
                                         <label>
-                                            Dealer code (optional override)
-                                            <input value={form.data.dealer_code} onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())} placeholder="Defaults to place code" />
+                                            {translate('portal','acct_dealer_code_override')}
+                                            <input value={form.data.dealer_code} onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_dealer_code_default')} />
                                         </label>
                                     )}
                                     {form.data.role === 'sub_dealer' && (
                                         <label>
-                                            Auto sub-dealer area code
+                                            {translate('portal','acct_auto_sub_code')}
                                             <input value={form.data.dealer_code} readOnly />
                                         </label>
                                     )}
@@ -569,17 +556,17 @@ export default function AccountCreate({
                                             {placePreview.available ? <CheckCircle2 size={16} color="#047857" /> : <AlertTriangle size={16} color="#c2410c" />}
                                             {placePreview.label}
                                         </div>
-                                        {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>This area code already has an active dealer.</p>}
+                                        {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>{translate('portal','acct_area_taken')}</p>}
                                         <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e' }}>
-                                                Area dealer pool {placePreview.area_pool_rate || '10.00'}% · Management share {placePreview.management_rate || '2.00'}%
+                                                {translate('portal','acct_area_pool',{pool:String(placePreview.area_pool_rate||'10.00'),mgmt:String(placePreview.management_rate||'2.00')})}
                                             </div>
                                             {commissionLines.map((row) => {
-                                                const title = row.level === 'management' ? 'Management' : row.level === 'division' ? 'Div' : row.level === 'district' ? 'Dist' : row.level === 'upazila' ? 'Upazila' : 'Union';
+                                                const title = row.level === 'management' ? translate('portal','acct_level_management') : row.level === 'division' ? translate('portal','acct_level_div') : row.level === 'district' ? translate('portal','acct_level_dist') : row.level === 'upazila' ? translate('portal','acct_level_upazila') : translate('portal','acct_level_union');
                                                 return (
                                                     <div key={row.level} style={{ fontSize: 13 }}>
                                                         <b>{title}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
-                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? 'Company management reserve' : '— (not on last-serial path)')}
+                                                        {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? translate('portal','acct_mgmt_reserve') : translate('portal','acct_not_on_path'))}
                                                     </div>
                                                 );
                                             })}
@@ -591,20 +578,20 @@ export default function AccountCreate({
                             <section className="panel">
                                 <div className="panel-heading">
                                     <div>
-                                        <h3>5. Refer section</h3>
-                                        <p>Reference = who referred them. Your refer code = code for their underlinks. Both must be unique when filled.</p>
+                                        <h3>{translate('portal','acct_step_refer')}</h3>
+                                        <p>{translate('portal','acct_step_refer_hint')}</p>
                                     </div>
                                     <BadgeCheck size={22} className="text-muted" />
                                 </div>
                                 <div className="form-grid">
                                     <label>
-                                        Your reference
-                                        <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder="Refer code of the person who referred them" />
+                                        {translate('portal','acct_your_reference')}
+                                        <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_reference_placeholder')} />
                                         {form.errors.reference_code && <span className="field-error">{form.errors.reference_code}</span>}
                                     </label>
                                     <label>
-                                        Your refer code *
-                                        <input required value={form.data.refer_code} onChange={(e) => form.setData('refer_code', e.target.value.toUpperCase())} placeholder="Unique code for this partner’s underlinks" />
+                                        {translate('portal','acct_your_refer_code')}
+                                        <input required value={form.data.refer_code} onChange={(e) => form.setData('refer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_refer_placeholder')} />
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>
@@ -618,10 +605,10 @@ export default function AccountCreate({
                                 )}
                                 {consumers && (
                                     <div style={{ marginTop: 12, fontSize: 13 }}>
-                                        <b>Commission consumers</b>
-                                        <div>10% direct referral: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : '→ unassigned_reserve'}</div>
-                                        <div>2% D2D gen-2: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : '→ unassigned_reserve'}</div>
-                                        <div>1% D2D gen-3: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <b>{translate('portal','acct_commission_consumers')}</b>
+                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : '→ unassigned_reserve'}</div>
                                     </div>
                                 )}
                             </section>
@@ -629,35 +616,35 @@ export default function AccountCreate({
                             <section className="panel">
                                 <div className="panel-heading">
                                     <div>
-                                        <h3>6. Contact</h3>
-                                        <p>Bangladeshi mobile and email are required. Username for login is the mobile number.</p>
+                                        <h3>{translate('portal','acct_step_contact')}</h3>
+                                        <p>{translate('portal','acct_step_contact_hint')}</p>
                                     </div>
                                     <Phone size={22} className="text-muted" />
                                 </div>
                                 <div className="form-grid">
                                     <label>
-                                        Mobile number *
+                                        {translate('portal','acct_mobile')}
                                         <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="01XXXXXXXXX" />
                                         {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
                                     </label>
                                     <label>
-                                        Email *
+                                        {translate('portal','acct_email')}
                                         <input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
                                         {form.errors.email && <span className="field-error">{form.errors.email}</span>}
                                     </label>
                                     <label>
-                                        Extra contact (optional)
+                                        {translate('portal','acct_extra_contact')}
                                         <input value={form.data.extra_contact} onChange={(e) => form.setData('extra_contact', e.target.value)} />
                                     </label>
                                     {form.data.role === 'sub_dealer' ? (
                                         <label>
-                                            Shop name *
-                                            <input required value={form.data.shop_name} onChange={(e) => form.setData('shop_name', e.target.value)} placeholder="Trading / shop name" />
+                                            {translate('portal','acct_shop_name')}
+                                            <input required value={form.data.shop_name} onChange={(e) => form.setData('shop_name', e.target.value)} placeholder={translate('portal','acct_shop_placeholder')} />
                                             {form.errors.shop_name && <span className="field-error">{form.errors.shop_name}</span>}
                                         </label>
                                     ) : (
                                         <label>
-                                            Pharmacy / chamber
+                                            {translate('portal','acct_pharmacy')}
                                             <input value={form.data.pharmacy} onChange={(e) => form.setData('pharmacy', e.target.value)} />
                                         </label>
                                     )}
@@ -671,45 +658,45 @@ export default function AccountCreate({
                     <section className="panel">
                         <div className="panel-heading">
                             <div>
-                                <h3>Staff audit</h3>
+                                <h3>{translate('portal','acct_staff_audit')}</h3>
                             </div>
                             <ShieldAlert size={20} className="text-muted" />
                         </div>
                         <label>
-                            Verification note *
+                            {translate('portal','acct_verification_note')}
                             <textarea rows={3} required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
                         </label>
                         {form.data.role === 'dealer' && (
                             <label className="checkbox-label" style={{ marginTop: 12 }}>
                                 <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
-                                <span>Publish in public dealer directory</span>
+                                <span>{translate('portal','acct_directory_visible')}</span>
                             </label>
                         )}
                         {Object.keys(form.errors).length > 0 && (
-                            <div className="error" role="alert" style={{ marginTop: 12 }}>Please correct the highlighted errors.</div>
+                            <div className="error" role="alert" style={{ marginTop: 12 }}>{translate('portal','acct_fix_errors')}</div>
                         )}
                         <button type="submit" className="button dark full-width" disabled={form.processing || (isPartner && referWarnings.length > 0)} style={{ marginTop: 16, justifyContent: 'center' }}>
-                            {form.processing ? 'Creating…' : isPartner ? 'Add account & send SMS' : 'Create account & email invitation'}
+                            {form.processing ? translate('portal','acct_creating') : isPartner ? translate('portal','acct_submit_partner') : translate('portal','acct_submit_staff')}
                         </button>
                     </section>
                     {isPartner && (
                         <section className="panel">
                             <div className="panel-heading">
-                                <div><h3>Business point</h3></div>
+                                <div><h3>{translate('portal','acct_business_point')}</h3></div>
                                 <Store size={20} className="text-muted" />
                             </div>
                             <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                                After a valid add, the partner receives an SMS with username (mobile) and temporary password.
+                                {translate('portal','acct_sms_hint')}
                             </p>
                         </section>
                     )}
                     {!isPartner && (
                         <section className="panel">
-                            <div className="panel-heading"><div><h3>Sponsor (legacy)</h3></div><Building2 size={20} className="text-muted" /></div>
+                            <div className="panel-heading"><div><h3>{translate('portal','acct_sponsor_legacy')}</h3></div><Building2 size={20} className="text-muted" /></div>
                             <label>
-                                Sponsoring dealer
+                                {translate('portal','acct_sponsoring_dealer')}
                                 <select value={form.data.sponsor_id} onChange={(e) => form.setData('sponsor_id', e.target.value)}>
-                                    <option value="">No sponsor</option>
+                                    <option value="">{translate('portal','acct_no_sponsor')}</option>
                                     {sponsors.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.dealer_code})</option>)}
                                 </select>
                             </label>
