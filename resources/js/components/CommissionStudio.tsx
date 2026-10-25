@@ -178,7 +178,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                         </span>
                                         <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>v{r.version}</span>
                                     </div>
-                                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '4px 0' }}>{r.name}</h3>
+                                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '4px 0' }}>{(() => { const localized = translate('portal', `rule_name_${r.rule_key}`); return localized !== `rule_name_${r.rule_key}` ? localized : r.name; })()}</h3>
                                     <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 14px 0', lineHeight: 1.4 }}>{r.description}</p>
                                 </div>
 

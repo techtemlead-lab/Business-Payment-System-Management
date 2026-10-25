@@ -45,4 +45,15 @@ class CommissionPolicyLocaleTest extends TestCase
             );
         }
     }
+
+    public function test_policy_snapshot_localizes_rule_names_for_studio_locale(): void
+    {
+        app()->setLocale('bn');
+        $name = app(CommissionPolicy::class)->snapshot(false)['rules']['direct_referral']['name'] ?? null;
+        $this->assertSame(__('portal.rule_name_direct_referral', [], 'bn'), $name);
+
+        app()->setLocale('en');
+        $english = app(CommissionPolicy::class)->snapshot(false)['rules']['direct_referral']['name'] ?? null;
+        $this->assertSame(__('portal.rule_name_direct_referral', [], 'en'), $english);
+    }
 }

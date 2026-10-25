@@ -247,6 +247,34 @@ class OperationalReadinessTest extends TestCase
         $this->assertNotContains('opening_balances_unverified', $result['warnings']);
         $this->assertNotContains('opening_balances_stale', $result['warnings']);
         $this->assertNotContains('commission_policy_unreviewed', $result['warnings']);
+        $this->assertNotContains('partner_benefit_overrides_active', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_partner_benefit_overrides_are_active(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'profile' => [
+                'benefit_controls' => [
+                    'unconditional_salary' => true,
+                    'unconditional_rank_royalty' => false,
+                    'unconditional_rank_incentive' => false,
+                ],
+            ],
+        ]);
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertContains('partner_benefit_overrides_active', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_opening_verification_fingerprint_drifts(): void

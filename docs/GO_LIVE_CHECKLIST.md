@@ -22,7 +22,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Opening balances imported and reconciled against bank / cash books — `app:readiness` must not warn `opening_balances_unverified` or `opening_balances_stale`
 - [ ] Payment accounts configured (bank / MFS) with correct labels — at least one active account with collections enabled and one with payouts enabled; `app:readiness` must not warn `payment_collection_accounts_missing` or `payment_payout_accounts_missing`
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
-- [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended
+- [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended; `app:readiness` must not warn `partner_benefit_overrides_active` (or each remaining override is documented)
 - [ ] Only after the above: set `MADINA_FINANCIAL_ACTIVATION=true` on the production host and re-run `app:readiness`
 - [ ] Confirm `MADINA_PREVIEW_MODE=false` on production
 

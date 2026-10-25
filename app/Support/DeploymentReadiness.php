@@ -125,6 +125,9 @@ final class DeploymentReadiness
         if ($checks['database'] && ! $this->commissionPolicyReviewed()) {
             $warnings[] = 'commission_policy_unreviewed';
         }
+        if ($checks['database'] && $this->partnerBenefitOverridesActive()) {
+            $warnings[] = 'partner_benefit_overrides_active';
+        }
         if ($this->appDomainMismatchesAppUrl()) {
             $warnings[] = 'app_domain_mismatches_app_url';
         }
@@ -364,6 +367,29 @@ final class DeploymentReadiness
             report($exception);
 
             return false;
+        }
+    }
+
+    /**
+     * Unconditional salary / rank benefit overrides waive volume gates — flag any
+     * active partner profile that still has them before financial go-live.
+     */
+    private function partnerBenefitOverridesActive(): bool
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_salary', 'false') = 'true'")
+                        ->orWhereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_rank_royalty', 'false') = 'true'")
+                        ->orWhereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_rank_incentive', 'false') = 'true'");
+                })
+                ->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
         }
     }
 

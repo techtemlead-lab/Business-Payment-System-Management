@@ -75,6 +75,15 @@ final class CommissionPolicy
             $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
         }
         $rules['d2d_multitier']['parameters']['dynamic_compression'] = false;
+        foreach ($rules as $key => $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+            $translated = __('portal.rule_name_'.$key);
+            if ($translated !== 'portal.rule_name_'.$key) {
+                $rules[$key]['name'] = $translated;
+            }
+        }
         if ($validate) {
             $this->validateSchedule($rules);
         }
