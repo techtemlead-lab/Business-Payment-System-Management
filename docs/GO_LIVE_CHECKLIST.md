@@ -19,7 +19,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 ## Policy and money (activation gate)
 
 - [ ] Commission policy draft reviewed and dual-control published for the live schedule — `app:readiness` must not warn `commission_policy_unreviewed`
-- [ ] Opening balances imported and reconciled against bank / cash books
+- [ ] Opening balances imported and reconciled against bank / cash books — `app:readiness` must not warn `opening_balances_unverified` or `opening_balances_stale`
 - [ ] Payment accounts configured (bank / MFS) with correct labels — at least one active account with collections enabled and one with payouts enabled; `app:readiness` must not warn `payment_collection_accounts_missing` or `payment_payout_accounts_missing`
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
 - [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended

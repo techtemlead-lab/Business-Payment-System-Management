@@ -83,7 +83,7 @@ class AreaQuotaHoldReleaseTest extends TestCase
 
         $released = $hold->fresh();
         $this->assertContains($released->status, ['available', 'maturing']);
-        $this->assertSame('Automatic area quota achieved', $released->metadata['release_reason'] ?? null);
+        $this->assertSame('release_reason_quota_auto', $released->metadata['release_reason'] ?? null);
         $this->assertArrayHasKey('released_by', $released->metadata);
         $this->assertNull($released->metadata['released_by']);
     }

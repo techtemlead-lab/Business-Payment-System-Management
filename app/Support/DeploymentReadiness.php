@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Models\PlaceCode;
@@ -118,6 +119,8 @@ final class DeploymentReadiness
         }
         if ($checks['database'] && ! $this->openingBalancesVerified()) {
             $warnings[] = 'opening_balances_unverified';
+        } elseif ($checks['database'] && $this->openingBalancesStale()) {
+            $warnings[] = 'opening_balances_stale';
         }
         if ($checks['database'] && ! $this->commissionPolicyReviewed()) {
             $warnings[] = 'commission_policy_unreviewed';
@@ -319,6 +322,30 @@ final class DeploymentReadiness
             report($exception);
 
             return false;
+        }
+    }
+
+    /**
+     * A verified opening record whose fingerprint no longer matches the live ledger
+     * means balances drifted after dual-control — re-submit and re-verify before activation.
+     */
+    private function openingBalancesStale(): bool
+    {
+        try {
+            $latest = DB::table('financial_verifications')
+                ->whereNotNull('verified_at')
+                ->orderByDesc('id')
+                ->first(['fingerprint']);
+            if (! $latest) {
+                return false;
+            }
+            $current = app(FinancialReadiness::class)->inspect()['fingerprint'] ?? null;
+
+            return ! is_string($current) || $current === '' || $latest->fingerprint !== $current;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
         }
     }
 

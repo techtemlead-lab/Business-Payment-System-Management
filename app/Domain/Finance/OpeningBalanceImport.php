@@ -252,7 +252,7 @@ final class OpeningBalanceImport
         $product = Product::create([...$data, 'active' => false]);
         if ((int) $data['stock'] > 0) {
             DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => $data['stock'], 'kind' => 'opening_import',
-                'reference' => $batchId.'.'.$product->id, 'reason' => 'Opening stock imported from approved workbook', 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+                'reference' => $batchId.'.'.$product->id, 'reason' => __('portal.stock_reason_opening_import'), 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
         }
     }
 

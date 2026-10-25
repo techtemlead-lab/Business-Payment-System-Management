@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Domain\Finance\FinancialReadiness;
 use App\Models\User;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
@@ -27,10 +28,19 @@ abstract class TestCase extends BaseTestCase
         }
         $preparer = User::factory()->staff('finance')->create();
         $reviewer = User::factory()->staff('finance')->create();
+        $fingerprint = 'test-verified-opening';
+        $snapshot = ['source' => 'test'];
+        try {
+            $live = app(FinancialReadiness::class)->inspect();
+            $fingerprint = (string) $live['fingerprint'];
+            $snapshot = $live;
+        } catch (\Throwable) {
+            // Fall back to a synthetic fingerprint when readiness inspect is unavailable.
+        }
         DB::table('financial_verifications')->insert([
-            'fingerprint' => 'test-verified-opening',
-            'snapshot' => json_encode(['source' => 'test'], JSON_THROW_ON_ERROR),
-            'expected_totals' => json_encode([], JSON_THROW_ON_ERROR),
+            'fingerprint' => $fingerprint,
+            'snapshot' => json_encode($snapshot, JSON_THROW_ON_ERROR),
+            'expected_totals' => json_encode($snapshot['totals'] ?? [], JSON_THROW_ON_ERROR),
             'source_reference' => 'TEST-OPENING',
             'evidence_path' => 'opening-balance-evidence/test.bin',
             'evidence_hash' => str_repeat('b', 64),

@@ -235,7 +235,7 @@ final class ReserveService
                 if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
                     continue;
                 }
-                $amount = $this->creditHeldAllocation($fund, $actorId, 'Automatic area quota achieved');
+                $amount = $this->creditHeldAllocation($fund, $actorId, 'release_reason_quota_auto');
                 $count++;
                 $total += $amount;
             }

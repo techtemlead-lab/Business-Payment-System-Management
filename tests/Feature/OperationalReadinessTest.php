@@ -245,7 +245,40 @@ class OperationalReadinessTest extends TestCase
         $this->assertNotContains('area_dealer_coverage_incomplete', $result['warnings']);
         $this->assertNotContains('partners_missing_place_codes', $result['warnings']);
         $this->assertNotContains('opening_balances_unverified', $result['warnings']);
+        $this->assertNotContains('opening_balances_stale', $result['warnings']);
         $this->assertNotContains('commission_policy_unreviewed', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_opening_verification_fingerprint_drifts(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        $this->enableFinancialPosting();
+        config(['madina.financial_activation' => false]);
+        $fresh = app(DeploymentReadiness::class)->inspect();
+        $this->assertNotContains('opening_balances_unverified', $fresh['warnings']);
+        $this->assertNotContains('opening_balances_stale', $fresh['warnings']);
+
+        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        DB::table('wallets')->insert([
+            'user_id' => $partner->id,
+            'available' => '25.00',
+            'held' => '0.00',
+            'commission_held' => '0.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $stale = app(DeploymentReadiness::class)->inspect();
+        $this->assertNotContains('opening_balances_unverified', $stale['warnings']);
+        $this->assertContains('opening_balances_stale', $stale['warnings']);
     }
 
     public function test_application_readiness_warns_when_area_coverage_misses_partner_places(): void
