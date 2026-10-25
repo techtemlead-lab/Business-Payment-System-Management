@@ -102,8 +102,9 @@ function OperationForm({title,action,fields,defaults={},policy,policyRules={},fu
 }
 
 function Detail({value}:{value:any}):React.ReactNode {
+    const translate=useT();
     if(value===null||value===undefined)return '—';
-    if(typeof value!=='object')return typeof value==='boolean'?(value?'yes':'no'):String(value);
+    if(typeof value!=='object')return typeof value==='boolean'?(value?translate('portal','ops_fld_yes'):translate('portal','ops_fld_no')):String(value);
     return <dl style={{margin:0}}>{Object.entries(value).map(([key,item])=><div key={key} style={{margin:'8px 0'}}><dt style={{fontWeight:600}}>{label(key)}</dt><dd style={{margin:'3px 0 3px 10px'}}><Detail value={item}/></dd></div>)}</dl>;
 }
 

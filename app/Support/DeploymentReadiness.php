@@ -104,6 +104,9 @@ final class DeploymentReadiness
         if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
             $warnings[] = 'place_code_catalog_incomplete';
         }
+        if ($checks['database'] && ! $this->paymentCollectionAccountsReady()) {
+            $warnings[] = 'payment_collection_accounts_missing';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),
@@ -125,6 +128,24 @@ final class DeploymentReadiness
             $districts = PlaceCode::query()->where('level', PlaceCode::LevelDistrict)->count();
 
             return $divisions >= 8 && $districts >= 64;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Partner collections and payment claims need at least one active account
+     * that accepts collections before financial go-live.
+     */
+    private function paymentCollectionAccountsReady(): bool
+    {
+        try {
+            return DB::table('payment_accounts')
+                ->where('is_active', true)
+                ->where('collects_payments', true)
+                ->exists();
         } catch (\Throwable $exception) {
             report($exception);
 

@@ -17,7 +17,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 - [ ] Commission policy draft reviewed and dual-control published for the live schedule
 - [ ] Opening balances imported and reconciled against bank / cash books
-- [ ] Payment accounts configured (bank / MFS) with correct labels
+- [ ] Payment accounts configured (bank / MFS) with correct labels — at least one active account with collections enabled; `app:readiness` must not warn `payment_collection_accounts_missing`
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
 - [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended
 - [ ] Only after the above: set `MADINA_FINANCIAL_ACTIVATION=true` on the production host and re-run `app:readiness`
