@@ -77,6 +77,9 @@ final class DeploymentReadiness
         }
 
         $warnings = [];
+        if (config('madina.preview_mode') && ! config('madina.financial_activation')) {
+            $warnings[] = 'preview_mode_enabled';
+        }
         $smsDriver = (string) config('madina.sms.driver', 'log');
         $smsGatewayReady = $this->smsGatewayConfigured();
         if (in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {

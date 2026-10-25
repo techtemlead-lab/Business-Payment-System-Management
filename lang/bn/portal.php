@@ -424,6 +424,7 @@ return [
     'ops_warn_opening_balances_stale' => 'উদ্বোধনী ব্যালেন্স যাচাই পুরনো — দ্বৈত-নিয়ন্ত্রণের পর লেজার ফিঙ্গারপ্রিন্ট বদলেছে; MADINA_FINANCIAL_ACTIVATION=true করার আগে উদ্বোধনী পুনরায় জমা ও যাচাই করুন।',
     'ops_warn_commission_policy_unreviewed' => 'কমিশন পলিসি ড্রাফট দ্বৈত-নিয়ন্ত্রণে প্রকাশ হয়নি — MADINA_FINANCIAL_ACTIVATION=true করার আগে দ্বিতীয় ফিন্যান্স অনুমোদনকারী দিয়ে ড্রাফট রিভিউ ও পাবলিশ করুন।',
     'ops_warn_partner_benefit_overrides_active' => 'সক্রিয় পার্টনারের নিঃশর্ত স্যালারি/র‍্যাঙ্ক বেনিফিট ওভাররাইড আছে — MADINA_FINANCIAL_ACTIVATION=true করার আগে প্রতিটি ওভাররাইড অডিট করুন যাতে কোনোটি অনিচ্ছাকৃত না থাকে।',
+    'ops_warn_preview_mode_enabled' => 'MADINA_PREVIEW_MODE এখনও true — প্রোডাকশন গো-লাইভের আগে MADINA_PREVIEW_MODE=false সেট করুন (প্রিভিউ কেবল ফিন্যান্সিয়াল অ্যাক্টিভেশন বন্ধ থাকলে নিরাপদ)।',
     'release_reason_quota_auto' => 'স্বয়ংক্রিয় এরিয়া কোটা অর্জিত',
     'stock_reason_opening_import' => 'অনুমোদিত ওয়ার্কবুক থেকে উদ্বোধনী স্টক আমদানি',
     'report_uncategorised' => 'শ্রেণীবিন্যাসবিহীন',

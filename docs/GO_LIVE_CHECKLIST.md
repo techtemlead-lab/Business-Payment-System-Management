@@ -24,7 +24,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
 - [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended; `app:readiness` must not warn `partner_benefit_overrides_active` (or each remaining override is documented)
 - [ ] Only after the above: set `MADINA_FINANCIAL_ACTIVATION=true` on the production host and re-run `app:readiness`
-- [ ] Confirm `MADINA_PREVIEW_MODE=false` on production
+- [ ] Confirm `MADINA_PREVIEW_MODE=false` on production — `app:readiness` must not warn `preview_mode_enabled`
 
 ## Access and portals
 

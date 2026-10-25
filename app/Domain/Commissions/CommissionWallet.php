@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Models\CommissionAllocation;
+use App\Models\User;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -92,7 +93,8 @@ final class CommissionWallet
         }
         DB::table('wallets')->where('id', $wallet->id)->update($changes);
         if ($recovery > 0) {
-            $this->journal('commissions.debt_recovery.'.Str::uuid(), __('portal.jr_clawback_offset'), [
+            $locale = User::find($userId)?->preferredLocale() ?? app()->getLocale();
+            $this->journal('commissions.debt_recovery.'.Str::uuid(), __('portal.jr_clawback_offset', [], $locale), [
                 ['account' => 'wallet_liability', 'user_id' => $userId, 'debit' => $recovery, 'credit' => 0],
                 ['account' => 'commission_clawback_receivable', 'user_id' => $userId, 'debit' => 0, 'credit' => $recovery],
             ]);

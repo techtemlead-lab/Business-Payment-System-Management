@@ -97,4 +97,36 @@ class CommerceWorkflowTest extends TestCase
             ->postJson('/api/v1/operations/payroll/prepare', ['period_month' => '2026-09'])
             ->assertOk();
     }
+
+    public function test_portal_hosts_carry_withdrawal_request_through_staff_review(): void
+    {
+        $this->enableFinancialPosting();
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $reviewer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        DB::table('wallets')->insert([
+            'user_id' => $dealer->id,
+            'available' => '500.00',
+            'held' => '0.00',
+            'commission_held' => '0.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $id = $this->actingAs($dealer)->onPortal('dealer')->postJson('/api/v1/withdrawals', [
+            'amount' => '200.00',
+            'channel' => 'Bank',
+            'destination' => 'Verified portal host account',
+            'idempotency_key' => (string) Str::uuid(),
+        ])->assertCreated()->json('data.id');
+
+        $this->actingAs($reviewer)->onPortal('manage')
+            ->post('/commands/withdrawals/'.$id.'/review', [
+                'decision' => 'approved',
+                'reason' => 'Portal-host dual-control review',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'approved', 'reviewed_by' => $reviewer->id]);
+        $this->assertDatabaseHas('wallets', ['user_id' => $dealer->id, 'available' => '300.00', 'held' => '200.00']);
+    }
 }

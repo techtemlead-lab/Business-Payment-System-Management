@@ -34,11 +34,15 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue($result['checks']['database_timezone_utc']);
         $this->assertTrue($result['checks']['migrations_current']);
         $this->assertTrue($result['ready']);
+        $this->assertContains('preview_mode_enabled', $result['warnings']);
         // Intentionally leave preview_mode on while arming activation — that combo must fail the preview_posting_disabled check.
         config(['madina.financial_activation' => true]);
         $this->assertFalse(app(DeploymentReadiness::class)->inspect()['checks']['preview_posting_disabled']);
         $this->assertFalse(app(DeploymentReadiness::class)->inspect(true)['checks']['production_environment']);
         $this->assertFalse(app(DeploymentReadiness::class)->inspect(true)['checks']['scheduler_recent']);
+
+        config(['madina.financial_activation' => false, 'madina.preview_mode' => false]);
+        $this->assertNotContains('preview_mode_enabled', app(DeploymentReadiness::class)->inspect()['warnings']);
     }
 
     public function test_application_readiness_warns_when_sms_and_mail_only_log(): void

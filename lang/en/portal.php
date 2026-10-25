@@ -424,6 +424,7 @@ return [
     'ops_warn_opening_balances_stale' => 'Opening-balance verification is stale — the ledger fingerprint drifted after dual-control; re-submit and re-verify openings before MADINA_FINANCIAL_ACTIVATION=true.',
     'ops_warn_commission_policy_unreviewed' => 'Commission policy draft is not dual-control published — review and publish a draft with a second finance approver before MADINA_FINANCIAL_ACTIVATION=true.',
     'ops_warn_partner_benefit_overrides_active' => 'Active partners have unconditional salary/rank benefit overrides — audit each override before MADINA_FINANCIAL_ACTIVATION=true so none are unintended.',
+    'ops_warn_preview_mode_enabled' => 'MADINA_PREVIEW_MODE is still true — set MADINA_PREVIEW_MODE=false on production before go-live (preview stays safe only while financial activation is off).',
     'release_reason_quota_auto' => 'Automatic area quota achieved',
     'stock_reason_opening_import' => 'Opening stock imported from approved workbook',
     'report_uncategorised' => 'Uncategorised',

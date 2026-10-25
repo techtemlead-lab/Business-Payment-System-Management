@@ -6,13 +6,17 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Finance\ReserveService;
 use App\Domain\Orders\OrderService;
+use App\Domain\Payouts\ManualPayoutService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
+use App\Models\CommissionRuleParameter;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -111,7 +115,7 @@ class PartnerMoneyTrailLocaleTest extends TestCase
 
     public function test_maturity_release_journal_uses_partner_locale(): void
     {
-        $cooling = \App\Models\CommissionRuleParameter::getRule('commission_cooling_off');
+        $cooling = CommissionRuleParameter::getRule('commission_cooling_off');
         $cooling?->update(['parameters' => ['cooling_off_days' => 7]]);
 
         $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
@@ -140,5 +144,50 @@ class PartnerMoneyTrailLocaleTest extends TestCase
             ->where('event_key', 'commissions.matured.'.$maturing->first()->id)
             ->value('description');
         $this->assertSame(__('portal.jr_commission_matured', [], 'bn'), $description);
+    }
+
+    public function test_withdrawal_payout_journal_uses_partner_preferred_locale(): void
+    {
+        Storage::fake('local');
+        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
+        $reviewer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $payer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        DB::table('wallets')->insert([
+            'user_id' => $partner->id,
+            'available' => '0.00',
+            'held' => '200.00',
+            'commission_held' => '0.00',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $id = (string) Str::uuid();
+        DB::table('withdrawals')->insert([
+            'id' => $id,
+            'user_id' => $partner->id,
+            'amount' => '200.00',
+            'withheld_amount' => '0.00',
+            'net_amount' => '200.00',
+            'status' => 'approved',
+            'channel' => 'Bank',
+            'destination' => encrypt('TEST-ACCOUNT-1234'),
+            'idempotency_key' => (string) Str::uuid(),
+            'reviewed_by' => $reviewer->id,
+            'created_at' => now()->subDay(),
+            'updated_at' => now(),
+        ]);
+
+        app(ManualPayoutService::class)->settle(
+            $payer,
+            $id,
+            UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf'),
+            'PAY-BN-1',
+            now()->subHour()->toDateTimeString(),
+            'Paid with Bangla journal coverage',
+        );
+
+        $description = DB::table('journal_entries')
+            ->where('event_key', 'manual-payout:'.$id)
+            ->value('description');
+        $this->assertSame(__('portal.wd_journal_manual_payout', [], 'bn'), $description);
     }
 }

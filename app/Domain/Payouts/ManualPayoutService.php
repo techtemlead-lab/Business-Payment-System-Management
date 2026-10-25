@@ -125,14 +125,14 @@ class ManualPayoutService
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_held_settle_mismatch')]);
                 }
                 DB::table('wallets')->where('id', $wallet->id)->update(['held' => Money::decimal(Money::cents($wallet->held) - Money::cents($w->amount)), 'updated_at' => now()]);
+                $partner = User::find($w->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
                 $entry = (string) Str::uuid();
-                DB::table('journal_entries')->insert(['id' => $entry, 'event_key' => 'manual-payout:'.$id, 'description' => __('portal.wd_journal_manual_payout'), 'actor_id' => $actor->id, 'created_at' => now()]);
+                DB::table('journal_entries')->insert(['id' => $entry, 'event_key' => 'manual-payout:'.$id, 'description' => __('portal.wd_journal_manual_payout', [], $locale), 'actor_id' => $actor->id, 'created_at' => now()]);
                 DB::table('journal_lines')->insert([['entry_id' => $entry, 'user_id' => $w->user_id, 'account' => 'wallet_liability', 'debit' => $w->amount, 'credit' => '0.00'], ['entry_id' => $entry, 'user_id' => null, 'account' => 'manual_payout_clearing', 'debit' => '0.00', 'credit' => $w->net_amount ?? $w->amount], ['entry_id' => $entry, 'user_id' => null, 'account' => 'payout_withholding_payable', 'debit' => '0.00', 'credit' => $w->withheld_amount]]);
                 DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference, 'paid_at' => $paidAt, 'paid_by' => $actor->id, 'receipt_path' => $path, 'receipt_mime' => $receipt->getMimeType(), 'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
                 DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'paid', 'note' => $note, 'created_at' => now()]);
                 Audit::record($actor->id, 'withdrawal.paid', $id, ['receipt_sha256' => hash_file('sha256', $receipt->getRealPath())]);
-                $partner = User::find($w->user_id);
-                $locale = $partner?->preferredLocale() ?? app()->getLocale();
                 Audit::notice(
                     $w->user_id,
                     __('portal.notice_wd_paid_title', [], $locale),
