@@ -1864,6 +1864,17 @@ return [
     'pc_update' => 'Update code',
     'pc_fld_base_serial' => 'Base place (last-serial child)',
     'pc_save_changes' => 'Save changes',
+
+    'err_order_paused' => 'Ordering is temporarily paused for :product.',
+    'err_order_limit' => 'Order amount exceeds the allowed limit.',
+    'err_order_closed' => 'This order is closed.',
+    'err_payment_ref_used' => 'This payment reference is already recorded.',
+    'err_claim_amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.',
+    'err_wd_minimum' => 'Minimum withdrawal is :amount BDT.',
+    'err_wd_clawback' => 'Resolve prior commission clawbacks before requesting another withdrawal.',
+    'err_wd_insufficient' => 'Insufficient available earnings.',
+    'net_export_csv' => 'Export genealogy CSV',
+    'net_export_hint' => 'Download your downline (or company network for staff) as a CSV for offline review.',
     'feature_disabled' => 'This workspace feature (:feature) is temporarily disabled by company administration.',
 
     'rw_badge' => 'Infinite-depth milestone engine with anti-whale branch capping',

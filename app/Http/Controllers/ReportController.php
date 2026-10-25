@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Support\Audit;
+use App\Support\DashboardManagement;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -25,5 +28,117 @@ class ReportController extends Controller
                 fputcsv($f, [$o->number, $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'), $o->status, $o->total, $o->paid, $o->outstanding()], ',', '"', '');
             } fclose($f);
         }, 'madina-orders-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    /**
+     * CSV genealogy / downline export for dealers (own tree) and staff with accounts access.
+     */
+    public function genealogy(Request $r): StreamedResponse
+    {
+        $u = $r->user();
+        $staff = $u->staff();
+
+        if ($staff) {
+            abort_unless($u->allows('accounts') || $u->allows('reports'), 403);
+        } else {
+            abort_unless($u->role === 'dealer', 403);
+            abort_unless(DashboardManagement::partnerFeatureEnabled($u, 'network'), 403);
+        }
+
+        Audit::record($u->id, 'report.exported', 'genealogy', [
+            'scope' => $staff ? 'company' : 'downline',
+        ]);
+
+        $headers = [
+            'Dealer code',
+            'Name',
+            'Phone',
+            'Role',
+            'Rank',
+            'Status',
+            'Sponsor code',
+            'Sponsor name',
+            'Division',
+            'District',
+            'Depth',
+            'Lifetime purchases BDT',
+            'Joined (Dhaka)',
+        ];
+
+        $query = $staff
+            ? DB::table('users')
+                ->leftJoin('users as sponsors', 'sponsors.id', '=', 'users.sponsor_id')
+                ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
+                ->whereIn('users.role', ['dealer', 'sub_dealer'])
+                ->orderBy('users.id')
+                ->select([
+                    'users.dealer_code',
+                    'users.name',
+                    'users.phone',
+                    'users.role',
+                    'users.status',
+                    'users.division',
+                    'users.district',
+                    'users.created_at',
+                    'sponsors.dealer_code as sponsor_code',
+                    'sponsors.name as sponsor_name',
+                    'dealer_ranks.current_rank',
+                    'dealer_ranks.lifetime_purchase_total',
+                    DB::raw('NULL as depth'),
+                ])
+            : DB::table('referral_tree_paths')
+                ->join('users', 'users.id', '=', 'referral_tree_paths.descendant_id')
+                ->leftJoin('users as sponsors', 'sponsors.id', '=', 'users.sponsor_id')
+                ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
+                ->where('referral_tree_paths.ancestor_id', $u->id)
+                ->where('referral_tree_paths.depth', '>', 0)
+                ->orderBy('referral_tree_paths.depth')
+                ->orderBy('users.id')
+                ->select([
+                    'users.dealer_code',
+                    'users.name',
+                    'users.phone',
+                    'users.role',
+                    'users.status',
+                    'users.division',
+                    'users.district',
+                    'users.created_at',
+                    'sponsors.dealer_code as sponsor_code',
+                    'sponsors.name as sponsor_name',
+                    'dealer_ranks.current_rank',
+                    'dealer_ranks.lifetime_purchase_total',
+                    'referral_tree_paths.depth',
+                ]);
+
+        $filename = $staff
+            ? 'madina-genealogy-company-'.now()->format('Y-m-d').'.csv'
+            : 'madina-genealogy-downline-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($query, $headers) {
+            $f = fopen('php://output', 'w');
+            fwrite($f, "\xEF\xBB\xBF");
+            fputcsv($f, $headers, ',', '"', '');
+            foreach ($query->cursor() as $row) {
+                $joined = $row->created_at
+                    ? Carbon::parse($row->created_at)->timezone('Asia/Dhaka')->format('Y-m-d H:i')
+                    : '';
+                fputcsv($f, [
+                    $row->dealer_code,
+                    $row->name,
+                    $row->phone,
+                    $row->role,
+                    $row->current_rank ?: 'dealer',
+                    $row->status,
+                    $row->sponsor_code,
+                    $row->sponsor_name,
+                    $row->division,
+                    $row->district,
+                    $row->depth,
+                    $row->lifetime_purchase_total ?? '0.00',
+                    $joined,
+                ], ',', '"', '');
+            }
+            fclose($f);
+        }, $filename, ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
     }
 }

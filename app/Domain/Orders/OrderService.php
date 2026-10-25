@@ -48,7 +48,7 @@ class OrderService
             foreach ($data['items'] as $item) {
                 $product = Product::whereKey($item['product_id'])->where('active', true)->firstOrFail();
                 if ($product->is_stock_paused) {
-                    throw ValidationException::withMessages(['items' => 'Ordering is temporarily paused for '.$product->name.'.']);
+                    throw ValidationException::withMessages(['items' => __('portal.err_order_paused', ['product' => $product->name])]);
                 }
                 $price = $this->pricing->unitPrice($product, $user);
                 $lineTotal = $price * $item['quantity'];
@@ -57,7 +57,7 @@ class OrderService
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {
-                throw ValidationException::withMessages(['items' => 'Order amount exceeds the allowed limit.']);
+                throw ValidationException::withMessages(['items' => __('portal.err_order_limit')]);
             }
             DashboardManagement::assertPartnerCanOrder($user, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
@@ -82,12 +82,12 @@ class OrderService
         DB::transaction(function () use ($actor, $order, $data): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (in_array($locked->status, ['rejected', 'cancelled'], true)) {
-                throw ValidationException::withMessages(['reference' => 'This order is closed.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
             }
             $reference = Str::upper(trim($data['reference']));
             if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
                 || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
-                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
             $id = $this->insertClaim($locked, $data);
             $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
@@ -151,7 +151,7 @@ class OrderService
                         throw ValidationException::withMessages(['payment' => 'Cannot verify payment for a closed order.']);
                     }
                     if (DB::table('receipts')->where('channel', $claim->channel)->where('reference', $claim->reference)->exists()) {
-                        throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
+                        throw ValidationException::withMessages(['payment' => __('portal.err_payment_ref_used')]);
                     }
                     $gateway = app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount);
                     if ($gateway['checked'] && ! $gateway['matched']) {
@@ -182,7 +182,7 @@ class OrderService
             }, 3);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
-                throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['payment' => __('portal.err_payment_ref_used')]);
             }
             throw $exception;
         }
@@ -284,14 +284,14 @@ class OrderService
     {
         $amount = Money::cents((string) $data['amount']);
         if ($amount <= 0 || $amount > Money::cents($order->outstanding())) {
-            throw ValidationException::withMessages(['amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.']);
+            throw ValidationException::withMessages(['amount' => __('portal.err_claim_amount')]);
         }
 
         $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
         $reference = Str::upper(trim($data['reference']));
         if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
             || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
-            throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+            throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
         }
 
         try {
@@ -300,7 +300,7 @@ class OrderService
                 'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
-                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
             throw $exception;
         }

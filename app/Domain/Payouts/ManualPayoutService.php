@@ -34,14 +34,14 @@ class ManualPayoutService
             }
             $minimum = app(FinanceSettings::class)->withdrawalMinimum()['amount'];
             if ($amount < Money::cents($minimum)) {
-                throw ValidationException::withMessages(['amount' => 'Minimum withdrawal is '.$minimum.' BDT.']);
+                throw ValidationException::withMessages(['amount' => __('portal.err_wd_minimum', ['amount' => $minimum])]);
             }
             if (CommissionWallet::hasDebt($actor->id)) {
-                throw ValidationException::withMessages(['amount' => 'Resolve prior commission clawbacks before requesting another withdrawal.']);
+                throw ValidationException::withMessages(['amount' => __('portal.err_wd_clawback')]);
             }
             $wallet = DB::table('wallets')->where('user_id', $actor->id)->lockForUpdate()->first();
             if (! $wallet || Money::cents($wallet->available) < $amount) {
-                throw ValidationException::withMessages(['amount' => 'Insufficient available earnings.']);
+                throw ValidationException::withMessages(['amount' => __('portal.err_wd_insufficient')]);
             }
             $tax = app(CommissionService::class)->calculatePayoutTds((float) $data['amount']);
             $id = (string) Str::uuid();

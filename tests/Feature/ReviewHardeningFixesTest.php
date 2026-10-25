@@ -143,6 +143,30 @@ class ReviewHardeningFixesTest extends TestCase
         $this->assertSame('Still Allowed Name', $user->name);
     }
 
+    public function test_partner_claim_errors_localize_to_bangla(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        ReferralTreePath::attachUser($dealer->id, null);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'active' => true, 'stock' => 100]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $order->update(['status' => 'cancelled']);
+
+        app()->setLocale('bn');
+        try {
+            app(OrderService::class)->claim($dealer, $order->fresh(), [
+                'channel' => 'bKash',
+                'reference' => 'TXN'.Str::upper(Str::random(8)),
+                'amount' => Money::decimal(Money::cents($order->total)),
+            ]);
+            $this->fail('Expected closed-order validation.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('এই অর্ডার বন্ধ।', $exception->errors()['reference'][0] ?? null);
+        }
+    }
+
     public function test_disabled_catalog_toggle_blocks_dealer_catalog_section(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);

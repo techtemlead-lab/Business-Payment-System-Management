@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye } from 'lucide-react';
+import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
 import { money, date } from './UI';
 import { useT } from '../shared/i18n/t';
 
@@ -350,6 +350,15 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     )}
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <a
+                        href="/exports/genealogy"
+                        className="button small"
+                        title={translate('portal', 'net_export_hint')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                        <Download size={14} /> {translate('portal', 'net_export_csv')}
+                    </a>
                 <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3 }}>
                     <button
                         type="button"
@@ -389,6 +398,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     >
                         <Users size={14} /> Table Roster View
                     </button>
+                </div>
                 </div>
             </div>
 

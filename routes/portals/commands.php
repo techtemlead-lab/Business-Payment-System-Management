@@ -26,6 +26,7 @@ return function (string $portal): void {
     Route::post('/commands/orders', [CommandController::class, 'order']);
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store']);
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
+    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
