@@ -9,6 +9,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
+use Database\Seeders\BangladeshPlaceCodeSeeder;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -52,6 +53,24 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('sms_driver_logging_only', $result['warnings']);
         $this->assertContains('mail_driver_logging_only', $result['warnings']);
         $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
+        $this->assertContains('place_code_catalog_incomplete', $result['warnings']);
+    }
+
+    public function test_application_readiness_clears_place_code_warning_when_catalog_is_seeded(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        $this->seed(BangladeshPlaceCodeSeeder::class);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_smtp_is_local_dev_placeholder(): void

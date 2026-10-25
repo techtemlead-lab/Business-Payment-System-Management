@@ -395,6 +395,7 @@ return [
     'ops_warn_mail_from_address_is_example_placeholder' => 'MAIL_FROM_ADDRESS এখনও @example.com — গো-লাইভের আগে আসল ফ্রম অ্যাড্রেস সেট করুন।',
     'ops_warn_mail_smtp_host_is_local_development' => 'SMTP হোস্ট লোকাল Mailpit/ডেভ মেইলের মতো — MAIL_HOST প্রোডাকশন মেইলে নির্দেশ করুন।',
     'ops_warn_login_otp_requires_real_sms_before_go_live' => 'লগইন OTP চালু আছে কিন্তু SMS এখনও লগ-অনলি — আসল প্রোভাইডার দিয়ে OTP এন্ড-টু-এন্ড যাচাই করুন।',
+    'ops_warn_place_code_catalog_incomplete' => 'প্লেস-কোড ক্যাটালগ অসম্পূর্ণ — পার্টনার অনবোর্ডিং গো-লাইভের আগে BangladeshPlaceCodeSeeder চালান (কমপক্ষে ৮টি বিভাগ + ৬৪টি জেলা)।',
     'ops_no_go_live_warnings' => 'এই হোস্টে কোনো গো-লাইভ মেইল/SMS সতর্কতা নেই।',
     'ops_account_registry' => 'কোম্পানি অ্যাকাউন্ট রেজিস্ট্রি',
     'ops_account' => 'অ্যাকাউন্ট',

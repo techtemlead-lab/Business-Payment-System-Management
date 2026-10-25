@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Models\PlaceCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -100,6 +101,9 @@ final class DeploymentReadiness
         if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
             $warnings[] = 'login_otp_requires_real_sms_before_go_live';
         }
+        if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
+            $warnings[] = 'place_code_catalog_incomplete';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),
@@ -108,6 +112,24 @@ final class DeploymentReadiness
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * Bangladesh onboarding needs the seeded administrative place registry
+     * (8 divisions + 64 districts at minimum) before partner go-live.
+     */
+    private function placeCodeCatalogReady(): bool
+    {
+        try {
+            $divisions = PlaceCode::query()->where('level', PlaceCode::LevelDivision)->count();
+            $districts = PlaceCode::query()->where('level', PlaceCode::LevelDistrict)->count();
+
+            return $divisions >= 8 && $districts >= 64;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
     }
 
     /**

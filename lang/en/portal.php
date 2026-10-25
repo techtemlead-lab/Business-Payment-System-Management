@@ -395,6 +395,7 @@ return [
     'ops_warn_mail_from_address_is_example_placeholder' => 'MAIL_FROM_ADDRESS still uses @example.com — set a real from address before go-live.',
     'ops_warn_mail_smtp_host_is_local_development' => 'SMTP host looks like local Mailpit/dev mail — point MAIL_HOST at production mail.',
     'ops_warn_login_otp_requires_real_sms_before_go_live' => 'Login OTP is enabled but SMS is still logging only — verify OTP end-to-end with a real provider.',
+    'ops_warn_place_code_catalog_incomplete' => 'Place-code catalog is incomplete — seed BangladeshPlaceCodeSeeder (8 divisions + 64 districts minimum) before partner onboarding go-live.',
     'ops_no_go_live_warnings' => 'No go-live mail/SMS warnings on this host.',
     'ops_account_registry' => 'Company account registry',
     'ops_account' => 'Account',
