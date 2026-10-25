@@ -259,9 +259,10 @@ final class CommissionSettlement
                 'source_category' => $fund->category,
                 'settlement_kind' => $kind,
                 'retained_by' => 'settlement_rollover',
+                'reason_key' => $kind === 'salary' ? 'retained_reason_settle_rollover_salary' : 'retained_reason_settle_rollover_royalty',
                 'reason' => $kind === 'salary'
-                    ? 'Undistributed salary share rolled to company settlement reserve.'
-                    : 'Unfilled royalty tier share rolled to company settlement reserve.',
+                    ? __('portal.retained_reason_settle_rollover_salary')
+                    : __('portal.retained_reason_settle_rollover_royalty'),
             ],
         ])->id;
     }
@@ -315,19 +316,23 @@ final class CommissionSettlement
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
             'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
-        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, __('portal.jr_commission_settlement', ['kind' => $kind, 'month' => $month]), [
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
+        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, __('portal.jr_commission_settlement', [
+            'kind' => $kindLabel,
+            'month' => $month,
+        ], $locale), [
             ['user_id' => null, 'account' => 'commission_expense', 'debit' => $amount, 'credit' => 0],
             ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
         ]);
         $this->wallets->credit($userId, $amount);
-        $partner = User::find($userId);
-        $locale = $partner?->preferredLocale() ?? app()->getLocale();
         Audit::notice(
             $userId,
             __('portal.notice_settle_title', [], $locale),
             __('portal.notice_settle_body', [
                 'amount' => Money::decimal($amount),
-                'kind' => __('portal.settle_kind_'.$kind, [], $locale),
+                'kind' => $kindLabel,
                 'month' => $month,
             ], $locale),
         );

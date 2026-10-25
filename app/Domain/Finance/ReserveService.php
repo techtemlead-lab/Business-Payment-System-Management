@@ -106,17 +106,23 @@ final class ReserveService
                 }
                 if ($row->program !== 'marketing') {
                     $amount = Money::cents($row->amount);
-                    $this->wallets->journal('reserve.award.'.$id, __('portal.jr_reserve_award', ['program' => $row->program]), [
+                    $locale = User::find($row->user_id)?->preferredLocale() ?? app()->getLocale();
+                    $programLabel = __('portal.reward_program_'.$row->program, [], $locale);
+                    if ($programLabel === 'portal.reward_program_'.$row->program) {
+                        $programLabel = (string) $row->program;
+                    }
+                    $this->wallets->journal('reserve.award.'.$id, __('portal.jr_reserve_award', [
+                        'program' => $programLabel,
+                    ], $locale), [
                         ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                         ['account' => 'wallet_liability', 'user_id' => $row->user_id, 'debit' => 0, 'credit' => $amount],
                     ]);
                     $this->wallets->credit($row->user_id, $amount);
-                    $locale = User::find($row->user_id)?->preferredLocale() ?? app()->getLocale();
                     Audit::notice(
                         $row->user_id,
                         __('portal.notice_reward_credited_title', [], $locale),
                         __('portal.notice_reward_credited_body', [
-                            'program' => $row->program,
+                            'program' => $programLabel,
                             'amount' => $row->amount,
                         ], $locale),
                     );
