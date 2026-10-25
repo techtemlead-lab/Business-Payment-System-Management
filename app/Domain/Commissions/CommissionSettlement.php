@@ -35,7 +35,7 @@ final class CommissionSettlement
         CommissionWallet::requireActive();
         [, $end] = CommissionQualification::period($month);
         if ($end->isFuture()) {
-            throw ValidationException::withMessages(['period_month' => 'Close the calendar month before settling its salary or royalty.']);
+            throw ValidationException::withMessages(['period_month' => __('portal.err_settle_month_open')]);
         }
 
         return DB::transaction(function () use ($month, $kind, $actorId, $requestKey): array {
@@ -243,7 +243,7 @@ final class CommissionSettlement
         }
         $total = array_sum($weights);
         if ($total === 0) {
-            throw ValidationException::withMessages(['rules' => 'The royalty pool needs nonzero rank shares.']);
+            throw ValidationException::withMessages(['rules' => __('portal.err_settle_royalty_shares')]);
         }
         $result = [];
         $fractions = [];
@@ -272,7 +272,17 @@ final class CommissionSettlement
             ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
         ]);
         $this->wallets->credit($userId, $amount);
-        Audit::notice($userId, 'Commission settlement', Money::decimal($amount).' BDT credited for '.$kind.' / '.$month.'.');
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        Audit::notice(
+            $userId,
+            __('portal.notice_settle_title', [], $locale),
+            __('portal.notice_settle_body', [
+                'amount' => Money::decimal($amount),
+                'kind' => $kind,
+                'month' => $month,
+            ], $locale),
+        );
     }
 
     /** @return array<string, mixed> */
@@ -397,7 +407,7 @@ final class CommissionSettlement
                 $amount = Money::cents($fund->amount);
                 $result = $this->wallets->debit($fund->user_id, $amount, true);
                 if ($result['unrecovered'] !== 0) {
-                    throw ValidationException::withMessages(['commissions' => 'Commission holds do not reconcile.']);
+                    throw ValidationException::withMessages(['commissions' => __('portal.err_settle_holds')]);
                 }
                 $this->wallets->journal('commissions.matured.'.$fund->id, 'Release matured commission', [
                     ['user_id' => $fund->user_id, 'account' => 'commission_held_liability', 'debit' => $amount, 'credit' => 0],
