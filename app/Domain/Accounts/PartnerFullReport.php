@@ -193,6 +193,8 @@ final class PartnerFullReport
     {
         $report = $this->for($user, $from, $to);
         $summary = $report['summary'];
+        $locale = $user->preferredLocale();
+        $t = static fn (string $key, array $replace = []) => __('portal.'.$key, $replace, $locale);
         $dir = Storage::disk('local')->path('report-exports');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -200,9 +202,10 @@ final class PartnerFullReport
         $safeCode = preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) ($user->dealer_code ?: $user->id)) ?: (string) $user->id;
         $path = $dir.'/partner-full-report-'.$safeCode.'-'.now('Asia/Dhaka')->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.pdf';
 
-        $rows = static function (array $items, callable $cells): string {
+        $none = $t('pdf_none');
+        $rows = static function (array $items, callable $cells) use ($none): string {
             if ($items === []) {
-                return '<tr><td colspan="6">None</td></tr>';
+                return '<tr><td colspan="6">'.e($none).'</td></tr>';
             }
             $html = '';
             foreach ($items as $item) {
@@ -215,6 +218,12 @@ final class PartnerFullReport
 
             return $html;
         };
+
+        $roleKey = 'acct_role_'.$user->role;
+        $roleLabel = __('portal.'.$roleKey, [], $locale);
+        if ($roleLabel === 'portal.'.$roleKey) {
+            $roleLabel = str_replace('_', ' ', (string) $user->role);
+        }
 
         $commissionRows = $rows($report['commissions'], fn (array $row) => [$row['label'], $row['entries'], $row['amount']]);
         $orderRows = $rows($report['orders'], fn (array $row) => [
@@ -242,19 +251,19 @@ final class PartnerFullReport
             th{background:#f3f4f6} .muted{color:#555;font-size:9pt}
             .metrics td{border:0;padding:2px 8px 2px 0}
         </style></head><body>';
-        $html .= '<h1>Partner full report</h1>';
-        $html .= '<p class="muted">'.e($user->name).' · '.e((string) ($user->dealer_code ?: '—')).' · '.e(str_replace('_', ' ', (string) $user->role)).'</p>';
+        $html .= '<h1>'.e($t('pdf_partner_full_report_title')).'</h1>';
+        $html .= '<p class="muted">'.e($user->name).' · '.e((string) ($user->dealer_code ?: '—')).' · '.e($roleLabel).'</p>';
         $html .= '<table class="metrics"><tr>
-            <td><b>Ordered</b><br>'.e($summary['ordered']).' ('.e((string) $summary['orders_count']).')</td>
-            <td><b>Paid</b><br>'.e($summary['paid']).'</td>
-            <td><b>Due</b><br>'.e($summary['due']).'</td>
-            <td><b>Commission</b><br>'.e($summary['commission']).'</td>
-            <td><b>Team</b><br>'.e((string) $summary['team_members']).' · '.e($summary['team_commission']).'</td>
+            <td><b>'.e($t('report_col_ordered')).'</b><br>'.e($summary['ordered']).' ('.e((string) $summary['orders_count']).')</td>
+            <td><b>'.e($t('report_col_paid')).'</b><br>'.e($summary['paid']).'</td>
+            <td><b>'.e($t('report_col_due')).'</b><br>'.e($summary['due']).'</td>
+            <td><b>'.e($t('report_commission_earned')).'</b><br>'.e($summary['commission']).'</td>
+            <td><b>'.e($t('pdf_metric_team')).'</b><br>'.e((string) $summary['team_members']).' · '.e($summary['team_commission']).'</td>
         </tr></table>';
-        $html .= '<h2>Commission by head</h2><table><thead><tr><th>Head</th><th>Entries</th><th>Amount</th></tr></thead><tbody>'.$commissionRows.'</tbody></table>';
-        $html .= '<h2>Orders &amp; payments</h2><table><thead><tr><th>Order</th><th>Status</th><th>Ordered</th><th>Paid</th><th>Due</th><th>Payments</th></tr></thead><tbody>'.$orderRows.'</tbody></table>';
-        $html .= '<h2>Team members</h2><table><thead><tr><th>Name</th><th>Code</th><th>Role</th><th>Phone</th><th>Status</th><th></th></tr></thead><tbody>'.$teamRows.'</tbody></table>';
-        $html .= '<p class="muted">Generated '.e(now('Asia/Dhaka')->format('d M Y H:i')).' Asia/Dhaka · Amounts in BDT · Preview only — not a bank statement.</p></body></html>';
+        $html .= '<h2>'.e($t('report_commission_by_head')).'</h2><table><thead><tr><th>'.e($t('report_col_head')).'</th><th>'.e($t('report_col_entries')).'</th><th>'.e($t('report_col_amount')).'</th></tr></thead><tbody>'.$commissionRows.'</tbody></table>';
+        $html .= '<h2>'.e($t('report_order_payment_records')).'</h2><table><thead><tr><th>'.e($t('report_col_order')).'</th><th>'.e($t('col_status')).'</th><th>'.e($t('report_col_ordered')).'</th><th>'.e($t('report_col_paid')).'</th><th>'.e($t('report_col_due')).'</th><th>'.e($t('report_col_payments')).'</th></tr></thead><tbody>'.$orderRows.'</tbody></table>';
+        $html .= '<h2>'.e($t('report_team_members')).'</h2><table><thead><tr><th>'.e($t('col_name')).'</th><th>'.e($t('pc_col_code')).'</th><th>'.e($t('partnership_type')).'</th><th>'.e($t('label_mobile')).'</th><th>'.e($t('col_status')).'</th><th></th></tr></thead><tbody>'.$teamRows.'</tbody></table>';
+        $html .= '<p class="muted">'.e($t('pdf_partner_full_report_generated', ['when' => now('Asia/Dhaka')->format('d M Y H:i')])).'</p></body></html>';
 
         try {
             $pdf = new Mpdf([
@@ -264,8 +273,8 @@ final class PartnerFullReport
                 'autoScriptToLang' => true,
                 'autoLangToFont' => true,
             ]);
-            $pdf->SetTitle('Madina partner full report');
-            $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">Madina Natural Health Care · Page {PAGENO} of {nbpg}</div>');
+            $pdf->SetTitle($t('pdf_partner_full_report_doc_title'));
+            $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e($t('pdf_partner_full_report_footer')).'</div>');
             $pdf->WriteHTML($html);
             $pdf->Output($path, Destination::FILE);
         } catch (\Throwable $exception) {

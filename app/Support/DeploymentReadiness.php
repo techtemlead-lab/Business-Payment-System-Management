@@ -104,6 +104,12 @@ final class DeploymentReadiness
         if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
             $warnings[] = 'place_code_catalog_incomplete';
         }
+        if ($checks['database'] && $this->placeCodeCatalogReady() && ! $this->areaDealerAssignmentsReady()) {
+            $warnings[] = 'area_dealer_assignments_missing';
+        }
+        if ($checks['database'] && ! $this->openingBalancesVerified()) {
+            $warnings[] = 'opening_balances_unverified';
+        }
         if ($checks['database'] && ! $this->paymentCollectionAccountsReady()) {
             $warnings[] = 'payment_collection_accounts_missing';
         }
@@ -171,6 +177,35 @@ final class DeploymentReadiness
             $districts = PlaceCode::query()->where('level', PlaceCode::LevelDistrict)->count();
 
             return $divisions >= 8 && $districts >= 64;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Geographic commission pools need at least one active area-dealer seat
+     * after the place catalog is ready; otherwise first posts land in unassigned reserve.
+     */
+    private function areaDealerAssignmentsReady(): bool
+    {
+        try {
+            return DB::table('area_dealer_assignments')->where('is_active', true)->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Dual-control opening-balance verification must exist before financial activation.
+     */
+    private function openingBalancesVerified(): bool
+    {
+        try {
+            return DB::table('financial_verifications')->whereNotNull('verified_at')->exists();
         } catch (\Throwable $exception) {
             report($exception);
 

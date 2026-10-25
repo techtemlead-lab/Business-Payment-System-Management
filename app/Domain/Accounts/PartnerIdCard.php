@@ -21,6 +21,9 @@ final class PartnerIdCard
     {
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
 
+        $locale = $user->preferredLocale();
+        $t = static fn (string $key, array $replace = []) => __('portal.'.$key, $replace, $locale);
+
         $dir = Storage::disk('local')->path('report-exports');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -39,7 +42,11 @@ final class PartnerIdCard
         $location = collect([$profile['upazila'] ?? null, $user->district, $user->division])
             ->filter(fn ($part) => filled($part))
             ->implode(', ');
-        $roleLabel = $user->role === 'sub_dealer' ? 'Sub-dealer' : 'Dealer';
+        $roleKey = 'acct_role_'.$user->role;
+        $roleLabel = __('portal.'.$roleKey, [], $locale);
+        if ($roleLabel === 'portal.'.$roleKey) {
+            $roleLabel = str_replace('_', ' ', (string) $user->role);
+        }
         $issued = now('Asia/Dhaka')->format('d M Y');
 
         $qrPng = $dir.'/partner-id-qr-'.$safeCode.'-'.Str::lower(Str::random(6)).'.png';
@@ -64,23 +71,23 @@ final class PartnerIdCard
         </style></head><body><div class="card">
             <table class="row"><tr>
             <td style="width:68%;padding-right:8px;vertical-align:top">
-            <div class="brand">Madina Natural Health Care</div>
-            <div class="role">'.e($roleLabel).' identity card</div>
+            <div class="brand">'.e($t('brand_madina_natural_health_care')).'</div>
+            <div class="role">'.e($t('pdf_id_card_role', ['role' => $roleLabel])).'</div>
             <h1>'.e($user->name).'</h1>
-            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : 'Bangladesh').'</p>
+            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : $t('pdf_location_bangladesh')).'</p>
             <table>
-                <tr><td class="k">Dealer code</td><td class="v">'.e($code).'</td></tr>
-                <tr><td class="k">Refer code</td><td class="v code">'.e($refer).'</td></tr>
-                <tr><td class="k">Mobile</td><td class="v">'.e((string) ($user->phone ?: '—')).'</td></tr>
-                <tr><td class="k">Join link</td><td class="url">'.e($joinUrl).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_dealer_code')).'</td><td class="v">'.e($code).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_refer_code')).'</td><td class="v code">'.e($refer).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_mobile')).'</td><td class="v">'.e((string) ($user->phone ?: '—')).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_join_link')).'</td><td class="url">'.e($joinUrl).'</td></tr>
             </table>
             </td>
             <td style="width:32%;text-align:center;vertical-align:middle">
-                <img class="qr" src="'.e($qrPng).'" alt="Join QR"/>
-                <div style="font-size:7pt;color:#64748b;margin-top:3px">Scan to join</div>
+                <img class="qr" src="'.e($qrPng).'" alt="'.e($t('pdf_id_card_scan')).'"/>
+                <div style="font-size:7pt;color:#64748b;margin-top:3px">'.e($t('pdf_id_card_scan')).'</div>
             </td>
             </tr></table>
-            <div class="foot">Issued '.$issued.' Asia/Dhaka · Company-managed identity · Not a government ID · Preview only</div>
+            <div class="foot">'.e($t('pdf_id_card_foot', ['when' => $issued])).'</div>
         </div></body></html>';
 
         try {
@@ -95,7 +102,7 @@ final class PartnerIdCard
                 'autoScriptToLang' => true,
                 'autoLangToFont' => true,
             ]);
-            $pdf->SetTitle('Madina partner ID — '.$code);
+            $pdf->SetTitle($t('pdf_id_card_doc_title', ['code' => $code]));
             $pdf->WriteHTML($html);
             $pdf->Output($path, Destination::FILE);
         } catch (\Throwable $exception) {

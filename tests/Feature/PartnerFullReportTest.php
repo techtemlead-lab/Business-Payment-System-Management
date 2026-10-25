@@ -76,6 +76,25 @@ class PartnerFullReportTest extends TestCase
             ->assertHeader('content-disposition', 'attachment; filename=Madina-partner-report-MNHC-PDF-1.pdf');
     }
 
+    public function test_bangla_dealer_full_report_pdf_uses_partner_locale_strings(): void
+    {
+        $this->assertSame('পার্টনার সম্পূর্ণ রিপোর্ট', __('portal.pdf_partner_full_report_title', [], 'bn'));
+        $this->assertSame('Partner full report', __('portal.pdf_partner_full_report_title', [], 'en'));
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MNHC-PDF-BN',
+            'locale' => 'bn',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/full-report/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_staff_cannot_download_partner_full_report_pdf(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);

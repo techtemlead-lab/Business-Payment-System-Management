@@ -55,6 +55,8 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('mail_driver_logging_only', $result['warnings']);
         $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
         $this->assertContains('place_code_catalog_incomplete', $result['warnings']);
+        $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertContains('opening_balances_unverified', $result['warnings']);
         $this->assertContains('payment_collection_accounts_missing', $result['warnings']);
         $this->assertContains('payment_payout_accounts_missing', $result['warnings']);
         $this->assertContains('queue_driver_is_sync', $result['warnings']);
@@ -179,6 +181,42 @@ class OperationalReadinessTest extends TestCase
         $result = app(DeploymentReadiness::class)->inspect();
         $this->assertTrue($result['ready']);
         $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
+        $this->assertContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertContains('opening_balances_unverified', $result['warnings']);
+    }
+
+    public function test_application_readiness_clears_opening_and_area_dealer_warnings_when_verified(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        $this->seed(BangladeshPlaceCodeSeeder::class);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        DB::table('area_dealer_assignments')->insert([
+            'user_id' => $dealer->id,
+            'level' => 'division',
+            'zone_name' => 'Dhaka',
+            'division' => 'Dhaka',
+            'monthly_quota' => 20000,
+            'current_month_purchase' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->enableFinancialPosting();
+        config(['madina.financial_activation' => false]);
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
+        $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertNotContains('opening_balances_unverified', $result['warnings']);
     }
 
     public function test_application_readiness_clears_payment_account_warnings_when_collection_and_payout_accounts_exist(): void

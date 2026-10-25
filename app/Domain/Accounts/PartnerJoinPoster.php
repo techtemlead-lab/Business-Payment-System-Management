@@ -22,6 +22,9 @@ final class PartnerJoinPoster
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
         abort_unless(filled($user->refer_code), 404);
 
+        $locale = $user->preferredLocale();
+        $t = static fn (string $key, array $replace = []) => __('portal.'.$key, $replace, $locale);
+
         $dir = Storage::disk('local')->path('report-exports');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
@@ -38,7 +41,11 @@ final class PartnerJoinPoster
         $location = collect([$profile['upazila'] ?? null, $user->district, $user->division])
             ->filter(fn ($part) => filled($part))
             ->implode(', ');
-        $roleLabel = $user->role === 'sub_dealer' ? 'Sub-dealer' : 'Dealer';
+        $roleKey = 'acct_role_'.$user->role;
+        $roleLabel = __('portal.'.$roleKey, [], $locale);
+        if ($roleLabel === 'portal.'.$roleKey) {
+            $roleLabel = str_replace('_', ' ', (string) $user->role);
+        }
         $issued = now('Asia/Dhaka')->format('d M Y');
 
         $qrPng = $dir.'/join-poster-qr-'.$safeCode.'-'.Str::lower(Str::random(6)).'.png';
@@ -57,15 +64,15 @@ final class PartnerJoinPoster
             .url{word-break:break-all;font-size:8pt;color:#334155;margin:8px 0}
             .foot{margin-top:12px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:7pt;color:#64748b}
         </style></head><body><div class="sheet">
-            <div class="brand">Madina Natural Health Care</div>
-            <div class="tag">'.e($roleLabel).' join poster</div>
-            <h1>Join under '.e($user->name).'</h1>
-            <p class="lead">Scan the QR code or open the join link to apply with this referral code.</p>
-            <img class="qr" src="'.e($qrPng).'" alt="Join QR"/>
+            <div class="brand">'.e($t('brand_madina_natural_health_care')).'</div>
+            <div class="tag">'.e($t('pdf_join_poster_tag', ['role' => $roleLabel])).'</div>
+            <h1>'.e($t('pdf_join_poster_headline', ['name' => $user->name])).'</h1>
+            <p class="lead">'.e($t('pdf_join_poster_lead')).'</p>
+            <img class="qr" src="'.e($qrPng).'" alt="'.e($t('pdf_id_card_scan')).'"/>
             <div class="code">'.e($refer).'</div>
-            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : 'Bangladesh').'</p>
+            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : $t('pdf_location_bangladesh')).'</p>
             <p class="url">'.e($joinUrl).'</p>
-            <div class="foot">Issued '.$issued.' Asia/Dhaka · Field recruitment poster · Preview only · Not a government document</div>
+            <div class="foot">'.e($t('pdf_join_poster_foot', ['when' => $issued])).'</div>
         </div></body></html>';
 
         try {
@@ -80,7 +87,7 @@ final class PartnerJoinPoster
                 'autoScriptToLang' => true,
                 'autoLangToFont' => true,
             ]);
-            $pdf->SetTitle('Madina join poster — '.$refer);
+            $pdf->SetTitle($t('pdf_join_poster_doc_title', ['code' => $refer]));
             $pdf->WriteHTML($html);
             $pdf->Output($path, Destination::FILE);
         } catch (\Throwable $exception) {

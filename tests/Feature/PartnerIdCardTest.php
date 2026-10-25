@@ -28,6 +28,32 @@ class PartnerIdCardTest extends TestCase
             ->assertHeader('content-disposition', 'attachment; filename=Madina-partner-id-MNHC-ID-1.pdf');
     }
 
+    public function test_bangla_dealer_id_card_and_join_poster_pdf_use_partner_locale_strings(): void
+    {
+        $this->assertSame('ডিলার কোড', __('portal.pdf_id_card_dealer_code', [], 'bn'));
+        $this->assertSame('QR কোড স্ক্যান করুন অথবা এই রেফারেল কোড দিয়ে আবেদন করতে জয়েন লিংক খুলুন।', __('portal.pdf_join_poster_lead', [], 'bn'));
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MNHC-ID-BN',
+            'refer_code' => 'MNHC-ID-BN',
+            'locale' => 'bn',
+            'division' => 'Dhaka',
+            'district' => 'Dhaka',
+        ]);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/id-card/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/join-poster/pdf')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
     public function test_staff_cannot_download_partner_id_card(): void
     {
         $staff = User::factory()->create(['role' => 'finance', 'status' => 'active']);
