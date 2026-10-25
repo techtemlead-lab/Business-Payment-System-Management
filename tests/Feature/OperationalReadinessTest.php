@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Integrations\IntegrationSettings;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -64,6 +66,43 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('mail_smtp_host_is_local_development', $result['warnings']);
         $this->assertNotContains('mail_driver_logging_only', $result['warnings']);
         $this->assertNotContains('sms_driver_logging_only', $result['warnings']);
+    }
+
+    public function test_application_readiness_clears_sms_warnings_when_gateway_is_enabled(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'log',
+            'madina.login_otp.enabled' => true,
+            'mail.default' => 'log',
+        ]);
+        $actor = User::factory()->staff('finance')->create();
+        DB::table('business_settings')->updateOrInsert(
+            ['key' => IntegrationSettings::SettingsKey],
+            [
+                'value' => json_encode([
+                    'sms' => [
+                        'bulk_sms_bd' => [
+                            'enabled' => true,
+                            'base_url' => 'http://bulksmsbd.net/api/smsapi',
+                            'api_key' => 'test-sms-key',
+                            'sender_id' => 'MADINA',
+                        ],
+                    ],
+                ], JSON_THROW_ON_ERROR),
+                'version' => 1,
+                'updated_by' => $actor->id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        );
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertNotContains('sms_driver_logging_only', $result['warnings']);
+        $this->assertNotContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
+        $this->assertContains('mail_driver_logging_only', $result['warnings']);
     }
 
     public function test_preview_mode_blocks_posting_even_if_activation_is_misconfigured(): void

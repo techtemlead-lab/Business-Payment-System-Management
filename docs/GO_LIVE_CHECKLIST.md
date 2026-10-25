@@ -43,7 +43,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 ## Bangladesh field readiness
 
-- [ ] SMS driver configured (`MADINA_SMS_DRIVER`) or consciously left on `log` with an ops process
+- [ ] SMS: enable a Service integrations SMS provider (base URL + API key) and/or set a non-log `MADINA_SMS_DRIVER`; verify `app:readiness` clears SMS warnings
 - [ ] Partner login OTP verified end-to-end (`MADINA_LOGIN_OTP=true`) with a real provider before go-live
 - [ ] SMTP (or SES/Postmark) uses a real host — not Mailpit/`mail`/`localhost` — and `MAIL_FROM_ADDRESS` is not `@example.com`
 - [ ] `php artisan app:readiness` lists no unresolved go-live mail/SMS warnings (or each warning has an accepted ops waiver)

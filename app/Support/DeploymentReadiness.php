@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Domain\Integrations\IntegrationCatalog;
+use App\Domain\Integrations\IntegrationSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -74,7 +76,8 @@ final class DeploymentReadiness
 
         $warnings = [];
         $smsDriver = (string) config('madina.sms.driver', 'log');
-        if (in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
+        $smsGatewayReady = $this->smsGatewayConfigured();
+        if (in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
             $warnings[] = 'sms_driver_logging_only';
         }
         if (! $strict) {
@@ -94,7 +97,7 @@ final class DeploymentReadiness
                 }
             }
         }
-        if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
+        if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
             $warnings[] = 'login_otp_requires_real_sms_before_go_live';
         }
 
@@ -105,5 +108,29 @@ final class DeploymentReadiness
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * Partner SMS tries enabled Service Integrations providers before the log driver.
+     * An enabled provider with credentials clears go-live SMS warnings.
+     */
+    private function smsGatewayConfigured(): bool
+    {
+        try {
+            $settings = app(IntegrationSettings::class);
+            foreach (array_keys(IntegrationCatalog::groups()['sms']['providers'] ?? []) as $provider) {
+                $config = $settings->provider('sms', $provider);
+                if (! ($config['enabled'] ?? false)) {
+                    continue;
+                }
+                if (filled($config['base_url'] ?? null) && filled($config['api_key'] ?? null)) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+
+        return false;
     }
 }
