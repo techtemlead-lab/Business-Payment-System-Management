@@ -48,7 +48,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] SMTP (or SES/Postmark) uses a real host — not Mailpit/`mail`/`localhost` — and `MAIL_FROM_ADDRESS` is not `@example.com`
 - [ ] `php artisan app:readiness` lists no unresolved go-live mail/SMS warnings (or each warning has an accepted ops waiver)
 - [ ] Password-reset and owner-contact mail verified on the live portal hosts
-- [ ] Place-code catalog covers live divisions / districts / upazilas needed for onboarding
+- [ ] Place-code catalog seeded (`php artisan db:seed --class=BangladeshPlaceCodeSeeder`) — `app:readiness` must not warn `place_code_catalog_incomplete` (8 divisions + 64 districts minimum)
 - [ ] BDRIS / identity lookup credentials set only if the feature is contracted
 - [ ] Public dealer directory GPS + district filters verified on mobile
 
