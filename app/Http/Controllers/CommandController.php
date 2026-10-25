@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\PartnerEventSms;
@@ -365,7 +366,7 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_policy_draft_saved'));
     }
 
-    public function content(Request $r): RedirectResponse
+    public function content(Request $r, CircularPublishNotifications $circularNotices): RedirectResponse
     {
         $this->permit($r, 'content');
         $d = $r->validate([
@@ -374,13 +375,20 @@ class CommandController extends Controller
             'body' => 'required|string|max:10000',
             'published' => 'required|boolean',
         ]);
-        DB::transaction(function () use ($r, $d) {
-            $existing = DB::table('content_pages')->where('slug', $d['slug'])->exists();
+        DB::transaction(function () use ($r, $d, $circularNotices) {
+            $existing = DB::table('content_pages')->where('slug', $d['slug'])->first();
+            $wasPublished = $existing !== null && (bool) $existing->published;
             DB::table('content_pages')->updateOrInsert(
                 ['slug' => $d['slug']],
                 [...$d, 'updated_at' => now(), ...($existing ? [] : ['created_at' => now()])]
             );
             Audit::record($r->user()->id, 'content.updated', $d['slug']);
+            $circularNotices->notifyIfNewlyPublished(
+                $d['slug'],
+                $d['title'],
+                (bool) $d['published'],
+                $wasPublished,
+            );
         });
 
         return back()->with('success', __('portal.flash_content_saved'));
