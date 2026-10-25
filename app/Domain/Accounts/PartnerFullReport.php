@@ -16,25 +16,25 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PartnerFullReport
 {
-    /** @var array<string, string> */
-    private const CategoryLabels = [
-        'own_dealer_cashback' => 'Own sale cashback',
-        'direct_referral' => 'Direct referral',
-        'd2d_gen2' => 'D2D generation 2',
-        'd2d_gen3' => 'D2D generation 3',
-        'd2d_multitier' => 'D2D multitier',
-        'area_division' => 'Area dealer · Division',
-        'area_district' => 'Area dealer · District',
-        'area_upazila' => 'Area dealer · Upazila',
-        'area_union' => 'Area dealer · Union',
-        'area_management' => 'Area · Management share',
-        'dealer_monthly_salary_pool' => 'Dealer monthly salary',
-        'sub_dealer_salary' => 'Sub-dealer salary',
-        'sub_dealer_tour' => 'Sub-dealer tour',
-        'rank_royalty_pool' => 'Rank royalty pool',
-        'rank_incentive_pool' => 'Rank incentive',
-        'car_bike_incentive_fund' => 'Car / bike incentive',
-        'company_marketing_fund' => 'Company marketing',
+    /** @var list<string> */
+    private const CategoryKeys = [
+        'own_dealer_cashback',
+        'direct_referral',
+        'd2d_gen2',
+        'd2d_gen3',
+        'd2d_multitier',
+        'area_division',
+        'area_district',
+        'area_upazila',
+        'area_union',
+        'area_management',
+        'dealer_monthly_salary_pool',
+        'sub_dealer_salary',
+        'sub_dealer_tour',
+        'rank_royalty_pool',
+        'rank_incentive_pool',
+        'car_bike_incentive_fund',
+        'company_marketing_fund',
     ];
 
     /**
@@ -104,7 +104,9 @@ final class PartnerFullReport
             $commissionTotal += $cents;
             $byCategory[] = [
                 'category' => $row->category,
-                'label' => self::CategoryLabels[$row->category] ?? str_replace('_', ' ', (string) $row->category),
+                'label' => in_array((string) $row->category, self::CategoryKeys, true)
+                    ? __('portal.report_cat_'.$row->category)
+                    : str_replace('_', ' ', (string) $row->category),
                 'amount' => Money::decimal($cents),
                 'entries' => (int) $row->entries,
             ];
