@@ -10,17 +10,34 @@ export const money=(value:unknown)=>{
  return new Intl.NumberFormat(locale,{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
 };
 export const date=businessDate;
-const businessLabelKeys=['direct_referral','d2d_gen2','d2d_gen3'] as const;
-export const label=(text:string,translate?:(group:string,key:string)=>string)=>{
- if(translate&&(businessLabelKeys as readonly string[]).includes(text)){
-  const key=`label_${text}`;
-  const localized=translate('portal',key);
-  if(localized!==key){
-   return localized;
+type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
+export const label=(text:string,translate?:TranslateFn)=>{
+ if(!text){
+  return text;
+ }
+ if(translate){
+  const candidates=[
+   `report_cat_${text}`,
+   `label_${text}`,
+   `acct_role_${text}`,
+   `settle_kind_${text}`,
+   `jr_account_${text}`,
+   `status_${text}`,
+   text,
+  ];
+  for(const key of candidates){
+   const localized=translate('portal',key);
+   if(localized!==key){
+    return localized;
+   }
   }
  }
  return text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
 };
+export function useLabel(){
+ const translate=useT();
+ return (text:string)=>label(text,translate);
+}
 export function Badge({status}:{status:string}) {
  const translate=useT();
  const key=`status_${status}`;
