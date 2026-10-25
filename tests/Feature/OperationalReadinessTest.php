@@ -47,6 +47,25 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
     }
 
+    public function test_application_readiness_warns_when_smtp_is_local_dev_placeholder(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'hello@example.com',
+            'mail.mailers.smtp.host' => 'mail',
+        ]);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertContains('mail_from_address_is_example_placeholder', $result['warnings']);
+        $this->assertContains('mail_smtp_host_is_local_development', $result['warnings']);
+        $this->assertNotContains('mail_driver_logging_only', $result['warnings']);
+        $this->assertNotContains('sms_driver_logging_only', $result['warnings']);
+    }
+
     public function test_preview_mode_blocks_posting_even_if_activation_is_misconfigured(): void
     {
         config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);

@@ -77,8 +77,22 @@ final class DeploymentReadiness
         if (in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
             $warnings[] = 'sms_driver_logging_only';
         }
-        if (! $strict && in_array((string) config('mail.default'), ['log', 'array', 'null'], true)) {
-            $warnings[] = 'mail_driver_logging_only';
+        if (! $strict) {
+            $mailDriver = (string) config('mail.default');
+            if (in_array($mailDriver, ['log', 'array', 'null'], true)) {
+                $warnings[] = 'mail_driver_logging_only';
+            } else {
+                $fromAddress = (string) config('mail.from.address');
+                if ($fromAddress === '' || str_ends_with(strtolower($fromAddress), '@example.com')) {
+                    $warnings[] = 'mail_from_address_is_example_placeholder';
+                }
+                if ($mailDriver === 'smtp') {
+                    $smtpHost = strtolower((string) config('mail.mailers.smtp.host'));
+                    if ($smtpHost === '' || in_array($smtpHost, ['mail', 'localhost', '127.0.0.1', '::1', 'mailpit', 'mailhog', 'smtp'], true)) {
+                        $warnings[] = 'mail_smtp_host_is_local_development';
+                    }
+                }
+            }
         }
         if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
             $warnings[] = 'login_otp_requires_real_sms_before_go_live';
