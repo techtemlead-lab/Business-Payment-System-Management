@@ -333,14 +333,14 @@ class CommandController extends Controller
             Audit::record($r->user()->id, 'product.created', (string) $p->id);
         });
 
-        return back()->with('success', 'Product created. Receive stock before dispatch.');
+        return back()->with('success', __('portal.flash_product_created'));
     }
 
     public function stock(AdjustStockRequest $r, StockService $service): RedirectResponse
     {
         $service->adjust($r->user(), $r->validated());
 
-        return back()->with('success', 'Stock movement recorded.');
+        return back()->with('success', __('portal.flash_stock_recorded'));
     }
 
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse
@@ -349,7 +349,7 @@ class CommandController extends Controller
         $d = $r->validate(['name' => 'required|string|max:150', 'account_type' => 'required|in:dealer,sub_dealer', 'components' => 'required|array|min:1|max:20', 'components.*.name' => 'required|string|max:80', 'components.*.rate' => 'required|numeric|min:0|max:100', 'notes' => 'required|string|max:4000']);
         $service->create($r->user(), $d);
 
-        return back()->with('success', 'Draft saved. No earnings will be posted.');
+        return back()->with('success', __('portal.flash_policy_draft_saved'));
     }
 
     public function content(Request $r): RedirectResponse
@@ -370,7 +370,7 @@ class CommandController extends Controller
             Audit::record($r->user()->id, 'content.updated', $d['slug']);
         });
 
-        return back()->with('success', 'Content saved.');
+        return back()->with('success', __('portal.flash_content_saved'));
     }
 
     public function publishPolicy(Request $r, int $id, PolicyDraftService $service): RedirectResponse
@@ -378,7 +378,7 @@ class CommandController extends Controller
         $this->permit($r, 'finance');
         $service->publish($r->user(), $id);
 
-        return back()->with('success', 'Policy draft marked published for review. Live commission rates still use Commission Studio.');
+        return back()->with('success', __('portal.flash_policy_published'));
     }
 
     public function customization(Request $r): RedirectResponse
@@ -388,7 +388,7 @@ class CommandController extends Controller
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
 
-        return back()->with('success', 'Site customization saved successfully.');
+        return back()->with('success', __('portal.flash_customization_saved'));
     }
 
     public function resetCustomization(Request $r): RedirectResponse
@@ -397,7 +397,7 @@ class CommandController extends Controller
         SiteCustomization::reset();
         Audit::record($r->user()->id, 'customization.reset', 'frontend');
 
-        return back()->with('success', 'Customization reset to company defaults.');
+        return back()->with('success', __('portal.flash_customization_reset'));
     }
 
     public function saveDashboardSettings(Request $r): RedirectResponse
@@ -410,7 +410,7 @@ class CommandController extends Controller
         DashboardManagement::save($payload);
         Audit::record($r->user()->id, 'dashboard.updated', 'control_center');
 
-        return back()->with('success', 'Dashboard management configuration saved successfully.');
+        return back()->with('success', __('portal.flash_dashboard_saved'));
     }
 
     public function resetDashboardSettings(Request $r): RedirectResponse
@@ -419,7 +419,7 @@ class CommandController extends Controller
         DashboardManagement::reset();
         Audit::record($r->user()->id, 'dashboard.reset', 'control_center');
 
-        return back()->with('success', 'Dashboard settings reset to system defaults.');
+        return back()->with('success', __('portal.flash_dashboard_reset'));
     }
 
     public function enquiry(Request $r, int $id): RedirectResponse
@@ -430,7 +430,7 @@ class CommandController extends Controller
         DB::table('enquiries')->where('id', $id)->update([...$d, 'updated_at' => now()]);
         Audit::record($r->user()->id, 'enquiry.updated', (string) $id);
 
-        return back()->with('success', 'Enquiry updated.');
+        return back()->with('success', __('portal.flash_enquiry_updated'));
     }
 
     public function readNotice(Request $r, int $id): RedirectResponse
@@ -447,7 +447,7 @@ class CommandController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now(), 'updated_at' => now()]);
 
-        return back()->with('success', 'All updates marked as read.');
+        return back()->with('success', __('portal.flash_notices_read'));
     }
 
     public function partnerSupport(Request $r): RedirectResponse
@@ -533,7 +533,7 @@ class CommandController extends Controller
         ]);
         $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
 
-        return back()->with('success', 'KYC document stored privately ('.$stored['kind'].').');
+        return back()->with('success', __('portal.flash_kyc_stored', ['kind' => $stored['kind']]));
     }
 
     public function downloadKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): StreamedResponse
@@ -550,7 +550,7 @@ class CommandController extends Controller
         $data = $r->validate(['rules' => 'required|array']);
         $policy->update($r->user(), $data['rules']);
 
-        return back()->with('success', 'Commission policy updated. Existing orders retain their captured policy.');
+        return back()->with('success', __('portal.flash_commission_policy_updated'));
     }
 
     public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse
@@ -560,16 +560,25 @@ class CommandController extends Controller
         $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
+            return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
         if ($result['status'] === 'rolled_over') {
-            return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. ৳{$result['total_rolled_to_reserve']} moved to the salary settlement reserve.");
+            return back()->with('success', __('portal.flash_salary_pool_rolled', [
+                'period' => $d['period_month'],
+                'amount' => $result['total_rolled_to_reserve'],
+            ]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0 ? " Undistributed ৳{$rolled} moved to the salary settlement reserve." : '';
+        $extra = Money::cents((string) $rolled) > 0
+            ? __('portal.flash_salary_pool_reserve_extra', ['amount' => $rolled])
+            : '';
 
-        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_distributed']}. Qualifying partners: {$result['qualifiers_count']}.{$extra}");
+        return back()->with('success', __('portal.flash_salary_pool_distributed', [
+            'period' => $d['period_month'],
+            'amount' => $result['total_distributed'],
+            'count' => $result['qualifiers_count'],
+        ]).$extra);
     }
 
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
@@ -579,13 +588,18 @@ class CommandController extends Controller
         $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
+            return back()->with('success', __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0 ? " Unfilled tiers ৳{$rolled} moved to the royalty settlement reserve." : '';
+        $extra = Money::cents((string) $rolled) > 0
+            ? __('portal.flash_royalty_pool_reserve_extra', ['amount' => $rolled])
+            : '';
 
-        return back()->with('success', "Rank royalty pool for {$d['period_month']} distributed ৳{$result['total_distributed']} across leadership tiers.{$extra}");
+        return back()->with('success', __('portal.flash_royalty_pool_distributed', [
+            'period' => $d['period_month'],
+            'amount' => $result['total_distributed'],
+        ]).$extra);
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
@@ -598,7 +612,11 @@ class CommandController extends Controller
             throw ValidationException::withMessages(['incentive' => $result['message']]);
         }
 
-        return back()->with('success', "Paid one-time incentive of ৳{$result['amount']} to {$user->name} for rank ".strtoupper($result['rank']).'.');
+        return back()->with('success', __('portal.flash_rank_incentive_paid', [
+            'amount' => $result['amount'],
+            'name' => $user->name,
+            'rank' => strtoupper($result['rank']),
+        ]));
     }
 
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
@@ -608,10 +626,13 @@ class CommandController extends Controller
         $result = $commissionService->releaseMaturedCommissions($r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'no_matured_commissions') {
-            return back()->with('success', 'No matured commissions pending release.');
+            return back()->with('success', __('portal.flash_commissions_none_matured'));
         }
 
-        return back()->with('success', "Released {$result['released_count']} matured allocations (৳{$result['total_amount']}) to dealer available balances.");
+        return back()->with('success', __('portal.flash_commissions_released', [
+            'count' => $result['released_count'],
+            'amount' => $result['total_amount'],
+        ]));
     }
 
     public function simulateCommissions(Request $r, CommissionService $commissionService): JsonResponse
@@ -725,7 +746,7 @@ class CommandController extends Controller
             'place_code' => $place?->code,
         ]);
 
-        return back()->with('success', "Assigned area dealer for {$d['zone_name']}.");
+        return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
 
     public function removeAreaDealer(Request $r, int $id): RedirectResponse
@@ -735,6 +756,6 @@ class CommandController extends Controller
         $assignment->update(['is_active' => false, 'territory_key' => null]);
         Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
 
-        return back()->with('success', 'Area dealer assignment removed.');
+        return back()->with('success', __('portal.flash_area_dealer_removed'));
     }
 }
