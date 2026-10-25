@@ -15,6 +15,7 @@ use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
+use App\Http\Middleware\EnsureStaffPortalHost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -101,11 +102,12 @@ $operations = function (): void {
     Route::get('/reports', [$finance, 'export'])->middleware('throttle:5,1');
     Route::get('/views/{section}', [OperationsController::class, 'index']);
 };
-Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1'])->group($operations);
-Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group($operations);
+$staffPortal = EnsureStaffPortalHost::class;
+Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal])->group($operations);
+Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1', $staffPortal])->group($operations);
 
 foreach (['commands' => 'data-imports.', 'api/v1' => 'api.data-imports.'] as $prefix => $name) {
-    Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
+    Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', $staffPortal, ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
         $controller = DataImportController::class;
         Route::get('/', [$controller, 'index'])->name('index');
         Route::get('/templates/{type}', [$controller, 'template'])->name('template');

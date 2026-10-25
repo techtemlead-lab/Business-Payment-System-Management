@@ -1,5 +1,5 @@
 import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, FileBarChart2, Bell} from 'lucide-react';
+import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, Network, Wallet, Banknote} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 
 export function DealerHeader(){
@@ -42,7 +42,9 @@ export function DealerHeader(){
 
 export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
     const translate = useT();
-    const {url} = usePage();
+    const page = usePage<any>();
+    const {url} = page;
+    const role = String(page.props.auth?.user?.role ?? 'dealer');
     const path = url.split('?')[0] || '/';
     const item = (href: string, label: string, Icon: typeof Home, className = '') => {
         const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
@@ -62,8 +64,10 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
             {item('/catalog', translate('portal', 'shop'), Store)}
             {item('/', translate('portal', 'overview'), Home, 'portal-mobile-home')}
             {item('/orders', translate('portal', 'orders'), ShoppingBag)}
-            {item('/full-report', translate('portal', 'full-report'), FileBarChart2)}
-            {item('/notifications', translate('portal', 'notifications'), Bell)}
+            {role === 'dealer'
+                ? item('/network', translate('portal', 'network'), Network)
+                : item('/salary', translate('portal', 'salary'), Banknote)}
+            {item('/earnings', translate('portal', 'earnings'), Wallet)}
         </nav>
     );
 }

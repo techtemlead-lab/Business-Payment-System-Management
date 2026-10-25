@@ -81,7 +81,11 @@ class ReviewHardeningFixesTest extends TestCase
                 'account_number' => '123',
                 'reason' => 'Partner must not open staff finance ops',
             ])
-            ->assertForbidden();
+            ->assertNotFound();
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->getJson('/api/v1/operations/views/payment-accounts')
+            ->assertNotFound();
     }
 
     public function test_accounts_staff_cannot_grant_unconditional_benefits_without_finance_approve(): void

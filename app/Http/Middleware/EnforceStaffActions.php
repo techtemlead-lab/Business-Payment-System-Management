@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Support\PortalHost;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,6 +17,8 @@ class EnforceStaffActions
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $this->rejectStaffOperationsOnPartnerHosts($request);
+
         $actor = $request->user();
         $route = $request->route();
         $controller = class_basename($route?->getControllerClass() ?? '');
@@ -35,6 +38,7 @@ class EnforceStaffActions
                 'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
                 'CatalogController' => $method === 'index',
                 'ReportController' => $method === 'export',
+                'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 default => false,
             };
             abort_unless($partnerAllowed, 403, 'This action is only available to company staff.');
@@ -139,5 +143,30 @@ class EnforceStaffActions
             }
         }
         abort(403, 'Your role does not allow this action.');
+    }
+
+    private function rejectStaffOperationsOnPartnerHosts(Request $request): void
+    {
+        if (! $request->is('commands/operations', 'commands/operations/*', 'api/v1/operations', 'api/v1/operations/*')) {
+            return;
+        }
+
+        $portal = PortalHost::current($request);
+        if (in_array($portal, ['manage', 'sadmin'], true)) {
+            return;
+        }
+
+        if ($request->isMethod('GET') && $request->is(
+            'commands/operations/payment-accounts',
+            'api/v1/operations/payment-accounts',
+            'commands/operations/reports',
+            'api/v1/operations/reports',
+            'commands/operations/receipts/*',
+            'api/v1/operations/receipts/*',
+        )) {
+            return;
+        }
+
+        abort(404);
     }
 }

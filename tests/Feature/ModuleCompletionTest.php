@@ -92,7 +92,7 @@ class ModuleCompletionTest extends TestCase
         $url = '/api/v1/operations/orders/'.$order->id.'/due-adjustments';
         $payload = $this->note();
         $this->postJson($url, $payload)->assertUnauthorized();
-        $this->actingAs($buyer)->postJson($url, $payload)->assertForbidden();
+        $this->actingAs($buyer)->postJson($url, $payload)->assertNotFound();
         $this->actingAs($finance)->postJson($url, $this->note('credit', '100.01'))->assertUnprocessable();
         $id = $this->postJson($url, $payload)->assertOk()->json('data.id');
         $this->postJson($url, [...$payload, 'amount' => '10.00'])->assertConflict();
@@ -158,7 +158,7 @@ class ModuleCompletionTest extends TestCase
         $id = $this->actingAs($buyer)->postJson('/api/v1/withdrawals', $payload)->assertCreated()->json('data.id');
         $url = '/api/v1/operations/settings/withdrawal-minimum';
         $settings = ['amount' => '500.00', 'version' => 0, 'reason' => 'Approved new withdrawal minimum'];
-        $this->postJson($url, $settings)->assertForbidden();
+        $this->postJson($url, $settings)->assertNotFound();
 
         $this->actingAs($finance)->postJson($url, $settings)->assertOk();
 
@@ -313,7 +313,7 @@ class ModuleCompletionTest extends TestCase
         $product = Product::factory()->create(['video_source' => 'youtube', 'video_youtube_id' => 'dQw4w9WgXcQ']);
         $payload = ['enabled' => true, 'product_id' => $product->id, 'title' => 'Approved product demonstration', 'description' => '<script>unsafe()</script>', 'version' => 0, 'reason' => 'Publish approved homepage demonstration'];
         $url = '/api/v1/operations/marketing/homepage-video';
-        $this->actingAs(User::factory()->dealer()->create())->postJson($url, $payload)->assertForbidden();
+        $this->actingAs(User::factory()->dealer()->create())->postJson($url, $payload)->assertNotFound();
 
         $this->actingAs($editor)->postJson($url, $payload)->assertOk();
 
