@@ -633,7 +633,7 @@ export default function AccountCreate({
                                 <div className="form-grid">
                                     <label>
                                         {translate('portal','acct_mobile')}
-                                        <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder="01XXXXXXXXX" />
+                                        <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />
                                         {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
                                     </label>
                                     <label>

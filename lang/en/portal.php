@@ -715,6 +715,7 @@ return [
     'acct_full_name' => 'Full Name *',
     'acct_email' => 'Email *',
     'acct_phone' => 'Phone',
+    'acct_phone_ph' => '01XXXXXXXXX',
     'acct_step_identity' => '2. Identity (NID / Birth certificate)',
     'acct_step_identity_hint' => 'Birth certificate is preferred and selected by default. NID requires full manual entry.',
     'acct_birth_certificate' => 'Birth certificate',

@@ -715,6 +715,7 @@ return [
     'acct_full_name' => 'পূর্ণ নাম *',
     'acct_email' => 'ইমেইল *',
     'acct_phone' => 'ফোন',
+    'acct_phone_ph' => '01XXXXXXXXX',
     'acct_step_identity' => '২. পরিচয় (NID / জন্মনিবন্ধন)',
     'acct_step_identity_hint' => 'জন্মনিবন্ধন পছন্দনীয় এবং ডিফল্ট। NID-এর জন্য সব তথ্য হাতে দিতে হয়।',
     'acct_birth_certificate' => 'জন্মনিবন্ধন',
