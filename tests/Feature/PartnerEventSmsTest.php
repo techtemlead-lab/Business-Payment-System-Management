@@ -80,6 +80,36 @@ class PartnerEventSmsTest extends TestCase
         );
     }
 
+    public function test_public_partnership_application_acknowledges_phone_in_request_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Partnership SMS Applicant',
+                'email' => 'partnership.sms@example.test',
+                'phone' => '01720000094',
+                'role' => 'dealer',
+                'division' => 'Sylhet',
+                'district' => 'Sylhet',
+                'sponsor_code' => 'REF-SMOKE-01',
+            ])
+            ->assertRedirect('/partnership');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_received', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000094', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_received', [
+                'role' => __('portal.acct_role_dealer', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
     public function test_partner_support_sms_uses_localized_topic_label(): void
     {
         Config::set('madina.sms.driver', 'array');

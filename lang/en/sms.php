@@ -21,6 +21,7 @@ return [
     'reward_credited' => 'Madina: BDT :amount credited for :program. Check your earnings.',
     'commission_released' => 'Madina: BDT :amount :category hold was released to your wallet.',
     'public_enquiry_received' => 'Madina: we received your :topic. The company will follow up on this phone.',
+    'partnership_application_received' => 'Madina: your :role partnership application was received. Company staff will review and contact this phone.',
     'payroll_paid' => 'Madina: payroll for :month was recorded as paid (BDT :amount). Receipt is with company finance.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',

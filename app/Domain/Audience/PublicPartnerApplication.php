@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,7 +15,7 @@ final class PublicPartnerApplication
      */
     public function submit(array $data): string
     {
-        return DB::transaction(function () use ($data): string {
+        $id = DB::transaction(function () use ($data): string {
             $email = mb_strtolower(trim((string) $data['email']));
             if (DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->where('status', 'pending')->exists()) {
@@ -51,5 +52,18 @@ final class PublicPartnerApplication
 
             return $id;
         }, 3);
+
+        $locale = app()->getLocale();
+        $roleLabel = match ((string) $data['role']) {
+            'sub_dealer' => __('portal.acct_role_sub_dealer', [], $locale),
+            default => __('portal.acct_role_dealer', [], $locale),
+        };
+        app(PartnerEventSms::class)->sendToPhone(
+            (string) $data['phone'],
+            'partnership.application_received',
+            __('sms.partnership_application_received', ['role' => $roleLabel], $locale),
+        );
+
+        return $id;
     }
 }
