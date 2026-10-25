@@ -92,7 +92,9 @@ class ProductRegistryController extends Controller
             return false;
         }, 3);
 
-        return redirect('/catalog')->with('success', $archived ? 'Product archived with its inventory and order history preserved.' : 'Unused product deleted.');
+        return redirect('/catalog')->with('success', $archived
+            ? __('portal.flash_product_archived')
+            : __('portal.flash_product_deleted'));
     }
 
     public function toggleStock(Request $r, Product $product): RedirectResponse
@@ -108,7 +110,9 @@ class ProductRegistryController extends Controller
             return $paused;
         }, 3);
 
-        return back()->with('success', $paused ? 'Ordering paused for this product.' : 'Ordering resumed. Stock quantities remain controlled by Inventory.');
+        return back()->with('success', $paused
+            ? __('portal.flash_product_ordering_paused')
+            : __('portal.flash_product_ordering_resumed'));
     }
 
     private function save(Request $r, ?Product $product = null): RedirectResponse
@@ -252,12 +256,18 @@ class ProductRegistryController extends Controller
             Storage::disk('local')->delete($path);
         }
         if ($r->input('redirect_to') === 'catalog') {
-            $stockNotice = $initialStock > 0 ? " ({$initialStock} units in stock)" : '';
+            if ($product) {
+                return redirect('/catalog')->with('success', __('portal.flash_product_updated_named', ['name' => $saved->name]));
+            }
 
-            return redirect('/catalog')->with('success', $product ? "Product '{$saved->name}' updated." : "Product '{$saved->name}' created successfully{$stockNotice}.");
+            return redirect('/catalog')->with('success', $initialStock > 0
+                ? __('portal.flash_product_created_named_stock', ['name' => $saved->name, 'stock' => $initialStock])
+                : __('portal.flash_product_created_named', ['name' => $saved->name]));
         }
 
-        return redirect('/products/'.$saved->id)->with('success', $product ? 'Product updated.' : 'Product created. Receive stock through Inventory before dispatch.');
+        return redirect('/products/'.$saved->id)->with('success', $product
+            ? __('portal.flash_product_updated')
+            : __('portal.flash_product_created'));
     }
 
     public function image(Request $r, Product $product): BinaryFileResponse

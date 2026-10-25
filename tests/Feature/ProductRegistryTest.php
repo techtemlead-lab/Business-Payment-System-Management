@@ -143,13 +143,17 @@ class ProductRegistryTest extends TestCase
         $this->actingAs($dealer)->delete('/commands/products/'.$p1->id, ['reason' => 'Unauthorized'])->assertForbidden();
 
         // 2. Unordered product is completely deleted
-        $this->actingAs($admin)->delete('/commands/products/'.$p1->id, ['reason' => 'Obsolete product'])->assertRedirect();
+        $this->actingAs($admin)->delete('/commands/products/'.$p1->id, ['reason' => 'Obsolete product'])
+            ->assertRedirect('/catalog')
+            ->assertSessionHas('success', __('portal.flash_product_deleted'));
         $this->assertNull(Product::find($p1->id));
 
         // 3. Product with order history is safely deactivated/archived to preserve financial records
         $p2 = $this->product();
         $order = app(OrderService::class)->create($dealer, ['items' => [['product_id' => $p2->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
-        $this->actingAs($admin)->delete('/commands/products/'.$p2->id, ['reason' => 'Discontinue with history'])->assertRedirect();
+        $this->actingAs($admin)->delete('/commands/products/'.$p2->id, ['reason' => 'Discontinue with history'])
+            ->assertRedirect('/catalog')
+            ->assertSessionHas('success', __('portal.flash_product_archived'));
 
         $freshP2 = Product::find($p2->id);
         $this->assertNotNull($freshP2);
@@ -175,7 +179,7 @@ class ProductRegistryTest extends TestCase
             ->from('/catalog')
             ->post('/commands/products/'.$product->id.'/toggle-stock')
             ->assertRedirect('/catalog')
-            ->assertSessionHas('success');
+            ->assertSessionHas('success', __('portal.flash_product_ordering_paused'));
 
         $product->refresh();
         $this->assertSame(20, $product->stock);
@@ -192,7 +196,7 @@ class ProductRegistryTest extends TestCase
             ->from('/inventory')
             ->post('/commands/products/'.$product->id.'/toggle-stock')
             ->assertRedirect('/inventory')
-            ->assertSessionHas('success');
+            ->assertSessionHas('success', __('portal.flash_product_ordering_resumed'));
 
         $product->refresh();
         $this->assertSame(20, $product->stock);
