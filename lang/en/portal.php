@@ -700,6 +700,7 @@ return [
     'acct_bdris_empty' => 'BDRIS response was empty. Enter the personal details manually.',
     'acct_bdris_loaded' => 'Details loaded from BDRIS. Review and edit if needed.',
     'acct_place_not_found' => 'Place code not found.',
+    'acct_request_failed' => 'Request failed. Reload and try again.',
     'acct_refer_preview_failed' => 'Could not refresh refer-code preview. Check the codes and try again.',
     'acct_head_title' => 'Add Partner Account',
     'acct_back' => 'Back to Partner Accounts',

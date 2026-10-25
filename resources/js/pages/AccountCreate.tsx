@@ -18,14 +18,14 @@ const availablePermissionKeys = [
     'content', 'audit', 'pricing', 'cost_read', 'identity_write',
 ] as const;
 
-async function fetchJson<T>(url: string): Promise<T> {
+async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
     const response = await fetch(url, {
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         credentials: 'same-origin',
     });
     if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body?.message || body?.errors?.place_code?.[0] || 'Request failed');
+        throw new Error(body?.message || body?.errors?.place_code?.[0] || failedMessage);
     }
     return response.json();
 }
@@ -127,7 +127,10 @@ export default function AccountCreate({
         const params = new URLSearchParams({ level });
         if (parentId) params.set('parent_id', parentId);
         if (q) params.set('q', q);
-        const json = await fetchJson<{ data: PlaceOption[] }>(`/commands/place-codes/children?${params}`);
+        const json = await fetchJson<{ data: PlaceOption[] }>(
+            `/commands/place-codes/children?${params}`,
+            translate('portal', 'acct_request_failed'),
+        );
         return json.data;
     };
 
@@ -220,7 +223,10 @@ export default function AccountCreate({
                 place_code: form.data.place_code.trim(),
                 role: form.data.role,
             });
-            const json = await fetchJson<{ data: any }>(`/commands/identity/place-preview?${params}`);
+            const json = await fetchJson<{ data: any }>(
+                `/commands/identity/place-preview?${params}`,
+                translate('portal', 'acct_request_failed'),
+            );
             setPlacePreview(json.data);
             if (form.data.role === 'sub_dealer' && json.data.next_sub_dealer_code) {
                 form.setData('dealer_code', json.data.next_sub_dealer_code);
@@ -247,7 +253,10 @@ export default function AccountCreate({
                 reference_code: form.data.reference_code,
                 refer_code: form.data.refer_code,
             });
-            fetchJson<{ data: { warnings: string[]; consumers: any } }>(`/commands/identity/refer-preview?${params}`)
+            fetchJson<{ data: { warnings: string[]; consumers: any } }>(
+                `/commands/identity/refer-preview?${params}`,
+                translate('portal', 'acct_request_failed'),
+            )
                 .then((json) => {
                     setReferWarnings(json.data.warnings || []);
                     setConsumers(json.data.consumers || null);
