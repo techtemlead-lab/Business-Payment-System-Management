@@ -42,7 +42,7 @@ class WithdrawalController extends Controller
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
         }
 
-        return redirect('/withdrawals/'.$id)->with('success', 'Withdrawal requested. Funds are reserved for company review.');
+        return redirect('/withdrawals/'.$id)->with('success', __('portal.flash_withdrawal_requested'));
     }
 
     public function show(Request $r, string $id): Response
@@ -65,7 +65,7 @@ class WithdrawalController extends Controller
         $d = $r->validate(['decision' => 'required|in:approved,rejected', 'reason' => 'required|string|max:1000']);
         $s->review($r->user(), $id, $d['decision'], $d['reason']);
 
-        return back()->with('success', 'Withdrawal review recorded. No money has been sent by the application.');
+        return back()->with('success', __('portal.flash_withdrawal_review'));
     }
 
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
@@ -78,7 +78,7 @@ class WithdrawalController extends Controller
         }], 'note' => 'required|string|max:1000']);
         $s->settle($r->user(), $id, $r->file('receipt'), strtoupper(trim($d['payment_reference'])), Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
 
-        return back()->with('success', 'Manual payment recorded with a private receipt.');
+        return back()->with('success', __('portal.flash_withdrawal_paid'));
     }
 
     public function receipt(Request $r, string $id): StreamedResponse

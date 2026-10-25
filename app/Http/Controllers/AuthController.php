@@ -55,7 +55,7 @@ class AuthController extends Controller
         if (! $user || PortalHost::forUser($user) !== $portal) {
             $r->session()->forget(['pending_login_id', 'pending_login_portal']);
 
-            throw ValidationException::withMessages(['code' => 'Sign in again to receive a new code.']);
+            throw ValidationException::withMessages(['code' => __('portal.flash_otp_sign_in_again')]);
         }
         $otp->verify($user, $portal, $data['code']);
         $r->session()->forget(['pending_login_id', 'pending_login_portal']);
@@ -71,7 +71,7 @@ class AuthController extends Controller
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
         $key = ($isEmail ? Str::lower($identity) : ($phone ?? Str::lower($identity))).'|'.$r->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => 'Too many attempts. Please wait a minute.']);
+            throw ValidationException::withMessages(['email' => __('portal.flash_too_many_attempts')]);
         }
         $query = User::where('status', 'active');
         if ($isEmail) {
@@ -87,7 +87,7 @@ class AuthController extends Controller
         $candidate = $matches->count() === 1 ? $matches->first() : null;
         if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
             RateLimiter::hit($key, 60);
-            throw ValidationException::withMessages(['email' => 'These credentials could not be verified.']);
+            throw ValidationException::withMessages(['email' => __('portal.flash_bad_credentials')]);
         }
         RateLimiter::clear($key);
 
@@ -99,7 +99,7 @@ class AuthController extends Controller
                 'pending_login_portal' => $portal,
             ]);
 
-            return redirect('/login/otp')->with('success', 'Enter the one-time code sent to your registered mobile.');
+            return redirect('/login/otp')->with('success', __('portal.flash_otp_sent'));
         }
 
         return $this->completeLogin($r, $candidate);
@@ -134,7 +134,7 @@ class AuthController extends Controller
         $data = $r->validate(['email' => 'required|email|max:254']);
         Password::sendResetLink($data);
 
-        return back()->with('success', 'If the account is eligible, a password reset link will be sent.');
+        return back()->with('success', __('portal.flash_reset_link_sent'));
     }
 
     public function reset(Request $r): Response
@@ -149,7 +149,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', 'Password set. You can sign in now.');
+        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', __('portal.flash_password_set'));
     }
 
     public function ownerContact(Request $request): Response
@@ -171,7 +171,7 @@ class AuthController extends Controller
         });
         $request->session()->regenerate();
 
-        return back()->with('success', 'Owner email updated. Use this email or your registered phone number to sign in.');
+        return back()->with('success', __('portal.flash_owner_email_updated'));
     }
 
     public function password(Request $r): Response
@@ -182,6 +182,6 @@ class AuthController extends Controller
         $r->session()->regenerate();
         Audit::record($r->user()->id, 'password.change', 'account');
 
-        return back()->with('success', 'Password updated. Other sessions have been revoked.');
+        return back()->with('success', __('portal.flash_password_updated'));
     }
 }

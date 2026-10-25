@@ -37,4 +37,26 @@ class LocalePortalRedirectTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('success', 'অ্যাকাউন্ট যোগ্য হলে ব্যক্তিগত পাসওয়ার্ড-সেটিং লিঙ্ক ইমেইল করা হয়েছে।');
     }
+
+    public function test_partner_otp_flash_follows_bangla_locale(): void
+    {
+        config(['madina.sms.driver' => 'array', 'madina.sms.sent' => [], 'madina.login_otp.enabled' => true]);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'phone' => '01711112222',
+            'password' => 'SyntheticPassword123',
+            'locale' => 'bn',
+        ]);
+
+        $this->onPortal('dealer')
+            ->post('/locale', ['locale' => 'bn'])
+            ->assertRedirect();
+
+        $this->onPortal('dealer')
+            ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
+            ->assertRedirect('/login/otp')
+            ->assertSessionHas('success', 'আপনার নিবন্ধিত মোবাইলে পাঠানো ওয়ান-টাইম কোডটি লিখুন।');
+    }
 }

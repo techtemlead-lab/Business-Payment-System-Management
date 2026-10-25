@@ -155,7 +155,7 @@ class PublicController extends Controller
             'updated_at' => now(),
         ]);
 
-        return back()->with('success', 'Your enquiry has been received. The company will contact you.');
+        return back()->with('success', __('portal.flash_enquiry_received'));
     }
 
     public function partnerLogin(): View
@@ -193,6 +193,6 @@ class PublicController extends Controller
         }
         $applications->submit($data);
 
-        return redirect('/partnership')->with('success', 'Your partnership application has been received. The company will review it and contact you.');
+        return redirect('/partnership')->with('success', __('portal.flash_partnership_received'));
     }
 }

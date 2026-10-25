@@ -52,7 +52,7 @@ class CommandController extends Controller
     {
         $o = $service->create($r->user(), $r->validated());
 
-        return redirect('/orders/'.$o->id)->with('success', 'Order submitted for review.');
+        return redirect('/orders/'.$o->id)->with('success', __('portal.flash_order_submitted'));
     }
 
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -60,7 +60,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
-        return back()->with('success', 'Order decision recorded.');
+        return back()->with('success', __('portal.flash_order_decision'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse
@@ -68,7 +68,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->verify($r->user(), $claim, $d['approve'], $d['reason']);
 
-        return back()->with('success', 'Payment review recorded.');
+        return back()->with('success', __('portal.flash_payment_review'));
     }
 
     public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -76,7 +76,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->dispatch($r->user(), $order, $d);
 
-        return back()->with('success', 'Shipment recorded and stock updated.');
+        return back()->with('success', __('portal.flash_shipment_recorded'));
     }
 
     public function account(Request $r, PartnerAccountProvisioning $partners): RedirectResponse
@@ -288,7 +288,7 @@ class CommandController extends Controller
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
         });
 
-        return back()->with('success', 'Account updated.');
+        return back()->with('success', __('portal.flash_account_updated'));
     }
 
     public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
@@ -479,7 +479,7 @@ class CommandController extends Controller
             __('sms.support_requested', ['topic' => $data['topic']], $locale),
         );
 
-        return back()->with('success', 'Your support request was sent to the company.');
+        return back()->with('success', __('portal.flash_support_sent'));
     }
 
     public function financialGate(): never
@@ -492,7 +492,7 @@ class CommandController extends Controller
         $data = $r->validated();
         $service->claim($r->user(), $order, $data);
 
-        return back()->with('success', 'Payment reference submitted for verification.');
+        return back()->with('success', __('portal.flash_payment_claim'));
     }
 
     public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service): RedirectResponse
@@ -500,7 +500,7 @@ class CommandController extends Controller
         $data = $r->validated();
         $service->deliver($r->user(), $order, $shipment, $data['reason']);
 
-        return back()->with('success', 'Delivery confirmation recorded.');
+        return back()->with('success', __('portal.flash_delivery_recorded'));
     }
 
     public function invite(Request $r, User $user): RedirectResponse
