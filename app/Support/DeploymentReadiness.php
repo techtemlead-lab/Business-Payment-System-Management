@@ -127,6 +127,12 @@ final class DeploymentReadiness
         if (! $strict && (! config('madina.backups_enabled') || strlen((string) config('madina.backup_password')) < 32)) {
             $warnings[] = 'backups_not_configured';
         }
+        if (! $strict && config('app.env') !== 'production') {
+            $warnings[] = 'app_environment_not_production';
+        }
+        if (! $strict && ! str_starts_with((string) config('app.url'), 'https://')) {
+            $warnings[] = 'app_url_not_https';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),

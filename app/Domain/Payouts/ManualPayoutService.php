@@ -50,7 +50,7 @@ class ManualPayoutService
                 'withheld_amount' => $tax['tds_amount'], 'net_amount' => $tax['net_amount'], 'created_at' => now(), 'updated_at' => now()]);
             DB::table('wallets')->where('id', $wallet->id)->update(['available' => Money::decimal(Money::cents($wallet->available) - $amount),
                 'held' => Money::decimal(Money::cents($wallet->held) + $amount), 'updated_at' => now()]);
-            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => 'Funds reserved for company review.', 'created_at' => now()]);
+            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => __('portal.wd_event_funds_reserved'), 'created_at' => now()]);
             Audit::record($actor->id, 'withdrawal.requested', $id);
 
             return $id;
@@ -126,7 +126,7 @@ class ManualPayoutService
                 }
                 DB::table('wallets')->where('id', $wallet->id)->update(['held' => Money::decimal(Money::cents($wallet->held) - Money::cents($w->amount)), 'updated_at' => now()]);
                 $entry = (string) Str::uuid();
-                DB::table('journal_entries')->insert(['id' => $entry, 'event_key' => 'manual-payout:'.$id, 'description' => 'Manual payout recorded with receipt', 'actor_id' => $actor->id, 'created_at' => now()]);
+                DB::table('journal_entries')->insert(['id' => $entry, 'event_key' => 'manual-payout:'.$id, 'description' => __('portal.wd_journal_manual_payout'), 'actor_id' => $actor->id, 'created_at' => now()]);
                 DB::table('journal_lines')->insert([['entry_id' => $entry, 'user_id' => $w->user_id, 'account' => 'wallet_liability', 'debit' => $w->amount, 'credit' => '0.00'], ['entry_id' => $entry, 'user_id' => null, 'account' => 'manual_payout_clearing', 'debit' => '0.00', 'credit' => $w->net_amount ?? $w->amount], ['entry_id' => $entry, 'user_id' => null, 'account' => 'payout_withholding_payable', 'debit' => '0.00', 'credit' => $w->withheld_amount]]);
                 DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference, 'paid_at' => $paidAt, 'paid_by' => $actor->id, 'receipt_path' => $path, 'receipt_mime' => $receipt->getMimeType(), 'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
                 DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'paid', 'note' => $note, 'created_at' => now()]);

@@ -60,6 +60,8 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('scheduler_heartbeat_missing', $result['warnings']);
         $this->assertNotContains('queue_worker_heartbeat_missing', $result['warnings']);
         $this->assertContains('backups_not_configured', $result['warnings']);
+        $this->assertContains('app_environment_not_production', $result['warnings']);
+        $this->assertContains('app_url_not_https', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_debug_is_enabled_and_clears_when_disabled(): void
@@ -76,6 +78,8 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
             'queue.default' => 'database',
             'app.debug' => true,
+            'app.env' => 'production',
+            'app.url' => 'https://madina.example.test',
         ]);
         Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
         Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
@@ -84,6 +88,8 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue($result['ready']);
         $this->assertContains('debug_mode_enabled', $result['warnings']);
         $this->assertNotContains('backups_not_configured', $result['warnings']);
+        $this->assertNotContains('app_environment_not_production', $result['warnings']);
+        $this->assertNotContains('app_url_not_https', $result['warnings']);
 
         config(['app.debug' => false]);
         $cleared = app(DeploymentReadiness::class)->inspect();

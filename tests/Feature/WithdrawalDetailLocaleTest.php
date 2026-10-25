@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Payouts\ManualPayoutService;
 use App\Models\User;
 use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,5 +53,39 @@ class WithdrawalDetailLocaleTest extends TestCase
                 ->where('translations.portal.wd_head_title', 'উত্তোলনের বিবরণ')
                 ->where('translations.portal.wd_manual_title', 'ম্যানুয়াল পেমেন্ট বিবরণ')
                 ->where('translations.portal.wd_history_title', 'অনুরোধ ইতিহাস'));
+    }
+
+    public function test_withdrawal_request_event_note_follows_partner_bangla_locale(): void
+    {
+        config(['madina.financial_activation' => true, 'madina.preview_mode' => false]);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
+        DB::table('wallets')->where('user_id', $dealer->id)->update([
+            'available' => '500.00',
+            'held' => '0.00',
+            'updated_at' => now(),
+        ]);
+        if (! DB::table('wallets')->where('user_id', $dealer->id)->exists()) {
+            DB::table('wallets')->insert([
+                'user_id' => $dealer->id,
+                'available' => '500.00',
+                'held' => '0.00',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        app()->setLocale('bn');
+        $id = app(ManualPayoutService::class)->request($dealer, [
+            'amount' => '200.00',
+            'channel' => 'bKash',
+            'destination' => '01700000000',
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        $this->assertDatabaseHas('withdrawal_events', [
+            'withdrawal_id' => $id,
+            'event' => 'requested',
+            'note' => __('portal.wd_event_funds_reserved', [], 'bn'),
+        ]);
     }
 }
