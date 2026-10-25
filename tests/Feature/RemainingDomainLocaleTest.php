@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\CalculationMessage;
 use App\Support\SafeSiteUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -41,5 +42,15 @@ class RemainingDomainLocaleTest extends TestCase
                 $exception->errors()['customization.hero_url'][0] ?? null,
             );
         }
+    }
+
+    public function test_calculation_message_localizes_percentage_errors(): void
+    {
+        app()->setLocale('bn');
+
+        $this->assertSame(
+            __('portal.err_pct_decimals', [], 'bn'),
+            CalculationMessage::localize('A percentage must have at most two decimal places.'),
+        );
     }
 }

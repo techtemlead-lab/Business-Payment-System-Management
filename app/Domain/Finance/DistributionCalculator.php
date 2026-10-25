@@ -17,15 +17,15 @@ final class DistributionCalculator
     {
         $amount = Money::cents($mrp);
         if ($amount <= 0) {
-            throw new InvalidArgumentException(__('portal.err_draft_mrp_positive'));
+            throw new InvalidArgumentException('MRP must be positive.');
         }
         $discountRate = Percentage::from($discount);
         if ($discountRate->basisPoints < 2000 || $discountRate->basisPoints > 5000) {
-            throw new InvalidArgumentException(__('portal.err_draft_discount_range'));
+            throw new InvalidArgumentException('Product discounts must be between 20% and 50%.');
         }
         $rates = DistributionSchedule::defaults($accountType);
         if (array_diff_key($overrides, $rates) !== []) {
-            throw new InvalidArgumentException(__('portal.err_draft_unsupported_category'));
+            throw new InvalidArgumentException('The schedule contains an unsupported allocation category.');
         }
         $rates = array_replace($rates, $overrides);
         $totalRate = 0;
@@ -33,7 +33,7 @@ final class DistributionCalculator
             $totalRate += Percentage::from($rate)->basisPoints;
         }
         if ($totalRate > 10000) {
-            throw new InvalidArgumentException(__('portal.err_draft_alloc_100'));
+            throw new InvalidArgumentException('Total allocations cannot exceed 100% of the purchase value.');
         }
         $purchaseRate = Percentage::from(Money::decimal(10000 - $discountRate->basisPoints));
         $purchase = $purchaseRate->of($amount, $rounding);

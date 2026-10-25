@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Finance\CalculationMessage;
 use App\Domain\Finance\Percentage;
 use App\Models\DealerRank;
 use App\Models\Order;
@@ -143,7 +144,7 @@ final class CommissionService
                 $proposed[$key] = Percentage::from((string) $value)->decimal();
             }
         } catch (\InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['overrides' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['overrides' => CalculationMessage::localize($exception->getMessage())]);
         }
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $orders = Order::with(['lines', 'user'])->where('status', 'delivered')->whereColumn('paid', 'total')

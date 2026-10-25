@@ -19,7 +19,7 @@ final class PolicyDraftService
                 $total += Percentage::from((string) $component['rate'])->basisPoints;
             }
         } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['components' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['components' => CalculationMessage::localize($exception->getMessage())]);
         }
         if ($total > 10000) {
             throw ValidationException::withMessages(['components' => __('portal.err_draft_alloc_100')]);
