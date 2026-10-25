@@ -31,6 +31,22 @@ class OperationalReadinessTest extends TestCase
         $this->assertFalse(app(DeploymentReadiness::class)->inspect(true)['checks']['scheduler_recent']);
     }
 
+    public function test_application_readiness_warns_when_sms_and_mail_only_log(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'log',
+            'madina.login_otp.enabled' => true,
+            'mail.default' => 'log',
+        ]);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertContains('sms_driver_logging_only', $result['warnings']);
+        $this->assertContains('mail_driver_logging_only', $result['warnings']);
+        $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
+    }
+
     public function test_preview_mode_blocks_posting_even_if_activation_is_misconfigured(): void
     {
         config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);

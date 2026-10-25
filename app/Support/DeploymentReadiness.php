@@ -9,7 +9,15 @@ use Illuminate\Support\Str;
 
 final class DeploymentReadiness
 {
-    /** @return array{ready: bool, checks: array<string, bool>, preview_mode: bool, financial_posting: bool} */
+    /**
+     * @return array{
+     *   ready: bool,
+     *   checks: array<string, bool>,
+     *   warnings: list<string>,
+     *   preview_mode: bool,
+     *   financial_posting: bool
+     * }
+     */
     public function inspect(bool $strict = false): array
     {
         $checks = ['php_84' => PHP_VERSION_ID >= 80400, 'required_extensions' => true];
@@ -64,7 +72,24 @@ final class DeploymentReadiness
             $checks['recent_verified_backup'] = Cache::has('operations:verified-backup');
         }
 
-        return ['ready' => ! in_array(false, $checks, true), 'checks' => $checks,
-            'preview_mode' => (bool) config('madina.preview_mode'), 'financial_posting' => (bool) config('madina.financial_activation')];
+        $warnings = [];
+        $smsDriver = (string) config('madina.sms.driver', 'log');
+        if (in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
+            $warnings[] = 'sms_driver_logging_only';
+        }
+        if (! $strict && in_array((string) config('mail.default'), ['log', 'array', 'null'], true)) {
+            $warnings[] = 'mail_driver_logging_only';
+        }
+        if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true)) {
+            $warnings[] = 'login_otp_requires_real_sms_before_go_live';
+        }
+
+        return [
+            'ready' => ! in_array(false, $checks, true),
+            'checks' => $checks,
+            'warnings' => $warnings,
+            'preview_mode' => (bool) config('madina.preview_mode'),
+            'financial_posting' => (bool) config('madina.financial_activation'),
+        ];
     }
 }

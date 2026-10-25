@@ -309,8 +309,8 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                 <section className="panel table-panel dense-panel">
                     <div className="panel-heading">
                         <div>
-                            <h2>Recent orders</h2>
-                            <p>Purchase requests and fulfilment progress.</p>
+                            <h2>{translate('portal', 'recent_orders')}</h2>
+                            <p>{translate('portal', 'recent_orders_hint')}</p>
                         </div>
                         <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
@@ -319,9 +319,9 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
             )}
             {data.lowStock?.length > 0 && (
                 <section className="notice">
-                    <h2>Low-stock alerts</h2>
+                    <h2>{translate('portal', 'low_stock_alerts')}</h2>
                     <p>{data.lowStock.map((p: Row) => `${p.name} (${p.stock} left)`).join(' · ')}</p>
-                    <Link href={`${base}/inventory`} className="text-link">Review inventory</Link>
+                    <Link href={`${base}/inventory`} className="text-link">{translate('portal', 'review_inventory')}</Link>
                 </section>
             )}
         </div>
@@ -389,7 +389,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
             {commerce && (
                 <section className="panel table-panel dense-panel">
                     <div className="panel-heading">
-                        <div><h2>Recent orders</h2></div>
+                        <div><h2>{translate('portal', 'recent_orders')}</h2></div>
                         <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
                     {orders}

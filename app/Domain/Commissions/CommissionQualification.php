@@ -158,25 +158,76 @@ final class CommissionQualification
         $parameters = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
         $target = Money::cents((string) $parameters[$type.'_target']);
         $cap = Money::cents((string) $parameters[$type.'_leg_cap']);
+        $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
+        if ($directLegs->isEmpty()) {
+            return [
+                'milestone_type' => $type,
+                'target_amount' => Money::decimal($target),
+                'leg_cap_amount' => Money::decimal($cap),
+                'raw_team_volume' => '0.00',
+                'qualifying_volume' => '0.00',
+                'achieved' => false,
+                'progress_percentage' => 0.0,
+                'percentage' => 0.0,
+                'legs' => [],
+            ];
+        }
+
+        $legIds = $directLegs->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $paths = ReferralTreePath::query()
+            ->whereIn('ancestor_id', $legIds)
+            ->get(['ancestor_id', 'descendant_id']);
+        /** @var array<int, list<int>> $treeByLeg */
+        $treeByLeg = [];
+        foreach ($legIds as $legId) {
+            $treeByLeg[$legId] = [$legId];
+        }
+        foreach ($paths as $path) {
+            $treeByLeg[(int) $path->ancestor_id][] = (int) $path->descendant_id;
+        }
+        $allMemberIds = array_values(array_unique(array_merge(...array_values($treeByLeg))));
+        $volumesByUser = DB::table('orders')
+            ->where('orders.is_opening_balance', false)
+            ->leftJoin('commission_batches', 'commission_batches.order_id', '=', 'orders.id')
+            ->whereIn('orders.user_id', $allMemberIds)
+            ->where('orders.status', 'delivered')
+            ->whereColumn('orders.paid', 'orders.total')
+            ->groupBy('orders.user_id')
+            ->selectRaw('orders.user_id, COALESCE(SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)), 0) AS volume')
+            ->pluck('volume', 'user_id');
+
         $raw = 0;
         $qualified = 0;
         $legs = [];
-        foreach (User::where('sponsor_id', $userId)->orderBy('id')->get() as $leg) {
-            $ids = ReferralTreePath::where('ancestor_id', $leg->id)->pluck('descendant_id')->push($leg->id)->unique();
-            $volume = DB::table('orders')->where('orders.is_opening_balance', false)->leftJoin('commission_batches', 'commission_batches.order_id', '=', 'orders.id')
-                ->whereIn('orders.user_id', $ids)->where('orders.status', 'delivered')->whereColumn('orders.paid', 'orders.total')
-                ->selectRaw('COALESCE(SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)), 0) AS volume')->value('volume');
-            $cents = Money::cents((string) $volume);
+        foreach ($directLegs as $leg) {
+            $cents = 0;
+            foreach (array_values(array_unique($treeByLeg[(int) $leg->id])) as $memberId) {
+                $cents += Money::cents((string) ($volumesByUser[$memberId] ?? '0'));
+            }
             $raw += $cents;
             $qualified += min($cap, $cents);
-            $legs[] = ['user_id' => $leg->id, 'dealer_id' => $leg->id, 'name' => $leg->name, 'dealer_name' => $leg->name, 'raw_volume' => Money::decimal($cents),
-                'qualifying_volume' => Money::decimal(min($cap, $cents)), 'excess_volume' => Money::decimal(max(0, $cents - $cap))];
+            $legs[] = [
+                'user_id' => $leg->id,
+                'dealer_id' => $leg->id,
+                'name' => $leg->name,
+                'dealer_name' => $leg->name,
+                'raw_volume' => Money::decimal($cents),
+                'qualifying_volume' => Money::decimal(min($cap, $cents)),
+                'excess_volume' => Money::decimal(max(0, $cents - $cap)),
+            ];
         }
 
-        return ['milestone_type' => $type, 'target_amount' => Money::decimal($target), 'leg_cap_amount' => Money::decimal($cap),
-            'raw_team_volume' => Money::decimal($raw), 'qualifying_volume' => Money::decimal($qualified),
-            'achieved' => $qualified >= $target, 'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
-            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0, 'legs' => $legs];
+        return [
+            'milestone_type' => $type,
+            'target_amount' => Money::decimal($target),
+            'leg_cap_amount' => Money::decimal($cap),
+            'raw_team_volume' => Money::decimal($raw),
+            'qualifying_volume' => Money::decimal($qualified),
+            'achieved' => $qualified >= $target,
+            'progress_percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
+            'percentage' => $target > 0 ? min(100, round($qualified / $target * 100, 2)) : 0,
+            'legs' => $legs,
+        ];
     }
 
     /** @return array<string, mixed> */

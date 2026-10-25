@@ -575,7 +575,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     )}
                     <footer className="workspace-footer">
                         <span>Madina Natural Health Care</span>
-                        <span>Asia/Dhaka · BDT</span>
+                        <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}

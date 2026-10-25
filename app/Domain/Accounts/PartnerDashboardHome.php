@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\PortalHost;
@@ -202,12 +203,23 @@ final class PartnerDashboardHome
             }
         }
 
-        $bike = $this->qualification->milestone($user->id, 'bike');
+        $bike = RewardMilestoneProgress::query()
+            ->where('user_id', $user->id)
+            ->where('milestone_type', 'bike')
+            ->first();
+        if ($bike === null) {
+            $bikeData = $this->qualification->milestone($user->id, 'bike');
+            $bikeCurrent = Money::cents((string) $bikeData['qualifying_volume']);
+            $bikeTarget = Money::cents((string) $bikeData['target_amount']);
+        } else {
+            $bikeCurrent = Money::cents((string) $bike->qualifying_volume);
+            $bikeTarget = Money::cents((string) $bike->target_amount);
+        }
         $targets[] = $this->progress(
             key: 'bike_incentive',
             label: __('portal.target_bike_incentive'),
-            current: Money::cents((string) $bike['qualifying_volume']),
-            target: Money::cents((string) $bike['target_amount']),
+            current: $bikeCurrent,
+            target: $bikeTarget,
             hint: __('portal.target_bike_incentive_hint'),
         );
 
