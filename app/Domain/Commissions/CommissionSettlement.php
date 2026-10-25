@@ -98,10 +98,7 @@ final class CommissionSettlement
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
                     $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
                     if (! isset($paidAsByRules[$rulesKey])) {
-                        $paidAsByRules[$rulesKey] = [];
-                        foreach ($dealerIds as $dealerId) {
-                            $paidAsByRules[$rulesKey][$dealerId] = $this->qualification->paidAs($dealerId, $month, $rules);
-                        }
+                        $paidAsByRules[$rulesKey] = $this->qualification->paidAsFor($dealerIds, $month, $rules);
                     }
                     foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
                         $ids = array_values(array_filter(

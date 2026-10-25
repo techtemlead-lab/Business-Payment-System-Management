@@ -147,44 +147,78 @@ final class CommissionQualification
     /** @return array<string, mixed> */
     public function paidAs(int $userId, ?string $month = null, ?array $rules = null): array
     {
-        $month ??= CommissionQualification::currentMonth();
+        return $this->paidAsFor([$userId], $month, $rules)[$userId];
+    }
+
+    /**
+     * Batch paid-as rank evaluation for royalty settlement (one volume query + one rank load).
+     *
+     * @param  list<int>  $userIds
+     * @param  array<string, array<string, mixed>>|null  $rules
+     * @return array<int, array<string, mixed>>
+     */
+    public function paidAsFor(array $userIds, ?string $month = null, ?array $rules = null): array
+    {
+        $month ??= self::currentMonth();
         [, $end] = self::period($month);
-        $rank = DealerRank::where('user_id', $userId)->first();
-        $code = $rank?->current_rank ?? 'dealer';
-        $lifetime = $code;
-        $achievedAt = $rank?->achieved_at;
-        $asOf = $month === self::currentMonth() ? now() : $end->subSecond();
-        if ($achievedAt && CarbonImmutable::parse($achievedAt)->gt($asOf)) {
-            $code = 'dealer';
-            foreach (($rank->qualification_history ?? []) as $entry) {
-                if (isset($entry['rank'],$entry['achieved_at']) && CarbonImmutable::parse($entry['achieved_at'])->lte($asOf)) {
-                    $code = $entry['rank'];
-                    $achievedAt = $entry['achieved_at'];
-                }
-            }
+        $userIds = array_values(array_unique(array_map('intval', $userIds)));
+        if ($userIds === []) {
+            return [];
         }
+
         $rules ??= app(CommissionPolicy::class)->snapshot()['rules'];
         $parameters = $rules['rank_maintenance']['parameters'];
-        $volume = $this->monthlyVolume($userId, $month);
-        $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
-        $qualified = $volume >= $required;
-        $grace = $achievedAt && CarbonImmutable::parse($achievedAt)->addDays((int) $parameters['grace_period_days'])->gte($asOf);
-        $user = User::query()->find($userId);
-        if ($user && ($forced = PartnerBenefitControls::forcedRoyaltyRank($user))) {
-            return [
+        $volumes = $this->monthlyVolumesFor($userIds, $month);
+        $ranks = DealerRank::query()->whereIn('user_id', $userIds)->get()->keyBy('user_id');
+        $users = User::query()->whereIn('id', $userIds)->get()->keyBy('id');
+        $asOf = $month === self::currentMonth() ? now() : $end->subSecond();
+
+        $result = [];
+        foreach ($userIds as $userId) {
+            $rank = $ranks->get($userId);
+            $code = $rank?->current_rank ?? 'dealer';
+            $lifetime = $code;
+            $achievedAt = $rank?->achieved_at;
+            if ($achievedAt && CarbonImmutable::parse($achievedAt)->gt($asOf)) {
+                $code = 'dealer';
+                foreach (($rank->qualification_history ?? []) as $entry) {
+                    if (isset($entry['rank'], $entry['achieved_at']) && CarbonImmutable::parse($entry['achieved_at'])->lte($asOf)) {
+                        $code = $entry['rank'];
+                        $achievedAt = $entry['achieved_at'];
+                    }
+                }
+            }
+            $volume = $volumes[$userId] ?? 0;
+            $required = $code === 'dealer' ? 0 : Money::cents((string) $parameters[$code.'_min_monthly_volume']);
+            $qualified = $volume >= $required;
+            $grace = $achievedAt && CarbonImmutable::parse($achievedAt)->addDays((int) $parameters['grace_period_days'])->gte($asOf);
+            $user = $users->get($userId);
+            if ($user && ($forced = PartnerBenefitControls::forcedRoyaltyRank($user))) {
+                $result[$userId] = [
+                    'lifetime_rank' => $lifetime,
+                    'paid_as_rank' => $forced,
+                    'monthly_volume' => Money::decimal($volume),
+                    'required_volume' => Money::decimal($required),
+                    'is_qualified' => true,
+                    'in_grace_period' => false,
+                    'status' => 'admin_unconditional',
+                ];
+
+                continue;
+            }
+
+            $result[$userId] = [
                 'lifetime_rank' => $lifetime,
-                'paid_as_rank' => $forced,
+                'paid_as_rank' => $qualified || $grace ? $code : 'dealer',
                 'monthly_volume' => Money::decimal($volume),
                 'required_volume' => Money::decimal($required),
-                'is_qualified' => true,
-                'in_grace_period' => false,
-                'status' => 'admin_unconditional',
+                'is_qualified' => $qualified,
+                'in_grace_period' => ! $qualified && $grace,
+                'status' => $qualified ? 'qualified' : ($grace ? 'grace_period' : 'demoted'),
             ];
         }
 
-        return ['lifetime_rank' => $lifetime, 'paid_as_rank' => $qualified || $grace ? $code : 'dealer',
-            'monthly_volume' => Money::decimal($volume), 'required_volume' => Money::decimal($required), 'is_qualified' => $qualified,
-            'in_grace_period' => ! $qualified && $grace, 'status' => $qualified ? 'qualified' : ($grace ? 'grace_period' : 'demoted')];
+        return $result;
     }
 
     private function promote(DealerRank $rank, string $code): void

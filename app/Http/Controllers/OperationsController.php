@@ -57,8 +57,8 @@ class OperationsController extends Controller
             }
         }
         if ($section === 'staff-operations') {
-            $tables['Territories'] = DB::table('staff_territories as t')->join('users as u', 'u.id', '=', 't.staff_id')->select(['t.*', 'u.name'])->orderByDesc('t.id');
-            $tables['Monthly targets'] = DB::table('staff_targets as t')->join('users as u', 'u.id', '=', 't.staff_id')->select(['t.id', 't.staff_id', 'u.name', 't.period_month', 't.target', 't.bonus', 't.version'])->orderByDesc('t.period_month');
+            $tables['territories'] = DB::table('staff_territories as t')->join('users as u', 'u.id', '=', 't.staff_id')->select(['t.*', 'u.name'])->orderByDesc('t.id');
+            $tables['monthly_targets'] = DB::table('staff_targets as t')->join('users as u', 'u.id', '=', 't.staff_id')->select(['t.id', 't.staff_id', 'u.name', 't.period_month', 't.target', 't.bonus', 't.version'])->orderByDesc('t.period_month');
         }
         if ($section === 'field-sales') {
             $territories = app(TerritoryAccess::class);
@@ -70,57 +70,57 @@ class OperationsController extends Controller
                 if ($actor->allows('sr_dues')) {
                     $columns = [...$columns, 'o.paid', 'o.due_credit', DB::raw('o.total-o.due_credit-o.paid AS outstanding')];
                 }
-                $tables['Territory orders and dues'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
+                $tables['territory_orders'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
             }
-            $tables['My targets'] = DB::table('staff_targets')->where('staff_id', $actor->id)->orderByDesc('period_month');
-            $data['summary'] = ['Current month net territory sales' => Money::decimal($territories->volume($actor->id, now()->timezone('Asia/Dhaka')->format('Y-m')))];
+            $tables['my_targets'] = DB::table('staff_targets')->where('staff_id', $actor->id)->orderByDesc('period_month');
+            $data['summary'] = ['current_month_net_territory_sales' => Money::decimal($territories->volume($actor->id, now()->timezone('Asia/Dhaka')->format('Y-m')))];
         }
         if (in_array($section, ['field-sales', 'staff-operations'], true)) {
-            $tables['Dealer applications'] = DB::table('dealer_applications')->when(! $actor->allows('accounts'), fn ($q) => $q->where('submitted_by', $actor->id))
+            $tables['dealer_applications'] = DB::table('dealer_applications')->when(! $actor->allows('accounts'), fn ($q) => $q->where('submitted_by', $actor->id))
                 ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'created_at'])->orderByDesc('created_at');
         }
         if (in_array($section, ['payroll', 'my-payroll'], true)) {
-            $tables['Salary register'] = DB::table('payroll_entries as p')->join('users as u', 'u.id', '=', 'p.staff_id')
+            $tables['salary_register'] = DB::table('payroll_entries as p')->join('users as u', 'u.id', '=', 'p.staff_id')
                 ->when($section === 'my-payroll', fn ($q) => $q->where('staff_id', $actor->id))
                 ->select(['p.id', 'u.name', 'p.staff_id', 'p.period_month', 'p.gross', 'p.deduction', 'p.net', 'p.snapshot', 'p.status', 'p.prepared_by', 'p.approved_by', 'p.payment_reference', 'p.paid_at', DB::raw('p.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('p.created_at');
             if ($actor->allows('finance') && $section === 'payroll') {
-                $tables['Effective salary contracts'] = DB::table('staff_contracts as c')->join('users as u', 'u.id', '=', 'c.staff_id')->select(['c.id', 'u.name', 'c.effective_month', 'c.revision', 'c.base_salary', 'c.allowance', 'c.deduction', 'c.reason'])->orderByDesc('c.effective_month')->orderByDesc('c.id');
+                $tables['salary_contracts'] = DB::table('staff_contracts as c')->join('users as u', 'u.id', '=', 'c.staff_id')->select(['c.id', 'u.name', 'c.effective_month', 'c.revision', 'c.base_salary', 'c.allowance', 'c.deduction', 'c.reason'])->orderByDesc('c.effective_month')->orderByDesc('c.id');
             }
         }
         if ($section === 'policy-schedules') {
-            $tables['Policy schedules'] = DB::table('commission_policy_schedules as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')
+            $tables['policy_schedules'] = DB::table('commission_policy_schedules as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')
                 ->select(['s.*', 'u.name'])->orderByDesc('s.id');
             $data['policy'] = [...app(CommissionPolicy::class)->snapshot(), 'funding_sources' => RecipientFunding::Sources];
         }
         if ($section === 'reserve-payouts') {
-            $tables['Reward and expense requests'] = DB::table('reserve_disbursements as r')->leftJoin('users as u', 'u.id', '=', 'r.user_id')
+            $tables['reserve_requests'] = DB::table('reserve_disbursements as r')->leftJoin('users as u', 'u.id', '=', 'r.user_id')
                 ->select(['r.id', 'r.program', 'u.name', 'r.user_id', 'r.payee_name', 'r.amount', 'r.status', 'r.created_by', 'r.approved_by', 'r.payment_reference', 'r.reason', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('r.id');
-            $tables['Company reserve clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
-            $tables['Clawback recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');
+            $tables['reserve_clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
+            $tables['clawback_recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');
             foreach (ReserveService::Programs as $program => $category) {
                 $total = CommissionAllocation::where('category', $category)->get()->sum(fn ($fund) => app(ReserveService::class)->remaining($fund));
-                $data['summary'][$program.' uncommitted reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
+                $data['summary'][$program.'_uncommitted_reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
             }
         }
         if ($section === 'commission-holds') {
-            $tables['Held allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
+            $tables['held_allocations'] = DB::table('commission_allocations as a')->join('users as u', 'u.id', '=', 'a.user_id')->where('a.status', 'held')
                 ->select(['a.id', 'u.name', 'u.status as partner_status', 'a.order_id', 'a.category', 'a.amount', 'a.metadata'])->orderBy('a.id');
         }
         if ($section === 'commission-holds') {
-            $tables['Opening commission holds'] = DB::table('opening_balance_entries as e')->join('users as u', 'u.id', '=', 'e.user_id')
+            $tables['opening_holds'] = DB::table('opening_balance_entries as e')->join('users as u', 'u.id', '=', 'e.user_id')
                 ->whereColumn('e.held', '>', 'e.held_released')->select(['e.id', 'u.name', 'e.reference', 'e.held', 'e.as_of_date'])->orderBy('e.id');
         }
         if ($section === 'financial-readiness') {
             $data['readiness'] = app(FinancialReadiness::class)->inspect();
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
-            $tables['Opening balance reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
+            $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
         }
         if ($section === 'dues-adjustments') {
             $data['adjustableOrders'] = Order::with('user:id,name')->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
                 ->when($request->filled('q'), fn ($q) => $q->where('number', 'ilike', '%'.$request->string('q').'%'))->orderByDesc('created_at')->limit(100)->get()
                 ->map(fn ($order) => ['id' => $order->id, 'name' => $order->number.' · '.$order->user->name.' · due BDT '.$order->outstanding(), 'due_credit' => $order->due_credit])->all();
-            $tables['Due adjustment requests'] = DB::table('due_adjustments as a')->join('orders as o', 'o.id', '=', 'a.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
+            $tables['due_adjustments'] = DB::table('due_adjustments as a')->join('orders as o', 'o.id', '=', 'a.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
                 ->join('users as c', 'c.id', '=', 'a.created_by')->leftJoin('users as r', 'r.id', '=', 'a.reviewed_by')
                 ->select(['a.*', 'o.number', 'u.name', 'c.name as prepared_by_name', 'r.name as reviewed_by_name'])->orderByDesc('a.id');
         }
@@ -143,8 +143,8 @@ class OperationsController extends Controller
             $data['videoSetting'] = $setting ? [...json_decode($setting->value, true, 512, JSON_THROW_ON_ERROR), 'version' => $setting->version] : ['enabled' => false, 'version' => 0];
             $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
         }
-        foreach ($tables as $title => $query) {
-            $data['tables'][] = ['title' => $title, 'page' => $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString()];
+        foreach ($tables as $key => $query) {
+            $data['tables'][] = ['key' => $key, 'page' => $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString()];
         }
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Operations', $data);
