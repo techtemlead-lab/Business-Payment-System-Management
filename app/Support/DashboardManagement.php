@@ -87,7 +87,7 @@ class DashboardManagement
             }
             $amount = (string) $clean[$moneyKey];
             if (! preg_match('/^\d{1,8}(\.\d{1,2})?$/', $amount)) {
-                throw ValidationException::withMessages([$moneyKey => 'Enter a valid minimum order amount.']);
+                throw ValidationException::withMessages([$moneyKey => __('portal.err_dash_min_order')]);
             }
             $clean[$moneyKey] = Money::decimal(Money::cents($amount));
         }

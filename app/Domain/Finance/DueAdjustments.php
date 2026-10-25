@@ -38,7 +38,7 @@ final class DueAdjustments
                 return $existing->id;
             }
             if (DB::table('due_adjustments')->where('reference', $reference)->exists()) {
-                throw ValidationException::withMessages(['reference' => 'This adjustment reference already exists.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_due_ref_exists')]);
             }
             $this->validate($order, $data['kind'], Money::cents($data['amount']));
             $id = DB::table('due_adjustments')->insertGetId(['order_id' => $order->id, 'kind' => $data['kind'], 'amount' => Money::decimal(Money::cents($data['amount'])),
@@ -59,10 +59,10 @@ final class DueAdjustments
             abort_unless($adjustment, 404);
             $order = Order::whereKey($adjustment->order_id)->lockForUpdate()->firstOrFail();
             if (in_array($actor->id, [$adjustment->created_by, $order->user_id], true)) {
-                throw ValidationException::withMessages(['adjustment' => 'A separate Finance reviewer must review this adjustment.']);
+                throw ValidationException::withMessages(['adjustment' => __('portal.err_due_separate_reviewer')]);
             }
             if (! in_array($decision, ['approved', 'rejected'], true)) {
-                throw ValidationException::withMessages(['decision' => 'Choose approved or rejected.']);
+                throw ValidationException::withMessages(['decision' => __('portal.err_due_decision')]);
             }
             if ($adjustment->status !== 'requested') {
                 abort_unless($adjustment->status === $decision && $adjustment->review_reason === $reason, 409, 'This adjustment was already reviewed.');
@@ -88,7 +88,18 @@ final class DueAdjustments
                 'before_outstanding' => $before, 'after_outstanding' => $after, 'reason' => $reason];
             DB::table('order_events')->insert(['order_id' => $order->id, 'actor_id' => $actor->id, 'action' => 'dues.adjustment_'.$decision, 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now()]);
             Audit::record($actor->id, 'dues.adjustment_'.$decision, (string) $id, $metadata);
-            Audit::notice($order->user_id, 'Due adjustment '.$decision, $order->number.' · '.$adjustment->reference.' · outstanding BDT '.$after);
+            $partner = User::find($order->user_id);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            $decisionLabel = __('portal.due_decision_'.$decision, [], $locale);
+            Audit::notice(
+                $order->user_id,
+                __('portal.notice_due_adjustment_title', ['decision' => $decisionLabel], $locale),
+                __('portal.notice_due_adjustment_body', [
+                    'number' => $order->number,
+                    'reference' => $adjustment->reference,
+                    'amount' => $after,
+                ], $locale),
+            );
         }, 3);
     }
 
@@ -96,11 +107,13 @@ final class DueAdjustments
     {
         if (! in_array($kind, ['credit', 'debit_correction'], true) || $amount < 1
             || in_array($order->status, ['cancelled', 'rejected', 'submitted', 'held'], true)) {
-            throw ValidationException::withMessages(['adjustment' => 'Use a positive credit note or credit correction on an approved, open order.']);
+            throw ValidationException::withMessages(['adjustment' => __('portal.err_due_invalid')]);
         }
         $maximum = $kind === 'credit' ? Money::cents($order->outstanding()) : Money::cents($order->due_credit);
         if ($amount > $maximum) {
-            throw ValidationException::withMessages(['amount' => $kind === 'credit' ? 'Credit cannot exceed the current unpaid balance.' : 'A debit correction can only restore an earlier credit; use a new order for additional sales.']);
+            throw ValidationException::withMessages(['amount' => $kind === 'credit'
+                ? __('portal.err_due_credit_exceeds')
+                : __('portal.err_due_debit_restore_only')]);
         }
     }
 }

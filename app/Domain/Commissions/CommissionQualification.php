@@ -24,7 +24,7 @@ final class CommissionQualification
     public static function period(string $month): array
     {
         if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D', $month)) {
-            throw ValidationException::withMessages(['period_month' => 'Choose a valid month in YYYY-MM format.']);
+            throw ValidationException::withMessages(['period_month' => __('portal.err_qual_month')]);
         }
         $start = CarbonImmutable::createFromFormat('!Y-m', $month, config('madina.business_timezone'));
 
@@ -235,7 +235,7 @@ final class CommissionQualification
     public function milestone(int $userId, string $type): array
     {
         if (! in_array($type, ['bike', 'car'], true)) {
-            throw ValidationException::withMessages(['milestone_type' => 'Choose bike or car.']);
+            throw ValidationException::withMessages(['milestone_type' => __('portal.err_qual_milestone')]);
         }
         $parameters = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
         $target = Money::cents((string) $parameters[$type.'_target']);
