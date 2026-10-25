@@ -63,30 +63,51 @@ final class CommissionSettlement
             $distributed = [];
             $tiers = [];
             $rolled = 0;
+            $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
+            $dealerIds = $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all();
+            $volumes = $this->qualification->monthlyVolumesFor($dealerIds, $month);
+            $dealerNames = $dealers->pluck('name', 'id')->all();
+            $subDealerNames = [];
+            /** @var array<string, array<int, array<string, mixed>>> */
+            $paidAsByRules = [];
             foreach ($funds as $fund) {
                 $source = DB::table('commission_batches')->where('order_id', $fund->order_id)->value('policy');
                 $rules = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR)['rules'] : $this->policies->snapshot()['rules'];
                 $parameters = $rules['dealer_monthly_salary']['parameters'];
-                $qualified = User::where('role', 'dealer')->where('status', 'active')->orderBy('id')->get()
+                $minVolume = Money::cents((string) $parameters['min_monthly_volume']);
+                $qualifiedIds = $dealers
                     ->filter(fn (User $user): bool => PartnerBenefitControls::waivesSalaryVolume($user)
-                        || $this->qualification->monthlyVolume($user->id, $month) >= Money::cents((string) $parameters['min_monthly_volume']))
-                    ->values();
+                        || ($volumes[$user->id] ?? 0) >= $minVolume)
+                    ->pluck('id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->all();
                 $cents = Money::cents($fund->amount);
                 $shares = [];
                 if ($fund->category === 'sub_dealer_salary') {
-                    $partner = User::find($fund->user_id);
+                    $partner = User::query()->find($fund->user_id);
                     if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
                         $shares[$partner->id] = $cents;
+                        $subDealerNames[$partner->id] = $partner->name;
+                        if (! array_key_exists($partner->id, $volumes)) {
+                            $volumes[$partner->id] = $this->qualification->monthlyVolume($partner->id, $month);
+                        }
                     }
                 } elseif ($kind === 'salary') {
-                    $shares = $this->divide($cents, $qualified->pluck('id')->all());
+                    $shares = $this->divide($cents, $qualifiedIds);
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
+                    $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
+                    if (! isset($paidAsByRules[$rulesKey])) {
+                        $paidAsByRules[$rulesKey] = [];
+                        foreach ($dealerIds as $dealerId) {
+                            $paidAsByRules[$rulesKey][$dealerId] = $this->qualification->paidAs($dealerId, $month, $rules);
+                        }
+                    }
                     foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
-                        $ids = DealerRank::whereHas('user', fn ($q) => $q->where('role', 'dealer')->where('status', 'active'))
-                            ->orderBy('user_id')->get()
-                            ->filter(fn (DealerRank $rank): bool => $this->qualification->paidAs($rank->user_id, $month, $rules)['paid_as_rank'] === $code)
-                            ->pluck('user_id')->all();
+                        $ids = array_values(array_filter(
+                            $dealerIds,
+                            fn (int $id): bool => ($paidAsByRules[$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
+                        ));
                         $tierShares = $this->divide($buckets[$index], $ids);
                         foreach ($tierShares as $id => $amount) {
                             $shares[$id] = ($shares[$id] ?? 0) + $amount;
@@ -115,9 +136,18 @@ final class CommissionSettlement
             }
             $totalPaid = array_sum($distributed);
             $result = [];
+            $names = $dealerNames + $subDealerNames;
+            $missingVolumeIds = array_values(array_diff(array_keys($distributed), array_keys($volumes)));
+            if ($missingVolumeIds !== []) {
+                $volumes += $this->qualification->monthlyVolumesFor($missingVolumeIds, $month);
+            }
             foreach ($distributed as $id => $amount) {
-                $result[] = ['user_id' => $id, 'user_name' => User::find($id)?->name, 'amount' => Money::decimal($amount),
-                    'monthly_volume' => Money::decimal($this->qualification->monthlyVolume($id, $month))];
+                $result[] = [
+                    'user_id' => $id,
+                    'user_name' => $names[$id] ?? User::query()->find($id)?->name,
+                    'amount' => Money::decimal($amount),
+                    'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
+                ];
             }
             foreach ($tiers as &$tier) {
                 $tier['allocated'] = Money::decimal($tier['allocated_cents']);
