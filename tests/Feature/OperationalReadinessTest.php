@@ -57,9 +57,11 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('payment_collection_accounts_missing', $result['warnings']);
         $this->assertContains('payment_payout_accounts_missing', $result['warnings']);
         $this->assertContains('queue_driver_is_sync', $result['warnings']);
+        $this->assertContains('scheduler_heartbeat_missing', $result['warnings']);
+        $this->assertNotContains('queue_worker_heartbeat_missing', $result['warnings']);
     }
 
-    public function test_application_readiness_clears_queue_sync_warning_for_durable_driver(): void
+    public function test_application_readiness_clears_queue_and_scheduler_heartbeat_warnings_when_workers_signal(): void
     {
         config([
             'madina.financial_activation' => false,
@@ -71,10 +73,35 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
             'queue.default' => 'database',
         ]);
+        Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
+        Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
 
         $result = app(DeploymentReadiness::class)->inspect();
         $this->assertTrue($result['ready']);
         $this->assertNotContains('queue_driver_is_sync', $result['warnings']);
+        $this->assertNotContains('scheduler_heartbeat_missing', $result['warnings']);
+        $this->assertNotContains('queue_worker_heartbeat_missing', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_durable_queue_worker_heartbeat_is_missing(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+            'queue.default' => 'database',
+        ]);
+        Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
+        Cache::forget('operations:queue-heartbeat');
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertContains('queue_worker_heartbeat_missing', $result['warnings']);
+        $this->assertNotContains('scheduler_heartbeat_missing', $result['warnings']);
     }
 
     public function test_application_readiness_clears_place_code_warning_when_catalog_is_seeded(): void

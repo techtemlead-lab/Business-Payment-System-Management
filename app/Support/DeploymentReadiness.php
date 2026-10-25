@@ -113,6 +113,14 @@ final class DeploymentReadiness
         if (! $strict && in_array(config('queue.default'), ['sync', 'null', ''], true)) {
             $warnings[] = 'queue_driver_is_sync';
         }
+        if (! $strict && ! Cache::has('operations:scheduler-heartbeat')) {
+            $warnings[] = 'scheduler_heartbeat_missing';
+        }
+        if (! $strict
+            && ! in_array(config('queue.default'), ['sync', 'null', ''], true)
+            && ! Cache::has('operations:queue-heartbeat')) {
+            $warnings[] = 'queue_worker_heartbeat_missing';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),

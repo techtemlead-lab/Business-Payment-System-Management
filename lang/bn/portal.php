@@ -399,6 +399,8 @@ return [
     'ops_warn_payment_collection_accounts_missing' => 'সক্রিয় পেমেন্ট কালেকশন অ্যাকাউন্ট নেই — পার্টনার পেমেন্ট ক্লেইম গো-লাইভের আগে কালেকশন গ্রহণ করে এমন কমপক্ষে একটি ব্যাংক/এমএফএস অ্যাকাউন্ট কনফিগার করুন।',
     'ops_warn_payment_payout_accounts_missing' => 'সক্রিয় পেমেন্ট পে-আউট অ্যাকাউন্ট নেই — পার্টনার উইথড্রয়াল গো-লাইভের আগে পে-আউট করতে পারে এমন কমপক্ষে একটি ব্যাংক/এমএফএস অ্যাকাউন্ট কনফিগার করুন।',
     'ops_warn_queue_driver_is_sync' => 'কিউ ড্রাইভার sync/null — আমদানি ও ব্যাকগ্রাউন্ড পে-আউট গো-লাইভের আগে টেকসই কিউ ওয়ার্কার (database/redis) চালান।',
+    'ops_warn_scheduler_heartbeat_missing' => 'সিডিউলার হার্টবিট নেই — পরিপক্কতা রিলিজ ও ব্যাকআপ সময়মতো রাখতে `php artisan schedule:work` (বা cron) চালান।',
+    'ops_warn_queue_worker_heartbeat_missing' => 'কিউ ওয়ার্কার হার্টবিট নেই — আমদানি ও ব্যাকগ্রাউন্ড জব চালাতে `php artisan queue:work --queue=imports,default` চালান।',
     'ops_no_go_live_warnings' => 'এই হোস্টে কোনো গো-লাইভ মেইল/SMS সতর্কতা নেই।',
     'ops_account_registry' => 'কোম্পানি অ্যাকাউন্ট রেজিস্ট্রি',
     'ops_account' => 'অ্যাকাউন্ট',

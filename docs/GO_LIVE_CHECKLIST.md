@@ -7,8 +7,8 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, strong `APP_KEY`
 - [ ] `APP_URL` and `APP_DOMAIN` match the live public host; portal subdomains resolve (`dealer.`, `subdealer.`, `manage.`, `sadmin.`)
 - [ ] PostgreSQL is dedicated (not shared with another app); backups scheduled and restore-tested
-- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800` — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync`
-- [ ] Scheduler running: `php artisan schedule:work` (or cron equivalent)
+- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800` — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync` or `queue_worker_heartbeat_missing`
+- [ ] Scheduler running: `php artisan schedule:work` (or cron equivalent); `app:readiness` must not warn `scheduler_heartbeat_missing`
 - [ ] `php artisan app:readiness` reports PASS for migrations, DB timezone UTC, cache, private storage, preview posting disabled
 - [ ] `composer audit --locked` and `npm audit` reviewed; known issues accepted or remediated
 - [ ] Frontend built: `npm ci --ignore-scripts && npm run build`
