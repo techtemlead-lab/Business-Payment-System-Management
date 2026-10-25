@@ -74,7 +74,7 @@ export default function AccountCreate({
         shop_name: '',
         directory_visible: false,
         status: 'active',
-        reason: 'Physical agreement verified and onboarding authorized by company staff.',
+        reason: translate('portal', 'acct_default_reason'),
         permissions: ['orders', 'inventory'] as string[],
         sponsor_id: '',
         latitude: '',

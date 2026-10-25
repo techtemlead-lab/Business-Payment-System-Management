@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface DealerNode {
     id: number;
@@ -31,6 +32,7 @@ const rankBadges: Record<string, { label: string; bg: string; text: string; bord
 };
 
 export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProps) {
+    const translate = useT();
     const [searchQuery, setSearchQuery] = useState('');
     const [rankFilter, setRankFilter] = useState('all');
     const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
@@ -103,13 +105,12 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
         const directCount = children.length;
         const totalDownline = getDownlineCount(dealer.id);
 
-        // Generation tag text
         let genTag = '';
-        if (depth === 0) genTag = 'ROOT';
-        else if (depth === 1) genTag = 'GEN 1 (10%)';
-        else if (depth === 2) genTag = 'GEN 2 (2%)';
-        else if (depth === 3) genTag = 'GEN 3 (1%)';
-        else genTag = `GEN ${depth}`;
+        if (depth === 0) genTag = translate('portal','net_gen_root');
+        else if (depth === 1) genTag = translate('portal','net_gen_1');
+        else if (depth === 2) genTag = translate('portal','net_gen_2');
+        else if (depth === 3) genTag = translate('portal','net_gen_3');
+        else genTag = translate('portal','net_gen_n',{depth:String(depth)});
 
         return (
             <div key={dealer.id} style={{ marginLeft: depth > 0 ? 28 : 0, marginTop: 8, position: 'relative' }}>
@@ -192,9 +193,9 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                            <span>Code: <b>{dealer.dealer_code || '—'}</b></span>
+                            <span>{translate('portal','net_code')}: <b>{dealer.dealer_code || '—'}</b></span>
                             <span>•</span>
-                            <span>Purchases: <b style={{ color: '#006837' }}>{money(dealer.lifetime_purchases)}</b></span>
+                            <span>{translate('portal','net_purchases')}: <b style={{ color: '#006837' }}>{money(dealer.lifetime_purchases)}</b></span>
                         </div>
                     </div>
 
@@ -207,11 +208,11 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             background: directCount > 0 ? '#e0f2fe' : '#f1f5f9',
                             color: directCount > 0 ? '#0369a1' : '#94a3b8'
                         }}>
-                            {directCount} Direct
+                            {translate('portal','net_direct_count',{count:String(directCount)})}
                         </span>
                         {totalDownline > directCount && (
                             <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                                {totalDownline} total
+                                {translate('portal','net_total_count',{count:String(totalDownline)})}
                             </span>
                         )}
                     </div>
