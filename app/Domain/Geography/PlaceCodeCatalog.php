@@ -10,15 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 final class PlaceCodeCatalog
 {
-    /** @var array<string, string> */
-    public const LevelLabels = [
-        PlaceCode::LevelManagement => 'Management',
-        PlaceCode::LevelDivision => 'Division',
-        PlaceCode::LevelDistrict => 'District / Zila',
-        PlaceCode::LevelUpazila => 'Upazila',
-        PlaceCode::LevelUnion => 'Union / City Corporation',
-    ];
-
     /** @var array<string, string|null> */
     public const ParentLevel = [
         PlaceCode::LevelManagement => null,

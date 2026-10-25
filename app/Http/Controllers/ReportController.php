@@ -29,13 +29,21 @@ class ReportController extends Controller
             __('portal.csv_col_unpaid_bdt', [], $locale),
         ];
 
-        return response()->streamDownload(function () use ($q, $headers) {
+        return response()->streamDownload(function () use ($q, $headers, $locale) {
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
             fputcsv($f, $headers, ',', '"', '');
             foreach ($q->cursor() as $o) {
-                fputcsv($f, [$o->number, $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'), $o->status, $o->total, $o->paid, $o->outstanding()], ',', '"', '');
-            } fclose($f);
+                fputcsv($f, [
+                    $o->number,
+                    $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'),
+                    $this->localizedCsvEnum('status_'.$o->status, (string) $o->status, $locale),
+                    $o->total,
+                    $o->paid,
+                    $o->outstanding(),
+                ], ',', '"', '');
+            }
+            fclose($f);
         }, 'madina-orders-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
     }
 
@@ -124,7 +132,7 @@ class ReportController extends Controller
             ? 'madina-genealogy-company-'.now()->format('Y-m-d').'.csv'
             : 'madina-genealogy-downline-'.now()->format('Y-m-d').'.csv';
 
-        return response()->streamDownload(function () use ($query, $headers) {
+        return response()->streamDownload(function () use ($query, $headers, $locale) {
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
             fputcsv($f, $headers, ',', '"', '');
@@ -132,13 +140,14 @@ class ReportController extends Controller
                 $joined = $row->created_at
                     ? Carbon::parse($row->created_at)->timezone('Asia/Dhaka')->format('Y-m-d H:i')
                     : '';
+                $rank = $row->current_rank ?: 'dealer';
                 fputcsv($f, [
                     $row->dealer_code,
                     $row->name,
                     $row->phone,
-                    $row->role,
-                    $row->current_rank ?: 'dealer',
-                    $row->status,
+                    $this->localizedCsvEnum('acct_role_'.$row->role, (string) $row->role, $locale),
+                    $this->localizedCsvEnum('net_rank_'.$rank, (string) $rank, $locale),
+                    $this->localizedCsvEnum('status_'.$row->status, (string) $row->status, $locale),
                     $row->sponsor_code,
                     $row->sponsor_name,
                     $row->division,
@@ -150,5 +159,12 @@ class ReportController extends Controller
             }
             fclose($f);
         }, $filename, ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
+    }
+
+    private function localizedCsvEnum(string $key, string $fallback, string $locale): string
+    {
+        $label = __('portal.'.$key, [], $locale);
+
+        return $label === 'portal.'.$key ? $fallback : $label;
     }
 }

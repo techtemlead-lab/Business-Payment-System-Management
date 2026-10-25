@@ -63,6 +63,8 @@ class GenealogyExportTest extends TestCase
         $this->assertStringContainsString(__('portal.csv_col_lifetime_purchases_bdt', [], 'bn'), $csv);
         $this->assertStringNotContainsString('Dealer code', $csv);
         $this->assertStringContainsString('D-BN-CHILD', $csv);
+        $this->assertStringContainsString(__('portal.acct_role_dealer', [], 'bn'), $csv);
+        $this->assertStringContainsString(__('portal.status_active', [], 'bn'), $csv);
     }
 
     public function test_dealer_genealogy_export_respects_network_toggle(): void

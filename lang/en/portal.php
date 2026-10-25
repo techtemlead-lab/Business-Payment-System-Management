@@ -1364,6 +1364,7 @@ return [
     'net_enrolled' => 'Enrolled dealers & sub-dealers',
     'net_higher_ranks' => 'Higher leadership ranks',
     'net_all_ranks' => 'All Ranks',
+    'net_rank_dealer' => 'Dealer',
     'net_rank_mo' => 'Marketing Officer (MO)',
     'net_rank_am' => 'Area Manager (AM)',
     'net_rank_sm' => 'Sales Manager (SM)',

@@ -1364,6 +1364,7 @@ return [
     'net_enrolled' => 'নিবন্ধিত ডিলার ও সাব-ডিলার',
     'net_higher_ranks' => 'উচ্চতর নেতৃত্ব র‌্যাঙ্ক',
     'net_all_ranks' => 'সব র‌্যাঙ্ক',
+    'net_rank_dealer' => 'ডিলার',
     'net_rank_mo' => 'মার্কেটিং অফিসার (MO)',
     'net_rank_am' => 'এরিয়া ম্যানেজার (AM)',
     'net_rank_sm' => 'সেলস ম্যানেজার (SM)',
