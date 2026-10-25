@@ -33,7 +33,7 @@ class StaffReserveLocaleTest extends TestCase
 
     public function test_tour_reserve_for_dealer_returns_bangla_validation(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         app()->setLocale('bn');
         $actor = User::factory()->staff('finance')->create();
         $dealer = User::factory()->dealer()->create();

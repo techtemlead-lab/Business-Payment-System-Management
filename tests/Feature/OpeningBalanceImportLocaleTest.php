@@ -33,7 +33,7 @@ class OpeningBalanceImportLocaleTest extends TestCase
             ['D-LOCALE', 'LOCALE-101', '2026-01-01', '100', '0', '0', '0'],
         ]), 'Locale opening statement');
 
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
 
         try {
             $imports->queue($reviewer, $id, 'Should stay locked after activation');

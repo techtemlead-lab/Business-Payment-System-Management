@@ -21,7 +21,7 @@ class SettlementCreditSmsTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
         $this->travelTo(now()->setDate(2026, 9, 15)->startOfDay());
         Config::set('madina.sms.driver', 'array');

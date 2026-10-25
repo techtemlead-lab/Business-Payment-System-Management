@@ -25,7 +25,7 @@ class ModuleCompletionTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(CarbonImmutable::parse('2026-09-15T06:00:00Z'));
     }
 
@@ -137,7 +137,7 @@ class ModuleCompletionTest extends TestCase
         $url = '/api/v1/operations/due-adjustments/'.$id.'/review';
         $decision = ['decision' => 'approved', 'reason' => 'Independent full allowance'];
         $this->actingAs($reviewer)->postJson($url, $decision)->assertUnprocessable();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->postJson($url, $decision)->assertOk();
         $order->update(['status' => 'delivered']);
 

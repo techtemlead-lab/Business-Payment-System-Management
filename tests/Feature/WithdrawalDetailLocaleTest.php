@@ -57,7 +57,7 @@ class WithdrawalDetailLocaleTest extends TestCase
 
     public function test_withdrawal_request_event_note_follows_partner_bangla_locale(): void
     {
-        config(['madina.financial_activation' => true, 'madina.preview_mode' => false]);
+        $this->enableFinancialPosting();
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'locale' => 'bn']);
         DB::table('wallets')->where('user_id', $dealer->id)->update([
             'available' => '500.00',

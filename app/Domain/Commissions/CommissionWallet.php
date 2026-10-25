@@ -25,7 +25,7 @@ final class CommissionWallet
         if (config('madina.preview_mode') || ! config('madina.financial_activation')) {
             throw ValidationException::withMessages(['policy' => __('portal.err_wallet_posting_disabled')]);
         }
-        if (app()->environment('production') && ! DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
+        if (! DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
             throw ValidationException::withMessages(['policy' => __('portal.err_wallet_posting_unverified')]);
         }
     }
@@ -92,7 +92,7 @@ final class CommissionWallet
         }
         DB::table('wallets')->where('id', $wallet->id)->update($changes);
         if ($recovery > 0) {
-            $this->journal('commissions.debt_recovery.'.Str::uuid(), 'Offset prior commission clawback', [
+            $this->journal('commissions.debt_recovery.'.Str::uuid(), __('portal.jr_clawback_offset'), [
                 ['account' => 'wallet_liability', 'user_id' => $userId, 'debit' => $recovery, 'credit' => 0],
                 ['account' => 'commission_clawback_receivable', 'user_id' => $userId, 'debit' => 0, 'credit' => $recovery],
             ]);

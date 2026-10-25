@@ -108,7 +108,7 @@ class DataImportTest extends TestCase
         $this->assertTrue($order->is_opening_balance);
         $this->assertTrue(app(FinancialReadiness::class)->inspect()['internally_reconciled']);
         $this->assertFalse(config('madina.financial_activation'));
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $order->update(['paid' => '200.00']);
         $this->assertSame([], app(CommissionPosting::class)->process($order));
         $this->assertSame(0, app(CommissionQualification::class)->monthlyVolume($partner->id, '2026-10'));
@@ -129,7 +129,7 @@ class DataImportTest extends TestCase
         $entry = DB::table('opening_balance_entries')->first();
         $url = '/api/v1/operations/imports/opening-holds/'.$entry->id.'/release';
         $this->actingAs($reviewer)->postJson($url, ['reason' => 'Client authorized hold release'])->assertUnprocessable();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->postJson($url, ['reason' => 'Client authorized hold release'])->assertOk();
         $this->postJson($url, ['reason' => 'Repeated release request'])->assertOk();
         $this->assertDatabaseHas('wallets', ['user_id' => $partner->id, 'available' => '150.00', 'held' => '0.00', 'commission_held' => '0.00']);
@@ -172,7 +172,7 @@ class DataImportTest extends TestCase
         $id = app(OpeningBalanceImport::class)->preview($preparer, 'opening_balances', $this->workbook('opening_balances', [
             ['D-LOCK', 'LOCK-101', '2026-01-01', '100', '0', '0', '0'],
         ]), 'Client closing statement');
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->actingAs($reviewer)->postJson('/api/v1/operations/imports/'.$id.'/apply', ['reason' => 'Opening import after activation', 'confirmed' => true])->assertUnprocessable();
         $this->assertDatabaseCount('opening_balance_entries', 0);
     }
@@ -246,7 +246,7 @@ class DataImportTest extends TestCase
         ]), 'Historical receivable statement');
         $imports->apply($reviewer, $id, 'Reviewed the historical statement');
         $order = Order::where('user_id', $partner->id)->firstOrFail();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         if ($credit !== '0.00') {
             $adjustment = app(DueAdjustments::class)->request($preparer, $order, [
                 'kind' => 'credit', 'amount' => $credit, 'reference' => 'HISTORICAL-CREDIT',

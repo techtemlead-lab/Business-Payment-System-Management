@@ -26,7 +26,7 @@ class BusinessPolicyDecisionsTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(CarbonImmutable::parse('2026-09-15T06:00:00Z'));
     }
 
@@ -312,7 +312,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $this->actingAs(User::factory()->staff('finance')->create())->postJson($url, $data)->assertUnprocessable();
         config(['madina.financial_activation' => false]);
         $this->postJson($url, [...$data, 'user_id' => User::factory()->dealer()->create()->id])->assertUnprocessable();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         DB::table('commission_batches')->where('order_id', $order->id)->delete();
         $this->postJson($url, [...$data, 'user_id' => User::factory()->dealer()->create()->id])->assertUnprocessable()->assertJsonValidationErrors('hold');
         $this->assertDatabaseHas('commission_allocations', ['id' => $fundId, 'user_id' => $inactive->id, 'amount' => '10.00', 'status' => 'held']);

@@ -19,7 +19,7 @@ class RetainedFundDetailsTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
     }
 
     public function test_treasury_and_benefits_fund_expose_detailed_retained_amount_rows(): void

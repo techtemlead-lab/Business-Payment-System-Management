@@ -23,7 +23,7 @@ class BackendIntegrationTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
     }
 

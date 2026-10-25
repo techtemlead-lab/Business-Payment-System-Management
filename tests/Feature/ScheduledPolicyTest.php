@@ -45,7 +45,7 @@ class ScheduledPolicyTest extends TestCase
 
     public function test_buyer_override_is_snapshotted_and_later_cancellation_does_not_reprice_existing_orders(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $buyer = User::factory()->create();
@@ -67,7 +67,7 @@ class ScheduledPolicyTest extends TestCase
 
     public function test_individual_recipient_caps_preserve_the_original_pool_budget_without_redistribution(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $sponsor = User::factory()->create();
         $buyer = User::factory()->create(['sponsor_id' => $sponsor->id]);
         $admin = User::factory()->create(['role' => 'finance']);

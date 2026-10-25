@@ -13,7 +13,7 @@ class CommissionSettlementLocaleTest extends TestCase
 
     public function test_open_month_settlement_returns_bangla_validation(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         app()->setLocale('bn');
 
         try {

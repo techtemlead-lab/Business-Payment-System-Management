@@ -74,7 +74,7 @@ class PartnerBenefitControlsTest extends TestCase
 
     public function test_salary_settlement_includes_volume_waived_dealer(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         app(PartnerBenefitControls::class)->save($admin, $dealer, [

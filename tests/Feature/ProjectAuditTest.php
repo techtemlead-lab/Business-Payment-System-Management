@@ -138,7 +138,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_salary_qualification_preview_shows_the_selected_month_volume_instead_of_a_stale_cached_counter(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
         $buyer = User::factory()->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
@@ -156,7 +156,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_salary_screen_separates_partner_reserves_and_reports_only_the_amount_actually_distributed(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
         $product = Product::factory()->create(['mrp' => '200.00', 'sub_dealer_price' => '120.00']);
@@ -199,7 +199,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_area_commissions_match_the_full_territory_path_ignoring_case_and_surrounding_spaces(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $recipient = User::factory()->create();
         $other = User::factory()->create();
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -221,7 +221,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_ambiguous_case_variant_legacy_area_assignments_do_not_receive_wallet_credits(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         foreach (['Dhaka', ' DHAKA '] as $division) {
             $recipient = User::factory()->create();
             AreaDealerAssignment::create(['user_id' => $recipient->id, 'level' => 'division', 'zone_name' => 'Legacy zone',

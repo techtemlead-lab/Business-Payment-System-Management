@@ -33,6 +33,7 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue($result['checks']['database_timezone_utc']);
         $this->assertTrue($result['checks']['migrations_current']);
         $this->assertTrue($result['ready']);
+        // Intentionally leave preview_mode on while arming activation — that combo must fail the preview_posting_disabled check.
         config(['madina.financial_activation' => true]);
         $this->assertFalse(app(DeploymentReadiness::class)->inspect()['checks']['preview_posting_disabled']);
         $this->assertFalse(app(DeploymentReadiness::class)->inspect(true)['checks']['production_environment']);
@@ -290,14 +291,14 @@ class OperationalReadinessTest extends TestCase
 
     public function test_preview_mode_blocks_posting_even_if_activation_is_misconfigured(): void
     {
-        config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);
+        $this->enableFinancialPosting(preview: true);
         $this->expectException(ValidationException::class);
         CommissionWallet::requireActive();
     }
 
     public function test_preview_mode_delivery_fulfills_without_posting_when_activation_is_misconfigured(): void
     {
-        config(['madina.financial_activation' => true, 'madina.preview_mode' => true]);
+        $this->enableFinancialPosting(preview: true);
         $this->seed(CommissionRuleSeeder::class);
         $buyer = User::factory()->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 3]);
@@ -313,7 +314,8 @@ class OperationalReadinessTest extends TestCase
 
     public function test_scheduled_release_is_disabled_by_default(): void
     {
-        config(['madina.financial_activation' => true, 'madina.auto_release_matured' => false]);
+        $this->enableFinancialPosting();
+        config(['madina.auto_release_matured' => false]);
         $this->artisan('finance:release-matured')->expectsOutputToContain('No balances changed')->assertSuccessful();
         $this->assertDatabaseCount('journal_entries', 0);
     }
