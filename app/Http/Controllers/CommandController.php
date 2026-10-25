@@ -468,28 +468,48 @@ class CommandController extends Controller
         $user = $r->user();
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
         $data = $r->validate([
-            'topic' => ['required', Rule::in(['Support', 'Complaint', 'Order dispute', 'KYC correction', 'Payout question'])],
+            'topic' => ['required', Rule::in([
+                'support', 'complaint', 'order_dispute', 'kyc_correction', 'payout_question',
+                // Legacy English values still accepted from older clients.
+                'Support', 'Complaint', 'Order dispute', 'KYC correction', 'Payout question',
+            ])],
             'message' => 'required|string|min:10|max:2000',
         ]);
+        $topicKey = match ($data['topic']) {
+            'Support', 'support' => 'support',
+            'Complaint', 'complaint' => 'complaint',
+            'Order dispute', 'order_dispute' => 'order_dispute',
+            'KYC correction', 'kyc_correction' => 'kyc_correction',
+            'Payout question', 'payout_question' => 'payout_question',
+            default => strtolower((string) $data['topic']),
+        };
         DB::table('enquiries')->insert([
             'name' => $user->name,
             'phone' => $user->phone ?: ($user->dealer_code ?: 'partner-'.$user->id),
-            'topic' => $data['topic'],
+            'topic' => $topicKey,
             'message' => '['.($user->dealer_code ?: $user->email).'] '.$data['message'],
             'status' => 'new',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
-            'topic' => $data['topic'],
+            'topic' => $topicKey,
         ]);
         $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
             ? $user->locale
             : app()->getLocale();
+        $topicLabel = match ($topicKey) {
+            'support' => __('portal.support_topic_support', [], $locale),
+            'complaint' => __('portal.support_topic_complaint', [], $locale),
+            'order_dispute' => __('portal.support_topic_order', [], $locale),
+            'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
+            'payout_question' => __('portal.support_topic_payout', [], $locale),
+            default => $topicKey,
+        };
         app(PartnerEventSms::class)->send(
             $user,
             'support.requested',
-            __('sms.support_requested', ['topic' => $data['topic']], $locale),
+            __('sms.support_requested', ['topic' => $topicLabel], $locale),
         );
 
         return back()->with('success', __('portal.flash_support_sent'));

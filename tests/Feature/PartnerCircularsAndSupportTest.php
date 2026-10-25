@@ -50,7 +50,7 @@ class PartnerCircularsAndSupportTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')
             ->post('/commands/partner-support', [
-                'topic' => 'Payout question',
+                'topic' => 'payout_question',
                 'message' => 'When will March salary settle into my wallet?',
             ])
             ->assertRedirect();
@@ -58,7 +58,7 @@ class PartnerCircularsAndSupportTest extends TestCase
         $this->assertDatabaseHas('enquiries', [
             'name' => $dealer->name,
             'phone' => '01710000099',
-            'topic' => 'Payout question',
+            'topic' => 'payout_question',
             'status' => 'new',
         ]);
     }

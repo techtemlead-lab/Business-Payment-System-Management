@@ -218,7 +218,7 @@ return [
     'support_topic_complaint' => 'Complaint',
     'support_topic_order' => 'Order dispute',
     'support_topic_kyc' => 'KYC correction',
-    'support_topic_payout' => 'Payout',
+    'support_topic_payout' => 'Payout question',
     'support_message' => 'Message',
     'support_send' => 'Send to company',
     'partner_id_card' => 'Partner ID card',
