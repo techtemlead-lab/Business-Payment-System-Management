@@ -93,6 +93,17 @@ class PortalModulesTest extends TestCase
             ->assertDontSee('Need a dealer account?', false);
     }
 
+    public function test_access_management_exposes_bangla_staff_access_copy(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'locale' => 'bn']);
+        $this->actingAs($admin)->onPortal('sadmin')->get('/operations/access-management')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('translations.portal.sa_title', 'স্টাফ অ্যাকশন অনুমতি')
+                ->where('translations.portal.sa_save_staff', 'স্টাফ অনুমতি সংরক্ষণ')
+                ->where('translations.portal.sa_roles_title', 'কাস্টম স্টাফ রোল'));
+    }
+
     public function test_portal_hosts_remain_isolated_by_role(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer']);
