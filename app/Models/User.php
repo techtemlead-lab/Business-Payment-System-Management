@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\PortalHost;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Hidden(['password', 'remember_token', 'nid'])]
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -35,6 +36,14 @@ class User extends Authenticatable
     public function owner(): bool
     {
         return in_array($this->role, ['super_admin', 'md', 'chairman'], true);
+    }
+
+    public function preferredLocale(): string
+    {
+        $locale = is_string($this->locale ?? null) ? $this->locale : (string) config('app.fallback_locale', 'en');
+        $supported = config('madina.locales', ['en', 'bn']);
+
+        return in_array($locale, $supported, true) ? $locale : (string) config('app.fallback_locale', 'en');
     }
 
     public function loginPath(): string

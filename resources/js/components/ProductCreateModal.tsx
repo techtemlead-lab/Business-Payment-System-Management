@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
-import { X, Upload, Sparkles, AlertCircle, Percent, DollarSign, Package } from 'lucide-react';
+import { X, Upload, Sparkles, AlertCircle, Percent, Package } from 'lucide-react';
+import { useT } from '../shared/i18n/t';
 
 interface ProductCreateModalProps {
     isOpen: boolean;
@@ -9,7 +10,7 @@ interface ProductCreateModalProps {
 }
 
 export default function ProductCreateModal({ isOpen, onClose, categories }: ProductCreateModalProps) {
-
+    const translate = useT();
 
     const [name, setName] = useState('');
     const [sku, setSku] = useState(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -31,7 +32,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
     const [featured, setFeatured] = useState('0');
     const [initialStock, setInitialStock] = useState('0');
     const [lowStockAt, setLowStockAt] = useState('10');
-    const [reason, setReason] = useState('New catalog product onboarding with dealer discount');
+    const [reason, setReason] = useState(() => translate('portal', 'pcm_default_reason'));
 
     // UI state
     const [submitting, setSubmitting] = useState(false);
@@ -87,23 +88,23 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
         setErrorMsg(null);
 
         if (!name.trim()) {
-            setErrorMsg('Please enter a product title.');
+            setErrorMsg(translate('portal', 'pcm_err_title'));
             return;
         }
 
         const effectiveCategory = isCustomCategory ? customCategory.trim() : category.trim();
         if (!effectiveCategory) {
-            setErrorMsg('Please select or specify a category.');
+            setErrorMsg(translate('portal', 'pcm_err_category'));
             return;
         }
 
         if (numMrp <= 0) {
-            setErrorMsg('Product MRP must be greater than zero.');
+            setErrorMsg(translate('portal', 'pcm_err_mrp'));
             return;
         }
 
         if (numDealer <= 0 || numDealer > numMrp) {
-            setErrorMsg('Dealer price must be positive and cannot exceed MRP.');
+            setErrorMsg(translate('portal', 'pcm_err_dealer'));
             return;
         }
 
@@ -183,10 +184,10 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                         </div>
                         <div>
                             <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                                Add New Product
+                                {translate('portal', 'pcm_title')}
                             </h2>
                             <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                                Create catalog product with dealer discount & cash pricing
+                                {translate('portal', 'pcm_subtitle')}
                             </p>
                         </div>
                     </div>
@@ -222,18 +223,18 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                     {/* Section 1: Basic Information */}
                     <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-                            1. Product Details
+                            {translate('portal', 'pcm_section_details')}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Product Title / Name *
+                                    {translate('portal', 'pcm_title_label')}
                                 </label>
                                 <input
                                     type="text"
                                     required
                                     value={name}
-                                    placeholder="e.g. Organic Kalonji Oil 100ml"
+                                    placeholder={translate('portal', 'pcm_title_ph')}
                                     onChange={e => setName(e.target.value)}
                                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
                                 />
@@ -242,7 +243,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                        Category *
+                                        {translate('portal', 'pcm_category')}
                                     </label>
                                     {!isCustomCategory ? (
                                         <select
@@ -257,14 +258,14 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                             style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13, background: '#fff' }}
                                         >
                                             {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                            <option value="__new__">+ Enter New Category...</option>
+                                            <option value="__new__">{translate('portal', 'pcm_new_category')}</option>
                                         </select>
                                     ) : (
                                         <div style={{ display: 'flex', gap: 6 }}>
                                             <input
                                                 type="text"
                                                 required
-                                                placeholder="Custom category name..."
+                                                placeholder={translate('portal', 'pcm_custom_category_ph')}
                                                 value={customCategory}
                                                 onChange={e => setCustomCategory(e.target.value)}
                                                 style={{ flex: 1, padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
@@ -274,7 +275,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                                 onClick={() => setIsCustomCategory(false)}
                                                 style={{ fontSize: 11, padding: '0 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}
                                             >
-                                                List
+                                                {translate('portal', 'pcm_list')}
                                             </button>
                                         </div>
                                     )}
@@ -282,13 +283,13 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                                 <div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>SKU *</label>
+                                        <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{translate('portal', 'pcm_sku')}</label>
                                         <button
                                             type="button"
                                             onClick={() => setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`)}
                                             style={{ fontSize: 11, color: '#006837', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                                         >
-                                            ⚡ Auto
+                                            {translate('portal', 'pcm_auto')}
                                         </button>
                                     </div>
                                     <input
@@ -304,7 +305,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                             {/* Image Upload & Thumbnail Preview */}
                             <div>
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Product Image
+                                    {translate('portal', 'pcm_image')}
                                 </label>
                                 <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                                     <div style={{
@@ -320,7 +321,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                         flexShrink: 0
                                     }}>
                                         {imagePreview ? (
-                                            <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                            <img src={imagePreview} alt={translate('portal', 'pcm_preview')} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                                         ) : (
                                             <Upload size={22} color="#94a3b8" />
                                         )}
@@ -333,7 +334,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                             style={{ fontSize: 12 }}
                                         />
                                         <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>
-                                            PNG, JPG or WebP up to 5MB. Clean studio photo recommended.
+                                            {translate('portal', 'pcm_image_hint')}
                                         </p>
                                     </div>
                                 </div>
@@ -341,11 +342,11 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Product Description
+                                    {translate('portal', 'pcm_description')}
                                 </label>
                                 <textarea
                                     rows={3}
-                                    placeholder="Brief description of product benefits, ingredients, and usage..."
+                                    placeholder={translate('portal', 'pcm_description_ph')}
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
                                     style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
@@ -357,13 +358,13 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                     {/* Section 2: Pricing & Dealer Discount Engine */}
                     <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>
-                            <Percent size={16} /> 2. Pricing &amp; Dealer Discount Engine
+                            <Percent size={16} /> {translate('portal', 'pcm_section_pricing')}
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-                                    Product MRP (Retail Price) *
+                                    {translate('portal', 'pcm_mrp')}
                                 </label>
                                 <div style={{ position: 'relative' }}>
                                     <span style={{ position: 'absolute', left: 10, top: 10, fontSize: 13, color: '#64748b', fontWeight: 600 }}>৳</span>
@@ -382,7 +383,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-                                    Dealer Discount (%)
+                                    {translate('portal', 'pcm_dealer_discount')}
                                 </label>
                                 <div style={{ position: 'relative' }}>
                                     <input
@@ -402,7 +403,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                         {/* Quick Preset Pills */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Quick discount presets:</span>
+                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'pcm_quick_presets')}</span>
                             {['30', '40', '50', '60'].map(pct => (
                                 <button
                                     key={pct}
@@ -429,10 +430,10 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                         <div style={{ marginBottom: 16 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                 <label style={{ fontSize: 12.5, fontWeight: 700, color: '#047857' }}>
-                                    Approved Dealer Price (Cash Inflow to System) *
+                                    {translate('portal', 'pcm_dealer_price')}
                                 </label>
                                 <span style={{ fontSize: 11, color: '#64748b' }}>
-                                    Auto-calculated from discount, or type custom cash price
+                                    {translate('portal', 'pcm_dealer_price_hint')}
                                 </span>
                             </div>
                             <div style={{ position: 'relative' }}>
@@ -461,37 +462,37 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
                                 <div>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                        Actual Dealer Cash Price (Cash Inflow)
+                                        {translate('portal', 'pcm_cash_price')}
                                     </div>
                                     <div style={{ fontSize: 22, fontWeight: 800, color: '#006837' }}>
                                         ৳ {numDealer.toFixed(2)}
                                     </div>
                                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                        This is the exact cash collected into the system when the dealer places an order.
+                                        {translate('portal', 'pcm_cash_price_hint')}
                                     </div>
                                 </div>
 
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontSize: 11, fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                        Dealer Margin / Saved from MRP
+                                        {translate('portal', 'pcm_margin')}
                                     </div>
                                     <div style={{ fontSize: 20, fontWeight: 800, color: '#d97706' }}>
                                         ৳ {numSavings.toFixed(2)}
                                     </div>
                                     <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 2 }}>
-                                        {calculatedPct}% deduction from MRP
+                                        {translate('portal', 'pcm_deduction', { pct: calculatedPct })}
                                     </div>
                                 </div>
                             </div>
 
                             {/* Visual Progress Bar (Cash vs Margin) */}
                             <div style={{ width: '100%', height: 8, background: '#fef3c7', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-                                <div style={{ width: `${cashSharePct}%`, background: '#006837', transition: 'width 0.2s ease' }} title={`Cash Inflow: ${cashSharePct.toFixed(0)}%`} />
-                                <div style={{ width: `${100 - cashSharePct}%`, background: '#f59e0b', transition: 'width 0.2s ease' }} title={`Dealer Margin: ${(100 - cashSharePct).toFixed(0)}%`} />
+                                <div style={{ width: `${cashSharePct}%`, background: '#006837', transition: 'width 0.2s ease' }} title={translate('portal', 'pcm_system_cash', { pct: cashSharePct.toFixed(0) })} />
+                                <div style={{ width: `${100 - cashSharePct}%`, background: '#f59e0b', transition: 'width 0.2s ease' }} title={translate('portal', 'pcm_dealer_margin', { pct: (100 - cashSharePct).toFixed(0) })} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#64748b', marginTop: 4, fontWeight: 600 }}>
-                                <span>🟢 System Cash In: {cashSharePct.toFixed(0)}%</span>
-                                <span>🟡 Dealer Margin: {(100 - cashSharePct).toFixed(0)}%</span>
+                                <span>🟢 {translate('portal', 'pcm_system_cash', { pct: cashSharePct.toFixed(0) })}</span>
+                                <span>🟡 {translate('portal', 'pcm_dealer_margin', { pct: (100 - cashSharePct).toFixed(0) })}</span>
                             </div>
                         </div>
                     </div>
@@ -499,47 +500,47 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                     {/* Section 3: Publishing & Initial Stock */}
                     <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-                            3. Publishing &amp; Inventory
+                            {translate('portal', 'pcm_section_publish')}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Publication
+                                    {translate('portal', 'pcm_publication')}
                                 </label>
                                 <select
                                     value={active}
                                     onChange={e => setActive(e.target.value)}
                                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
                                 >
-                                    <option value="1">Published (Visible)</option>
-                                    <option value="0">Draft / Hidden</option>
+                                    <option value="1">{translate('portal', 'pcm_published')}</option>
+                                    <option value="0">{translate('portal', 'pcm_draft')}</option>
                                 </select>
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Placement
+                                    {translate('portal', 'pcm_placement')}
                                 </label>
                                 <select
                                     value={featured}
                                     onChange={e => setFeatured(e.target.value)}
                                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
                                 >
-                                    <option value="0">Standard Product</option>
-                                    <option value="1">★ Featured Showcase</option>
+                                    <option value="0">{translate('portal', 'pcm_standard')}</option>
+                                    <option value="1">{translate('portal', 'pcm_featured')}</option>
                                 </select>
                             </div>
 
                             <div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>Initial Stock</label>
+                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{translate('portal', 'pcm_initial_stock')}</label>
                                     {parseInt(initialStock, 10) > 0 ? (
                                         <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 5px', borderRadius: 4 }}>
-                                            In Stock
+                                            {translate('portal', 'pcm_in_stock')}
                                         </span>
                                     ) : (
                                         <span style={{ fontSize: 10.5, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 5px', borderRadius: 4 }}>
-                                            Out of Stock
+                                            {translate('portal', 'pcm_out_of_stock')}
                                         </span>
                                     )}
                                 </div>
@@ -547,7 +548,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                     type="number"
                                     min="0"
                                     value={initialStock}
-                                    placeholder="50 (0 = out of stock)"
+                                    placeholder={translate('portal', 'pcm_stock_ph')}
                                     onChange={e => setInitialStock(e.target.value)}
                                     style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
                                 />
@@ -555,7 +556,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Low-Stock Alert
+                                    {translate('portal', 'pcm_low_stock')}
                                 </label>
                                 <input
                                     type="number"
@@ -569,7 +570,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
 
                         <div style={{ marginTop: 12 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                Staff Audit Note / Change Reason *
+                                {translate('portal', 'pcm_audit_note')}
                             </label>
                             <input
                                 type="text"
@@ -606,7 +607,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                                 cursor: 'pointer'
                             }}
                         >
-                            Cancel
+                            {translate('portal', 'pcm_cancel')}
                         </button>
                         <button
                             type="submit"
@@ -627,7 +628,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                             }}
                         >
                             <Sparkles size={16} />
-                            {submitting ? 'Creating Product...' : 'Create & Publish Product'}
+                            {submitting ? translate('portal', 'pcm_creating') : translate('portal', 'pcm_create')}
                         </button>
                     </div>
                 </form>
