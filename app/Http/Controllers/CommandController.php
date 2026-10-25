@@ -818,6 +818,26 @@ class CommandController extends Controller
             'zone' => $d['zone_name'],
             'place_code' => $place?->code,
         ]);
+        $dealer = User::find($d['user_id']);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('portal.notice_area_dealer_assigned_title', [], $locale),
+                __('portal.notice_area_dealer_assigned_body', [
+                    'zone' => $d['zone_name'],
+                    'quota' => $d['monthly_quota'],
+                ], $locale),
+            );
+            app(PartnerEventSms::class)->send(
+                $dealer,
+                'area_dealer.assigned',
+                __('sms.area_dealer_assigned', [
+                    'zone' => $d['zone_name'],
+                    'quota' => $d['monthly_quota'],
+                ], $locale),
+            );
+        }
 
         return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
@@ -828,6 +848,24 @@ class CommandController extends Controller
         $assignment = AreaDealerAssignment::findOrFail($id);
         $assignment->update(['is_active' => false, 'territory_key' => null]);
         Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+        $dealer = User::find($assignment->user_id);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('portal.notice_area_dealer_removed_title', [], $locale),
+                __('portal.notice_area_dealer_removed_body', [
+                    'zone' => $assignment->zone_name,
+                ], $locale),
+            );
+            app(PartnerEventSms::class)->send(
+                $dealer,
+                'area_dealer.removed',
+                __('sms.area_dealer_removed', [
+                    'zone' => $assignment->zone_name,
+                ], $locale),
+            );
+        }
 
         return back()->with('success', __('portal.flash_area_dealer_removed'));
     }

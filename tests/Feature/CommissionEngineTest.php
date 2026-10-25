@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Money;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -247,8 +248,16 @@ class CommissionEngineTest extends TestCase
 
     public function test_staff_can_assign_and_remove_area_dealer(): void
     {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000101',
+        ]);
 
         // 1. Assign territory
         $response = $this->actingAs($admin)->post('/commands/area-dealers', [
@@ -266,8 +275,22 @@ class CommissionEngineTest extends TestCase
             'zone_name' => 'Gazipur Sadar Hub',
             'level' => 'district',
         ]);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_area_dealer_assigned_title', [], 'bn'),
+        ]);
+        $sent = config('madina.sms.sent');
+        $this->assertSame('area_dealer.assigned', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.area_dealer_assigned', [
+                'zone' => 'Gazipur Sadar Hub',
+                'quota' => '40000',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
 
         $assignment = AreaDealerAssignment::where('user_id', $dealer->id)->first();
+        Config::set('madina.sms.sent', []);
 
         // 2. Remove assignment
         $delResponse = $this->actingAs($admin)->delete("/commands/area-dealers/{$assignment->id}");
@@ -276,6 +299,7 @@ class CommissionEngineTest extends TestCase
             'id' => $assignment->id,
             'is_active' => false,
         ]);
+        $this->assertSame('area_dealer.removed', config('madina.sms.sent')[0]['event'] ?? null);
     }
 
     public function test_company_dashboard_renders_all_commission_and_network_sections(): void

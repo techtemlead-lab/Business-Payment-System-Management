@@ -31,6 +31,8 @@ return [
     'order_refunded' => 'Madina: refund of BDT :amount was recorded for order :number. :reason',
     'payroll_paid' => 'Madina: payroll for :month was recorded as paid (BDT :amount). Receipt is with company finance.',
     'staff_target_saved' => 'Madina: your field target for :month is BDT :target (bonus BDT :bonus). Check staff notices in manage.',
+    'area_dealer_assigned' => 'Madina: you were assigned area dealer for :zone (monthly quota BDT :quota).',
+    'area_dealer_removed' => 'Madina: your area dealer assignment for :zone was removed.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',
