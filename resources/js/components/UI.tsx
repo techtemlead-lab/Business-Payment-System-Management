@@ -5,7 +5,10 @@ import {actionAllowed} from './action-permissions';
 import {businessDate} from '../business-date';
 import {useT} from '../shared/i18n/t';
 export type Row=Record<string,any>;
-export const money=(value:unknown)=>new Intl.NumberFormat('en-BD',{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
+export const money=(value:unknown)=>{
+ const locale=typeof document!=='undefined'&&document.documentElement.lang.toLowerCase().startsWith('bn')?'bn-BD':'en-BD';
+ return new Intl.NumberFormat(locale,{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
+};
 export const date=businessDate;
 const businessLabels:Record<string,string>={direct_referral:'Direct referral · Generation 1',d2d_gen2:'D2D · Generation 2',d2d_gen3:'D2D · Generation 3'};
 export const label=(text:string)=>businessLabels[text]??text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
