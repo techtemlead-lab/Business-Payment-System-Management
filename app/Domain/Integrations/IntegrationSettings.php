@@ -41,7 +41,7 @@ final class IntegrationSettings
     public function provider(string $group, string $provider): array
     {
         $defaults = IntegrationCatalog::groups()[$group]['providers'][$provider]['defaults']
-            ?? throw ValidationException::withMessages(['provider' => 'Unknown integration provider.']);
+            ?? throw ValidationException::withMessages(['provider' => __('portal.si_err_unknown_provider')]);
         $stored = $this->stored(self::SettingsKey)['value'][$group][$provider] ?? [];
         $row = array_merge($defaults, is_array($stored) ? $this->decryptSecrets($stored) : []);
         $row['enabled'] = (bool) ($row['enabled'] ?? false);
@@ -93,14 +93,14 @@ final class IntegrationSettings
     public function saveStartupMode(User $actor, string $mode, int $version, string $reason): void
     {
         if (! in_array($mode, ['fresh', 'import'], true)) {
-            throw ValidationException::withMessages(['mode' => 'Choose fresh start or import opening balances.']);
+            throw ValidationException::withMessages(['mode' => __('portal.si_err_startup_mode')]);
         }
         DB::transaction(function () use ($actor, $mode, $version, $reason): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->canAct('finance', 'edit') || $actor->fresh()->canAct('accounts', 'edit'), 403);
             $before = $this->startupMode();
             if ($version !== $before['version']) {
-                throw ValidationException::withMessages(['version' => 'The startup setting changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.si_err_startup_stale')]);
             }
             $this->persist(self::StartupKey, ['mode' => $mode], $version, $actor->id);
             Audit::record($actor->id, 'finance.startup_mode_changed', self::StartupKey, [
@@ -115,14 +115,14 @@ final class IntegrationSettings
     public function saveProvider(User $actor, string $group, string $provider, array $input, int $version, string $reason): void
     {
         $catalog = IntegrationCatalog::groups()[$group]['providers'][$provider]
-            ?? throw ValidationException::withMessages(['provider' => 'Unknown integration provider.']);
+            ?? throw ValidationException::withMessages(['provider' => __('portal.si_err_unknown_provider')]);
 
         DB::transaction(function () use ($actor, $group, $provider, $input, $version, $reason, $catalog): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->canAct('finance', 'edit') || $actor->fresh()->role === 'super_admin', 403);
             $snapshot = $this->snapshot(true);
             if ($version !== $snapshot['version']) {
-                throw ValidationException::withMessages(['version' => 'Integration settings changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.si_err_stale_version')]);
             }
 
             $current = $this->provider($group, $provider);
@@ -149,19 +149,19 @@ final class IntegrationSettings
 
             if ($next['enabled']) {
                 if ($group === 'maps' && blank($next['api_key'] ?? null) && blank($next['map_embed_url'] ?? null)) {
-                    throw ValidationException::withMessages(['api_key' => 'Enter a Google Maps API key or an embed URL before enabling maps.']);
+                    throw ValidationException::withMessages(['api_key' => __('portal.si_err_maps_enable')]);
                 }
                 if ($group === 'bdris' && (blank($next['base_url'] ?? null) || blank($next['api_key'] ?? null))) {
-                    throw ValidationException::withMessages(['base_url' => 'Enter the BDRIS endpoint URL and API key before enabling autofill.']);
+                    throw ValidationException::withMessages(['base_url' => __('portal.si_err_bdris_enable')]);
                 }
                 if (in_array($group, ['sms', 'couriers', 'payments'], true) && blank($next['base_url'] ?? null)) {
-                    throw ValidationException::withMessages(['base_url' => 'Enter the service base URL before enabling this provider.']);
+                    throw ValidationException::withMessages(['base_url' => __('portal.si_err_base_url')]);
                 }
                 if (in_array($group, ['sms', 'couriers'], true) && blank($next['api_key'] ?? null)) {
-                    throw ValidationException::withMessages(['api_key' => 'Enter the provider API key before enabling this service.']);
+                    throw ValidationException::withMessages(['api_key' => __('portal.si_err_api_key')]);
                 }
                 if ($group === 'payments' && blank($next['api_key'] ?? null) && blank($next['app_key'] ?? null) && blank($next['store_id'] ?? null)) {
-                    throw ValidationException::withMessages(['api_key' => 'Enter the provider credentials before enabling this service.']);
+                    throw ValidationException::withMessages(['api_key' => __('portal.si_err_credentials')]);
                 }
             }
 
