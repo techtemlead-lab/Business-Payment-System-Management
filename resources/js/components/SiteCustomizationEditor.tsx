@@ -3161,6 +3161,7 @@ export function FeaturedProductsManager({
     products: { id: number; name: string; mrp: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     updateField: (key: keyof CustomizationData, val: any) => void;
 }) {
+    const translate = useT();
     const isEnabled = customization.featured_products_enabled !== '0';
     const isTabsEnabled = customization.featured_products_tabs_enabled !== '0';
     const mode = customization.featured_products_mode || 'auto';
@@ -3322,7 +3323,7 @@ export function FeaturedProductsManager({
             {/* Showcase Selection Mode */}
             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, marginBottom: 20 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>
-                    Product Selection Mode:
+                    {translate('portal', 'sce_product_mode')}
                 </div>
                 <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                     <button
@@ -3481,17 +3482,17 @@ export function FeaturedProductsManager({
                                         {/* Product Selector */}
                                         <label style={{ display: 'block' }}>
                                             <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                                                Select Product #{idx + 1}
+                                                {translate('portal', 'sce_select_product', { n: String(idx + 1) })}
                                             </span>
                                             <select
                                                 value={item.product_id}
                                                 onChange={e => handleUpdateItem(idx, { product_id: e.target.value })}
                                                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, background: '#fff' }}
                                             >
-                                                <option value="">-- Choose Product --</option>
+                                                <option value="">{translate('portal', 'sce_choose_product')}</option>
                                                 {products.map(p => (
                                                     <option key={p.id} value={p.id}>
-                                                        {p.name} [{p.category}] — {p.mrp} Tk {p.stock !== undefined ? `(Stock: ${p.stock})` : ''}
+                                                        {p.name} [{p.category}] — {p.mrp} Tk {p.stock !== undefined ? translate('portal', 'sce_stock_label', { count: String(p.stock) }) : ''}
                                                     </option>
                                                 ))}
                                             </select>
@@ -3500,7 +3501,7 @@ export function FeaturedProductsManager({
                                         {/* Marketing Badge */}
                                         <div>
                                             <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                                                Marketing Badge
+                                                {translate('portal', 'sce_marketing_badge')}
                                             </span>
                                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                                                 {quickBadges.map(qb => (
@@ -3564,7 +3565,7 @@ export function FeaturedProductsManager({
                                                 disabled={idx === 0}
                                                 onClick={() => handleMoveItem(idx, 'up')}
                                                 style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #cbd5e1', background: '#fff', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Move Up"
+                                                title={translate('portal', 'sce_move_up')}
                                             >
                                                 ↑
                                             </button>
@@ -3573,7 +3574,7 @@ export function FeaturedProductsManager({
                                                 disabled={idx === items.length - 1}
                                                 onClick={() => handleMoveItem(idx, 'down')}
                                                 style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #cbd5e1', background: '#fff', cursor: idx === items.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === items.length - 1 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Move Down"
+                                                title={translate('portal', 'sce_move_down')}
                                             >
                                                 ↓
                                             </button>
@@ -3582,7 +3583,7 @@ export function FeaturedProductsManager({
                                             type="button"
                                             onClick={() => handleRemoveItem(idx)}
                                             style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                            title="Remove from showcase"
+                                            title={translate('portal', 'sce_remove_from_showcase')}
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -3813,9 +3814,9 @@ function HeaderNavCategoriesManager({
                                 alignItems: 'center',
                                 gap: 6
                             }}
-                            title="Clear custom list to revert to placeholders"
+                            title={translate('portal', 'sce_clear_custom_list_title')}
                         >
-                            <Trash2 size={13} /> Clear Custom List
+                            <Trash2 size={13} /> {translate('portal', 'sce_clear_custom_list')}
                         </button>
                     )}
                     <button
@@ -3835,7 +3836,7 @@ function HeaderNavCategoriesManager({
                             gap: 6
                         }}
                     >
-                        <List size={13} /> {bulkMode ? 'Exit Bulk Editor' : 'Bulk Edit (Plain Text)'}
+                        <List size={13} /> {bulkMode ? translate('portal', 'sce_exit_bulk') : translate('portal', 'sce_bulk_edit')}
                     </button>
                 </div>
             </div>
@@ -3854,9 +3855,8 @@ function HeaderNavCategoriesManager({
                     alignItems: 'center',
                     gap: 8
                 }}>
-                    <span style={{ fontSize: 15 }}>💡</span>
                     <span>
-                        Currently displaying the <strong>8 default placeholders</strong>: <em>Medical Equipment, Leather Items, Consumer Items, Medicine, Agriculture Product, Cosmetics, Furniture, Service</em>. Type a new category below or click "Add Option" or remove any item to begin customizing.
+                        {translate('portal', 'sce_nav_defaults_notice')}
                     </span>
                 </div>
             )}
@@ -3879,7 +3879,7 @@ function HeaderNavCategoriesManager({
                         value={newCategoryName}
                         onChange={e => setNewCategoryName(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder="Add new category option (e.g. Organic Honey, Unani Tonics, Herbal Skincare)..."
+                        placeholder={translate('portal', 'sce_add_category_ph')}
                         style={{
                             width: '100%',
                             padding: '9px 14px',
@@ -3912,7 +3912,7 @@ function HeaderNavCategoriesManager({
                         transition: 'background 0.15s ease'
                     }}
                 >
-                    <Plus size={15} /> Add Option
+                    <Plus size={15} /> {translate('portal', 'sce_add_option')}
                 </button>
             </div>
 
@@ -3920,7 +3920,7 @@ function HeaderNavCategoriesManager({
             {bulkMode ? (
                 <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                        Bulk Plain Text Editor (One category per line):
+                        {translate('portal', 'sce_bulk_edit')}
                     </label>
                     <textarea
                         rows={8}
