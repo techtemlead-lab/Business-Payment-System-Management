@@ -41,27 +41,30 @@
 @extends('reference.layout')
 @section('title','Madina Natural Health Care · Products & Dealer Network')
 @section('content')
+@php
+    $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+@endphp
 <main id="main" class="ref-container ref-main">
     <section class="ref-company-intro" aria-labelledby="company-intro-title">
         <div>
-            <span class="ref-company-eyebrow">Company &amp; Partner Network</span>
-            <h1 id="company-intro-title">{{ $siteCustomization['company_intro_title'] ?? 'Madina Natural Health Care' }}</h1>
-            <p>{{ $siteCustomization['company_intro_body'] ?? 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.' }}</p>
+            <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow') }}</span>
+            <h1 id="company-intro-title">{{ $chrome('company_intro_title', $siteCustomization['company_intro_title'] ?? null) }}</h1>
+            <p>{{ $chrome('company_intro_body', $siteCustomization['company_intro_body'] ?? null) }}</p>
             <div class="ref-company-intro-actions">
-                @if($publicPageEnabled['about'] ?? true)<a href="/about" class="ref-primary-button">About Our Company <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
-                @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Find a Dealer</a>@elseif($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> Become a Partner</a>@endif
+                @if($publicPageEnabled['about'] ?? true)<a href="/about" class="ref-primary-button">{{ $chrome('about_our_company') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+                @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('find_a_dealer') }}</a>@elseif($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ $chrome('become_a_partner') }}</a>@endif
             </div>
         </div>
         <div class="ref-company-paths">
             @if($publicPageEnabled['products'] ?? true)
-            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>Our Product Range</strong><small>Product information &amp; specifications</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>{{ $chrome('product_range_title') }}</strong><small>{{ $chrome('product_range_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @elseif($publicPageEnabled['services'] ?? true)
-            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>Our Services</strong><small>Natural health &amp; physiotherapy</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>{{ $chrome('our_services_title') }}</strong><small>{{ $chrome('our_services_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @endif
             @if($publicPageEnabled['partnership'] ?? true)
-            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>Partner With Us</strong><small>Dealer &amp; sub-dealer enquiries</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @elseif($publicPageEnabled['contact'] ?? true)
-            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>Partner With Us</strong><small>Dealer &amp; sub-dealer enquiries</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @endif
         </div>
     </section>
@@ -161,10 +164,10 @@
         $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
     @endphp
     @if($categoriesEnabled && !empty($categoriesList))
-    <section class="ref-featured-categories" aria-label="Featured Categories">
+    <section class="ref-featured-categories" aria-label="{{ $chrome('featured_categories_title') }}">
         <div class="ref-section-title">
-            <h2>{{ $siteCustomization['featured_categories_title'] ?? 'Featured Categories' }}</h2>
-            <p>{{ $siteCustomization['featured_categories_subtitle'] ?? 'Explore products by category.' }}</p>
+            <h2>{{ $chrome('featured_categories_title', $siteCustomization['featured_categories_title'] ?? null) }}</h2>
+            <p>{{ $chrome('featured_categories_subtitle', $siteCustomization['featured_categories_subtitle'] ?? null) }}</p>
         </div>
         <div class="ref-category-grid is-collapsed" id="refCategoryGrid">
             @foreach($categoriesList as $cat)
@@ -189,7 +192,7 @@
         @if(count($categoriesList) > 8)
         <div class="ref-cat-expand-wrap">
             <button type="button" class="ref-cat-toggle-btn" id="refCatToggleBtn" aria-expanded="false">
-                <span>View All Categories ({{ count($categoriesList) }})</span>
+                <span>{{ __('site.view_all_categories', ['count' => count($categoriesList)]) }}</span>
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
         </div>
@@ -197,14 +200,16 @@
         (function() {
             var btn = document.getElementById('refCatToggleBtn');
             var grid = document.getElementById('refCategoryGrid');
+            var moreLabel = @json(__('site.view_all_categories', ['count' => count($categoriesList)]));
+            var fewerLabel = @json(__('site.show_fewer_categories'));
             if (btn && grid) {
                 btn.addEventListener('click', function() {
                     var collapsed = grid.classList.toggle('is-collapsed');
                     btn.setAttribute('aria-expanded', !collapsed);
                     if (collapsed) {
-                        btn.innerHTML = '<span>View All Categories ({{ count($categoriesList) }})</span> <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
+                        btn.innerHTML = '<span>' + moreLabel + '</span> <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>';
                     } else {
-                        btn.innerHTML = '<span>Show Fewer Categories</span> <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
+                        btn.innerHTML = '<span>' + fewerLabel + '</span> <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
                     }
                 });
             }
@@ -214,19 +219,19 @@
     </section>
     @endif
     @if($publicPageEnabled['dealers'] ?? true)
-    <section class="ref-dealer-network-banner" aria-label="Authorized Dealer Network">
+    <section class="ref-dealer-network-banner" aria-label="{{ $chrome('dealer_banner_title') }}">
         <div class="ref-dealer-banner-inner">
             <div class="ref-dealer-banner-info">
                 <div class="ref-dealer-banner-icon" aria-hidden="true">
                     <i class="fa-solid fa-map-location-dot"></i>
                 </div>
                 <div>
-                    <h3>{{ $siteCustomization['dealer_banner_title'] ?? 'Authorized Dealer Network' }}</h3>
-                    <p>{{ $siteCustomization['dealer_banner_subtitle'] ?? 'Connect with an authorized local dealer for product information and purchase enquiries.' }}</p>
+                    <h3>{{ $chrome('dealer_banner_title', $siteCustomization['dealer_banner_title'] ?? null) }}</h3>
+                    <p>{{ $chrome('dealer_banner_subtitle', $siteCustomization['dealer_banner_subtitle'] ?? null) }}</p>
                 </div>
             </div>
             <a href="/dealers" class="ref-dealer-banner-btn">
-                <span>{{ $siteCustomization['dealer_banner_btn_text'] ?? 'Find Nearest Dealer' }}</span>
+                <span>{{ $chrome('find_nearest_dealer', $siteCustomization['dealer_banner_btn_text'] ?? null) }}</span>
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             </a>
         </div>
@@ -238,16 +243,16 @@
         $viewAllLink = \App\Support\SiteCustomization::publicHref(!empty($siteCustomization['featured_products_view_all_link']) ? $siteCustomization['featured_products_view_all_link'] : '/products') ?? '/';
     @endphp
     @if($featuredSectionEnabled)
-    <section id="featured-products" class="ref-featured-products" aria-label="Featured Products">
+    <section id="featured-products" class="ref-featured-products" aria-label="{{ $chrome('featured_products_title') }}">
         <div class="ref-section-title ref-section-title-flex">
             <div>
                 @if(!empty($siteCustomization['featured_products_badge']))
-                    <span class="ref-featured-badge"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ $siteCustomization['featured_products_badge'] }}</span>
+                    <span class="ref-featured-badge"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ $chrome('featured_products_badge', $siteCustomization['featured_products_badge'] ?? null) }}</span>
                 @endif
-                <h2>{{ $siteCustomization['featured_products_title'] ?? 'Featured Products' }}</h2>
-                <p>{{ $siteCustomization['public_products_subtitle'] ?? 'Discover our product range and connect with an authorized dealer.' }}</p>
+                <h2>{{ $chrome('featured_products_title', $siteCustomization['featured_products_title'] ?? null) }}</h2>
+                <p>{{ $chrome('featured_products_subtitle', $siteCustomization['public_products_subtitle'] ?? null) }}</p>
             </div>
-            <a href="{{ $viewAllLink }}" class="ref-view-all-link">{{ $siteCustomization['featured_products_view_all'] ?? 'View All Products' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <a href="{{ $viewAllLink }}" class="ref-view-all-link">{{ $chrome('view_all_products', $siteCustomization['featured_products_view_all'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </div>
 
         @if($tabsEnabled && !empty($featuredCategoryTabs) && count($featuredCategoryTabs) > 1)
@@ -266,15 +271,15 @@
                 @include('reference.product-card', compact('item'))
             @empty
                 <div class="ref-empty" style="grid-column: 1 / -1;">
-                    <h2>{{ $siteCustomization['products_empty_title'] ?? 'Our collection is being prepared.' }}</h2>
-                    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Us</a>@endif
+                    <h2>{{ $chrome('products_empty_title', $siteCustomization['products_empty_title'] ?? null) }}</h2>
+                    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_us') }}</a>@endif
                 </div>
             @endforelse
         </div>
 
         <div class="ref-tab-empty" id="refTabEmpty" style="display: none;">
             <i class="fa-solid fa-box-open" style="font-size: 36px; color: #94a3b8; margin-bottom: 12px;"></i>
-            <p style="color: #64748b; font-size: 14px; margin: 0;">No products found in this category.</p>
+            <p style="color: #64748b; font-size: 14px; margin: 0;">{{ __('site.no_products_in_category') }}</p>
         </div>
     </section>
     @endif

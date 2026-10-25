@@ -5,8 +5,10 @@
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
     $stockLabel = ! $inStock
-        ? ($siteCustomization['product_out_of_stock_label'] ?? 'Awaiting Stock')
-        : ($stockStatus === 'low_stock' ? 'Low Stock' : ($siteCustomization['product_in_stock_label'] ?? 'In Stock'));
+        ? \App\Support\SiteChrome::text('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
+        : ($stockStatus === 'low_stock'
+            ? __('site.low_stock')
+            : \App\Support\SiteChrome::text('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
     $mrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($item['mrp'] ?? '0')));
     $displayMrp = number_format($mrp, $mrp === floor($mrp) ? 0 : 2);
 @endphp
@@ -25,11 +27,11 @@
             @if(!empty($item['image_path']))
                 <img src="{{ $imageSrc }}" alt="{{ $item['name'] }}" loading="lazy">
             @else
-                <div class="ref-no-image" aria-hidden="true"><i class="fa-solid fa-leaf"></i><span>Photo coming soon</span></div>
+                <div class="ref-no-image" aria-hidden="true"><i class="fa-solid fa-leaf"></i><span>{{ __('site.photo_coming_soon') }}</span></div>
             @endif
         </a>
-        <button type="button" class="ref-quick-view-btn" data-quick-view="{{ $item['id'] }}" aria-label="Preview {{ $item['name'] }}">
-            <i class="fa-solid fa-eye" aria-hidden="true"></i> Product Preview
+        <button type="button" class="ref-quick-view-btn" data-quick-view="{{ $item['id'] }}" aria-label="{{ __('site.product_preview') }} {{ $item['name'] }}">
+            <i class="fa-solid fa-eye" aria-hidden="true"></i> {{ __('site.product_preview') }}
         </button>
     </div>
     <div class="ref-product-info">
@@ -38,7 +40,7 @@
         <span class="ref-stock-pill {{ ! $inStock ? 'out-of-stock' : ($stockStatus === 'low_stock' ? 'low-stock' : 'in-stock') }}">
             <span class="ref-stock-dot"></span> {{ $stockLabel }}
         </span>
-        <div class="ref-catalog-mrp"><span>MRP</span><strong>{{ $displayMrp }} BDT</strong></div>
-        <a class="ref-product-details-link" href="{{ $item['url'] }}">View Product Details <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <div class="ref-catalog-mrp"><span>{{ __('site.mrp') }}</span><strong>{{ $displayMrp }} BDT</strong></div>
+        <a class="ref-product-details-link" href="{{ $item['url'] }}">{{ __('site.view_product_details') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
     </div>
 </article>

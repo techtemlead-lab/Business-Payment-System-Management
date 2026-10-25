@@ -7,10 +7,10 @@ export function DealerHeader(){
     const translate = useT();
     const publicBase = String(page.publicBase ?? '');
     const customize = page.siteCustomization ?? {};
-    const offersTitle = customize.header_offers_title || 'Offers';
-    const offersSubtitle = customize.header_offers_subtitle || 'Latest Offers';
-    const networkTitle = customize.header_projects_title || 'Dealers';
-    const networkSubtitle = customize.header_projects_subtitle || 'Dealer Network';
+    const offersTitle = customize.header_offers_title || translate('portal', 'header_offers');
+    const offersSubtitle = customize.header_offers_subtitle || translate('portal', 'header_offers_sub');
+    const networkTitle = customize.header_projects_title || translate('portal', 'header_network');
+    const networkSubtitle = customize.header_projects_subtitle || translate('portal', 'header_network_sub');
 
     return <>
         <div className="portal-company-bar">MADINA NATURAL HEALTH CARE</div>

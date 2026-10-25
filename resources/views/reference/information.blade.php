@@ -1,15 +1,16 @@
 @php
+    $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
     $pageTitles = [
-        'dealers' => $siteCustomization['directory_title'] ?? 'Dealer Directory',
-        'about' => $siteCustomization['about_hero_title'] ?? 'About Us',
-        'contact' => $siteCustomization['contact_title'] ?? 'Contact Us',
-        'partnership' => $siteCustomization['partnership_hero_title'] ?? 'Become a Partner',
-        'services' => $siteCustomization['services_hero_title'] ?? 'Our Services',
-        'quality' => $siteCustomization['quality_hero_title'] ?? 'Quality Promise',
-        'faq' => $siteCustomization['faq_hero_title'] ?? 'FAQ',
-        'privacy' => $siteCustomization['privacy_hero_title'] ?? 'Privacy Policy',
-        'terms' => $siteCustomization['terms_hero_title'] ?? 'Terms of Use',
-        'notice' => 'Company Notice',
+        'dealers' => $chrome('dealer_directory', $siteCustomization['directory_title'] ?? null),
+        'about' => $chrome('about', $siteCustomization['about_hero_title'] ?? null),
+        'contact' => $chrome('contact_us', $siteCustomization['contact_title'] ?? null),
+        'partnership' => $chrome('become_a_partner', $siteCustomization['partnership_hero_title'] ?? null),
+        'services' => $chrome('our_services', $siteCustomization['services_hero_title'] ?? null),
+        'quality' => $chrome('quality_promise', $siteCustomization['quality_hero_title'] ?? null),
+        'faq' => $chrome('faq', $siteCustomization['faq_hero_title'] ?? null),
+        'privacy' => $chrome('privacy_policy', $siteCustomization['privacy_hero_title'] ?? null),
+        'terms' => $chrome('terms_of_use', $siteCustomization['terms_hero_title'] ?? null),
+        'notice' => $chrome('company_notice'),
         'circular-training' => 'Training Circular',
         'circular-price' => 'Price Circular',
         'circular-meeting' => 'Meeting Circular',
@@ -305,8 +306,8 @@
     </div>
 </section>
 <section id="partner-apply" class="ref-content-card" style="margin-top:24px;">
-    <h2>Submit a partnership application</h2>
-    <p>Tell us about your proposed dealership or sub-dealership. Applications are reviewed by company staff before any account is created.</p>
+    <h2>{{ __('site.partnership_form_title') }}</h2>
+    <p>{{ __('site.partnership_form_hint') }}</p>
     @if(session('success'))
         <p class="ref-flash-success" role="status">{{ session('success') }}</p>
     @endif
@@ -320,21 +321,21 @@
     <form method="post" action="/partnership/apply" class="ref-partner-apply-form" style="display:grid;gap:14px;margin-top:16px;">
         @csrf
         <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
-        <label>Full name<input name="name" value="{{ old('name') }}" required maxlength="150"></label>
-        <label>Email<input type="email" name="email" value="{{ old('email') }}" required maxlength="254"></label>
-        <label>Mobile<input name="phone" value="{{ old('phone') }}" required maxlength="30"></label>
-        <label>Partnership type
+        <label>{{ __('site.full_name') }}<input name="name" value="{{ old('name') }}" required maxlength="150"></label>
+        <label>{{ __('site.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="254"></label>
+        <label>{{ __('site.mobile') }}<input name="phone" value="{{ old('phone') }}" required maxlength="30"></label>
+        <label>{{ __('site.partnership_type') }}
             <select name="role" required>
-                <option value="dealer" @selected(old('role')==='dealer')>Dealer</option>
-                <option value="sub_dealer" @selected(old('role', 'sub_dealer')==='sub_dealer')>Sub-dealer</option>
+                <option value="dealer" @selected(old('role')==='dealer')>{{ __('site.role_dealer') }}</option>
+                <option value="sub_dealer" @selected(old('role', 'sub_dealer')==='sub_dealer')>{{ __('site.role_sub_dealer') }}</option>
             </select>
         </label>
-        <label>Division<input name="division" value="{{ old('division') }}" required maxlength="80"></label>
-        <label>District<input name="district" value="{{ old('district') }}" required maxlength="80"></label>
-        <label>Upazila (optional)<input name="upazila" value="{{ old('upazila') }}" maxlength="150"></label>
-        <label>Sponsor refer / dealer code (optional)<input name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off"></label>
-        <label>Message (optional)<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
-        <button type="submit" class="ref-primary-button">Submit application</button>
+        <label>{{ __('site.division') }}<input name="division" value="{{ old('division') }}" required maxlength="80"></label>
+        <label>{{ __('site.district') }}<input name="district" value="{{ old('district') }}" required maxlength="80"></label>
+        <label>{{ __('site.upazila_optional') }}<input name="upazila" value="{{ old('upazila') }}" maxlength="150"></label>
+        <label>{{ __('site.sponsor_code_optional') }}<input name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off"></label>
+        <label>{{ __('site.message_optional') }}<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
+        <button type="submit" class="ref-primary-button">{{ __('site.submit_application') }}</button>
     </form>
 </section>
 @endif
@@ -409,7 +410,13 @@
 <article class="ref-content-card ref-about-hero">
     <h1>{{ $content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page))) }}</h1>
     @unless(filled($content->body ?? null))
-        <div class="ref-content-prose">{{ $siteCustomization[$page.'_hero_lead'] ?? (in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true) ? 'No published notice is available yet. Check back after company staff publish an update.' : '') }}</div>
+        <div class="ref-content-prose">
+            @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
+                {{ app()->getLocale() === 'bn' || blank($siteCustomization[$page.'_hero_lead'] ?? null) ? __('site.notice_empty') : $siteCustomization[$page.'_hero_lead'] }}
+            @else
+                {{ $siteCustomization[$page.'_hero_lead'] ?? '' }}
+            @endif
+        </div>
     @endunless
 </article>
 @if(filled($content->body ?? null) || in_array($page, ['privacy', 'terms'], true))
@@ -418,14 +425,14 @@
 </section>
 @endif
 <div class="ref-information-links">
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Head Office</a>@endif
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_head_office', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
     @if(in_array($page, ['privacy', 'terms'], true))
         @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
         @if($publicPageEnabled[$altLegal] ?? true)
-        <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? 'Terms of Use' : 'Privacy Policy' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? __('site.terms_of_use') : __('site.privacy_policy') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         @endif
     @elseif($publicPageEnabled['partnership'] ?? true)
-        <a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
     @endif
 </div>
 @endif
