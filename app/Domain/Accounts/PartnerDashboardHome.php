@@ -23,7 +23,7 @@ final class PartnerDashboardHome
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
      *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
      *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
-     *   referral: array{code: string, url: string, qr_url: string, hint: string}|null
+     *   referral: array{code: string, url: string, qr_url: string}|null
      * }
      */
     public function for(User $user): array
@@ -89,7 +89,6 @@ final class PartnerDashboardHome
                 'code' => $user->refer_code,
                 'url' => PortalHost::url('public', '/join/'.$user->refer_code),
                 'qr_url' => '/referral-qr.svg',
-                'hint' => 'Share this link so new partners apply under your referral code.',
             ] : null,
         ];
     }
