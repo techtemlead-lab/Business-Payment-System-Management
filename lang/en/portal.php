@@ -2477,6 +2477,8 @@ return [
     'notice_order_submitted_body' => ':number is awaiting review.',
     'notice_order_decision_title' => 'Order :status',
     'notice_order_decision_body' => ':number: :reason',
+    'notice_payment_claimed_title' => 'Payment claim submitted',
+    'notice_payment_claimed_body' => ':number: :amount via :channel awaits verification.',
     'notice_payment_reviewed_title' => 'Payment reviewed',
     'notice_payment_reviewed_body' => ':number: payment :outcome.',
     'notice_shipment_dispatched_title' => 'Shipment dispatched',

@@ -66,7 +66,8 @@ class OrderService
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
-            if (! empty($data['reference'])) {
+            $claimedWithOrder = ! empty($data['reference']);
+            if ($claimedWithOrder) {
                 $this->insertClaim($order, $data);
             }
             $this->event($order, $submittedBy ?? $user, 'order.submitted');
@@ -76,6 +77,18 @@ class OrderService
             $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
                 'number' => $order->number,
             ]);
+            if ($claimedWithOrder) {
+                $this->partnerNotice($user->id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
+                    'number' => $order->number,
+                    'amount' => (string) $data['amount'],
+                    'channel' => (string) $data['channel'],
+                ]);
+                $this->partnerSms($user->id, 'payment.claimed', 'sms.payment_claimed', [
+                    'number' => $order->number,
+                    'amount' => (string) $data['amount'],
+                    'channel' => (string) $data['channel'],
+                ]);
+            }
 
             return $order->refresh();
         }, 3);
@@ -97,6 +110,16 @@ class OrderService
             }
             $id = $this->insertClaim($locked, $data);
             $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
+            $this->partnerNotice($locked->user_id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
+                'number' => $locked->number,
+                'amount' => (string) $data['amount'],
+                'channel' => (string) $data['channel'],
+            ]);
+            $this->partnerSms($locked->user_id, 'payment.claimed', 'sms.payment_claimed', [
+                'number' => $locked->number,
+                'amount' => (string) $data['amount'],
+                'channel' => (string) $data['channel'],
+            ]);
         }, 3);
     }
 

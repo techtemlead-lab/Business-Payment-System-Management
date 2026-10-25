@@ -125,7 +125,7 @@ class PartnerEventSmsTest extends TestCase
 
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
         $this->assertSame(
-            ['order.submitted', 'payment.verified', 'order.approved', 'order.dispatched', 'shipment.delivered'],
+            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.approved', 'order.dispatched', 'shipment.delivered'],
             $events,
         );
 

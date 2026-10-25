@@ -12,6 +12,7 @@ return [
     'commission_settled' => 'Madina: BDT :amount credited for :kind (:month). Check your earnings.',
     'order_submitted' => 'Madina: order :number was submitted and awaits review.',
     'order_decision' => 'Madina: order :number is now :status. :reason',
+    'payment_claimed' => 'Madina: payment claim for order :number (:amount via :channel) was submitted for review.',
     'payment_reviewed' => 'Madina: payment for order :number was :outcome.',
     'shipment_dispatched' => 'Madina: order :number shipped via :courier. Tracking: :tracking.',
     'delivery_confirmed' => 'Madina: order :number delivery was confirmed.',

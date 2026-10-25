@@ -12,6 +12,7 @@ return [
     'commission_settled' => 'মদিনা: :kind (:month) এর জন্য BDT :amount জমা হয়েছে। আপনার আয় দেখুন।',
     'order_submitted' => 'মদিনা: অর্ডার :number জমা হয়েছে এবং পর্যালোচনার অপেক্ষায়।',
     'order_decision' => 'মদিনা: অর্ডার :number এখন :status। :reason',
+    'payment_claimed' => 'মদিনা: অর্ডার :number এর পেমেন্ট দাবি (:channel দিয়ে :amount) পর্যালোচনার জন্য জমা হয়েছে।',
     'payment_reviewed' => 'মদিনা: অর্ডার :number এর পেমেন্ট :outcome হয়েছে।',
     'shipment_dispatched' => 'মদিনা: অর্ডার :number :courier দিয়ে পাঠানো হয়েছে। ট্র্যাকিং: :tracking।',
     'delivery_confirmed' => 'মদিনা: অর্ডার :number ডেলিভারি নিশ্চিত হয়েছে।',
