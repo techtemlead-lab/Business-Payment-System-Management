@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Domain\Finance\ImportWorkbook;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use OpenSpout\Reader\XLSX\Reader;
 use Tests\TestCase;
 
 class ImportWorkbookLocaleTest extends TestCase
@@ -33,5 +35,38 @@ class ImportWorkbookLocaleTest extends TestCase
             __('portal.err_wb_partner_missing', [], 'bn'),
             $rows[0]['errors'] ?? [],
         );
+    }
+
+    public function test_import_template_instructions_follow_staff_bangla_locale(): void
+    {
+        $staff = User::factory()->staff()->create(['locale' => 'bn']);
+        $path = tempnam(sys_get_temp_dir(), 'madina-tpl-');
+
+        try {
+            $response = $this->actingAs($staff)->onPortal('manage')
+                ->get('/commands/operations/imports/templates/partners');
+            $response->assertOk()
+                ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            file_put_contents($path, $response->streamedContent());
+
+            $reader = new Reader;
+            $reader->open($path);
+            $instructionRows = [];
+            foreach ($reader->getSheetIterator() as $sheet) {
+                if ($sheet->getName() !== __('portal.import_tpl_sheet_instructions', [], 'bn')) {
+                    continue;
+                }
+                foreach ($sheet->getRowIterator() as $row) {
+                    $instructionRows[] = (string) ($row->toArray()[0] ?? '');
+                }
+            }
+            $reader->close();
+
+            $this->assertContains(__('portal.import_tpl_title', [], 'bn'), $instructionRows);
+            $this->assertContains(__('portal.import_tpl_no_overwrite', [], 'bn'), $instructionRows);
+            $this->assertNotContains(__('portal.import_tpl_title', [], 'en'), $instructionRows);
+        } finally {
+            @unlink($path);
+        }
     }
 }

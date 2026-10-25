@@ -89,25 +89,24 @@ class DataImportController extends Controller
             try {
                 $writer->getCurrentSheet()->setName('Data');
                 $writer->addRow(Row::fromValuesWithStyle(ImportWorkbook::Columns[$type], (new Style)->withFontBold(true)->withFontColor('FFFFFF')->withBackgroundColor('153D30')));
-                $writer->addNewSheetAndMakeItCurrent()->setName('Instructions');
-                $notes = [
-                    'Madina Natural Health Care | Excel data import',
-                    'Fill the Data worksheet. Keep every column name unchanged; columns may be reordered.',
-                    'Maximum: 5,000 rows / 10 MB. Values only: formulas, macros and external links are not accepted.',
-                    'Existing records are never overwritten. Correct errors in Excel and upload a new preview.',
-                    'Keep phone numbers, partner codes, references and dates as Text. Dates: YYYY-MM-DD. Currency: BDT.',
-                    'Import partner accounts first, then products and opening balances. Import sponsors before their referrals.',
-                    'Partner role: dealer or sub_dealer. Email and phone must be unique. No passwords are imported.',
-                    'Imported partners require a password setup invitation through Accounts. They are hidden from the public directory.',
-                    'Products are imported as unpublished drafts with an audited opening stock movement.',
-                    'Historical order total/paid describes already delivered goods and collections; outstanding dues equal total minus paid.',
-                    'Historical orders never generate new commissions or stock movements. Enter zero for amounts that do not apply.',
-                    'Opening balances require a separate Finance reviewer and are locked after opening verification or financial activation.',
-                    'Opening available/held commission is a brought-forward balance, not a new earning.',
-                    'Starting from zero requires no import. Import only the approved records you want to carry forward.',
-                ];
-                foreach ($notes as $note) {
-                    $writer->addRow(new Row([new StringCell($note)]));
+                $writer->addNewSheetAndMakeItCurrent()->setName(__('portal.import_tpl_sheet_instructions'));
+                foreach ([
+                    'import_tpl_title',
+                    'import_tpl_fill_data',
+                    'import_tpl_limits',
+                    'import_tpl_no_overwrite',
+                    'import_tpl_text_formats',
+                    'import_tpl_order',
+                    'import_tpl_partner_role',
+                    'import_tpl_partner_invite',
+                    'import_tpl_products',
+                    'import_tpl_historical_orders',
+                    'import_tpl_no_new_earnings',
+                    'import_tpl_opening_review',
+                    'import_tpl_opening_commission',
+                    'import_tpl_zero_start',
+                ] as $key) {
+                    $writer->addRow(new Row([new StringCell(__('portal.'.$key))]));
                 }
             } finally {
                 $writer->close();
