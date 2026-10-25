@@ -12,7 +12,7 @@ export default function DataImports({ types, batches, preview, openingLocked, te
     const { auth, staffActions } = usePage<any>().props;
     usePoll(10000, { only: ['batches', 'preview'] });
     const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
-    const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: 'Selected finance startup mode from data imports.' });
+    const startupForm = useForm({ mode: startup?.mode ?? (mode === 'zero' ? 'fresh' : 'import'), version: startup?.version ?? 0, reason: translate('portal', 'imp_reason_selected') });
     const upload = useForm<{ type: string; source_reference: string; file: File | null }>({
         type: types[0]?.key ?? '', source_reference: '', file: null,
     });
@@ -28,8 +28,8 @@ export default function DataImports({ types, batches, preview, openingLocked, te
         setMode(next);
         const saved = next === 'zero' ? 'fresh' : 'import';
         startupForm.setData({ mode: saved, version: startup?.version ?? 0, reason: next === 'zero'
-            ? 'Fresh application: no past ledger import; start with administration entry only.'
-            : 'Import path: bring forward Excel partners, products and opening balances.' });
+            ? translate('portal', 'imp_reason_fresh')
+            : translate('portal', 'imp_reason_import') });
         startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
     };
 
