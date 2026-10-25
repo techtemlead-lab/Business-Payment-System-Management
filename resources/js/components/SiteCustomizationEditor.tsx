@@ -829,7 +829,7 @@ function CategoryManager({
                                                         type="button"
                                                         onClick={() => handleMoveUp(idx)}
                                                         disabled={idx === 0}
-                                                        title="Move category up"
+                                                        title={translate('portal', 'sce_move_category_up')}
                                                         style={{
                                                             padding: '3px 6px',
                                                             borderRadius: 4,
@@ -846,7 +846,7 @@ function CategoryManager({
                                                         type="button"
                                                         onClick={() => handleMoveDown(idx)}
                                                         disabled={idx === items.length - 1}
-                                                        title="Move category down"
+                                                        title={translate('portal', 'sce_move_category_down')}
                                                         style={{
                                                             padding: '3px 6px',
                                                             borderRadius: 4,
@@ -1225,8 +1225,8 @@ function ShortcutsManager({
     const handleAdd = () => {
         const newItem: Shortcut = {
             id: `sc-new-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            title: 'New Shortcut',
-            subtitle: 'Shortcut description',
+            title: translate('portal', 'sce_new_shortcut_title'),
+            subtitle: translate('portal', 'sce_new_shortcut_subtitle'),
             icon: 'fa-star',
             link: '/products',
         };
@@ -1452,7 +1452,7 @@ function ShortcutsManager({
                                         type="button"
                                         disabled={idx === 0}
                                         onClick={() => handleMoveUp(idx)}
-                                        title="Move Up"
+                                        title={translate('portal', 'sce_move_up')}
                                         style={{
                                             border: '1px solid #cbd5e1',
                                             background: idx === 0 ? '#f8fafc' : '#fff',
@@ -1469,7 +1469,7 @@ function ShortcutsManager({
                                         type="button"
                                         disabled={idx === shortcuts.length - 1}
                                         onClick={() => handleMoveDown(idx)}
-                                        title="Move Down"
+                                        title={translate('portal', 'sce_move_down')}
                                         style={{
                                             border: '1px solid #cbd5e1',
                                             background: idx === shortcuts.length - 1 ? '#f8fafc' : '#fff',
@@ -2398,7 +2398,7 @@ export function CampaignOffersManager({
                                         type="button"
                                         disabled={idx === 0}
                                         onClick={() => handleMoveUp(idx)}
-                                        title="Move Up"
+                                        title={translate('portal', 'sce_move_up')}
                                         style={{
                                             border: '1px solid #cbd5e1',
                                             background: idx === 0 ? '#f8fafc' : '#fff',
@@ -2415,7 +2415,7 @@ export function CampaignOffersManager({
                                         type="button"
                                         disabled={idx === cards.length - 1}
                                         onClick={() => handleMoveDown(idx)}
-                                        title="Move Down"
+                                        title={translate('portal', 'sce_move_down')}
                                         style={{
                                             border: '1px solid #cbd5e1',
                                             background: idx === cards.length - 1 ? '#f8fafc' : '#fff',
@@ -4062,7 +4062,7 @@ function HeaderNavCategoriesManager({
                                         justifyContent: 'center',
                                         padding: 0
                                     }}
-                                    title="Move left / up"
+                                    title={translate('portal', 'sce_move_left_up')}
                                 >
                                     <ArrowUp size={12} />
                                 </button>
@@ -4083,7 +4083,7 @@ function HeaderNavCategoriesManager({
                                         justifyContent: 'center',
                                         padding: 0
                                     }}
-                                    title="Move right / down"
+                                    title={translate('portal', 'sce_move_right_down')}
                                 >
                                     <ArrowDown size={12} />
                                 </button>
