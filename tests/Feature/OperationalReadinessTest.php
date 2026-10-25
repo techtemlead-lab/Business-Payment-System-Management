@@ -55,6 +55,7 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('login_otp_requires_real_sms_before_go_live', $result['warnings']);
         $this->assertContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertContains('payment_collection_accounts_missing', $result['warnings']);
+        $this->assertContains('payment_payout_accounts_missing', $result['warnings']);
     }
 
     public function test_application_readiness_clears_place_code_warning_when_catalog_is_seeded(): void
@@ -74,7 +75,7 @@ class OperationalReadinessTest extends TestCase
         $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
     }
 
-    public function test_application_readiness_clears_payment_account_warning_when_collection_account_exists(): void
+    public function test_application_readiness_clears_payment_account_warnings_when_collection_and_payout_accounts_exist(): void
     {
         config([
             'madina.financial_activation' => false,
@@ -86,25 +87,44 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
         ]);
         $actor = User::factory()->staff('finance')->create();
+        $now = now();
         DB::table('payment_accounts')->insert([
-            'label' => 'Company bKash',
-            'channel' => 'bKash',
-            'holder' => 'Madina Natural Health Care',
-            'account_number' => '01700000000',
-            'details' => null,
-            'collects_payments' => true,
-            'pays_out' => false,
-            'is_active' => true,
-            'version' => 1,
-            'created_by' => $actor->id,
-            'updated_by' => $actor->id,
-            'created_at' => now(),
-            'updated_at' => now(),
+            [
+                'label' => 'Company bKash',
+                'channel' => 'bKash',
+                'holder' => 'Madina Natural Health Care',
+                'account_number' => '01700000000',
+                'details' => null,
+                'collects_payments' => true,
+                'pays_out' => false,
+                'is_active' => true,
+                'version' => 1,
+                'created_by' => $actor->id,
+                'updated_by' => $actor->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'label' => 'Company Bank Payout',
+                'channel' => 'Bank',
+                'holder' => 'Madina Natural Health Care',
+                'account_number' => '1200000000',
+                'details' => null,
+                'collects_payments' => false,
+                'pays_out' => true,
+                'is_active' => true,
+                'version' => 1,
+                'created_by' => $actor->id,
+                'updated_by' => $actor->id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
         ]);
 
         $result = app(DeploymentReadiness::class)->inspect();
         $this->assertTrue($result['ready']);
         $this->assertNotContains('payment_collection_accounts_missing', $result['warnings']);
+        $this->assertNotContains('payment_payout_accounts_missing', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_smtp_is_local_dev_placeholder(): void

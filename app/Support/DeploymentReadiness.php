@@ -107,6 +107,9 @@ final class DeploymentReadiness
         if ($checks['database'] && ! $this->paymentCollectionAccountsReady()) {
             $warnings[] = 'payment_collection_accounts_missing';
         }
+        if ($checks['database'] && ! $this->paymentPayoutAccountsReady()) {
+            $warnings[] = 'payment_payout_accounts_missing';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),
@@ -141,11 +144,30 @@ final class DeploymentReadiness
      */
     private function paymentCollectionAccountsReady(): bool
     {
+        return $this->paymentAccountsReady(collectsPayments: true, paysOut: false);
+    }
+
+    /**
+     * Withdrawals and reserve payouts need at least one active account that
+     * can pay out before financial go-live.
+     */
+    private function paymentPayoutAccountsReady(): bool
+    {
+        return $this->paymentAccountsReady(collectsPayments: false, paysOut: true);
+    }
+
+    private function paymentAccountsReady(bool $collectsPayments, bool $paysOut): bool
+    {
         try {
-            return DB::table('payment_accounts')
-                ->where('is_active', true)
-                ->where('collects_payments', true)
-                ->exists();
+            $query = DB::table('payment_accounts')->where('is_active', true);
+            if ($collectsPayments) {
+                $query->where('collects_payments', true);
+            }
+            if ($paysOut) {
+                $query->where('pays_out', true);
+            }
+
+            return $query->exists();
         } catch (\Throwable $exception) {
             report($exception);
 
