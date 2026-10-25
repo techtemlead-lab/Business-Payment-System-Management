@@ -160,24 +160,37 @@ class DashboardManagement
 
         if ($user->role === 'dealer') {
             return [
-                'text' => $settings['dealer_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('dealer_announcement', $settings['dealer_announcement'] ?? ''),
                 'type' => $settings['dealer_announcement_type'] ?? 'info',
                 'maintenance' => (bool) ($settings['dealer_maintenance_mode'] ?? false),
             ];
         } elseif ($user->role === 'sub_dealer') {
             return [
-                'text' => $settings['subdealer_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('subdealer_announcement', $settings['subdealer_announcement'] ?? ''),
                 'type' => $settings['subdealer_announcement_type'] ?? 'info',
                 'maintenance' => (bool) ($settings['subdealer_maintenance_mode'] ?? false),
             ];
         } elseif ($user->role === 'employee') {
             return [
-                'text' => $settings['employee_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('employee_announcement', $settings['employee_announcement'] ?? ''),
                 'type' => $settings['employee_announcement_type'] ?? 'info',
                 'maintenance' => false,
             ];
         }
 
         return null;
+    }
+
+    /**
+     * Translate stock default banners with the active locale. Custom CMS copy is returned unchanged.
+     */
+    private static function localizedDefaultAnnouncement(string $key, string $text): string
+    {
+        $default = (string) (self::defaults()[$key] ?? '');
+        if ($text === '' || $text === $default) {
+            return (string) __('portal.'.$key.'_default');
+        }
+
+        return $text;
     }
 }
