@@ -2,6 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { Award, ShieldCheck, TrendingUp, Users, Search, Filter, CheckCircle2, Clock, DollarSign, ChevronRight, Eye } from 'lucide-react';
 import { money, date } from './UI';
 
+interface RankHistoryEntry {
+    rank: string;
+    achieved_at: string;
+}
+
 interface RankRecord {
     id: number;
     user_id: number;
@@ -15,6 +20,7 @@ interface RankRecord {
     lifetime_purchase_total: number;
     monthly_purchase_total: number;
     one_time_incentive_paid: boolean;
+    qualification_history?: RankHistoryEntry[];
 }
 
 interface RankStats {
@@ -97,8 +103,35 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
         });
     }, [ranks, searchQuery, rankFilter]);
 
+    const personalHistory = ranks.length === 1
+        ? (ranks[0].qualification_history?.length
+            ? ranks[0].qualification_history
+            : (ranks[0].achieved_at && ranks[0].current_rank !== 'dealer'
+                ? [{ rank: ranks[0].current_rank, achieved_at: ranks[0].achieved_at }]
+                : []))
+        : [];
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {personalHistory.length > 0 && (
+                <section className="panel" style={{ margin: 0 }}>
+                    <div className="panel-heading">
+                        <div>
+                            <h2 style={{ margin: 0, fontSize: 16 }}>Your rank history</h2>
+                            <p className="muted" style={{ margin: '4px 0 0' }}>Achievements recorded for this partner account.</p>
+                        </div>
+                        <span className="badge">{String(ranks[0].current_rank).toUpperCase()}</span>
+                    </div>
+                    <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {personalHistory.map((entry, index) => (
+                            <li key={`${entry.rank}-${entry.achieved_at}-${index}`} style={{ color: '#0f172a', fontSize: 13 }}>
+                                <b style={{ textTransform: 'uppercase' }}>{entry.rank}</b>
+                                <span style={{ color: '#64748b' }}> · {date(entry.achieved_at)}</span>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
+            )}
             {/* Top Stat Summary Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>

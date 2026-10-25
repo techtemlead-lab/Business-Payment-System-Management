@@ -551,6 +551,14 @@ class WorkspaceController extends Controller
                     'lifetime_purchase_total' => (float) $r->lifetime_purchase_total,
                     'monthly_purchase_total' => (float) $r->monthly_purchase_total,
                     'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                    'qualification_history' => collect($r->qualification_history ?? [])
+                        ->filter(fn ($entry) => is_array($entry) && isset($entry['rank'], $entry['achieved_at']))
+                        ->map(fn ($entry) => [
+                            'rank' => (string) $entry['rank'],
+                            'achieved_at' => (string) $entry['achieved_at'],
+                        ])
+                        ->values()
+                        ->all(),
                 ]);
             $data['stats'] = [];
             foreach (['dealer', 'mo', 'am', 'sm', 'me'] as $code) {

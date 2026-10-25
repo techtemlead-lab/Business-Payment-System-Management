@@ -9,6 +9,7 @@ use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -76,23 +77,65 @@ final class CommissionQualification
             $this->promote($rank, 'mo');
         }
         $ancestors = ReferralTreePath::getUplines($buyer->id, 100);
+        if ($ancestors->isEmpty()) {
+            return;
+        }
+
+        $ancestorIds = $ancestors->pluck('ancestor_id')->map(fn ($id): int => (int) $id)->unique()->values()->all();
+        $existingLeaderIds = DealerRank::query()->whereIn('user_id', $ancestorIds)->pluck('user_id')->map(fn ($id): int => (int) $id)->all();
+        foreach (array_diff($ancestorIds, $existingLeaderIds) as $missingId) {
+            DealerRank::query()->firstOrCreate(['user_id' => $missingId]);
+        }
+        /** @var Collection<int, DealerRank> $leaders */
+        $leaders = DealerRank::query()->whereIn('user_id', $ancestorIds)->get()->keyBy('user_id');
+
+        $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
+        $depth = (int) $parameters['qualification_depth'];
+        $rankCounts = DB::table('referral_tree_paths')
+            ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
+            ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
+            ->whereIn('referral_tree_paths.ancestor_id', $ancestorIds)
+            ->whereBetween('referral_tree_paths.depth', [1, $depth])
+            ->where('users.status', 'active')
+            ->where('users.role', 'dealer')
+            ->groupBy('referral_tree_paths.ancestor_id', 'dealer_ranks.current_rank')
+            ->selectRaw('referral_tree_paths.ancestor_id, dealer_ranks.current_rank, COUNT(*) AS aggregate_count')
+            ->get();
+        /** @var array<int, array<string, int>> $countsByLeader */
+        $countsByLeader = [];
+        foreach ($ancestorIds as $ancestorId) {
+            $countsByLeader[$ancestorId] = array_fill_keys($levels, 0);
+        }
+        foreach ($rankCounts as $row) {
+            $ancestorId = (int) $row->ancestor_id;
+            $currentRank = (string) $row->current_rank;
+            if (! isset($countsByLeader[$ancestorId][$currentRank])) {
+                continue;
+            }
+            $countsByLeader[$ancestorId][$currentRank] = (int) $row->aggregate_count;
+        }
+
         foreach ($ancestors as $path) {
-            $leader = DealerRank::firstOrCreate(['user_id' => $path->ancestor_id]);
+            $leaderId = (int) $path->ancestor_id;
+            $leader = $leaders->get($leaderId);
+            if ($leader === null) {
+                continue;
+            }
             foreach (['am' => 'mo', 'sm' => 'am', 'me' => 'sm'] as $target => $required) {
-                $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
                 if (array_search($leader->current_rank, $levels, true) >= array_search($target, $levels, true)) {
                     continue;
                 }
                 $minimumIndex = array_search($required, $levels, true);
-                $count = DB::table('referral_tree_paths')->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-                    ->join('users', 'users.id', '=', 'dealer_ranks.user_id')->where('ancestor_id', $leader->user_id)
-                    ->whereBetween('depth', [1, (int) $parameters['qualification_depth']])->where('users.status', 'active')
-                    ->where('users.role', 'dealer')->whereIn('current_rank', array_slice($levels, $minimumIndex))->count();
+                $count = 0;
+                foreach (array_slice($levels, $minimumIndex) as $eligibleRank) {
+                    $count += $countsByLeader[$leaderId][$eligibleRank] ?? 0;
+                }
                 if ($count >= (int) $parameters[$target.'_count']) {
                     $this->promote($leader, $target);
+                    $leader->refresh();
                 }
             }
-            $this->refreshMilestones($path->ancestor_id);
+            $this->refreshMilestones($leaderId);
         }
     }
 
