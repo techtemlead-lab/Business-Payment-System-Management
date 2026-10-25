@@ -9,6 +9,7 @@ return [
     'withdrawal_approved' => 'মদিনা: :channel এর মাধ্যমে BDT :amount উত্তোলন অনুমোদিত হয়েছে এবং ম্যানুয়াল পেমেন্টের অপেক্ষায়।',
     'withdrawal_rejected' => 'মদিনা: :channel এর মাধ্যমে BDT :amount উত্তোলন প্রত্যাখ্যান হয়েছে। সংরক্ষিত তহবিল ফেরত দেওয়া হয়েছে।',
     'withdrawal_paid' => 'মদিনা: :channel এর মাধ্যমে BDT :amount পরিশোধ রেকর্ড হয়েছে। রসিদ উত্তোলন ইতিহাসে আছে।',
+    'commission_settled' => 'মদিনা: :kind (:month) এর জন্য BDT :amount জমা হয়েছে। আপনার আয় দেখুন।',
     'err_otp_expired' => 'লগইন কোডের মেয়াদ শেষ। নতুন কোড পেতে আবার সাইন ইন করুন।',
     'err_otp_too_many' => 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার সাইন ইন করুন।',
     'err_otp_incorrect' => 'লগইন কোডটি ভুল।',

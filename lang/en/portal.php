@@ -1902,6 +1902,8 @@ return [
     'err_settle_holds' => 'Commission holds do not reconcile.',
     'notice_settle_title' => 'Commission settlement',
     'notice_settle_body' => ':amount BDT credited for :kind / :month.',
+    'settle_kind_salary' => 'salary',
+    'settle_kind_royalty' => 'royalty',
     'err_wd_minimum' => 'Minimum withdrawal is :amount BDT.',
     'err_wd_clawback' => 'Resolve prior commission clawbacks before requesting another withdrawal.',
     'err_wd_insufficient' => 'Insufficient available earnings.',

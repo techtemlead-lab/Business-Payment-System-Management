@@ -9,6 +9,7 @@ return [
     'withdrawal_approved' => 'Madina: your withdrawal of BDT :amount via :channel was approved and awaits manual payment.',
     'withdrawal_rejected' => 'Madina: your withdrawal of BDT :amount via :channel was rejected. Reserved funds were released.',
     'withdrawal_paid' => 'Madina: BDT :amount via :channel was recorded as paid. Receipt is in your withdrawal history.',
+    'commission_settled' => 'Madina: BDT :amount credited for :kind (:month). Check your earnings.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',

@@ -1902,6 +1902,8 @@ return [
     'err_settle_holds' => 'কমিশন হোল্ড মিলছে না।',
     'notice_settle_title' => 'কমিশন সেটেলমেন্ট',
     'notice_settle_body' => ':kind / :month এর জন্য :amount BDT জমা হয়েছে।',
+    'settle_kind_salary' => 'স্যালারি',
+    'settle_kind_royalty' => 'রয়্যালটি',
     'err_wd_minimum' => 'সর্বনিম্ন উত্তোলন :amount BDT।',
     'err_wd_clawback' => 'আরেকটি উত্তোলনের আগে পূর্ববর্তী কমিশন ক্লব্যাক নিষ্পত্তি করুন।',
     'err_wd_insufficient' => 'পর্যাপ্ত উপলব্ধ আয় নেই।',

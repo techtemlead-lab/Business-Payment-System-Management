@@ -4,6 +4,7 @@ namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\User;
@@ -38,7 +39,8 @@ final class CommissionSettlement
             throw ValidationException::withMessages(['period_month' => __('portal.err_settle_month_open')]);
         }
 
-        return DB::transaction(function () use ($month, $kind, $actorId, $requestKey): array {
+        $replayed = false;
+        $result = DB::transaction(function () use ($month, $kind, $actorId, $requestKey, &$replayed): array {
             CommissionWallet::lock();
             if ($requestKey !== null) {
                 $existing = DB::table('commission_settlement_runs')
@@ -47,6 +49,8 @@ final class CommissionSettlement
                     ->where('request_key', $requestKey)
                     ->first();
                 if ($existing) {
+                    $replayed = true;
+
                     return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
                 }
             }
@@ -163,6 +167,50 @@ final class CommissionSettlement
                 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
             ]);
         }, 3);
+
+        if (! $replayed) {
+            $this->notifySettlementCredits($result, $month, $kind);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function notifySettlementCredits(array $result, string $month, string $kind): void
+    {
+        $rows = $result['distributed'] ?? null;
+        if (! is_array($rows) || $rows === []) {
+            return;
+        }
+
+        $sms = app(PartnerEventSms::class);
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $userId = (int) ($row['user_id'] ?? 0);
+            $amount = (string) ($row['amount'] ?? '0.00');
+            if ($userId <= 0 || Money::cents($amount) <= 0) {
+                continue;
+            }
+            $partner = User::find($userId);
+            if (! $partner) {
+                continue;
+            }
+            $locale = $partner->preferredLocale();
+            $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
+            $sms->send(
+                $partner,
+                'commission.settled',
+                __('sms.commission_settled', [
+                    'amount' => $amount,
+                    'kind' => $kindLabel,
+                    'month' => $month,
+                ], $locale),
+            );
+        }
     }
 
     /**
@@ -279,7 +327,7 @@ final class CommissionSettlement
             __('portal.notice_settle_title', [], $locale),
             __('portal.notice_settle_body', [
                 'amount' => Money::decimal($amount),
-                'kind' => $kind,
+                'kind' => __('portal.settle_kind_'.$kind, [], $locale),
                 'month' => $month,
             ], $locale),
         );
