@@ -290,4 +290,8 @@ return [
     'mobile_navigation' => 'Mobile navigation',
     'navigation' => 'Navigation',
     'partner_workspace' => 'Partner Workspace',
+    'announcement_text' => 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.',
+    'floating_chat_label' => 'CHAT',
+    'customer_support_chat' => 'Customer support chat',
+    'company_support_tools' => 'Company support',
 ];

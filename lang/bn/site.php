@@ -290,4 +290,8 @@ return [
     'mobile_navigation' => 'মোবাইল নেভিগেশন',
     'navigation' => 'নেভিগেশন',
     'partner_workspace' => 'পার্টনার ওয়ার্কস্পেস',
+    'announcement_text' => 'প্রাকৃতিক খাদ্য সম্পূরক, ইউনানি ওষুধ, ব্যক্তিগত যত্ন, কৃষি ও ওয়েলনেস পণ্য এখন পাওয়া যাচ্ছে।',
+    'floating_chat_label' => 'চ্যাট',
+    'customer_support_chat' => 'কাস্টমার সাপোর্ট চ্যাট',
+    'company_support_tools' => 'কোম্পানি সহায়তা',
 ];

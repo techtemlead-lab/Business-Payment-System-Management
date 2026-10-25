@@ -123,7 +123,7 @@
             </div>
         </div>
     </section>
-    <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $siteCustomization['announcement_text'] ?? 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.' }}</span></div></div>
+    <div class="ref-announcement"><i class="fa-solid fa-bullhorn" aria-hidden="true"></i><div><span>{{ $chrome('announcement_text', $siteCustomization['announcement_text'] ?? null) }}</span></div></div>
     @php
         $shortcutsEnabled = filter_var($siteCustomization['shortcuts_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $shortcutsList = \App\Support\SiteCustomization::getShortcuts();
