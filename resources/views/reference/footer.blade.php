@@ -67,7 +67,7 @@
     </section>
     <section>
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
-        <div style="margin-bottom:14px;"><a href="/" aria-label="Madina Natural Health Care home"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=6' }}" alt="Madina Natural Health Care" style="height:56px;width:auto;max-width:200px;background:transparent;padding:0;border-radius:0;box-shadow:none;object-fit:contain;display:inline-block;"></a></div>
+        <div style="margin-bottom:14px;"><a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=6' }}" alt="{{ __('site.company_bar') }}" style="height:56px;width:auto;max-width:200px;background:transparent;padding:0;border-radius:0;box-shadow:none;object-fit:contain;display:inline-block;"></a></div>
         <h3>{{ $chrome('company_intro_title', $siteCustomization['footer_about_title'] ?? null) }}</h3>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
         <div class="ref-socials">
@@ -122,7 +122,7 @@
 <div class="ref-container ref-footer-bottom">
     <span>@if(app()->getLocale() === 'bn' || blank($siteCustomization['copyright_text'] ?? null)){{ __('site.copyright', ['year' => date('Y')]) }}@else{{ $siteCustomization['copyright_text'] }}@endif</span>
     <span>{{ __('site.timezone_currency') }}</span>
-    <nav class="ref-footer-legal" aria-label="Legal">
+    <nav class="ref-footer-legal" aria-label="{{ __('site.legal_nav') }}">
         @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_privacy_url'] ?? '/privacy'))
         <a href="{{ $href }}">{{ $chrome('privacy_policy', $siteCustomization['footer_link_privacy'] ?? null) }}</a>
         @endif

@@ -20,7 +20,7 @@
 @extends('reference.layout')
 @section('title',$pageTitle.' · Madina Natural Health Care')
 @section('content')
-<main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="Breadcrumb"><a href="/" aria-label="Home"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
+<main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
 <article class="ref-content-card ref-about-hero">

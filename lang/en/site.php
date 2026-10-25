@@ -329,4 +329,10 @@ return [
     'shortcut4_subtitle' => 'Support & Inquiries',
     'shortcut5_title' => 'Our Network',
     'shortcut5_subtitle' => 'Dealer Directory',
+    'brand_home' => 'Madina Natural Health Care home',
+    'open_mobile_nav' => 'Open mobile navigation menu',
+    'close_search' => 'Close search',
+    'close_menu' => 'Close menu',
+    'mobile_nav_drawer' => 'Mobile navigation drawer',
+    'legal_nav' => 'Legal',
 ];

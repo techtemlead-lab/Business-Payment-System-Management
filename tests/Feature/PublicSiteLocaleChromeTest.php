@@ -43,9 +43,12 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('মাদিনা পণ্য, কোম্পানি তথ্য', false)
             ->assertSee('আমাদের পণ্য', false)
             ->assertSee('পার্টনার হোন', false)
+            ->assertSee('মোবাইল নেভিগেশন মেনু খুলুন', false)
+            ->assertSee('মাদিনা ন্যাচারাল হেলথ কেয়ার হোম', false)
             ->assertDontSee('Natural food supplements, unani medicine', false)
             ->assertDontSee('Detecting your location...', false)
             ->assertDontSee('Madina products, company information and dealer network.', false)
+            ->assertDontSee('Open mobile navigation menu', false)
             ->assertDontSee('>CHAT<', false);
 
         $this->onPortal('public')->get('/products')

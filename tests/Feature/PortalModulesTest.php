@@ -148,4 +148,27 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
                 ->where('translations.portal.financial_readiness', 'উদ্বোধনী ব্যালেন্স পর্যালোচনা'));
     }
+
+    public function test_manage_and_subdealer_dashboards_expose_bangla_chrome(): void
+    {
+        $staff = User::factory()->create(['role' => 'finance', 'locale' => 'bn']);
+        $this->actingAs($staff)->onPortal('manage')->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('portals/manage/Dashboard')
+                ->where('locale', 'bn')
+                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.nav_module_home', 'হোম')
+                ->where('translations.portal.financial_readiness', 'উদ্বোধনী ব্যালেন্স পর্যালোচনা'));
+
+        $subdealer = User::factory()->create(['role' => 'sub_dealer', 'locale' => 'bn']);
+        $this->actingAs($subdealer)->onPortal('subdealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('portals/subdealer/Dashboard')
+                ->where('locale', 'bn')
+                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
+    }
 }

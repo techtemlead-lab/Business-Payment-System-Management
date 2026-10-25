@@ -18,13 +18,13 @@
 <header class="ref-header">
     <div class="ref-container ref-header-inner">
         <!-- Mobile Hamburger Menu Button -->
-        <button type="button" class="ref-mobile-menu-btn" id="refMobileMenuToggle" aria-label="Open mobile navigation menu">
+        <button type="button" class="ref-mobile-menu-btn" id="refMobileMenuToggle" aria-label="{{ __('site.open_mobile_nav') }}">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
 
         <!-- Logo -->
-        <a href="/" class="ref-logo ref-madina-logo" aria-label="Madina Natural Health Care home">
-            <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" width="500" height="500">
+        <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
+            <img src="/madina-header-logo.png?v=6" alt="{{ __('site.company_bar') }}" width="500" height="500">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -74,7 +74,7 @@
     <div class="ref-mobile-search-inner">
         <div class="ref-mobile-search-top">
             <span class="ref-mobile-search-title">{{ __('site.search_label') }}</span>
-            <button type="button" class="ref-mobile-search-close" id="refMobileSearchClose" aria-label="Close search">
+            <button type="button" class="ref-mobile-search-close" id="refMobileSearchClose" aria-label="{{ __('site.close_search') }}">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         </div>
@@ -91,12 +91,12 @@
 
 <!-- Mobile Off-Canvas Drawer & Overlay -->
 <div id="refMobileMenuOverlay" class="ref-mobile-menu-overlay" aria-hidden="true"></div>
-<aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="Mobile navigation drawer">
+<aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=6" alt="Madina Natural Health Care" class="ref-mobile-drawer-logo-img" onerror="this.src='/madina-header-logo.png?v=6'">
+            <img src="/madina-header-logo-white.png?v=6" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" onerror="this.src='/madina-header-logo.png?v=6'">
         </a>
-        <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="Close menu">
+        <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
     </div>

@@ -329,4 +329,10 @@ return [
     'shortcut4_subtitle' => 'সহায়তা ও জিজ্ঞাসা',
     'shortcut5_title' => 'আমাদের নেটওয়ার্ক',
     'shortcut5_subtitle' => 'ডিলার ডিরেক্টরি',
+    'brand_home' => 'মাদিনা ন্যাচারাল হেলথ কেয়ার হোম',
+    'open_mobile_nav' => 'মোবাইল নেভিগেশন মেনু খুলুন',
+    'close_search' => 'অনুসন্ধান বন্ধ করুন',
+    'close_menu' => 'মেনু বন্ধ করুন',
+    'mobile_nav_drawer' => 'মোবাইল নেভিগেশন ড্রয়ার',
+    'legal_nav' => 'আইনি',
 ];
