@@ -68,4 +68,20 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.sd_salary_title', 'নিশ্চিত সাব-ডিলার মাসিক স্যালারি · ৩%')
                 ->where('translations.portal.sd_policy_rule', 'নীতি নিয়ম:'));
     }
+
+    public function test_payouts_hub_exposes_bangla_chrome_keys(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/payouts-hub')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'payouts-hub')
+                ->where('translations.portal.pay_heading', 'পার্টনার পেআউট ও ডিসবার্সমেন্ট হাব')
+                ->where('translations.portal.pay_review_title', 'পার্টনার উত্তোলন অনুরোধ পর্যালোচনা')
+                ->where('translations.portal.pay_record_ledger', 'রেকর্ড ও লেজার পোস্ট'));
+    }
 }
