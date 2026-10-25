@@ -102,4 +102,20 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.area_modal_title', 'এরিয়া / টেরিটরি ডিলার অ্যাসাইন')
                 ->where('translations.portal.area_save', 'টেরিটরি অ্যাসাইনমেন্ট সংরক্ষণ'));
     }
+
+    public function test_place_codes_hub_exposes_bangla_chrome_keys(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/place-codes')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'place-codes')
+                ->where('translations.portal.pc_badge', 'প্লেস কোড')
+                ->where('translations.portal.pc_save', 'কোড সংরক্ষণ')
+                ->where('translations.portal.pc_save_changes', 'পরিবর্তন সংরক্ষণ'));
+    }
 }
