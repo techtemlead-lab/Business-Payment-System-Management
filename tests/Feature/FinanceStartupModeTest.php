@@ -122,5 +122,13 @@ class FinanceStartupModeTest extends TestCase
                 ->component('DataImports')
                 ->where('startup.mode', 'import')
                 ->where('startup.label', 'উদ্বোধনী ব্যালেন্স / এক্সেল ইতিহাস ইমপোর্ট'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/operations/financial-readiness')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Operations')
+                ->where('translations.portal.ops_fld_reason', 'কারণ ও অনুমোদনের বিবরণ')
+                ->where('translations.portal.ops_fld_wallet_available', 'যাচাইকৃত উপলব্ধ ওয়ালেট মোট (BDT)')
+                ->where('translations.portal.ops_fld_brand_line', 'মাদিনা ন্যাচারাল হেলথ কেয়ার · BDT · Asia/Dhaka'));
     }
 }
