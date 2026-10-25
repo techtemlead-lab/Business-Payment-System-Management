@@ -80,6 +80,19 @@ class PortalModulesTest extends TestCase
             ->assertSee('স্টাফ সাইন ইন');
     }
 
+    public function test_dealer_login_uses_bangla_auth_ui_when_cms_holds_english_defaults(): void
+    {
+        $this->onPortal('dealer')->from('/login')->post('/locale', ['locale' => 'bn'])->assertRedirect('/login');
+        $this->onPortal('dealer')->get('/login')
+            ->assertOk()
+            ->assertSee('অ্যাকাউন্ট লগইন', false)
+            ->assertSee('স্বাগতম ফিরে এসেছেন', false)
+            ->assertSee('ডিলার অ্যাকাউন্ট দরকার?', false)
+            ->assertSee('কোম্পানির সাথে যোগাযোগ', false)
+            ->assertDontSee('Account Login', false)
+            ->assertDontSee('Need a dealer account?', false);
+    }
+
     public function test_portal_hosts_remain_isolated_by_role(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer']);

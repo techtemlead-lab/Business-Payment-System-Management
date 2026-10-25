@@ -4,13 +4,15 @@
         'otp' => __('auth_ui.otp_title'),
         'forgot' => __('auth_ui.forgot_password'),
         'reset' => __('auth_ui.reset_password'),
-        default => (($portal ?? 'dealer') === 'subdealer' ? __('auth_ui.subdealer_sign_in') : ($siteCustomization['auth_login_title'] ?? __('auth_ui.account_login'))),
+        default => (($portal ?? 'dealer') === 'subdealer'
+            ? __('auth_ui.subdealer_sign_in')
+            : \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_login_title', 'auth_ui.account_login')),
     };
     $subtitle = match ($mode) {
         'otp' => __('auth_ui.otp_subtitle'),
         'forgot' => __('auth_ui.forgot_help'),
         'reset' => __('auth_ui.reset_help'),
-        default => ($siteCustomization['auth_login_subtitle'] ?? __('auth_ui.welcome_back')),
+        default => \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_login_subtitle', 'auth_ui.welcome_back'),
     };
     $action = match ($mode) {
         'otp' => '/login/otp',
@@ -71,8 +73,8 @@
         </form>
         <div class="ref-auth-bottom">
             @if($mode === 'login')
-                {{ $siteCustomization['auth_dealer_help_text'] ?? __('auth_ui.dealer_help') }}
-                <a href="{{ \App\Support\PortalHost::url('public', '/contact') }}">{{ $siteCustomization['auth_dealer_contact_text'] ?? __('auth_ui.contact_company') }}</a>
+                {{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_help_text', 'auth_ui.dealer_help') }}
+                <a href="{{ \App\Support\PortalHost::url('public', '/contact') }}">{{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_contact_text', 'auth_ui.contact_company') }}</a>
                 <span class="ref-auth-sep" aria-hidden="true"> · </span>
                 <a href="{{ \App\Support\PortalHost::url(($portal ?? 'dealer') === 'subdealer' ? 'dealer' : 'subdealer', '/login') }}">{{ ($portal ?? 'dealer') === 'subdealer' ? __('auth_ui.dealer_sign_in') : __('auth_ui.subdealer_sign_in') }}</a>
             @elseif($mode === 'otp')

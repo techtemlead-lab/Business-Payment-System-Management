@@ -462,6 +462,21 @@ class SiteCustomization
         }
     }
 
+    /**
+     * Prefer translated copy when CMS still holds the English factory default.
+     * Custom CMS text is returned unchanged.
+     */
+    public static function localizedCopy(array $customization, string $key, string $translationKey): string
+    {
+        $value = trim((string) ($customization[$key] ?? ''));
+        $default = trim((string) (self::defaults()[$key] ?? ''));
+        if ($value === '' || $value === $default) {
+            return (string) __($translationKey);
+        }
+
+        return $value;
+    }
+
     public static function all(): array
     {
         $defaults = self::defaults();
