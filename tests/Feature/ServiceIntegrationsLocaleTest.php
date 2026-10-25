@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Identity\BdrisLookup;
+use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Integrations\PaymentGatewayClient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -44,5 +47,45 @@ class ServiceIntegrationsLocaleTest extends TestCase
                 $exception->errors()['base_url'][0] ?? null,
             );
         }
+    }
+
+    public function test_disabled_payment_gateway_lookup_returns_bangla_message(): void
+    {
+        app()->setLocale('bn');
+
+        $result = app(PaymentGatewayClient::class)->lookup('bKash', 'TRX123', '100.00');
+
+        $this->assertFalse($result['checked']);
+        $this->assertSame(__('portal.si_pay_none_enabled', [], 'bn'), $result['message']);
+    }
+
+    public function test_disabled_courier_create_returns_bangla_message(): void
+    {
+        app()->setLocale('bn');
+
+        $result = app(CourierGatewayClient::class)->create('pathao', [
+            'recipient_name' => 'Test',
+            'recipient_phone' => '01710000000',
+            'recipient_address' => 'Dhaka',
+            'amount' => '100',
+            'invoice' => 'INV-1',
+        ]);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame(__('portal.si_courier_disabled', [], 'bn'), $result['message']);
+    }
+
+    public function test_bdris_lookup_returns_bangla_validation_and_disabled_messages(): void
+    {
+        app()->setLocale('bn');
+        $lookup = app(BdrisLookup::class);
+
+        $missing = $lookup->fetch('', '');
+        $this->assertFalse($missing['success']);
+        $this->assertSame(__('portal.acct_bdris_need_fields', [], 'bn'), $missing['message']);
+
+        $disabled = $lookup->fetch('19901234567890123', '1990-01-01');
+        $this->assertFalse($disabled['success']);
+        $this->assertSame(__('portal.acct_bdris_disabled', [], 'bn'), $disabled['message']);
     }
 }

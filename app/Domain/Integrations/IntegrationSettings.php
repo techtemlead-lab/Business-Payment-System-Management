@@ -280,7 +280,7 @@ final class IntegrationSettings
     {
         $existing = DB::table('business_settings')->where('key', $key)->lockForUpdate()->first();
         if ($existing && (int) $existing->version !== $version) {
-            throw ValidationException::withMessages(['version' => 'Integration settings changed. Reload before saving.']);
+            throw ValidationException::withMessages(['version' => __('portal.si_err_stale_version')]);
         }
         if ($existing) {
             $updated = DB::table('business_settings')->where('key', $key)->where('version', $version)->update([
@@ -290,7 +290,7 @@ final class IntegrationSettings
                 'updated_at' => now(),
             ]);
             if ($updated !== 1) {
-                throw ValidationException::withMessages(['version' => 'Integration settings changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.si_err_stale_version')]);
             }
 
             return;

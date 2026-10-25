@@ -16,7 +16,7 @@ final class CourierGatewayClient
     public function create(string $provider, array $shipment): array
     {
         if (! $this->settings->isEnabled('couriers', $provider)) {
-            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => 'Courier provider is disabled.', 'raw' => null];
+            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_disabled'), 'raw' => null];
         }
         $config = $this->settings->provider('couriers', $provider);
 
@@ -27,12 +27,12 @@ final class CourierGatewayClient
                 'redx' => $this->redxCreate($config, $shipment),
                 'paperfly' => $this->paperflyCreate($config, $shipment),
                 'ecourier' => $this->ecourierCreate($config, $shipment),
-                default => ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => 'Unknown courier provider.', 'raw' => null],
+                default => ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_unknown'), 'raw' => null],
             };
         } catch (\Throwable $exception) {
             Log::warning('courier.create_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
 
-            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => 'Courier API request failed: '.$exception->getMessage(), 'raw' => null];
+            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_request_failed', ['error' => $exception->getMessage()]), 'raw' => null];
         }
     }
 
@@ -42,7 +42,7 @@ final class CourierGatewayClient
     public function track(string $provider, string $tracking): array
     {
         if (! $this->settings->isEnabled('couriers', $provider)) {
-            return ['success' => false, 'status' => null, 'message' => 'Courier provider is disabled.', 'raw' => null];
+            return ['success' => false, 'status' => null, 'message' => __('portal.si_courier_disabled'), 'raw' => null];
         }
         $config = $this->settings->provider('couriers', $provider);
         $base = rtrim((string) $config['base_url'], '/');
@@ -62,7 +62,7 @@ final class CourierGatewayClient
             return [
                 'success' => $response->successful(),
                 'status' => is_array($payload) ? (string) ($payload['status'] ?? $payload['delivery_status'] ?? $payload['data']['status'] ?? '') : null,
-                'message' => $response->successful() ? 'Tracking retrieved.' : 'Courier tracking lookup failed.',
+                'message' => $response->successful() ? __('portal.si_courier_tracking_ok') : __('portal.si_courier_tracking_failed'),
                 'raw' => is_array($payload) ? $payload : null,
             ];
         } catch (\Throwable $exception) {
@@ -191,7 +191,7 @@ final class CourierGatewayClient
             'tracking' => filled($tracking) ? (string) $tracking : null,
             'consignment_id' => filled($consignment) ? (string) $consignment : null,
             'provider' => $provider,
-            'message' => $ok ? 'Courier consignment created.' : 'Courier API rejected the consignment.',
+            'message' => $ok ? __('portal.si_courier_created') : __('portal.si_courier_rejected'),
             'raw' => $payload,
         ];
     }
