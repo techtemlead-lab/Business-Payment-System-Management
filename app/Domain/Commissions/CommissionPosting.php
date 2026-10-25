@@ -39,7 +39,7 @@ final class CommissionPosting
             $mrp = $order->lines->sum(fn ($line): int => Money::cents($line->mrp) * $line->quantity);
             $cash = Money::cents($order->total);
             if ($mrp <= 0 || $cash * 10000 < $mrp * 3000 + $cash * $rate) {
-                throw ValidationException::withMessages(['items' => 'Purchase prices do not fund the company share and commission schedule. Ask Finance to correct pricing or policy.']);
+                throw ValidationException::withMessages(['items' => __('portal.err_post_price_funding')]);
             }
         }
         $existing = $order->commission_policy_snapshot;
@@ -50,7 +50,7 @@ final class CommissionPosting
         $next = $buyer->sponsor_id;
         while ($next && count($snapshot['uplines']) < 100) {
             if (in_array($next, $seen, true)) {
-                throw ValidationException::withMessages(['sponsor_id' => 'Circular referral chain must be repaired before ordering.']);
+                throw ValidationException::withMessages(['sponsor_id' => __('portal.err_post_circular_referral')]);
             }
             $seen[] = $next;
             $upline = User::findOrFail($next);
@@ -203,7 +203,7 @@ final class CommissionPosting
             $lineCash += Money::cents($line->total);
         }
         if ($mrp <= 0 || $lineCash !== $cash) {
-            throw ValidationException::withMessages(['commissions' => 'Order lines and collected purchase value must reconcile before posting earnings.']);
+            throw ValidationException::withMessages(['commissions' => __('portal.err_post_reconcile')]);
         }
         $company = Percentage::from($snapshot['company_mrp_percent'])->of($mrp, 'half_up');
         $type = $snapshot['account_type'];
@@ -353,7 +353,7 @@ final class CommissionPosting
         $company = $funding['company'];
         $allocated = array_sum(array_column($rows, 'cents'));
         if ($company + $allocated > $cash) {
-            throw ValidationException::withMessages(['commissions' => 'This product price cannot fund the approved company share and commission schedule. Correct pricing or policy before posting.']);
+            throw ValidationException::withMessages(['commissions' => __('portal.err_post_product_funding')]);
         }
 
         return ['rows' => $rows, 'cash' => $cash, 'mrp' => $mrp, 'company' => $company, 'allocated' => $allocated, 'days' => $days, 'funding_decisions' => $funding['decisions']];
@@ -370,21 +370,21 @@ final class CommissionPosting
         $result = [];
         foreach ($requested as $generation => $userId) {
             if (! in_array((int) $generation, [1, 2, 3], true)) {
-                throw ValidationException::withMessages(['replacement' => 'Choose one of the three referral positions.']);
+                throw ValidationException::withMessages(['replacement' => __('portal.err_post_replacement_slot')]);
             }
             $original = isset($uplines[$generation - 1]) ? User::find($uplines[$generation - 1]) : null;
             if (! $original || $original->status === 'active' && in_array($original->role, ['dealer', 'sub_dealer'], true)) {
-                throw ValidationException::withMessages(['replacement' => 'Only an existing inactive referral recipient can be replaced.']);
+                throw ValidationException::withMessages(['replacement' => __('portal.err_post_replacement_inactive')]);
             }
             $replacement = User::whereKey($userId)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->first();
             if (! $replacement || $replacement->id === $buyer->id) {
-                throw ValidationException::withMessages(['replacement' => 'Choose an active dealer or sub-dealer other than the buyer.']);
+                throw ValidationException::withMessages(['replacement' => __('portal.err_post_replacement_partner')]);
             }
             $selected[$generation - 1] = $replacement->id;
             $result[$generation] = ['original_user_id' => $original->id, 'user_id' => $replacement->id, 'authorized_by' => $actor->id, 'authorized_at' => now()->toIso8601String()];
         }
         if (count(array_unique($selected)) !== count($selected)) {
-            throw ValidationException::withMessages(['replacement' => 'A person cannot occupy two referral positions on the same order.']);
+            throw ValidationException::withMessages(['replacement' => __('portal.err_post_replacement_dup')]);
         }
 
         return $result;

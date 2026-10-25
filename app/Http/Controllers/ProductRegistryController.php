@@ -144,12 +144,12 @@ class ProductRegistryController extends Controller
                 $value = Money::cents($price);
                 $retail = Money::cents($mrp);
                 if ($value < intdiv($retail * 50 + 50, 100) || $value > intdiv($retail * 80 + 50, 100)) {
-                    throw ValidationException::withMessages([$field => 'Partner discounts must be between 20% and 50% of MRP.']);
+                    throw ValidationException::withMessages([$field => __('portal.err_prod_discount_range')]);
                 }
             }
         }
         if (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp)))) {
-            throw ValidationException::withMessages(['mrp' => 'Enter positive prices; dealer price cannot exceed MRP.']);
+            throw ValidationException::withMessages(['mrp' => __('portal.err_prod_price_positive')]);
         }
         $source = $d['video_source'] ?? $product?->video_source ?? 'none';
         $id = null;
@@ -158,29 +158,29 @@ class ProductRegistryController extends Controller
         if (array_key_exists('video_source', $d) && $source === 'vimeo') {
             $vimeo = ProductVideo::vimeo($d['vimeo_url'] ?? '');
             if (! $vimeo) {
-                throw ValidationException::withMessages(['vimeo_url' => 'Enter a valid HTTPS Vimeo video link.']);
+                throw ValidationException::withMessages(['vimeo_url' => __('portal.err_prod_vimeo')]);
             }
         }
         if (array_key_exists('video_source', $d) && $source === 'url') {
             $external = ProductVideo::direct($d['external_video_url'] ?? '');
             if (! $external) {
-                throw ValidationException::withMessages(['external_video_url' => 'Use a public HTTPS domain and a direct MP4 or WebM link without embedded credentials.']);
+                throw ValidationException::withMessages(['external_video_url' => __('portal.err_prod_external_video')]);
             }
         }
         if (array_key_exists('video_source', $d) && $source === 'youtube') {
             $id = YouTubeVideo::id($d['youtube_url'] ?? '');
             if (! $id) {
-                throw ValidationException::withMessages(['youtube_url' => 'Enter a valid YouTube watch, share or Shorts URL.']);
+                throw ValidationException::withMessages(['youtube_url' => __('portal.err_prod_youtube')]);
             }
         }
         if ($source === 'upload' && ! $r->hasFile('video') && ! ($product?->video_source === 'upload' && $product?->video_path)) {
-            throw ValidationException::withMessages(['video' => 'Choose an MP4 or WebM video to upload.']);
+            throw ValidationException::withMessages(['video' => __('portal.err_prod_video_file')]);
         }
         if ($r->hasFile('video') && $source !== 'upload') {
-            throw ValidationException::withMessages(['video' => 'Select Upload Video before choosing a file.']);
+            throw ValidationException::withMessages(['video' => __('portal.err_prod_video_mode')]);
         }
         if ($r->boolean('remove_image') && $r->hasFile('image')) {
-            throw ValidationException::withMessages(['image' => 'Choose an image replacement or removal.']);
+            throw ValidationException::withMessages(['image' => __('portal.err_prod_image_action')]);
         }
         $stored = [];
         $old = [];
@@ -189,7 +189,7 @@ class ProductRegistryController extends Controller
                 if ($r->hasFile($field)) {
                     $file = $r->file($field);
                     $extension = match ($file->getMimeType()) {
-                        'image/jpeg' => 'jpg','image/png' => 'png','image/webp' => 'webp','video/mp4' => 'mp4','video/webm' => 'webm',default => throw ValidationException::withMessages([$field => 'Unsupported media format.'])
+                        'image/jpeg' => 'jpg','image/png' => 'png','image/webp' => 'webp','video/mp4' => 'mp4','video/webm' => 'webm',default => throw ValidationException::withMessages([$field => __('portal.err_prod_media_format')])
                     };
                     $path = $file->storeAs('product-media/'.($field === 'image' ? 'images' : 'videos'), Str::uuid().'.'.$extension, 'local');
                     if (! $path) {
@@ -203,7 +203,7 @@ class ProductRegistryController extends Controller
                 $previousStock = (int) ($p->stock ?? 0);
                 $wasAvailable = $p->exists && $p->active && $previousStock > 0 && ! $p->is_stock_paused;
                 if ($product && (string) $p->registry_version !== (string) $d['version']) {
-                    throw ValidationException::withMessages(['version' => 'This product changed. Reload its details before saving.']);
+                    throw ValidationException::withMessages(['version' => __('portal.err_prod_stale')]);
                 }
                 $attributes = collect($d)->only(['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at'])->all();
                 if (! $product && $initialStock > 0) {
