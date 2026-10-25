@@ -873,4 +873,8 @@ return [
     'net_sponsor' => 'Sponsor',
     'net_directs' => 'Directs',
     'net_actions' => 'Actions',
+    'net_no_phone' => 'No phone recorded',
+    'net_joined' => 'Joined',
+    'net_company_placement' => 'Direct Company Placement',
+    'net_inspect_sponsor' => 'Inspect Sponsor ↗',
 ];

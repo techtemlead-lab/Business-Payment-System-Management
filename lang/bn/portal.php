@@ -873,4 +873,8 @@ return [
     'net_sponsor' => 'স্পন্সর',
     'net_directs' => 'সরাসরি',
     'net_actions' => 'অ্যাকশন',
+    'net_no_phone' => 'ফোন রেকর্ড নেই',
+    'net_joined' => 'যোগদান',
+    'net_company_placement' => 'সরাসরি কোম্পানি প্লেসমেন্ট',
+    'net_inspect_sponsor' => 'স্পন্সর দেখুন ↗',
 ];

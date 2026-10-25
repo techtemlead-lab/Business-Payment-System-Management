@@ -248,7 +248,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
 
                 <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#047857', fontSize: 12, fontWeight: 600 }}>
-                        <Award size={16} /> Marketing Officers (MO)
+                        <Award size={16} /> {translate('portal','net_rank_mo')}
                     </div>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#006837', marginTop: 4 }}>
                         {stats.moCount}
@@ -322,7 +322,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             }}
                         >
                             <option value="all">{translate('portal','net_all_ranks')}</option>
-                            <option value="dealer">Dealer</option>
+                            <option value="dealer">{translate('portal','acct_role_dealer')}</option>
                             <option value="mo">{translate('portal','net_rank_mo')}</option>
                             <option value="am">{translate('portal','net_rank_am')}</option>
                             <option value="sm">{translate('portal','net_rank_sm')}</option>
@@ -469,13 +469,13 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                                    <th style={{ padding: '12px 16px' }}>Dealer</th>
-                                    <th style={{ padding: '12px 16px' }}>Code</th>
-                                    <th style={{ padding: '12px 16px' }}>Rank</th>
-                                    <th style={{ padding: '12px 16px' }}>Sponsor</th>
-                                    <th style={{ padding: '12px 16px' }}>Lifetime Purchases</th>
-                                    <th style={{ padding: '12px 16px' }}>Directs</th>
-                                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','acct_role_dealer')}</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_code')}</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_rank')}</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_sponsor')}</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_lifetime_purchases')}</th>
+                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_directs')}</th>
+                                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal','net_actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -597,7 +597,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     {activeDealer.name}
                                 </h3>
                                 <div style={{ fontSize: 12, color: '#64748b' }}>
-                                    Code: <b>{activeDealer.dealer_code || '—'}</b>
+                                    {translate('portal','net_code')}: <b>{activeDealer.dealer_code || '—'}</b>
                                 </div>
                             </div>
                             <button
@@ -621,7 +621,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
                                 <Phone size={14} style={{ color: '#94a3b8' }} />
-                                <span>{activeDealer.phone || 'No phone recorded'}</span>
+                                <span>{activeDealer.phone || translate('portal','net_no_phone')}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
                                 <MapPin size={14} style={{ color: '#94a3b8' }} />
@@ -629,11 +629,11 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
                                 <Calendar size={14} style={{ color: '#94a3b8' }} />
-                                <span>Joined: {date(activeDealer.created_at)}</span>
+                                <span>{translate('portal','net_joined')}: {date(activeDealer.created_at)}</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
                                 <DollarSign size={14} style={{ color: '#94a3b8' }} />
-                                <span>Lifetime Purchases: <b style={{ color: '#006837' }}>{money(activeDealer.lifetime_purchases)}</b></span>
+                                <span>{translate('portal','net_lifetime_purchases')}: <b style={{ color: '#006837' }}>{money(activeDealer.lifetime_purchases)}</b></span>
                             </div>
                         </div>
 
@@ -664,7 +664,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <div style={{ marginTop: 14, background: '#f8fafc', padding: 12, borderRadius: 8 }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal','net_direct_sponsor')}</div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginTop: 2 }}>
-                                {activeDealer.sponsor_name || 'Direct Company Placement'}
+                                {activeDealer.sponsor_name || translate('portal','net_company_placement')}
                             </div>
                             {activeDealer.sponsor_id && (
                                 <button
@@ -684,7 +684,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         gap: 4
                                     }}
                                 >
-                                    Inspect Sponsor ↗
+                                    {translate('portal','net_inspect_sponsor')}
                                 </button>
                             )}
                         </div>
