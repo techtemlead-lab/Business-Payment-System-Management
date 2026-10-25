@@ -111,6 +111,82 @@ class DashboardManagement
     }
 
     /**
+     * Map partner workspace features to dashboard_management setting keys.
+     */
+    public static function partnerFeatureSettingKey(User $user, string $feature): ?string
+    {
+        if ($user->role === 'dealer') {
+            return match ($feature) {
+                'orders' => 'dealer_orders_enabled',
+                'claims' => 'dealer_claims_enabled',
+                'catalog' => 'dealer_catalog_enabled',
+                'network' => 'dealer_network_tree_enabled',
+                'ranks' => 'dealer_ranks_enabled',
+                'rewards' => 'dealer_rewards_enabled',
+                'deliveries' => 'dealer_orders_enabled',
+                default => null,
+            };
+        }
+
+        if ($user->role === 'sub_dealer') {
+            return match ($feature) {
+                'orders' => 'subdealer_orders_enabled',
+                'claims' => 'subdealer_orders_enabled',
+                'catalog' => 'subdealer_catalog_enabled',
+                'salary' => 'subdealer_salary_enabled',
+                'deliveries' => 'subdealer_deliveries_enabled',
+                default => null,
+            };
+        }
+
+        return null;
+    }
+
+    public static function partnerFeatureEnabled(User $user, string $feature): bool
+    {
+        $key = self::partnerFeatureSettingKey($user, $feature);
+        if ($key === null) {
+            return true;
+        }
+
+        return (bool) (self::get()[$key] ?? true);
+    }
+
+    public static function assertPartnerFeature(User $user, string $feature): void
+    {
+        if (self::partnerFeatureEnabled($user, $feature)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'feature' => (string) __('portal.feature_disabled', ['feature' => $feature]),
+        ]);
+    }
+
+    /**
+     * Block partner section routes when the matching dashboard toggle is off.
+     */
+    public static function assertPartnerSection(User $user, string $section): void
+    {
+        $feature = match ($section) {
+            'catalog' => 'catalog',
+            'network' => 'network',
+            'ranks' => 'ranks',
+            'rewards' => 'rewards',
+            'salary' => 'salary',
+            'orders' => 'orders',
+            'deliveries' => 'deliveries',
+            default => null,
+        };
+
+        if ($feature === null || self::partnerFeatureEnabled($user, $feature)) {
+            return;
+        }
+
+        abort(403, (string) __('portal.feature_disabled', ['feature' => $feature]));
+    }
+
+    /**
      * Enforce dashboard maintenance lockout and optional minimum order for partners.
      */
     public static function assertPartnerCanOrder(User $user, int $orderTotalCents): void
@@ -129,10 +205,7 @@ class DashboardManagement
                     : 'Sub-dealer ordering is temporarily paused for maintenance. Please try again later.',
             ]);
         }
-        $ordersEnabled = $user->role === 'dealer'
-            ? (bool) ($settings['dealer_orders_enabled'] ?? true)
-            : (bool) ($settings['subdealer_orders_enabled'] ?? true);
-        if (! $ordersEnabled) {
+        if (! self::partnerFeatureEnabled($user, 'orders')) {
             throw ValidationException::withMessages(['items' => 'Ordering is currently disabled for your account type.']);
         }
         $minimum = $user->role === 'dealer'

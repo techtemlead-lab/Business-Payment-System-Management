@@ -142,4 +142,47 @@ class ReviewHardeningFixesTest extends TestCase
         $this->assertNotSame('HACKED', $user->dealer_code);
         $this->assertSame('Still Allowed Name', $user->name);
     }
+
+    public function test_disabled_catalog_toggle_blocks_dealer_catalog_section(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        DashboardManagement::save(['dealer_catalog_enabled' => false]);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/catalog')->assertForbidden();
+        $this->assertFalse(DashboardManagement::partnerFeatureEnabled($dealer, 'catalog'));
+    }
+
+    public function test_disabled_claims_toggle_blocks_payment_claim(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        ReferralTreePath::attachUser($dealer->id, null);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'active' => true, 'stock' => 100]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        DashboardManagement::save(['dealer_claims_enabled' => false]);
+
+        $this->expectException(ValidationException::class);
+        app(OrderService::class)->claim($dealer, $order, [
+            'channel' => 'bKash',
+            'reference' => 'TXN'.Str::upper(Str::random(8)),
+            'amount' => Money::decimal(Money::cents($order->total)),
+        ]);
+    }
+
+    public function test_disabled_orders_toggle_is_reflected_in_shared_dashboard_controls(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        DashboardManagement::save(['dealer_orders_enabled' => false, 'dealer_ranks_enabled' => false]);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('dashboardControls.dealer_orders_enabled', false)
+                ->where('dashboardControls.dealer_ranks_enabled', false));
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/ranks')->assertForbidden();
+    }
 }

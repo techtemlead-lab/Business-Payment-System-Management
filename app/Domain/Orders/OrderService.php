@@ -78,6 +78,7 @@ class OrderService
     public function claim(User $actor, Order $order, array $data): void
     {
         abort_unless($order->user_id === $actor->id && in_array($actor->role, ['dealer', 'sub_dealer'], true), 404);
+        DashboardManagement::assertPartnerFeature($actor, 'claims');
         DB::transaction(function () use ($actor, $order, $data): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (in_array($locked->status, ['rejected', 'cancelled'], true)) {

@@ -1864,6 +1864,7 @@ return [
     'pc_update' => 'Update code',
     'pc_fld_base_serial' => 'Base place (last-serial child)',
     'pc_save_changes' => 'Save changes',
+    'feature_disabled' => 'This workspace feature (:feature) is temporarily disabled by company administration.',
 
     'rw_badge' => 'Infinite-depth milestone engine with anti-whale branch capping',
     'rw_heading' => 'Company Car & Motorbike Milestone Treasury',

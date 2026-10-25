@@ -46,6 +46,9 @@ final class PortalCatalog
     public static function assertSection(User $user, string $portal, string $section): void
     {
         abort_unless(self::allowsSection($portal, $section), 404);
+        if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            DashboardManagement::assertPartnerSection($user, $section);
+        }
         if ($section === 'benefits-fund') {
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }

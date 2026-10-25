@@ -68,7 +68,7 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
     const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
     const user = auth.user;
@@ -180,14 +180,44 @@ export default function Shell({ section, children, action }: { section: string; 
     }, [capabilities, ownerPortal, user.role]);
 
     const partnerAvailable = useMemo(() => {
+        const controls = dashboardControls || {};
         if (user.role === 'dealer') {
-            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.dealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.dealer_network_tree_enabled === false) {
+                items.delete('network');
+            }
+            if (controls.dealer_ranks_enabled === false) {
+                items.delete('ranks');
+            }
+            if (controls.dealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('deliveries');
+                items.delete('dues');
+            }
+            return items;
         }
         if (user.role === 'sub_dealer') {
-            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.subdealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.subdealer_salary_enabled === false) {
+                items.delete('salary');
+            }
+            if (controls.subdealer_deliveries_enabled === false) {
+                items.delete('deliveries');
+            }
+            if (controls.subdealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('dues');
+            }
+            return items;
         }
         return new Set(['profile', 'security', 'notifications']);
-    }, [user.role]);
+    }, [user.role, dashboardControls]);
 
     const domainMothers = useMemo((): NavMother[] => {
         if (!staff) {

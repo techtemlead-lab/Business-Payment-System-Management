@@ -115,6 +115,7 @@ final class CommissionQualification
             $countsByLeader[$ancestorId][$currentRank] = (int) $row->aggregate_count;
         }
 
+        $milestoneLeaderIds = [];
         foreach ($ancestors as $path) {
             $leaderId = (int) $path->ancestor_id;
             $leader = $leaders->get($leaderId);
@@ -135,6 +136,10 @@ final class CommissionQualification
                     $leader->refresh();
                 }
             }
+            $milestoneLeaderIds[$leaderId] = $leaderId;
+        }
+
+        foreach ($milestoneLeaderIds as $leaderId) {
             $this->refreshMilestones($leaderId);
         }
     }
