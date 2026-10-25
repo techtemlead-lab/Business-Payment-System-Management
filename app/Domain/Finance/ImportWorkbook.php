@@ -28,7 +28,7 @@ final class ImportWorkbook
     {
         $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
-            throw ValidationException::withMessages(['file' => 'Upload a valid, unencrypted .xlsx workbook using the template.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_wb_invalid_xlsx')]);
         }
         try {
             $expanded = 0;
@@ -36,7 +36,7 @@ final class ImportWorkbook
                 $entry = $zip->statIndex($index);
                 $expanded += $entry['size'];
                 if ($expanded > 50 * 1024 * 1024 || $zip->numFiles > 2000 || preg_match('#vbaProject|externalLinks/#i', $entry['name'])) {
-                    throw ValidationException::withMessages(['file' => 'The workbook is too large or contains macros or external links. Use a plain template workbook.']);
+                    throw ValidationException::withMessages(['file' => __('portal.err_wb_macros_or_links')]);
                 }
             }
         } finally {
@@ -56,18 +56,18 @@ final class ImportWorkbook
                 foreach ($sheet->getRowIterator() as $number => $row) {
                     foreach ($row->cells as $cell) {
                         if ($cell instanceof FormulaCell) {
-                            throw ValidationException::withMessages(['file' => 'Row '.$number.' contains a formula. Paste values only before uploading.']);
+                            throw ValidationException::withMessages(['file' => __('portal.err_wb_formula', ['row' => $number])]);
                         }
                     }
                     $values = [];
                     foreach ($row->cells as $index => $cell) {
                         $value = $cell->getValue();
                         if (! is_scalar($value) && $value !== null && ! $value instanceof DateTimeInterface) {
-                            throw ValidationException::withMessages(['file' => 'Use plain text, numbers and dates in the Data worksheet.']);
+                            throw ValidationException::withMessages(['file' => __('portal.err_wb_plain_values')]);
                         }
                         $values[$index] = $value instanceof DateTimeInterface ? $value->format('Y-m-d') : trim((string) $value);
                         if (mb_strlen($values[$index]) > 2000) {
-                            throw ValidationException::withMessages(['file' => 'Row '.$number.' contains a cell longer than 2,000 characters. Shorten the value before uploading.']);
+                            throw ValidationException::withMessages(['file' => __('portal.err_wb_cell_too_long', ['row' => $number])]);
                         }
                     }
                     if (array_filter($values, fn (string $value): bool => $value !== '') === []) {
@@ -76,14 +76,14 @@ final class ImportWorkbook
                     if ($headers === null) {
                         $headers = array_map(fn (string $value): string => Str::lower(trim($value)), $values);
                         if (count($headers) !== count(array_unique($headers)) || array_diff(self::Columns[$type], $headers) || array_diff($headers, self::Columns[$type])) {
-                            throw ValidationException::withMessages(['file' => 'Keep the template column names unchanged. Columns may be reordered.']);
+                            throw ValidationException::withMessages(['file' => __('portal.err_wb_columns')]);
                         }
                         $headers = array_values($headers);
 
                         continue;
                     }
                     if (count($rows) >= 5000 || ($values !== [] && max(array_keys($values)) >= count($headers))) {
-                        throw ValidationException::withMessages(['file' => 'Use at most 5,000 data rows and only the template columns per workbook.']);
+                        throw ValidationException::withMessages(['file' => __('portal.err_wb_row_limit')]);
                     }
                     $data = [];
                     foreach ($headers as $index => $header) {
@@ -96,12 +96,12 @@ final class ImportWorkbook
             throw $exception;
         } catch (\Throwable $exception) {
             report($exception);
-            throw ValidationException::withMessages(['file' => 'The workbook could not be read. Save it as a plain .xlsx file using the template.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_wb_unreadable')]);
         } finally {
             $reader->close();
         }
         if (! $found || $rows === []) {
-            throw ValidationException::withMessages(['file' => 'Add records to the Data worksheet before uploading.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_wb_empty_data')]);
         }
 
         return $rows;
@@ -149,29 +149,29 @@ final class ImportWorkbook
             } as $key) {
                 $value = $key === 'phone' ? PhoneIdentity::normalize($data[$key]) : $data[$key];
                 if ($value !== '' && $value !== null && isset($seen[$key][$value])) {
-                    $errors[] = $key.' duplicates row '.$seen[$key][$value].'.';
+                    $errors[] = __('portal.err_wb_duplicate', ['key' => $key, 'row' => $seen[$key][$value]]);
                 }
                 $seen[$key][$value ?? ''] = $row['row'];
             }
             if ($type === 'partners') {
                 $phone = PhoneIdentity::normalize($data['phone']);
                 if ($phone === null || User::whereRaw(PhoneIdentity::SQL.' = ?', [$phone])->exists()) {
-                    $errors[] = 'Phone must be valid and must not belong to an existing account.';
+                    $errors[] = __('portal.err_wb_phone_taken');
                 } else {
                     $data['phone'] = $phone;
                 }
                 if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->exists()) {
-                    $errors[] = 'Sponsor must be an existing active dealer. Import sponsors in an earlier workbook.';
+                    $errors[] = __('portal.err_wb_sponsor_missing');
                 }
             }
             if ($type === 'opening_balances') {
                 $partner = User::where('dealer_code', $data['dealer_code'])->whereIn('role', ['dealer', 'sub_dealer'])->first();
                 if (! $partner) {
-                    $errors[] = 'Partner code was not found. Import partner accounts first.';
+                    $errors[] = __('portal.err_wb_partner_missing');
                 } elseif (DB::table('opening_balance_entries')->where('user_id', $partner->id)->exists()
                     || DB::table('journal_lines')->where('user_id', $partner->id)->exists() || Order::where('user_id', $partner->id)->exists()
                     || DB::table('wallets')->where('user_id', $partner->id)->where(fn ($q) => $q->where('available', '>', 0)->orWhere('held', '>', 0))->exists()) {
-                    $errors[] = 'This partner already has opening entries or financial activity. Existing records cannot be overwritten.';
+                    $errors[] = __('portal.err_wb_partner_has_activity');
                 }
             }
             if ($errors === []) {
