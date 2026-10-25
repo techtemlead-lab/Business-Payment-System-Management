@@ -8,6 +8,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\StockNotifications;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Order;
@@ -70,6 +71,9 @@ class OrderService
             }
             $this->event($order, $submittedBy ?? $user, 'order.submitted');
             $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
+                'number' => $order->number,
+            ]);
+            $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
                 'number' => $order->number,
             ]);
 
@@ -139,6 +143,11 @@ class OrderService
                 'number' => $locked->number,
                 'reason' => $reason,
             ]);
+            $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
+                'status' => $statusLabel,
+                'number' => $locked->number,
+                'reason' => $reason,
+            ]);
         }, 3);
     }
 
@@ -193,6 +202,10 @@ class OrderService
                 $locale = $partner?->preferredLocale() ?? app()->getLocale();
                 $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
                 $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
+                    'number' => $order->number,
+                    'outcome' => $outcome,
+                ]);
+                $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
                     'number' => $order->number,
                     'outcome' => $outcome,
                 ]);
@@ -274,6 +287,11 @@ class OrderService
                 'courier' => $courier,
                 'tracking' => $tracking,
             ]);
+            $this->partnerSms($locked->user_id, 'order.dispatched', 'sms.shipment_dispatched', [
+                'number' => $locked->number,
+                'courier' => $courier,
+                'tracking' => $tracking,
+            ]);
         }, 3);
     }
 
@@ -300,6 +318,9 @@ class OrderService
             $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
                 'number' => $locked->number,
             ]);
+            $this->partnerSms($locked->user_id, 'shipment.delivered', 'sms.delivery_confirmed', [
+                'number' => $locked->number,
+            ]);
         }, 3);
     }
 
@@ -312,6 +333,25 @@ class OrderService
             __($titleKey, $replace, $locale),
             __($bodyKey, $replace, $locale),
         );
+    }
+
+    /**
+     * @param  array<string, string>  $replace
+     */
+    private function partnerSms(int $userId, string $event, string $template, array $replace = []): void
+    {
+        DB::afterCommit(function () use ($userId, $event, $template, $replace): void {
+            $partner = User::find($userId);
+            if (! $partner) {
+                return;
+            }
+            $locale = $partner->preferredLocale();
+            app(PartnerEventSms::class)->send(
+                $partner,
+                $event,
+                __($template, $replace, $locale),
+            );
+        });
     }
 
     private function insertClaim(Order $order, array $data): int
