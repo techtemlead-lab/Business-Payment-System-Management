@@ -1862,6 +1862,8 @@ return [
     'si_courier_tracking_error' => 'Courier tracking could not be reached. Try again shortly.',
     'si_courier_created' => 'Courier consignment created.',
     'si_courier_rejected' => 'Courier API rejected the consignment.',
+    'si_courier_default_recipient' => 'Customer',
+    'si_courier_default_item' => 'Order',
     'startup_label_fresh' => 'Fresh business (no past ledger import)',
     'startup_label_import' => 'Import opening balances / Excel history',
     'startup_label_none' => 'Not selected yet',

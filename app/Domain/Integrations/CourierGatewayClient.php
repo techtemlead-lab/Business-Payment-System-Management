@@ -76,7 +76,7 @@ final class CourierGatewayClient
         $response = Http::timeout(20)->acceptJson()->withToken((string) $config['api_key'])->post(rtrim((string) $config['base_url'], '/').'/aladdin/api/v1/orders', [
             'store_id' => $config['store_id'] ?: null,
             'merchant_order_id' => $shipment['invoice'] ?? null,
-            'recipient_name' => $shipment['recipient_name'] ?? 'Customer',
+            'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_phone' => $shipment['recipient_phone'] ?? '',
             'recipient_address' => $shipment['recipient_address'] ?? '',
             'delivery_type' => 48,
@@ -84,7 +84,7 @@ final class CourierGatewayClient
             'item_quantity' => 1,
             'item_weight' => 0.5,
             'amount_to_collect' => (float) ($shipment['amount'] ?? 0),
-            'item_description' => $shipment['note'] ?? 'Madina order',
+            'item_description' => $shipment['note'] ?? __('portal.si_courier_default_item'),
         ]);
         $payload = $response->json();
 
@@ -102,7 +102,7 @@ final class CourierGatewayClient
             'Content-Type' => 'application/json',
         ])->post(rtrim((string) $config['base_url'], '/').'/create_order', [
             'invoice' => $shipment['invoice'] ?? uniqid('INV-', true),
-            'recipient_name' => $shipment['recipient_name'] ?? 'Customer',
+            'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_phone' => $shipment['recipient_phone'] ?? '',
             'recipient_address' => $shipment['recipient_address'] ?? '',
             'cod_amount' => (float) ($shipment['amount'] ?? 0),
@@ -119,7 +119,7 @@ final class CourierGatewayClient
     private function redxCreate(array $config, array $shipment): array
     {
         $response = Http::timeout(20)->acceptJson()->withToken((string) $config['api_key'])->post(rtrim((string) $config['base_url'], '/').'/v1.0.0-beta/parcel', [
-            'customer_name' => $shipment['recipient_name'] ?? 'Customer',
+            'customer_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'customer_phone' => $shipment['recipient_phone'] ?? '',
             'delivery_area' => $shipment['recipient_address'] ?? '',
             'customer_address' => $shipment['recipient_address'] ?? '',
@@ -144,9 +144,9 @@ final class CourierGatewayClient
                 'pickMerchantName' => 'Madina Natural Health Care',
                 'pickMerchantAddress' => 'Head office',
                 'productSizeWeight' => 'standard',
-                'productBrief' => $shipment['note'] ?? 'Order',
+                'productBrief' => $shipment['note'] ?? __('portal.si_courier_default_item'),
                 'packagePrice' => (float) ($shipment['amount'] ?? 0),
-                'custname' => $shipment['recipient_name'] ?? 'Customer',
+                'custname' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
                 'custAddress' => $shipment['recipient_address'] ?? '',
                 'custPhone' => $shipment['recipient_phone'] ?? '',
             ]);
@@ -165,7 +165,7 @@ final class CourierGatewayClient
             'API-SECRET' => (string) $config['api_secret'],
             'USER-ID' => (string) ($config['user_id'] ?? ''),
         ])->post(rtrim((string) $config['base_url'], '/').'/order-place', [
-            'recipient_name' => $shipment['recipient_name'] ?? 'Customer',
+            'recipient_name' => $shipment['recipient_name'] ?? __('portal.si_courier_default_recipient'),
             'recipient_mobile' => $shipment['recipient_phone'] ?? '',
             'recipient_city' => 'Dhaka',
             'recipient_area' => $shipment['recipient_address'] ?? '',
@@ -174,7 +174,7 @@ final class CourierGatewayClient
             'product_price' => (float) ($shipment['amount'] ?? 0),
             'payment_method' => 'COD',
             'ep_id' => $shipment['invoice'] ?? null,
-            'product_id' => $shipment['note'] ?? 'Madina',
+            'product_id' => $shipment['note'] ?? __('portal.si_courier_default_item'),
         ]);
         $payload = $response->json();
 

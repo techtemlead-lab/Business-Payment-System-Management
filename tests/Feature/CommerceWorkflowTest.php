@@ -47,6 +47,23 @@ class CommerceWorkflowTest extends TestCase
         }
     }
 
+    public function test_authenticated_dealer_and_staff_module_surfaces_load(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'dealer_code' => 'D-SMOKE']);
+        $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+
+        foreach (['/', '/catalog', '/orders', '/withdrawals', '/earnings', '/network', '/circulars', '/profile'] as $path) {
+            $this->actingAs($dealer)->onPortal('dealer')->get($path)->assertOk();
+        }
+
+        foreach (['/', '/orders', '/operations/financial-reports', '/operations/payment-accounts', '/treasury'] as $path) {
+            $this->actingAs($finance)->onPortal('manage')->get($path)->assertOk();
+        }
+
+        $editor = User::factory()->create(['role' => 'editor', 'status' => 'active']);
+        $this->actingAs($editor)->onPortal('manage')->get('/enquiries')->assertOk();
+    }
+
     public function test_portal_hosts_carry_order_through_delivery_to_commission_posting(): void
     {
         $this->enableFinancialPosting();
