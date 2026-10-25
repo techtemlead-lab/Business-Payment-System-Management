@@ -37,12 +37,14 @@ class CommerceWorkflowTest extends TestCase
 
     public function test_portal_hosts_expose_login_and_public_catalog_surfaces(): void
     {
-        $this->onPortal('public')->get('/')->assertOk();
-        $this->onPortal('public')->get('/products')->assertOk();
-        $this->onPortal('public')->get('/contact')->assertOk();
-        $this->onPortal('public')->get('/dealers')->assertOk();
+        foreach ([
+            '/', '/products', '/contact', '/dealers', '/about', '/services', '/quality',
+            '/faq', '/privacy', '/terms', '/partnership', '/notice',
+        ] as $path) {
+            $this->onPortal('public')->get($path)->assertOk();
+        }
 
-        foreach (['dealer', 'manage', 'sadmin'] as $portal) {
+        foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
             $this->onPortal($portal)->get('/login')->assertOk();
         }
     }
@@ -54,6 +56,11 @@ class CommerceWorkflowTest extends TestCase
 
         foreach (['/', '/catalog', '/orders', '/withdrawals', '/earnings', '/network', '/circulars', '/profile'] as $path) {
             $this->actingAs($dealer)->onPortal('dealer')->get($path)->assertOk();
+        }
+
+        $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active', 'dealer_code' => 'SD-SMOKE']);
+        foreach (['/', '/catalog', '/orders', '/withdrawals', '/earnings', '/circulars', '/profile'] as $path) {
+            $this->actingAs($subDealer)->onPortal('subdealer')->get($path)->assertOk();
         }
 
         foreach (['/', '/orders', '/operations/financial-reports', '/operations/payment-accounts', '/treasury'] as $path) {

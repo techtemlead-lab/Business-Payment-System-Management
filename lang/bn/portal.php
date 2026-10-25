@@ -2694,6 +2694,8 @@ return [
     'err_staff_action_denied' => 'আপনার রোল এই অ্যাকশনের অনুমতি দেয় না।',
     'notice_settle_title' => 'কমিশন সেটেলমেন্ট',
     'notice_settle_body' => ':kind / :month এর জন্য :amount BDT জমা হয়েছে।',
+    'notice_commission_matured_title' => 'কমিশন উপলব্ধ',
+    'notice_commission_matured_body' => 'BDT :amount কুলিং-অফ কমিশন এখন আপনার ওয়ালেটে উপলব্ধ।',
     'settle_kind_salary' => 'স্যালারি',
     'settle_kind_royalty' => 'রয়্যালটি',
     'jr_account_wallet_liability' => 'উপলব্ধ ওয়ালেট',

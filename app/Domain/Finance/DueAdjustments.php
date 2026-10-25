@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -102,6 +103,25 @@ final class DueAdjustments
                     'amount' => $after,
                 ], $locale),
             );
+            $userId = (int) $order->user_id;
+            $orderNumber = (string) $order->number;
+            $reference = (string) $adjustment->reference;
+            DB::afterCommit(function () use ($userId, $decision, $decisionLabel, $orderNumber, $reference, $after, $locale): void {
+                $partner = User::find($userId);
+                if (! $partner) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'dues.adjustment_'.$decision,
+                    __('sms.due_adjustment', [
+                        'number' => $orderNumber,
+                        'decision' => $decisionLabel,
+                        'reference' => $reference,
+                        'amount' => $after,
+                    ], $partner->preferredLocale() ?: $locale),
+                );
+            });
         }, 3);
     }
 

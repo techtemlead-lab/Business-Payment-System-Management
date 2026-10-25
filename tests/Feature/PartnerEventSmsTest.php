@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionService;
+use App\Domain\Orders\OrderService;
+use App\Models\CommissionAllocation;
+use App\Models\CommissionRuleParameter;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -141,5 +145,120 @@ class PartnerEventSmsTest extends TestCase
                 'tracking' => 'SMS-TRACK-1',
             ], 'bn'),
         ));
+    }
+
+    public function test_due_adjustment_review_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $buyer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000091',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($buyer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $order->update(['status' => 'approved', 'paid' => '0.00']);
+
+        Config::set('madina.sms.sent', []);
+        $preparer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $reviewer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $payload = [
+            'kind' => 'credit',
+            'amount' => '20.00',
+            'reference' => 'NOTE-SMS-'.Str::uuid(),
+            'request_key' => (string) Str::uuid(),
+            'reason' => 'Approved commercial allowance',
+        ];
+        $id = $this->actingAs($preparer)->postJson('/api/v1/operations/orders/'.$order->id.'/due-adjustments', $payload)
+            ->assertOk()->json('data.id');
+        $this->actingAs($reviewer)->postJson('/api/v1/operations/due-adjustments/'.$id.'/review', [
+            'decision' => 'approved',
+            'reason' => 'Independent allowance approval',
+        ])->assertOk();
+
+        $reference = DB::table('due_adjustments')->where('id', $id)->value('reference');
+        $sent = config('madina.sms.sent');
+        $this->assertSame('dues.adjustment_approved', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.due_adjustment', [
+                'number' => $order->number,
+                'decision' => __('portal.due_decision_approved', [], 'bn'),
+                'reference' => $reference,
+                'amount' => '80.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_matured_commission_release_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $cooling = CommissionRuleParameter::getRule('commission_cooling_off');
+        $cooling?->update(['is_active' => true, 'parameters' => ['cooling_off_days' => 7]]);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000092',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank',
+            'reference' => 'MATURE-SMS-RECEIPT',
+            'amount' => '100.00',
+        ]);
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $claim = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
+        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', [
+            'approve' => true,
+            'reason' => 'Matched',
+        ])->assertOk();
+        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
+            'status' => 'approved',
+            'reason' => 'OK',
+        ])->assertOk();
+        $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
+            'courier' => 'C',
+            'tracking' => 'T-MATURE',
+            'idempotency_key' => (string) Str::uuid(),
+            'items' => [['line_id' => $line, 'quantity' => 1]],
+        ])->assertOk();
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/shipments/'.$shipment.'/delivered', [
+            'reason' => 'Delivered',
+        ])->assertOk();
+
+        foreach (CommissionAllocation::where('user_id', $dealer->id)->where('status', 'maturing')->get() as $allocation) {
+            $meta = $allocation->metadata ?? [];
+            $meta['maturation_due_at'] = now()->subMinute()->toIso8601String();
+            $allocation->update(['metadata' => $meta]);
+        }
+
+        Config::set('madina.sms.sent', []);
+        $result = app(CommissionService::class)->releaseMaturedCommissions();
+        $this->assertSame('success', $result['status']);
+        $this->assertGreaterThan(0, $result['released_count']);
+
+        $events = collect(config('madina.sms.sent'))->pluck('event')->all();
+        $this->assertContains('commission.matured', $events);
+        $this->assertTrue(
+            collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'কুলিং-অফ')),
+        );
     }
 }

@@ -16,6 +16,8 @@ return [
     'payment_reviewed' => 'মদিনা: অর্ডার :number এর পেমেন্ট :outcome হয়েছে।',
     'shipment_dispatched' => 'মদিনা: অর্ডার :number :courier দিয়ে পাঠানো হয়েছে। ট্র্যাকিং: :tracking।',
     'delivery_confirmed' => 'মদিনা: অর্ডার :number ডেলিভারি নিশ্চিত হয়েছে।',
+    'due_adjustment' => 'মদিনা: অর্ডার :number এর বকেয়া :decision হয়েছে (:reference)। বর্তমান বকেয়া BDT :amount।',
+    'commission_matured' => 'মদিনা: BDT :amount কুলিং-অফ কমিশন এখন আপনার ওয়ালেটে উপলব্ধ।',
     'err_otp_expired' => 'লগইন কোডের মেয়াদ শেষ। নতুন কোড পেতে আবার সাইন ইন করুন।',
     'err_otp_too_many' => 'অনেকবার ভুল কোড দেওয়া হয়েছে। আবার সাইন ইন করুন।',
     'err_otp_incorrect' => 'লগইন কোডটি ভুল।',

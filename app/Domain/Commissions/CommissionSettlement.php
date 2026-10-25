@@ -470,6 +470,24 @@ final class CommissionSettlement
                 ]);
                 $this->wallets->credit($fund->user_id, $amount);
                 $fund->update(['status' => 'available', 'metadata' => [...$fund->metadata, 'maturation_released' => true, 'matured_at' => now()->toIso8601String()]]);
+                $amountDecimal = Money::decimal($amount);
+                Audit::notice(
+                    $fund->user_id,
+                    __('portal.notice_commission_matured_title', [], $locale),
+                    __('portal.notice_commission_matured_body', ['amount' => $amountDecimal], $locale),
+                );
+                $userId = (int) $fund->user_id;
+                DB::afterCommit(function () use ($userId, $amountDecimal, $locale): void {
+                    $partner = User::find($userId);
+                    if (! $partner) {
+                        return;
+                    }
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'commission.matured',
+                        __('sms.commission_matured', ['amount' => $amountDecimal], $partner->preferredLocale() ?: $locale),
+                    );
+                });
                 $count++;
                 $total += $amount;
             }

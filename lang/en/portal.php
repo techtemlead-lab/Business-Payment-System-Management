@@ -2694,6 +2694,8 @@ return [
     'err_staff_action_denied' => 'Your role does not allow this action.',
     'notice_settle_title' => 'Commission settlement',
     'notice_settle_body' => ':amount BDT credited for :kind / :month.',
+    'notice_commission_matured_title' => 'Commission available',
+    'notice_commission_matured_body' => 'BDT :amount cooling-off commission is now available in your wallet.',
     'settle_kind_salary' => 'Salary',
     'settle_kind_royalty' => 'Royalty',
     'jr_account_wallet_liability' => 'Available wallet',
