@@ -2009,7 +2009,7 @@ return [
     'st_confirm_salary' => 'Are you sure you want to finalize and distribute dealer and sub-dealer salary allocations for :month? This credits qualifying earnings to available balances.',
     'st_confirm_rank' => 'Are you sure you want to finalize and distribute the leadership royalty pool for :month? Each source order\'s captured policy determines the shares and eligible MO, AM, SM and ME leaders.',
     'st_confirm_incentive' => 'Confirm payout of one-time career milestone incentive for :name (:rank)?',
-'col_sku' => 'SKU',
+    'col_sku' => 'SKU',
     'inv_col_reason_order' => 'Reason / order',
     'policy_field_name' => 'Policy name',
     'policy_field_category' => 'Category',
