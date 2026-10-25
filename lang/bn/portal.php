@@ -675,6 +675,8 @@ return [
     'sce_standard_mrp' => 'স্ট্যান্ডার্ড MRP',
     'sce_product_sku_code' => 'পণ্য SKU / কোড:',
     'sce_set_promo_discount_pct' => 'এই ক্যাম্পেইন অফারের জন্য বিশেষ প্রমোশনাল ডিসকাউন্ট শতাংশ সেট করুন:',
+    'sce_untitled_category' => 'শিরোনামহীন ক্যাটাগরি',
+    'sce_quick_presets' => 'দ্রুত প্রিসেট:',
     'sce_fld_about_btn_contact' => 'বাটন ৩ (হেড অফিসে যোগাযোগ)',
     'sce_fld_about_btn_dealers' => 'বাটন ২ (ডিলার খুঁজুন)',
     'sce_fld_about_btn_products' => 'বাটন ১ (পণ্য এক্সপ্লোর)',

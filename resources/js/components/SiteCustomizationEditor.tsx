@@ -897,7 +897,7 @@ function CategoryManager({
                                                 </div>
 
                                                 <strong style={{ fontSize: 14, color: '#0f172a' }}>
-                                                    {item.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Untitled Category</span>}
+                                                    {item.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{translate('portal', 'sce_untitled_category')}</span>}
                                                 </strong>
 
                                                 {/* Active Products Count & Status Pill */}
@@ -2558,7 +2558,7 @@ export function CampaignOffersManager({
 
                                                         {/* Quick Presets */}
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Quick Presets:</span>
+                                                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'sce_quick_presets')}</span>
                                                             {[30, 40, 50, 60, 70].map(pct => (
                                                                 <button
                                                                     key={pct}

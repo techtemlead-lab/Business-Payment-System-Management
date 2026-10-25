@@ -675,6 +675,8 @@ return [
     'sce_standard_mrp' => 'Standard MRP',
     'sce_product_sku_code' => 'Product SKU / Code:',
     'sce_set_promo_discount_pct' => 'Set Special Promotional Discount Percentage for this Campaign Offer:',
+    'sce_untitled_category' => 'Untitled Category',
+    'sce_quick_presets' => 'Quick Presets:',
     'sce_fld_about_btn_contact' => 'Button 3 (Contact Head Office)',
     'sce_fld_about_btn_dealers' => 'Button 2 (Find a Dealer)',
     'sce_fld_about_btn_products' => 'Button 1 (Explore Products)',
