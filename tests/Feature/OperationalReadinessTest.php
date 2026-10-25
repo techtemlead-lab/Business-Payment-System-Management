@@ -56,6 +56,25 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertContains('payment_collection_accounts_missing', $result['warnings']);
         $this->assertContains('payment_payout_accounts_missing', $result['warnings']);
+        $this->assertContains('queue_driver_is_sync', $result['warnings']);
+    }
+
+    public function test_application_readiness_clears_queue_sync_warning_for_durable_driver(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+            'queue.default' => 'database',
+        ]);
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertNotContains('queue_driver_is_sync', $result['warnings']);
     }
 
     public function test_application_readiness_clears_place_code_warning_when_catalog_is_seeded(): void

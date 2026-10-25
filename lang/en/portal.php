@@ -398,6 +398,7 @@ return [
     'ops_warn_place_code_catalog_incomplete' => 'Place-code catalog is incomplete — seed BangladeshPlaceCodeSeeder (8 divisions + 64 districts minimum) before partner onboarding go-live.',
     'ops_warn_payment_collection_accounts_missing' => 'No active payment collection accounts — configure at least one bank/MFS account that accepts collections before partner payment claims go-live.',
     'ops_warn_payment_payout_accounts_missing' => 'No active payment payout accounts — configure at least one bank/MFS account that can pay out before partner withdrawals go-live.',
+    'ops_warn_queue_driver_is_sync' => 'Queue driver is sync/null — run a durable queue worker (database/redis) before imports and background payouts go live.',
     'ops_no_go_live_warnings' => 'No go-live mail/SMS warnings on this host.',
     'ops_account_registry' => 'Company account registry',
     'ops_account' => 'Account',

@@ -110,6 +110,9 @@ final class DeploymentReadiness
         if ($checks['database'] && ! $this->paymentPayoutAccountsReady()) {
             $warnings[] = 'payment_payout_accounts_missing';
         }
+        if (! $strict && in_array(config('queue.default'), ['sync', 'null', ''], true)) {
+            $warnings[] = 'queue_driver_is_sync';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),

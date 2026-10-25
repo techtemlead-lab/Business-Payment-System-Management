@@ -7,7 +7,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, strong `APP_KEY`
 - [ ] `APP_URL` and `APP_DOMAIN` match the live public host; portal subdomains resolve (`dealer.`, `subdealer.`, `manage.`, `sadmin.`)
 - [ ] PostgreSQL is dedicated (not shared with another app); backups scheduled and restore-tested
-- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800`
+- [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800` — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync`
 - [ ] Scheduler running: `php artisan schedule:work` (or cron equivalent)
 - [ ] `php artisan app:readiness` reports PASS for migrations, DB timezone UTC, cache, private storage, preview posting disabled
 - [ ] `composer audit --locked` and `npm audit` reviewed; known issues accepted or remediated
@@ -54,6 +54,14 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 ## Rollback
 
-- [ ] Document how to flip `MADINA_FINANCIAL_ACTIVATION=false` and drain queues
-- [ ] Keep a known-good DB dump taken immediately before activation
+- [ ] Document how to flip `MADINA_FINANCIAL_ACTIVATION=false` and drain queues (steps below kept with the runbook)
+- [ ] Keep a known-good DB dump taken immediately before activation (`php artisan app:backup` with a strong `MADINA_BACKUP_PASSWORD`, then `php artisan app:backup-verify`)
 - [ ] Owner contact for dual-control emergency freeze is listed offline
+
+### Emergency freeze (financial posting)
+
+1. Set `MADINA_FINANCIAL_ACTIVATION=false` (and keep `MADINA_PREVIEW_MODE=false`) on the production host / secret store.
+2. Signal workers to exit after the current job: `php artisan queue:restart`, then stop `queue:work` / scheduler processes until config is reloaded.
+3. Confirm the gate: `php artisan app:readiness` must show `financial activation verified` PASS while activation remains off; `php artisan finance:readiness` inspects reconciliation without posting.
+4. Do **not** run `php artisan finance:release-matured` or `madina:demo` during a freeze.
+5. Restore from the pre-activation backup only after owner dual-control approval; verify with `php artisan app:backup-verify` before bringing workers back.
