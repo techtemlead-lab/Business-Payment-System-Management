@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
+use ZipArchive;
 
 class FinanceOpsLocaleTest extends TestCase
 {
@@ -78,5 +79,24 @@ class FinanceOpsLocaleTest extends TestCase
                 $exception->errors()['balances'][0] ?? null,
             );
         }
+    }
+
+    public function test_financial_report_export_summary_uses_staff_locale(): void
+    {
+        $finance = User::factory()->create(['role' => 'finance', 'locale' => 'bn']);
+
+        $response = $this->actingAs($finance)->onPortal('manage')
+            ->get('/commands/operations/reports?type=refunds&format=xlsx&from=2026-10-17&to=2026-10-17')
+            ->assertOk();
+        $file = $response->baseResponse->getFile()->getPathname();
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($file));
+        $payload = ($zip->getFromName('xl/sharedStrings.xml') ?: '').($zip->getFromName('xl/worksheets/sheet2.xml') ?: '').($zip->getFromName('xl/workbook.xml') ?: '');
+        $zip->close();
+        unlink($file);
+
+        $this->assertStringContainsString(__('portal.ops_export_heading', ['name' => __('portal.ops_export_name_refunds', [], 'bn')], 'bn'), $payload);
+        $this->assertStringContainsString(__('portal.ops_export_note_refunds', [], 'bn'), $payload);
+        $this->assertStringContainsString(__('portal.ops_export_summary_sheet', [], 'bn'), $payload);
     }
 }

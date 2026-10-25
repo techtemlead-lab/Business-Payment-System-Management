@@ -164,6 +164,29 @@ class ProductRegistryTest extends TestCase
         $this->assertSame($p2->id, DB::table('order_lines')->where('order_id', $order->id)->value('product_id'));
     }
 
+    public function test_initial_stock_onboarding_records_localized_movement_reason(): void
+    {
+        app()->setLocale('bn');
+        $this->actingAs(User::factory()->create(['role' => 'super_admin', 'locale' => 'bn']))
+            ->post('/commands/products', [
+                ...$this->data(),
+                'sku' => 'TEST-INITIAL-STOCK',
+                'initial_stock' => 15,
+                'image' => $this->photo(),
+                'reason' => 'Warehouse intake for launch',
+            ])
+            ->assertRedirect();
+
+        $product = Product::query()->where('sku', 'TEST-INITIAL-STOCK')->firstOrFail();
+        $this->assertSame(15, $product->stock);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'quantity' => 15,
+            'kind' => 'receipt',
+            'reason' => __('portal.stock_reason_initial_onboarding', ['reason' => 'Warehouse intake for launch'], 'bn'),
+        ]);
+    }
+
     public function test_inventory_staff_can_pause_ordering_without_changing_stock_and_records_an_audit_trail(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);

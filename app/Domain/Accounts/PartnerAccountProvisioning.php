@@ -206,7 +206,7 @@ final class PartnerAccountProvisioning
                 'place_code' => $place->code,
                 'refer_code' => $referCode,
                 'reference_code' => $sponsor?->refer_code,
-                'reason' => $input['reason'] ?? 'Partner onboarding authorized by company staff.',
+                'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
             ]);
 
             return $user;
@@ -369,7 +369,7 @@ final class PartnerAccountProvisioning
                 'level' => $level,
                 'code' => $path['codes'][$level] ?? null,
                 'name' => $level === 'management'
-                    ? ($path['management'] ?? 'Company management')
+                    ? ($path['management'] ?? __('portal.acct_mgmt_company'))
                     : ($path[$level] ?? null),
                 'rate' => isset($areaParams[$rateKey]) ? (string) $areaParams[$rateKey] : null,
                 'pool' => $areaPoolRate,

@@ -615,9 +615,9 @@ export default function AccountCreate({
                                 {consumers && (
                                     <div style={{ marginTop: 12, fontSize: 13 }}>
                                         <b>{translate('portal','acct_commission_consumers')}</b>
-                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : '→ unassigned_reserve'}</div>
-                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : '→ unassigned_reserve'}</div>
-                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : '→ unassigned_reserve'}</div>
+                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
+                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
+                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
                                     </div>
                                 )}
                             </section>

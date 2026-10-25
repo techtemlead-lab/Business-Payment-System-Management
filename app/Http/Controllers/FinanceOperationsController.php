@@ -229,18 +229,19 @@ class FinanceOperationsController extends Controller
             throw ValidationException::withMessages(['to' => __('portal.ops_val_date_range')]);
         }
         $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to']);
-        $reportName = match ($data['type']) {
-            'products' => 'Delivered product sales by order date', 'product-summary' => 'Product sales totals', 'category-summary' => 'Category sales totals',
-            'rank-achievements' => 'Rank achievement history', 'rank-incentives' => 'Rank incentive wallet awards', 'refunds' => 'Commission refund adjustments', default => Str::headline($data['type'])
-        };
-        $reportNote = match ($data['type']) {
-            'products' => 'Gross delivered product lines. Commission refund adjustments are reported separately; they do not specify physical return quantities.',
-            'product-summary', 'category-summary' => 'Gross delivered sales grouped by captured category and product, using order dates. Legacy categories were captured at upgrade. Financial adjustments are reported separately.',
-            'rank-incentives' => 'Funded rank awards credited to wallets, with source-payout reversals and remaining net awards. These are not executed bank transfers.',
-            'rank-achievements' => 'Recorded achievement dates and rank history. Historical rows without an achievement date cannot be assigned an invented reporting date.',
-            'due-adjustments' => 'Requested, approved and rejected credit notes and debit corrections. Only approved notes change dues. Totals show the listed activity, not cash received.',
-            'refunds' => 'Commission accounting adjustments by adjustment date. These records do not confirm execution of a bank refund.', default => 'Authorized records only; statuses are shown as recorded.'
-        };
+        $reportKey = str_replace('-', '_', $data['type']);
+        $reportNameKey = 'portal.ops_export_name_'.$reportKey;
+        $reportNoteKey = 'portal.ops_export_note_'.$reportKey;
+        $reportName = __($reportNameKey);
+        if ($reportName === $reportNameKey) {
+            $reportName = Str::headline($data['type']);
+        }
+        $reportNote = __($reportNoteKey);
+        if ($reportNote === $reportNoteKey) {
+            $reportNote = __('portal.ops_export_note_default');
+        }
+        $reportHeading = __('portal.ops_export_heading', ['name' => $reportName]);
+        $generatedAt = now()->timezone('Asia/Dhaka')->format('d M Y H:i');
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.'.$data['format']);
         $totals = array_fill_keys(array_diff($report['money'], ['unit_price']), 0);
@@ -271,11 +272,18 @@ class FinanceOperationsController extends Controller
                         }
                         $writer->addRow(new Row($cells));
                     }
-                    $writer->addRow(Row::fromValues(array_map(fn ($column) => isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? 'TOTAL' : ''), $report['columns'])));
-                    $writer->addNewSheetAndMakeItCurrent()->setName('Report summary');
-                    foreach ([['Madina Natural Health Care'], [$reportName.' report'], ['Period', $data['from'].' through '.$data['to']],
-                        ['Currency', 'BDT'], ['Timezone', 'Asia/Dhaka'], ['Records', $rowCount], ['Generated', now()->timezone('Asia/Dhaka')->format('d M Y H:i')],
-                        ['Scope', $reportNote]] as $summaryRow) {
+                    $writer->addRow(Row::fromValues(array_map(fn ($column) => isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? __('portal.ops_export_total') : ''), $report['columns'])));
+                    $writer->addNewSheetAndMakeItCurrent()->setName(__('portal.ops_export_summary_sheet'));
+                    foreach ([
+                        ['Madina Natural Health Care'],
+                        [$reportHeading],
+                        [__('portal.ops_period'), $data['from'].' '.__('portal.ops_through').' '.$data['to']],
+                        [__('portal.ops_export_currency'), 'BDT'],
+                        [__('portal.ops_export_timezone'), 'Asia/Dhaka'],
+                        [__('portal.ops_export_records'), $rowCount],
+                        [__('portal.ops_export_generated'), $generatedAt],
+                        [__('portal.ops_export_scope'), $reportNote],
+                    ] as $summaryRow) {
                         $writer->addRow(Row::fromValues($summaryRow));
                     }
                     foreach ($totals as $column => $amount) {
@@ -289,7 +297,7 @@ class FinanceOperationsController extends Controller
                 if ($items->count() > 5000) {
                     throw ValidationException::withMessages(['format' => __('portal.ops_val_pdf_row_limit')]);
                 }
-                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportName).' report</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
+                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportHeading).'</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
                 foreach ($report['columns'] as $column) {
                     $html .= '<th>'.e(Str::headline($column)).'</th>';
                 }
@@ -313,12 +321,12 @@ class FinanceOperationsController extends Controller
                 }
                 $html .= '</tbody><tfoot><tr>';
                 foreach ($report['columns'] as $column) {
-                    $html .= '<th>'.e(isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? 'TOTAL' : '')).'</th>';
+                    $html .= '<th>'.e(isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? __('portal.ops_export_total') : '')).'</th>';
                 }
-                $html .= '</tr></tfoot></table><p><small>Generated '.e(now()->timezone('Asia/Dhaka')->format('d M Y H:i')).' · Amounts in BDT.</small></p>';
+                $html .= '</tr></tfoot></table><p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
                 $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', 'default_font' => 'freeserif', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
-                $pdf->SetTitle('Madina '.Str::headline($data['type']).' report');
-                $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">Madina Natural Health Care · Page {PAGENO} of {nbpg}</div>');
+                $pdf->SetTitle(__('portal.ops_export_pdf_title', ['name' => $reportName]));
+                $pdf->SetHTMLFooter('<div style="text-align:right;font-size:8pt">'.e(__('portal.ops_export_pdf_footer')).'</div>');
                 $pdf->WriteHTML($html);
                 $pdf->Output($path, Destination::FILE);
             }
@@ -338,7 +346,7 @@ class FinanceOperationsController extends Controller
         $data = $request->validate(['payment_account_id' => 'required|integer|exists:payment_accounts,id', 'payment_reference' => 'required|string|max:100',
             'paid_at' => ['required', 'date', function (string $attribute, mixed $value, \Closure $fail): void {
                 if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
-                    $fail('Payment time cannot be in the future.');
+                    $fail(__('portal.err_wd_paid_at_future'));
                 }
             }], 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason]);
         $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();

@@ -82,7 +82,7 @@ final class PayrollService
                         'qualifying_volume' => Money::decimal($volume), 'earned_bonus' => Money::decimal($bonus)], JSON_THROW_ON_ERROR),
                     'gross' => Money::decimal($gross), 'deduction' => Money::decimal($deduction), 'net' => Money::decimal($gross - $deduction),
                     'prepared_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-                $this->event($actor, $id, 'prepared', 'Prepared from the effective contract and captured target.');
+                $this->event($actor, $id, 'prepared', __('portal.payroll_event_prepared'));
                 $ids[] = $id;
             }
 

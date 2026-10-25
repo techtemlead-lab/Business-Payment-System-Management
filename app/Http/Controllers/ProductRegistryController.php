@@ -237,7 +237,7 @@ class ProductRegistryController extends Controller
                 if (! $product && $initialStock > 0) {
                     DB::table('stock_movements')->insert([
                         'product_id' => $p->id, 'quantity' => $initialStock, 'kind' => 'receipt',
-                        'reason' => 'Initial stock on product onboarding: '.$d['reason'],
+                        'reason' => __('portal.stock_reason_initial_onboarding', ['reason' => $d['reason']]),
                         'reference' => (string) Str::uuid(), 'actor_id' => $r->user()->id,
                         'created_at' => now(), 'updated_at' => now(),
                     ]);
