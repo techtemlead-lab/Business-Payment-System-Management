@@ -19,6 +19,7 @@ import {
     Check,
     List
 } from 'lucide-react';
+import { useT } from '../shared/i18n/t';
 
 interface Slide {
     image: string;
@@ -4226,6 +4227,7 @@ export default function SiteCustomizationEditor({
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     websitePages?: { key: string; slug: string; label: string; toggleable?: boolean; enabled?: boolean; flag?: string | null }[];
 }) {
+    const translate = useT();
     const [tab, setTab] = useState<'header' | 'banners' | 'shortcuts' | 'catalog' | 'pages' | 'footer'>('pages');
     const pageFlags = [
         'page_enabled_about', 'page_enabled_products', 'page_enabled_dealers', 'page_enabled_contact',
@@ -4666,18 +4668,18 @@ export default function SiteCustomizationEditor({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 15 }}>
                     <div>
                         <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-                            <SlidersHorizontal size={22} color="#2e3192" /> Website Manage
+                            <SlidersHorizontal size={22} color="#2e3192" /> {translate('portal', 'cms_heading')}
                         </h2>
                         <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 13 }}>
-                            Customize every public company page — landing, about, products, dealers, partnership, services, quality, FAQ, contact and legal. Leave a field empty to keep its standard placeholder.
+                            {translate('portal', 'cms_heading_hint')}
                         </p>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                         <a href={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/` : '/'} target="_blank" rel="noopener noreferrer" className="button small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <ExternalLink size={14} /> Preview Live Website
+                            <ExternalLink size={14} /> {translate('portal', 'cms_preview_live')}
                         </a>
                         <button type="button" onClick={handleResetAll} className="button small" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <RotateCcw size={14} /> Reset All to Placeholders
+                            <RotateCcw size={14} /> {translate('portal', 'cms_reset_all')}
                         </button>
                     </div>
                 </div>
@@ -4687,20 +4689,20 @@ export default function SiteCustomizationEditor({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Package size={20} color="#15803d" />
                         <span style={{ fontSize: 13, color: '#166534', fontWeight: 500 }}>
-                            Manage the homepage <strong>Product Showcase</strong> in <strong>Product Management</strong>. Purchasing is available through the dealer and sub-dealer dashboards.
+                            {translate('portal', 'cms_product_banner')}
                         </span>
                     </div>
                     <a href="/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-                        Go to Product Management ↗
+                        {translate('portal', 'cms_product_mgmt')}
                     </a>
                 </div>
 
                 <div style={{ marginTop: 18, padding: 16, borderRadius: 12, border: '1px solid #dbe4f0', background: 'linear-gradient(180deg,#f8fafc,#fff)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>Public page visibility</h3>
+                            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{translate('portal', 'cms_visibility_title')}</h3>
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
-                                Turn a page off to block its route and hide every header, footer, shortcut and button that points to it.
+                                {translate('portal', 'cms_visibility_hint')}
                             </p>
                         </div>
                     </div>
@@ -4725,7 +4727,7 @@ export default function SiteCustomizationEditor({
                                         <div style={{ fontSize: 10, color: '#94a3b8' }}>{page.slug}</div>
                                     </div>
                                     {page.toggleable === false || !flag ? (
-                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>Always on</span>
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>{translate('portal', 'cms_always_on')}</span>
                                     ) : (
                                         <button
                                             type="button"
@@ -4734,7 +4736,7 @@ export default function SiteCustomizationEditor({
                                             onClick={() => updateField(flag, on ? '0' : '1')}
                                             style={{ fontSize: 11, minWidth: 72 }}
                                         >
-                                            {on ? 'On' : 'Off'}
+                                            {on ? translate('portal', 'cms_on') : translate('portal', 'cms_off')}
                                         </button>
                                     )}
                                 </div>
@@ -4751,7 +4753,7 @@ export default function SiteCustomizationEditor({
                                 className="button small"
                                 style={{ fontSize: 11 }}
                             >
-                                Preview {page.label}
+                                {translate('portal', 'cms_preview_page', { label: page.label })}
                             </a>
                         ))}
                     </div>
@@ -4759,12 +4761,12 @@ export default function SiteCustomizationEditor({
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 18, borderBottom: '1px solid #e2e8f0', overflowX: 'auto', paddingBottom: 8 }}>
                     {[
-                        { id: 'header', label: 'Top Bar & Header', icon: Layout },
-                        { id: 'banners', label: 'Landing Banners', icon: Image },
-                        { id: 'shortcuts', label: 'Landing Shortcuts', icon: Sparkles },
-                        { id: 'catalog', label: 'Landing & Catalog', icon: Package },
-                        { id: 'pages', label: 'Public Pages', icon: BookOpen },
-                        { id: 'footer', label: 'Footer & Legal', icon: Share2 },
+                        { id: 'header', labelKey: 'cms_tab_header', icon: Layout },
+                        { id: 'banners', labelKey: 'cms_tab_banners', icon: Image },
+                        { id: 'shortcuts', labelKey: 'cms_tab_shortcuts', icon: Sparkles },
+                        { id: 'catalog', labelKey: 'cms_tab_catalog', icon: Package },
+                        { id: 'pages', labelKey: 'cms_tab_pages', icon: BookOpen },
+                        { id: 'footer', labelKey: 'cms_tab_footer', icon: Share2 },
                     ].map(t => {
                         const Icon = t.icon;
                         const active = tab === t.id;
@@ -4777,7 +4779,7 @@ export default function SiteCustomizationEditor({
                                 style={{ display: 'flex', alignItems: 'center', gap: 7, borderRadius: 6, whiteSpace: 'nowrap' }}
                             >
                                 <Icon size={15} />
-                                <span>{t.label}</span>
+                                <span>{translate('portal', t.labelKey)}</span>
                             </button>
                         );
                     })}
@@ -4789,7 +4791,7 @@ export default function SiteCustomizationEditor({
                     {/* TAB 1: HEADER & TOP BAR */}
                     {tab === 'header' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Top Bar & Header Navigation</h3>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>{translate('portal', 'cms_header_title')}</h3>
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
                                 <Field label="Top Company Bar Text" fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
                                 <Field label="Search Input Placeholder" fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
@@ -4821,7 +4823,7 @@ export default function SiteCustomizationEditor({
                     {/* TAB 2: SLIDER & BANNERS */}
                     {tab === 'banners' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Hero Carousel Slides (5 Slides)</h3>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>{translate('portal', 'cms_banners_title')}</h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 30 }}>
                                 {(form.data.customization.slides || []).map((slide, idx) => {
                                     const defSlide = defaults.slides?.[idx] || { image: '', link: '', alt: '' };
@@ -5417,7 +5419,7 @@ export default function SiteCustomizationEditor({
                             style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', fontSize: 14 }}
                         >
                             <Save size={16} />
-                            <span>{form.processing ? 'Saving Changes…' : 'Save Customization'}</span>
+                            <span>{form.processing ? translate('portal', 'cms_saving') : translate('portal', 'cms_save')}</span>
                         </button>
                     </div>
                 </div>

@@ -37,6 +37,22 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
     }
 
+    public function test_website_customization_exposes_bangla_shell_keys(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/website')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'website')
+                ->where('translations.portal.cms_heading', 'ওয়েবসাইট ম্যানেজ')
+                ->where('translations.portal.cms_tab_pages', 'পাবলিক পেজ')
+                ->where('translations.portal.cms_save', 'কাস্টমাইজেশন সংরক্ষণ'));
+    }
+
     public function test_sub_dealer_hub_exposes_bangla_chrome_keys(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
