@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\StaffOperations;
+use App\Domain\Staff\TerritoryAccess;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
@@ -550,6 +552,46 @@ class PartnerEventSmsTest extends TestCase
             'user_id' => $partner->id,
             'title' => __('portal.notice_partnership_approved_title', [], 'bn'),
         ]);
+    }
+
+    public function test_staff_target_save_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000099',
+        ]);
+        app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Rangpur',
+        ]);
+        $month = now('Asia/Dhaka')->format('Y-m');
+
+        app(StaffOperations::class)->target($admin, [
+            'staff_id' => $sr->id,
+            'period_month' => $month,
+            'target' => '10000.00',
+            'bonus' => '500.00',
+            'version' => 0,
+        ]);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.target_saved', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000099', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_target_saved', [
+                'month' => $month,
+                'target' => '10000.00',
+                'bonus' => '500.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
     }
 
     public function test_partnership_rejection_sms_reaches_applicant_phone(): void

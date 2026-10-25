@@ -59,6 +59,17 @@ final class StaffOperations
                     'bonus' => $data['bonus'],
                 ], $locale),
             );
+            DB::afterCommit(function () use ($staff, $locale, $data): void {
+                app(PartnerEventSms::class)->send(
+                    $staff,
+                    'staff.target_saved',
+                    __('sms.staff_target_saved', [
+                        'month' => $data['period_month'],
+                        'target' => $data['target'],
+                        'bonus' => $data['bonus'],
+                    ], $locale),
+                );
+            });
 
             return $id;
         }, 3);
