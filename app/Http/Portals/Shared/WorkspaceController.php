@@ -145,17 +145,29 @@ class WorkspaceController extends Controller
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();
                     $data['defaults'] = SiteCustomization::defaults();
-                    $data['all_catalog_products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
-                        'id' => $p->id,
-                        'name' => $p->name,
-                        'sku' => $p->sku,
-                        'mrp' => $p->mrp,
-                        ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
-                        'category' => $p->category,
-                        'featured' => (bool) $p->featured,
-                        ...($revealStock ? ['stock' => (int) $p->stock] : []),
-                        'image' => $p->media()['image_url'] ?? '',
-                    ]);
+                    $pickerQuery = Product::query()
+                        ->where('active', true)
+                        ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match
+                            ->where('name', 'ilike', '%'.$r->string('q').'%')
+                            ->orWhere('sku', 'ilike', '%'.$r->string('q').'%')
+                            ->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                        ->orderBy('name');
+                    $pickerLimit = 250;
+                    $data['all_catalog_products_truncated'] = (clone $pickerQuery)->count() > $pickerLimit;
+                    $data['all_catalog_products'] = (clone $pickerQuery)
+                        ->limit($pickerLimit)
+                        ->get()
+                        ->map(fn ($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'sku' => $p->sku,
+                            'mrp' => $p->mrp,
+                            ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
+                            'category' => $p->category,
+                            'featured' => (bool) $p->featured,
+                            ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                            'image' => $p->media()['image_url'] ?? '',
+                        ]);
                 }
             }
         }
@@ -433,17 +445,29 @@ class WorkspaceController extends Controller
             })->values()->all();
             $revealStock = $u->allows('inventory');
             $revealDealerPrice = $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
-            $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'sku' => $p->sku,
-                'mrp' => $p->mrp,
-                ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
-                'category' => $p->category,
-                'featured' => (bool) $p->featured,
-                ...($revealStock ? ['stock' => (int) $p->stock] : []),
-                'image' => $p->media()['image_url'] ?? '',
-            ]);
+            $websiteProductQuery = Product::query()
+                ->where('active', true)
+                ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match
+                    ->where('name', 'ilike', '%'.$r->string('q').'%')
+                    ->orWhere('sku', 'ilike', '%'.$r->string('q').'%')
+                    ->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                ->orderBy('name');
+            $websiteProductLimit = 250;
+            $data['products_truncated'] = (clone $websiteProductQuery)->count() > $websiteProductLimit;
+            $data['products'] = (clone $websiteProductQuery)
+                ->limit($websiteProductLimit)
+                ->get()
+                ->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'sku' => $p->sku,
+                    'mrp' => $p->mrp,
+                    ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
+                    'category' => $p->category,
+                    'featured' => (bool) $p->featured,
+                    ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                    'image' => $p->media()['image_url'] ?? '',
+                ]);
         }
         if ($section === 'enquiries') {
             $data['enquiries'] = DB::table('enquiries')
