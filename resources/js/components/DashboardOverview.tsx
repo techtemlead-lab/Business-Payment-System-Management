@@ -349,13 +349,13 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     // Fallback for edge roles
     const commerce = !staff || caps.includes('orders') || caps.includes('finance');
     const cards = [
-        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
-        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
-        { route: 'earnings', name: 'My earnings', description: 'View earnings and payouts', icon: Coins, show: !staff },
-        { route: 'network', name: 'My network', description: 'Direct referrals', icon: GitBranch, show: u.role === 'dealer' },
-        { route: 'ranks', name: 'Rank progress', description: 'Qualification status', icon: BadgeCheck, show: u.role === 'dealer' },
-        { route: 'profile', name: 'My profile', description: 'Account information', icon: Users, show: true },
-        { route: 'security', name: 'Account security', description: 'Change password', icon: Settings, show: true },
+        { route: 'catalog', name: translate('portal','dash_card_catalog'), description: translate('portal','dash_card_catalog_desc'), icon: Package, show: true },
+        { route: 'orders', name: translate('portal','dash_card_orders'), description: translate('portal','dash_card_orders_desc'), icon: ShoppingBag, show: commerce },
+        { route: 'earnings', name: translate('portal','nav_my_earnings'), description: translate('portal','dash_card_earnings_desc'), icon: Coins, show: !staff },
+        { route: 'network', name: translate('portal','dash_card_network'), description: translate('portal','dash_card_network_desc'), icon: GitBranch, show: u.role === 'dealer' },
+        { route: 'ranks', name: translate('portal','dash_card_ranks'), description: translate('portal','dash_card_ranks_desc'), icon: BadgeCheck, show: u.role === 'dealer' },
+        { route: 'profile', name: translate('portal','dash_card_profile'), description: translate('portal','dash_card_profile_desc'), icon: Users, show: true },
+        { route: 'security', name: translate('portal','dash_card_security'), description: translate('portal','dash_card_security_desc'), icon: Settings, show: true },
     ].filter((x) => x.show);
 
     return (
@@ -364,14 +364,14 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
                 <div className="account-profile-info">
                     <div className="account-avatar" aria-hidden="true">{u.name[0]}</div>
                     <div>
-                        <p>Hello,</p>
+                        <p>{translate('portal','dash_hello')}</p>
                         <h2>{u.name}</h2>
-                        <small>{u.dealer_code ?? 'Company staff'} · {labelRole(u.role)}</small>
+                        <small>{u.dealer_code ?? translate('portal','company_staff')} · {labelRole(u.role)}</small>
                         <Badge status={u.status} />
                     </div>
                 </div>
             </section>
-            <section className="account-actions dense-actions" aria-label="Account actions">
+            <section className="account-actions dense-actions" aria-label={translate('portal','dash_account_actions')}>
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (

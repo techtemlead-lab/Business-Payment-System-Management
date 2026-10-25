@@ -411,7 +411,7 @@ export default function ProductManagementHub({
                                 }}
                             >
                                 <Save size={16} />
-                                {featuredForm.processing ? 'Saving Changes…' : 'Save Featured Showcase'}
+                                {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
                             </button>
                         </div>
                     </div>
@@ -440,7 +440,7 @@ export default function ProductManagementHub({
                         gap: 12
                     }}>
                         <div style={{ fontSize: 13, color: '#64748b' }}>
-                            Save your curated featured items to update the homepage product grid and category tabs.
+                            {translate('portal', 'pm_featured_save_hint')}
                         </div>
                         <button
                             type="submit"
@@ -461,7 +461,7 @@ export default function ProductManagementHub({
                             }}
                         >
                             <Save size={16} />
-                            {featuredForm.processing ? 'Saving Changes…' : 'Save Featured Showcase'}
+                            {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
                         </button>
                     </div>
                 </form>

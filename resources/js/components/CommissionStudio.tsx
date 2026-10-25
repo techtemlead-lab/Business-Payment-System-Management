@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { SlidersHorizontal, Percent, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check, ArrowRight } from 'lucide-react';
 import { money } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface RuleRecord {
     id: number;
@@ -18,6 +19,7 @@ interface RuleRecord {
 }
 
 export default function CommissionStudio({ rules: initialRules }: { rules: RuleRecord[] }) {
+    const translate = useT();
     const {staffActions} = usePage<any>().props;
     const canEdit = staffActions?.finance?.edit ?? true;
     const [rules, setRules] = useState<Record<string, RuleRecord>>(() => {
@@ -70,15 +72,15 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: isOverAllocated ? '#b91c1c' : '#047857', textTransform: 'uppercase' }}>
                             {isOverAllocated ? <AlertCircle size={18} /> : <ShieldCheck size={18} />}
-                            {isOverAllocated ? 'Zero-Deficit Violation' : 'Zero-Deficit Guarantee Active'}
+                            {isOverAllocated ? translate('portal','cs_violation') : translate('portal','cs_guarantee')}
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: isOverAllocated ? '#dc2626' : '#006837', marginTop: 2 }}>
-                            {totalPercentage.toFixed(2)}% <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ 40.00% Dealer Pool · Sub-dealer {subDealerPercentage.toFixed(2)}% / 50.00%</span>
+                            {totalPercentage.toFixed(2)}% <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ 40.00% {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / 50.00%</span>
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             {isOverAllocated
-                                ? 'Review dealer and sub-dealer pool limits before saving.'
-                                : 'Admin-editable global rates (not hard-locked). Change any percentage below and save. For one dealer or sub-dealer, open the partner account editor and propose a custom buyer commission plan.'}
+                                ? translate('portal','cs_review_limits')
+                                : translate('portal','cs_editable_hint')}
                         </div>
                     </div>
 
@@ -94,7 +96,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                     border: 'none', cursor: 'pointer'
                                 }}
                             >
-                                <SlidersHorizontal size={14} style={{ display: 'inline', marginRight: 4 }} /> Rules Editor
+                                <SlidersHorizontal size={14} style={{ display: 'inline', marginRight: 4 }} /> {translate('portal','cs_tab_editor')}
                             </button>
                             <button
                                 type="button"
@@ -106,7 +108,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                     border: 'none', cursor: 'pointer'
                                 }}
                             >
-                                <Calculator size={14} style={{ display: 'inline', marginRight: 4 }} /> Live Simulator
+                                <Calculator size={14} style={{ display: 'inline', marginRight: 4 }} /> {translate('portal','cs_tab_simulator')}
                             </button>
                         </div>
 
@@ -130,7 +132,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                             }}
                         >
                             {saving ? <RefreshCw size={15} className="spin" /> : <Check size={16} />}
-                            {saving ? 'Saving...' : 'Save Rule Changes'}
+                            {saving ? translate('portal','cs_saving') : translate('portal','cs_save')}
                         </button>
                     </div>
                 </div>
@@ -153,7 +155,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
                     {Object.values(rules).length === 0 && (
                         <div style={{ gridColumn: '1 / -1', padding: 24, border: '1px dashed #cbd5e1', borderRadius: 12, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
-                            No commission rules are loaded yet. Publish or restore the active policy schedule before editing rates here.
+                            {translate('portal','cs_no_rules')}
                         </div>
                     )}
                     {Object.values(rules).map(r => {
@@ -183,7 +185,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 12 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                         <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
-                                            Allocated Percentage
+                                            {translate('portal','cs_allocated_pct')}
                                         </label>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                             <input
@@ -231,7 +233,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                 <div style={{ background: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: 22, boxShadow: '0 2px 10px rgba(0,0,0,0.04)' }}>
                     <div style={{ maxWidth: 450, marginBottom: 24 }}>
                         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
-                            Preview purchase value paid to company:
+                            {translate('portal','cs_preview_purchase')}
                         </label>
                         <div style={{ position: 'relative' }}>
                             <span style={{ position: 'absolute', left: 12, top: 11, fontSize: 15, fontWeight: 700, color: '#006837' }}>৳</span>
@@ -244,19 +246,19 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                 style={{ width: '100%', padding: '10px 14px 10px 32px', fontSize: 16, fontWeight: 800, color: '#006837', border: '1.5px solid #a7f3d0', borderRadius: 8, background: '#f0fdf4' }}
                             />
                         </div>
-                        <label style={{display:'block',marginTop:12}}>Account <select value={simAccount} onChange={e=>setSimAccount(e.target.value as 'dealer'|'sub_dealer')}><option value="dealer">Dealer</option><option value="sub_dealer">Sub-dealer</option></select></label>
-                        <label style={{display:'block',marginTop:12}}>Total MRP <input type="number" min="0" step="0.01" value={simMrp} onChange={e=>setSimMrp(Math.max(0,Number(e.target.value)||0))}/></label>
-                        <p style={{fontSize:12,color:simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?'#b91c1c':'#047857'}}>Preview only. {simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?'This price does not fund the configured allocations.':'The company share and allocations fit this purchase value.'}</p>
+                        <label style={{display:'block',marginTop:12}}>{translate('portal','cs_account')} <select value={simAccount} onChange={e=>setSimAccount(e.target.value as 'dealer'|'sub_dealer')}><option value="dealer">{translate('portal','cs_dealer')}</option><option value="sub_dealer">{translate('portal','cs_sub_dealer')}</option></select></label>
+                        <label style={{display:'block',marginTop:12}}>{translate('portal','cs_total_mrp')} <input type="number" min="0" step="0.01" value={simMrp} onChange={e=>setSimMrp(Math.max(0,Number(e.target.value)||0))}/></label>
+                        <p style={{fontSize:12,color:simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?'#b91c1c':'#047857'}}>{translate('portal','cs_preview_only')} {simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?translate('portal','cs_preview_underfunded'):translate('portal','cs_preview_funded')}</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
                         {/* Company Retained Card */}
                         <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 10, padding: 16 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>🏢 Company Retained Share</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>{translate('portal','cs_company_retained')}</div>
                             <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
                                 ৳ {(simMrp * 0.30).toFixed(2)}
                             </div>
-                            <div style={{ fontSize: 11.5, color: '#64748b' }}>30.00% of MRP</div>
+                            <div style={{ fontSize: 11.5, color: '#64748b' }}>{translate('portal','cs_of_mrp',{pct:'30.00'})}</div>
                         </div>
 
                         {/* Each of the 9 pools */}
