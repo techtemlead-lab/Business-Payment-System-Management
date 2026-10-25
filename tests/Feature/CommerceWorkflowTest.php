@@ -35,6 +35,18 @@ class CommerceWorkflowTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/catalog')->assertOk();
     }
 
+    public function test_portal_hosts_expose_login_and_public_catalog_surfaces(): void
+    {
+        $this->onPortal('public')->get('/')->assertOk();
+        $this->onPortal('public')->get('/products')->assertOk();
+        $this->onPortal('public')->get('/contact')->assertOk();
+        $this->onPortal('public')->get('/dealers')->assertOk();
+
+        foreach (['dealer', 'manage', 'sadmin'] as $portal) {
+            $this->onPortal($portal)->get('/login')->assertOk();
+        }
+    }
+
     public function test_portal_hosts_carry_order_through_delivery_to_commission_posting(): void
     {
         $this->enableFinancialPosting();

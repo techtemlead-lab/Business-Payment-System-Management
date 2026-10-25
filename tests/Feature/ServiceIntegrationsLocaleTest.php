@@ -7,6 +7,7 @@ use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\PaymentGatewayClient;
+use App\Domain\Integrations\SmsGatewayClient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +26,10 @@ class ServiceIntegrationsLocaleTest extends TestCase
         $this->assertSame('SMS গেটওয়ে', $groups['sms']['label'] ?? null);
         $this->assertStringContainsString('অ্যাকাউন্ট তৈরি', $groups['sms']['description'] ?? '');
         $this->assertSame('পেমেন্ট গেটওয়ে API', $groups['payments']['label'] ?? null);
+        $this->assertSame(__('portal.si_provider_pathao', [], 'bn'), $groups['couriers']['providers']['pathao']['label'] ?? null);
+        $this->assertSame(__('portal.si_provider_bkash', [], 'bn'), $groups['payments']['providers']['bkash']['label'] ?? null);
+        $this->assertSame(__('portal.si_provider_ssl_wireless', [], 'bn'), $groups['sms']['providers']['ssl_wireless']['label'] ?? null);
+        $this->assertSame(__('portal.si_provider_rocket', [], 'bn'), $groups['payments']['providers']['rocket']['label'] ?? null);
     }
 
     public function test_enabling_bdris_without_credentials_returns_bangla_error(): void
@@ -57,6 +62,16 @@ class ServiceIntegrationsLocaleTest extends TestCase
 
         $this->assertFalse($result['checked']);
         $this->assertSame(__('portal.si_pay_none_enabled', [], 'bn'), $result['message']);
+    }
+
+    public function test_sms_gateway_none_accepted_message_uses_locale(): void
+    {
+        app()->setLocale('bn');
+
+        $result = app(SmsGatewayClient::class)->send('01700000000', 'Locale smoke');
+
+        $this->assertFalse($result['sent']);
+        $this->assertSame(__('portal.si_sms_none_accepted', [], 'bn'), $result['message']);
     }
 
     public function test_disabled_courier_create_returns_bangla_message(): void
