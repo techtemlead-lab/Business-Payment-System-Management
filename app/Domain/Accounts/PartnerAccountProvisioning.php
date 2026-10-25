@@ -32,7 +32,7 @@ final class PartnerAccountProvisioning
     {
         $role = (string) ($input['role'] ?? '');
         if (! in_array($role, ['dealer', 'sub_dealer'], true)) {
-            throw ValidationException::withMessages(['role' => 'Choose dealer or sub-dealer.']);
+            throw ValidationException::withMessages(['role' => __('portal.acct_val_role')]);
         }
 
         $phone = $this->normalizeBdMobile((string) ($input['phone'] ?? ''));
@@ -41,26 +41,26 @@ final class PartnerAccountProvisioning
         $referenceCode = strtoupper(trim((string) ($input['reference_code'] ?? '')));
         $identityType = (string) ($input['identity_type'] ?? 'birth_certificate');
         if (! in_array($identityType, ['birth_certificate', 'nid'], true)) {
-            throw ValidationException::withMessages(['identity_type' => 'Choose birth certificate or NID.']);
+            throw ValidationException::withMessages(['identity_type' => __('portal.acct_val_identity_type')]);
         }
 
         if ($referCode === '') {
-            throw ValidationException::withMessages(['refer_code' => 'Enter this partner’s unique refer code.']);
+            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_required')]);
         }
         if ($referenceCode !== '' && $referenceCode === $referCode) {
             throw ValidationException::withMessages([
-                'refer_code' => 'Your refer code cannot be the same as the reference code.',
-                'reference_code' => 'Reference code and your refer code must be different.',
+                'refer_code' => __('portal.acct_val_refer_same_as_reference'),
+                'reference_code' => __('portal.acct_val_reference_same_as_refer'),
             ]);
         }
         if (User::query()->whereRaw('UPPER(refer_code) = ?', [$referCode])->exists()) {
-            throw ValidationException::withMessages(['refer_code' => 'This refer code is already in use.']);
+            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
         if (User::query()->where('phone', $phone)->exists()) {
-            throw ValidationException::withMessages(['phone' => 'This mobile number already has an account.']);
+            throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
         }
         if (User::query()->where('email', $email)->exists()) {
-            throw ValidationException::withMessages(['email' => 'This email already has an account.']);
+            throw ValidationException::withMessages(['email' => __('portal.acct_val_email_taken')]);
         }
 
         $sponsor = null;
@@ -71,26 +71,26 @@ final class PartnerAccountProvisioning
                 ->where('status', 'active')
                 ->first();
             if (! $sponsor) {
-                throw ValidationException::withMessages(['reference_code' => 'No active dealer found with that reference code.']);
+                throw ValidationException::withMessages(['reference_code' => __('portal.acct_val_reference_missing')]);
             }
         }
 
         $placeCodeValue = trim((string) ($input['place_code'] ?? ''));
         if ($placeCodeValue === '') {
             throw ValidationException::withMessages(['place_code' => $role === 'sub_dealer'
-                ? 'Enter a union / city corporation code (for example MNHC-501).'
-                : 'Enter the area place code (for example MNHC-101).']);
+                ? __('portal.acct_val_place_sub')
+                : __('portal.acct_val_place_dealer')]);
         }
 
         $place = PlaceCode::findByCode($placeCodeValue);
         if (! $place) {
-            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code. Use the MNHC- form (example: MNHC-100).']);
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
         }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
-            throw ValidationException::withMessages(['place_code' => 'Sub-dealers must be linked to a union / city corporation code.']);
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_level')]);
         }
         if ($role === 'dealer' && $place->level === PlaceCode::LevelManagement) {
-            throw ValidationException::withMessages(['place_code' => 'Dealers cannot be assigned the management code.']);
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_management')]);
         }
 
         if ($role === 'dealer') {
@@ -99,11 +99,11 @@ final class PartnerAccountProvisioning
                 ->where('is_active', true)
                 ->exists();
             if ($taken) {
-                throw ValidationException::withMessages(['place_code' => 'This area code already has an active dealer.']);
+                throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_taken')]);
             }
             $dealerCode = PlaceCode::brandSerial(trim((string) ($input['dealer_code'] ?? ''))) ?: $place->code;
             if (User::query()->where('dealer_code', $dealerCode)->exists()) {
-                throw ValidationException::withMessages(['dealer_code' => 'This dealer code is already in use.']);
+                throw ValidationException::withMessages(['dealer_code' => __('portal.acct_val_dealer_code_taken')]);
             }
         } else {
             $dealerCode = $this->nextSubDealerCode($place->code);
@@ -134,18 +134,23 @@ final class PartnerAccountProvisioning
         ];
 
         if ($identityType === 'nid' && trim((string) ($input['nid'] ?? '')) === '') {
-            throw ValidationException::withMessages(['nid' => 'Enter the NID number.']);
+            throw ValidationException::withMessages(['nid' => __('portal.acct_val_nid_required')]);
         }
         if ($identityType === 'birth_certificate' && trim((string) ($input['birth_certificate_number'] ?? '')) === '') {
-            throw ValidationException::withMessages(['birth_certificate_number' => 'Enter the birth certificate number.']);
+            throw ValidationException::withMessages(['birth_certificate_number' => __('portal.acct_val_birth_cert_required')]);
         }
         if ($profile['date_of_birth'] === '') {
-            throw ValidationException::withMessages(['date_of_birth' => 'Enter the date of birth.']);
+            throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_required')]);
         }
-        foreach (['name' => 'English name', 'name_bn' => 'Bangla name', 'father_name' => 'Father’s name', 'mother_name' => 'Mother’s name'] as $field => $label) {
+        foreach ([
+            'name' => 'portal.acct_val_name_en_required',
+            'name_bn' => 'portal.acct_val_name_bn_required',
+            'father_name' => 'portal.acct_val_father_required',
+            'mother_name' => 'portal.acct_val_mother_required',
+        ] as $field => $messageKey) {
             $value = $field === 'name' ? trim((string) ($input['name'] ?? '')) : $profile[$field];
             if ($value === '') {
-                throw ValidationException::withMessages([$field === 'name' ? 'name' : $field => $label.' is required.']);
+                throw ValidationException::withMessages([$field === 'name' ? 'name' : $field => __($messageKey)]);
             }
         }
 
@@ -241,10 +246,10 @@ final class PartnerAccountProvisioning
     {
         $place = PlaceCode::findByCode($code);
         if (! $place) {
-            throw ValidationException::withMessages(['place_code' => 'Unknown or inactive place code. Use the MNHC- form (example: MNHC-100).']);
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
         }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
-            throw ValidationException::withMessages(['place_code' => 'Sub-dealers must use a union / city corporation code.']);
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_preview')]);
         }
         $path = $this->geography->expandFromAnchor($place);
         $available = $role === 'sub_dealer' || ! AreaDealerAssignment::query()
