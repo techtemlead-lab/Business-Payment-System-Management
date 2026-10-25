@@ -4745,11 +4745,11 @@ export default function SiteCustomizationEditor({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
                         {(websitePages.length > 0 ? websitePages : [
-                            { key: 'home', slug: '/', label: 'Landing page', toggleable: false, enabled: true, flag: null },
+                            { key: 'home', slug: '/', label: translate('portal', 'website_page_home'), toggleable: false, enabled: true, flag: null },
                             ...pageFlags.map((flag) => ({
                                 key: flag.replace('page_enabled_', ''),
                                 slug: '/' + flag.replace('page_enabled_', ''),
-                                label: flag.replace('page_enabled_', ''),
+                                label: translate('portal', `website_page_${flag.replace('page_enabled_', '')}`),
                                 toggleable: true,
                                 enabled: form.data.customization[flag] !== '0',
                                 flag,

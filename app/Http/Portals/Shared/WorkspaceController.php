@@ -419,17 +419,17 @@ class WorkspaceController extends Controller
             $data['defaults'] = SiteCustomization::defaults();
             $enabled = SiteCustomization::enabledPagesMap();
             $data['websitePages'] = collect([
-                ['key' => 'home', 'slug' => '/', 'label' => 'Landing page', 'toggleable' => false],
-                ['key' => 'about', 'slug' => '/about', 'label' => 'About'],
-                ['key' => 'products', 'slug' => '/products', 'label' => 'Products'],
-                ['key' => 'dealers', 'slug' => '/dealers', 'label' => 'Dealer directory'],
-                ['key' => 'partnership', 'slug' => '/partnership', 'label' => 'Partnership'],
-                ['key' => 'services', 'slug' => '/services', 'label' => 'Services'],
-                ['key' => 'quality', 'slug' => '/quality', 'label' => 'Quality'],
-                ['key' => 'faq', 'slug' => '/faq', 'label' => 'FAQ'],
-                ['key' => 'contact', 'slug' => '/contact', 'label' => 'Contact'],
-                ['key' => 'privacy', 'slug' => '/privacy', 'label' => 'Privacy'],
-                ['key' => 'terms', 'slug' => '/terms', 'label' => 'Terms'],
+                ['key' => 'home', 'slug' => '/', 'label' => __('portal.website_page_home'), 'toggleable' => false],
+                ['key' => 'about', 'slug' => '/about', 'label' => __('portal.website_page_about')],
+                ['key' => 'products', 'slug' => '/products', 'label' => __('portal.website_page_products')],
+                ['key' => 'dealers', 'slug' => '/dealers', 'label' => __('portal.website_page_dealers')],
+                ['key' => 'partnership', 'slug' => '/partnership', 'label' => __('portal.website_page_partnership')],
+                ['key' => 'services', 'slug' => '/services', 'label' => __('portal.website_page_services')],
+                ['key' => 'quality', 'slug' => '/quality', 'label' => __('portal.website_page_quality')],
+                ['key' => 'faq', 'slug' => '/faq', 'label' => __('portal.website_page_faq')],
+                ['key' => 'contact', 'slug' => '/contact', 'label' => __('portal.website_page_contact')],
+                ['key' => 'privacy', 'slug' => '/privacy', 'label' => __('portal.website_page_privacy')],
+                ['key' => 'terms', 'slug' => '/terms', 'label' => __('portal.website_page_terms')],
             ])->map(function (array $page) use ($enabled) {
                 $key = $page['key'];
                 $toggleable = $page['toggleable'] ?? true;
