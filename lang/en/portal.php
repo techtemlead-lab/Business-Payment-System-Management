@@ -1875,6 +1875,7 @@ return [
     'err_wd_insufficient' => 'Insufficient available earnings.',
     'net_export_csv' => 'Export genealogy CSV',
     'net_export_hint' => 'Download your downline (or company network for staff) as a CSV for offline review.',
+    'net_truncated_notice' => 'Showing :shown of :total partners in this view. Export genealogy CSV for the full roster.',
     'feature_disabled' => 'This workspace feature (:feature) is temporarily disabled by company administration.',
 
     'rw_badge' => 'Infinite-depth milestone engine with anti-whale branch capping',

@@ -35,6 +35,7 @@ use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -311,6 +312,20 @@ class WorkspaceController extends Controller
         if ($section === 'network') {
             $data['members'] = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')->where('ancestor_id', $u->id)
                 ->where('depth', '>', 0)->orderBy('depth')->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
+            if (! $staff && $u->role === 'dealer') {
+                $networkIds = DB::table('referral_tree_paths')
+                    ->where('ancestor_id', $u->id)
+                    ->pluck('descendant_id')
+                    ->push($u->id)
+                    ->unique()
+                    ->values()
+                    ->all();
+                $data['dealers'] = $this->networkDealerNodes(
+                    User::query()->whereIn('id', $networkIds),
+                    maskPhone: false,
+                );
+                $data['dealers_truncated'] = false;
+            }
             if ($r->filled('member_id')) {
                 $member = $r->validate(['member_id' => 'required|integer'])['member_id'];
                 abort_unless(ReferralTreePath::isDescendant($u->id, (int) $member), 404);
@@ -493,24 +508,15 @@ class WorkspaceController extends Controller
                 ->selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
         }
         if ($section === 'network-tree' || ($staff && $section === 'network')) {
-            $data['dealers'] = User::whereIn('role', ['dealer', 'sub_dealer'])
-                ->with(['rank', 'sponsor:id,name,dealer_code'])
-                ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
-                ->map(fn ($d) => [
-                    'id' => $d->id,
-                    'name' => $d->name,
-                    'dealer_code' => $d->dealer_code,
-                    'phone' => $d->phone,
-                    'district' => $d->district,
-                    'division' => $d->division,
-                    'sponsor_id' => $d->sponsor_id,
-                    'sponsor_name' => $d->sponsor?->name,
-                    'role' => $d->role,
-                    'status' => $d->status,
-                    'rank' => $d->rank?->current_rank ?? 'dealer',
-                    'lifetime_purchases' => (float) ($d->rank?->lifetime_purchase_total ?? 0),
-                    'created_at' => $d->created_at?->toIso8601String(),
-                ]);
+            $networkQuery = User::query()->whereIn('role', ['dealer', 'sub_dealer']);
+            $totalPartners = (clone $networkQuery)->count();
+            $limit = 2500;
+            $data['dealers_truncated'] = $totalPartners > $limit;
+            $data['dealers_total'] = $totalPartners;
+            $data['dealers'] = $this->networkDealerNodes(
+                $networkQuery->orderBy('id')->limit($limit),
+                maskPhone: true,
+            );
         }
         if ($section === 'area-dealers') {
             $data['assignments'] = AreaDealerAssignment::where('is_active', true)
@@ -839,6 +845,41 @@ class WorkspaceController extends Controller
             : null;
 
         return [$fromUtc, $toUtc];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function networkDealerNodes(Builder $query, bool $maskPhone): array
+    {
+        return $query
+            ->with(['rank', 'sponsor:id,name,dealer_code'])
+            ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
+            ->map(function (User $dealer) use ($maskPhone): array {
+                $phone = (string) ($dealer->phone ?? '');
+                if ($maskPhone && $phone !== '') {
+                    $digits = preg_replace('/\D+/', '', $phone) ?: '';
+                    $phone = $digits !== '' ? '••••'.substr($digits, -4) : '';
+                }
+
+                return [
+                    'id' => $dealer->id,
+                    'name' => $dealer->name,
+                    'dealer_code' => $dealer->dealer_code,
+                    'phone' => $phone,
+                    'district' => $dealer->district,
+                    'division' => $dealer->division,
+                    'sponsor_id' => $dealer->sponsor_id,
+                    'sponsor_name' => $dealer->sponsor?->name,
+                    'role' => $dealer->role,
+                    'status' => $dealer->status,
+                    'rank' => $dealer->rank?->current_rank ?? 'dealer',
+                    'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
+                    'created_at' => $dealer->created_at?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function show(Request $r, Order $order): Response

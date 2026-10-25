@@ -167,6 +167,17 @@ class ReviewHardeningFixesTest extends TestCase
         }
     }
 
+    public function test_rewards_toggle_hides_bike_target_on_partner_home(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        ReferralTreePath::attachUser($dealer->id, null);
+        DashboardManagement::save(['dealer_rewards_enabled' => false]);
+
+        $home = app(PartnerDashboardHome::class)->for($dealer->fresh());
+        $keys = collect($home['targets'])->pluck('key')->all();
+        $this->assertNotContains('bike_incentive', $keys);
+    }
+
     public function test_disabled_catalog_toggle_blocks_dealer_catalog_section(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);

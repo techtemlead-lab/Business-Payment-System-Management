@@ -73,4 +73,48 @@ class GenealogyExportTest extends TestCase
         $this->actingAs($sub)->onPortal('subdealer')->get('/exports/genealogy')
             ->assertForbidden();
     }
+
+    public function test_dealer_network_exposes_visual_tree_nodes_with_full_phone(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'phone' => '01711111111',
+            'dealer_code' => 'D-TREE',
+        ]);
+        $child = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'sponsor_id' => $dealer->id,
+            'phone' => '01822222222',
+            'dealer_code' => 'D-LEAF',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+        ReferralTreePath::attachUser($child->id, $dealer->id);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/network')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('section', 'network')
+                ->has('data.dealers', 2)
+                ->where('data.dealers', fn ($dealers) => collect($dealers)->contains(fn ($row) => ($row['dealer_code'] ?? null) === 'D-LEAF' && ($row['phone'] ?? null) === '01822222222')
+                    && collect($dealers)->contains(fn ($row) => ($row['dealer_code'] ?? null) === 'D-TREE' && ($row['phone'] ?? null) === '01711111111')));
+    }
+
+    public function test_staff_network_tree_masks_partner_phones(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'phone' => '01933333333',
+            'dealer_code' => 'D-MASK',
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/network-tree')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('section', 'network-tree')
+                ->where('data.dealers', fn ($dealers) => collect($dealers)->contains(fn ($row) => ($row['dealer_code'] ?? null) === 'D-MASK' && ($row['phone'] ?? null) === '••••3333')));
+    }
 }
