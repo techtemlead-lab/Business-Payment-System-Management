@@ -36,4 +36,6 @@ return [
     'reset_help' => 'Choose a new password for your account.',
     'password_placeholder' => 'Enter your password',
     'show_password' => 'Show password',
+    'account_unavailable' => 'This account is unavailable.',
+    'account_unavailable_contact' => 'This account is unavailable. Contact the company.',
 ];
