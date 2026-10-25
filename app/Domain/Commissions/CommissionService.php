@@ -56,7 +56,7 @@ final class CommissionService
             $rank = DealerRank::where('user_id', $userId)->value('current_rank');
             $approved = $this->policies->snapshot()['rules']['rank_incentive']['parameters'][$rank.'_bonus'] ?? '0.00';
             if (Money::cents(number_format($customAmount, 2, '.', '')) !== Money::cents((string) $approved)) {
-                throw ValidationException::withMessages(['incentive' => 'Change the approved rule rather than overriding an individual award.']);
+                throw ValidationException::withMessages(['incentive' => __('portal.err_incentive_override')]);
             }
         }
 
@@ -135,7 +135,7 @@ final class CommissionService
             $rates[$key] = CommissionPolicy::rate($rules, $key)->decimal();
         }
         if (array_diff_key($parameterOverrides, $rates) !== []) {
-            throw ValidationException::withMessages(['overrides' => 'Unknown simulation category.']);
+            throw ValidationException::withMessages(['overrides' => __('portal.err_sim_unknown_category')]);
         }
         $proposed = $rates;
         try {
