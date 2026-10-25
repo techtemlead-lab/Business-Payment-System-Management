@@ -28,15 +28,15 @@ final class StaffOperations
             abort_unless($actor->fresh()->allows('staff_admin'), 403);
             $staff = User::findOrFail($data['staff_id']);
             if (! $staff->allows('field_sales') || $staff->id === $actor->id || $data['period_month'] < CommissionQualification::currentMonth()) {
-                throw ValidationException::withMessages(['staff_id' => 'Set a current or future target for another active sales representative.']);
+                throw ValidationException::withMessages(['staff_id' => __('portal.err_staff_target_invalid')]);
             }
             $regions = $this->territories->territories($staff->id);
             if ($regions === []) {
-                throw ValidationException::withMessages(['staff_id' => 'Assign a territory before setting a target.']);
+                throw ValidationException::withMessages(['staff_id' => __('portal.err_staff_target_territory')]);
             }
             $old = DB::table('staff_targets')->where('staff_id', $staff->id)->where('period_month', $data['period_month'])->first();
             if ($old && (int) ($data['version'] ?? 0) !== $old->version) {
-                throw ValidationException::withMessages(['version' => 'The target changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.err_staff_target_stale')]);
             }
             $record = ['target' => $data['target'], 'bonus' => $data['bonus'], 'territories' => json_encode($regions, JSON_THROW_ON_ERROR),
                 'version' => ($old->version ?? 0) + 1, 'created_by' => $actor->id, 'updated_at' => now()];
@@ -48,7 +48,16 @@ final class StaffOperations
             Audit::record($actor->id, 'staff.target_saved', (string) $id, ['version' => $record['version'],
                 'before' => $old ? collect($old)->only(['target', 'bonus', 'territories', 'version'])->all() : null,
                 'after' => collect($record)->only(['target', 'bonus', 'territories', 'version'])->all()]);
-            Audit::notice($staff->id, 'Monthly target updated', $data['period_month'].': target '.$data['target'].' BDT; achievement bonus '.$data['bonus'].' BDT.');
+            $locale = $staff->preferredLocale();
+            Audit::notice(
+                $staff->id,
+                __('portal.notice_staff_target_title', [], $locale),
+                __('portal.notice_staff_target_body', [
+                    'month' => $data['period_month'],
+                    'target' => $data['target'],
+                    'bonus' => $data['bonus'],
+                ], $locale),
+            );
 
             return $id;
         }, 3);
@@ -65,12 +74,12 @@ final class StaffOperations
             $this->territories->assertGeography($actor->fresh(), $data);
             if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->where('status', 'pending')->exists()) {
-                throw ValidationException::withMessages(['email' => 'An account or pending application already uses this email.']);
+                throw ValidationException::withMessages(['email' => __('portal.err_staff_email_taken')]);
             }
             if (! empty($data['sponsor_id'])) {
                 $sponsor = $this->territories->assertPartner($actor, (int) $data['sponsor_id'], 'sr_onboarding');
                 if ($sponsor->role !== 'dealer' || $sponsor->status !== 'active') {
-                    throw ValidationException::withMessages(['sponsor_id' => 'Choose an active dealer sponsor in your territory.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_territory')]);
                 }
             }
             $id = (string) Str::uuid();
@@ -92,23 +101,23 @@ final class StaffOperations
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
             abort_unless($application, 404);
             if ($application->status !== 'pending' || ($application->submitted_by !== null && (int) $application->submitted_by === $actor->id)) {
-                throw ValidationException::withMessages(['application' => 'A different authorized reviewer must review a pending application.']);
+                throw ValidationException::withMessages(['application' => __('portal.err_staff_app_reviewer')]);
             }
             $userId = null;
             if ($decision === 'approved') {
                 $data = json_decode($application->data, true, flags: JSON_THROW_ON_ERROR);
                 if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
-                    throw ValidationException::withMessages(['email' => 'This email already has an account.']);
+                    throw ValidationException::withMessages(['email' => __('portal.err_staff_email_exists')]);
                 }
                 $sponsorId = $data['sponsor_id'] ?? null;
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
                     $sponsorId = User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->value('id');
                     if (! $sponsorId) {
-                        throw ValidationException::withMessages(['sponsor_code' => 'The nominated sponsor code is not an active dealer.']);
+                        throw ValidationException::withMessages(['sponsor_code' => __('portal.err_staff_sponsor_code')]);
                     }
                 }
                 if (! empty($sponsorId) && ! User::whereKey($sponsorId)->where('status', 'active')->where('role', 'dealer')->exists()) {
-                    throw ValidationException::withMessages(['sponsor_id' => 'The nominated sponsor is no longer an active dealer.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.err_staff_sponsor_inactive')]);
                 }
                 $user = (new User)->forceFill(['name' => $data['name'], 'email' => $application->email, 'phone' => $data['phone'],
                     'role' => $data['role'], 'status' => 'active', 'password' => Str::random(48),
@@ -126,7 +135,14 @@ final class StaffOperations
             DB::table('dealer_applications')->where('id', $id)->update(['status' => $decision, 'reviewed_by' => $actor->id,
                 'user_id' => $userId, 'reason' => $reason, 'updated_at' => now()]);
             if ($application->submitted_by !== null) {
-                Audit::notice((int) $application->submitted_by, 'Dealer application '.$decision, $application->email.': '.$reason);
+                $submitter = User::find((int) $application->submitted_by);
+                $locale = $submitter?->preferredLocale() ?? app()->getLocale();
+                $decisionLabel = __('portal.app_decision_'.$decision, [], $locale);
+                Audit::notice(
+                    (int) $application->submitted_by,
+                    __('portal.notice_dealer_app_title', ['decision' => $decisionLabel], $locale),
+                    __('portal.notice_dealer_app_body', ['email' => $application->email, 'reason' => $reason], $locale),
+                );
             }
             Audit::record($actor->id, 'dealer_application.'.$decision, $id, ['reason' => $reason, 'user_id' => $userId, 'source' => $application->source ?? 'staff']);
         }, 3);

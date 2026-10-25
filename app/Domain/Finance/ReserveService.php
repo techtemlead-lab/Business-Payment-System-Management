@@ -43,13 +43,13 @@ final class ReserveService
             if ($data['program'] !== 'marketing') {
                 $user = User::whereKey($data['user_id'])->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
                 if ($data['program'] === 'tour' && $user->role !== 'sub_dealer') {
-                    throw ValidationException::withMessages(['user_id' => 'Tour reserve belongs to the purchasing sub-dealer.']);
+                    throw ValidationException::withMessages(['user_id' => __('portal.err_reserve_tour_subdealer')]);
                 }
                 if (in_array($data['program'], ['bike', 'car'], true)) {
                     $awardKey = $data['program'].':'.$user->id;
                     if (! $this->qualification->milestone($user->id, $data['program'])['achieved']
                         || DB::table('reserve_disbursements')->where('award_key', $awardKey)->exists()) {
-                        throw ValidationException::withMessages(['program' => 'This milestone must be achieved and can be awarded only once.']);
+                        throw ValidationException::withMessages(['program' => __('portal.err_reserve_milestone_once')]);
                     }
                 }
             }
@@ -71,7 +71,7 @@ final class ReserveService
             $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
             if ($row->status !== 'requested' || in_array($actor->id, [$row->created_by, $row->user_id], true)) {
-                throw ValidationException::withMessages(['reserve' => 'A different Finance reviewer must review a pending request.']);
+                throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_reviewer')]);
             }
             if ($decision === 'approved') {
                 if ($row->user_id) {
@@ -79,7 +79,7 @@ final class ReserveService
                     abort_unless($partner->status === 'active' && in_array($partner->role, ['dealer', 'sub_dealer'], true), 422);
                 }
                 if (in_array($row->program, ['bike', 'car'], true) && ! $this->qualification->milestone($row->user_id, $row->program)['achieved']) {
-                    throw ValidationException::withMessages(['reserve' => 'The milestone no longer qualifies after adjustments.']);
+                    throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_milestone_lost')]);
                 }
                 $remaining = Money::cents($row->amount);
                 foreach ($this->funds($row->program, $row->user_id) as $fund) {
@@ -102,7 +102,7 @@ final class ReserveService
                     }
                 }
                 if ($remaining > 0) {
-                    throw ValidationException::withMessages(['amount' => 'The selected reserve has insufficient uncommitted funds.']);
+                    throw ValidationException::withMessages(['amount' => __('portal.err_reserve_insufficient')]);
                 }
                 if ($row->program !== 'marketing') {
                     $amount = Money::cents($row->amount);
@@ -111,7 +111,15 @@ final class ReserveService
                         ['account' => 'wallet_liability', 'user_id' => $row->user_id, 'debit' => 0, 'credit' => $amount],
                     ]);
                     $this->wallets->credit($row->user_id, $amount);
-                    Audit::notice($row->user_id, 'Reward credited', $row->program.': '.$row->amount.' BDT credited to earnings.');
+                    $locale = User::find($row->user_id)?->preferredLocale() ?? app()->getLocale();
+                    Audit::notice(
+                        $row->user_id,
+                        __('portal.notice_reward_credited_title', [], $locale),
+                        __('portal.notice_reward_credited_body', [
+                            'program' => $row->program,
+                            'amount' => $row->amount,
+                        ], $locale),
+                    );
                     if (in_array($row->program, ['bike', 'car'], true)) {
                         $this->qualification->refreshMilestones($row->user_id);
                         DB::table('reward_milestone_progress')->where('user_id', $row->user_id)->where('milestone_type', $row->program)
@@ -138,14 +146,14 @@ final class ReserveService
                 $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($row, 404);
                 if ($row->program !== 'marketing' || $row->status !== 'approved' || $row->approved_by === $actor->id) {
-                    throw ValidationException::withMessages(['reserve' => 'A separate Finance payer must record an approved company expense.']);
+                    throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_payer')]);
                 }
                 if (DB::table('reserve_expense_clawbacks')->whereColumn('recovered', '<', 'amount')->exists()) {
-                    throw ValidationException::withMessages(['reserve' => 'Recover outstanding company reserve clawbacks before another expense payment.']);
+                    throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_clawback')]);
                 }
                 foreach (DB::table('reserve_expense_sources')->where('disbursement_id', $id)->get() as $source) {
                     if ($this->remaining(CommissionAllocation::findOrFail($source->allocation_id)) < 0) {
-                        throw ValidationException::withMessages(['reserve' => 'A refund reduced the reserved funding. Cancel this approval and submit a revised request.']);
+                        throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_funding_reduced')]);
                     }
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'reserve:'.$id, (int) $data['payment_account_id']);
@@ -187,22 +195,22 @@ final class ReserveService
             abort_unless($actor->fresh()->allows('finance'), 403);
             $fund = CommissionAllocation::whereKey($id)->lockForUpdate()->firstOrFail();
             if ($fund->status !== 'held') {
-                throw ValidationException::withMessages(['hold' => 'This allocation is no longer held.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_not_held')]);
             }
             $partner = User::find($fund->user_id);
             if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
-                throw ValidationException::withMessages(['hold' => 'The earning recipient must be an active partner.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_active_partner')]);
             }
             if (str_starts_with($fund->category, 'area_')) {
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 if ($quota === null || $this->qualification->monthlyVolume($partner->id, $fund->metadata['period_month']) < Money::cents($quota)) {
-                    throw ValidationException::withMessages(['hold' => 'The original period quota must be captured and achieved before release. Legacy quotas need reconciliation.']);
+                    throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
                 }
             }
             $held = ! empty($fund->metadata['maturation_due_at']) && CarbonImmutable::parse($fund->metadata['maturation_due_at'])->isFuture();
             $amount = Money::cents($fund->amount);
             if ($amount <= 0) {
-                throw ValidationException::withMessages(['hold' => 'No net commission remains after refunds.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_zero')]);
             }
             $this->wallets->journal('commission.hold_release.'.$id, 'Reviewed held commission release', [
                 ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
@@ -212,7 +220,15 @@ final class ReserveService
             $fund->update(['status' => $held ? 'maturing' : 'available', 'metadata' => [...$fund->metadata,
                 'released_by' => $actor->id, 'release_reason' => $reason, 'released_at' => now()->toIso8601String()]]);
             Audit::record($actor->id, 'commission.hold_released', (string) $id, ['reason' => $reason]);
-            Audit::notice($partner->id, 'Commission released', $fund->category.': '.Money::decimal($amount).' BDT.');
+            $locale = $partner->preferredLocale();
+            Audit::notice(
+                $partner->id,
+                __('portal.notice_commission_released_title', [], $locale),
+                __('portal.notice_commission_released_body', [
+                    'category' => $fund->category,
+                    'amount' => Money::decimal($amount),
+                ], $locale),
+            );
         }, 3);
     }
 
@@ -234,14 +250,14 @@ final class ReserveService
             $original = User::find($fund->user_id);
             if ($fund->status !== 'held' || ! in_array($fund->category, ['direct_referral', 'd2d_gen2', 'd2d_gen3'], true) || ! $original || $original->status === 'active'
                 || ! DB::table('commission_batches')->where('order_id', $fund->order_id)->where('cash_basis', '>', 0)->exists()) {
-                throw ValidationException::withMessages(['hold' => 'Only an inactive recipient\'s source-funded held referral or D2D commission can be reassigned.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_reassign_inactive')]);
             }
             $recipient = User::whereKey($recipientId)->where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->first();
             $buyerId = DB::table('orders')->where('id', $fund->order_id)->value('user_id');
             $alreadyReceives = CommissionAllocation::where('order_id', $fund->order_id)->where('user_id', $recipientId)
                 ->whereIn('category', ['direct_referral', 'd2d_gen2', 'd2d_gen3'])->where('amount', '>', 0)->exists();
             if (! $recipient || $recipientId === $buyerId || $alreadyReceives) {
-                throw ValidationException::withMessages(['user_id' => 'Choose an active partner other than the buyer or another referral recipient on this order.']);
+                throw ValidationException::withMessages(['user_id' => __('portal.err_hold_reassign_recipient')]);
             }
             $metadata = ['original_user_id' => $original->id, 'recipient_id' => $recipientId, 'reason' => $reason, 'request_key' => $requestKey,
                 'authorized_by' => $actor->id, 'authorized_at' => now()->toIso8601String(), 'amount' => $fund->amount];
