@@ -465,10 +465,13 @@ class CommandController extends Controller
         Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
             'topic' => $data['topic'],
         ]);
+        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
+            ? $user->locale
+            : app()->getLocale();
         app(PartnerEventSms::class)->send(
             $user,
             'support.requested',
-            'Madina: your support request ('.$data['topic'].') was received. The company will follow up.',
+            __('sms.support_requested', ['topic' => $data['topic']], $locale),
         );
 
         return back()->with('success', 'Your support request was sent to the company.');

@@ -26,7 +26,7 @@ class PhoneLoginTest extends TestCase
         $sent = config('madina.sms.sent');
         $this->assertNotEmpty($sent);
         $this->assertSame('login.otp', $sent[array_key_last($sent)]['event'] ?? null);
-        preg_match('/Madina login code: (\d{6})/', (string) ($sent[array_key_last($sent)]['message'] ?? ''), $matches);
+        preg_match('/(\d{6})/', (string) ($sent[array_key_last($sent)]['message'] ?? ''), $matches);
         $this->assertNotEmpty($matches[1] ?? null);
         $this->onPortal($portal)->post('/login/otp', ['code' => $matches[1]])->assertRedirect('/');
     }

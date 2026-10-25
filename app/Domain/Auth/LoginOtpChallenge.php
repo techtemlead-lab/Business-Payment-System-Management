@@ -42,10 +42,14 @@ final class LoginOtpChallenge
             'attempts' => 0,
         ], now()->addSeconds((int) config('madina.login_otp.ttl', 300)));
 
+        $locale = $this->localeFor($user);
         $this->sms->send(
             $user,
             'login.otp',
-            'Madina login code: '.$code.'. Valid for '.(int) (config('madina.login_otp.ttl', 300) / 60).' minutes. Do not share.',
+            __('sms.login_otp', [
+                'code' => $code,
+                'minutes' => (string) (int) (config('madina.login_otp.ttl', 300) / 60),
+            ], $locale),
         );
     }
 
@@ -54,19 +58,27 @@ final class LoginOtpChallenge
         $key = $this->cacheKey($user->id, $portal);
         $payload = Cache::get($key);
         if (! is_array($payload) || ! isset($payload['hash'])) {
-            throw ValidationException::withMessages(['code' => 'The login code expired. Sign in again to receive a new code.']);
+            throw ValidationException::withMessages(['code' => __('sms.err_otp_expired')]);
         }
         $attempts = (int) ($payload['attempts'] ?? 0);
         if ($attempts >= 5) {
             Cache::forget($key);
-            throw ValidationException::withMessages(['code' => 'Too many incorrect codes. Sign in again.']);
+            throw ValidationException::withMessages(['code' => __('sms.err_otp_too_many')]);
         }
         if (! Hash::check(trim($code), (string) $payload['hash'])) {
             $payload['attempts'] = $attempts + 1;
             Cache::put($key, $payload, now()->addSeconds((int) config('madina.login_otp.ttl', 300)));
-            throw ValidationException::withMessages(['code' => 'That login code is incorrect.']);
+            throw ValidationException::withMessages(['code' => __('sms.err_otp_incorrect')]);
         }
         Cache::forget($key);
+    }
+
+    private function localeFor(User $user): string
+    {
+        $locale = is_string($user->locale ?? null) ? $user->locale : app()->getLocale();
+        $supported = config('madina.locales', ['en', 'bn']);
+
+        return in_array($locale, $supported, true) ? $locale : (string) config('app.fallback_locale', 'en');
     }
 
     private function cacheKey(int $userId, string $portal): string

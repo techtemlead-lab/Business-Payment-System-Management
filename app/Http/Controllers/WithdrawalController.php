@@ -26,10 +26,17 @@ class WithdrawalController extends Controller
         $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'], 'channel' => 'required|in:Bank,bKash,Nagad',
             'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
         $id = $service->request($r->user(), $data);
+        $user = $r->user();
+        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
+            ? $user->locale
+            : app()->getLocale();
         app(PartnerEventSms::class)->send(
-            $r->user(),
+            $user,
             'withdrawal.requested',
-            'Madina: withdrawal of BDT '.$data['amount'].' via '.$data['channel'].' was requested and reserved for review.',
+            __('sms.withdrawal_requested', [
+                'amount' => $data['amount'],
+                'channel' => $data['channel'],
+            ], $locale),
         );
         if ($r->expectsJson()) {
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);

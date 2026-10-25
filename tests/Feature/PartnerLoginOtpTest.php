@@ -36,7 +36,7 @@ class PartnerLoginOtpTest extends TestCase
 
         $sent = config('madina.sms.sent');
         $this->assertSame('login.otp', $sent[0]['event'] ?? null);
-        preg_match('/Madina login code: (\d{6})/', (string) $sent[0]['message'], $matches);
+        preg_match('/(\d{6})/', (string) $sent[0]['message'], $matches);
 
         $this->onPortal('dealer')->get('/login/otp')->assertOk()->assertSee('One-time code', false);
         $this->onPortal('dealer')->post('/login/otp', ['code' => $matches[1]])->assertRedirect('/');
@@ -92,5 +92,26 @@ class PartnerLoginOtpTest extends TestCase
             ->post('/login/otp', ['code' => '000000'])
             ->assertSessionHasErrors('code');
         $this->assertGuest();
+    }
+
+    public function test_bangla_locale_partner_receives_bangla_otp_sms(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'phone' => '01755556666',
+            'locale' => 'bn',
+            'password' => 'SyntheticPassword123',
+        ]);
+
+        $this->onPortal('dealer')
+            ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
+            ->assertRedirect('/login/otp');
+
+        $sent = config('madina.sms.sent');
+        $this->assertNotEmpty($sent);
+        $message = (string) ($sent[array_key_last($sent)]['message'] ?? '');
+        $this->assertStringContainsString('মদিনা লগইন কোড:', $message);
+        $this->assertMatchesRegularExpression('/\d{6}/', $message);
     }
 }
