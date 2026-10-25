@@ -349,6 +349,8 @@ class FinanceOperationsController extends Controller
     /** @param array<string, mixed> $data */
     private function done(Request $request, array $data = []): Response
     {
-        return $request->expectsJson() ? response()->json(['data' => $data, 'message' => 'Operation recorded.']) : back()->with('success', 'Operation recorded successfully.');
+        return $request->expectsJson()
+            ? response()->json(['data' => $data, 'message' => __('portal.flash_finance_operation')])
+            : back()->with('success', __('portal.flash_finance_operation'));
     }
 }

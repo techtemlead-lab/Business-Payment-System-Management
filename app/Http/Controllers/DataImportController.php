@@ -61,7 +61,7 @@ class DataImportController extends Controller
         $id = $imports->preview($request->user(), $data['type'], $request->file('file'), $data['source_reference']);
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id]], 201)
-            : redirect('/operations/data-imports?batch='.$id)->with('success', 'Workbook validated. Review the rows before importing.');
+            : redirect('/operations/data-imports?batch='.$id)->with('success', __('portal.flash_import_previewed'));
     }
 
     public function apply(Request $request, string $id, OpeningBalanceImport $imports): Response
@@ -73,7 +73,9 @@ class DataImportController extends Controller
         $status = DB::table('data_import_batches')->where('id', $id)->value('status');
 
         return $request->expectsJson() ? response()->json(['data' => ['id' => $id, 'status' => $status]], $status === 'queued' ? 202 : 200)
-            : redirect('/operations/data-imports?batch='.$id)->with('success', $queued ? 'Import request accepted. The status below shows processing progress.' : 'Import completed. Existing records were preserved.');
+            : redirect('/operations/data-imports?batch='.$id)->with('success', $queued
+                ? __('portal.flash_import_queued')
+                : __('portal.flash_import_completed'));
     }
 
     public function template(Request $request, string $type, OpeningBalanceImport $imports): Response
@@ -128,6 +130,8 @@ class DataImportController extends Controller
         $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
         $imports->releaseHold($request->user(), $id, $data['reason']);
 
-        return $request->expectsJson() ? response()->json(['data' => ['released' => true]]) : back()->with('success', 'Opening commission hold released.');
+        return $request->expectsJson()
+            ? response()->json(['data' => ['released' => true]])
+            : back()->with('success', __('portal.flash_import_hold_released'));
     }
 }

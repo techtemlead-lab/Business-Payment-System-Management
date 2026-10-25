@@ -2240,5 +2240,12 @@ return [
     'flash_area_dealer_removed' => 'এরিয়া ডিলার নিয়োগ সরানো হয়েছে।',
     'flash_place_code_saved' => 'প্লেস কোড :code সংরক্ষণ হয়েছে।',
     'flash_place_code_updated' => 'প্লেস কোড :code আপডেট হয়েছে।',
+    'flash_import_previewed' => 'ওয়ার্কবুক যাচাই হয়েছে। আমদানির আগে সারিগুলো পর্যালোচনা করুন।',
+    'flash_import_queued' => 'আমদানি অনুরোধ গ্রহণ হয়েছে। নিচের স্ট্যাটাসে প্রক্রিয়াকরণের অগ্রগতি দেখা যাবে।',
+    'flash_import_completed' => 'আমদানি সম্পন্ন। বিদ্যমান রেকর্ড সংরক্ষিত রাখা হয়েছে।',
+    'flash_import_hold_released' => 'ওপেনিং কমিশন হোল্ড রিলিজ হয়েছে।',
+    'flash_sales_operation' => 'বিক্রয় অপারেশন সফলভাবে রেকর্ড হয়েছে।',
+    'flash_finance_operation' => 'অপারেশন সফলভাবে রেকর্ড হয়েছে।',
+    'flash_changes_recorded' => 'পরিবর্তন সফলভাবে রেকর্ড হয়েছে।',
 
 ];

@@ -91,6 +91,8 @@ class ModuleCompletionController extends Controller
     /** @param array<string, mixed> $data */
     private function done(Request $request, array $data = []): Response
     {
-        return $request->expectsJson() ? response()->json(['data' => $data]) : back()->with('success', 'Changes recorded successfully.');
+        return $request->expectsJson()
+            ? response()->json(['data' => $data])
+            : back()->with('success', __('portal.flash_changes_recorded'));
     }
 }

@@ -2240,5 +2240,12 @@ return [
     'flash_area_dealer_removed' => 'Area dealer assignment removed.',
     'flash_place_code_saved' => 'Place code :code saved.',
     'flash_place_code_updated' => 'Place code :code updated.',
+    'flash_import_previewed' => 'Workbook validated. Review the rows before importing.',
+    'flash_import_queued' => 'Import request accepted. The status below shows processing progress.',
+    'flash_import_completed' => 'Import completed. Existing records were preserved.',
+    'flash_import_hold_released' => 'Opening commission hold released.',
+    'flash_sales_operation' => 'Sales operation recorded successfully.',
+    'flash_finance_operation' => 'Operation recorded successfully.',
+    'flash_changes_recorded' => 'Changes recorded successfully.',
 
 ];
