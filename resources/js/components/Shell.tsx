@@ -386,8 +386,8 @@ export default function Shell({ section, children, action }: { section: string; 
                 <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
                     <X size={18} />
                 </button>
-                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label="Madina dashboard">
-                    <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" />
+                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
+                    <img src="/madina-header-logo.png?v=6" alt={translate('portal', 'brand_alt')} />
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />

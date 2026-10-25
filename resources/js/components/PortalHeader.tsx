@@ -19,11 +19,11 @@ export function DealerHeader(){
     const networkSubtitle = chrome(customize.header_projects_subtitle, 'header_network_sub');
 
     return <>
-        <div className="portal-company-bar">MADINA NATURAL HEALTH CARE</div>
+        <div className="portal-company-bar">{translate('portal', 'brand_company_bar')}</div>
         <header className="portal-site-header">
             <div className="portal-container portal-header-inner">
-                <a href={`${publicBase}/`} className="portal-logo" aria-label="Madina Natural Health Care home">
-                    <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care"/>
+                <a href={`${publicBase}/`} className="portal-logo" aria-label={translate('portal', 'brand_home_aria')}>
+                    <img src="/madina-header-logo.png?v=6" alt={translate('portal', 'brand_alt')}/>
                 </a>
                 <form method="get" action={`${publicBase}/products`} className="portal-site-search">
                     <input name="q" placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>

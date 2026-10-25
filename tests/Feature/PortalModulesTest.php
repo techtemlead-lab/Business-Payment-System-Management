@@ -68,7 +68,9 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/dealer/Dashboard')
                 ->where('locale', 'bn')
-                ->where('translations.portal.log_out', 'লগ আউট'));
+                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.brand_company_bar', 'মদিনা ন্যাচারাল হেলথ কেয়ার')
+                ->where('translations.portal.brand_home_aria', 'মদিনা ন্যাচারাল হেলথ কেয়ার হোম'));
     }
 
     public function test_guest_can_switch_locale_on_staff_login_screen(): void
