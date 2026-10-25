@@ -357,10 +357,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
-                                    Create New Employee Dashboard Account
+                                    {translate('portal', 'emp_create_title')}
                                 </h3>
                                 <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                    Super Admin selects exactly which capabilities the employee can see and access.
+                                    {translate('portal', 'emp_create_hint')}
                                 </p>
                             </div>
                             <button
@@ -376,10 +376,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             {/* Employee basic info */}
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                                 <label>
-                                    Employee Full Name *
+                                    {translate('portal', 'emp_fld_full_name')}
                                     <input
                                         required
-                                        placeholder="e.g. Tariqul Islam"
+                                        placeholder={translate('portal', 'emp_ph_full_name')}
                                         value={createForm.data.name}
                                         onChange={e => createForm.setData('name', e.target.value)}
                                     />
@@ -387,11 +387,11 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
 
                                 <label>
-                                    Company Email Address *
+                                    {translate('portal', 'emp_fld_email')}
                                     <input
                                         required
                                         type="email"
-                                        placeholder="e.g. tariqul@madina.com"
+                                        placeholder={translate('portal', 'emp_ph_email')}
                                         value={createForm.data.email}
                                         onChange={e => createForm.setData('email', e.target.value)}
                                     />
@@ -399,9 +399,9 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
 
                                 <label>
-                                    Phone Number (For Login)
+                                    {translate('portal', 'emp_fld_phone_login')}
                                     <input
-                                        placeholder="e.g. 01712345678"
+                                        placeholder={translate('portal', 'emp_ph_phone')}
                                         value={createForm.data.phone}
                                         onChange={e => createForm.setData('phone', e.target.value)}
                                     />
@@ -409,13 +409,13 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
 
                                 <label>
-                                    Initial Status
+                                    {translate('portal', 'emp_fld_initial_status')}
                                     <select
                                         value={createForm.data.status}
                                         onChange={e => createForm.setData('status', e.target.value)}
                                     >
-                                        <option value="active">Active (Can log in immediately)</option>
-                                        <option value="suspended">Suspended / Draft (Locked)</option>
+                                        <option value="active">{translate('portal', 'emp_opt_active_login')}</option>
+                                        <option value="suspended">{translate('portal', 'emp_opt_suspended_draft')}</option>
                                     </select>
                                 </label>
                             </div>
@@ -424,10 +424,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             <div style={{ marginTop: 20, marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                     <b style={{ fontSize: 13, color: '#0f172a' }}>
-                                        Manually Select Permissions (Checkboxes):
+                                        {translate('portal', 'emp_perms_manual')}
                                     </b>
                                     <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                                        {createForm.data.permissions.length} capabilities selected
+                                        {translate('portal', 'emp_caps_selected', { count: String(createForm.data.permissions.length) })}
                                     </span>
                                 </div>
 
@@ -438,7 +438,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset(availablePermissions.map(p => p.key))}
                                     >
-                                        Select All
+                                        {translate('portal', 'emp_preset_all')}
                                     </button>
                                     <button
                                         type="button"
@@ -446,7 +446,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset(['orders', 'order_review', 'reports'])}
                                     >
-                                        Orders Staff
+                                        {translate('portal', 'emp_preset_orders')}
                                     </button>
                                     <button
                                         type="button"
@@ -454,7 +454,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset(['inventory', 'catalog'])}
                                     >
-                                        Warehouse Staff
+                                        {translate('portal', 'emp_preset_warehouse')}
                                     </button>
                                     <button
                                         type="button"
@@ -462,7 +462,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset(['accounts'])}
                                     >
-                                        Dealer Relations
+                                        {translate('portal', 'emp_preset_dealer')}
                                     </button>
                                     <button
                                         type="button"
@@ -470,7 +470,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset(['finance', 'cost_read', 'reports'])}
                                     >
-                                        Finance &amp; Treasury
+                                        {translate('portal', 'emp_preset_finance')}
                                     </button>
                                     <button
                                         type="button"
@@ -478,7 +478,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyCreatePreset([])}
                                     >
-                                        Clear All
+                                        {translate('portal', 'emp_preset_clear')}
                                     </button>
                                 </div>
                             </div>
@@ -488,7 +488,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 {categories.map(cat => (
                                     <div key={cat} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
                                         <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: 8 }}>
-                                            {cat} Modules
+                                            {translate('portal', 'emp_cat_modules', { cat: String(cat) })}
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
                                             {availablePermissions.filter(p => p.category === cat).map(p => {
@@ -535,7 +535,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             </div>
 
                             <label style={{ marginTop: 14 }}>
-                                Onboarding Authorization Reason *
+                                {translate('portal', 'emp_fld_onboard_reason')}
                                 <textarea
                                     required
                                     rows={2}
@@ -550,7 +550,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     className="button"
                                     onClick={() => setCreateModalOpen(false)}
                                 >
-                                    Cancel
+                                    {translate('portal', 'emp_cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -558,7 +558,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     disabled={createForm.processing}
                                     style={{ fontWeight: 700 }}
                                 >
-                                    {createForm.processing ? 'Creating Account…' : 'Create Employee & Send Invite'}
+                                    {createForm.processing ? translate('portal', 'emp_create_submitting') : translate('portal', 'emp_create_submit')}
                                 </button>
                             </div>
                         </form>
@@ -591,10 +591,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
                             <div>
                                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
-                                    Edit Permissions for {editModalEmployee.name}
+                                    {translate('portal', 'emp_edit_title', { name: editModalEmployee.name })}
                                 </h3>
                                 <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                    {editModalEmployee.email} · Staff details and dashboard access
+                                    {translate('portal', 'emp_edit_hint', { email: editModalEmployee.email })}
                                 </p>
                             </div>
                             <button
@@ -609,7 +609,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         <form onSubmit={submitEdit} className="action-form">
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                                 <label>
-                                    Employee Name
+                                    {translate('portal', 'emp_fld_name')}
                                     <input
                                         required
                                         value={editForm.data.name}
@@ -618,7 +618,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
 
                                 <label>
-                                    Phone Number
+                                    {translate('portal', 'emp_fld_phone')}
                                     <input
                                         value={editForm.data.phone}
                                         onChange={e => editForm.setData('phone', e.target.value)}
@@ -626,26 +626,26 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </label>
 
                                 <label>
-                                    Account Status
+                                    {translate('portal', 'emp_fld_status')}
                                     <select
                                         value={editForm.data.status}
                                         onChange={e => editForm.setData('status', e.target.value)}
                                     >
-                                        <option value="active">Active (Access allowed)</option>
-                                        <option value="suspended">Suspended (Immediate lockout)</option>
+                                        <option value="active">{translate('portal', 'emp_opt_active_access')}</option>
+                                        <option value="suspended">{translate('portal', 'emp_opt_suspended_lock')}</option>
                                     </select>
                                 </label>
                             </div>
 
-                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">This account uses detailed action permissions. <Link href="/operations/access-management" className="text-link">Manage roles and permissions</Link></p> : <>
+                            {editModalEmployee.profile?.action_permissions || editModalEmployee.role.startsWith('custom_') ? <p className="notice">{translate('portal', 'emp_action_perms_notice')} <Link href="/operations/access-management" className="text-link">{translate('portal', 'emp_manage_roles')}</Link></p> : <>
                             {/* Preset Buttons */}
                             <div style={{ marginTop: 20, marginBottom: 12 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                     <b style={{ fontSize: 13, color: '#0f172a' }}>
-                                        Select Granted Permissions (Checkboxes):
+                                        {translate('portal', 'emp_perms_select')}
                                     </b>
                                     <span style={{ fontSize: 11, color: '#059669', fontWeight: 600 }}>
-                                        {editForm.data.permissions.length} capabilities selected
+                                        {translate('portal', 'emp_caps_selected', { count: String(editForm.data.permissions.length) })}
                                     </span>
                                 </div>
 
@@ -656,7 +656,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyEditPreset(availablePermissions.map(p => p.key))}
                                     >
-                                        Select All
+                                        {translate('portal', 'emp_preset_all')}
                                     </button>
                                     <button
                                         type="button"
@@ -664,7 +664,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyEditPreset(['orders', 'order_review', 'reports'])}
                                     >
-                                        Orders Staff
+                                        {translate('portal', 'emp_preset_orders')}
                                     </button>
                                     <button
                                         type="button"
@@ -672,7 +672,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyEditPreset(['inventory', 'catalog'])}
                                     >
-                                        Warehouse Staff
+                                        {translate('portal', 'emp_preset_warehouse')}
                                     </button>
                                     <button
                                         type="button"
@@ -680,7 +680,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyEditPreset(['finance', 'cost_read', 'reports'])}
                                     >
-                                        Finance &amp; Treasury
+                                        {translate('portal', 'emp_preset_finance')}
                                     </button>
                                     <button
                                         type="button"
@@ -688,7 +688,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                         style={{ fontSize: 11 }}
                                         onClick={() => applyEditPreset([])}
                                     >
-                                        Clear All
+                                        {translate('portal', 'emp_preset_clear')}
                                     </button>
                                 </div>
                             </div>
@@ -698,7 +698,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 {categories.map(cat => (
                                     <div key={cat} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
                                         <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: 8 }}>
-                                            {cat} Modules
+                                            {translate('portal', 'emp_cat_modules', { cat: String(cat) })}
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 8 }}>
                                             {availablePermissions.filter(p => p.category === cat && (editModalEmployee?.role !== 'sr' || ['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(p.key))).map(p => {
@@ -747,11 +747,11 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             </>}
 
                             <label style={{ marginTop: 14 }}>
-                                Reason for staff correction *
+                                {translate('portal', 'emp_fld_correction_reason')}
                                 <textarea
                                     required
                                     rows={2}
-                                    placeholder="Enter audit reason for modifying permissions or account status"
+                                    placeholder={translate('portal', 'emp_ph_correction_reason')}
                                     value={editForm.data.reason}
                                     onChange={e => editForm.setData('reason', e.target.value)}
                                 />
@@ -763,7 +763,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     className="button"
                                     onClick={() => setEditModalEmployee(null)}
                                 >
-                                    Cancel
+                                    {translate('portal', 'emp_cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -771,7 +771,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     disabled={editForm.processing}
                                     style={{ fontWeight: 700 }}
                                 >
-                                    {editForm.processing ? 'Saving Changes…' : 'Save Permissions'}
+                                    {editForm.processing ? translate('portal', 'emp_saving') : translate('portal', 'emp_save')}
                                 </button>
                             </div>
                         </form>
