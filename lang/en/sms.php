@@ -36,6 +36,7 @@ return [
     'account_suspended' => 'Madina: your partner account was suspended. :reason Contact company support if you need help.',
     'account_reactivated' => 'Madina: your partner account was reactivated. You can sign in to your portal again.',
     'kyc_document_uploaded' => 'Madina: a :kind KYC document was filed on your partner account.',
+    'staff_territory_assigned' => 'Madina: you were assigned :level territory :territory. Check manage notices.',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',

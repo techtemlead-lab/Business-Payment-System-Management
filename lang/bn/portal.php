@@ -2609,6 +2609,8 @@ return [
     'notice_account_reactivated_body' => 'আপনার পার্টনার অ্যাকাউন্ট আবার সক্রিয়। আপনি পোর্টালে সাইন ইন করতে পারেন।',
     'notice_kyc_uploaded_title' => 'KYC নথি সংরক্ষিত',
     'notice_kyc_uploaded_body' => 'আপনার পার্টনার অ্যাকাউন্টে :kind নথি সংরক্ষণ করা হয়েছে।',
+    'notice_staff_territory_title' => 'টেরিটরি নিয়োগ',
+    'notice_staff_territory_body' => 'আপনাকে :level টেরিটরি নিয়োগ দেওয়া হয়েছে: :territory।',
     'err_payroll_contract' => 'সক্রিয় স্টাফ এবং চুক্তিভিত্তিক গ্রস স্যালারির মধ্যে কর্তন বেছে নিন।',
     'err_payroll_month_open' => 'পে-রোল প্রস্তুত করার আগে ক্যালেন্ডার মাস শেষ করুন।',
     'err_payroll_reviewer' => 'ড্রাফ্ট পে-রোল এন্ট্রি পর্যালোচনায় আলাদা ফাইন্যান্স পর্যালোচক প্রয়োজন।',

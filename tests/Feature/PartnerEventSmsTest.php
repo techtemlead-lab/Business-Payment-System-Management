@@ -606,6 +606,41 @@ class PartnerEventSmsTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'active']);
     }
 
+    public function test_staff_territory_assign_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000104',
+        ]);
+
+        app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Rangpur',
+        ]);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.territory_assigned', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000104', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_territory_assigned', [
+                'level' => 'division',
+                'territory' => 'Rangpur',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $sr->id,
+            'title' => __('portal.notice_staff_territory_title', [], 'bn'),
+        ]);
+    }
+
     public function test_staff_target_save_sends_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');
@@ -623,6 +658,7 @@ class PartnerEventSmsTest extends TestCase
             'level' => 'division',
             'division' => 'Rangpur',
         ]);
+        Config::set('madina.sms.sent', []);
         $month = now('Asia/Dhaka')->format('Y-m');
 
         app(StaffOperations::class)->target($admin, [

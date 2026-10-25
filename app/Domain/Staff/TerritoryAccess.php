@@ -4,6 +4,7 @@ namespace App\Domain\Staff;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -108,6 +109,26 @@ final class TerritoryAccess
             $id = DB::table('staff_territories')->insertGetId([...$path, 'staff_id' => $staff->id, 'level' => $data['level'], 'territory_key' => $key,
                 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'staff.territory_assigned', (string) $id, ['staff_id' => $staff->id]);
+            $locale = $staff->preferredLocale();
+            $label = collect($path)->filter()->implode(' / ');
+            Audit::notice(
+                $staff->id,
+                __('portal.notice_staff_territory_title', [], $locale),
+                __('portal.notice_staff_territory_body', [
+                    'level' => $data['level'],
+                    'territory' => $label,
+                ], $locale),
+            );
+            DB::afterCommit(function () use ($staff, $locale, $data, $label): void {
+                app(PartnerEventSms::class)->send(
+                    $staff,
+                    'staff.territory_assigned',
+                    __('sms.staff_territory_assigned', [
+                        'level' => $data['level'],
+                        'territory' => $label,
+                    ], $locale),
+                );
+            });
 
             return $id;
         }, 3);
