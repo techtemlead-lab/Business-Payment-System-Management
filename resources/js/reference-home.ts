@@ -1,4 +1,52 @@
 let toastTimer:ReturnType<typeof setTimeout>;
+type SiteUi = {
+    in_stock: string;
+    out_of_stock: string;
+    low_stock: string;
+    product_link_copied: string;
+    product_link_copy_fallback: string;
+    geolocation_unsupported: string;
+    detecting_location: string;
+    location_detected: string;
+    location_denied: string;
+    location_failed: string;
+    product_image: string;
+};
+const siteUi: SiteUi = (() => {
+    const node = document.getElementById('ref-site-ui');
+    if (!node?.textContent) {
+        return {
+            in_stock: 'In Stock',
+            out_of_stock: 'Awaiting Stock',
+            low_stock: 'Low Stock',
+            product_link_copied: 'Product link copied.',
+            product_link_copy_fallback: 'Copy the product link from your browser address bar.',
+            geolocation_unsupported: 'Geolocation is not supported by your browser. You can filter by Division and District.',
+            detecting_location: 'Detecting your location...',
+            location_detected: 'Location detected! Finding nearest dealers...',
+            location_denied: 'Location permission was denied. You can filter by Division and District below.',
+            location_failed: 'Could not detect location. You can filter by Division and District below.',
+            product_image: 'Product Image',
+        };
+    }
+    try {
+        return JSON.parse(node.textContent) as SiteUi;
+    } catch {
+        return {
+            in_stock: 'In Stock',
+            out_of_stock: 'Awaiting Stock',
+            low_stock: 'Low Stock',
+            product_link_copied: 'Product link copied.',
+            product_link_copy_fallback: 'Copy the product link from your browser address bar.',
+            geolocation_unsupported: 'Geolocation is not supported by your browser. You can filter by Division and District.',
+            detecting_location: 'Detecting your location...',
+            location_detected: 'Location detected! Finding nearest dealers...',
+            location_denied: 'Location permission was denied. You can filter by Division and District below.',
+            location_failed: 'Could not detect location. You can filter by Division and District below.',
+            product_image: 'Product Image',
+        };
+    }
+})();
 function toast(message:string){const node=document.querySelector<HTMLElement>('.ref-toast');if(!node)return;node.textContent=message;node.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('visible'),2500);}
 function initCarousel(root:HTMLElement,intervalMs:number=6000){const slides=[...root.querySelectorAll<HTMLElement>('.ref-slides > .ref-slide')];const dots=[...root.querySelectorAll<HTMLButtonElement>('.ref-carousel-dots > [data-slide]')];if(!slides.length)return;let current=0;let timer:ReturnType<typeof setInterval>;function show(index:number){current=(index+slides.length)%slides.length;slides.forEach((slide,i)=>{slide.classList.toggle('is-active',i===current);slide.setAttribute('aria-hidden',String(i!==current));slide.tabIndex=i===current?0:-1;});dots.forEach((dot,i)=>{dot.classList.toggle('is-active',i===current);dot.setAttribute('aria-current',String(i===current));});}function start(){clearInterval(timer);if(slides.length>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches)timer=setInterval(()=>show(current+1),intervalMs);}root.querySelector('.ref-carousel-arrow.prev')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(current-1);start();});root.querySelector('.ref-carousel-arrow.next')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(current+1);start();});dots.forEach(dot=>dot.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(Number(dot.dataset.slide));start();}));root.addEventListener('mouseenter',()=>clearInterval(timer));root.addEventListener('mouseleave',start);root.addEventListener('focusin',()=>clearInterval(timer));root.addEventListener('focusout',start);let touchStartX=0;let touchStartY=0;root.addEventListener('touchstart',e=>{if(e.changedTouches?.[0]){touchStartX=e.changedTouches[0].clientX;touchStartY=e.changedTouches[0].clientY;}},{passive:true});root.addEventListener('touchend',e=>{if(e.changedTouches?.[0]){const diffX=e.changedTouches[0].clientX-touchStartX;const diffY=e.changedTouches[0].clientY-touchStartY;if(Math.abs(diffX)>35&&Math.abs(diffX)>Math.abs(diffY)){if(diffX<0)show(current+1);else show(current-1);start();}}},{passive:true});document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInterval(timer);else start();});show(0);start();}
 document.querySelectorAll<HTMLElement>('.ref-carousel-instance').forEach((el,idx)=>{initCarousel(el,idx===0?6000:(idx===1?4800:6400));});
@@ -7,13 +55,13 @@ document.querySelectorAll<HTMLSelectElement>('[data-autosubmit]').forEach(select
 const tabs=[...document.querySelectorAll<HTMLButtonElement>('[data-info-tab]')];
 function activateTab(tab:HTMLButtonElement){tabs.forEach(other=>{const selected=other===tab;other.setAttribute('aria-selected',String(selected));other.tabIndex=selected?0:-1;const panel=document.getElementById(other.dataset.infoTab!);if(panel)panel.hidden=!selected;});}
 tabs.forEach((tab,index)=>{tab.tabIndex=index===0?0:-1;tab.addEventListener('click',()=>activateTab(tab));tab.addEventListener('keydown',event=>{let target:number;if(event.key==='ArrowRight')target=(index+1)%tabs.length;else if(event.key==='ArrowLeft')target=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')target=0;else if(event.key==='End')target=tabs.length-1;else return;event.preventDefault();activateTab(tabs[target]);tabs[target].focus();});});
-async function copyProductLink(){try{await navigator.clipboard.writeText(location.href);toast('Product link copied.');}catch{toast('Copy the product link from your browser address bar.');}}
+async function copyProductLink(){try{await navigator.clipboard.writeText(location.href);toast(siteUi.product_link_copied);}catch{toast(siteUi.product_link_copy_fallback);}}
 document.querySelector('[data-copy-url]')?.addEventListener('click',copyProductLink);
 document.querySelector('[data-share-url]')?.addEventListener('click',async()=>{if(navigator.share){try{await navigator.share({title:document.title,url:location.href});}catch{}}else await copyProductLink();});
 document.querySelectorAll<HTMLButtonElement>('[data-toggle-password]').forEach(button=>button.addEventListener('click',()=>{const input=document.getElementById(button.dataset.togglePassword!) as HTMLInputElement|null;if(!input)return;const visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-label',visible?'Hide password':'Show password');button.setAttribute('aria-pressed',String(visible));}));
 const nearestBtn=document.getElementById('find-nearest-btn') as HTMLButtonElement|null;
 const locStatus=document.getElementById('location-status');
-if(nearestBtn&&locStatus){nearestBtn.addEventListener('click',()=>{if(!navigator.geolocation){locStatus.textContent='Geolocation is not supported by your browser. You can filter by Division and District.';return;}nearestBtn.disabled=true;locStatus.textContent='Detecting your location...';navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude.toFixed(6);const lng=pos.coords.longitude.toFixed(6);locStatus.textContent='Location detected! Finding nearest dealers...';const url=new URL(window.location.href);url.searchParams.set('lat',lat);url.searchParams.set('lng',lng);url.searchParams.delete('page');window.location.href=url.toString();},err=>{nearestBtn.disabled=false;if(err.code===err.PERMISSION_DENIED){locStatus.textContent='Location permission was denied. You can filter by Division and District below.';}else{locStatus.textContent='Could not detect location. You can filter by Division and District below.';}},{enableHighAccuracy:true,timeout:8000});});}
+if(nearestBtn&&locStatus){nearestBtn.addEventListener('click',()=>{if(!navigator.geolocation){locStatus.textContent=siteUi.geolocation_unsupported;return;}nearestBtn.disabled=true;locStatus.textContent=siteUi.detecting_location;navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude.toFixed(6);const lng=pos.coords.longitude.toFixed(6);locStatus.textContent=siteUi.location_detected;const url=new URL(window.location.href);url.searchParams.set('lat',lat);url.searchParams.set('lng',lng);url.searchParams.delete('page');window.location.href=url.toString();},err=>{nearestBtn.disabled=false;if(err.code===err.PERMISSION_DENIED){locStatus.textContent=siteUi.location_denied;}else{locStatus.textContent=siteUi.location_failed;}},{enableHighAccuracy:true,timeout:8000});});}
 
 // Interactive Category Filter Tabs
 const categoryTabBtns = document.querySelectorAll<HTMLButtonElement>('.ref-tab-btn[data-category-filter]');
@@ -57,14 +105,19 @@ document.querySelectorAll<HTMLButtonElement>('[data-quick-view]').forEach(button
         const image = document.getElementById('qvImage') as HTMLImageElement | null;
         if (image) {
             image.src = card.dataset.image || '/madina-header-logo.png?v=6';
-            image.alt = card.dataset.name || 'Product';
+            image.alt = card.dataset.name || siteUi.product_image;
         }
         for (const [id, value] of Object.entries({qvTitle: card.dataset.name, qvCategory: card.dataset.categoryName, qvMrp: card.dataset.mrp, qvDescription: card.dataset.desc})) {
             const element = document.getElementById(id);
             if (element) element.textContent = value || '';
         }
         const availability = document.getElementById('qvStockRow');
-        if (availability) availability.textContent = (card.dataset.stockStatus || '') === 'out_of_stock' ? 'Awaiting Stock' : 'In Stock';
+        if (availability) {
+            const status = card.dataset.stockStatus || '';
+            availability.textContent = status === 'out_of_stock'
+                ? siteUi.out_of_stock
+                : (status === 'low_stock' ? siteUi.low_stock : siteUi.in_stock);
+        }
         const details = document.getElementById('qvViewDetails') as HTMLAnchorElement | null;
         if (details) details.href = card.dataset.url || '/products';
         qvDialog.showModal();

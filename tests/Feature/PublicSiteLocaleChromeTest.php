@@ -38,7 +38,10 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('এশিয়া/ঢাকা · BDT', false)
             ->assertSee('প্রাকৃতিক খাদ্য সম্পূরক', false)
             ->assertSee('চ্যাট', false)
+            ->assertSee('id="ref-site-ui"', false)
+            ->assertSee('অবস্থান সনাক্ত করা হচ্ছে', false)
             ->assertDontSee('Natural food supplements, unani medicine', false)
+            ->assertDontSee('Detecting your location...', false)
             ->assertDontSee('>CHAT<', false);
 
         $this->onPortal('public')->get('/products')

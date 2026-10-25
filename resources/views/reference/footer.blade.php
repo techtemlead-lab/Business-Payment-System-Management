@@ -203,16 +203,32 @@
     </a>
     @endauth
 </nav>
-<button class="ref-back-top" aria-label="Back to top"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button><div class="ref-toast" role="status" aria-live="polite"></div>
+<button class="ref-back-top" aria-label="{{ __('site.back_to_top') }}"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button><div class="ref-toast" role="status" aria-live="polite"></div>
+@php
+    $refSiteUi = [
+        'in_stock' => __('site.in_stock'),
+        'out_of_stock' => __('site.out_of_stock'),
+        'low_stock' => __('site.low_stock'),
+        'product_link_copied' => __('site.product_link_copied'),
+        'product_link_copy_fallback' => __('site.product_link_copy_fallback'),
+        'geolocation_unsupported' => __('site.geolocation_unsupported'),
+        'detecting_location' => __('site.detecting_location'),
+        'location_detected' => __('site.location_detected'),
+        'location_denied' => __('site.location_denied'),
+        'location_failed' => __('site.location_failed'),
+        'product_image' => __('site.product_image'),
+    ];
+@endphp
+<script type="application/json" id="ref-site-ui">{!! json_encode($refSiteUi, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
 <!-- Global Quick View Modal Dialog -->
 <dialog class="ref-quickview-dialog" id="refQuickViewDialog" aria-labelledby="qvTitle">
     <div class="ref-qv-modal-inner">
-        <button type="button" class="ref-qv-close-btn" id="refQvCloseBtn" aria-label="Close preview">
+        <button type="button" class="ref-qv-close-btn" id="refQvCloseBtn" aria-label="{{ __('site.close_preview') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
         <div class="ref-quickview-grid">
             <div class="ref-qv-image-col">
-                <img id="qvImage" src="" alt="Product Image" loading="lazy">
+                <img id="qvImage" src="" alt="{{ __('site.product_image') }}" loading="lazy">
 
             </div>
             <div class="ref-qv-info-col">
@@ -220,7 +236,7 @@
                 <h2 class="ref-qv-title" id="qvTitle"></h2>
                 <div class="ref-qv-stock-row" id="qvStockRow"></div>
                 <div class="ref-qv-price-row">
-                    <span>MRP</span><strong class="ref-qv-price" id="qvMrp"></strong>
+                    <span>{{ __('site.mrp') }}</span><strong class="ref-qv-price" id="qvMrp"></strong>
                 </div>
                 <p class="ref-qv-desc" id="qvDescription"></p>
                 <div class="ref-qv-actions">
