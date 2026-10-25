@@ -5,6 +5,7 @@ import {
     DollarSign, Info, RotateCcw, Sparkles, Layers
 } from 'lucide-react';
 import { money } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface SimulationResult {
     gross_sales_tested: number;
@@ -53,23 +54,23 @@ interface RuleRecord {
     is_active: boolean;
 }
 
-const SLICE_METADATA: Record<string, { label: string; group: 'direct' | 'leadership' | 'area_corp'; desc: string }> = {
-    own_dealer_cashback: { label: 'Own Dealer Cashback', group: 'direct', desc: 'Instant cash credit to purchasing dealer upon order delivery' },
-    direct_referral: { label: 'Direct Referral Bonus', group: 'direct', desc: 'Sponsorship commission paid to immediate frontline upline' },
-    d2d_gen2: { label: 'D2D Generation 2', group: 'direct', desc: 'Second-tier indirect team bonus (compressed)' },
-    d2d_gen3: { label: 'D2D Generation 3', group: 'direct', desc: 'Third-tier indirect team bonus (breakage routed to company)' },
-    area_dealer_pool: { label: 'Area Dealer Revenue Pool', group: 'area_corp', desc: 'Split across Division (2%), District (2%), Upazila (3%), Union (3%)' },
-    dealer_monthly_salary: { label: 'Monthly Salary Pool', group: 'leadership', desc: 'Monthly pool split equally among dealers with ≥ ৳10k volume' },
-    rank_royalty: { label: 'Rank Royalty Pool', group: 'leadership', desc: '4% pool split among active Paid-As MO, AM, SM, ME leaders' },
-    rank_incentive: { label: 'Rank Career Milestones', group: 'leadership', desc: 'One-time career advancement bonuses (৳5k - ৳50k)' },
-    company_marketing: { label: 'Marketing & Brand Fund', group: 'area_corp', desc: 'National advertising, campaigns and digital marketing' },
-    car_bike_incentive: { label: 'Car & Bike Asset Reserve', group: 'leadership', desc: 'Escrow fund with anti-whale maximum branch volume limits' },
+const SLICE_METADATA: Record<string, { labelKey: string; group: 'direct' | 'leadership' | 'area_corp'; descKey: string }> = {
+    own_dealer_cashback: { labelKey: 'sim_slice_own_dealer_cashback', group: 'direct', descKey: 'sim_slice_own_dealer_cashback_desc' },
+    direct_referral: { labelKey: 'sim_slice_direct_referral', group: 'direct', descKey: 'sim_slice_direct_referral_desc' },
+    d2d_gen2: { labelKey: 'sim_slice_d2d_gen2', group: 'direct', descKey: 'sim_slice_d2d_gen2_desc' },
+    d2d_gen3: { labelKey: 'sim_slice_d2d_gen3', group: 'direct', descKey: 'sim_slice_d2d_gen3_desc' },
+    area_dealer_pool: { labelKey: 'sim_slice_area_dealer_pool', group: 'area_corp', descKey: 'sim_slice_area_dealer_pool_desc' },
+    dealer_monthly_salary: { labelKey: 'sim_slice_dealer_monthly_salary', group: 'leadership', descKey: 'sim_slice_dealer_monthly_salary_desc' },
+    rank_royalty: { labelKey: 'sim_slice_rank_royalty', group: 'leadership', descKey: 'sim_slice_rank_royalty_desc' },
+    rank_incentive: { labelKey: 'sim_slice_rank_incentive', group: 'leadership', descKey: 'sim_slice_rank_incentive_desc' },
+    company_marketing: { labelKey: 'sim_slice_company_marketing', group: 'area_corp', descKey: 'sim_slice_company_marketing_desc' },
+    car_bike_incentive: { labelKey: 'sim_slice_car_bike_incentive', group: 'leadership', descKey: 'sim_slice_car_bike_incentive_desc' },
 };
 
 const PRESETS = [
     {
-        name: 'Default Baseline Plan (40% Pool)',
-        desc: 'Canonical 60/40 zero-deficit company retention plan',
+        nameKey: 'sim_preset_baseline',
+        descKey: 'sim_preset_baseline_desc',
         rates: {
             own_dealer_cashback: 5.0, direct_referral: 10.0, d2d_gen2: 2.0, d2d_gen3: 1.0,
             area_dealer_pool: 10.0, dealer_monthly_salary: 2.0, rank_royalty: 4.0,
@@ -77,8 +78,8 @@ const PRESETS = [
         }
     },
     {
-        name: 'Conservative Margin Guard (35% Pool)',
-        desc: 'Expands company gross retention to 65% for increased operating buffer',
+        nameKey: 'sim_preset_conservative',
+        descKey: 'sim_preset_conservative_desc',
         rates: {
             own_dealer_cashback: 4.0, direct_referral: 8.0, d2d_gen2: 2.0, d2d_gen3: 1.0,
             area_dealer_pool: 9.0, dealer_monthly_salary: 2.0, rank_royalty: 4.0,
@@ -86,8 +87,8 @@ const PRESETS = [
         }
     },
     {
-        name: 'High Retail Frontline Incentive (39% Pool)',
-        desc: 'Accelerates field acquisition with 12% direct referral and 6% cashback',
+        nameKey: 'sim_preset_frontline',
+        descKey: 'sim_preset_frontline_desc',
         rates: {
             own_dealer_cashback: 6.0, direct_referral: 12.0, d2d_gen2: 2.0, d2d_gen3: 1.0,
             area_dealer_pool: 8.0, dealer_monthly_salary: 2.0, rank_royalty: 3.5,
@@ -95,8 +96,8 @@ const PRESETS = [
         }
     },
     {
-        name: 'Leadership & Loyalty Focus (40% Pool)',
-        desc: 'Amplifies leadership pools to 6% royalty and 3% monthly salary',
+        nameKey: 'sim_preset_leadership',
+        descKey: 'sim_preset_leadership_desc',
         rates: {
             own_dealer_cashback: 4.0, direct_referral: 9.0, d2d_gen2: 2.0, d2d_gen3: 1.0,
             area_dealer_pool: 8.0, dealer_monthly_salary: 3.0, rank_royalty: 6.0,
@@ -112,6 +113,7 @@ export default function CompensationSimulator({
     initialSimulation: SimulationResult;
     activeRules: RuleRecord[];
 }) {
+    const translate = useT();
     const [simData, setSimData] = useState<SimulationResult>(initialSimulation);
     const [loading, setLoading] = useState(false);
     const [rates, setRates] = useState<Record<string, number>>(() => {
@@ -168,10 +170,10 @@ export default function CompensationSimulator({
             const payload = await response.json().catch(() => null);
             const message = payload?.message
                 || (payload?.errors ? Object.values(payload.errors).flat().join(' ') : null)
-                || `Simulation failed (${response.status}). Adjust the rates and try again.`;
+                || translate('portal','sim_error_failed',{status:String(response.status)});
             setError(String(message));
         } catch {
-            setError('Could not reach the compensation simulator. Check your connection and try again.');
+            setError(translate('portal','sim_error_reach'));
         } finally {
             setLoading(false);
         }
@@ -218,17 +220,17 @@ export default function CompensationSimulator({
                                 color: isExceedingCap ? '#b91c1c' : '#15803d'
                             }}>
                                 {isExceedingCap ? <AlertTriangle size={15} /> : <ShieldCheck size={15} />}
-                                {isExceedingCap ? 'CAP CEILING BREACHED (> 40.00%)' : 'ZERO-DEFICIT COMPLIANT (≤ 40.00%)'}
+                                {isExceedingCap ? translate('portal','sim_cap_breach') : translate('portal','sim_cap_ok')}
                             </span>
                             <span style={{ fontSize: '13px', color: '#64748b' }}>
-                                Tested against ৳{simData.gross_sales_tested.toLocaleString()} sales volume ({simData.orders_analyzed_count} orders)
+                                {translate('portal','sim_tested_against',{amount:simData.gross_sales_tested.toLocaleString(),count:String(simData.orders_analyzed_count)})}
                             </span>
                         </div>
                         <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
-                            What-If Compensation Backtester
+                            {translate('portal','sim_title')}
                         </h2>
                         <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#475569', maxWidth: '750px' }}>
-                            Model parameter modifications in-memory against actual commerce order logs. Every trial guarantees company retention cannot drop below 60.00% without trigger alerts.
+                            {translate('portal','sim_body')}
                         </p>
                     </div>
 
@@ -253,7 +255,7 @@ export default function CompensationSimulator({
                             }}
                         >
                             {loading ? <RefreshCw size={16} className="spin" /> : <Play size={16} />}
-                            {loading ? 'Simulating…' : 'Run What-If Backtest'}
+                            {loading ? translate('portal','sim_running') : translate('portal','sim_run')}
                         </button>
                     </div>
                 </div>
@@ -295,7 +297,7 @@ export default function CompensationSimulator({
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>
                     <Sparkles size={16} color="#047857" />
-                    Strategic Scenarios:
+                    {translate('portal','sim_scenarios')}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
                     {PRESETS.map((p, idx) => (
@@ -316,9 +318,9 @@ export default function CompensationSimulator({
                             }}
                             onMouseOver={(e) => { e.currentTarget.style.borderColor = '#047857'; e.currentTarget.style.background = '#f0fdf4'; }}
                             onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
-                            title={p.desc}
+                            title={translate('portal',p.descKey)}
                         >
-                            {p.name}
+                            {translate('portal',p.nameKey)}
                         </button>
                     ))}
                 </div>
@@ -327,27 +329,27 @@ export default function CompensationSimulator({
             {/* KPI Cards: Baseline vs Simulated */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Gross Sales Analyzed</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_gross_sales')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
                         ৳{simData.gross_sales_tested.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#047857', fontWeight: 500 }}>
-                        {simData.is_synthetic_benchmark ? 'Standard Benchmark Set' : 'Real Commerce Delivered Orders'}
+                        {simData.is_synthetic_benchmark ? translate('portal','sim_benchmark') : translate('portal','sim_real_orders')}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Simulated Commissions</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_commissions')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
                         ৳{simData.simulated.total_commissions.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        Baseline: ৳{simData.baseline.total_commissions.toLocaleString()}
+                        {translate('portal','sim_baseline',{amount:simData.baseline.total_commissions.toLocaleString()})}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Disbursement Variance</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_variance')}</span>
                     <div style={{
                         fontSize: '24px',
                         fontWeight: 800,
@@ -361,17 +363,17 @@ export default function CompensationSimulator({
                         {simData.variance.amount > 0 ? '+' : ''}৳{simData.variance.amount.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {simData.variance.pct > 0 ? '+' : ''}{simData.variance.pct.toFixed(2)}% vs Baseline
+                        {translate('portal','sim_vs_baseline',{pct:`${simData.variance.pct > 0 ? '+' : ''}${simData.variance.pct.toFixed(2)}`})}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Company Retained Margin</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_retained')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
                         {simData.simulated.retention_pct.toFixed(2)}%
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        ৳{simData.simulated.company_retention.toLocaleString()} net gross margin
+                        {translate('portal','sim_net_margin',{amount:simData.simulated.company_retention.toLocaleString()})}
                     </span>
                 </div>
             </div>
@@ -385,10 +387,10 @@ export default function CompensationSimulator({
             }}>
                 <div style={{ marginBottom: '20px' }}>
                     <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-                        Adjust Slice Percentages
+                        {translate('portal','sim_adjust_title')}
                     </h3>
                     <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
-                        Drag sliders or type exact percentages for each category. Changes calculate instantaneous margin impacts.
+                        {translate('portal','sim_adjust_hint')}
                     </p>
                 </div>
 
@@ -405,7 +407,7 @@ export default function CompensationSimulator({
                             }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                     <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-                                        {meta.label}
+                                        {translate('portal',meta.labelKey)}
                                     </span>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <input
@@ -442,7 +444,7 @@ export default function CompensationSimulator({
                                     }}
                                 />
                                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
-                                    {meta.desc}
+                                    {translate('portal',meta.descKey)}
                                 </div>
                             </div>
                         );
@@ -459,10 +461,10 @@ export default function CompensationSimulator({
             }}>
                 <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0' }}>
                     <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
-                        Compensation Slices Variance Breakdown
+                        {translate('portal','sim_breakdown_title')}
                     </h3>
                     <span style={{ fontSize: '13px', color: '#64748b' }}>
-                        Detailed baseline vs simulated variance across all 10 commission streams
+                        {translate('portal','sim_breakdown_hint')}
                     </span>
                 </div>
 
@@ -470,13 +472,13 @@ export default function CompensationSimulator({
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
                             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>Commission Stream</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Baseline %</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Simulated %</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Rate Delta</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Baseline Payout</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Simulated Payout</th>
-                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>Cash Variance</th>
+                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>{translate('portal','sim_col_stream')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_base_pct')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_sim_pct')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_delta')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_base_pay')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_sim_pay')}</th>
+                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_cash_var')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -489,7 +491,7 @@ export default function CompensationSimulator({
                                 return (
                                     <tr key={slice.key} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px 20px', fontWeight: 600, color: '#1e293b' }}>
-                                            {slice.name}
+                                            {SLICE_METADATA[slice.key] ? translate('portal',SLICE_METADATA[slice.key].labelKey) : slice.name}
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b' }}>
                                             {slice.baseline_pct.toFixed(2)}%
@@ -525,7 +527,7 @@ export default function CompensationSimulator({
                         </tbody>
                         <tfoot>
                             <tr style={{ background: '#f8fafc', fontWeight: 700, borderTop: '2px solid #e2e8f0' }}>
-                                <td style={{ padding: '14px 20px', color: '#0f172a' }}>Total Commission Pool</td>
+                                <td style={{ padding: '14px 20px', color: '#0f172a' }}>{translate('portal','sim_total_pool')}</td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>40.00%</td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', color: isExceedingCap ? '#dc2626' : '#047857' }}>
                                     {totalProposedPct.toFixed(2)}%
