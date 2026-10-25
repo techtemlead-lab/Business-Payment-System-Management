@@ -558,6 +558,7 @@ function CategoryManager({
     onChange: (val: string) => void;
     products?: { id: number; name: string; mrp: string; category: string }[];
 }) {
+    const translate = useT();
     const [mode, setMode] = useState<'visual' | 'text'>('visual');
     const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
 
@@ -583,8 +584,8 @@ function CategoryManager({
         const target = items[index];
         if (!target) return;
         const msg = target.name.trim()
-            ? `Are you sure you want to remove category "${target.name}"?`
-            : 'Are you sure you want to remove this category?';
+            ? translate('portal', 'cms_confirm_remove_category_named', { name: target.name })
+            : translate('portal', 'cms_confirm_remove_category');
         if (window.confirm(msg)) {
             const next = items.filter((_, idx) => idx !== index);
             updateAndEmit(next);
@@ -621,14 +622,14 @@ function CategoryManager({
     };
 
     const handleReset = () => {
-        if (window.confirm('Reset all categories back to the 18 reference defaults?')) {
+        if (window.confirm(translate('portal', 'cms_confirm_reset_categories'))) {
             onChange(defaultValue || '');
             setPickerOpenIdx(null);
         }
     };
 
     const handleClearAll = () => {
-        if (window.confirm('Are you sure you want to remove ALL categories? You can add your own categories from scratch.')) {
+        if (window.confirm(translate('portal', 'cms_confirm_clear_categories'))) {
             onChange('');
             setPickerOpenIdx(null);
         }
@@ -637,7 +638,7 @@ function CategoryManager({
     const handleLoadFromProducts = () => {
         const catalogCats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
         if (catalogCats.length === 0) {
-            alert('No categories found in active products.');
+            alert(translate('portal', 'cms_alert_no_product_categories'));
             return;
         }
 
@@ -780,7 +781,7 @@ function CategoryManager({
                     {items.length === 0 ? (
                         <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: 8, border: '2px dashed #cbd5e1' }}>
                             <div style={{ fontSize: 24, marginBottom: 8 }}>🏷️</div>
-                            <strong style={{ fontSize: 15, color: '#334155', display: 'block' }}>No categories added yet</strong>
+                            <strong style={{ fontSize: 15, color: '#334155', display: 'block' }}>{translate('portal', 'cms_no_categories_yet')}</strong>
                             <p style={{ margin: '4px 0 16px', fontSize: 13, color: '#64748b' }}>
                                 Add your first category using the button below, or reset to the 18 reference defaults.
                             </p>
@@ -1075,7 +1076,7 @@ function CategoryManager({
                                                         Select an Icon for "{item.name || 'Category'}"
                                                     </strong>
                                                     <span style={{ fontSize: 11, color: '#64748b' }}>
-                                                        Click any icon to apply immediately
+                                                        {translate('portal', 'cms_click_icon_apply')}
                                                     </span>
                                                 </div>
 
@@ -1218,6 +1219,7 @@ function ShortcutsManager({
     onToggleEnabled: (enabled: boolean) => void;
     onChange: (items: Shortcut[]) => void;
 }) {
+    const translate = useT();
     const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
 
     const handleAdd = () => {
@@ -1234,7 +1236,7 @@ function ShortcutsManager({
     const handleRemove = (index: number) => {
         const target = shortcuts[index];
         const name = target?.title?.trim() || `Shortcut #${index + 1}`;
-        if (window.confirm(`Are you sure you want to remove "${name}"?`)) {
+        if (window.confirm(translate('portal', 'cms_confirm_remove_named', { name }))) {
             const next = shortcuts.filter((_, idx) => idx !== index);
             onChange(next);
             if (pickerOpenIdx === index) setPickerOpenIdx(null);
@@ -1270,7 +1272,7 @@ function ShortcutsManager({
     };
 
     const handleReset = () => {
-        if (window.confirm('Reset shortcuts back to the 5 reference defaults?')) {
+        if (window.confirm(translate('portal', 'cms_confirm_reset_shortcuts'))) {
             onChange(defaultShortcuts);
             setPickerOpenIdx(null);
         }
@@ -1614,7 +1616,7 @@ function ShortcutsManager({
                                 <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', border: '1.5px solid #006837', borderRadius: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                                         <strong style={{ fontSize: 12, color: '#006837' }}>Choose an Icon:</strong>
-                                        <span style={{ fontSize: 11, color: '#64748b' }}>Click any icon to apply</span>
+                                        <span style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'cms_click_icon_apply_short')}</span>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
                                         {POPULAR_SHORTCUT_ICONS.map(ic => (
@@ -1744,6 +1746,7 @@ export function CampaignOffersManager({
     onChange: (cards: CampaignCardItem[]) => void;
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string }[];
 }) {
+    const translate = useT();
     const [bundleSelectedProds, setBundleSelectedProds] = useState<Record<number, string>>({});
 
     const parsePrice = (val: any): number => {
@@ -1807,7 +1810,7 @@ export function CampaignOffersManager({
     const handleRemove = (index: number) => {
         const target = cards[index];
         const name = target?.title?.trim() || `Offer Card #${index + 1}`;
-        if (window.confirm(`Are you sure you want to remove "${name}"? If this is a promotional single-product offer, its regular catalog dealer price will remain active.`)) {
+        if (window.confirm(translate('portal', 'cms_confirm_remove_promo', { name }))) {
             const next = cards.filter((_, idx) => idx !== index);
             onChange(next);
         }
@@ -1977,7 +1980,7 @@ export function CampaignOffersManager({
     const handleAddBundleItem = (cardIndex: number) => {
         const prodId = bundleSelectedProds[cardIndex];
         if (!prodId) {
-            alert('Please select a catalog product first to add to this bundle.');
+            alert(translate('portal', 'cms_alert_select_product'));
             return;
         }
         const p = products.find(prod => String(prod.id) === prodId);
@@ -1987,7 +1990,7 @@ export function CampaignOffersManager({
         const existingItems = target.bundle_items || [];
 
         if (existingItems.some(item => String(item.product_id) === String(p.id))) {
-            alert(`"${p.name}" is already included in this package.`);
+            alert(translate('portal', 'cms_alert_already_in_package', { name: p.name }));
             return;
         }
 
@@ -2047,15 +2050,15 @@ export function CampaignOffersManager({
                 const diff = numM - numP;
                 handleFieldChange(index, 'save', `Save ${diff.toLocaleString()} Tk`);
             } else {
-                alert('Regular MRP should be greater than Offer Price to calculate discount savings.');
+                alert(translate('portal', 'cms_alert_mrp_gt_offer'));
             }
         } else {
-            alert('Please enter both Offer Price and Regular MRP first.');
+            alert(translate('portal', 'cms_alert_enter_prices'));
         }
     };
 
     const handleReset = () => {
-        if (window.confirm('Reset promotional offers back to the 2 default reference packages?')) {
+        if (window.confirm(translate('portal', 'cms_confirm_reset_promos'))) {
             onChange(defaultCards);
         }
     };
@@ -3620,6 +3623,7 @@ function HeaderNavCategoriesManager({
     featuredCategoriesRaw = '',
     products = [],
 }: HeaderNavCategoriesManagerProps) {
+    const translate = useT();
     const [newCategoryName, setNewCategoryName] = useState('');
     const [bulkMode, setBulkMode] = useState(false);
     const [bulkInput, setBulkInput] = useState('');
@@ -3637,7 +3641,7 @@ function HeaderNavCategoriesManager({
         if (!trimmed) return;
         const currentList = isCustomized ? activeCategories : [...DEFAULT_NAV_CATEGORIES];
         if (currentList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
-            alert(`"${trimmed}" is already in the category navigation list.`);
+            alert(translate('portal', 'cms_alert_nav_dup', { name: trimmed }));
             return;
         }
         const updated = [...currentList, trimmed];
@@ -3655,7 +3659,7 @@ function HeaderNavCategoriesManager({
     const handleRemove = (index: number) => {
         const currentList = isCustomized ? activeCategories : [...DEFAULT_NAV_CATEGORIES];
         const target = currentList[index];
-        if (window.confirm(`Remove "${target}" from the category navigation bar?`)) {
+        if (window.confirm(translate('portal', 'cms_confirm_remove_nav', { name: target }))) {
             const updated = currentList.filter((_, i) => i !== index);
             onChange(updated.join('\n'));
         }
@@ -3678,14 +3682,14 @@ function HeaderNavCategoriesManager({
     };
 
     const handleResetDefaults = () => {
-        if (window.confirm('Reset category navigation to the 8 default reference placeholders?')) {
+        if (window.confirm(translate('portal', 'cms_confirm_reset_nav'))) {
             onChange(DEFAULT_NAV_CATEGORIES.join('\n'));
             setNewCategoryName('');
         }
     };
 
     const handleClearToPlaceholders = () => {
-        if (window.confirm('Clear custom categories? The system will revert to the default reference placeholders.')) {
+        if (window.confirm(translate('portal', 'cms_confirm_clear_nav'))) {
             onChange('');
             setNewCategoryName('');
         }
@@ -3694,7 +3698,7 @@ function HeaderNavCategoriesManager({
     const handleSyncFeatured = () => {
         const names = featuredCategoriesRaw.split(/\r?\n/).map(l => l.split('|')[0].trim()).filter(Boolean);
         if (names.length === 0) {
-            alert('No featured categories found to sync.');
+            alert(translate('portal', 'cms_alert_no_featured'));
             return;
         }
         const unique = Array.from(new Set(names));
@@ -3703,12 +3707,12 @@ function HeaderNavCategoriesManager({
 
     const handleSyncProducts = () => {
         if (!products || products.length === 0) {
-            alert('No active products found.');
+            alert(translate('portal', 'cms_alert_no_products'));
             return;
         }
         const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
         if (cats.length === 0) {
-            alert('No product categories found.');
+            alert(translate('portal', 'cms_alert_no_categories'));
             return;
         }
         onChange(cats.join('\n'));
@@ -4191,7 +4195,7 @@ function HeaderNavCategoriesManager({
                 }}>
                     {activeCategories.length === 0 ? (
                         <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
-                            No categories selected. Storefront will fall back to default placeholders.
+                            {translate('portal', 'cms_no_categories_selected')}
                         </span>
                     ) : (
                         activeCategories.map((cat, i) => (
@@ -4620,7 +4624,7 @@ export default function SiteCustomizationEditor({
     };
 
     const handleResetAll = () => {
-        if (confirm('Reset all frontend customizations back to the default placeholders?')) {
+        if (confirm(translate('portal', 'cms_confirm_reset_all_frontend'))) {
             resetForm.post('/commands/customization/reset');
         }
     };
