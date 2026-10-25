@@ -183,10 +183,10 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         if (! empty($d['sponsor_id'])) {
-            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
-            throw ValidationException::withMessages(['directory_visible' => 'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
+            throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
         }
         $u = DB::transaction(function () use ($r, $d, $isPartner) {
             CommissionWallet::lock();
@@ -227,7 +227,7 @@ class CommandController extends Controller
     {
         $this->permit($r, 'accounts');
         abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
-        abort_if($r->user()->id === $user->id, 422, 'Use your security page; self-suspension is not allowed.');
+        abort_if($r->user()->id === $user->id, 422, __('portal.cmd_val_self_suspend'));
         if ($r->exists('nid')) {
             $this->permit($r, 'identity_write');
         }
@@ -239,11 +239,11 @@ class CommandController extends Controller
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
             if ($newSponsorId) {
                 if ($newSponsorId === $user->id) {
-                    throw ValidationException::withMessages(['sponsor_id' => 'Self-sponsorship is disallowed. A partner cannot be their own sponsor.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_self_sponsor')]);
                 }
-                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
                 if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
-                    throw ValidationException::withMessages(['sponsor_id' => 'Circular referral cycle detected: The selected sponsor is already a downline descendant of this user.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_circular_sponsor')]);
                 }
             }
         }
@@ -259,7 +259,7 @@ class CommandController extends Controller
             }
             if ($r->has('permissions')) {
                 if (isset($existing['action_permissions'])) {
-                    throw ValidationException::withMessages(['permissions' => 'Manage this account in Roles & permissions to retain its detailed action controls.']);
+                    throw ValidationException::withMessages(['permissions' => __('portal.cmd_val_permissions_roles')]);
                 }
                 $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
             }
@@ -326,7 +326,7 @@ class CommandController extends Controller
         $d = $r->validate(['name' => 'required|string|max:150', 'sku' => 'required|string|max:60|unique:products', 'category' => 'required|string|max:100', 'description' => 'nullable|string|max:3000',
             'mrp' => 'required|regex:/^\d{1,8}(\.\d{1,2})?$/', 'dealer_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/', 'unit' => 'required|string|max:30']);
         if (Money::cents($d['mrp']) <= 0 || (isset($d['dealer_price']) && (Money::cents($d['dealer_price']) <= 0 || Money::cents($d['dealer_price']) > Money::cents($d['mrp'])))) {
-            throw ValidationException::withMessages(['mrp' => 'Enter positive prices; dealer price cannot exceed MRP.']);
+            throw ValidationException::withMessages(['mrp' => __('portal.cmd_val_mrp_prices')]);
         }
         DB::transaction(function () use ($r, $d) {
             $p = Product::create($d);
@@ -484,7 +484,7 @@ class CommandController extends Controller
 
     public function financialGate(): never
     {
-        throw ValidationException::withMessages(['policy' => 'This action is unavailable until the financial policy is approved and verified.']);
+        throw ValidationException::withMessages(['policy' => __('portal.cmd_val_financial_gate')]);
     }
 
     public function claim(ClaimPaymentRequest $r, Order $order, OrderService $service): RedirectResponse
@@ -670,7 +670,7 @@ class CommandController extends Controller
                 ->where('is_active', true)
                 ->first();
             if (! $place) {
-                throw ValidationException::withMessages(['place_code_id' => 'Choose an active place code that matches the assignment level.']);
+                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
             }
             $path = $place->loadMissing('parent.parent.parent')->pathNames();
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
@@ -688,7 +688,7 @@ class CommandController extends Controller
             }
             foreach ($path as $field => $value) {
                 if (trim((string) $value) === '') {
-                    throw ValidationException::withMessages(['place_code_id' => 'The selected place code is missing its parent hierarchy.']);
+                    throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
                 }
                 $d[$field] = $value;
             }
@@ -699,7 +699,7 @@ class CommandController extends Controller
             $path = [];
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
                 if (empty($d[$field])) {
-                    throw ValidationException::withMessages([$field => 'Specify a place code or the full territorial hierarchy for this assignment.']);
+                    throw ValidationException::withMessages([$field => __('portal.cmd_val_territory_required')]);
                 }
                 $d[$field] = trim($d[$field]);
                 $path[$field] = $d[$field];
@@ -708,7 +708,7 @@ class CommandController extends Controller
                 }
             }
             if (trim((string) ($d['zone_name'] ?? '')) === '') {
-                throw ValidationException::withMessages(['zone_name' => 'Enter a zone name for legacy name-based assignments.']);
+                throw ValidationException::withMessages(['zone_name' => __('portal.cmd_val_zone_name_required')]);
             }
         }
 
@@ -716,7 +716,7 @@ class CommandController extends Controller
             CommissionWallet::lock();
             $user = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active') {
-                throw ValidationException::withMessages(['user_id' => 'Choose an active dealer.']);
+                throw ValidationException::withMessages(['user_id' => __('portal.cmd_val_active_dealer')]);
             }
             $query = AreaDealerAssignment::where('level', $d['level'])->where('is_active', true);
             if ($place) {
@@ -728,7 +728,7 @@ class CommandController extends Controller
                 }
             }
             if ($query->exists()) {
-                throw ValidationException::withMessages(['place_code_id' => 'This territory already has an active dealer. Remove that assignment before replacing it.']);
+                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_territory_taken')]);
             }
             $territoryKey = $place
                 ? hash('sha256', $d['level'].'|code:'.$place->code)

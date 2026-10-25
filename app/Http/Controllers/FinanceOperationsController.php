@@ -164,13 +164,13 @@ class FinanceOperationsController extends Controller
                 abort_unless($debt, 404);
                 $amount = Money::cents($data['amount']);
                 if ($amount > Money::cents($debt->amount) - Money::cents($debt->recovered)) {
-                    throw ValidationException::withMessages(['amount' => 'Recovery cannot exceed the outstanding company clawback.']);
+                    throw ValidationException::withMessages(['amount' => __('portal.ops_val_recovery_exceeds')]);
                 }
                 $account = DB::table('payment_accounts')->where('id', $data['payment_account_id'])->where('is_active', true)->where('collects_payments', true)->first();
                 abort_unless($account, 422, 'Choose an active collection account.');
                 $reference = Str::upper(trim($data['payment_reference']));
                 if (DB::table('reserve_recoveries')->where('payment_reference', $reference)->exists() || DB::table('receipts')->where('reference', $reference)->exists()) {
-                    throw ValidationException::withMessages(['payment_reference' => 'This collection reference is already recorded.']);
+                    throw ValidationException::withMessages(['payment_reference' => __('portal.ops_val_collection_ref_taken')]);
                 }
                 $recovery = DB::table('reserve_recoveries')->insertGetId(['clawback_id' => $id, 'amount' => Money::decimal($amount), 'payment_reference' => $reference,
                     'payment_account_id' => $account->id, 'actor_id' => $request->user()->id, 'paid_at' => $data['paid_at'], 'reason' => $data['reason'],
@@ -226,7 +226,7 @@ class FinanceOperationsController extends Controller
         $data = $request->validate(['type' => ['required', Rule::in(ReportData::Types)], 'format' => 'required|in:xlsx,pdf',
             'from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from']);
         if (CarbonImmutable::parse($data['from'])->diffInDays(CarbonImmutable::parse($data['to'])) > 366) {
-            throw ValidationException::withMessages(['to' => 'Choose a date range of at most 366 days.']);
+            throw ValidationException::withMessages(['to' => __('portal.ops_val_date_range')]);
         }
         $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to']);
         $reportName = match ($data['type']) {
@@ -287,7 +287,7 @@ class FinanceOperationsController extends Controller
             } else {
                 $items = $report['query']->limit(5001)->get();
                 if ($items->count() > 5000) {
-                    throw ValidationException::withMessages(['format' => 'PDF supports up to 5,000 rows. Narrow the date range or select Excel for the full dataset.']);
+                    throw ValidationException::withMessages(['format' => __('portal.ops_val_pdf_row_limit')]);
                 }
                 $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportName).' report</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
                 foreach ($report['columns'] as $column) {

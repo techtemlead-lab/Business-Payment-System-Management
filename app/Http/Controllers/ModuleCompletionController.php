@@ -70,12 +70,12 @@ class ModuleCompletionController extends Controller
             abort_unless($actor->canAct('content', 'edit') || $actor->canAct('catalog', 'edit'), 403);
             $before = DB::table('business_settings')->where('key', 'homepage_video')->first();
             if (($before?->version ?? 0) !== (int) $data['version']) {
-                throw ValidationException::withMessages(['version' => 'Homepage video settings changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.ops_val_homepage_stale')]);
             }
             if ($data['enabled']) {
                 $product = Product::where('active', true)->find($data['product_id']);
                 if (! $product || ! ($product->media()['video_url'] || $product->media()['video_embed_url'])) {
-                    throw ValidationException::withMessages(['product_id' => 'Select a published product with a valid video.']);
+                    throw ValidationException::withMessages(['product_id' => __('portal.ops_val_homepage_product')]);
                 }
             }
             $value = collect($data)->only(['enabled', 'product_id', 'title', 'description'])->all();
