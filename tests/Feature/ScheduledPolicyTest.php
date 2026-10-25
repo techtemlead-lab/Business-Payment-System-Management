@@ -86,7 +86,7 @@ class ScheduledPolicyTest extends TestCase
     public function test_invalid_or_unfunded_schedules_and_unauthorized_proposals_are_rejected(): void
     {
         $data = ['scope' => 'global', 'rules' => ['direct_referral' => ['percentage' => '99.00']], 'effective_at' => now()->toIso8601String(), 'reason' => 'Invalid unfunded commission policy'];
-        $this->actingAs(User::factory()->create())->postJson('/api/v1/operations/policy-schedules', $data)->assertForbidden();
+        $this->actingAs(User::factory()->create())->postJson('/api/v1/operations/policy-schedules', $data)->assertNotFound();
         $this->actingAs(User::factory()->create(['role' => 'finance']))->postJson('/api/v1/operations/policy-schedules', $data)->assertUnprocessable();
         $this->postJson('/api/v1/operations/policy-schedules', [...$data, 'effective_at' => now()->subDay()->toIso8601String()])->assertUnprocessable();
         $this->assertDatabaseCount('commission_policy_schedules', 0);
