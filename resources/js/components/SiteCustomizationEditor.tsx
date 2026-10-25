@@ -415,6 +415,8 @@ function Field({
     rows?: number;
     span2?: boolean;
 }) {
+    const translate = useT();
+
     return (
         <label style={{ display: 'block', gridColumn: span2 ? '1 / -1' : undefined }}>
             <span style={{ fontWeight: 600, fontSize: 13, display: 'block', marginBottom: 6 }}>{label}</span>
@@ -435,9 +437,11 @@ function Field({
                     style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
                 />
             )}
-            <small style={{ color: '#94a3b8', display: 'block', marginTop: 4, fontSize: 11 }}>
-                Default placeholder: {placeholder}
-            </small>
+            {placeholder ? (
+                <small style={{ color: '#94a3b8', display: 'block', marginTop: 4, fontSize: 11 }}>
+                    {translate('portal', 'sce_default_placeholder', { value: placeholder })}
+                </small>
+            ) : null}
         </label>
     );
 }
@@ -452,64 +456,64 @@ interface CategoryItem {
 
 const POPULAR_CATEGORY_ICONS = [
     {
-        group: '🏥 Health, Medicine & Diagnostics',
+        groupKey: 'sce_icon_group_health',
         icons: [
-            { icon: 'fa-briefcase-medical', label: 'Medical Equipment' },
-            { icon: 'fa-prescription-bottle-medical', label: 'Unani & Herbal Medicine' },
-            { icon: 'fa-capsules', label: 'Capsules' },
-            { icon: 'fa-tablets', label: 'Tablets / Medicine' },
-            { icon: 'fa-pills', label: 'Pills & Supplements' },
-            { icon: 'fa-stethoscope', label: 'Diagnostics / Doctor' },
-            { icon: 'fa-kit-medical', label: 'First Aid / Kit' },
-            { icon: 'fa-mortar-pestle', label: 'Herbal Compounding' },
-            { icon: 'fa-heart-pulse', label: 'Cardio & Vitality' },
-            { icon: 'fa-bandage', label: 'Bandages & Care' },
-            { icon: 'fa-hand-holding-medical', label: 'Health Support' },
-            { icon: 'fa-shield-halved', label: 'Health Protection' },
+            { icon: 'fa-briefcase-medical', labelKey: 'sce_icon_medical_equipment' },
+            { icon: 'fa-prescription-bottle-medical', labelKey: 'sce_icon_unani_herbal' },
+            { icon: 'fa-capsules', labelKey: 'sce_icon_capsules' },
+            { icon: 'fa-tablets', labelKey: 'sce_icon_tablets' },
+            { icon: 'fa-pills', labelKey: 'sce_icon_pills' },
+            { icon: 'fa-stethoscope', labelKey: 'sce_icon_diagnostics' },
+            { icon: 'fa-kit-medical', labelKey: 'sce_icon_first_aid' },
+            { icon: 'fa-mortar-pestle', labelKey: 'sce_icon_herbal_compounding' },
+            { icon: 'fa-heart-pulse', labelKey: 'sce_icon_cardio' },
+            { icon: 'fa-bandage', labelKey: 'sce_icon_bandages' },
+            { icon: 'fa-hand-holding-medical', labelKey: 'sce_icon_health_support' },
+            { icon: 'fa-shield-halved', labelKey: 'sce_icon_health_protection' },
         ],
     },
     {
-        group: '🌿 Herbal, Organic & Nutrition',
+        groupKey: 'sce_icon_group_herbal',
         icons: [
-            { icon: 'fa-leaf', label: 'Pure Herbal' },
-            { icon: 'fa-seedling', label: 'Agriculture & Botanicals' },
-            { icon: 'fa-bowl-food', label: 'Food Supplement' },
-            { icon: 'fa-bottle-droplet', label: 'Oils, Tinctures & Drops' },
-            { icon: 'fa-apple-whole', label: 'Diet & Nutrition' },
-            { icon: 'fa-spa', label: 'Wellness & Therapy' },
-            { icon: 'fa-tree', label: 'Nature & Forest' },
-            { icon: 'fa-cannabis', label: 'Botanical Extracts' },
-            { icon: 'fa-wheat-awn', label: 'Organic Grains' },
-            { icon: 'fa-fish', label: 'Meat & Fish' },
+            { icon: 'fa-leaf', labelKey: 'sce_icon_pure_herbal' },
+            { icon: 'fa-seedling', labelKey: 'sce_icon_agriculture' },
+            { icon: 'fa-bowl-food', labelKey: 'sce_icon_food_supplement' },
+            { icon: 'fa-bottle-droplet', labelKey: 'sce_icon_oils' },
+            { icon: 'fa-apple-whole', labelKey: 'sce_icon_diet' },
+            { icon: 'fa-spa', labelKey: 'sce_icon_wellness' },
+            { icon: 'fa-tree', labelKey: 'sce_icon_nature' },
+            { icon: 'fa-cannabis', labelKey: 'sce_icon_botanical' },
+            { icon: 'fa-wheat-awn', labelKey: 'sce_icon_grains' },
+            { icon: 'fa-fish', labelKey: 'sce_icon_meat_fish' },
         ],
     },
     {
-        group: '✨ Beauty, Personal Care & Home',
+        groupKey: 'sce_icon_group_beauty',
         icons: [
-            { icon: 'fa-pump-medical', label: 'Personal Care & Sanitizer' },
-            { icon: 'fa-gem', label: 'Cosmetics & Beauty' },
-            { icon: 'fa-sparkles', label: 'Skin Glow' },
-            { icon: 'fa-feather-pointed', label: 'Gentle Care' },
-            { icon: 'fa-shirt', label: 'Fashion & Lifestyle' },
-            { icon: 'fa-briefcase', label: 'Leather Items' },
-            { icon: 'fa-water', label: 'Water Purifier' },
-            { icon: 'fa-mug-hot', label: 'Electric Kettle' },
-            { icon: 'fa-fire-burner', label: 'Cookeries Items' },
-            { icon: 'fa-temperature-arrow-up', label: 'Room Heater' },
-            { icon: 'fa-couch', label: 'Furniture' },
-            { icon: 'fa-laptop', label: 'Electronic Devices' },
-            { icon: 'fa-handshake-angle', label: 'Service' },
+            { icon: 'fa-pump-medical', labelKey: 'sce_icon_personal_care' },
+            { icon: 'fa-gem', labelKey: 'sce_icon_cosmetics' },
+            { icon: 'fa-sparkles', labelKey: 'sce_icon_skin_glow' },
+            { icon: 'fa-feather-pointed', labelKey: 'sce_icon_gentle_care' },
+            { icon: 'fa-shirt', labelKey: 'sce_icon_fashion' },
+            { icon: 'fa-briefcase', labelKey: 'sce_icon_leather' },
+            { icon: 'fa-water', labelKey: 'sce_icon_water' },
+            { icon: 'fa-mug-hot', labelKey: 'sce_icon_kettle' },
+            { icon: 'fa-fire-burner', labelKey: 'sce_icon_cookeries' },
+            { icon: 'fa-temperature-arrow-up', labelKey: 'sce_icon_heater' },
+            { icon: 'fa-couch', labelKey: 'sce_icon_furniture' },
+            { icon: 'fa-laptop', labelKey: 'sce_icon_electronics' },
+            { icon: 'fa-handshake-angle', labelKey: 'sce_icon_service' },
         ],
     },
     {
-        group: '🏷️ General & Badges',
+        groupKey: 'sce_icon_group_general',
         icons: [
-            { icon: 'fa-tag', label: 'Default Tag' },
-            { icon: 'fa-bag-shopping', label: 'Shopping Bag' },
-            { icon: 'fa-box-open', label: 'Product Box' },
-            { icon: 'fa-star', label: 'Top Rated' },
-            { icon: 'fa-gift', label: 'Special Offer' },
-            { icon: 'fa-award', label: 'Certified / Award' },
+            { icon: 'fa-tag', labelKey: 'sce_icon_default_tag' },
+            { icon: 'fa-bag-shopping', labelKey: 'sce_icon_shopping_bag' },
+            { icon: 'fa-box-open', labelKey: 'sce_icon_product_box' },
+            { icon: 'fa-star', labelKey: 'sce_icon_top_rated' },
+            { icon: 'fa-gift', labelKey: 'sce_icon_special_offer' },
+            { icon: 'fa-award', labelKey: 'sce_icon_certified' },
         ],
     },
 ];
@@ -572,7 +576,7 @@ function CategoryManager({
     const handleAddItem = () => {
         const newItem: CategoryItem = {
             id: `cat-new-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-            name: 'New Category',
+            name: translate('portal', 'sce_new_category'),
             icon: 'fa-tag',
             link: '',
             badge: '',
@@ -741,7 +745,7 @@ function CategoryManager({
                         className="button small"
                         style={{ background: '#006837', color: '#ffffff', border: 'none', fontSize: 12, fontWeight: 700, padding: '7px 14px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
                     >
-                        <Plus size={15} /> Add New Category
+                        <Plus size={15} /> {translate('portal', 'sce_add_new_category')}
                     </button>
                     {products.length > 0 && (
                         <button
@@ -750,7 +754,7 @@ function CategoryManager({
                             className="button small"
                             style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
                         >
-                            ⚡ Load from Active Products ({products.length})
+                            ⚡ {translate('portal', 'sce_load_from_products', { count: String(products.length) })}
                         </button>
                     )}
                 </div>
@@ -762,7 +766,7 @@ function CategoryManager({
                         className="button small"
                         style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
                     >
-                        ↺ Reset to reference defaults
+                        ↺ {translate('portal', 'sce_reset_reference_defaults')}
                     </button>
                     <button
                         type="button"
@@ -991,7 +995,7 @@ function CategoryManager({
                                             <label style={{ display: 'block' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                                     <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
-                                                        Target URL Link (Optional)
+                                                        {translate('portal', 'sce_target_url_optional')}
                                                     </span>
                                                     <button
                                                         type="button"
@@ -1010,13 +1014,13 @@ function CategoryManager({
                                                             cursor: 'pointer',
                                                         }}
                                                     >
-                                                        Auto-Catalog
+                                                        {translate('portal', 'sce_auto_catalog')}
                                                     </button>
                                                 </div>
                                                 <input
                                                     type="text"
                                                     value={item.link}
-                                                    placeholder={`/products?category=${encodeURIComponent(item.name || 'Category')}`}
+                                                    placeholder={`/products?category=${encodeURIComponent(item.name || translate('portal', 'sce_category_fallback'))}`}
                                                     onChange={e => handleFieldChange(idx, 'link', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
@@ -1026,7 +1030,7 @@ function CategoryManager({
                                             <label style={{ display: 'block' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                                     <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
-                                                        Promotional Badge (Optional)
+                                                        {translate('portal', 'sce_promotional_badge_optional')}
                                                     </span>
                                                     <div style={{ display: 'flex', gap: 3 }}>
                                                         {['HOT', 'NEW', 'POPULAR', ''].map(tag => (
@@ -1073,7 +1077,7 @@ function CategoryManager({
                                             >
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                                                     <strong style={{ fontSize: 12, color: '#006837' }}>
-                                                        Select an Icon for "{item.name || 'Category'}"
+                                                        {translate('portal', 'sce_select_icon_for', { name: item.name || translate('portal', 'sce_category_fallback') })}
                                                     </strong>
                                                     <span style={{ fontSize: 11, color: '#64748b' }}>
                                                         {translate('portal', 'cms_click_icon_apply')}
@@ -1082,9 +1086,9 @@ function CategoryManager({
 
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                                     {POPULAR_CATEGORY_ICONS.map(group => (
-                                                        <div key={group.group}>
+                                                        <div key={group.groupKey}>
                                                             <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', marginBottom: 6, borderBottom: '1px solid #e2e8f0', paddingBottom: 2 }}>
-                                                                {group.group}
+                                                                {translate('portal', group.groupKey)}
                                                             </div>
                                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
                                                                 {group.icons.map(ic => (
@@ -1111,7 +1115,7 @@ function CategoryManager({
                                                                     >
                                                                         <i className={`fa-solid ${ic.icon}`} style={{ fontSize: 14, width: 16, textAlign: 'center' }} />
                                                                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                            {ic.label}
+                                                                            {translate('portal', ic.labelKey)}
                                                                         </span>
                                                                     </button>
                                                                 ))}
@@ -1146,7 +1150,7 @@ function CategoryManager({
                                         justifyContent: 'center',
                                     }}
                                 >
-                                    <Plus size={16} /> + Add Another Category
+                                    <Plus size={16} /> {translate('portal', 'sce_add_another_category')}
                                 </button>
                             </div>
                         </div>
@@ -1186,24 +1190,24 @@ function CategoryManager({
 }
 
 const POPULAR_SHORTCUT_ICONS = [
-    { icon: 'fa-seedling', label: 'Seedling / Products' },
-    { icon: 'fa-comments', label: 'Comments / Complaints' },
-    { icon: 'fa-hand-holding-heart', label: 'Services / Care' },
-    { icon: 'fa-headset', label: 'Support / Contact' },
-    { icon: 'fa-diagram-project', label: 'Projects / Network' },
-    { icon: 'fa-capsules', label: 'Medicine & Unani' },
-    { icon: 'fa-kit-medical', label: 'Medical Kit' },
-    { icon: 'fa-user-doctor', label: 'Doctor / Clinic' },
-    { icon: 'fa-spa', label: 'Wellness & Spa' },
-    { icon: 'fa-truck-fast', label: 'Fast Delivery' },
-    { icon: 'fa-shield-halved', label: 'Quality Guarantee' },
-    { icon: 'fa-location-dot', label: 'Store Locator' },
-    { icon: 'fa-award', label: 'Certified / Award' },
-    { icon: 'fa-store', label: 'Dealer Outlets' },
-    { icon: 'fa-phone', label: 'Hotline / Phone' },
-    { icon: 'fa-envelope', label: 'Email Support' },
-    { icon: 'fa-circle-question', label: 'Help & FAQ' },
-    { icon: 'fa-gift', label: 'Offers & Gifts' },
+    { icon: 'fa-seedling', labelKey: 'sce_sc_icon_seedling' },
+    { icon: 'fa-comments', labelKey: 'sce_sc_icon_comments' },
+    { icon: 'fa-hand-holding-heart', labelKey: 'sce_sc_icon_care' },
+    { icon: 'fa-headset', labelKey: 'sce_sc_icon_support' },
+    { icon: 'fa-diagram-project', labelKey: 'sce_sc_icon_projects' },
+    { icon: 'fa-capsules', labelKey: 'sce_sc_icon_medicine' },
+    { icon: 'fa-kit-medical', labelKey: 'sce_sc_icon_kit' },
+    { icon: 'fa-user-doctor', labelKey: 'sce_sc_icon_doctor' },
+    { icon: 'fa-spa', labelKey: 'sce_sc_icon_spa' },
+    { icon: 'fa-truck-fast', labelKey: 'sce_sc_icon_delivery' },
+    { icon: 'fa-shield-halved', labelKey: 'sce_sc_icon_quality' },
+    { icon: 'fa-location-dot', labelKey: 'sce_sc_icon_locator' },
+    { icon: 'fa-award', labelKey: 'sce_sc_icon_award' },
+    { icon: 'fa-store', labelKey: 'sce_sc_icon_outlets' },
+    { icon: 'fa-phone', labelKey: 'sce_sc_icon_hotline' },
+    { icon: 'fa-envelope', labelKey: 'sce_sc_icon_email' },
+    { icon: 'fa-circle-question', labelKey: 'sce_sc_icon_faq' },
+    { icon: 'fa-gift', labelKey: 'sce_sc_icon_gifts' },
 ];
 
 function ShortcutsManager({
@@ -1312,7 +1316,11 @@ function ShortcutsManager({
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <strong style={{ fontSize: 15, color: enabled ? '#065f46' : '#334155' }}>
-                                Feature Shortcuts Section: {enabled ? 'Active & Visible on Homepage' : 'Hidden from Homepage'}
+                                {translate('portal', 'sce_shortcuts_section_status', {
+                                    state: enabled
+                                        ? translate('portal', 'sce_section_active_visible')
+                                        : translate('portal', 'sce_section_hidden'),
+                                })}
                             </strong>
                             <span style={{
                                 fontSize: 11,
@@ -1322,13 +1330,13 @@ function ShortcutsManager({
                                 background: enabled ? '#006837' : '#64748b',
                                 color: '#fff'
                             }}>
-                                {enabled ? 'ENABLED' : 'DISABLED'}
+                                {enabled ? translate('portal', 'sce_enabled') : translate('portal', 'sce_disabled')}
                             </span>
                         </div>
                         <p style={{ margin: '3px 0 0', fontSize: 13, color: '#475569' }}>
                             {enabled
-                                ? 'The quick feature links ("Our Products", "Raise a Complaint", etc.) are currently displaying on the public homepage.'
-                                : 'The feature shortcuts section is currently hidden. Click below to show it on the homepage.'}
+                                ? translate('portal', 'sce_shortcuts_enabled_hint')
+                                : translate('portal', 'sce_shortcuts_disabled_hint')}
                         </p>
                     </div>
                 </div>
@@ -1348,7 +1356,9 @@ function ShortcutsManager({
                             boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
                         }}
                     >
-                        {enabled ? '✕ Disable & Hide Section' : '✓ Enable & Show Section'}
+                        {enabled
+                            ? translate('portal', 'sce_disable_hide_section')
+                            : translate('portal', 'sce_enable_show_section')}
                     </button>
                 </div>
             </div>
@@ -1357,10 +1367,10 @@ function ShortcutsManager({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
-                        Customizable Feature Shortcuts ({shortcuts.length} Items)
+                        {translate('portal', 'sce_shortcuts_heading', { count: String(shortcuts.length) })}
                     </h3>
                     <span style={{ fontSize: 12, color: '#64748b' }}>
-                        You can add, edit, reorder or remove any shortcut below.
+                        {translate('portal', 'sce_shortcuts_manage_hint')}
                     </span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -1607,7 +1617,9 @@ function ShortcutsManager({
                                         onChange={e => handleFieldChange(idx, 'link', e.target.value)}
                                         style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
                                     />
-                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Placeholder: {defSc.link}</small>
+                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>
+                                        {translate('portal', 'sce_default_placeholder', { value: defSc.link })}
+                                    </small>
                                 </div>
                             </div>
 
@@ -1615,7 +1627,7 @@ function ShortcutsManager({
                             {isPickerOpen && (
                                 <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', border: '1.5px solid #006837', borderRadius: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <strong style={{ fontSize: 12, color: '#006837' }}>Choose an Icon:</strong>
+                                        <strong style={{ fontSize: 12, color: '#006837' }}>{translate('portal', 'sce_choose_icon')}</strong>
                                         <span style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'cms_click_icon_apply_short')}</span>
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
@@ -1643,7 +1655,7 @@ function ShortcutsManager({
                                             >
                                                 <i className={`fa-solid ${ic.icon}`} style={{ fontSize: 14, width: 16, textAlign: 'center' }} />
                                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {ic.label}
+                                                    {translate('portal', ic.labelKey)}
                                                 </span>
                                             </button>
                                         ))}
@@ -2097,7 +2109,11 @@ export function CampaignOffersManager({
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <strong style={{ fontSize: 15, color: enabled ? '#065f46' : '#334155' }}>
-                                Campaign & Special Offers Status: {enabled ? 'Active & Visible on Homepage' : 'Hidden from Homepage'}
+                                {translate('portal', 'sce_campaign_section_status', {
+                                    state: enabled
+                                        ? translate('portal', 'sce_section_active_visible')
+                                        : translate('portal', 'sce_section_hidden'),
+                                })}
                             </strong>
                             <span style={{
                                 fontSize: 11,
@@ -2107,13 +2123,13 @@ export function CampaignOffersManager({
                                 background: enabled ? '#006837' : '#64748b',
                                 color: '#fff'
                             }}>
-                                {enabled ? 'ENABLED' : 'DISABLED'}
+                                {enabled ? translate('portal', 'sce_enabled') : translate('portal', 'sce_disabled')}
                             </span>
                         </div>
                         <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>
                             {enabled
-                                ? `The promotional offer section is displaying on the public homepage with ${cards.length} active offer card(s).`
-                                : 'The promotional offer section is currently hidden. Click the button to re-enable and display it on the public homepage.'}
+                                ? translate('portal', 'sce_campaign_enabled_hint', { count: String(cards.length) })
+                                : translate('portal', 'sce_campaign_disabled_hint')}
                         </p>
                     </div>
                 </div>
@@ -2137,7 +2153,9 @@ export function CampaignOffersManager({
                             transition: 'all 0.2s ease'
                         }}
                     >
-                        {enabled ? '✕ Disable & Hide Section' : '✓ Enable & Show Section'}
+                        {enabled
+                            ? translate('portal', 'sce_disable_hide_section')
+                            : translate('portal', 'sce_enable_show_section')}
                     </button>
                 </div>
             </div>
