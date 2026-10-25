@@ -1864,6 +1864,7 @@ return [
     'si_courier_rejected' => 'কুরিয়ার API কনসাইনমেন্ট প্রত্যাখ্যান করেছে।',
     'si_courier_default_recipient' => 'গ্রাহক',
     'si_courier_default_item' => 'অর্ডার',
+    'si_courier_pick_address' => 'প্রধান কার্যালয়',
     'startup_label_fresh' => 'নতুন ব্যবসা (অতীত লেজার ইমপোর্ট নেই)',
     'startup_label_import' => 'উদ্বোধনী ব্যালেন্স / এক্সেল ইতিহাস ইমপোর্ট',
     'startup_label_none' => 'এখনো নির্বাচিত হয়নি',

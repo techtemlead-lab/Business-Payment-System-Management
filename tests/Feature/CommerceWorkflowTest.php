@@ -62,6 +62,11 @@ class CommerceWorkflowTest extends TestCase
 
         $editor = User::factory()->create(['role' => 'editor', 'status' => 'active']);
         $this->actingAs($editor)->onPortal('manage')->get('/enquiries')->assertOk();
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        foreach (['/', '/accounts', '/orders', '/treasury', '/enquiries', '/network-tree'] as $path) {
+            $this->actingAs($admin)->onPortal('sadmin')->get($path)->assertOk();
+        }
     }
 
     public function test_portal_hosts_carry_order_through_delivery_to_commission_posting(): void

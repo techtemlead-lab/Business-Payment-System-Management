@@ -142,7 +142,7 @@ final class CourierGatewayClient
             ->post(rtrim((string) $config['base_url'], '/').'/OrderPlacement', [
                 'merOrderRef' => $shipment['invoice'] ?? uniqid('ORD-', true),
                 'pickMerchantName' => 'Madina Natural Health Care',
-                'pickMerchantAddress' => 'Head office',
+                'pickMerchantAddress' => __('portal.si_courier_pick_address'),
                 'productSizeWeight' => 'standard',
                 'productBrief' => $shipment['note'] ?? __('portal.si_courier_default_item'),
                 'packagePrice' => (float) ($shipment['amount'] ?? 0),

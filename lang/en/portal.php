@@ -1864,6 +1864,7 @@ return [
     'si_courier_rejected' => 'Courier API rejected the consignment.',
     'si_courier_default_recipient' => 'Customer',
     'si_courier_default_item' => 'Order',
+    'si_courier_pick_address' => 'Head office',
     'startup_label_fresh' => 'Fresh business (no past ledger import)',
     'startup_label_import' => 'Import opening balances / Excel history',
     'startup_label_none' => 'Not selected yet',
