@@ -447,9 +447,40 @@ class CommandController extends Controller
     {
         abort_unless($r->user()->allows('content') || $r->user()->allows('accounts'), 403);
         $d = $r->validate(['status' => 'required|in:new,contacted,closed']);
-        abort_unless(DB::table('enquiries')->where('id', $id)->exists(), 404);
+        $enquiry = DB::table('enquiries')->where('id', $id)->first();
+        abort_unless($enquiry, 404);
+        $previous = (string) $enquiry->status;
         DB::table('enquiries')->where('id', $id)->update([...$d, 'updated_at' => now()]);
         Audit::record($r->user()->id, 'enquiry.updated', (string) $id);
+        if ($previous !== $d['status'] && in_array($d['status'], ['contacted', 'closed'], true)) {
+            $supported = config('madina.locales', ['en', 'bn']);
+            $locale = is_string($enquiry->locale ?? null) && in_array($enquiry->locale, $supported, true)
+                ? $enquiry->locale
+                : app()->getLocale();
+            $topicLabel = match ((string) $enquiry->topic) {
+                'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
+                'partnership_enquiry', 'Partnership' => __('portal.enquiry_topic_partnership', [], $locale),
+                'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
+                'support' => __('portal.support_topic_support', [], $locale),
+                'complaint' => __('portal.support_topic_complaint', [], $locale),
+                'order_dispute' => __('portal.support_topic_order', [], $locale),
+                'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
+                'payout_question' => __('portal.support_topic_payout', [], $locale),
+                default => (string) $enquiry->topic,
+            };
+            $statusLabel = __('portal.enquiry_status_'.$d['status'], [], $locale);
+            $template = $d['status'] === 'contacted'
+                ? 'sms.enquiry_follow_up_contacted'
+                : 'sms.enquiry_follow_up_closed';
+            app(PartnerEventSms::class)->sendToPhone(
+                (string) $enquiry->phone,
+                'enquiry.'.$d['status'],
+                __($template, [
+                    'topic' => $topicLabel,
+                    'status' => $statusLabel,
+                ], $locale),
+            );
+        }
 
         return back()->with('success', __('portal.flash_enquiry_updated'));
     }
@@ -491,21 +522,22 @@ class CommandController extends Controller
             'Payout question', 'payout_question' => 'payout_question',
             default => strtolower((string) $data['topic']),
         };
+        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
+            ? $user->locale
+            : app()->getLocale();
         DB::table('enquiries')->insert([
             'name' => $user->name,
             'phone' => $user->phone ?: ($user->dealer_code ?: 'partner-'.$user->id),
             'topic' => $topicKey,
             'message' => '['.($user->dealer_code ?: $user->email).'] '.$data['message'],
             'status' => 'new',
+            'locale' => $locale,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
         Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
             'topic' => $topicKey,
         ]);
-        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
-            ? $user->locale
-            : app()->getLocale();
         $topicLabel = match ($topicKey) {
             'support' => __('portal.support_topic_support', [], $locale),
             'complaint' => __('portal.support_topic_complaint', [], $locale),

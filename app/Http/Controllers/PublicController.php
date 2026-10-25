@@ -157,14 +157,15 @@ class PublicController extends Controller
             'Complaint', 'complaint' => 'complaint',
             default => strtolower((string) $data['topic']),
         };
+        $locale = app()->getLocale();
         DB::table('enquiries')->insert([
             ...$data,
             'status' => 'new',
+            'locale' => $locale,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $locale = app()->getLocale();
         $topicLabel = match ($data['topic']) {
             'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
             'partnership_enquiry' => __('portal.enquiry_topic_partnership', [], $locale),

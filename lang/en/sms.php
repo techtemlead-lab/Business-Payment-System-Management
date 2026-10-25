@@ -21,6 +21,8 @@ return [
     'reward_credited' => 'Madina: BDT :amount credited for :program. Check your earnings.',
     'commission_released' => 'Madina: BDT :amount :category hold was released to your wallet.',
     'public_enquiry_received' => 'Madina: we received your :topic. The company will follow up on this phone.',
+    'enquiry_follow_up_contacted' => 'Madina: your :topic is now marked :status. A company representative will continue on this phone.',
+    'enquiry_follow_up_closed' => 'Madina: your :topic was marked :status. Contact us again if you still need help.',
     'partnership_application_received' => 'Madina: your :role partnership application was received. Company staff will review and contact this phone.',
     'partnership_application_approved' => 'Madina: your :role partnership application was approved. Check your email for the password-reset link to open your partner portal.',
     'partnership_application_rejected' => 'Madina: your :role partnership application was not approved. :reason',

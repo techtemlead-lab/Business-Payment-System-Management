@@ -21,6 +21,8 @@ return [
     'reward_credited' => 'মদিনা: :program এর জন্য BDT :amount জমা হয়েছে। আপনার আয় দেখুন।',
     'commission_released' => 'মদিনা: BDT :amount :category হোল্ড আপনার ওয়ালেটে মুক্ত হয়েছে।',
     'public_enquiry_received' => 'মদিনা: আপনার :topic গ্রহণ করা হয়েছে। কোম্পানি এই নম্বরে ফলো-আপ করবে।',
+    'enquiry_follow_up_contacted' => 'মদিনা: আপনার :topic এখন :status হিসেবে চিহ্নিত। কোম্পানি প্রতিনিধি এই নম্বরে যোগাযোগ অব্যাহত রাখবে।',
+    'enquiry_follow_up_closed' => 'মদিনা: আপনার :topic :status করা হয়েছে। আরও সাহায্য লাগলে আবার যোগাযোগ করুন।',
     'partnership_application_received' => 'মদিনা: আপনার :role পার্টনারশিপ আবেদন গ্রহণ করা হয়েছে। কোম্পানি স্টাফ পর্যালোচনা করে এই নম্বরে যোগাযোগ করবে।',
     'partnership_application_approved' => 'মদিনা: আপনার :role পার্টনারশিপ আবেদন অনুমোদিত হয়েছে। পার্টনার পোর্টাল খুলতে ইমেইলে পাঠানো পাসওয়ার্ড-রিসেট লিংক দেখুন।',
     'partnership_application_rejected' => 'মদিনা: আপনার :role পার্টনারশিপ আবেদন অনুমোদিত হয়নি। :reason',
