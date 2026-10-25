@@ -136,6 +136,14 @@ final class DeploymentReadiness
         if (! $strict && (! (bool) config('session.secure') || ! (bool) config('session.encrypt'))) {
             $warnings[] = 'session_cookies_not_hardened';
         }
+        if (! $strict && (! is_string(config('app.key')) || strlen((string) config('app.key')) < 32)) {
+            $warnings[] = 'app_key_missing_or_weak';
+        }
+        if (! $strict
+            && str_starts_with((string) config('app.url'), 'https://')
+            && trim((string) config('madina.trusted_proxies')) === '') {
+            $warnings[] = 'trusted_proxies_not_configured';
+        }
         if (! $strict
             && config('madina.backups_enabled')
             && strlen((string) config('madina.backup_password')) >= 32

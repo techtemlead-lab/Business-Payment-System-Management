@@ -265,7 +265,7 @@ export default function ProductManagementHub({
                                                 <div className="mini-cap" />
                                                 <b>madina</b>
                                                 <span>{p.category}</span>
-                                                <small>NATURAL CARE</small>
+                                                <small>{translate('portal', 'brand_natural_care')}</small>
                                             </div>
                                         )}
                                         <span className="product-category">{p.category}</span>

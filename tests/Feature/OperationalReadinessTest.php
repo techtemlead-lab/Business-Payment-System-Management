@@ -83,6 +83,7 @@ class OperationalReadinessTest extends TestCase
             'app.url' => 'https://madina.example.test',
             'session.secure' => true,
             'session.encrypt' => true,
+            'madina.trusted_proxies' => '10.0.0.0/8',
         ]);
         Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
         Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
@@ -96,12 +97,27 @@ class OperationalReadinessTest extends TestCase
         $this->assertNotContains('app_environment_not_production', $result['warnings']);
         $this->assertNotContains('app_url_not_https', $result['warnings']);
         $this->assertNotContains('session_cookies_not_hardened', $result['warnings']);
+        $this->assertNotContains('trusted_proxies_not_configured', $result['warnings']);
+        $this->assertNotContains('app_key_missing_or_weak', $result['warnings']);
 
-        config(['app.debug' => false]);
+        config(['app.debug' => false, 'madina.trusted_proxies' => '']);
         Cache::put('operations:verified-backup', now()->utc()->toIso8601String(), now()->addDay());
         $cleared = app(DeploymentReadiness::class)->inspect();
         $this->assertNotContains('debug_mode_enabled', $cleared['warnings']);
         $this->assertNotContains('verified_backup_missing', $cleared['warnings']);
+        $this->assertContains('trusted_proxies_not_configured', $cleared['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_application_key_is_missing(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'app.key' => '',
+        ]);
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertTrue($result['ready']);
+        $this->assertContains('app_key_missing_or_weak', $result['warnings']);
     }
 
     public function test_application_readiness_clears_queue_and_scheduler_heartbeat_warnings_when_workers_signal(): void

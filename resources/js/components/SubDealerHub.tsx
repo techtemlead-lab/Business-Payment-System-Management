@@ -310,7 +310,7 @@ export default function SubDealerHub({
                                     key: 'action',
                                     title: '',
                                     render: r => (
-                                        <Link aria-label={`View ${r.number}`} href={`${base}/orders/${r.id}`} className="icon-button">
+                                        <Link aria-label={translate('portal', 'a11y_view_order', { number: String(r.number) })} href={`${base}/orders/${r.id}`} className="icon-button">
                                             <ArrowUpRight size={17} />
                                         </Link>
                                     )
