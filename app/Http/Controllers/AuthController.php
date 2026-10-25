@@ -109,6 +109,7 @@ class AuthController extends Controller
     {
         Auth::login($candidate);
         $r->session()->regenerate();
+        $this->persistLoginLocale($r);
         Audit::record($r->user()->id, 'login', 'account');
         $intended = $r->session()->pull('url.intended');
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
@@ -117,6 +118,22 @@ class AuthController extends Controller
         }
 
         return redirect('/');
+    }
+
+    /** Keep the language chosen on the login screen after authentication. */
+    private function persistLoginLocale(Request $r): void
+    {
+        $supported = config('madina.locales', ['en', 'bn']);
+        $locale = $r->session()->get('locale') ?? $r->cookie('locale');
+        if (! is_string($locale) || ! in_array($locale, $supported, true)) {
+            return;
+        }
+        $user = $r->user();
+        if (! $user || $user->locale === $locale) {
+            return;
+        }
+        $user->forceFill(['locale' => $locale])->save();
+        app()->setLocale($locale);
     }
 
     public function logout(Request $r): Response
