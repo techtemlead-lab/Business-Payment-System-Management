@@ -21,13 +21,13 @@
         default => '/login',
     };
 @endphp
-@section('title', $title.' · Madina Natural Health Care')
+@section('title', $title.' · '.__('portal.brand_company_bar'))
 @section('content')
 <main id="main" class="ref-container ref-auth-main">
     <section class="ref-auth-card">
         <div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;">
-            <a href="{{ \App\Support\PortalHost::url('public', '/') }}" aria-label="{{ __('site.home') }}">
-                <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
+            <a href="{{ \App\Support\PortalHost::url('public', '/') }}" aria-label="{{ __('portal.brand_home_aria') }}">
+                <img src="/madina-header-logo.png?v=6" alt="{{ __('portal.brand_alt') }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
             </a>
         </div>
         <h1>{{ $title }}</h1>

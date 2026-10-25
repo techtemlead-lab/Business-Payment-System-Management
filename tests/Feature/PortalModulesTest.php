@@ -92,8 +92,10 @@ class PortalModulesTest extends TestCase
             ->assertSee('স্বাগতম ফিরে এসেছেন', false)
             ->assertSee('ডিলার অ্যাকাউন্ট দরকার?', false)
             ->assertSee('কোম্পানির সাথে যোগাযোগ', false)
+            ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false)
             ->assertDontSee('Account Login', false)
-            ->assertDontSee('Need a dealer account?', false);
+            ->assertDontSee('Need a dealer account?', false)
+            ->assertDontSee('Madina Natural Health Care', false);
     }
 
     public function test_access_management_exposes_bangla_staff_access_copy(): void
