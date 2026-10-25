@@ -9,7 +9,12 @@ export const money=(value:unknown)=>new Intl.NumberFormat('en-BD',{style:'curren
 export const date=businessDate;
 const businessLabels:Record<string,string>={direct_referral:'Direct referral · Generation 1',d2d_gen2:'D2D · Generation 2',d2d_gen3:'D2D · Generation 3'};
 export const label=(text:string)=>businessLabels[text]??text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
-export function Badge({status}:{status:string}) {return <span className={`badge ${status}`}>{label(status)}</span>}
+export function Badge({status}:{status:string}) {
+ const translate=useT();
+ const key=`status_${status}`;
+ const localized=translate('portal',key);
+ return <span className={`badge ${status}`}>{localized!==key?localized:label(status)}</span>;
+}
 export function Empty({title,body}:{title?:string,body?:string}) {
  const translate=useT();
  return <div className="empty"><Inbox size={30}/><h3>{title??translate('portal','empty_default_title')}</h3><p>{body??translate('portal','empty_default_body')}</p></div>;
