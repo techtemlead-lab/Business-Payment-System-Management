@@ -2072,6 +2072,7 @@ return [
     'err_prod_video_mode' => 'Select Upload Video before choosing a file.',
     'err_prod_image_action' => 'Choose an image replacement or removal.',
     'err_prod_media_format' => 'Unsupported media format.',
+    'err_prod_media_storage' => 'Media storage is unavailable. Try again or contact support.',
     'err_prod_stale' => 'This product changed. Reload its details before saving.',
     'err_perm_unknown_module' => 'Unknown permission module.',
     'err_perm_actions' => 'Use only view, create, edit and approve actions.',

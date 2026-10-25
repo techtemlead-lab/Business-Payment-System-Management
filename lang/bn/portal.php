@@ -2072,6 +2072,7 @@ return [
     'err_prod_video_mode' => 'ফাইল বেছে নেওয়ার আগে Upload Video নির্বাচন করুন।',
     'err_prod_image_action' => 'ছবি প্রতিস্থাপন বা অপসারণ বেছে নিন।',
     'err_prod_media_format' => 'অসমর্থিত মিডিয়া ফরম্যাট।',
+    'err_prod_media_storage' => 'মিডিয়া স্টোরেজ অনুপলব্ধ। আবার চেষ্টা করুন বা সাপোর্টে যোগাযোগ করুন।',
     'err_prod_stale' => 'এই পণ্য পরিবর্তিত হয়েছে। সংরক্ষণের আগে বিস্তারিত রিলোড করুন।',
     'err_perm_unknown_module' => 'অজানা পারমিশন মডিউল।',
     'err_perm_actions' => 'শুধু view, create, edit ও approve অ্যাকশন ব্যবহার করুন।',

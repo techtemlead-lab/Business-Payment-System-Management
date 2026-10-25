@@ -193,8 +193,9 @@ class ProductRegistryController extends Controller
                     };
                     $path = $file->storeAs('product-media/'.($field === 'image' ? 'images' : 'videos'), Str::uuid().'.'.$extension, 'local');
                     if (! $path) {
-                        throw new \RuntimeException('Media storage is unavailable.');
-                    }$stored[$field] = $path;
+                        throw ValidationException::withMessages([$field => __('portal.err_prod_media_storage')]);
+                    }
+                    $stored[$field] = $path;
                 }
             }
             $initialStock = (! $product && $r->filled('initial_stock') && (int) $r->input('initial_stock') > 0) ? (int) $r->input('initial_stock') : 0;
