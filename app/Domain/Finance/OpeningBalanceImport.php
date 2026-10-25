@@ -37,12 +37,12 @@ final class OpeningBalanceImport
         [$rows, $summary] = $this->workbooks->validate($type, $this->workbooks->read($file->getRealPath(), $type));
         $hash = hash_file('sha256', $file->getRealPath());
         if (DB::table('data_import_batches')->where('type', $type)->where('file_hash', $hash)->where('status', 'applied')->exists()) {
-            throw ValidationException::withMessages(['file' => 'This workbook was already imported. Existing data has been preserved.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_import_already_applied')]);
         }
         $id = (string) Str::uuid();
         $path = $file->storeAs('data-imports', $id.'.xlsx', 'local');
         if (! $path) {
-            throw ValidationException::withMessages(['file' => 'The workbook could not be stored securely. Please try again.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_import_store_failed')]);
         }
         try {
             DB::transaction(function () use ($actor, $id, $type, $file, $source, $hash, $path, $rows, $summary): void {
@@ -72,12 +72,12 @@ final class OpeningBalanceImport
                 return;
             }
             if ($batch->status !== 'preview') {
-                throw ValidationException::withMessages(['import' => 'Only a valid preview can be queued. Upload a corrected workbook.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_queue_preview_only')]);
             }
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => 'A separate authorized Finance reviewer must approve opening entries.']);
+                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
                 }
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'queued', 'review_reason' => $reason, 'updated_at' => now()]);
@@ -102,24 +102,24 @@ final class OpeningBalanceImport
                 return;
             }
             if (! in_array($batch->status, ['preview', 'queued'], true)) {
-                throw ValidationException::withMessages(['import' => 'Only a valid preview can be imported. Correct the workbook and upload it again.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_apply_preview_only')]);
             }
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => 'A separate authorized Finance reviewer must approve opening entries.']);
+                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
                 }
             }
             if (! Storage::disk('local')->exists($batch->file_path) || ! hash_equals($batch->file_hash, hash_file('sha256', Storage::disk('local')->path($batch->file_path)))) {
-                throw ValidationException::withMessages(['import' => 'The original workbook is missing or changed. Upload it again.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_file_missing')]);
             }
             if (DB::table('data_import_batches')->where('type', $batch->type)->where('file_hash', $batch->file_hash)->where('status', 'applied')->exists()) {
-                throw ValidationException::withMessages(['import' => 'This workbook has already been applied through another preview.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_duplicate_apply')]);
             }
             $stored = json_decode($batch->rows, true, 512, JSON_THROW_ON_ERROR);
             [$rows, $summary] = $this->workbooks->validate($batch->type, array_map(fn (array $row): array => ['row' => $row['row'], 'data' => $row['data']], $stored));
             if ($summary['invalid_rows']) {
-                throw ValidationException::withMessages(['import' => 'Records changed after the preview. Upload the workbook again to review current row errors.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_stale_rows')]);
             }
             foreach ($rows as $row) {
                 match ($batch->type) {
@@ -145,10 +145,10 @@ final class OpeningBalanceImport
             if ($entry->released_at) {
                 return;
             }
-            abort_unless(User::whereKey($entry->user_id)->where('status', 'active')->exists(), 422, 'The partner must be active before release.');
+            abort_unless(User::whereKey($entry->user_id)->where('status', 'active')->exists(), 422, __('portal.err_import_partner_inactive'));
             $amount = Money::cents($entry->held);
             if ($amount <= 0 || $this->wallets->debit($entry->user_id, $amount, true)['unrecovered'] !== 0) {
-                throw ValidationException::withMessages(['hold' => 'The opening hold does not reconcile with the wallet.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_import_hold_mismatch')]);
             }
             $this->wallets->journal('opening.hold_release.'.$id, 'Reviewed opening commission hold release', [
                 ['account' => 'commission_held_liability', 'user_id' => $entry->user_id, 'debit' => $amount, 'credit' => 0],
@@ -163,7 +163,7 @@ final class OpeningBalanceImport
     private function assertOpeningAllowed(): void
     {
         if (config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
-            throw ValidationException::withMessages(['import' => 'Opening entries are available before financial activation and opening verification. Use reviewed adjustments after go-live.']);
+            throw ValidationException::withMessages(['import' => __('portal.err_import_opening_locked')]);
         }
     }
 
