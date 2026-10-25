@@ -163,7 +163,7 @@ export default function Shell({ section, children, action }: { section: string; 
         if (user.role === 'super_admin') items.add('access-management');
         if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
         if (capabilities.includes('accounts')) {
-            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers'].forEach((item) => items.add(item));
+            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
         }
         if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('benefits-fund');
         if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');

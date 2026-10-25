@@ -149,6 +149,7 @@ return [
     'copy_link' => 'লিংক কপি',
     'copied' => 'কপি হয়েছে',
     'share' => 'শেয়ার',
+    'share_whatsapp' => 'WhatsApp',
     'open_join_page' => 'জয়েন পেজ খুলুন ↗',
     'today_activity' => 'আজকের কার্যক্রম',
     'today_activity_hint' => 'কোম্পানি ক্রয়, টিম সেলস এবং এই মাসের কমিশন।',

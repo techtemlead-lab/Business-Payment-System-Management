@@ -51,6 +51,9 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
         return null;
     }
 
+    const shareText = `${translate('portal', 'share_join_text', { code: String(referral.code) })} ${referral.url}`;
+    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
     const copyLink = async () => {
         try {
             await navigator.clipboard.writeText(referral.url!);
@@ -109,6 +112,9 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                         <button type="button" className="button small dark" onClick={shareNative}>
                             <Share2 size={14} /> {translate('portal', 'share')}
                         </button>
+                        <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">
+                            {translate('portal', 'share_whatsapp')}
+                        </a>
                         <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
                     </div>
                 </div>
@@ -253,7 +259,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
         { route: 'ledger', name: 'Financial ledger', description: 'Posted financial history', icon: FileText, show: caps.includes('finance') },
         { route: 'reports', name: 'Reports', description: 'Order reports and permitted exports', icon: FileText, show: caps.includes('reports') },
         { route: 'content', name: 'Website content', description: 'Published company pages and notices', icon: FileText, show: caps.includes('content') },
-        { route: 'enquiries', name: 'Contact enquiries', description: 'Public contact-form messages', icon: Users, show: caps.includes('content') },
+        { route: 'enquiries', name: 'Contact enquiries', description: 'Public contact-form messages', icon: Users, show: caps.includes('content') || caps.includes('accounts') },
         { route: 'audit', name: 'Activity log', description: 'Staff actions and recorded changes', icon: ShieldCheck, show: caps.includes('audit') },
         { route: 'profile', name: 'My profile', description: 'Company-maintained account information', icon: Users, show: true },
         { route: 'security', name: 'Account security', description: 'Change your account password', icon: Settings, show: true },

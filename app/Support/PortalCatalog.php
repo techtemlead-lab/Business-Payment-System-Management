@@ -49,15 +49,17 @@ final class PortalCatalog
         if ($section === 'benefits-fund') {
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
-        $capability = self::staffCapabilities($portal)[$section] ?? null;
-        if ($capability !== null) {
-            abort_unless($user->allows($capability), 403);
-        }
-        if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
+        if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
+            abort_unless($user->allows('content') || $user->allows('accounts'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
-        }
-        if (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries', 'dues'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries', 'dues'], true)) {
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
+        } else {
+            $capability = self::staffCapabilities($portal)[$section] ?? null;
+            if ($capability !== null) {
+                abort_unless($user->allows($capability), 403);
+            }
         }
     }
 

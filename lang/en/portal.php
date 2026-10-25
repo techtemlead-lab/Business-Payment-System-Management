@@ -149,6 +149,7 @@ return [
     'copy_link' => 'Copy link',
     'copied' => 'Copied',
     'share' => 'Share',
+    'share_whatsapp' => 'WhatsApp',
     'open_join_page' => 'Open join page ↗',
     'today_activity' => 'Today’s activity',
     'today_activity_hint' => 'Company purchase, team sales and this month’s commission.',

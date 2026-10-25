@@ -417,7 +417,7 @@ class CommandController extends Controller
 
     public function enquiry(Request $r, int $id): RedirectResponse
     {
-        $this->permit($r, 'content');
+        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts'), 403);
         $d = $r->validate(['status' => 'required|in:new,contacted,closed']);
         abort_unless(DB::table('enquiries')->where('id', $id)->exists(), 404);
         DB::table('enquiries')->where('id', $id)->update([...$d, 'updated_at' => now()]);

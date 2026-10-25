@@ -59,6 +59,14 @@ class AdminEnquiriesTest extends TestCase
                 ->component('portals/manage/Dashboard')
                 ->where('section', 'enquiries')
                 ->where('data.enquiries.data.0.name', 'Admin Module Visitor'));
+
+        $manager = User::factory()->create(['role' => 'account_manager', 'status' => 'active']);
+        $this->actingAs($manager)->onPortal('manage')->get('/enquiries')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('portals/manage/Dashboard')
+                ->where('section', 'enquiries')
+                ->where('data.enquiries.data.0.name', 'Admin Module Visitor'));
     }
 
     public function test_staff_can_update_enquiry_follow_up_status(): void
@@ -80,5 +88,33 @@ class AdminEnquiriesTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('enquiries', ['id' => $id, 'status' => 'contacted']);
+    }
+
+    public function test_account_manager_can_update_enquiry_follow_up_status(): void
+    {
+        $id = DB::table('enquiries')->insertGetId([
+            'name' => 'Accounts Follow-up',
+            'phone' => '01700002222',
+            'topic' => 'Partnership',
+            'message' => 'Please call back about Dhaka area dealership.',
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = User::factory()->create(['role' => 'account_manager', 'status' => 'active']);
+        $this->actingAs($manager)->onPortal('manage')
+            ->post('/commands/enquiries/'.$id, ['status' => 'contacted'])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('enquiries', ['id' => $id, 'status' => 'contacted']);
+    }
+
+    public function test_inventory_staff_cannot_open_enquiries(): void
+    {
+        $staff = User::factory()->create(['role' => 'inventory', 'status' => 'active']);
+
+        $this->actingAs($staff)->onPortal('manage')->get('/enquiries')->assertForbidden();
     }
 }
