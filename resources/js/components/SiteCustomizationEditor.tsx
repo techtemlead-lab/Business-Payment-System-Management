@@ -686,14 +686,14 @@ function CategoryManager({
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#2e3192' }}>
-                            Featured Categories Manager
+                            {translate('portal', 'sce_featured_categories_manager')}
                         </h4>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: '#e2e8f0', color: '#334155' }}>
-                            {items.length} {items.length === 1 ? 'Category' : 'Categories'}
+                            {translate('portal', items.length === 1 ? 'sce_category_count_one' : 'sce_category_count_many', { count: String(items.length) })}
                         </span>
                     </div>
                     <small style={{ color: '#64748b', display: 'block', marginTop: 3 }}>
-                        Add, remove, reorder, and configure individual category cards, icons, and target links.
+                        {translate('portal', 'sce_featured_categories_manager_hint')}
                     </small>
                 </div>
 
@@ -714,7 +714,7 @@ function CategoryManager({
                             boxShadow: mode === 'visual' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                         }}
                     >
-                        🎨 Visual Builder
+                        🎨 {translate('portal', 'sce_visual_builder')}
                     </button>
                     <button
                         type="button"
@@ -731,7 +731,7 @@ function CategoryManager({
                             boxShadow: mode === 'text' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                         }}
                     >
-                        📝 Raw Text Mode
+                        📝 {translate('portal', 'sce_raw_text_mode')}
                     </button>
                 </div>
             </div>
@@ -774,7 +774,7 @@ function CategoryManager({
                         className="button small"
                         style={{ background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
                     >
-                        🗑️ Clear All
+                        🗑️ {translate('portal', 'sce_clear_all')}
                     </button>
                 </div>
             </div>
@@ -1162,7 +1162,8 @@ function CategoryManager({
             {mode === 'text' && (
                 <div>
                     <div style={{ marginBottom: 8, fontSize: 12, color: '#64748b' }}>
-                        Type or paste categories, one per line. Format: <code>Category Name | FontAwesome Icon or Image URL | Optional Link</code>
+                        {translate('portal', 'sce_raw_categories_format_prefix')}{' '}
+                        <code>{translate('portal', 'sce_raw_categories_format_code')}</code>
                     </div>
                     <textarea
                         rows={12}
@@ -1181,7 +1182,7 @@ function CategoryManager({
                         }}
                     />
                     <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
-                        Tip: You can switch back to "🎨 Visual Builder" anytime to visually arrange or pick icons for your categories.
+                        {translate('portal', 'sce_raw_categories_tip')}
                     </small>
                 </div>
             )}
@@ -2162,7 +2163,9 @@ export function CampaignOffersManager({
 
             {/* Header Titles */}
             <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc', marginBottom: 24 }}>
-                <h4 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>Section Headings & Banner Text</h4>
+                <h4 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>
+                    {translate('portal', 'sce_section_headings_banner')}
+                </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                     <div>
                         <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
@@ -2512,17 +2515,22 @@ export function CampaignOffersManager({
                                             <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #bbf7d0' }}>
                                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
                                                     <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Regular Retail MRP:</span>
+                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_regular_retail_mrp')}</span>
                                                         <strong style={{ fontSize: 14, color: '#0f172a' }}>৳ {linkedMrp.toLocaleString()}</strong>
                                                     </div>
                                                     <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Base Dealer Catalog Price:</span>
+                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_base_dealer_catalog_price')}</span>
                                                         <strong style={{ fontSize: 14, color: '#475569' }}>
-                                                            {linkedDealerPrice > 0 ? `৳ ${linkedDealerPrice.toLocaleString()} (${regDealerDiscountPct}% off)` : 'Standard MRP'}
+                                                            {linkedDealerPrice > 0
+                                                                ? translate('portal', 'sce_dealer_price_with_off', {
+                                                                    price: linkedDealerPrice.toLocaleString(),
+                                                                    pct: String(regDealerDiscountPct),
+                                                                })
+                                                                : translate('portal', 'sce_standard_mrp')}
                                                         </strong>
                                                     </div>
                                                     <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Product SKU / Code:</span>
+                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_product_sku_code')}</span>
                                                         <strong style={{ fontSize: 13, color: '#334155' }}>{linkedProduct.sku || `#${linkedProduct.id}`}</strong>
                                                     </div>
                                                 </div>
@@ -2530,7 +2538,7 @@ export function CampaignOffersManager({
                                                 {/* Promotional Discount % Input & Quick Presets */}
                                                 <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 8, border: '1.5px solid #10b981' }}>
                                                     <label style={{ fontSize: 13, fontWeight: 700, color: '#065f46', display: 'block', marginBottom: 6 }}>
-                                                        ⚡ Set Special Promotional Discount Percentage for this Campaign Offer:
+                                                        ⚡ {translate('portal', 'sce_set_promo_discount_pct')}
                                                     </label>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -3261,7 +3269,9 @@ export function FeaturedProductsManager({
                             borderRadius: '50%',
                             background: isEnabled ? '#10b981' : '#94a3b8'
                         }} />
-                        {isEnabled ? 'Section Active' : 'Section Hidden'}
+                        {isEnabled
+                            ? translate('portal', 'sce_section_active')
+                            : translate('portal', 'sce_section_hidden_short')}
                     </button>
                     <button
                         type="button"
@@ -3287,7 +3297,9 @@ export function FeaturedProductsManager({
                             borderRadius: '50%',
                             background: isTabsEnabled ? '#10b981' : '#94a3b8'
                         }} />
-                        {isTabsEnabled ? 'Filter Tabs On' : 'Filter Tabs Off'}
+                        {isTabsEnabled
+                            ? translate('portal', 'sce_filter_tabs_on')
+                            : translate('portal', 'sce_filter_tabs_off')}
                     </button>
                 </div>
             </div>
@@ -5056,7 +5068,11 @@ export default function SiteCustomizationEditor({
                                         <div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                                 <strong style={{ fontSize: 15, color: form.data.customization.featured_categories_enabled !== '0' ? '#065f46' : '#334155' }}>
-                                                    Section Status: {form.data.customization.featured_categories_enabled !== '0' ? 'Active & Visible on Homepage' : 'Hidden from Homepage'}
+                                                    {translate('portal', 'sce_featured_categories_section_status', {
+                                                        state: form.data.customization.featured_categories_enabled !== '0'
+                                                            ? translate('portal', 'sce_section_active_visible')
+                                                            : translate('portal', 'sce_section_hidden'),
+                                                    })}
                                                 </strong>
                                                 <span style={{
                                                     fontSize: 11,
@@ -5066,13 +5082,15 @@ export default function SiteCustomizationEditor({
                                                     background: form.data.customization.featured_categories_enabled !== '0' ? '#006837' : '#64748b',
                                                     color: '#fff'
                                                 }}>
-                                                    {form.data.customization.featured_categories_enabled !== '0' ? 'ENABLED' : 'DISABLED'}
+                                                    {form.data.customization.featured_categories_enabled !== '0'
+                                                        ? translate('portal', 'sce_enabled')
+                                                        : translate('portal', 'sce_disabled')}
                                                 </span>
                                             </div>
                                             <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>
                                                 {form.data.customization.featured_categories_enabled !== '0'
-                                                    ? 'The Featured Categories grid is currently showing on the public homepage. Click the button to hide it.'
-                                                    : 'The Featured Categories section is currently hidden. Click the button to re-enable and show it.'}
+                                                    ? translate('portal', 'sce_featured_categories_enabled_hint')
+                                                    : translate('portal', 'sce_featured_categories_disabled_hint')}
                                             </p>
                                         </div>
                                     </div>
@@ -5096,7 +5114,9 @@ export default function SiteCustomizationEditor({
                                                 transition: 'all 0.2s ease'
                                             }}
                                         >
-                                            {form.data.customization.featured_categories_enabled !== '0' ? '✕ Disable & Hide Section' : '✓ Enable & Show Section'}
+                                            {form.data.customization.featured_categories_enabled !== '0'
+                                                ? translate('portal', 'sce_disable_hide_section')
+                                                : translate('portal', 'sce_enable_show_section')}
                                         </button>
                                     </div>
                                 </div>
