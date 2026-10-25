@@ -32,4 +32,8 @@ return [
     'otp_placeholder' => '6-digit code',
     'otp_hint' => 'The code expires in a few minutes. Request a new sign-in if it expires.',
     'otp_verify' => 'Verify and continue',
+    'forgot_help' => 'Enter your account email to request a reset link.',
+    'reset_help' => 'Choose a new password for your account.',
+    'password_placeholder' => 'Enter your password',
+    'show_password' => 'Show password',
 ];
