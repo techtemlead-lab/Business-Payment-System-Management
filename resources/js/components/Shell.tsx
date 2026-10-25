@@ -474,7 +474,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 <main id="workspace-main" className="workspace-main">
                     <div className="page-heading portal-fade-in">
                         <div>
-                            <div className="eyebrow">MADINA / {portalLabel}</div>
+                            <div className="eyebrow">{translate('portal', 'brand_eyebrow', { portal: portalLabel })}</div>
                             <h1>{currentSectionTitle}</h1>
                             <p>{currentSectionHint}</p>
                         </div>
@@ -604,7 +604,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         </div>
                     )}
                     <footer className="workspace-footer">
-                        <span>Madina Natural Health Care</span>
+                        <span>{translate('portal', 'brand_company_bar')}</span>
                         <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>

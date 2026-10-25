@@ -79,7 +79,8 @@ class PortalModulesTest extends TestCase
         $this->onPortal('manage')->get('/login')
             ->assertOk()
             ->assertSee('ভাষা', false)
-            ->assertSee('স্টাফ সাইন ইন');
+            ->assertSee('স্টাফ সাইন ইন')
+            ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false);
     }
 
     public function test_dealer_login_uses_bangla_auth_ui_when_cms_holds_english_defaults(): void

@@ -94,7 +94,7 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                     {referral.qr_url
                         ? <img src={referral.qr_url} alt="" width={96} height={96} className="partner-home-referral-qr" />
                         : null}
-                    <small>Madina Natural Health Care</small>
+                    <small>{translate('portal', 'brand_company_bar')}</small>
                     <b>{referral.code}</b>
                     <span>{translate('portal', 'open_join_page')}</span>
                 </div>

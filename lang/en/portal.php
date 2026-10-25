@@ -20,6 +20,7 @@ return [
     'brand_home_aria' => 'Madina Natural Health Care home',
     'brand_dashboard_aria' => 'Madina dashboard',
     'brand_alt' => 'Madina Natural Health Care',
+    'brand_eyebrow' => 'MADINA / :portal',
     'ops_video_title_default' => 'Discover our products',
     'notifications' => 'Notifications',
     'overview' => 'Overview',

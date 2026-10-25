@@ -20,6 +20,7 @@ return [
     'brand_home_aria' => 'মদিনা ন্যাচারাল হেলথ কেয়ার হোম',
     'brand_dashboard_aria' => 'মদিনা ড্যাশবোর্ড',
     'brand_alt' => 'মদিনা ন্যাচারাল হেলথ কেয়ার',
+    'brand_eyebrow' => 'মদিনা / :portal',
     'ops_video_title_default' => 'আমাদের পণ্য আবিষ্কার করুন',
     'notifications' => 'বিজ্ঞপ্তি',
     'overview' => 'সংক্ষিপ্ত বিবরণ',
