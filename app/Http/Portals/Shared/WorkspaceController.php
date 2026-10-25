@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerDashboardHome;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -344,6 +345,9 @@ class WorkspaceController extends Controller
                 ->latest()->limit(50)->get();
             $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
             $data['withdrawals'] = DB::table('withdrawals')->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->latest()->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
+            if (! $staff && $section === 'earnings') {
+                $data['wallet_statement'] = app(PartnerWalletStatement::class)->for($u, $earningsFrom, $earningsTo);
+            }
         }
         if ($section === 'full-report') {
             abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
