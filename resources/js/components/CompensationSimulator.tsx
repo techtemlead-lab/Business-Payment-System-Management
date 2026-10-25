@@ -267,7 +267,7 @@ export default function CompensationSimulator({
                             {translate('portal','sim_proposed_pool',{pct:totalProposedPct.toFixed(2)})}
                         </span>
                         <span style={{ color: '#64748b' }}>
-                            Company Retention: <b>{(100 - totalProposedPct).toFixed(2)}%</b> (Min Req: 60.00%)
+                            {translate('portal','sim_company_retention',{pct:(100 - totalProposedPct).toFixed(2)})}
                         </span>
                     </div>
                     <div style={{ width: '100%', height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
