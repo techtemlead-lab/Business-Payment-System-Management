@@ -105,6 +105,7 @@ class EnforceStaffActions
             },
             'CommandController' => match ($method) {
                 'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],

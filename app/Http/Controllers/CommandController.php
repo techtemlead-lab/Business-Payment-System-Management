@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -38,6 +39,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CommandController extends Controller
 {
@@ -502,6 +504,36 @@ class CommandController extends Controller
         Audit::record($r->user()->id, 'account.invitation_sent', (string) $user->id);
 
         return back()->with('success', 'A private password-setting link has been emailed if the account is eligible.');
+    }
+
+    public function kycDocuments(Request $r, User $user, PartnerKycDocuments $documents): JsonResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+
+        return response()->json(['data' => $documents->listFor($user)]);
+    }
+
+    public function storeKycDocument(Request $r, User $user, PartnerKycDocuments $documents): RedirectResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        $data = $r->validate([
+            'kind' => ['required', Rule::in(PartnerKycDocuments::Kinds)],
+            'document' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'note' => 'nullable|string|max:500',
+        ]);
+        $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
+
+        return back()->with('success', 'KYC document stored privately ('.$stored['kind'].').');
+    }
+
+    public function downloadKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): StreamedResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+
+        return $documents->download($user, $document);
     }
 
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse

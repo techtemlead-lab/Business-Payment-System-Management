@@ -287,14 +287,14 @@ class WorkspaceController extends Controller
                 'kyc' => [
                     'identity_type' => $identityType !== '' ? $identityType : null,
                     'identity_label' => match ($identityType) {
-                        'nid' => 'National ID',
-                        'birth_certificate' => 'Birth certificate',
-                        default => 'Identity document',
+                        'nid' => __('portal.kyc_label_nid'),
+                        'birth_certificate' => __('portal.kyc_label_birth_certificate'),
+                        default => __('portal.kyc_label_identity'),
                     },
                     'identity_status' => $identityOnFile ? 'on_file' : 'missing',
                     'identity_status_label' => $identityOnFile
-                        ? 'On file — access restricted'
-                        : 'Not provided',
+                        ? __('portal.kyc_status_on_file')
+                        : __('portal.kyc_status_missing'),
                     'date_of_birth_on_file' => filled($profile['date_of_birth'] ?? null),
                 ],
             ];
