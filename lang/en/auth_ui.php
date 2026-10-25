@@ -38,4 +38,12 @@ return [
     'show_password' => 'Show password',
     'account_unavailable' => 'This account is unavailable.',
     'account_unavailable_contact' => 'This account is unavailable. Contact the company.',
+    'partner_workspace_eyebrow' => 'YOUR PARTNER WORKSPACE',
+    'fresh_start_heading' => 'A fresh start.',
+    'fresh_start_subheading' => 'Made for you.',
+    'account_staff_maintained' => 'Your account is created and maintained by company staff.',
+    'brand_tagline' => 'ROOTED IN NATURE. CONNECTED BY CARE.',
+    'back_to_website' => '← Back to website',
+    'set_password_heading' => 'Set your password.',
+    'set_password_submit' => 'Set password →',
 ];

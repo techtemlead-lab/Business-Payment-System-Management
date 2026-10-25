@@ -38,4 +38,12 @@ return [
     'show_password' => 'পাসওয়ার্ড দেখান',
     'account_unavailable' => 'এই অ্যাকাউন্ট উপলব্ধ নয়।',
     'account_unavailable_contact' => 'এই অ্যাকাউন্ট উপলব্ধ নয়। কোম্পানির সাথে যোগাযোগ করুন।',
+    'partner_workspace_eyebrow' => 'আপনার পার্টনার ওয়ার্কস্পেস',
+    'fresh_start_heading' => 'নতুন শুরু।',
+    'fresh_start_subheading' => 'আপনার জন্য তৈরি।',
+    'account_staff_maintained' => 'আপনার অ্যাকাউন্ট কোম্পানি স্টাফ তৈরি ও রক্ষণাবেক্ষণ করে।',
+    'brand_tagline' => 'প্রকৃতিতে শিকড়। যত্নে সংযুক্ত।',
+    'back_to_website' => '← ওয়েবসাইটে ফিরে যান',
+    'set_password_heading' => 'আপনার পাসওয়ার্ড সেট করুন।',
+    'set_password_submit' => 'পাসওয়ার্ড সেট করুন →',
 ];
