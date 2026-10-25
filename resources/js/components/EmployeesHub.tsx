@@ -47,7 +47,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
         email: '',
         phone: '',
         status: 'active',
-        reason: 'Authorized company employee onboarded from company dashboard with custom permissions.',
+        reason: translate('portal', 'emp_reason_onboard'),
         permissions: ['orders', 'inventory'] as string[],
     });
 
@@ -80,7 +80,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
             name: employee.name || '',
             phone: employee.phone || '',
             status: employee.status || 'active',
-            reason: 'Updating employee permissions and privileges.',
+            reason: translate('portal', 'emp_reason_update'),
             permissions: [...currentPermissions],
         });
     };

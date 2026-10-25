@@ -96,7 +96,9 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
         setProcessingReview(true);
         router.post(`/commands/withdrawals/${reviewModalRecord.id}/review`, {
             decision: reviewDecision,
-            reason: reviewReason || (reviewDecision === 'approved' ? 'Identity and wallet balance verified.' : 'Verification requirements not met.')
+            reason: reviewReason || (reviewDecision === 'approved'
+                ? translate('portal', 'pay_reason_approved')
+                : translate('portal', 'pay_reason_rejected'))
         }, {
             onFinish: () => {
                 setProcessingReview(false);
@@ -121,7 +123,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
         formData.append('receipt', receiptFile);
         formData.append('payment_reference', paymentReference);
         formData.append('paid_at', paidAt);
-        formData.append('note', settleNote || 'Bank transfer completed.');
+        formData.append('note', settleNote || translate('portal', 'pay_reason_paid'));
 
         setProcessingSettle(true);
         router.post(`/commands/withdrawals/${settleModalRecord.id}/record-payment`, formData, {
