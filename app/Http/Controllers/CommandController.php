@@ -291,9 +291,9 @@ class CommandController extends Controller
         abort_unless(
             $r->user()->canAct('finance', 'approve') || $r->user()->role === 'super_admin',
             403,
-            'Unconditional benefit controls require finance approval authority.',
+            __('portal.pbc_finance_required'),
         );
-        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, 'Benefit controls apply only to dealers and sub-dealers.');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, __('portal.pbc_partners_only'));
         $d = $r->validate([
             'unconditional_salary' => 'sometimes|boolean',
             'unconditional_rank_royalty' => 'sometimes|boolean',
@@ -311,7 +311,7 @@ class CommandController extends Controller
             'reason' => $d['reason'],
         ]);
 
-        return back()->with('success', 'Unconditional benefit controls saved for '.$user->name.'.');
+        return back()->with('success', __('portal.pbc_saved', ['name' => $user->name]));
     }
 
     public function product(Request $r): RedirectResponse
