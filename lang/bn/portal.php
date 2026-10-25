@@ -1345,6 +1345,7 @@ return [
     'si_courier_request_failed' => 'কুরিয়ার API অনুরোধ ব্যর্থ: :error',
     'si_courier_tracking_ok' => 'ট্র্যাকিং পাওয়া গেছে।',
     'si_courier_tracking_failed' => 'কুরিয়ার ট্র্যাকিং লুকআপ ব্যর্থ।',
+    'si_courier_tracking_error' => 'কুরিয়ার ট্র্যাকিং-এ পৌঁছানো যায়নি। কিছুক্ষণ পর আবার চেষ্টা করুন।',
     'si_courier_created' => 'কুরিয়ার কনসাইনমেন্ট তৈরি হয়েছে।',
     'si_courier_rejected' => 'কুরিয়ার API কনসাইনমেন্ট প্রত্যাখ্যান করেছে।',
     'startup_label_fresh' => 'নতুন ব্যবসা (অতীত লেজার ইমপোর্ট নেই)',

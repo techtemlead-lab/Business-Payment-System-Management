@@ -66,7 +66,7 @@ final class CourierGatewayClient
                 'raw' => is_array($payload) ? $payload : null,
             ];
         } catch (\Throwable $exception) {
-            return ['success' => false, 'status' => null, 'message' => $exception->getMessage(), 'raw' => null];
+            return ['success' => false, 'status' => null, 'message' => __('portal.si_courier_tracking_error'), 'raw' => null];
         }
     }
 

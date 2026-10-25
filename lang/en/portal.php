@@ -1345,6 +1345,7 @@ return [
     'si_courier_request_failed' => 'Courier API request failed: :error',
     'si_courier_tracking_ok' => 'Tracking retrieved.',
     'si_courier_tracking_failed' => 'Courier tracking lookup failed.',
+    'si_courier_tracking_error' => 'Courier tracking could not be reached. Try again shortly.',
     'si_courier_created' => 'Courier consignment created.',
     'si_courier_rejected' => 'Courier API rejected the consignment.',
     'startup_label_fresh' => 'Fresh business (no past ledger import)',
