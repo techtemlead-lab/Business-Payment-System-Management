@@ -5,6 +5,7 @@ import {
     PieChart, ArrowRight, Store, Users, ShoppingBag
 } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface CapitalFlowData {
     gross_cash_inflow: number;
@@ -167,6 +168,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
 }
 
 export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null, payment_accounts = [] }: CompanyTreasuryHubProps) {
+    const translate = useT();
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -218,15 +220,15 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ background: '#011627', color: '#ffffff', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-                            COMPANY SECTION
+                            {translate('portal', 'tr_badge_company')}
                         </span>
-                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Financial Treasury & Money Flow</span>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'tr_subtitle')}</span>
                     </div>
                     <h2 style={{ fontSize: 22, fontWeight: 800, color: '#011627', margin: '6px 0 2px' }}>
-                        Company Capital & Financial Records
+                        {translate('portal', 'tr_heading')}
                     </h2>
                     <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                        Track where company money comes from, where it is deposited, and where it is spent.
+                        {translate('portal', 'tr_heading_hint')}
                     </p>
                 </div>
 
@@ -245,7 +247,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'overview' ? '#ffffff' : '#475569'
                         }}
                     >
-                        Overview & Waterfall
+                        {translate('portal', 'tr_tab_overview')}
                     </button>
                     <button
                         type="button"
@@ -261,7 +263,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'inflows' ? '#ffffff' : '#475569'
                         }}
                     >
-                        1. Sources of Money
+                        {translate('portal', 'tr_tab_inflows')}
                     </button>
                     <button
                         type="button"
@@ -277,7 +279,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'deposits' ? '#ffffff' : '#475569'
                         }}
                     >
-                        2. Where Money is Deposited
+                        {translate('portal', 'tr_tab_deposits')}
                     </button>
                     <button
                         type="button"
@@ -293,7 +295,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'expenses' ? '#ffffff' : '#475569'
                         }}
                     >
-                        3. Where Money is Spent
+                        {translate('portal', 'tr_tab_expenses')}
                     </button>
                     <button
                         type="button"
@@ -309,7 +311,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'ledger' ? '#ffffff' : '#475569'
                         }}
                     >
-                        Financial Ledger
+                        {translate('portal', 'tr_tab_ledger')}
                     </button>
                 </div>
             </div>
@@ -318,58 +320,58 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Total Money Received</span>
+                        <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_received')}</span>
                         <ArrowDownRight size={18} color="#059669" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#011627', marginTop: 6 }}>
                         {money(grossCash)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>From dealers & sub-dealers</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_received_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1.5px solid #006837', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>Company Deposited Capital</span>
+                        <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>{translate('portal', 'tr_kpi_deposited')}</span>
                         <Landmark size={18} color="#006837" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 6 }}>
                         {money(totalCompanyDeposits)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>30% of MRP + management reserves</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'tr_kpi_deposited_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>Commission Pool Budget</span>
+                        <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_pool')}</span>
                         <ArrowUpRight size={18} color="#ea580c" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#c2410c', marginTop: 6 }}>
                         {money(maxPool)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>Dealer 40% · Sub-dealer 50%</div>
+                    <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>{translate('portal', 'tr_kpi_pool_hint')}</div>
                 </div>
 
                 {ownerBenefitsVisible ? (
                     <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>Commission Benefits Fund</span>
+                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_benefits')}</span>
                             <ShieldCheck size={18} color="#2563eb" />
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 6 }}>
                             {money(unallocatedBuffer)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>Owner-only purchase surplus</div>
+                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>{translate('portal', 'tr_kpi_benefits_hint')}</div>
                     </div>
                 ) : (
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Settled Disbursements</span>
+                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_settled')}</span>
                             <ShieldCheck size={18} color="#94a3b8" />
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
                             {money(Number(flow.settled_disbursements) || 0)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Paid partner withdrawals</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_settled_hint')}</div>
                     </div>
                 )}
             </div>
@@ -382,7 +384,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                             <div>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: '#006837', letterSpacing: '0.05em' }}>
-                                    COMPANY TREASURY ARCHITECTURE
+                                    {translate('portal', 'tr_arch_badge')}
                                 </span>
                                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '4px 0 0' }}>
                                     How Money Flows Through the Company
