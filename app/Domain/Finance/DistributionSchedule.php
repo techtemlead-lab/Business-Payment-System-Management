@@ -10,7 +10,7 @@ final class DistributionSchedule
     public static function defaults(string $accountType): array
     {
         if (! in_array($accountType, ['dealer', 'sub_dealer'], true)) {
-            throw new InvalidArgumentException('Only dealer and sub_dealer schedules are supported.');
+            throw new InvalidArgumentException(__('portal.err_draft_schedule_type'));
         }
         $rates = [
             'referral' => '10.00', 'area' => '10.00', 'own_dealer' => '5.00',

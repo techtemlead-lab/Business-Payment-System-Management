@@ -24,12 +24,12 @@ final class CurrentProductPricing implements ProductPricing
             }
         } else {
             if ($product->dealer_price === null) {
-                throw ValidationException::withMessages(['items' => 'A dealer price has not been configured for '.$product->name.'.']);
+                throw ValidationException::withMessages(['items' => __('portal.err_price_missing_dealer', ['product' => $product->name])]);
             }
             $price = Money::cents($product->dealer_price);
         }
         if ($price <= 0 || $price > $mrp) {
-            throw ValidationException::withMessages(['items' => 'The configured purchase price must be positive and cannot exceed MRP.']);
+            throw ValidationException::withMessages(['items' => __('portal.err_price_positive_mrp')]);
         }
 
         return $price;

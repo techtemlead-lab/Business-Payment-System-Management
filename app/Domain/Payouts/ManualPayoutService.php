@@ -28,7 +28,7 @@ class ManualPayoutService
             $amount = Money::cents((string) $data['amount']);
             $existing = DB::table('withdrawals')->where('user_id', $actor->id)->where('idempotency_key', $data['idempotency_key'])->first();
             if ($existing) {
-                abort_if(Money::cents($existing->amount) !== $amount || $existing->channel !== $data['channel'] || decrypt($existing->destination) !== trim($data['destination']), 409, 'Request key already used with different withdrawal data.');
+                abort_if(Money::cents($existing->amount) !== $amount || $existing->channel !== $data['channel'] || decrypt($existing->destination) !== trim($data['destination']), 409, __('portal.err_idem_withdrawal_key'));
 
                 return $existing->id;
             }

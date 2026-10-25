@@ -23,10 +23,10 @@ final class CommissionWallet
     public static function requireActive(): void
     {
         if (config('madina.preview_mode') || ! config('madina.financial_activation')) {
-            throw ValidationException::withMessages(['policy' => 'Financial posting is disabled. Verify the approved policy and opening balances before enabling it.']);
+            throw ValidationException::withMessages(['policy' => __('portal.err_wallet_posting_disabled')]);
         }
         if (app()->environment('production') && ! DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
-            throw ValidationException::withMessages(['policy' => 'Production posting requires independently verified opening balances and policy evidence.']);
+            throw ValidationException::withMessages(['policy' => __('portal.err_wallet_posting_unverified')]);
         }
     }
 

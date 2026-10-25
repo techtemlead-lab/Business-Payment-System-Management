@@ -35,7 +35,7 @@ final class ReserveService
             if ($old) {
                 abort_if($old->program !== $data['program'] || $old->user_id !== ($data['user_id'] ?? null)
                     || Money::cents($old->amount) !== Money::cents($data['amount']) || $old->reason !== $data['reason']
-                    || $old->payee_name !== ($data['payee_name'] ?? null), 409, 'Request key already used with different reward data.');
+                    || $old->payee_name !== ($data['payee_name'] ?? null), 409, __('portal.err_idem_reward_key'));
 
                 return $old->id;
             }
@@ -242,7 +242,7 @@ final class ReserveService
             $existing = DB::table('audit_events')->where('action', 'commission.hold_reassigned')->where('metadata->request_key', $requestKey)->first();
             if ($existing) {
                 $metadata = json_decode($existing->metadata, true, flags: JSON_THROW_ON_ERROR);
-                abort_unless($existing->subject === (string) $id && $existing->actor_id === $actor->id && $metadata['recipient_id'] === $recipientId && $metadata['reason'] === $reason, 409, 'This reassignment key was already used for different data.');
+                abort_unless($existing->subject === (string) $id && $existing->actor_id === $actor->id && $metadata['recipient_id'] === $recipientId && $metadata['reason'] === $reason, 409, __('portal.err_idem_reassign_key'));
 
                 return;
             }

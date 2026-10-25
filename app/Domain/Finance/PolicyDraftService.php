@@ -22,7 +22,7 @@ final class PolicyDraftService
             throw ValidationException::withMessages(['components' => $exception->getMessage()]);
         }
         if ($total > 10000) {
-            throw ValidationException::withMessages(['components' => 'Total allocations cannot exceed 100% of the purchase value.']);
+            throw ValidationException::withMessages(['components' => __('portal.err_draft_alloc_100')]);
         }
 
         return DB::transaction(function () use ($actor, $data): int {
@@ -48,7 +48,7 @@ final class PolicyDraftService
                 return;
             }
             if ((int) $draft->created_by === (int) $actor->id) {
-                throw ValidationException::withMessages(['policy' => 'A different Finance reviewer must publish this draft.']);
+                throw ValidationException::withMessages(['policy' => __('portal.err_draft_publisher')]);
             }
             DB::table('policy_drafts')->where('id', $id)->update([
                 'status' => 'published',

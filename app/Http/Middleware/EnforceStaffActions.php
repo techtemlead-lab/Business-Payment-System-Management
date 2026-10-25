@@ -41,7 +41,7 @@ class EnforceStaffActions
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 default => false,
             };
-            abort_unless($partnerAllowed, 403, 'This action is only available to company staff.');
+            abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
 
             return $next($request);
         }
@@ -57,7 +57,7 @@ class EnforceStaffActions
                 || $actor->canAct('finance', 'create')
                 || $actor->canAct('finance', 'approve')
                 || $actor->canAct('accounts', 'approve');
-            abort_unless($ok, 403, 'Your role does not allow data imports.');
+            abort_unless($ok, 403, __('portal.err_staff_import_denied'));
 
             return $next($request);
         }
@@ -128,7 +128,7 @@ class EnforceStaffActions
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };
-        abort_unless($permission, 403, 'This action is not enabled for your staff permissions.');
+        abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));
         $this->authorize($actor, $permission[0], $permission[1]);
 
         return $next($request);
@@ -142,7 +142,7 @@ class EnforceStaffActions
                 return;
             }
         }
-        abort(403, 'Your role does not allow this action.');
+        abort(403, __('portal.err_staff_action_denied'));
     }
 
     private function rejectStaffOperationsOnPartnerHosts(Request $request): void

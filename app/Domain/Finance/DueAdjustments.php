@@ -33,7 +33,7 @@ final class DueAdjustments
             $existing = DB::table('due_adjustments')->where('request_key', $data['request_key'])->first();
             if ($existing) {
                 abort_if($existing->order_id !== $order->id || $existing->kind !== $data['kind'] || $existing->reference !== $reference
-                    || Money::cents($existing->amount) !== Money::cents($data['amount']) || $existing->reason !== $data['reason'], 409, 'Adjustment key already used for different data.');
+                    || Money::cents($existing->amount) !== Money::cents($data['amount']) || $existing->reason !== $data['reason'], 409, __('portal.err_idem_adjustment_key'));
 
                 return $existing->id;
             }
@@ -65,7 +65,7 @@ final class DueAdjustments
                 throw ValidationException::withMessages(['decision' => __('portal.err_due_decision')]);
             }
             if ($adjustment->status !== 'requested') {
-                abort_unless($adjustment->status === $decision && $adjustment->review_reason === $reason, 409, 'This adjustment was already reviewed.');
+                abort_unless($adjustment->status === $decision && $adjustment->review_reason === $reason, 409, __('portal.err_adj_already_reviewed'));
 
                 return;
             }

@@ -39,7 +39,7 @@ class OrderService
             $hash = $this->hash($data);
             $existing = Order::where('user_id', $user->id)->where('idempotency_key', $data['idempotency_key'])->first();
             if ($existing) {
-                abort_if($existing->getRawOriginal('payload_hash') !== $hash, 409, 'Request key already used for different data.');
+                abort_if($existing->getRawOriginal('payload_hash') !== $hash, 409, __('portal.err_idem_order_key'));
 
                 return $existing;
             }
@@ -211,7 +211,7 @@ class OrderService
             $hash = $this->hash($data);
             $existing = DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->first();
             if ($existing) {
-                abort_if($existing->payload_hash !== $hash, 409, 'Dispatch key already used for different data.');
+                abort_if($existing->payload_hash !== $hash, 409, __('portal.err_idem_dispatch_key'));
 
                 return;
             }

@@ -18,7 +18,7 @@ final class PublicPartnerApplication
             $email = mb_strtolower(trim((string) $data['email']));
             if (DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->where('status', 'pending')->exists()) {
-                throw ValidationException::withMessages(['email' => 'Unable to accept this application with the details provided. Contact the company if you already applied.']);
+                throw ValidationException::withMessages(['email' => __('portal.err_public_app_reject')]);
             }
 
             $id = (string) Str::uuid();

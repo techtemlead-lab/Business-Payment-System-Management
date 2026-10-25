@@ -167,7 +167,7 @@ class FinanceOperationsController extends Controller
                     throw ValidationException::withMessages(['amount' => __('portal.ops_val_recovery_exceeds')]);
                 }
                 $account = DB::table('payment_accounts')->where('id', $data['payment_account_id'])->where('is_active', true)->where('collects_payments', true)->first();
-                abort_unless($account, 422, 'Choose an active collection account.');
+                abort_unless($account, 422, __('portal.err_collection_account'));
                 $reference = Str::upper(trim($data['payment_reference']));
                 if (DB::table('reserve_recoveries')->where('payment_reference', $reference)->exists() || DB::table('receipts')->where('reference', $reference)->exists()) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.ops_val_collection_ref_taken')]);

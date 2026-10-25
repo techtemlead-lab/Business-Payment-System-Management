@@ -26,14 +26,14 @@ final class CommissionReversal
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
             if (! $batch) {
-                throw ValidationException::withMessages(['order' => 'This order has no posted commissions to reverse. No adjustment was recorded.']);
+                throw ValidationException::withMessages(['order' => __('portal.err_rev_none')]);
             }
             if ($requestKey !== null) {
                 $byKey = DB::table('commission_refunds')->where('request_key', $requestKey)->first();
                 if ($byKey) {
                     if ($byKey->order_id !== $order->id || $byKey->reference !== $reference
                         || ($requested !== null && Money::cents($byKey->amount) !== $requested) || $byKey->reason !== $reason) {
-                        abort(409, 'Request key already used with different refund data.');
+                        abort(409, __('portal.err_idem_refund_key'));
                     }
 
                     return DB::table('commission_reversals')->where('refund_id', $byKey->id)->get()->map(fn ($r): array => (array) $r)->all();
@@ -43,7 +43,7 @@ final class CommissionReversal
             if ($existing) {
                 if (($requested !== null && Money::cents($existing->amount) !== $requested) || $existing->reason !== $reason
                     || ($requestKey !== null && $existing->request_key !== null && $existing->request_key !== $requestKey)) {
-                    abort(409, 'Refund reference already used with different data.');
+                    abort(409, __('portal.err_idem_refund_ref'));
                 }
 
                 return DB::table('commission_reversals')->where('refund_id', $existing->id)->get()->map(fn ($r): array => (array) $r)->all();
@@ -52,7 +52,7 @@ final class CommissionReversal
             $before = Money::cents($batch->refunded_amount);
             $amount = $requested ?? $cash - $before;
             if ($amount <= 0 || $amount > $cash - $before) {
-                throw ValidationException::withMessages(['refund_amount' => 'Refund must be positive and cannot exceed the remaining order value.']);
+                throw ValidationException::withMessages(['refund_amount' => __('portal.err_rev_refund')]);
             }
             $after = $before + $amount;
             $id = (string) Str::uuid();

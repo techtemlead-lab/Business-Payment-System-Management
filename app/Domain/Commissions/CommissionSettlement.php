@@ -350,7 +350,7 @@ final class CommissionSettlement
                 if ($existing) {
                     $result = json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
                     if ((int) ($result['user_id'] ?? 0) !== $userId) {
-                        abort(409, 'Request key already used with different incentive data.');
+                        abort(409, __('portal.err_idem_incentive_key'));
                     }
 
                     return $result;
@@ -358,7 +358,7 @@ final class CommissionSettlement
                 $award = DB::table('rank_incentive_awards')->where('request_key', $requestKey)->first();
                 if ($award) {
                     if ((int) $award->user_id !== $userId) {
-                        abort(409, 'Request key already used with different incentive data.');
+                        abort(409, __('portal.err_idem_incentive_key'));
                     }
 
                     return ['success' => true, 'user_id' => $userId, 'rank' => $award->rank, 'amount' => (string) $award->amount, 'paid_at' => $award->created_at];

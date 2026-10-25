@@ -737,7 +737,7 @@ class SiteCustomization
                 $valid = $value === null || is_scalar($value);
             }
             if (! $valid) {
-                throw ValidationException::withMessages(['customization.'.$key => 'This content field has an invalid format. Reload the form and try again.']);
+                throw ValidationException::withMessages(['customization.'.$key => __('portal.err_cms_format')]);
             }
         }
     }

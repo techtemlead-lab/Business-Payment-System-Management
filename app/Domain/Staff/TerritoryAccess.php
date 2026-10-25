@@ -74,7 +74,7 @@ final class TerritoryAccess
                 return;
             }
         }
-        abort(403, 'This location is outside your assigned territories.');
+        abort(403, __('portal.err_terr_outside'));
     }
 
     /** @param array<string, mixed> $data */
@@ -87,13 +87,13 @@ final class TerritoryAccess
             abort_unless($actor->fresh()->allows('staff_admin'), 403);
             $staff = User::findOrFail($data['staff_id']);
             if (! $staff->staff() || ! $staff->allows('field_sales') || $staff->id === $actor->id) {
-                throw ValidationException::withMessages(['staff_id' => 'Choose another active sales representative with field-sales access.']);
+                throw ValidationException::withMessages(['staff_id' => __('portal.err_terr_sr')]);
             }
             $path = [];
             foreach (self::Fields as $field) {
                 $value = trim((string) ($data[$field] ?? ''));
                 if ($value === '') {
-                    throw ValidationException::withMessages([$field => 'Specify the complete territory hierarchy.']);
+                    throw ValidationException::withMessages([$field => __('portal.err_terr_hierarchy')]);
                 }
                 $path[$field] = $value;
                 if ($field === $data['level']) {

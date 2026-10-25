@@ -27,11 +27,11 @@ final class FinanceSettings
             $before = $this->withdrawalMinimum();
             $stored = DB::table('business_settings')->where('key', 'withdrawal_minimum')->first();
             if ($version !== $before['version']) {
-                throw ValidationException::withMessages(['version' => 'The withdrawal setting changed. Reload before saving.']);
+                throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
             }
             $cents = Money::cents($amount);
             if ($cents < 1 || $cents > 9999999999) {
-                throw ValidationException::withMessages(['amount' => 'Enter a positive withdrawal minimum of at most BDT 99,999,999.99.']);
+                throw ValidationException::withMessages(['amount' => __('portal.err_fin_wd_min')]);
             }
             $after = ['amount' => Money::decimal($cents)];
             DB::table('business_settings')->updateOrInsert(['key' => 'withdrawal_minimum'], [
