@@ -4,7 +4,7 @@
         'dealers' => $chrome('dealer_directory', $siteCustomization['directory_title'] ?? null),
         'about' => $chrome('about', $siteCustomization['about_hero_title'] ?? null),
         'contact' => $chrome('contact_us', $siteCustomization['contact_title'] ?? null),
-        'partnership' => $chrome('become_a_partner', $siteCustomization['partnership_hero_title'] ?? null),
+        'partnership' => $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null),
         'services' => $chrome('our_services', $siteCustomization['services_hero_title'] ?? null),
         'quality' => $chrome('quality_promise', $siteCustomization['quality_hero_title'] ?? null),
         'faq' => $chrome('faq', $siteCustomization['faq_hero_title'] ?? null),
@@ -274,16 +274,16 @@
 
 @if($page==='partnership')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization['partnership_hero_title'] ?? 'Become an Authorized Madina Partner') }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['partnership_hero_lead'] ?? '') }}</div>
+    <h1>{{ $content->title ?? $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? $chrome('partnership_hero_lead', $siteCustomization['partnership_hero_lead'] ?? null) }}</div>
 </article>
 <h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $chrome('partnership_why_title', $siteCustomization['partnership_why_title'] ?? null) }}</h2>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3,4] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-leaf','fa-clipboard-check','fa-laptop','fa-map-location-dot'][$i-1] }}" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['partnership_benefit'.$i.'_title'] ?? '' }}</h2>
-        <p>{{ $siteCustomization['partnership_benefit'.$i.'_desc'] ?? '' }}</p>
+        <h2>{{ $chrome('partnership_benefit'.$i.'_title', $siteCustomization['partnership_benefit'.$i.'_title'] ?? null) }}</h2>
+        <p>{{ $chrome('partnership_benefit'.$i.'_desc', $siteCustomization['partnership_benefit'.$i.'_desc'] ?? null) }}</p>
     </section>
     @endforeach
 </div>
@@ -291,13 +291,13 @@
     <h2>{{ $chrome('partnership_steps_title', $siteCustomization['partnership_steps_title'] ?? null) }}</h2>
     <ol class="ref-about-objectives" style="list-style:decimal;padding-left:20px;">
         @foreach([1,2,3] as $i)
-        <li style="margin-bottom:12px;"><strong>{{ $siteCustomization['partnership_step'.$i.'_title'] ?? '' }}:</strong> {{ $siteCustomization['partnership_step'.$i.'_desc'] ?? '' }}</li>
+        <li style="margin-bottom:12px;"><strong>{{ $chrome('partnership_step'.$i.'_title', $siteCustomization['partnership_step'.$i.'_title'] ?? null) }}:</strong> {{ $chrome('partnership_step'.$i.'_desc', $siteCustomization['partnership_step'.$i.'_desc'] ?? null) }}</li>
         @endforeach
     </ol>
 </section>
 <section class="ref-content-card" style="margin-top:24px;background:linear-gradient(135deg,#f3f7f4,#fff);">
     <h2>{{ $chrome('partnership_cta_title', $siteCustomization['partnership_cta_title'] ?? null) }}</h2>
-    <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
+    <p>{{ $chrome('partnership_cta_body', $siteCustomization['partnership_cta_body'] ?? null) }}</p>
     <div class="ref-information-links" style="margin-top:16px;">
         <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $chrome('partnership_cta_btn', $siteCustomization['partnership_cta_btn'] ?? null) }}</a>
         @if($publicPageEnabled['dealers'] ?? true)

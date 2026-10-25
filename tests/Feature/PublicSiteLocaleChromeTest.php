@@ -51,11 +51,16 @@ class PublicSiteLocaleChromeTest extends TestCase
 
         $this->onPortal('public')->get('/partnership')
             ->assertOk()
+            ->assertSee('অনুমোদিত মাদিনা পার্টনার হোন', false)
+            ->assertSee('বিশ্বস্ত পণ্য পরিসর', false)
+            ->assertSee('সুসংগঠিত অনবোর্ডিং', false)
             ->assertSee('পার্টনারশিপ আবেদন জমা দিন', false)
             ->assertSee('আবেদন জমা দিন', false)
             ->assertSee('কেন মাদিনার সাথে পার্টনার হবেন', false)
             ->assertSee('কীভাবে আবেদন করবেন', false)
             ->assertSee('ডিলারশিপের জন্য আবেদন', false)
+            ->assertDontSee('Become an Authorized Madina Partner', false)
+            ->assertDontSee('Trusted product range', false)
             ->assertDontSee('Why partner with Madina', false)
             ->assertDontSee('Become a Partner', false);
     }
