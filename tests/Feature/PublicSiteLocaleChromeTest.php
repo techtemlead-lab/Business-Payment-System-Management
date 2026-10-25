@@ -52,7 +52,12 @@ class PublicSiteLocaleChromeTest extends TestCase
         $this->onPortal('public')->get('/partnership')
             ->assertOk()
             ->assertSee('পার্টনারশিপ আবেদন জমা দিন', false)
-            ->assertSee('আবেদন জমা দিন', false);
+            ->assertSee('আবেদন জমা দিন', false)
+            ->assertSee('কেন মাদিনার সাথে পার্টনার হবেন', false)
+            ->assertSee('কীভাবে আবেদন করবেন', false)
+            ->assertSee('ডিলারশিপের জন্য আবেদন', false)
+            ->assertDontSee('Why partner with Madina', false)
+            ->assertDontSee('Become a Partner', false);
     }
 
     public function test_english_locale_keeps_familiar_public_chrome(): void

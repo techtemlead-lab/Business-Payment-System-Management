@@ -62,7 +62,7 @@
 <div class="ref-information-links">
     @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>@endif
     @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>@endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">Become a Partner</a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }}</a>@endif
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
@@ -277,7 +277,7 @@
     <h1>{{ $content->title ?? ($siteCustomization['partnership_hero_title'] ?? 'Become an Authorized Madina Partner') }}</h1>
     <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['partnership_hero_lead'] ?? '') }}</div>
 </article>
-<h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $siteCustomization['partnership_why_title'] ?? 'Why partner with Madina' }}</h2>
+<h2 class="ref-page-title" style="margin-top:28px;font-size:20px;">{{ $chrome('partnership_why_title', $siteCustomization['partnership_why_title'] ?? null) }}</h2>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3,4] as $i)
     <section class="ref-content-card">
@@ -288,7 +288,7 @@
     @endforeach
 </div>
 <section class="ref-content-card" style="margin-top:24px;">
-    <h2>{{ $siteCustomization['partnership_steps_title'] ?? 'How to apply' }}</h2>
+    <h2>{{ $chrome('partnership_steps_title', $siteCustomization['partnership_steps_title'] ?? null) }}</h2>
     <ol class="ref-about-objectives" style="list-style:decimal;padding-left:20px;">
         @foreach([1,2,3] as $i)
         <li style="margin-bottom:12px;"><strong>{{ $siteCustomization['partnership_step'.$i.'_title'] ?? '' }}:</strong> {{ $siteCustomization['partnership_step'.$i.'_desc'] ?? '' }}</li>
@@ -296,12 +296,12 @@
     </ol>
 </section>
 <section class="ref-content-card" style="margin-top:24px;background:linear-gradient(135deg,#f3f7f4,#fff);">
-    <h2>{{ $siteCustomization['partnership_cta_title'] ?? 'Ready to grow with Madina?' }}</h2>
+    <h2>{{ $chrome('partnership_cta_title', $siteCustomization['partnership_cta_title'] ?? null) }}</h2>
     <p>{{ $siteCustomization['partnership_cta_body'] ?? '' }}</p>
     <div class="ref-information-links" style="margin-top:16px;">
-        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $siteCustomization['partnership_cta_btn'] ?? 'Apply for Dealership' }}</a>
+        <a href="{{ $siteCustomization['partnership_cta_link'] ?? '#partner-apply' }}" class="ref-primary-button">{{ $chrome('partnership_cta_btn', $siteCustomization['partnership_cta_btn'] ?? null) }}</a>
         @if($publicPageEnabled['dealers'] ?? true)
-        <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> View Dealer Network</a>
+        <a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ __('site.find_a_dealer') }}</a>
         @endif
     </div>
 </section>
@@ -380,7 +380,7 @@
     @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['quality_cta_link'] ?? '/products'))
     <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['quality_cta_btn'] ?? 'Browse Products' }}</a>
     @endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">Become a Partner <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
@@ -402,7 +402,7 @@
 </div>
 <div class="ref-information-links">
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Still need help? Contact us</a>@endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button">Partnership enquiries</a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button">{{ __('site.partnership_enquiries') }}</a>@endif
 </div>
 @endif
 

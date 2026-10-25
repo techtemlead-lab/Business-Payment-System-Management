@@ -117,6 +117,11 @@ return [
     'notice_empty' => 'No published notice is available yet. Check back after company staff publish an update.',
     'contact_head_office' => 'Contact Head Office',
 
+    'partnership_why_title' => 'Why partner with Madina',
+    'partnership_steps_title' => 'How to apply',
+    'partnership_cta_title' => 'Ready to grow with Madina?',
+    'partnership_cta_btn' => 'Apply for Dealership',
+    'partnership_enquiries' => 'Partnership enquiries',
     'partnership_form_title' => 'Submit a partnership application',
     'partnership_form_hint' => 'Tell us about your proposed dealership or sub-dealership. Applications are reviewed by company staff before any account is created.',
     'full_name' => 'Full name',
