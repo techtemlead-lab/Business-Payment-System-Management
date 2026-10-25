@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\Order;
@@ -152,6 +153,35 @@ final class CommissionReversal
                 'buyer_id' => $order->user_id, 'reference' => $reference, 'request_key' => $requestKey,
                 'refund_amount' => Money::decimal($amount), 'reason' => $reason,
             ]);
+            $buyer = User::find($order->user_id);
+            $locale = $buyer?->preferredLocale() ?? app()->getLocale();
+            $amountDecimal = Money::decimal($amount);
+            Audit::notice(
+                $order->user_id,
+                __('portal.notice_order_refunded_title', [], $locale),
+                __('portal.notice_order_refunded_body', [
+                    'number' => $order->number,
+                    'amount' => $amountDecimal,
+                    'reason' => $reason,
+                ], $locale),
+            );
+            $userId = (int) $order->user_id;
+            $orderNumber = (string) $order->number;
+            DB::afterCommit(function () use ($userId, $orderNumber, $amountDecimal, $reason, $locale): void {
+                $partner = User::find($userId);
+                if (! $partner) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'order.refunded',
+                    __('sms.order_refunded', [
+                        'number' => $orderNumber,
+                        'amount' => $amountDecimal,
+                        'reason' => $reason,
+                    ], $partner->preferredLocale() ?: $locale),
+                );
+            });
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);

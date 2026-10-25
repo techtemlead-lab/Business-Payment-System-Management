@@ -3,10 +3,12 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\DealerRank;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
@@ -229,6 +231,30 @@ final class CommissionQualification
         }
         $history[] = ['rank' => $code, 'achieved_at' => now()->toIso8601String()];
         $rank->update(['current_rank' => $code, 'achieved_at' => now(), 'qualification_history' => $history, 'one_time_incentive_paid' => false]);
+
+        $partner = User::find($rank->user_id);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $rankLabel = __('portal.net_rank_'.$code, [], $locale);
+        if ($rankLabel === 'portal.net_rank_'.$code) {
+            $rankLabel = strtoupper($code);
+        }
+        Audit::notice(
+            $rank->user_id,
+            __('portal.notice_rank_achieved_title', [], $locale),
+            __('portal.notice_rank_achieved_body', ['rank' => $rankLabel], $locale),
+        );
+        $userId = (int) $rank->user_id;
+        DB::afterCommit(function () use ($userId, $rankLabel, $locale): void {
+            $partner = User::find($userId);
+            if (! $partner) {
+                return;
+            }
+            app(PartnerEventSms::class)->send(
+                $partner,
+                'rank.achieved',
+                __('sms.rank_achieved', ['rank' => $rankLabel], $partner->preferredLocale() ?: $locale),
+            );
+        });
     }
 
     /** @return array<string, mixed> */

@@ -6,8 +6,12 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
+use App\Models\DealerRank;
+use App\Models\Order;
 use App\Models\Product;
+use App\Models\ReferralTreePath;
 use App\Models\User;
+use App\Support\Money;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
@@ -318,6 +322,118 @@ class PartnerEventSmsTest extends TestCase
         $this->assertContains('commission.matured', $events);
         $this->assertTrue(
             collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'কুলিং-অফ')),
+        );
+    }
+
+    public function test_rank_promotion_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000095',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+        DealerRank::firstOrCreate(
+            ['user_id' => $dealer->id],
+            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 230000.00],
+        );
+
+        $order = Order::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'rank-sms'),
+            'number' => 'ORD-RANK-SMS',
+            'user_id' => $dealer->id,
+            'status' => 'delivered',
+            'total' => '20000.00',
+            'paid' => '20000.00',
+        ]);
+        $product = Product::factory()->create(['mrp' => Money::decimal(Money::cents('20000.00') * 2)]);
+        $order->lines()->create([
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'quantity' => 1,
+            'mrp' => $product->mrp,
+            'unit_price' => '20000.00',
+            'total' => '20000.00',
+        ]);
+
+        app(CommissionService::class)->processOrder($order);
+
+        $this->assertSame('mo', DealerRank::where('user_id', $dealer->id)->value('current_rank'));
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'rank.achieved');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.rank_achieved', ['rank' => __('portal.net_rank_mo', [], 'bn')], 'bn'),
+            $sent['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_rank_achieved_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_order_refund_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000096',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank',
+            'reference' => 'REFUND-SMS-RECEIPT',
+            'amount' => '100.00',
+        ]);
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $claim = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
+        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', [
+            'approve' => true,
+            'reason' => 'Matched',
+        ])->assertOk();
+        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
+            'status' => 'approved',
+            'reason' => 'OK',
+        ])->assertOk();
+        $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
+            'courier' => 'C',
+            'tracking' => 'T-REFUND',
+            'idempotency_key' => (string) Str::uuid(),
+            'items' => [['line_id' => $line, 'quantity' => 1]],
+        ])->assertOk();
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/shipments/'.$shipment.'/delivered', [
+            'reason' => 'Delivered',
+        ])->assertOk();
+
+        Config::set('madina.sms.sent', []);
+        app(CommissionService::class)->reverseOrderPartial($order->fresh(), '50.00', 'Returned half', 'REFUND-SMS-1');
+
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'order.refunded');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.order_refunded', [
+                'number' => $order->number,
+                'amount' => '50.00',
+                'reason' => 'Returned half',
+            ], 'bn'),
+            $sent['message'] ?? null,
         );
     }
 }
