@@ -150,7 +150,7 @@ final class OpeningBalanceImport
             if ($amount <= 0 || $this->wallets->debit($entry->user_id, $amount, true)['unrecovered'] !== 0) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_import_hold_mismatch')]);
             }
-            $this->wallets->journal('opening.hold_release.'.$id, 'Reviewed opening commission hold release', [
+            $this->wallets->journal('opening.hold_release.'.$id, __('portal.jr_opening_hold_release'), [
                 ['account' => 'commission_held_liability', 'user_id' => $entry->user_id, 'debit' => $amount, 'credit' => 0],
                 ['account' => 'wallet_liability', 'user_id' => $entry->user_id, 'debit' => 0, 'credit' => $amount],
             ]);

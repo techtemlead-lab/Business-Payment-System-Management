@@ -62,6 +62,7 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('backups_not_configured', $result['warnings']);
         $this->assertContains('app_environment_not_production', $result['warnings']);
         $this->assertContains('app_url_not_https', $result['warnings']);
+        $this->assertContains('session_cookies_not_hardened', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_debug_is_enabled_and_clears_when_disabled(): void
@@ -80,20 +81,27 @@ class OperationalReadinessTest extends TestCase
             'app.debug' => true,
             'app.env' => 'production',
             'app.url' => 'https://madina.example.test',
+            'session.secure' => true,
+            'session.encrypt' => true,
         ]);
         Cache::put('operations:scheduler-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
         Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
+        Cache::forget('operations:verified-backup');
 
         $result = app(DeploymentReadiness::class)->inspect();
         $this->assertTrue($result['ready']);
         $this->assertContains('debug_mode_enabled', $result['warnings']);
+        $this->assertContains('verified_backup_missing', $result['warnings']);
         $this->assertNotContains('backups_not_configured', $result['warnings']);
         $this->assertNotContains('app_environment_not_production', $result['warnings']);
         $this->assertNotContains('app_url_not_https', $result['warnings']);
+        $this->assertNotContains('session_cookies_not_hardened', $result['warnings']);
 
         config(['app.debug' => false]);
+        Cache::put('operations:verified-backup', now()->utc()->toIso8601String(), now()->addDay());
         $cleared = app(DeploymentReadiness::class)->inspect();
         $this->assertNotContains('debug_mode_enabled', $cleared['warnings']);
+        $this->assertNotContains('verified_backup_missing', $cleared['warnings']);
     }
 
     public function test_application_readiness_clears_queue_and_scheduler_heartbeat_warnings_when_workers_signal(): void

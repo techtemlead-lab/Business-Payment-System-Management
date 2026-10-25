@@ -106,7 +106,7 @@ final class ReserveService
                 }
                 if ($row->program !== 'marketing') {
                     $amount = Money::cents($row->amount);
-                    $this->wallets->journal('reserve.award.'.$id, 'Approved '.$row->program.' reward', [
+                    $this->wallets->journal('reserve.award.'.$id, __('portal.jr_reserve_award', ['program' => $row->program]), [
                         ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                         ['account' => 'wallet_liability', 'user_id' => $row->user_id, 'debit' => 0, 'credit' => $amount],
                     ]);
@@ -158,7 +158,7 @@ final class ReserveService
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'reserve:'.$id, (int) $data['payment_account_id']);
                 $amount = Money::cents($row->amount);
-                $this->wallets->journal('reserve.expense.'.$id, 'Company marketing expense paid', [
+                $this->wallets->journal('reserve.expense.'.$id, __('portal.jr_reserve_marketing_paid'), [
                     ['account' => 'company_marketing_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                     ['account' => 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
                 ]);
@@ -212,7 +212,7 @@ final class ReserveService
             if ($amount <= 0) {
                 throw ValidationException::withMessages(['hold' => __('portal.err_hold_zero')]);
             }
-            $this->wallets->journal('commission.hold_release.'.$id, 'Reviewed held commission release', [
+            $this->wallets->journal('commission.hold_release.'.$id, __('portal.jr_hold_release'), [
                 ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                 ['account' => $held ? 'commission_held_liability' : 'wallet_liability', 'user_id' => $partner->id, 'debit' => 0, 'credit' => $amount],
             ]);

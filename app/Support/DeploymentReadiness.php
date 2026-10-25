@@ -133,6 +133,15 @@ final class DeploymentReadiness
         if (! $strict && ! str_starts_with((string) config('app.url'), 'https://')) {
             $warnings[] = 'app_url_not_https';
         }
+        if (! $strict && (! (bool) config('session.secure') || ! (bool) config('session.encrypt'))) {
+            $warnings[] = 'session_cookies_not_hardened';
+        }
+        if (! $strict
+            && config('madina.backups_enabled')
+            && strlen((string) config('madina.backup_password')) >= 32
+            && ! Cache::has('operations:verified-backup')) {
+            $warnings[] = 'verified_backup_missing';
+        }
 
         return [
             'ready' => ! in_array(false, $checks, true),

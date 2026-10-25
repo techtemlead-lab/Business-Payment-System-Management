@@ -6,7 +6,8 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, strong `APP_KEY` — `app:readiness` must not warn `debug_mode_enabled` or `app_environment_not_production`
 - [ ] `APP_URL` and `APP_DOMAIN` match the live public host over HTTPS; portal subdomains resolve (`dealer.`, `subdealer.`, `manage.`, `sadmin.`) — `app:readiness` must not warn `app_url_not_https`
-- [ ] PostgreSQL is dedicated (not shared with another app); backups scheduled and restore-tested — `MADINA_BACKUPS_ENABLED` + strong `MADINA_BACKUP_PASSWORD`; `app:readiness` must not warn `backups_not_configured`
+- [ ] `SESSION_SECURE_COOKIE=true` and `SESSION_ENCRYPT=true` on the live HTTPS host — `app:readiness` must not warn `session_cookies_not_hardened`
+- [ ] PostgreSQL is dedicated (not shared with another app); backups scheduled and restore-tested — `MADINA_BACKUPS_ENABLED` + strong `MADINA_BACKUP_PASSWORD`; `app:readiness` must not warn `backups_not_configured` or `verified_backup_missing`
 - [ ] Queue worker running: `php artisan queue:work --queue=imports,default --sleep=3 --tries=1 --timeout=1800` — durable driver (not `sync`/`null`); `app:readiness` must not warn `queue_driver_is_sync` or `queue_worker_heartbeat_missing`
 - [ ] Scheduler running: `php artisan schedule:work` (or cron equivalent); `app:readiness` must not warn `scheduler_heartbeat_missing`
 - [ ] `php artisan app:readiness` reports PASS for migrations, DB timezone UTC, cache, private storage, preview posting disabled
