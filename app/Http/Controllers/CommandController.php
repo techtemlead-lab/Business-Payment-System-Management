@@ -192,7 +192,7 @@ class CommandController extends Controller
             CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
-            $reason = $d['reason'] ?? 'Account created by company staff';
+            $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
             $u = (new User)->forceFill([
                 ...$d,

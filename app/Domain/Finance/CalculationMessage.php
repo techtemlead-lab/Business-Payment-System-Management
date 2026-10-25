@@ -21,6 +21,8 @@ final class CalculationMessage
             'Invalid monetary amount.' => __('portal.err_money_invalid'),
             'Negative monetary amount.' => __('portal.err_money_negative'),
             'Negative purchase amount.' => __('portal.err_money_purchase_negative'),
+            'Self-sponsorship is disallowed.' => __('portal.err_tree_self_sponsor'),
+            'Circular hierarchy cycle detected.' => __('portal.err_tree_circular_hierarchy'),
             default => $message,
         };
     }
