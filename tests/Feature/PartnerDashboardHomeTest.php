@@ -67,6 +67,23 @@ class PartnerDashboardHomeTest extends TestCase
         $this->assertSame(['monthly_salary', 'rank_reward', 'bike_incentive'], array_column($home['targets'], 'key'));
     }
 
+    public function test_partner_home_target_labels_follow_active_locale(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        ReferralTreePath::attachUser($dealer->id, null);
+
+        app()->setLocale('en');
+        $english = app(PartnerDashboardHome::class)->for($dealer);
+        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'en'), $english['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'en'), $english['targets'][2]['label']);
+
+        app()->setLocale('bn');
+        $bangla = app(PartnerDashboardHome::class)->for($dealer);
+        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'bn'), $bangla['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'bn'), $bangla['targets'][2]['label']);
+        $this->assertNotSame($english['targets'][0]['label'], $bangla['targets'][0]['label']);
+    }
+
     public function test_partner_home_counts_today_own_and_team_sales(): void
     {
         // After 18:00 UTC the Dhaka calendar day has already rolled forward; freeze there

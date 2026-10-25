@@ -106,22 +106,26 @@ final class PartnerDashboardHome
         if ($controls['unconditional_salary']) {
             $targets[] = [
                 'key' => 'monthly_salary',
-                'label' => $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                'label' => $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
                 'current' => Money::decimal($monthlyVolume),
                 'target' => Money::decimal($salaryTarget),
                 'remaining' => '0.00',
                 'percent' => 100.0,
-                'hint' => 'Admin granted unconditional salary access — volume target is waived.',
+                'hint' => __('portal.target_unconditional_salary_hint'),
             ];
         } else {
             $targets[] = $this->progress(
                 key: 'monthly_salary',
-                label: $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                label: $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
                 current: $monthlyVolume,
                 target: $salaryTarget,
                 hint: $user->role === 'sub_dealer'
-                    ? 'Buy this much more from the company this month to stay on a healthy activity track.'
-                    : 'Remaining company purchase needed this month to qualify for the monthly salary pool.',
+                    ? __('portal.target_subdealer_purchase_hint')
+                    : __('portal.target_dealer_salary_hint'),
             );
         }
 
@@ -132,22 +136,22 @@ final class PartnerDashboardHome
         if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
             $targets[] = [
                 'key' => 'rank_reward',
-                'label' => 'Rank reward',
+                'label' => __('portal.target_rank_reward'),
                 'current' => Money::decimal($lifetime),
                 'target' => Money::decimal($moTarget),
                 'remaining' => '0.00',
                 'percent' => 100.0,
-                'hint' => 'Admin granted unconditional rank benefit access for this partner.',
+                'hint' => __('portal.target_unconditional_rank_hint'),
             ];
         } elseif ($user->role === 'sub_dealer' || ($rank->current_rank ?? 'dealer') === 'dealer') {
             $targets[] = $this->progress(
                 key: 'rank_reward',
-                label: 'MO rank reward',
+                label: __('portal.target_mo_rank_reward'),
                 current: $lifetime,
                 target: $moTarget,
                 hint: $user->role === 'sub_dealer'
-                    ? 'Cumulative own purchases toward the Marketing Officer (৳2.5L) rank reward track.'
-                    : 'Cumulative own purchases required to promote to Marketing Officer.',
+                    ? __('portal.target_subdealer_mo_hint')
+                    : __('portal.target_dealer_mo_hint'),
             );
         } else {
             $next = match ($rank->current_rank) {
@@ -174,22 +178,26 @@ final class PartnerDashboardHome
                 $requiredLabel = strtoupper($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => strtoupper($code).' rank reward',
+                    'label' => __('portal.target_named_rank_reward', ['rank' => strtoupper($code)]),
                     'current' => (string) $count,
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),
                     'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
-                    'hint' => "Need {$needed} {$requiredLabel} leaders in {$depth}-gen downline.",
+                    'hint' => __('portal.target_rank_leaders_hint', [
+                        'needed' => $needed,
+                        'rank' => $requiredLabel,
+                        'depth' => $depth,
+                    ]),
                 ];
             } else {
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => 'Rank reward',
+                    'label' => __('portal.target_rank_reward'),
                     'current' => 'ME',
                     'target' => 'ME',
                     'remaining' => '0',
                     'percent' => 100.0,
-                    'hint' => 'Highest rank achieved.',
+                    'hint' => __('portal.target_highest_rank_hint'),
                 ];
             }
         }
@@ -197,10 +205,10 @@ final class PartnerDashboardHome
         $bike = $this->qualification->milestone($user->id, 'bike');
         $targets[] = $this->progress(
             key: 'bike_incentive',
-            label: 'Bike incentive',
+            label: __('portal.target_bike_incentive'),
             current: Money::cents((string) $bike['qualifying_volume']),
             target: Money::cents((string) $bike['target_amount']),
-            hint: 'Qualified team volume toward the motorcycle incentive (leg caps applied).',
+            hint: __('portal.target_bike_incentive_hint'),
         );
 
         return $targets;
