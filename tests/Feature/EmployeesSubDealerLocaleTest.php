@@ -118,4 +118,29 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.pc_save', 'কোড সংরক্ষণ')
                 ->where('translations.portal.pc_save_changes', 'পরিবর্তন সংরক্ষণ'));
     }
+
+    public function test_settlements_and_rewards_hubs_expose_bangla_chrome_keys(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/settlements')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'settlements')
+                ->where('translations.portal.st_heading', 'মাস-শেষ সেটেলমেন্ট ও পাইপলাইন')
+                ->where('translations.portal.st_release', 'ম্যাচুর্ড কমিশন রিলিজ')
+                ->where('translations.portal.st_approve_pay', 'অনুমোদন ও পেআউট'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/rewards')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'rewards')
+                ->where('translations.portal.rw_heading', 'কোম্পানি কার ও মোটরবাইক মাইলস্টোন ট্রেজারি')
+                ->where('translations.portal.rw_inspect', 'ব্রাঞ্চ পরিদর্শন')
+                ->where('translations.portal.rw_close', 'অডিট বন্ধ'));
+    }
 }
