@@ -63,6 +63,53 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertDontSee('Trusted product range', false)
             ->assertDontSee('Why partner with Madina', false)
             ->assertDontSee('Become a Partner', false);
+
+        $this->onPortal('public')->get('/about')
+            ->assertOk()
+            ->assertSee('মাদিনা ন্যাচারাল হেলথ কেয়ার সম্পর্কে', false)
+            ->assertSee('কোম্পানির ইতিহাস', false)
+            ->assertSee('আমাদের মিশন', false)
+            ->assertSee('প্রামাণিক ওয়েলনেস', false)
+            ->assertDontSee('About Madina Natural Health Care', false)
+            ->assertDontSee('Company History', false)
+            ->assertDontSee('Our Mission', false);
+
+        $this->onPortal('public')->get('/dealers')
+            ->assertOk()
+            ->assertSee('ডিলার ডিরেক্টরি', false)
+            ->assertSee('নিকটতম ডিলার খুঁজুন', false)
+            ->assertSee('সব বিভাগ', false)
+            ->assertDontSee('Find nearest dealers', false)
+            ->assertDontSee('All divisions', false);
+
+        $this->onPortal('public')->get('/contact')
+            ->assertOk()
+            ->assertSee('যোগাযোগ করুন', false)
+            ->assertSee('জিজ্ঞাসা পাঠান', false)
+            ->assertSee('আপনার নাম', false)
+            ->assertSee('ডিলার জিজ্ঞাসা', false)
+            ->assertDontSee('Send an Enquiry', false)
+            ->assertDontSee('Your Name', false);
+
+        $this->onPortal('public')->get('/services')
+            ->assertOk()
+            ->assertSee('প্রাকৃতিক স্বাস্থ্যসেবা ও ফিজিওথেরাপি সেবা', false)
+            ->assertSee('প্রাকৃতিক স্বাস্থ্য পরামর্শ', false)
+            ->assertDontSee('Natural Health Care & Physiotherapy Services', false);
+
+        $this->onPortal('public')->get('/quality')
+            ->assertOk()
+            ->assertSee('মান ও প্রামাণিকতার অঙ্গীকার', false)
+            ->assertSee('যাচাইকৃত পণ্য মান', false)
+            ->assertDontSee('Quality & Authenticity Promise', false);
+
+        $this->onPortal('public')->get('/faq')
+            ->assertOk()
+            ->assertSee('প্রায়শই জিজ্ঞাসিত প্রশ্ন', false)
+            ->assertSee('মাদিনা পণ্য কোথায় কিনব?', false)
+            ->assertSee('এখনও সাহায্য দরকার? যোগাযোগ করুন', false)
+            ->assertDontSee('Frequently Asked Questions', false)
+            ->assertDontSee('Where can I buy Madina products?', false);
     }
 
     public function test_english_locale_keeps_familiar_public_chrome(): void

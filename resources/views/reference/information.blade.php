@@ -24,66 +24,87 @@
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization['about_hero_title'] ?? 'About Madina Natural Health Care') }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['about_hero_lead'] ?? 'Madina Natural Health Care connects quality wellness products, dealers, healthcare practitioners and communities through an approved distribution network across Bangladesh.') }}</div>
+    <h1>{{ $content->title ?? $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null) }}</div>
 </article>
 
 <div class="ref-about-sections-grid">
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['about_history_title'] ?? 'Company History' }}</h2>
-        <p>{{ $siteCustomization['about_history'] ?? 'Established with a commitment to pure wellness, Madina Natural Health Care began by addressing the growing need for authentic natural food supplements, unani medicines and accessible community healthcare. Over the years, our organization has expanded from local healthcare service points into a nationwide network connecting dedicated dealers, sub-dealers and health centers across Bangladesh.' }}</p>
+        <h2>{{ $chrome('about_history_title', $siteCustomization['about_history_title'] ?? null) }}</h2>
+        <p>{{ $chrome('about_history', $siteCustomization['about_history'] ?? null) }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-bullseye" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['about_mission_title'] ?? 'Our Mission' }}</h2>
-        <p>{{ $siteCustomization['about_mission'] ?? 'To formulate, source and deliver reliable, high-standard natural health products while empowering local entrepreneurship through a transparent, staff-verified dealer and distribution ecosystem.' }}</p>
+        <h2>{{ $chrome('about_mission_title', $siteCustomization['about_mission_title'] ?? null) }}</h2>
+        <p>{{ $chrome('about_mission', $siteCustomization['about_mission'] ?? null) }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-eye" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['about_vision_title'] ?? 'Our Vision' }}</h2>
-        <p>{{ $siteCustomization['about_vision'] ?? 'To become Bangladesh’s foremost trusted name in natural preventive healthcare, unani medicine and community wellness, fostering healthier families and resilient partner livelihoods in every district.' }}</p>
+        <h2>{{ $chrome('about_vision_title', $siteCustomization['about_vision_title'] ?? null) }}</h2>
+        <p>{{ $chrome('about_vision', $siteCustomization['about_vision'] ?? null) }}</p>
     </section>
 
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['about_objectives_title'] ?? 'Core Objectives' }}</h2>
+        <h2>{{ $chrome('about_objectives_title', $siteCustomization['about_objectives_title'] ?? null) }}</h2>
         <ul class="ref-about-objectives">
-            <li><strong>{{ $siteCustomization['about_obj1_title'] ?? 'Authentic Wellness' }}:</strong> {{ $siteCustomization['about_obj1_desc'] ?? 'Supply safe, verified unani and dietary supplements with clear quality standards.' }}</li>
-            <li><strong>{{ $siteCustomization['about_obj2_title'] ?? 'Empowered Partners' }}:</strong> {{ $siteCustomization['about_obj2_desc'] ?? 'Support authorized dealers and sub-dealers with fair terms, structured training and dedicated portals.' }}</li>
-            <li><strong>{{ $siteCustomization['about_obj3_title'] ?? 'Accessible Care' }}:</strong> {{ $siteCustomization['about_obj3_desc'] ?? 'Connect rural and urban communities with nearby partner outlets and physiotherapy assistance.' }}</li>
-            <li><strong>{{ $siteCustomization['about_obj4_title'] ?? 'Transparent Operations' }}:</strong> {{ $siteCustomization['about_obj4_desc'] ?? 'Maintain staff-audited orders, manual payment verifications and clear distribution records.' }}</li>
+            @foreach([1,2,3,4] as $i)
+            <li><strong>{{ $chrome('about_obj'.$i.'_title', $siteCustomization['about_obj'.$i.'_title'] ?? null) }}:</strong> {{ $chrome('about_obj'.$i.'_desc', $siteCustomization['about_obj'.$i.'_desc'] ?? null) }}</li>
+            @endforeach
         </ul>
     </section>
 </div>
 
 <div class="ref-information-links">
-    @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $siteCustomization['about_btn_products'] ?? 'Explore Products' }}</a>@endif
-    @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>@endif
+    @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
+    @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
     @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }}</a>@endif
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact">{{ $siteCustomization['about_btn_contact'] ?? 'Contact Head Office' }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
 @if($page==='contact')
-<h1 class="ref-page-title">{{ $siteCustomization['contact_title'] ?? 'Contact Us' }}</h1>
+@php
+    $enquiryTopics = [
+        'contact_topic_dealer' => $chrome('contact_topic_dealer'),
+        'contact_topic_partnership' => $chrome('contact_topic_partnership'),
+        'contact_topic_product' => $chrome('contact_topic_product'),
+        'contact_topic_support' => $chrome('contact_topic_support'),
+        'contact_topic_complaint' => $chrome('contact_topic_complaint'),
+    ];
+    $enquiryTopicValues = [
+        'contact_topic_dealer' => 'Dealer enquiry',
+        'contact_topic_partnership' => 'Partnership enquiry',
+        'contact_topic_product' => 'Product enquiry',
+        'contact_topic_support' => 'Support',
+        'contact_topic_complaint' => 'Complaint',
+    ];
+@endphp
+<h1 class="ref-page-title">{{ $chrome('contact_title', $siteCustomization['contact_title'] ?? null) }}</h1>
 <div class="ref-contact-grid">
     <section class="ref-content-card">
-        <h2>{{ $siteCustomization['contact_company_title'] ?? 'Madina Natural Health Care' }}</h2>
-        <p>{{ $siteCustomization['contact_company_desc'] ?? 'For product information, dealer enquiries or support, send us a message or visit our head office.' }}</p>
+        <h2>{{ $chrome('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</h2>
+        <p>{{ $chrome('contact_company_desc', $siteCustomization['contact_company_desc'] ?? null) }}</p>
         @if($content)<div class="ref-content-prose">{{ $content->body }}</div>@endif
         <div class="ref-contact-topic">
             <i class="fa-solid fa-phone-volume" aria-hidden="true" style="color:#006837;"></i>
             <div>
-                <h3>{{ $siteCustomization['contact_phone_title'] ?? 'Customer Care & Hotline' }}</h3>
+                <h3>{{ $chrome('contact_phone_title', $siteCustomization['contact_phone_title'] ?? null) }}</h3>
                 <p>
                     <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['contact_phone'] ?? '+8801730532966') }}" style="color:#006837; font-weight:700; font-size:16px; text-decoration:none;">
                         {{ $siteCustomization['contact_phone'] ?? '+8801730532966' }}
                     </a>
-                    @if(!empty($siteCustomization['contact_phone_hours'] ?? 'Sat - Thu: 9:00 AM - 8:00 PM'))
-                    <br><small style="color:#64748b;">{{ $siteCustomization['contact_phone_hours'] ?? 'Sat - Thu: 9:00 AM - 8:00 PM' }}</small>
+                    @php
+                        $phoneHoursCustom = filled($siteCustomization['contact_phone_hours'] ?? null) ? $siteCustomization['contact_phone_hours'] : null;
+                        $phoneHours = $phoneHoursCustom !== null
+                            ? $chrome('contact_phone_hours', $phoneHoursCustom)
+                            : (app()->getLocale() === 'bn' ? (string) __('site.contact_phone_hours') : null);
+                    @endphp
+                    @if(filled($phoneHours))
+                    <br><small style="color:#64748b;">{{ $phoneHours }}</small>
                     @endif
                 </p>
             </div>
@@ -93,7 +114,7 @@
         <div class="ref-contact-topic">
             <i class="fa-solid fa-envelope-open-text" aria-hidden="true" style="color:#0284c7;"></i>
             <div>
-                <h3>{{ $siteCustomization['contact_email_title'] ?? 'Official Email' }}</h3>
+                <h3>{{ $chrome('contact_email_title', $siteCustomization['contact_email_title'] ?? null) }}</h3>
                 <p>
                     <a href="mailto:{{ $siteCustomization['contact_email'] ?? '' }}" style="color:#006837; font-weight:600; text-decoration:none;">
                         {{ $siteCustomization['contact_email'] ?? '' }}
@@ -104,9 +125,9 @@
 
         @endif
 
-        <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic1_title'] ?? 'Dealer Enquiries' }}</h3><p>{{ $siteCustomization['contact_topic1_desc'] ?? 'Dealer accounts are created by company staff after review.' }}</p></div></div>
-        <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic2_title'] ?? 'Products & Support' }}</h3><p>{{ $siteCustomization['contact_topic2_desc'] ?? 'Ask about availability, orders and your local dealer.' }}</p></div></div>
-        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $siteCustomization['contact_topic3_title'] ?? 'Head Office' }}</h3><p>{{ $siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh' }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-store" aria-hidden="true"></i><div><h3>{{ $chrome('contact_topic1_title', $siteCustomization['contact_topic1_title'] ?? null) }}</h3><p>{{ $chrome('contact_topic1_desc', $siteCustomization['contact_topic1_desc'] ?? null) }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-box-open" aria-hidden="true"></i><div><h3>{{ $chrome('contact_topic2_title', $siteCustomization['contact_topic2_title'] ?? null) }}</h3><p>{{ $chrome('contact_topic2_desc', $siteCustomization['contact_topic2_desc'] ?? null) }}</p></div></div>
+        <div class="ref-contact-topic"><i class="fa-solid fa-location-dot" aria-hidden="true"></i><div><h3>{{ $chrome('contact_topic3_title', $siteCustomization['contact_topic3_title'] ?? null) }}</h3><p>{{ $chrome('office_address', $siteCustomization['office_address'] ?? null) }}</p></div></div>
 
         @php
             $socialMap = [
@@ -118,7 +139,7 @@
             ];
         @endphp
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
-            <h3 style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $siteCustomization['contact_social_title'] ?? 'Connect With Us Online' }}</h3>
+            <h3 style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
             <div class="ref-socials" style="margin-top:0;">
                 @foreach($socialMap as $social => $link)
                 @php
@@ -136,37 +157,37 @@
         </div>
 
         @if($publicPageEnabled['dealers'] ?? true)
-        <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $siteCustomization['about_btn_dealers'] ?? 'Find a Dealer' }}</a>
+        <a href="/dealers" class="ref-primary-button" style="margin-top:18px;">{{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>
         @endif
     </section>
     <section class="ref-content-card">
-        <h2>{{ $siteCustomization['contact_form_title'] ?? 'Send an Enquiry' }}</h2>
+        <h2>{{ $chrome('contact_form_title', $siteCustomization['contact_form_title'] ?? null) }}</h2>
         @if(session('success'))<div class="ref-alert ref-success" role="status">{{ session('success') }}</div>@endif
         @if($errors->any())<div class="ref-alert ref-error" role="alert">{{ $errors->first() }}</div>@endif
         <form class="ref-form" action="/enquiries" method="post">
             @csrf
-            <label for="enquiry-name">Your Name</label>
+            <label for="enquiry-name">{{ $chrome('contact_form_name') }}</label>
             <input id="enquiry-name" name="name" value="{{ old('name') }}" maxlength="150" required autocomplete="name">
-            <label for="enquiry-phone">Phone Number</label>
+            <label for="enquiry-phone">{{ $chrome('contact_form_phone') }}</label>
             <input id="enquiry-phone" type="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
-            <label for="enquiry-topic">Enquiry Type</label>
+            <label for="enquiry-topic">{{ $chrome('contact_form_topic') }}</label>
             <select id="enquiry-topic" name="topic">
-                @foreach(['Dealer enquiry','Partnership enquiry','Product enquiry','Support','Complaint'] as $topic)
-                <option @selected(old('topic', request('topic'))===$topic)>{{ $topic }}</option>
+                @foreach($enquiryTopicValues as $topicKey => $topicValue)
+                <option value="{{ $topicValue }}" @selected(old('topic', request('topic'))===$topicValue)>{{ $enquiryTopics[$topicKey] }}</option>
                 @endforeach
             </select>
-            <label for="enquiry-message">Message</label>
+            <label for="enquiry-message">{{ $chrome('contact_form_message') }}</label>
             <textarea id="enquiry-message" name="message" rows="5" minlength="10" maxlength="2000" required>{{ old('message') }}</textarea>
             <input name="website" type="text" class="ref-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
-            <button class="ref-primary-button" type="submit">Send Message <i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+            <button class="ref-primary-button" type="submit">{{ $chrome('contact_form_submit') }} <i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
         </form>
     </section>
 </div>
 
 <section class="ref-content-card ref-map-card">
     <div class="ref-map-header">
-        <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> {{ $siteCustomization['map_title'] ?? 'Office & Healthcare Center Location' }}</h2>
-        <p>{{ $siteCustomization['map_subtitle'] ?? 'Visit Madina Natural Health Care at our registered center or navigate with map directions.' }}</p>
+        <h2><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> {{ $chrome('map_title', $siteCustomization['map_title'] ?? null) }}</h2>
+        <p>{{ $chrome('map_subtitle', $siteCustomization['map_subtitle'] ?? null) }}</p>
     </div>
     @if(!empty($maps['embed_url']))
     <div class="ref-map-embed" style="margin:16px 0;">
@@ -175,11 +196,11 @@
     @endif
     <div class="ref-map-footer">
         <div>
-            <strong>{{ $siteCustomization['map_facility'] ?? 'Madina Natural Health Care & Physiotherapy Center' }}</strong>
-            <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh' }}</p>
+            <strong>{{ $chrome('map_facility', $siteCustomization['map_facility'] ?? null) }}</strong>
+            <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('office_address', $siteCustomization['office_address'] ?? null) }}</p>
         </div>
-        <a href="{{ $maps['directions_url'] ?? ('https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address'])) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
-            <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $siteCustomization['map_directions_text'] ?? 'Open Map Directions' }}
+        <a href="{{ $maps['directions_url'] ?? ('https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address'] ?? __('site.office_address'))) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+            <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $chrome('map_directions_text', $siteCustomization['map_directions_text'] ?? null) }}
         </a>
     </div>
 </section>
@@ -187,44 +208,44 @@
 
 @if($page==='dealers')
 <section class="ref-directory-heading">
-    <h1>{{ $siteCustomization['directory_title'] ?? 'Dealer Directory' }}</h1>
-    <p>{{ $siteCustomization['directory_subtitle'] ?? 'Find a company-approved dealer point or search nearest dealers in your area.' }}</p>
+    <h1>{{ $chrome('directory_title', $siteCustomization['directory_title'] ?? null) }}</h1>
+    <p>{{ $chrome('directory_subtitle', $siteCustomization['directory_subtitle'] ?? null) }}</p>
 
     <div class="ref-location-search-bar">
         <button type="button" class="ref-location-btn" id="find-nearest-btn">
-            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $siteCustomization['directory_gps_btn'] ?? 'Find nearest dealers' }}
+            <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> {{ $chrome('directory_gps_btn', $siteCustomization['directory_gps_btn'] ?? null) }}
         </button>
         <span class="ref-location-status" id="location-status" role="status" aria-live="polite"></span>
     </div>
 
     @if(request()->filled(['lat', 'lng']))
     <div class="ref-alert ref-notice" style="margin-top:16px; margin-bottom:12px;">
-        <i class="fa-solid fa-location-dot" aria-hidden="true"></i> Showing dealers sorted by distance to your detected location.
-        <a href="/dealers" style="margin-left:12px; font-weight:700; color:#ef4a23;">Clear location filter</a>
+        <i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('directory_location_notice') }}
+        <a href="/dealers" style="margin-left:12px; font-weight:700; color:#ef4a23;">{{ $chrome('directory_clear_location') }}</a>
     </div>
     @endif
 
     <form method="get" class="ref-directory-filter">
         @if(request('lat'))<input type="hidden" name="lat" value="{{ request('lat') }}">@endif
         @if(request('lng'))<input type="hidden" name="lng" value="{{ request('lng') }}">@endif
-        <label>Division
+        <label>{{ $chrome('directory_division') }}
             <select name="division">
-                <option value="">All divisions</option>
+                <option value="">{{ $chrome('directory_all_divisions') }}</option>
                 @foreach($divisions as $division)
                 <option @selected(request('division')===$division)>{{ $division }}</option>
                 @endforeach
             </select>
         </label>
-        <label>District
+        <label>{{ $chrome('directory_district') }}
             <select name="district">
-                <option value="">All districts</option>
+                <option value="">{{ $chrome('directory_all_districts') }}</option>
                 @foreach($districts as $district)
                 <option @selected(request('district')===$district)>{{ $district }}</option>
                 @endforeach
             </select>
         </label>
-        <button class="ref-primary-button">{{ $siteCustomization['directory_filter_btn'] ?? 'Find Dealers' }}</button>
-        <a href="/dealers">{{ $siteCustomization['directory_clear_btn'] ?? 'Clear' }}</a>
+        <button class="ref-primary-button">{{ $chrome('directory_filter_btn', $siteCustomization['directory_filter_btn'] ?? null) }}</button>
+        <a href="/dealers">{{ $chrome('directory_clear_btn', $siteCustomization['directory_clear_btn'] ?? null) }}</a>
     </form>
 </section>
 
@@ -232,7 +253,7 @@
     @forelse($dealers as $dealer)
     <article class="ref-content-card">
         <div class="ref-dealer-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
-        <span class="ref-dealer-badge">Approved Dealer</span>
+        <span class="ref-dealer-badge">{{ $chrome('directory_approved_badge') }}</span>
         <h2>{{ $dealer->name }}</h2>
         @php
             $profile = is_array($dealer->profile) ? $dealer->profile : [];
@@ -246,7 +267,7 @@
         <div class="ref-dealer-meta">
             <small class="ref-dealer-code"><i class="fa-solid fa-id-badge" aria-hidden="true"></i> {{ $dealer->dealer_code }}</small>
             @if(isset($dealer->distance_km) && $dealer->distance_km !== null)
-            <span class="ref-dealer-distance"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i> {{ $dealer->distance_km }} km away</span>
+            <span class="ref-dealer-distance"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i> {{ __('site.directory_distance_km', ['km' => $dealer->distance_km]) }}</span>
             @endif
         </div>
         @if($dealer->phone)
@@ -256,18 +277,18 @@
     @empty
     <div class="ref-empty">
         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-        <h2>{{ $siteCustomization['directory_empty_title'] ?? 'No published dealers in this area yet.' }}</h2>
-        <p>{{ $siteCustomization['directory_empty_desc'] ?? 'Contact us for help finding a local dealer.' }}</p>
-        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Contact Us</a>@endif
+        <h2>{{ $chrome('directory_empty_title', $siteCustomization['directory_empty_title'] ?? null) }}</h2>
+        <p>{{ $chrome('directory_empty_desc', $siteCustomization['directory_empty_desc'] ?? null) }}</p>
+        @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_us') }}</a>@endif
     </div>
     @endforelse
 </div>
 
 @if($dealers->hasPages())
-<nav class="ref-pagination" aria-label="Dealer pages">
-    @if($dealers->previousPageUrl())<a href="{{ $dealers->previousPageUrl() }}">Previous</a>@endif
-    <span>Page {{ $dealers->currentPage() }} of {{ $dealers->lastPage() }}</span>
-    @if($dealers->nextPageUrl())<a href="{{ $dealers->nextPageUrl() }}">Next</a>@endif
+<nav class="ref-pagination" aria-label="{{ $chrome('directory_pagination_label') }}">
+    @if($dealers->previousPageUrl())<a href="{{ $dealers->previousPageUrl() }}">{{ $chrome('directory_pagination_previous') }}</a>@endif
+    <span>{{ __('site.directory_pagination_page_of', ['page' => $dealers->currentPage(), 'pages' => $dealers->lastPage()]) }}</span>
+    @if($dealers->nextPageUrl())<a href="{{ $dealers->nextPageUrl() }}">{{ $chrome('directory_pagination_next') }}</a>@endif
 </nav>
 @endif
 @endif
@@ -342,55 +363,63 @@
 
 @if($page==='services')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization['services_hero_title'] ?? 'Natural Health Care & Physiotherapy Services') }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['services_hero_lead'] ?? '') }}</div>
+    <h1>{{ $content->title ?? $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? $chrome('services_hero_lead', $siteCustomization['services_hero_lead'] ?? null) }}</div>
 </article>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-stethoscope','fa-hand-holding-medical','fa-store'][$i-1] }}" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['services_card'.$i.'_title'] ?? '' }}</h2>
-        <p>{{ $siteCustomization['services_card'.$i.'_desc'] ?? '' }}</p>
+        <h2>{{ $chrome('services_card'.$i.'_title', $siteCustomization['services_card'.$i.'_title'] ?? null) }}</h2>
+        <p>{{ $chrome('services_card'.$i.'_desc', $siteCustomization['services_card'.$i.'_desc'] ?? null) }}</p>
     </section>
     @endforeach
 </div>
 <div class="ref-information-links">
     @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['services_cta_link'] ?? '/contact'))
-    <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['services_cta_btn'] ?? 'Contact the Center' }}</a>
+    <a href="{{ $cta }}" class="ref-primary-button">{{ $chrome('services_cta_btn', $siteCustomization['services_cta_btn'] ?? null) }}</a>
     @endif
-    @if($publicPageEnabled['quality'] ?? true)<a href="/quality" class="ref-secondary-button">Quality Promise</a>@endif
+    @if($publicPageEnabled['quality'] ?? true)<a href="/quality" class="ref-secondary-button">{{ $chrome('quality_promise') }}</a>@endif
 </div>
 @endif
 
 @if($page==='quality')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization['quality_hero_title'] ?? 'Quality & Authenticity Promise') }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['quality_hero_lead'] ?? '') }}</div>
+    <h1>{{ $content->title ?? $chrome('quality_hero_title', $siteCustomization['quality_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? $chrome('quality_hero_lead', $siteCustomization['quality_hero_lead'] ?? null) }}</div>
 </article>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3] as $i)
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid {{ ['fa-shield-heart','fa-certificate','fa-file-circle-check'][$i-1] }}" aria-hidden="true"></i></div>
-        <h2>{{ $siteCustomization['quality_pillar'.$i.'_title'] ?? '' }}</h2>
-        <p>{{ $siteCustomization['quality_pillar'.$i.'_desc'] ?? '' }}</p>
+        <h2>{{ $chrome('quality_pillar'.$i.'_title', $siteCustomization['quality_pillar'.$i.'_title'] ?? null) }}</h2>
+        <p>{{ $chrome('quality_pillar'.$i.'_desc', $siteCustomization['quality_pillar'.$i.'_desc'] ?? null) }}</p>
     </section>
     @endforeach
 </div>
 <div class="ref-information-links">
     @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['quality_cta_link'] ?? '/products'))
-    <a href="{{ $cta }}" class="ref-primary-button">{{ $siteCustomization['quality_cta_btn'] ?? 'Browse Products' }}</a>
+    <a href="{{ $cta }}" class="ref-primary-button">{{ $chrome('quality_cta_btn', $siteCustomization['quality_cta_btn'] ?? null) }}</a>
     @endif
     @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
 @if($page==='faq')
+@php
+    $faqItems = app()->getLocale() === 'bn'
+        ? collect(range(1, 5))->map(fn (int $i): array => [
+            'question' => (string) __('site.faq_item'.$i.'_question'),
+            'answer' => (string) __('site.faq_item'.$i.'_answer'),
+        ])->all()
+        : ($siteCustomization['faq_items'] ?? []);
+@endphp
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? ($siteCustomization['faq_hero_title'] ?? 'Frequently Asked Questions') }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? ($siteCustomization['faq_hero_lead'] ?? '') }}</div>
+    <h1>{{ $content->title ?? $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $content->body ?? $chrome('faq_hero_lead', $siteCustomization['faq_hero_lead'] ?? null) }}</div>
 </article>
 <div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
-    @foreach(($siteCustomization['faq_items'] ?? []) as $item)
+    @foreach($faqItems as $item)
     <details class="ref-content-card" style="padding:18px 22px;">
         <summary style="cursor:pointer;font-weight:700;color:#011627;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <span>{{ $item['question'] ?? '' }}</span>
@@ -401,7 +430,7 @@
     @endforeach
 </div>
 <div class="ref-information-links">
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">Still need help? Contact us</a>@endif
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('faq_still_need_help') }}</a>@endif
     @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button">{{ __('site.partnership_enquiries') }}</a>@endif
 </div>
 @endif
