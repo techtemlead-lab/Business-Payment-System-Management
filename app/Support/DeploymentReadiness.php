@@ -107,11 +107,20 @@ final class DeploymentReadiness
         if ($checks['database'] && $this->placeCodeCatalogReady() && ! $this->areaDealerAssignmentsReady()) {
             $warnings[] = 'area_dealer_assignments_missing';
         }
+        if ($checks['database']
+            && $this->placeCodeCatalogReady()
+            && $this->areaDealerAssignmentsReady()
+            && $this->areaDealerCoverageIncomplete()) {
+            $warnings[] = 'area_dealer_coverage_incomplete';
+        }
         if ($checks['database'] && $this->activePartnersMissingPlaceCodes()) {
             $warnings[] = 'partners_missing_place_codes';
         }
         if ($checks['database'] && ! $this->openingBalancesVerified()) {
             $warnings[] = 'opening_balances_unverified';
+        }
+        if ($checks['database'] && ! $this->commissionPolicyReviewed()) {
+            $warnings[] = 'commission_policy_unreviewed';
         }
         if ($this->appDomainMismatchesAppUrl()) {
             $warnings[] = 'app_domain_mismatches_app_url';
@@ -206,12 +215,124 @@ final class DeploymentReadiness
     }
 
     /**
+     * Active partners' division/district place paths need exactly one active seat
+     * each (place_code_id or unique legacy name). Missing or ambiguous seats leave
+     * geographic pools in unassigned reserve or skip wallet credit.
+     */
+    private function areaDealerCoverageIncomplete(): bool
+    {
+        try {
+            $partners = DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->whereRaw("COALESCE(profile->>'place_code', '') <> ''")
+                ->select(['id', 'division', 'district', 'profile'])
+                ->get();
+            if ($partners->isEmpty()) {
+                return false;
+            }
+
+            $required = [];
+            foreach ($partners as $partner) {
+                $profile = is_string($partner->profile)
+                    ? json_decode($partner->profile, true, 512, JSON_THROW_ON_ERROR)
+                    : (array) $partner->profile;
+                $code = trim((string) ($profile['place_code'] ?? ''));
+                if ($code === '') {
+                    continue;
+                }
+                $place = PlaceCode::findByCode($code);
+                if (! $place || $place->level === PlaceCode::LevelManagement) {
+                    continue;
+                }
+                $cursor = $place;
+                $guard = 0;
+                while ($cursor && $guard++ < 8) {
+                    if (in_array($cursor->level, [PlaceCode::LevelDivision, PlaceCode::LevelDistrict], true)) {
+                        $required[$cursor->level.':'.$cursor->id] = [
+                            'level' => $cursor->level,
+                            'place_id' => (int) $cursor->id,
+                            'name' => (string) $cursor->name,
+                        ];
+                    }
+                    $cursor = $cursor->parent;
+                }
+            }
+
+            foreach ($required as $seat) {
+                if (! $this->areaSeatIsUnique($seat['level'], $seat['place_id'], $seat['name'])) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    private function areaSeatIsUnique(string $level, int $placeId, string $name): bool
+    {
+        $byCode = DB::table('area_dealer_assignments')
+            ->where('is_active', true)
+            ->where('level', $level)
+            ->where('place_code_id', $placeId)
+            ->count();
+        if ($byCode === 1) {
+            return true;
+        }
+        if ($byCode > 1) {
+            return false;
+        }
+
+        $column = match ($level) {
+            PlaceCode::LevelDivision => 'division',
+            PlaceCode::LevelDistrict => 'district',
+            PlaceCode::LevelUpazila => 'upazila',
+            PlaceCode::LevelUnion => 'union',
+            default => null,
+        };
+        if ($column === null) {
+            return false;
+        }
+
+        $byName = DB::table('area_dealer_assignments')
+            ->where('is_active', true)
+            ->where('level', $level)
+            ->whereNull('place_code_id')
+            ->whereRaw('LOWER(TRIM("'.$column.'")) = ?', [mb_strtolower(trim($name))])
+            ->count();
+
+        return $byName === 1;
+    }
+
+    /**
      * Dual-control opening-balance verification must exist before financial activation.
      */
     private function openingBalancesVerified(): bool
     {
         try {
             return DB::table('financial_verifications')->whereNotNull('verified_at')->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * GO_LIVE requires a dual-control published commission policy draft before activation.
+     */
+    private function commissionPolicyReviewed(): bool
+    {
+        try {
+            return DB::table('policy_drafts')
+                ->where('status', 'published')
+                ->whereNotNull('published_by')
+                ->whereColumn('published_by', '!=', 'created_by')
+                ->exists();
         } catch (\Throwable $exception) {
             report($exception);
 

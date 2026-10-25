@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Orders\OrderService;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
@@ -185,6 +186,7 @@ class OperationalReadinessTest extends TestCase
         $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertContains('area_dealer_assignments_missing', $result['warnings']);
         $this->assertContains('opening_balances_unverified', $result['warnings']);
+        $this->assertContains('commission_policy_unreviewed', $result['warnings']);
     }
 
     public function test_application_readiness_clears_opening_and_area_dealer_warnings_when_verified(): void
@@ -199,19 +201,37 @@ class OperationalReadinessTest extends TestCase
             'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
         ]);
         $this->seed(BangladeshPlaceCodeSeeder::class);
+        $dhaka = PlaceCode::findByCode('MNHC-101');
+        $this->assertNotNull($dhaka);
         $dealer = User::factory()->create([
             'role' => 'dealer',
             'status' => 'active',
-            'profile' => ['place_code' => 'MNHC-101', 'place_code_id' => 1],
+            'profile' => ['place_code' => $dhaka->code, 'place_code_id' => $dhaka->id],
         ]);
         DB::table('area_dealer_assignments')->insert([
             'user_id' => $dealer->id,
             'level' => 'division',
             'zone_name' => 'Dhaka',
             'division' => 'Dhaka',
+            'place_code_id' => $dhaka->id,
             'monthly_quota' => 20000,
             'current_month_purchase' => 0,
             'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $preparer = User::factory()->staff('finance')->create();
+        $reviewer = User::factory()->staff('finance')->create();
+        DB::table('policy_drafts')->insert([
+            'name' => 'Go-live schedule',
+            'account_type' => 'dealer',
+            'basis' => 'purchase_value',
+            'components' => json_encode([['key' => 'direct_referral', 'rate' => '10.00']], JSON_THROW_ON_ERROR),
+            'notes' => 'Reviewed for readiness',
+            'status' => 'published',
+            'created_by' => $preparer->id,
+            'published_by' => $reviewer->id,
+            'published_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -222,8 +242,55 @@ class OperationalReadinessTest extends TestCase
         $this->assertTrue($result['ready']);
         $this->assertNotContains('place_code_catalog_incomplete', $result['warnings']);
         $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertNotContains('area_dealer_coverage_incomplete', $result['warnings']);
         $this->assertNotContains('partners_missing_place_codes', $result['warnings']);
         $this->assertNotContains('opening_balances_unverified', $result['warnings']);
+        $this->assertNotContains('commission_policy_unreviewed', $result['warnings']);
+    }
+
+    public function test_application_readiness_warns_when_area_coverage_misses_partner_places(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        $this->seed(BangladeshPlaceCodeSeeder::class);
+        $dhaka = PlaceCode::findByCode('MNHC-101');
+        $rangpur = PlaceCode::findByCode('MNHC-102');
+        $this->assertNotNull($dhaka);
+        $this->assertNotNull($rangpur);
+        $seated = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'profile' => ['place_code' => $dhaka->code, 'place_code_id' => $dhaka->id],
+        ]);
+        User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'profile' => ['place_code' => $rangpur->code, 'place_code_id' => $rangpur->id],
+        ]);
+        DB::table('area_dealer_assignments')->insert([
+            'user_id' => $seated->id,
+            'level' => 'division',
+            'zone_name' => 'Dhaka',
+            'division' => 'Dhaka',
+            'place_code_id' => $dhaka->id,
+            'monthly_quota' => 20000,
+            'current_month_purchase' => 0,
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertNotContains('area_dealer_assignments_missing', $result['warnings']);
+        $this->assertContains('area_dealer_coverage_incomplete', $result['warnings']);
+        $this->assertContains('commission_policy_unreviewed', $result['warnings']);
     }
 
     public function test_application_readiness_warns_when_app_domain_mismatches_app_url_host(): void

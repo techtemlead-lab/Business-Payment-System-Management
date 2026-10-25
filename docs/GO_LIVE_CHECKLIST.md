@@ -18,7 +18,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 ## Policy and money (activation gate)
 
-- [ ] Commission policy draft reviewed and dual-control published for the live schedule
+- [ ] Commission policy draft reviewed and dual-control published for the live schedule — `app:readiness` must not warn `commission_policy_unreviewed`
 - [ ] Opening balances imported and reconciled against bank / cash books
 - [ ] Payment accounts configured (bank / MFS) with correct labels — at least one active account with collections enabled and one with payouts enabled; `app:readiness` must not warn `payment_collection_accounts_missing` or `payment_payout_accounts_missing`
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
@@ -29,7 +29,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 ## Access and portals
 
 - [ ] Owner (`sadmin`) and company (`manage`) staff accounts created with least privilege
-- [ ] Seed dealer / sub-dealer accounts use real place codes and unique refer codes — partner Excel import requires `place_code`; `app:readiness` must not warn `partners_missing_place_codes` or `area_dealer_assignments_missing`
+- [ ] Seed dealer / sub-dealer accounts use real place codes and unique refer codes — partner Excel import requires `place_code`; `app:readiness` must not warn `partners_missing_place_codes`, `area_dealer_assignments_missing`, or `area_dealer_coverage_incomplete`
 - [ ] Public partnership page + `/join/{refer_code}` deep-link smoke-tested
 - [ ] Partner home shows referral share URL; full-report PDF downloads for dealer and sub-dealer
 - [ ] Locale (EN/BN) toggles on each portal without breaking forms
