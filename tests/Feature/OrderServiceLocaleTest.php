@@ -96,4 +96,35 @@ class OrderServiceLocaleTest extends TestCase
             );
         }
     }
+
+    public function test_dispatch_request_requires_tracking_or_provider_in_bangla(): void
+    {
+        app()->setLocale('bn');
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active', 'locale' => 'bn']);
+        $product = Product::create([
+            'sku' => 'TRK-'.Str::random(6),
+            'name' => 'Track Product',
+            'category' => 'Test',
+            'mrp' => '200.00',
+            'dealer_price' => '140.00',
+            'stock' => 20,
+        ]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        app(OrderService::class)->decision($admin, $order, 'approved', 'Credit authorized', true);
+        $line = $order->lines()->first();
+
+        $this->actingAs($admin)
+            ->withHeader('Accept-Language', 'bn')
+            ->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
+                'courier' => 'Test courier',
+                'idempotency_key' => (string) Str::uuid(),
+                'items' => [['line_id' => $line->id, 'quantity' => 1]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'bn'));
+    }
 }

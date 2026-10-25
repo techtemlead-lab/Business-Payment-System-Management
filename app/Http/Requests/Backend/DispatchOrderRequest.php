@@ -30,7 +30,7 @@ class DispatchOrderRequest extends FormRequest
             $provider = $this->input('courier_provider');
             $tracking = trim((string) $this->input('tracking', ''));
             if ($provider === null && $tracking === '') {
-                $validator->errors()->add('tracking', 'Enter a tracking reference, or select an enabled courier API provider.');
+                $validator->errors()->add('tracking', __('portal.err_dispatch_tracking'));
             }
         });
     }

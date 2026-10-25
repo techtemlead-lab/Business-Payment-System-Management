@@ -510,12 +510,12 @@ export default function AccountCreate({
                                     <label>{translate('portal','acct_post_office')}<input value={form.data.post_office} onChange={(e) => form.setData('post_office', e.target.value)} /></label>
                                     <label>
                                         {translate('portal','acct_latitude')}
-                                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder="e.g. 25.7701" />
+                                        <input type="number" step="any" min="-90" max="90" value={form.data.latitude} onChange={(e) => form.setData('latitude', e.target.value)} placeholder={translate('portal','acct_latitude_ph')} />
                                         {form.errors.latitude && <span className="field-error">{form.errors.latitude}</span>}
                                     </label>
                                     <label>
                                         {translate('portal','acct_longitude')}
-                                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder="e.g. 88.8240" />
+                                        <input type="number" step="any" min="-180" max="180" value={form.data.longitude} onChange={(e) => form.setData('longitude', e.target.value)} placeholder={translate('portal','acct_longitude_ph')} />
                                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                                     </label>
                                 </div>
@@ -540,7 +540,7 @@ export default function AccountCreate({
                                     <label>
                                         {form.data.role === 'sub_dealer' ? translate('portal','acct_union_code') : translate('portal','acct_place_code')}
                                         <div style={{ display: 'flex', gap: 8 }}>
-                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? 'e.g. 457482' : 'e.g. 102'} />
+                                            <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? translate('portal','acct_union_code_ph') : translate('portal','acct_place_code_ph')} />
                                             <button type="button" className="button dark" onClick={previewPlace}>{translate('portal','acct_resolve')}</button>
                                         </div>
                                         {form.errors.place_code && <span className="field-error">{form.errors.place_code}</span>}
