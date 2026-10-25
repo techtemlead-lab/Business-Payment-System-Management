@@ -200,42 +200,105 @@ final class ReserveService
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('finance'), 403);
             $fund = CommissionAllocation::whereKey($id)->lockForUpdate()->firstOrFail();
-            if ($fund->status !== 'held') {
-                throw ValidationException::withMessages(['hold' => __('portal.err_hold_not_held')]);
-            }
-            $partner = User::find($fund->user_id);
-            if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
-                throw ValidationException::withMessages(['hold' => __('portal.err_hold_active_partner')]);
-            }
-            if (str_starts_with($fund->category, 'area_')) {
-                $quota = $fund->metadata['monthly_quota'] ?? null;
-                if ($quota === null || $this->qualification->monthlyVolume($partner->id, $fund->metadata['period_month']) < Money::cents($quota)) {
-                    throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
-                }
-            }
-            $held = ! empty($fund->metadata['maturation_due_at']) && CarbonImmutable::parse($fund->metadata['maturation_due_at'])->isFuture();
-            $amount = Money::cents($fund->amount);
-            if ($amount <= 0) {
-                throw ValidationException::withMessages(['hold' => __('portal.err_hold_zero')]);
-            }
-            $this->wallets->journal('commission.hold_release.'.$id, __('portal.jr_hold_release'), [
-                ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
-                ['account' => $held ? 'commission_held_liability' : 'wallet_liability', 'user_id' => $partner->id, 'debit' => 0, 'credit' => $amount],
-            ]);
-            $this->wallets->credit($partner->id, $amount, $held);
-            $fund->update(['status' => $held ? 'maturing' : 'available', 'metadata' => [...$fund->metadata,
-                'released_by' => $actor->id, 'release_reason' => $reason, 'released_at' => now()->toIso8601String()]]);
-            Audit::record($actor->id, 'commission.hold_released', (string) $id, ['reason' => $reason]);
-            $locale = $partner->preferredLocale();
-            Audit::notice(
-                $partner->id,
-                __('portal.notice_commission_released_title', [], $locale),
-                __('portal.notice_commission_released_body', [
-                    'category' => $fund->category,
-                    'amount' => Money::decimal($amount),
-                ], $locale),
-            );
+            $this->creditHeldAllocation($fund, $actor->id, $reason);
         }, 3);
+    }
+
+    /**
+     * Release area_* holds whose original period quota is now met.
+     * Opt-in only via MADINA_AUTO_RELEASE_QUOTA_HOLDS after financial activation.
+     *
+     * @return array{status: string, released_count: int, total_amount: string}
+     */
+    public function releaseQualifiedQuotaHolds(?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+
+        return DB::transaction(function () use ($actorId): array {
+            CommissionWallet::lock();
+            $funds = CommissionAllocation::query()
+                ->where('status', 'held')
+                ->where('category', 'like', 'area_%')
+                ->whereNotNull('user_id')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $count = 0;
+            $total = 0;
+            foreach ($funds as $fund) {
+                $partner = User::find($fund->user_id);
+                if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
+                    continue;
+                }
+                $quota = $fund->metadata['monthly_quota'] ?? null;
+                $period = $fund->metadata['period_month'] ?? null;
+                if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
+                    continue;
+                }
+                $amount = $this->creditHeldAllocation($fund, $actorId, 'Automatic area quota achieved');
+                $count++;
+                $total += $amount;
+            }
+            if ($count > 0) {
+                Audit::record($actorId, 'commission.quota_holds_released', 'batch', [
+                    'count' => $count,
+                    'amount' => Money::decimal($total),
+                ]);
+            }
+
+            return [
+                'status' => $count > 0 ? 'success' : 'no_qualified_quota_holds',
+                'released_count' => $count,
+                'total_amount' => Money::decimal($total),
+            ];
+        }, 3);
+    }
+
+    /**
+     * Credit a held allocation after eligibility checks. Preserves cooling-off as maturing.
+     *
+     * @return int Credited amount in cents
+     */
+    private function creditHeldAllocation(CommissionAllocation $fund, ?int $actorId, string $reason): int
+    {
+        if ($fund->status !== 'held') {
+            throw ValidationException::withMessages(['hold' => __('portal.err_hold_not_held')]);
+        }
+        $partner = User::find($fund->user_id);
+        if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
+            throw ValidationException::withMessages(['hold' => __('portal.err_hold_active_partner')]);
+        }
+        if (str_starts_with($fund->category, 'area_')) {
+            $quota = $fund->metadata['monthly_quota'] ?? null;
+            $period = $fund->metadata['period_month'] ?? null;
+            if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
+                throw ValidationException::withMessages(['hold' => __('portal.err_hold_quota')]);
+            }
+        }
+        $held = ! empty($fund->metadata['maturation_due_at']) && CarbonImmutable::parse($fund->metadata['maturation_due_at'])->isFuture();
+        $amount = Money::cents($fund->amount);
+        if ($amount <= 0) {
+            throw ValidationException::withMessages(['hold' => __('portal.err_hold_zero')]);
+        }
+        $this->wallets->journal('commission.hold_release.'.$fund->id, __('portal.jr_hold_release'), [
+            ['account' => 'commission_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
+            ['account' => $held ? 'commission_held_liability' : 'wallet_liability', 'user_id' => $partner->id, 'debit' => 0, 'credit' => $amount],
+        ]);
+        $this->wallets->credit($partner->id, $amount, $held);
+        $fund->update(['status' => $held ? 'maturing' : 'available', 'metadata' => [...$fund->metadata,
+            'released_by' => $actorId, 'release_reason' => $reason, 'released_at' => now()->toIso8601String()]]);
+        Audit::record($actorId, 'commission.hold_released', (string) $fund->id, ['reason' => $reason]);
+        $locale = $partner->preferredLocale();
+        Audit::notice(
+            $partner->id,
+            __('portal.notice_commission_released_title', [], $locale),
+            __('portal.notice_commission_released_body', [
+                'category' => $fund->category,
+                'amount' => Money::decimal($amount),
+            ], $locale),
+        );
+
+        return $amount;
     }
 
     public function reassignHeld(User $actor, int $id, int $recipientId, string $reason, string $requestKey): void

@@ -66,5 +66,5 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 1. Set `MADINA_FINANCIAL_ACTIVATION=false` (and keep `MADINA_PREVIEW_MODE=false`) on the production host / secret store.
 2. Signal workers to exit after the current job: `php artisan queue:restart`, then stop `queue:work` / scheduler processes until config is reloaded.
 3. Confirm the gate: `php artisan app:readiness` must show `financial activation verified` PASS while activation remains off; `php artisan finance:readiness` inspects reconciliation without posting.
-4. Do **not** run `php artisan finance:release-matured` or `madina:demo` during a freeze.
+4. Do **not** run `php artisan finance:release-matured`, `php artisan finance:release-quota-holds`, or `madina:demo` during a freeze.
 5. Restore from the pre-activation backup only after owner dual-control approval; verify with `php artisan app:backup-verify` before bringing workers back.

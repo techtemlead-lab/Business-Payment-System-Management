@@ -7,6 +7,7 @@ return [
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
     'auto_release_matured' => env('MADINA_AUTO_RELEASE_MATURED', false),
+    'auto_release_quota_holds' => env('MADINA_AUTO_RELEASE_QUOTA_HOLDS', false),
     'backups_enabled' => env('MADINA_BACKUPS_ENABLED', false),
     'backup_password' => env('MADINA_BACKUP_PASSWORD'),
     'backup_disk' => env('MADINA_BACKUP_DISK', 'backups'),
