@@ -248,23 +248,23 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
     const profile = home.profile ?? {};
     const snapshot = home.snapshot ?? {};
     const cards = [
-        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
-        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
-        { route: 'deliveries', name: 'Pending supply & deliveries', description: 'Remaining quantities and courier updates', icon: Truck, show: commerce },
-        { route: 'dues', name: 'Outstanding dues', description: 'Unpaid balances and verified payments', icon: Wallet, show: commerce },
-        { route: 'accounts', name: 'Partner accounts', description: 'Dealers, sub-dealers and staff access', icon: Users, show: caps.includes('accounts') },
-        { route: 'partnerships', name: 'Partnership applications', description: 'Dealership applications awaiting review', icon: Users, show: caps.includes('accounts') },
-        { route: 'inventory', name: 'Inventory', description: 'Stock receipts, issues and adjustments', icon: Package, show: caps.includes('inventory') },
-        { route: 'payments', name: 'Payment review', description: 'Verify manual payment references', icon: Coins, show: caps.includes('finance') },
-        { route: 'policies', name: 'Commission policies', description: 'Inactive drafts and policy status', icon: ShieldCheck, show: caps.includes('finance') },
-        { route: 'ledger', name: 'Financial ledger', description: 'Posted financial history', icon: FileText, show: caps.includes('finance') },
-        { route: 'reports', name: 'Reports', description: 'Order reports and permitted exports', icon: FileText, show: caps.includes('reports') },
-        { route: 'content', name: 'Website content', description: 'Published company pages and notices', icon: FileText, show: caps.includes('content') },
-        { route: 'enquiries', name: 'Contact enquiries', description: 'Public contact-form messages', icon: Users, show: caps.includes('content') || caps.includes('accounts') },
-        { route: 'audit', name: 'Activity log', description: 'Staff actions and recorded changes', icon: ShieldCheck, show: caps.includes('audit') },
-        { route: 'profile', name: 'My profile', description: 'Company-maintained account information', icon: Users, show: true },
-        { route: 'security', name: 'Account security', description: 'Change your account password', icon: Settings, show: true },
-        { route: 'notifications', name: 'Notifications', description: 'Stock, order and account updates', icon: Bell, show: true },
+        { route: 'catalog', name: translate('portal', 'admin_tile_catalog'), description: translate('portal', 'admin_tile_catalog_hint'), icon: Package, show: true },
+        { route: 'orders', name: translate('portal', 'admin_tile_orders'), description: translate('portal', 'admin_tile_orders_hint'), icon: ShoppingBag, show: commerce },
+        { route: 'deliveries', name: translate('portal', 'admin_tile_deliveries'), description: translate('portal', 'admin_tile_deliveries_hint'), icon: Truck, show: commerce },
+        { route: 'dues', name: translate('portal', 'admin_tile_dues'), description: translate('portal', 'admin_tile_dues_hint'), icon: Wallet, show: commerce },
+        { route: 'accounts', name: translate('portal', 'admin_tile_accounts'), description: translate('portal', 'admin_tile_accounts_hint'), icon: Users, show: caps.includes('accounts') },
+        { route: 'partnerships', name: translate('portal', 'admin_tile_partnerships'), description: translate('portal', 'admin_tile_partnerships_hint'), icon: Users, show: caps.includes('accounts') },
+        { route: 'inventory', name: translate('portal', 'admin_tile_inventory'), description: translate('portal', 'admin_tile_inventory_hint'), icon: Package, show: caps.includes('inventory') },
+        { route: 'payments', name: translate('portal', 'admin_tile_payments'), description: translate('portal', 'admin_tile_payments_hint'), icon: Coins, show: caps.includes('finance') },
+        { route: 'policies', name: translate('portal', 'admin_tile_policies'), description: translate('portal', 'admin_tile_policies_hint'), icon: ShieldCheck, show: caps.includes('finance') },
+        { route: 'ledger', name: translate('portal', 'admin_tile_ledger'), description: translate('portal', 'admin_tile_ledger_hint'), icon: FileText, show: caps.includes('finance') },
+        { route: 'reports', name: translate('portal', 'admin_tile_reports'), description: translate('portal', 'admin_tile_reports_hint'), icon: FileText, show: caps.includes('reports') },
+        { route: 'content', name: translate('portal', 'admin_tile_content'), description: translate('portal', 'admin_tile_content_hint'), icon: FileText, show: caps.includes('content') },
+        { route: 'enquiries', name: translate('portal', 'admin_tile_enquiries'), description: translate('portal', 'admin_tile_enquiries_hint'), icon: Users, show: caps.includes('content') || caps.includes('accounts') },
+        { route: 'audit', name: translate('portal', 'admin_tile_audit'), description: translate('portal', 'admin_tile_audit_hint'), icon: ShieldCheck, show: caps.includes('audit') },
+        { route: 'profile', name: translate('portal', 'admin_tile_profile'), description: translate('portal', 'admin_tile_profile_hint'), icon: Users, show: true },
+        { route: 'security', name: translate('portal', 'admin_tile_security'), description: translate('portal', 'admin_tile_security_hint'), icon: Settings, show: true },
+        { route: 'notifications', name: translate('portal', 'admin_tile_notifications'), description: translate('portal', 'admin_tile_notifications_hint'), icon: Bell, show: true },
     ].filter((x) => x.show);
 
     return (
@@ -276,20 +276,20 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                     <small>{labelRole(profile.role || u.role)}</small>
                     <Badge status={profile.status || u.status} />
                     <dl>
-                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>Email</dt><dd>{profile.email || u.email || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || u.email || '—'}</dd></div>
                     </dl>
                 </aside>
                 <div className="admin-home-stats">
-                    <div><span>Orders today</span><strong>{snapshot.orders_today ?? 0}</strong></div>
-                    <div><span>Awaiting review</span><strong>{snapshot.pending_review ?? 0}</strong></div>
-                    <div><span>Partner accounts</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
-                    <div><span>Approved purchases</span><strong>{money(snapshot.purchases)}</strong></div>
-                    <div><span>Outstanding dues</span><strong>{money(snapshot.dues)}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_orders_today')}</span><strong>{snapshot.orders_today ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_awaiting_review')}</span><strong>{snapshot.pending_review ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_partner_accounts')}</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_approved_purchases')}</span><strong>{money(snapshot.purchases)}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_outstanding_dues')}</span><strong>{money(snapshot.dues)}</strong></div>
                 </div>
             </section>
 
-            <section className="account-actions dense-actions" aria-label="Company modules">
+            <section className="account-actions dense-actions" aria-label={translate('portal', 'admin_modules')}>
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
