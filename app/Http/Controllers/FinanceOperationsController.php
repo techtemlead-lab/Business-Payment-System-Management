@@ -176,7 +176,7 @@ class FinanceOperationsController extends Controller
                     'payment_account_id' => $account->id, 'actor_id' => $request->user()->id, 'paid_at' => $data['paid_at'], 'reason' => $data['reason'],
                     'receipt_path' => $path, 'receipt_hash' => hash_file('sha256', $request->file('receipt')->getRealPath()), 'created_at' => now(), 'updated_at' => now()]);
                 DB::table('reserve_expense_clawbacks')->where('id', $id)->update(['recovered' => Money::decimal(Money::cents($debt->recovered) + $amount), 'updated_at' => now()]);
-                $wallets->journal('reserve.recovery.'.$recovery, 'Company reserve clawback recovered', [
+                $wallets->journal('reserve.recovery.'.$recovery, __('portal.jr_reserve_recovery'), [
                     ['account' => 'manual_collection_clearing', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                     ['account' => 'company_reserve_clawback_receivable', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
                 ]);

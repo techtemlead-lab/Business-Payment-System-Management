@@ -174,7 +174,7 @@ class OrderService
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
                     if ($order->is_opening_balance) {
                         CommissionWallet::requireActive();
-                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, 'Collection against imported receivable '.$order->number, [
+                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, __('portal.jr_opening_collection', ['number' => $order->number]), [
                             ['account' => 'manual_collection_clearing', 'user_id' => null, 'debit' => Money::cents($claim->amount), 'credit' => 0],
                             ['account' => 'opening_receivables', 'user_id' => $order->user_id, 'debit' => 0, 'credit' => Money::cents($claim->amount)],
                         ]);

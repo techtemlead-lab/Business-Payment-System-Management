@@ -315,7 +315,7 @@ final class CommissionSettlement
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
             'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
-        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, 'Commission '.$kind.' settlement '.$month, [
+        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, __('portal.jr_commission_settlement', ['kind' => $kind, 'month' => $month]), [
             ['user_id' => null, 'account' => 'commission_expense', 'debit' => $amount, 'credit' => 0],
             ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
         ]);
@@ -457,7 +457,7 @@ final class CommissionSettlement
                 if ($result['unrecovered'] !== 0) {
                     throw ValidationException::withMessages(['commissions' => __('portal.err_settle_holds')]);
                 }
-                $this->wallets->journal('commissions.matured.'.$fund->id, 'Release matured commission', [
+                $this->wallets->journal('commissions.matured.'.$fund->id, __('portal.jr_commission_matured'), [
                     ['user_id' => $fund->user_id, 'account' => 'commission_held_liability', 'debit' => $amount, 'credit' => 0],
                     ['user_id' => $fund->user_id, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
                 ]);

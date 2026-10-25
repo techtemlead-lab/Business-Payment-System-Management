@@ -103,7 +103,7 @@ final class PayrollService
                 throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_reviewer')]);
             }
             if ($decision === 'approved') {
-                $this->wallets->journal('payroll.approved.'.$id, 'Approve staff payroll '.$entry->period_month, [
+                $this->wallets->journal('payroll.approved.'.$id, __('portal.jr_payroll_approved', ['month' => $entry->period_month]), [
                     ['account' => 'payroll_expense', 'user_id' => $entry->staff_id, 'debit' => Money::cents($entry->gross), 'credit' => 0],
                     ['account' => 'payroll_payable', 'user_id' => $entry->staff_id, 'debit' => 0, 'credit' => Money::cents($entry->net)],
                     ['account' => 'payroll_deductions_payable', 'user_id' => $entry->staff_id, 'debit' => 0, 'credit' => Money::cents($entry->deduction)],
@@ -131,7 +131,7 @@ final class PayrollService
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'payroll:'.$id, (int) $data['payment_account_id']);
                 $amount = Money::cents($entry->net);
-                $this->wallets->journal('payroll.paid.'.$id, 'Staff salary paid with receipt', [
+                $this->wallets->journal('payroll.paid.'.$id, __('portal.jr_payroll_paid'), [
                     ['account' => 'payroll_payable', 'user_id' => $entry->staff_id, 'debit' => $amount, 'credit' => 0],
                     ['account' => 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
                 ]);

@@ -77,7 +77,7 @@ final class DueAdjustments
                 $credit = $adjustment->kind === 'credit';
                 $order->update(['due_credit' => Money::decimal(Money::cents($order->due_credit) + ($credit ? $amount : -$amount))]);
                 $after = $order->outstanding();
-                app(CommissionWallet::class)->journal('dues.adjustment.'.$id, 'Receivable adjustment '.$adjustment->reference, [
+                app(CommissionWallet::class)->journal('dues.adjustment.'.$id, __('portal.jr_due_adjustment', ['reference' => $adjustment->reference]), [
                     ['user_id' => $order->user_id, 'account' => 'sales_allowances', 'debit' => $credit ? $amount : 0, 'credit' => $credit ? 0 : $amount],
                     ['user_id' => $order->user_id, 'account' => $order->is_opening_balance ? 'opening_receivables' : 'customer_receivable_adjustments', 'debit' => $credit ? 0 : $amount, 'credit' => $credit ? $amount : 0],
                 ]);

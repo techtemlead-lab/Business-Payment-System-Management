@@ -25,14 +25,17 @@ final class CommissionService
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrder(Order $order, string $reason = 'Order cancelled/refunded', ?int $actorId = null, ?string $requestKey = null): array
+    public function reverseOrder(Order $order, ?string $reason = null, ?int $actorId = null, ?string $requestKey = null): array
     {
+        $reason ??= __('portal.jr_order_cancelled_refunded');
+
         return $this->reversals->refund($order, null, $reason, 'full-refund', $actorId, $requestKey);
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrderPartial(Order $order, string|float $refundAmount, string $reason = 'Partial refund', ?string $reference = null, ?int $actorId = null, ?string $requestKey = null): array
+    public function reverseOrderPartial(Order $order, string|float $refundAmount, ?string $reason = null, ?string $reference = null, ?int $actorId = null, ?string $requestKey = null): array
     {
+        $reason ??= __('portal.jr_partial_refund');
         $amount = is_float($refundAmount) ? number_format($refundAmount, 2, '.', '') : $refundAmount;
 
         return $this->reversals->refund($order, Money::cents($amount), $reason, $reference ?? hash('sha256', $reason.'|'.$amount), $actorId, $requestKey);
@@ -212,6 +215,6 @@ final class CommissionService
             'total_proposed_pct' => $sum / 100, 'sub_dealer_pool_sum_pct' => ($sum + $subExtras) / 100, 'exceeds_cap' => ! $safe, 'is_safe' => $safe,
             'baseline' => $baseline, 'simulated' => $simulated, 'variance' => ['amount' => ($proposedTotal - $baselineTotal) / 100,
                 'pct' => $baselineTotal > 0 ? ($proposedTotal - $baselineTotal) / $baselineTotal * 100 : 0],
-            'slices' => $slices, 'slices_comparison' => $slices, 'guardrail_alerts' => [$safe ? 'Preview fits the configured funding limits.' : 'Proposed rules or product prices exceed the funding limits.']];
+            'slices' => $slices, 'slices_comparison' => $slices, 'guardrail_alerts' => [$safe ? __('portal.jr_preview_fits_limits') : __('portal.jr_preview_exceeds_limits')]];
     }
 }

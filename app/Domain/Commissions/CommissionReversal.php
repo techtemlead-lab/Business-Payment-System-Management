@@ -130,7 +130,7 @@ final class CommissionReversal
             $expenseReversed = $recoveredTotal + $unrecoveredTotal;
             if ($expenseReversed > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_clawback_recovery', 'debit' => 0, 'credit' => $expenseReversed];
-                $this->wallets->journal('commissions.reversal.'.$id, 'Commission adjustment: '.$reason, $journal);
+                $this->wallets->journal('commissions.reversal.'.$id, __('portal.jr_commission_reversal', ['reason' => $reason]), $journal);
             }
             DB::table('commission_batches')->where('id', $batch->id)->update(['refunded_amount' => Money::decimal($after), 'updated_at' => now()]);
             $rank = DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();
