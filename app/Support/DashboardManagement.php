@@ -201,12 +201,12 @@ class DashboardManagement
         if ($maintenance) {
             throw ValidationException::withMessages([
                 'items' => $user->role === 'dealer'
-                    ? 'Dealer ordering is temporarily paused for maintenance. Please try again later.'
-                    : 'Sub-dealer ordering is temporarily paused for maintenance. Please try again later.',
+                    ? __('portal.order_val_dealer_maintenance')
+                    : __('portal.order_val_subdealer_maintenance'),
             ]);
         }
         if (! self::partnerFeatureEnabled($user, 'orders')) {
-            throw ValidationException::withMessages(['items' => 'Ordering is currently disabled for your account type.']);
+            throw ValidationException::withMessages(['items' => __('portal.order_val_orders_disabled')]);
         }
         $minimum = $user->role === 'dealer'
             ? (string) ($settings['dealer_min_order'] ?? '0.00')
@@ -214,7 +214,9 @@ class DashboardManagement
         $minimumCents = Money::cents($minimum);
         if ($minimumCents > 0 && $orderTotalCents < $minimumCents) {
             throw ValidationException::withMessages([
-                'items' => 'Minimum order amount is BDT '.Money::decimal($minimumCents).'.',
+                'items' => __('portal.order_val_minimum_amount', [
+                    'amount' => Money::decimal($minimumCents),
+                ]),
             ]);
         }
     }

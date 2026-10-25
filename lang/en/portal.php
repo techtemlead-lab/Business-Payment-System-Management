@@ -2296,5 +2296,9 @@ return [
     'cmd_val_incentive_legacy' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.',
     'cmd_val_incentive_qualification' => 'Rank incentive requires current maintenance qualification or grace for :rank.',
     'cmd_val_incentive_unfunded' => 'The rank incentive reserve does not yet fund this award.',
+    'order_val_dealer_maintenance' => 'Dealer ordering is temporarily paused for maintenance. Please try again later.',
+    'order_val_subdealer_maintenance' => 'Sub-dealer ordering is temporarily paused for maintenance. Please try again later.',
+    'order_val_orders_disabled' => 'Ordering is currently disabled for your account type.',
+    'order_val_minimum_amount' => 'Minimum order amount is BDT :amount.',
 
 ];

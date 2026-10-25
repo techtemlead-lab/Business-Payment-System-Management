@@ -49,7 +49,10 @@ class ReviewHardeningFixesTest extends TestCase
             ]);
             $this->fail('Expected minimum order validation.');
         } catch (ValidationException $exception) {
-            $this->assertStringContainsString('Minimum order amount', $exception->errors()['items'][0] ?? '');
+            $this->assertSame(
+                __('portal.order_val_minimum_amount', ['amount' => '500.00']),
+                $exception->errors()['items'][0] ?? '',
+            );
         }
 
         $order = app(OrderService::class)->create($dealer, [
