@@ -86,4 +86,20 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.pco_title', 'কাস্টম কমিশন প্ল্যান')
                 ->where('translations.portal.pco_submit', 'পার্টনার কমিশন প্ল্যান প্রস্তাব'));
     }
+
+    public function test_area_dealers_hub_exposes_bangla_chrome_keys(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/area-dealers')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('portals/sadmin/Dashboard')
+                ->where('section', 'area-dealers')
+                ->where('translations.portal.area_kpi_total', 'মোট টেরিটরি অ্যাসাইনমেন্ট')
+                ->where('translations.portal.area_modal_title', 'এরিয়া / টেরিটরি ডিলার অ্যাসাইন')
+                ->where('translations.portal.area_save', 'টেরিটরি অ্যাসাইনমেন্ট সংরক্ষণ'));
+    }
 }
