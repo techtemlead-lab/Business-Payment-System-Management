@@ -2607,6 +2607,8 @@ return [
     'notice_account_suspended_body' => 'Your partner account was suspended. :reason',
     'notice_account_reactivated_title' => 'Account reactivated',
     'notice_account_reactivated_body' => 'Your partner account is active again. You can sign in to your portal.',
+    'notice_kyc_uploaded_title' => 'KYC document filed',
+    'notice_kyc_uploaded_body' => 'A :kind document was filed on your partner account.',
     'err_payroll_contract' => 'Choose active staff and a deduction within the contracted gross salary.',
     'err_payroll_month_open' => 'Close the calendar month before preparing payroll.',
     'err_payroll_reviewer' => 'A different Finance reviewer must review a draft payroll entry.',

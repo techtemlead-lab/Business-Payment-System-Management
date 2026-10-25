@@ -2,6 +2,7 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Http\UploadedFile;
@@ -97,6 +98,26 @@ final class PartnerKycDocuments
             'mime' => (string) ($file->getMimeType() ?: 'application/octet-stream'),
             'size_bytes' => (int) $file->getSize(),
         ]);
+
+        $locale = $partner->preferredLocale();
+        $kindLabel = match ($kind) {
+            'nid_front' => __('portal.kyc_kind_nid_front', [], $locale),
+            'nid_back' => __('portal.kyc_kind_nid_back', [], $locale),
+            'birth_certificate' => __('portal.kyc_kind_birth_certificate', [], $locale),
+            'agreement' => __('portal.kyc_kind_agreement', [], $locale),
+            'photo' => __('portal.kyc_kind_photo', [], $locale),
+            default => __('portal.kyc_kind_other', [], $locale),
+        };
+        Audit::notice(
+            $partner->id,
+            __('portal.notice_kyc_uploaded_title', [], $locale),
+            __('portal.notice_kyc_uploaded_body', ['kind' => $kindLabel], $locale),
+        );
+        app(PartnerEventSms::class)->send(
+            $partner,
+            'account.kyc_uploaded',
+            __('sms.kyc_document_uploaded', ['kind' => $kindLabel], $locale),
+        );
 
         return [
             'id' => $id,

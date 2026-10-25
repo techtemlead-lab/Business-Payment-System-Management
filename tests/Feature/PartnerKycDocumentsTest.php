@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -22,10 +23,18 @@ class PartnerKycDocumentsTest extends TestCase
 
     public function test_identity_write_staff_can_upload_list_and_download_kyc_scans(): void
     {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
         $staff = User::factory()->staff('employee')->create([
             'profile' => ['permissions' => ['accounts', 'identity_write']],
         ]);
-        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $partner = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000103',
+        ]);
 
         $this->actingAs($staff)->onPortal('manage')
             ->post('/commands/accounts/'.$partner->id.'/kyc-documents', [
@@ -42,6 +51,18 @@ class PartnerKycDocumentsTest extends TestCase
         ]);
         $path = DB::table('kyc_documents')->where('user_id', $partner->id)->value('disk_path');
         Storage::disk('local')->assertExists($path);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_kyc_uploaded_title', [], 'bn'),
+        ]);
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.kyc_uploaded', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.kyc_document_uploaded', [
+                'kind' => __('portal.kyc_kind_nid_front', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
 
         $list = $this->actingAs($staff)->onPortal('manage')
             ->getJson('/commands/accounts/'.$partner->id.'/kyc-documents')
