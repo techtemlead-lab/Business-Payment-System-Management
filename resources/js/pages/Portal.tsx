@@ -26,7 +26,16 @@ import {useT} from '../shared/i18n/t';
 type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
 const options=(items:string[],translate?:TranslateFn)=>items.map(value=>({value,label:label(value,translate)}));
 const supportTopicKey=(topic:string)=>{
- const map:Record<string,string>={Support:'support_topic_support',support:'support_topic_support',Complaint:'support_topic_complaint',complaint:'support_topic_complaint','Order dispute':'support_topic_order',order_dispute:'support_topic_order','KYC correction':'support_topic_kyc',kyc_correction:'support_topic_kyc','Payout question':'support_topic_payout',payout_question:'support_topic_payout'};
+ const map:Record<string,string>={
+  Support:'support_topic_support',support:'support_topic_support',
+  Complaint:'support_topic_complaint',complaint:'support_topic_complaint',
+  'Order dispute':'support_topic_order',order_dispute:'support_topic_order',
+  'KYC correction':'support_topic_kyc',kyc_correction:'support_topic_kyc',
+  'Payout question':'support_topic_payout',payout_question:'support_topic_payout',
+  'Dealer enquiry':'enquiry_topic_dealer',dealer_enquiry:'enquiry_topic_dealer',
+  'Partnership enquiry':'enquiry_topic_partnership',partnership_enquiry:'enquiry_topic_partnership',
+  'Product enquiry':'enquiry_topic_product',product_enquiry:'enquiry_topic_product',
+ };
  return map[topic]??null;
 };
 const supportTopicLabel=(topic:string,translate:TranslateFn)=>{

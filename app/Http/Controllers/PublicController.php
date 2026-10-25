@@ -143,11 +143,19 @@ class PublicController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:150',
             'phone' => 'required|string|max:30',
-            'topic' => 'required|in:Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
+            'topic' => 'required|in:dealer_enquiry,partnership_enquiry,product_enquiry,support,complaint,Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
             'message' => 'required|string|min:10|max:2000',
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['topic'] = match ($data['topic']) {
+            'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
+            'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
+            'Product enquiry', 'product_enquiry' => 'product_enquiry',
+            'Support', 'support' => 'support',
+            'Complaint', 'complaint' => 'complaint',
+            default => strtolower((string) $data['topic']),
+        };
         DB::table('enquiries')->insert([
             ...$data,
             'status' => 'new',

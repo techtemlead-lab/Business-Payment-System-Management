@@ -76,11 +76,11 @@
         'contact_topic_complaint' => $chrome('contact_topic_complaint'),
     ];
     $enquiryTopicValues = [
-        'contact_topic_dealer' => 'Dealer enquiry',
-        'contact_topic_partnership' => 'Partnership enquiry',
-        'contact_topic_product' => 'Product enquiry',
-        'contact_topic_support' => 'Support',
-        'contact_topic_complaint' => 'Complaint',
+        'contact_topic_dealer' => 'dealer_enquiry',
+        'contact_topic_partnership' => 'partnership_enquiry',
+        'contact_topic_product' => 'product_enquiry',
+        'contact_topic_support' => 'support',
+        'contact_topic_complaint' => 'complaint',
     ];
 @endphp
 <h1 class="ref-page-title">{{ $chrome('contact_title', $siteCustomization['contact_title'] ?? null) }}</h1>
@@ -171,9 +171,20 @@
             <label for="enquiry-phone">{{ $chrome('contact_form_phone') }}</label>
             <input id="enquiry-phone" type="tel" name="phone" value="{{ old('phone') }}" maxlength="30" required autocomplete="tel">
             <label for="enquiry-topic">{{ $chrome('contact_form_topic') }}</label>
+            @php
+                $selectedTopic = old('topic', request('topic'));
+                $selectedTopicKey = match ($selectedTopic) {
+                    'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
+                    'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
+                    'Product enquiry', 'product_enquiry' => 'product_enquiry',
+                    'Support', 'support' => 'support',
+                    'Complaint', 'complaint' => 'complaint',
+                    default => $selectedTopic,
+                };
+            @endphp
             <select id="enquiry-topic" name="topic">
                 @foreach($enquiryTopicValues as $topicKey => $topicValue)
-                <option value="{{ $topicValue }}" @selected(old('topic', request('topic'))===$topicValue)>{{ $enquiryTopics[$topicKey] }}</option>
+                <option value="{{ $topicValue }}" @selected($selectedTopicKey===$topicValue)>{{ $enquiryTopics[$topicKey] }}</option>
                 @endforeach
             </select>
             <label for="enquiry-message">{{ $chrome('contact_form_message') }}</label>

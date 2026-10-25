@@ -30,7 +30,7 @@
     if (empty($shortcuts)) {
         $shortcuts = [
             ['title'=>'Our Products','subtitle'=>'browse wellness items','icon'=>'fa-seedling','link'=>'/products'],
-            ['title'=>'Share Feedback','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=Complaint'],
+            ['title'=>'Share Feedback','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=complaint'],
             ['title'=>'Our Services','subtitle'=>'Natural Health Care and Physiotherapy Center','icon'=>'fa-hand-holding-heart','link'=>'/about'],
             ['title'=>'Contact Us','subtitle'=>'Support & Inquiries','icon'=>'fa-headset','link'=>'/contact'],
             ['title'=>'Our Network','subtitle'=>'Dealer Directory','icon'=>'fa-diagram-project','link'=>'/dealers']

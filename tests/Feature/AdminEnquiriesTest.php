@@ -17,7 +17,7 @@ class AdminEnquiriesTest extends TestCase
         $payload = [
             'name' => 'Admin Module Visitor',
             'phone' => '01711112222',
-            'topic' => 'Partnership enquiry',
+            'topic' => 'partnership_enquiry',
             'message' => 'I would like to join as an authorized dealer in Dhaka.',
         ];
 
@@ -30,7 +30,7 @@ class AdminEnquiriesTest extends TestCase
         $this->assertDatabaseHas('enquiries', [
             'name' => 'Admin Module Visitor',
             'phone' => '01711112222',
-            'topic' => 'Partnership enquiry',
+            'topic' => 'partnership_enquiry',
             'status' => 'new',
         ]);
 
@@ -48,7 +48,7 @@ class AdminEnquiriesTest extends TestCase
                     ->etc())
                 ->has('data.enquiries.data', 1)
                 ->where('data.enquiries.data.0.name', 'Admin Module Visitor')
-                ->where('data.enquiries.data.0.topic', 'Partnership enquiry')
+                ->where('data.enquiries.data.0.topic', 'partnership_enquiry')
                 ->where('data.enquiries.data.0.message', 'I would like to join as an authorized dealer in Dhaka.')
                 ->where('data.enquiries.data.0.status', 'new'));
 
@@ -69,12 +69,30 @@ class AdminEnquiriesTest extends TestCase
                 ->where('data.enquiries.data.0.name', 'Admin Module Visitor'));
     }
 
+    public function test_legacy_english_public_enquiry_topics_normalize_to_stable_keys(): void
+    {
+        $this->onPortal('public')
+            ->from('/contact')
+            ->post('/enquiries', [
+                'name' => 'Legacy Topic Visitor',
+                'phone' => '01733334444',
+                'topic' => 'Dealer enquiry',
+                'message' => 'Please help me find an authorized dealer near Rangpur.',
+            ])
+            ->assertRedirect('/contact');
+
+        $this->assertDatabaseHas('enquiries', [
+            'phone' => '01733334444',
+            'topic' => 'dealer_enquiry',
+        ]);
+    }
+
     public function test_staff_can_update_enquiry_follow_up_status(): void
     {
         $id = DB::table('enquiries')->insertGetId([
             'name' => 'Follow-up Visitor',
             'phone' => '01700001111',
-            'topic' => 'Support',
+            'topic' => 'support',
             'message' => 'Need help with dealer directory access details.',
             'status' => 'new',
             'created_at' => now(),

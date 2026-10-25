@@ -1592,7 +1592,7 @@ function ShortcutsManager({
                                                 { label: 'Products', url: '/products' },
                                                 { label: 'Dealers', url: '/dealers' },
                                                 { label: 'About', url: '/about' },
-                                                { label: 'Complaint', url: '/contact?topic=Complaint' },
+                                                { label: 'Complaint', url: '/contact?topic=complaint' },
                                             ].map(preset => (
                                                 <button
                                                     key={preset.label}
