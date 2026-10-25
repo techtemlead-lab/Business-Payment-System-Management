@@ -416,10 +416,13 @@ function Field({
     span2?: boolean;
 }) {
     const translate = useT();
+    const fieldLabelKey = `sce_fld_${String(fieldKey)}`;
+    const localizedLabel = translate('portal', fieldLabelKey);
+    const displayLabel = localizedLabel === fieldLabelKey ? label : localizedLabel;
 
     return (
         <label style={{ display: 'block', gridColumn: span2 ? '1 / -1' : undefined }}>
-            <span style={{ fontWeight: 600, fontSize: 13, display: 'block', marginBottom: 6 }}>{label}</span>
+            <span style={{ fontWeight: 600, fontSize: 13, display: 'block', marginBottom: 6 }}>{displayLabel}</span>
             {multiline ? (
                 <textarea
                     rows={rows}
