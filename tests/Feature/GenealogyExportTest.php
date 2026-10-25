@@ -36,6 +36,35 @@ class GenealogyExportTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/^D-ROOT,/m', $csv);
     }
 
+    public function test_bangla_dealer_genealogy_csv_uses_partner_locale_headers(): void
+    {
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'D-BN-ROOT',
+            'locale' => 'bn',
+        ]);
+        $child = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'sponsor_id' => $dealer->id,
+            'dealer_code' => 'D-BN-CHILD',
+            'name' => 'BN Downline',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+        ReferralTreePath::attachUser($child->id, $dealer->id);
+
+        $csv = $this->actingAs($dealer)->onPortal('dealer')
+            ->get('/exports/genealogy')
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString(__('portal.csv_col_dealer_code', [], 'bn'), $csv);
+        $this->assertStringContainsString(__('portal.csv_col_lifetime_purchases_bdt', [], 'bn'), $csv);
+        $this->assertStringNotContainsString('Dealer code', $csv);
+        $this->assertStringContainsString('D-BN-CHILD', $csv);
+    }
+
     public function test_dealer_genealogy_export_respects_network_toggle(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);

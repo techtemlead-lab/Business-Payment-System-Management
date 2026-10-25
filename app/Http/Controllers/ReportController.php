@@ -19,11 +19,20 @@ class ReportController extends Controller
         $d = $r->validate(['from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from']);
         $q = Order::when(! $u->staff(), fn ($q) => $q->where('user_id', $u->id))->when(isset($d['from']), fn ($q) => $q->where('created_at', '>=', Carbon::parse($d['from'], 'Asia/Dhaka')->utc()))->when(isset($d['to']), fn ($q) => $q->where('created_at', '<', Carbon::parse($d['to'], 'Asia/Dhaka')->addDay()->utc()))->orderBy('created_at');
         Audit::record($u->id, 'report.exported', 'orders', $d);
+        $locale = $u->preferredLocale();
+        $headers = [
+            __('portal.csv_col_order', [], $locale),
+            __('portal.csv_col_date_dhaka', [], $locale),
+            __('portal.csv_col_status', [], $locale),
+            __('portal.csv_col_total_bdt', [], $locale),
+            __('portal.csv_col_verified_receipts_bdt', [], $locale),
+            __('portal.csv_col_unpaid_bdt', [], $locale),
+        ];
 
-        return response()->streamDownload(function () use ($q) {
+        return response()->streamDownload(function () use ($q, $headers) {
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
-            fputcsv($f, ['Order', 'Date (Dhaka)', 'Status', 'Total BDT', 'Verified receipts BDT', 'Unpaid amount BDT'], ',', '"', '');
+            fputcsv($f, $headers, ',', '"', '');
             foreach ($q->cursor() as $o) {
                 fputcsv($f, [$o->number, $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'), $o->status, $o->total, $o->paid, $o->outstanding()], ',', '"', '');
             } fclose($f);
@@ -49,20 +58,21 @@ class ReportController extends Controller
             'scope' => $staff ? 'company' : 'downline',
         ]);
 
+        $locale = $u->preferredLocale();
         $headers = [
-            'Dealer code',
-            'Name',
-            'Phone',
-            'Role',
-            'Rank',
-            'Status',
-            'Sponsor code',
-            'Sponsor name',
-            'Division',
-            'District',
-            'Depth',
-            'Lifetime purchases BDT',
-            'Joined (Dhaka)',
+            __('portal.csv_col_dealer_code', [], $locale),
+            __('portal.csv_col_name', [], $locale),
+            __('portal.csv_col_phone', [], $locale),
+            __('portal.csv_col_role', [], $locale),
+            __('portal.csv_col_rank', [], $locale),
+            __('portal.csv_col_status', [], $locale),
+            __('portal.csv_col_sponsor_code', [], $locale),
+            __('portal.csv_col_sponsor_name', [], $locale),
+            __('portal.csv_col_division', [], $locale),
+            __('portal.csv_col_district', [], $locale),
+            __('portal.csv_col_depth', [], $locale),
+            __('portal.csv_col_lifetime_purchases_bdt', [], $locale),
+            __('portal.csv_col_joined_dhaka', [], $locale),
         ];
 
         $query = $staff
