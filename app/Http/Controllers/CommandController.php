@@ -213,9 +213,14 @@ class CommandController extends Controller
         });
         Password::sendResetLink(['email' => $u->email]);
         $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
-        $accountTypeLabel = ($d['role'] ?? '') === 'employee' ? 'Employee' : 'Partner';
+        $accountTypeLabel = ($d['role'] ?? '') === 'employee'
+            ? __('portal.acct_type_employee')
+            : __('portal.acct_type_partner');
 
-        return redirect($redirectUrl)->with('success', $accountTypeLabel.' account created. Unique code: '.($u->dealer_code ?? $u->name).'. A private password-setting invitation has been emailed.');
+        return redirect($redirectUrl)->with('success', __('portal.acct_created_flash', [
+            'type' => $accountTypeLabel,
+            'code' => $u->dealer_code ?? $u->name,
+        ]));
     }
 
     public function accountUpdate(Request $r, User $user): RedirectResponse
@@ -506,7 +511,7 @@ class CommandController extends Controller
         Password::sendResetLink(['email' => $user->email]);
         Audit::record($r->user()->id, 'account.invitation_sent', (string) $user->id);
 
-        return back()->with('success', 'A private password-setting link has been emailed if the account is eligible.');
+        return back()->with('success', __('portal.acct_invite_flash'));
     }
 
     public function kycDocuments(Request $r, User $user, PartnerKycDocuments $documents): JsonResponse

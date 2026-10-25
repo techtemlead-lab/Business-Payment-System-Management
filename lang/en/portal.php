@@ -2187,5 +2187,10 @@ return [
     'sa_role_name' => 'Role name',
     'sa_role_key' => 'Role key',
     'sa_save_role' => 'Save role',
+    'acct_type_employee' => 'Employee',
+    'acct_type_partner' => 'Partner',
+    'acct_created_flash' => ':type account created. Unique code: :code. A private password-setting invitation has been emailed.',
+    'acct_invite_flash' => 'A private password-setting link has been emailed if the account is eligible.',
+    'acct_phone_bd_invalid' => 'Enter a valid Bangladeshi mobile number (01XXXXXXXXX).',
 
 ];

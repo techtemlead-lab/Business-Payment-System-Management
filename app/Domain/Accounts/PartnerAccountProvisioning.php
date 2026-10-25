@@ -337,7 +337,7 @@ final class PartnerAccountProvisioning
             $digits = substr($digits, 2);
         }
         if (! preg_match('/^01[3-9]\d{8}$/', $digits)) {
-            throw ValidationException::withMessages(['phone' => 'Enter a valid Bangladeshi mobile number (01XXXXXXXXX).']);
+            throw ValidationException::withMessages(['phone' => __('portal.acct_phone_bd_invalid')]);
         }
 
         return $digits;
