@@ -11,9 +11,9 @@
         'privacy' => $chrome('privacy_policy', $siteCustomization['privacy_hero_title'] ?? null),
         'terms' => $chrome('terms_of_use', $siteCustomization['terms_hero_title'] ?? null),
         'notice' => $chrome('company_notice'),
-        'circular-training' => 'Training Circular',
-        'circular-price' => 'Price Circular',
-        'circular-meeting' => 'Meeting Circular',
+        'circular-training' => $chrome('circular_training'),
+        'circular-price' => $chrome('circular_price'),
+        'circular-meeting' => $chrome('circular_meeting'),
     ];
     $pageTitle = filled($content->title ?? null) ? $content->title : ($pageTitles[$page] ?? ucfirst($page));
 @endphp
