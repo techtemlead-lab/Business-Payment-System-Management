@@ -31,7 +31,10 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('section', 'employees')
                 ->where('translations.portal.emp_create_title', 'নতুন কর্মচারী ড্যাশবোর্ড অ্যাকাউন্ট তৈরি')
                 ->where('translations.portal.emp_save', 'পারমিশন সংরক্ষণ')
-                ->where('translations.portal.emp_preset_finance', 'ফিন্যান্স ও ট্রেজারি'));
+                ->where('translations.portal.emp_preset_finance', 'ফিন্যান্স ও ট্রেজারি')
+                ->where('data.available_permissions.0.label', 'ফিল্ড সেলস ওয়ার্কস্পেস')
+                ->where('data.available_permissions.0.category', 'ফিল্ড সেলস')
+                ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
     }
 
     public function test_sub_dealer_hub_exposes_bangla_chrome_keys(): void

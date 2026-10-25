@@ -222,26 +222,35 @@ class WorkspaceController extends Controller
                 'active' => (clone $staffQuery)->where('status', 'active')->count(),
                 'suspended' => (clone $staffQuery)->where('status', 'suspended')->count(),
             ];
-            $data['available_permissions'] = [
-                ['key' => 'field_sales', 'label' => 'Field Sales Workspace', 'description' => 'Work with partners inside assigned territories', 'category' => 'Field Sales'],
-                ['key' => 'sr_orders', 'label' => 'Territory Orders', 'description' => 'Submit and track orders for assigned partners', 'category' => 'Field Sales'],
-                ['key' => 'sr_dues', 'label' => 'Territory Dues', 'description' => 'Read assigned partner dues and reports', 'category' => 'Field Sales'],
-                ['key' => 'sr_onboarding', 'label' => 'Dealer Applications', 'description' => 'Submit new partner applications for review', 'category' => 'Field Sales'],
-                ['key' => 'staff_admin', 'label' => 'Territories & Targets', 'description' => 'Assign territories and monthly targets', 'category' => 'Operations'],
-                ['key' => 'payroll', 'label' => 'Payroll Preparation', 'description' => 'Prepare closed-month staff salary drafts', 'category' => 'Finance'],
-                ['key' => 'orders', 'label' => 'Orders & Deliveries', 'description' => 'View orders, shipments, deliveries and payment claims', 'category' => 'Operations'],
-                ['key' => 'order_review', 'label' => 'Order Review & Approvals', 'description' => 'Approve purchase requests and verify credit allocations', 'category' => 'Operations'],
-                ['key' => 'inventory', 'label' => 'Inventory & Stock Movements', 'description' => 'Track stock levels, record receipts and stock adjustments', 'category' => 'Inventory'],
-                ['key' => 'catalog', 'label' => 'Product Catalogue & Pricing', 'description' => 'Manage products, units, descriptions and promotional flags', 'category' => 'Inventory'],
-                ['key' => 'accounts', 'label' => 'Partner Directory & Accounts', 'description' => 'Manage dealer and sub-dealer profiles and KYC', 'category' => 'Network'],
-                ['key' => 'finance', 'label' => 'Treasury, Commissions & Payouts', 'description' => 'View capital waterfall, settlements, commissions and payouts', 'category' => 'Finance'],
-                ['key' => 'reports', 'label' => 'Export Reports', 'description' => 'Export order CSVs and financial summaries', 'category' => 'Operations'],
-                ['key' => 'content', 'label' => 'Content Management & Customization', 'description' => 'Manage site content pages and visual hero customization', 'category' => 'Marketing'],
-                ['key' => 'audit', 'label' => 'Audit & Security Logs', 'description' => 'Inspect append-only system activity and security events', 'category' => 'Security'],
-                ['key' => 'pricing', 'label' => 'Price Modification', 'description' => 'Change MRP and wholesale pricing structures', 'category' => 'Pricing'],
-                ['key' => 'cost_read', 'label' => 'Cost Price Visibility', 'description' => 'View manufacturing/cost prices on products', 'category' => 'Finance'],
-                ['key' => 'identity_write', 'label' => 'KYC / NID Management', 'description' => 'View and edit sensitive NID credentials', 'category' => 'Security'],
+            $permissionCatalog = [
+                ['key' => 'field_sales', 'category' => 'field_sales'],
+                ['key' => 'sr_orders', 'category' => 'field_sales'],
+                ['key' => 'sr_dues', 'category' => 'field_sales'],
+                ['key' => 'sr_onboarding', 'category' => 'field_sales'],
+                ['key' => 'staff_admin', 'category' => 'operations'],
+                ['key' => 'payroll', 'category' => 'finance'],
+                ['key' => 'orders', 'category' => 'operations'],
+                ['key' => 'order_review', 'category' => 'operations'],
+                ['key' => 'inventory', 'category' => 'inventory'],
+                ['key' => 'catalog', 'category' => 'inventory'],
+                ['key' => 'accounts', 'category' => 'network'],
+                ['key' => 'finance', 'category' => 'finance'],
+                ['key' => 'reports', 'category' => 'operations'],
+                ['key' => 'content', 'category' => 'marketing'],
+                ['key' => 'audit', 'category' => 'security'],
+                ['key' => 'pricing', 'category' => 'pricing'],
+                ['key' => 'cost_read', 'category' => 'finance'],
+                ['key' => 'identity_write', 'category' => 'security'],
             ];
+            $data['available_permissions'] = array_map(
+                fn (array $permission): array => [
+                    'key' => $permission['key'],
+                    'label' => __('portal.perm_'.$permission['key']),
+                    'description' => __('portal.perm_'.$permission['key'].'_hint'),
+                    'category' => __('portal.perm_cat_'.$permission['category']),
+                ],
+                $permissionCatalog
+            );
         }
         if ($section === 'dashboards') {
             abort_unless($u->role === 'super_admin' || $u->allows('accounts'), 403);
