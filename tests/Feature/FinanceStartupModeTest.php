@@ -93,4 +93,34 @@ class FinanceStartupModeTest extends TestCase
                 ->whereContains('deploymentStatus.warnings', 'mail_smtp_host_is_local_development')
                 ->whereContains('deploymentStatus.warnings', 'login_otp_requires_real_sms_before_go_live'));
     }
+
+    public function test_startup_mode_labels_localize_for_bangla_session(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/operations/service-integrations')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('ServiceIntegrations')
+                ->where('startup.label', 'এখনো নির্বাচিত হয়নি')
+                ->where('startup.description', 'এই ডিপ্লয়মেন্ট খালি শুরু হবে না কি পুরনো ব্যালেন্স ইমপোর্ট করবে—বেছে নিন। একা এটা আর্থিক পোস্টিং চালু করে না।')
+                ->where('translations.portal.si_heading', 'সার্ভিস ইন্টিগ্রেশন')
+                ->where('translations.portal.imp_heading', 'আপনার রেকর্ড একত্র করুন'));
+
+        app(IntegrationSettings::class)->saveStartupMode(
+            $admin,
+            'import',
+            0,
+            'Import path selected during Bangla localization check.'
+        );
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/operations/data-imports')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DataImports')
+                ->where('startup.mode', 'import')
+                ->where('startup.label', 'উদ্বোধনী ব্যালেন্স / এক্সেল ইতিহাস ইমপোর্ট'));
+    }
 }

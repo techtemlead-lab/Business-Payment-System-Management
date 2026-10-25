@@ -78,14 +78,14 @@ final class IntegrationSettings
             'mode' => $mode,
             'version' => $stored['version'],
             'label' => match ($mode) {
-                'fresh' => 'Fresh business (no past ledger import)',
-                'import' => 'Import opening balances / Excel history',
-                default => 'Not selected yet',
+                'fresh' => __('portal.startup_label_fresh'),
+                'import' => __('portal.startup_label_import'),
+                default => __('portal.startup_label_none'),
             },
             'description' => match ($mode) {
-                'fresh' => 'Start with empty wallets and no historical commissions. Enter products, partners and stock through administration, then verify the zero/starting ledger before enabling financial posting.',
-                'import' => 'Bring forward partners, products and opening balances with the Excel import templates. A separate Finance reviewer must approve opening entries and verify the ledger before enabling posting.',
-                default => 'Choose whether this deployment starts empty or imports prior balances. This does not enable financial posting by itself.',
+                'fresh' => __('portal.startup_desc_fresh'),
+                'import' => __('portal.startup_desc_import'),
+                default => __('portal.startup_desc_none'),
             },
         ];
     }
