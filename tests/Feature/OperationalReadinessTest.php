@@ -191,6 +191,42 @@ class OperationalReadinessTest extends TestCase
         $this->assertContains('area_dealer_assignments_missing', $result['warnings']);
         $this->assertContains('opening_balances_unverified', $result['warnings']);
         $this->assertContains('commission_policy_unreviewed', $result['warnings']);
+        $this->assertArrayHasKey('area_dealer_assignments_missing', $result['details']);
+    }
+
+    public function test_application_readiness_details_list_partners_missing_place_codes(): void
+    {
+        config([
+            'madina.financial_activation' => false,
+            'madina.preview_mode' => false,
+            'madina.sms.driver' => 'http',
+            'madina.login_otp.enabled' => false,
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'ops@madina.example.test',
+            'mail.mailers.smtp.host' => 'smtp.sendgrid.net',
+        ]);
+        $this->seed(BangladeshPlaceCodeSeeder::class);
+        $missing = User::factory()->dealer()->create([
+            'status' => 'active',
+            'dealer_code' => 'D-MISSING-PLACE',
+            'name' => 'Missing Place Partner',
+            'profile' => null,
+        ]);
+        $dhaka = PlaceCode::findByCode('MNHC-101');
+        $this->assertNotNull($dhaka);
+        User::factory()->dealer()->create([
+            'status' => 'active',
+            'dealer_code' => 'D-HAS-PLACE',
+            'profile' => ['place_code' => $dhaka->code, 'place_code_id' => $dhaka->id],
+        ]);
+
+        $result = app(DeploymentReadiness::class)->inspect();
+        $this->assertContains('partners_missing_place_codes', $result['warnings']);
+        $this->assertArrayHasKey('partners_missing_place_codes', $result['details']);
+        $rows = collect($result['details']['partners_missing_place_codes']);
+        $this->assertTrue($rows->contains(fn (array $row): bool => $row['id'] === $missing->id
+            && $row['dealer_code'] === 'D-MISSING-PLACE'));
+        $this->assertFalse($rows->contains(fn (array $row): bool => $row['dealer_code'] === 'D-HAS-PLACE'));
     }
 
     public function test_application_readiness_clears_opening_and_area_dealer_warnings_when_verified(): void

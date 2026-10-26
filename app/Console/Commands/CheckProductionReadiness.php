@@ -29,6 +29,21 @@ class CheckProductionReadiness extends Command
                     $this->line(' - '.str_replace('_', ' ', (string) $warning));
                 }
             }
+            $details = $result['details'] ?? [];
+            $missingPartners = $details['partners_missing_place_codes'] ?? null;
+            if (is_array($missingPartners) && $missingPartners !== []) {
+                $this->newLine();
+                $this->warn('Partners missing place codes (first '.count($missingPartners).'):');
+                $this->table(
+                    ['ID', 'Role', 'Dealer code', 'Name'],
+                    collect($missingPartners)->map(fn (array $row): array => [
+                        $row['id'],
+                        $row['role'],
+                        $row['dealer_code'] ?? '',
+                        $row['name'],
+                    ])->all(),
+                );
+            }
         }
 
         return $result['ready'] ? self::SUCCESS : self::FAILURE;

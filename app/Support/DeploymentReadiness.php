@@ -18,6 +18,7 @@ final class DeploymentReadiness
      *   ready: bool,
      *   checks: array<string, bool>,
      *   warnings: list<string>,
+     *   details: array<string, mixed>,
      *   preview_mode: bool,
      *   financial_posting: bool
      * }
@@ -181,13 +182,55 @@ final class DeploymentReadiness
             $warnings[] = 'verified_backup_missing';
         }
 
+        $details = [];
+        if (in_array('partners_missing_place_codes', $warnings, true)) {
+            $details['partners_missing_place_codes'] = $this->partnersMissingPlaceCodeRows();
+        }
+        if (in_array('area_dealer_assignments_missing', $warnings, true)) {
+            $details['area_dealer_assignments_missing'] = [
+                'active_assignments' => 0,
+                'hint' => 'Assign at least one active area dealer seat after the place catalog is seeded.',
+            ];
+        }
+
         return [
             'ready' => ! in_array(false, $checks, true),
             'checks' => $checks,
             'warnings' => $warnings,
+            'details' => $details,
             'preview_mode' => (bool) config('madina.preview_mode'),
             'financial_posting' => (bool) config('madina.financial_activation'),
         ];
+    }
+
+    /**
+     * @return list<array{id: int, role: string, dealer_code: string|null, name: string}>
+     */
+    private function partnersMissingPlaceCodeRows(): array
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNull('profile')
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                })
+                ->orderBy('id')
+                ->limit(50)
+                ->get(['id', 'role', 'dealer_code', 'name'])
+                ->map(fn ($row): array => [
+                    'id' => (int) $row->id,
+                    'role' => (string) $row->role,
+                    'dealer_code' => $row->dealer_code !== null ? (string) $row->dealer_code : null,
+                    'name' => (string) $row->name,
+                ])
+                ->all();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return [];
+        }
     }
 
     /**
