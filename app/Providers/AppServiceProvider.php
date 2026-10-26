@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,7 +36,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        TrustProxies::at(array_values(array_filter(array_map('trim', explode(',', (string) config('madina.trusted_proxies'))))));
+        $trustedProxies = trim((string) config('madina.trusted_proxies'));
+        if ($trustedProxies === '*') {
+            TrustProxies::at('*');
+        } elseif ($trustedProxies !== '') {
+            TrustProxies::at(array_values(array_filter(array_map('trim', explode(',', $trustedProxies)))));
+        }
+
+        // Production portals terminate TLS at the host reverse proxy. Keep generated
+        // redirects/assets on https so CSP form-action 'self' does not block login.
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
         Event::listen(DiagnosingHealth::class, function (): void {
             DB::select('SELECT 1');
         });
