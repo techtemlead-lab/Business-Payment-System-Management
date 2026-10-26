@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
 use App\Models\PlaceCode;
@@ -330,6 +331,26 @@ final class PartnerAccountProvisioning
                 'role' => $locked->role,
                 'reason' => $reason,
             ]);
+            $locale = $locked->preferredLocale();
+            $label = $place->name.' ('.$place->code.')';
+            Audit::notice(
+                $locked->id,
+                __('portal.notice_geography_updated_title', [], $locale),
+                __('portal.notice_geography_updated_body', [
+                    'place' => $label,
+                    'reason' => $reason,
+                ], $locale),
+            );
+            DB::afterCommit(function () use ($locked, $locale, $label, $reason): void {
+                app(PartnerEventSms::class)->send(
+                    $locked,
+                    'account.geography_updated',
+                    __('sms.geography_updated', [
+                        'place' => $label,
+                        'reason' => $reason,
+                    ], $locale),
+                );
+            });
         }, 3);
     }
 

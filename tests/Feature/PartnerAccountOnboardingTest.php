@@ -304,6 +304,13 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertSame($to->code, $dealer->profile['area_code']);
         $this->assertFalse(AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $from->id)->where('is_active', true)->exists());
         $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $dealer->id)->where('place_code_id', $to->id)->where('is_active', true)->exists());
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'account.geography_updated');
+        $this->assertNotNull($sent);
+        $this->assertStringContainsString($to->code, (string) ($sent['message'] ?? ''));
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_geography_updated_title', [], $dealer->preferredLocale()),
+        ]);
     }
 
     public function test_account_update_rejects_rebinding_dealer_onto_taken_place_code(): void

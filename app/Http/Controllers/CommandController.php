@@ -622,6 +622,17 @@ class CommandController extends Controller
         abort_unless($user->status === 'active', 422);
         Password::sendResetLink(['email' => $user->email]);
         Audit::record($r->user()->id, 'account.invitation_sent', (string) $user->id);
+        $locale = $user->preferredLocale();
+        Audit::notice(
+            $user->id,
+            __('portal.notice_account_invite_title', [], $locale),
+            __('portal.notice_account_invite_body', [], $locale),
+        );
+        app(PartnerEventSms::class)->send(
+            $user,
+            'account.invitation_sent',
+            __('sms.account_invitation_sent', [], $locale),
+        );
 
         return back()->with('success', __('portal.acct_invite_flash'));
     }
