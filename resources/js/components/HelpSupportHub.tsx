@@ -1,6 +1,6 @@
 import { Form, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { BookOpen, LifeBuoy, RotateCcw, Search } from 'lucide-react';
+import { BookOpen, LifeBuoy, Search } from 'lucide-react';
 import { Badge, date, Empty, Table, type Row } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { useT } from '../shared/i18n/t';
@@ -34,7 +34,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
 
     return (
         <div className="help-support-hub">
-            <PrerequisiteHelper guide={data.guide_prerequisites} tourBlocked={data.tour?.blocked_by || []} />
+            <PrerequisiteHelper guide={data.guide_prerequisites} tourBlocked={[]} />
 
             <section className="panel" data-tour="help-manual">
                 <div className="panel-heading">
@@ -94,14 +94,6 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                             <Empty title={translate('portal', 'help_manual_no_results')} />
                         )}
                     </article>
-                </div>
-                <div className="help-tour-actions">
-                    <button type="button" className="button small" onClick={() => router.post('/commands/tours/restart', {})}>
-                        <RotateCcw size={14} /> {translate('portal', 'restart_all_tours')}
-                    </button>
-                    <button type="button" className="button small" onClick={() => router.post('/commands/tours/restart', { page: 'overview' })}>
-                        <RotateCcw size={14} /> {translate('portal', 'restart_tour')}
-                    </button>
                 </div>
             </section>
 
