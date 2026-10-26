@@ -191,7 +191,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'phone' => '01810000001',
             'email' => 'sub1@example.com',
             'reason' => 'First sub under union',
-        ])->assertRedirect('/accounts');
+        ])->assertRedirect('/sub-dealers');
 
         $first = User::query()->where('email', 'sub1@example.com')->firstOrFail();
         $this->assertSame('MNHC-457482-000001', $first->dealer_code);
@@ -210,7 +210,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'phone' => '01810000002',
             'email' => 'sub2@example.com',
             'reason' => 'Second sub under same union',
-        ])->assertRedirect('/accounts');
+        ])->assertRedirect('/sub-dealers');
 
         $second = User::query()->where('email', 'sub2@example.com')->firstOrFail();
         $this->assertSame('MNHC-457482-000002', $second->dealer_code);
