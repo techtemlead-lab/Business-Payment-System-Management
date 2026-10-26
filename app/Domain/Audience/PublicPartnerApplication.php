@@ -2,6 +2,7 @@
 
 namespace App\Domain\Audience;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -14,11 +15,11 @@ final class PublicPartnerApplication
      */
     public function submit(array $data): string
     {
-        return DB::transaction(function () use ($data): string {
+        $id = DB::transaction(function () use ($data): string {
             $email = mb_strtolower(trim((string) $data['email']));
             if (DB::table('users')->whereRaw('LOWER(email) = ?', [$email])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [$email])->where('status', 'pending')->exists()) {
-                throw ValidationException::withMessages(['email' => 'Unable to accept this application with the details provided. Contact the company if you already applied.']);
+                throw ValidationException::withMessages(['email' => __('portal.err_public_app_reject')]);
             }
 
             $id = (string) Str::uuid();
@@ -36,6 +37,7 @@ final class PublicPartnerApplication
                     'upazila' => $data['upazila'] ?? null,
                     'message' => $data['message'] ?? null,
                     'sponsor_code' => $data['sponsor_code'] ?? null,
+                    'locale' => app()->getLocale(),
                 ], JSON_THROW_ON_ERROR),
                 'status' => 'pending',
                 'source' => 'public',
@@ -51,5 +53,18 @@ final class PublicPartnerApplication
 
             return $id;
         }, 3);
+
+        $locale = app()->getLocale();
+        $roleLabel = match ((string) $data['role']) {
+            'sub_dealer' => __('portal.acct_role_sub_dealer', [], $locale),
+            default => __('portal.acct_role_dealer', [], $locale),
+        };
+        app(PartnerEventSms::class)->sendToPhone(
+            (string) $data['phone'],
+            'partnership.application_received',
+            __('sms.partnership_application_received', ['role' => $roleLabel], $locale),
+        );
+
+        return $id;
     }
 }

@@ -27,14 +27,14 @@ final class SmsGatewayClient
                     default => $this->sendCustom($config, $phone, $message),
                 };
                 if ($ok) {
-                    return ['sent' => true, 'provider' => $provider, 'message' => 'SMS accepted by '.$provider.'.'];
+                    return ['sent' => true, 'provider' => $provider, 'message' => __('portal.si_sms_accepted', ['provider' => $provider])];
                 }
             } catch (\Throwable $exception) {
                 Log::warning('sms.gateway_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
             }
         }
 
-        return ['sent' => false, 'provider' => null, 'message' => 'No enabled SMS provider accepted the message.'];
+        return ['sent' => false, 'provider' => null, 'message' => __('portal.si_sms_none_accepted')];
     }
 
     /** @param  array<string, mixed>  $config */

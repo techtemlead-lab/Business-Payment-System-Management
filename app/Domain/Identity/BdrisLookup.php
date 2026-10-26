@@ -38,7 +38,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'validation',
-                'message' => 'Enter the birth certificate number and date of birth before searching.',
+                'message' => __('portal.acct_bdris_need_fields'),
                 'enabled' => $this->enabled(),
                 'details' => null,
             ];
@@ -49,7 +49,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'disabled',
-                'message' => 'BDRIS autofill is disabled. An administrator can enable it under Service integrations, or enter personal details manually.',
+                'message' => __('portal.acct_bdris_disabled'),
                 'enabled' => false,
                 'details' => null,
             ];
@@ -60,7 +60,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'config',
-                'message' => 'BDRIS endpoint is not configured. Enter the personal details manually.',
+                'message' => __('portal.acct_bdris_not_configured'),
                 'enabled' => true,
                 'details' => null,
             ];
@@ -80,7 +80,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'network',
-                'message' => 'Could not reach the BDRIS server. Enter the personal details manually.',
+                'message' => __('portal.acct_bdris_unreachable'),
                 'enabled' => true,
                 'details' => null,
             ];
@@ -90,7 +90,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'bdris',
-                'message' => 'BDRIS did not return a match. Enter the personal details manually.',
+                'message' => __('portal.acct_bdris_no_match'),
                 'enabled' => true,
                 'details' => null,
             ];
@@ -101,7 +101,7 @@ final class BdrisLookup
             return [
                 'success' => false,
                 'source' => 'bdris',
-                'message' => 'BDRIS response was empty. Enter the personal details manually.',
+                'message' => __('portal.acct_bdris_empty'),
                 'enabled' => true,
                 'details' => null,
             ];
@@ -110,7 +110,7 @@ final class BdrisLookup
         return [
             'success' => true,
             'source' => 'bdris',
-            'message' => 'Details loaded from BDRIS. Review and edit if needed.',
+            'message' => __('portal.acct_bdris_loaded'),
             'enabled' => true,
             'details' => [
                 'name' => $this->stringOrNull($payload['name'] ?? $payload['name_en'] ?? null),

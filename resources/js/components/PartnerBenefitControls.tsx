@@ -2,8 +2,10 @@ import { useForm, usePage } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { type Row } from './UI';
 import { actionAllowed } from './action-permissions';
+import { useT } from '../shared/i18n/t';
 
 export default function PartnerBenefitControls({ account }: { account: Row }) {
+    const translate = useT();
     const { staffActions } = usePage<any>().props;
     const canEdit = actionAllowed(`/commands/accounts/${account.id}/benefit-controls`, staffActions, 'post');
     const existing = account.profile?.benefit_controls ?? {};
@@ -25,10 +27,10 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
             <div className="panel-heading">
                 <div>
                     <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <ShieldCheck size={18} /> Unconditional benefit access
+                        <ShieldCheck size={18} /> {translate('portal', 'pbc_title')}
                     </h3>
                     <p className="muted" style={{ margin: '6px 0 0' }}>
-                        Admin-only. Grant salary, rank royalty or rank incentive to {account.name} without the usual volume / rank targets. Applies immediately — no second reviewer.
+                        {translate('portal', 'pbc_body', { name: String(account.name ?? '') })}
                     </p>
                 </div>
             </div>
@@ -51,7 +53,7 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                         checked={form.data.unconditional_salary}
                         onChange={(e) => form.setData('unconditional_salary', e.target.checked)}
                     />
-                    Waive monthly salary volume target
+                    {translate('portal', 'pbc_waive_salary')}
                 </label>
                 <label className="registry-checkbox">
                     <input
@@ -59,11 +61,11 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                         checked={form.data.unconditional_rank_royalty}
                         onChange={(e) => form.setData('unconditional_rank_royalty', e.target.checked)}
                     />
-                    Grant rank royalty without rank / maintenance targets
+                    {translate('portal', 'pbc_grant_royalty')}
                 </label>
                 {form.data.unconditional_rank_royalty && (
                     <label>
-                        Royalty rank bucket
+                        {translate('portal', 'pbc_royalty_rank')}
                         <select
                             value={form.data.forced_royalty_rank}
                             onChange={(e) => form.setData('forced_royalty_rank', e.target.value)}
@@ -81,31 +83,31 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
                         checked={form.data.unconditional_rank_incentive}
                         onChange={(e) => form.setData('unconditional_rank_incentive', e.target.checked)}
                     />
-                    Allow rank incentive claim without maintenance targets
+                    {translate('portal', 'pbc_grant_incentive')}
                 </label>
                 <label>
-                    Internal note
+                    {translate('portal', 'pbc_note')}
                     <input
                         value={form.data.note}
                         onChange={(e) => form.setData('note', e.target.value)}
-                        placeholder="Optional admin note"
+                        placeholder={translate('portal', 'pbc_note_ph')}
                     />
                 </label>
                 <label>
-                    Reason *
+                    {translate('portal', 'pbc_reason')}
                     <textarea
                         required
                         rows={3}
                         value={form.data.reason}
                         onChange={(e) => form.setData('reason', e.target.value)}
-                        placeholder="Why this partner receives unconditional benefits"
+                        placeholder={translate('portal', 'pbc_reason_ph')}
                     />
                 </label>
                 {Object.keys(form.errors).length > 0 && (
                     <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>
                 )}
                 <button className="button dark" disabled={form.processing}>
-                    {form.processing ? 'Saving…' : 'Save benefit controls'}
+                    {form.processing ? translate('portal', 'pbc_saving') : translate('portal', 'pbc_save')}
                 </button>
             </form>
         </section>

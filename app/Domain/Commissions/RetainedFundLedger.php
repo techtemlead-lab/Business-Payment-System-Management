@@ -204,7 +204,7 @@ final class RetainedFundLedger
             $company = (int) round(Money::cents((string) $batch->company_share) * $factor);
             $row = [
                 'id' => $batch->id,
-                'fund' => 'Company operating share (30% of MRP)',
+                'fund' => __('portal.retained_fund_company_operating_share'),
                 'category' => 'company_share',
                 'status' => 'retained',
                 'amount' => Money::decimal($company),
@@ -227,7 +227,7 @@ final class RetainedFundLedger
                 'union' => null,
                 'area_level' => null,
                 'retained_by' => 'company_operating_reserve',
-                'reason' => 'Company share retained from purchase to cover product cost and operating margin.',
+                'reason' => __('portal.retained_reason_company_operating_share'),
                 'created_at' => $batch->created_at,
             ];
             // Owner benefits surplus stays out of company-staff treasury payloads.
@@ -243,9 +243,13 @@ final class RetainedFundLedger
     private function reason(CommissionAllocation $allocation, array $metadata, ?string $level, array $geography): string
     {
         $accountType = (string) ($metadata['account_type'] ?? $allocation->order?->user?->role ?? 'partner');
-        $accountLabel = $accountType === 'sub_dealer' ? 'sub-dealer' : ($accountType === 'dealer' ? 'dealer' : 'partner');
+        $accountLabel = match ($accountType) {
+            'sub_dealer' => __('portal.retained_account_sub_dealer'),
+            'dealer' => __('portal.retained_account_dealer'),
+            default => __('portal.retained_account_partner'),
+        };
         if ($allocation->category === self::BenefitsCategory) {
-            return 'Purchase surplus from '.$accountLabel.' order after company MRP share and the approved commission schedule.';
+            return __('portal.retained_reason_benefits_surplus', ['account' => $accountLabel]);
         }
         if ($allocation->status === 'unassigned_reserve') {
             $place = trim(implode(' / ', array_filter([
@@ -254,44 +258,65 @@ final class RetainedFundLedger
                 $geography['upazila'] ?? null,
                 $geography['union'] ?? null,
             ], fn ($value): bool => trim((string) $value) !== '')));
+            $levelLabel = $level ? __('portal.retained_area_level_'.$level) : __('portal.retained_area_level_area');
+            if (str_starts_with($levelLabel, 'portal.')) {
+                $levelLabel = $level ?: 'area';
+            }
 
-            return 'No active '.($level ?: 'area').' dealer assigned'.($place !== '' ? ' for '.$place : '').' on '.$accountLabel.' purchase; retained in company geographic reserve.';
+            return $place !== ''
+                ? __('portal.retained_reason_unassigned_with_place', [
+                    'level' => $levelLabel,
+                    'place' => $place,
+                    'account' => $accountLabel,
+                ])
+                : __('portal.retained_reason_unassigned', [
+                    'level' => $levelLabel,
+                    'account' => $accountLabel,
+                ]);
         }
         if ($allocation->category === 'area_management') {
-            return 'Management share of the area dealer pool retained by the company.';
+            return __('portal.retained_reason_area_management');
         }
         if (str_contains((string) $allocation->category, 'breakage')) {
-            return 'Missing referral recipient; amount retained as breakage reserve.';
+            return __('portal.retained_reason_breakage');
         }
         if (str_contains((string) $allocation->category, 'override_reserve')) {
-            return 'Individual rate reduction retained as company override reserve.';
+            return __('portal.retained_reason_override');
         }
         if ($allocation->category === 'company_marketing_fund') {
-            return 'Marketing reserve funded from the purchase-value commission schedule.';
+            return __('portal.retained_reason_marketing');
         }
         if ($allocation->category === 'car_bike_incentive_fund') {
-            return 'Vehicle reward reserve funded from the purchase-value commission schedule.';
+            return __('portal.retained_reason_vehicle');
         }
         if (in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
-            return (string) ($metadata['reason'] ?? 'Undistributed salary or royalty share rolled into the company settlement reserve.');
+            $reasonKey = (string) ($metadata['reason_key'] ?? '');
+            if ($reasonKey !== '') {
+                $localized = __('portal.'.$reasonKey);
+                if ($localized !== 'portal.'.$reasonKey) {
+                    return $localized;
+                }
+            }
+
+            return (string) ($metadata['reason'] ?? __('portal.retained_reason_settle_rollover_generic'));
         }
 
-        return (string) ($metadata['source'] ?? 'Company retained commission amount.');
+        return (string) ($metadata['source'] ?? __('portal.retained_reason_generic'));
     }
 
     private function fundLabel(CommissionAllocation $allocation): string
     {
         return match (true) {
-            $allocation->category === self::BenefitsCategory => 'Company Commission Benefits Fund',
-            $allocation->status === 'unassigned_reserve' => 'Unassigned geographic reserve',
-            $allocation->category === 'area_management' => 'Management area share',
-            $allocation->category === 'company_marketing_fund' => 'Marketing fund',
-            $allocation->category === 'car_bike_incentive_fund' => 'Car / motorcycle fund',
-            $allocation->category === CommissionSettlement::DealerSalaryReserve => 'Dealer salary settlement reserve',
-            $allocation->category === CommissionSettlement::SubDealerSalaryReserve => 'Sub-dealer salary settlement reserve',
-            $allocation->category === CommissionSettlement::RankRoyaltyReserve => 'Rank royalty settlement reserve',
-            str_contains((string) $allocation->category, 'override_reserve') => 'Override reserve',
-            str_contains((string) $allocation->category, 'breakage') => 'Referral breakage reserve',
+            $allocation->category === self::BenefitsCategory => __('portal.retained_fund_benefits'),
+            $allocation->status === 'unassigned_reserve' => __('portal.retained_fund_unassigned'),
+            $allocation->category === 'area_management' => __('portal.retained_fund_area_management'),
+            $allocation->category === 'company_marketing_fund' => __('portal.retained_fund_marketing'),
+            $allocation->category === 'car_bike_incentive_fund' => __('portal.retained_fund_vehicle'),
+            $allocation->category === CommissionSettlement::DealerSalaryReserve => __('portal.retained_fund_dealer_salary'),
+            $allocation->category === CommissionSettlement::SubDealerSalaryReserve => __('portal.retained_fund_sub_dealer_salary'),
+            $allocation->category === CommissionSettlement::RankRoyaltyReserve => __('portal.retained_fund_rank_royalty'),
+            str_contains((string) $allocation->category, 'override_reserve') => __('portal.retained_fund_override'),
+            str_contains((string) $allocation->category, 'breakage') => __('portal.retained_fund_breakage'),
             default => (string) $allocation->category,
         };
     }

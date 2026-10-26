@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Integrations\MapsPresentation;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
@@ -18,7 +19,7 @@ class PublicController extends Controller
 {
     public function index(Request $request, string $page = 'home'): View
     {
-        abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms'], true), 404);
+        abort_unless(in_array($page, ['home', 'products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true), 404);
         abort_unless(SiteCustomization::isPageEnabled($page), 404);
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
@@ -143,24 +144,57 @@ class PublicController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:150',
             'phone' => 'required|string|max:30',
-            'topic' => 'required|in:Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
+            'topic' => 'required|in:dealer_enquiry,partnership_enquiry,product_enquiry,support,complaint,Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
             'message' => 'required|string|min:10|max:2000',
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        $data['topic'] = match ($data['topic']) {
+            'Dealer enquiry', 'dealer_enquiry' => 'dealer_enquiry',
+            'Partnership enquiry', 'partnership_enquiry' => 'partnership_enquiry',
+            'Product enquiry', 'product_enquiry' => 'product_enquiry',
+            'Support', 'support' => 'support',
+            'Complaint', 'complaint' => 'complaint',
+            default => strtolower((string) $data['topic']),
+        };
+        $locale = app()->getLocale();
         DB::table('enquiries')->insert([
             ...$data,
             'status' => 'new',
+            'locale' => $locale,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        return back()->with('success', 'Your enquiry has been received. The company will contact you.');
+        $topicLabel = match ($data['topic']) {
+            'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
+            'partnership_enquiry' => __('portal.enquiry_topic_partnership', [], $locale),
+            'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
+            'support' => __('portal.support_topic_support', [], $locale),
+            'complaint' => __('portal.support_topic_complaint', [], $locale),
+            default => $data['topic'],
+        };
+        app(PartnerEventSms::class)->sendToPhone(
+            (string) $data['phone'],
+            'enquiry.public_received',
+            __('sms.public_enquiry_received', ['topic' => $topicLabel], $locale),
+        );
+
+        return back()->with('success', __('portal.flash_enquiry_received'));
     }
 
     public function partnerLogin(): View
     {
         return view('reference.partner-login');
+    }
+
+    public function join(string $code): RedirectResponse
+    {
+        abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
+        $normalized = strtoupper(trim($code));
+        abort_if($normalized === '' || strlen($normalized) > 40, 404);
+
+        return redirect('/partnership?sponsor_code='.rawurlencode($normalized).'#partner-apply');
     }
 
     public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse
@@ -179,8 +213,11 @@ class PublicController extends Controller
             'website' => 'nullable|max:0',
         ]);
         unset($data['website']);
+        if (! empty($data['sponsor_code'])) {
+            $data['sponsor_code'] = strtoupper(trim((string) $data['sponsor_code']));
+        }
         $applications->submit($data);
 
-        return redirect('/partnership')->with('success', 'Your partnership application has been received. The company will review it and contact you.');
+        return redirect('/partnership')->with('success', __('portal.flash_partnership_received'));
     }
 }

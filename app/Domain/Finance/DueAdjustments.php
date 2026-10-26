@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -33,12 +34,12 @@ final class DueAdjustments
             $existing = DB::table('due_adjustments')->where('request_key', $data['request_key'])->first();
             if ($existing) {
                 abort_if($existing->order_id !== $order->id || $existing->kind !== $data['kind'] || $existing->reference !== $reference
-                    || Money::cents($existing->amount) !== Money::cents($data['amount']) || $existing->reason !== $data['reason'], 409, 'Adjustment key already used for different data.');
+                    || Money::cents($existing->amount) !== Money::cents($data['amount']) || $existing->reason !== $data['reason'], 409, __('portal.err_idem_adjustment_key'));
 
                 return $existing->id;
             }
             if (DB::table('due_adjustments')->where('reference', $reference)->exists()) {
-                throw ValidationException::withMessages(['reference' => 'This adjustment reference already exists.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_due_ref_exists')]);
             }
             $this->validate($order, $data['kind'], Money::cents($data['amount']));
             $id = DB::table('due_adjustments')->insertGetId(['order_id' => $order->id, 'kind' => $data['kind'], 'amount' => Money::decimal(Money::cents($data['amount'])),
@@ -59,13 +60,13 @@ final class DueAdjustments
             abort_unless($adjustment, 404);
             $order = Order::whereKey($adjustment->order_id)->lockForUpdate()->firstOrFail();
             if (in_array($actor->id, [$adjustment->created_by, $order->user_id], true)) {
-                throw ValidationException::withMessages(['adjustment' => 'A separate Finance reviewer must review this adjustment.']);
+                throw ValidationException::withMessages(['adjustment' => __('portal.err_due_separate_reviewer')]);
             }
             if (! in_array($decision, ['approved', 'rejected'], true)) {
-                throw ValidationException::withMessages(['decision' => 'Choose approved or rejected.']);
+                throw ValidationException::withMessages(['decision' => __('portal.err_due_decision')]);
             }
             if ($adjustment->status !== 'requested') {
-                abort_unless($adjustment->status === $decision && $adjustment->review_reason === $reason, 409, 'This adjustment was already reviewed.');
+                abort_unless($adjustment->status === $decision && $adjustment->review_reason === $reason, 409, __('portal.err_adj_already_reviewed'));
 
                 return;
             }
@@ -77,7 +78,9 @@ final class DueAdjustments
                 $credit = $adjustment->kind === 'credit';
                 $order->update(['due_credit' => Money::decimal(Money::cents($order->due_credit) + ($credit ? $amount : -$amount))]);
                 $after = $order->outstanding();
-                app(CommissionWallet::class)->journal('dues.adjustment.'.$id, 'Receivable adjustment '.$adjustment->reference, [
+                $partner = User::find($order->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                app(CommissionWallet::class)->journal('dues.adjustment.'.$id, __('portal.jr_due_adjustment', ['reference' => $adjustment->reference], $locale), [
                     ['user_id' => $order->user_id, 'account' => 'sales_allowances', 'debit' => $credit ? $amount : 0, 'credit' => $credit ? 0 : $amount],
                     ['user_id' => $order->user_id, 'account' => $order->is_opening_balance ? 'opening_receivables' : 'customer_receivable_adjustments', 'debit' => $credit ? 0 : $amount, 'credit' => $credit ? $amount : 0],
                 ]);
@@ -88,7 +91,37 @@ final class DueAdjustments
                 'before_outstanding' => $before, 'after_outstanding' => $after, 'reason' => $reason];
             DB::table('order_events')->insert(['order_id' => $order->id, 'actor_id' => $actor->id, 'action' => 'dues.adjustment_'.$decision, 'metadata' => json_encode($metadata, JSON_THROW_ON_ERROR), 'created_at' => now()]);
             Audit::record($actor->id, 'dues.adjustment_'.$decision, (string) $id, $metadata);
-            Audit::notice($order->user_id, 'Due adjustment '.$decision, $order->number.' · '.$adjustment->reference.' · outstanding BDT '.$after);
+            $partner = User::find($order->user_id);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            $decisionLabel = __('portal.due_decision_'.$decision, [], $locale);
+            Audit::notice(
+                $order->user_id,
+                __('portal.notice_due_adjustment_title', ['decision' => $decisionLabel], $locale),
+                __('portal.notice_due_adjustment_body', [
+                    'number' => $order->number,
+                    'reference' => $adjustment->reference,
+                    'amount' => $after,
+                ], $locale),
+            );
+            $userId = (int) $order->user_id;
+            $orderNumber = (string) $order->number;
+            $reference = (string) $adjustment->reference;
+            DB::afterCommit(function () use ($userId, $decision, $decisionLabel, $orderNumber, $reference, $after, $locale): void {
+                $partner = User::find($userId);
+                if (! $partner) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'dues.adjustment_'.$decision,
+                    __('sms.due_adjustment', [
+                        'number' => $orderNumber,
+                        'decision' => $decisionLabel,
+                        'reference' => $reference,
+                        'amount' => $after,
+                    ], $partner->preferredLocale() ?: $locale),
+                );
+            });
         }, 3);
     }
 
@@ -96,11 +129,13 @@ final class DueAdjustments
     {
         if (! in_array($kind, ['credit', 'debit_correction'], true) || $amount < 1
             || in_array($order->status, ['cancelled', 'rejected', 'submitted', 'held'], true)) {
-            throw ValidationException::withMessages(['adjustment' => 'Use a positive credit note or credit correction on an approved, open order.']);
+            throw ValidationException::withMessages(['adjustment' => __('portal.err_due_invalid')]);
         }
         $maximum = $kind === 'credit' ? Money::cents($order->outstanding()) : Money::cents($order->due_credit);
         if ($amount > $maximum) {
-            throw ValidationException::withMessages(['amount' => $kind === 'credit' ? 'Credit cannot exceed the current unpaid balance.' : 'A debit correction can only restore an earlier credit; use a new order for additional sales.']);
+            throw ValidationException::withMessages(['amount' => $kind === 'credit'
+                ? __('portal.err_due_credit_exceeds')
+                : __('portal.err_due_debit_restore_only')]);
         }
     }
 }

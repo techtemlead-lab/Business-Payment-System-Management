@@ -27,7 +27,7 @@ class PlaceCodeController extends Controller
             return response()->json(['data' => $place], 201);
         }
 
-        return back()->with('success', 'Place code '.$place->code.' saved.');
+        return back()->with('success', __('portal.flash_place_code_saved', ['code' => $place->code]));
     }
 
     public function update(Request $request, PlaceCode $placeCode, PlaceCodeCatalog $catalog): RedirectResponse|JsonResponse
@@ -46,7 +46,7 @@ class PlaceCodeController extends Controller
             return response()->json(['data' => $place]);
         }
 
-        return back()->with('success', 'Place code '.$place->code.' updated.');
+        return back()->with('success', __('portal.flash_place_code_updated', ['code' => $place->code]));
     }
 
     public function index(Request $request, PlaceCodeCatalog $catalog): JsonResponse

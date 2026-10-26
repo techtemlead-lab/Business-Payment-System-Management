@@ -27,7 +27,8 @@ class PartnerBenefitControlsTest extends TestCase
                 'note' => 'Founder exception',
                 'reason' => 'Approved by owner for launch support',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Unconditional benefit controls saved for '.$dealer->name.'.');
 
         $dealer->refresh();
         $controls = PartnerBenefitControls::for($dealer);
@@ -36,6 +37,20 @@ class PartnerBenefitControlsTest extends TestCase
         $this->assertSame('mo', $controls['forced_royalty_rank']);
         $this->assertTrue($controls['unconditional_rank_incentive']);
         $this->assertDatabaseHas('dealer_ranks', ['user_id' => $dealer->id]);
+    }
+
+    public function test_benefit_control_flash_follows_admin_bangla_locale(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active', 'locale' => 'bn']);
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'name' => 'Rahim Dealer']);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->post('/commands/accounts/'.$dealer->id.'/benefit-controls', [
+                'unconditional_salary' => 1,
+                'reason' => 'Owner override for Bangla flash coverage',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Rahim Dealer-এর জন্য শর্তহীন বেনিফিট কন্ট্রোল সংরক্ষণ হয়েছে।');
     }
 
     public function test_unconditional_rank_royalty_forces_paid_as_rank_without_volume(): void
@@ -59,7 +74,7 @@ class PartnerBenefitControlsTest extends TestCase
 
     public function test_salary_settlement_includes_volume_waived_dealer(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         app(PartnerBenefitControls::class)->save($admin, $dealer, [

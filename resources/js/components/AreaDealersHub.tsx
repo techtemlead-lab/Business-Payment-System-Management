@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { router, useForm } from '@inertiajs/react';
-import { MapPin, Plus, Trash2, Search, Filter, ShieldCheck, CheckCircle2, AlertCircle, Building2, Globe2, Compass } from 'lucide-react';
+import { MapPin, Plus, Trash2, Search, Filter, Building2, Compass } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
     id: number;
@@ -55,20 +56,20 @@ interface AreaDealersHubProps {
     place_codes?: PlaceCodeOption[];
 }
 
-const levelLabels: Record<string, { label: string; bg: string; text: string; defaultQuota: number }> = {
-    division: { label: 'Divisional Dealer', bg: '#eff6ff', text: '#1d4ed8', defaultQuota: 50000 },
-    district: { label: 'District Dealer', bg: '#ecfdf5', text: '#047857', defaultQuota: 40000 },
-    upazila: { label: 'Upazila / Thana Dealer', bg: '#fdf4ff', text: '#a21caf', defaultQuota: 20000 },
-    union: { label: 'Union Dealer', bg: '#fffbeb', text: '#b45309', defaultQuota: 10000 },
+const levelMeta: Record<string, { labelKey: string; bg: string; text: string; defaultQuota: number }> = {
+    division: { labelKey: 'area_lvl_division', bg: '#eff6ff', text: '#1d4ed8', defaultQuota: 50000 },
+    district: { labelKey: 'area_lvl_district', bg: '#ecfdf5', text: '#047857', defaultQuota: 40000 },
+    upazila: { labelKey: 'area_lvl_upazila', bg: '#fdf4ff', text: '#a21caf', defaultQuota: 20000 },
+    union: { labelKey: 'area_lvl_union', bg: '#fffbeb', text: '#b45309', defaultQuota: 10000 },
 };
 
 export default function AreaDealersHub({ assignments, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
+    const translate = useT();
     const [selectedDivision, setSelectedDivision] = useState<string>('all');
     const [selectedLevel, setSelectedLevel] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-    // Form state for new territory assignment
     const { data, setData, post, processing, errors, reset } = useForm({
         user_id: dealers_list[0]?.id ? String(dealers_list[0].id) : '',
         level: 'district' as 'division' | 'district' | 'upazila' | 'union',
@@ -92,7 +93,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
             ...prev,
             level,
             place_code_id: first ? String(first.id) : '',
-            monthly_quota: levelLabels[level]?.defaultQuota || 20000
+            monthly_quota: levelMeta[level]?.defaultQuota || 20000
         }));
     };
 
@@ -108,12 +109,11 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
     };
 
     const handleDeleteAssignment = (id: number, zone: string) => {
-        if (window.confirm(`Are you sure you want to remove area assignment for "${zone}"?`)) {
+        if (window.confirm(translate('portal', 'area_confirm_remove', { zone }))) {
             router.delete(`/commands/area-dealers/${id}`, { preserveScroll: true });
         }
     };
 
-    // Filter assignments
     const filteredAssignments = useMemo(() => {
         return assignments.filter(a => {
             const matchesDiv = selectedDivision === 'all' || a.division === selectedDivision;
@@ -127,7 +127,6 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
         });
     }, [assignments, selectedDivision, selectedLevel, searchQuery]);
 
-    // Division breakdown stats
     const divisionStats = useMemo(() => {
         const stats: Record<string, { count: number; totalQuota: number }> = {};
         divisions.forEach(d => { stats[d] = { count: 0, totalQuota: 0 }; });
@@ -141,43 +140,42 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
     }, [assignments, divisions]);
 
     const totalActiveQuota = assignments.reduce((sum, a) => sum + (Number(a.monthly_quota) || 0), 0);
+    const levelLabel = (level: string) => translate('portal', levelMeta[level]?.labelKey ?? 'area_lvl_district');
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {/* Top Stat Summary Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 12, fontWeight: 600 }}>
-                        <MapPin size={16} /> Total Territory Assignments
+                        <MapPin size={16} /> {translate('portal', 'area_kpi_total')}
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
                         {assignments.length}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Across 8 administrative divisions</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{translate('portal', 'area_kpi_total_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#047857', fontSize: 12, fontWeight: 600 }}>
-                        <Building2 size={16} /> Total Monthly Quota
+                        <Building2 size={16} /> {translate('portal', 'area_kpi_quota')}
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 4 }}>
                         {money(totalActiveQuota)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>Combined target territory volume</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'area_kpi_quota_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>
-                        <Compass size={16} /> Area Dealer Pool Slice
+                        <Compass size={16} /> {translate('portal', 'area_kpi_pool')}
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
                         4.00%
                     </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>Zero-deficit cash inflow allocation</div>
+                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{translate('portal', 'area_kpi_pool_hint')}</div>
                 </div>
             </div>
 
-            {/* Division Distribution Pills */}
             <div style={{
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
@@ -188,7 +186,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                 gap: 10
             }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                    Regional Territory Distribution
+                    {translate('portal', 'area_regional')}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
@@ -205,7 +203,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                             cursor: 'pointer'
                         }}
                     >
-                        All Divisions ({assignments.length})
+                        {translate('portal', 'area_all_divisions', { count: String(assignments.length) })}
                     </button>
                     {divisions.map(div => {
                         const st = divisionStats[div] || { count: 0, totalQuota: 0 };
@@ -246,7 +244,6 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                 </div>
             </div>
 
-            {/* Filter Bar & Assign Button */}
             <div style={{
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
@@ -263,7 +260,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                         <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }} />
                         <input
                             type="text"
-                            placeholder="Search zone, dealer name, code…"
+                            placeholder={translate('portal', 'area_search_ph')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             style={{
@@ -290,11 +287,11 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                 color: '#334155'
                             }}
                         >
-                            <option value="all">All Tiers</option>
-                            <option value="division">Divisional (৳50k)</option>
-                            <option value="district">District (৳40k)</option>
-                            <option value="upazila">Upazila / Thana (৳20k)</option>
-                            <option value="union">Union (৳10k)</option>
+                            <option value="all">{translate('portal', 'area_all_tiers')}</option>
+                            <option value="division">{translate('portal', 'area_tier_division')}</option>
+                            <option value="district">{translate('portal', 'area_tier_district')}</option>
+                            <option value="upazila">{translate('portal', 'area_tier_upazila')}</option>
+                            <option value="union">{translate('portal', 'area_tier_union')}</option>
                         </select>
                     </div>
                 </div>
@@ -316,38 +313,37 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                         gap: 6
                     }}
                 >
-                    <Plus size={16} /> Assign Area Dealer
+                    <Plus size={16} /> {translate('portal', 'area_assign')}
                 </button>
             </div>
 
-            {/* Assignments Table */}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>Zone / Territory</th>
-                            <th style={{ padding: '12px 16px' }}>Assigned Dealer</th>
-                            <th style={{ padding: '12px 16px' }}>Tier / Level</th>
-                            <th style={{ padding: '12px 16px' }}>Division & District</th>
-                            <th style={{ padding: '12px 16px' }}>Monthly Quota</th>
-                            <th style={{ padding: '12px 16px' }}>Status</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_zone')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_dealer')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_tier')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_location')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_quota')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_status')}</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal', 'area_col_actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredAssignments.length > 0 ? (
                             filteredAssignments.map(a => {
-                                const levelConfig = levelLabels[a.level] || levelLabels.district;
+                                const levelConfig = levelMeta[a.level] || levelMeta.district;
                                 return (
                                     <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px 16px' }}>
                                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.zone_name}</div>
                                             {a.place_code?.code && (
                                                 <div style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, marginTop: 2 }}>
-                                                    Code {a.place_code.code}
+                                                    {translate('portal', 'area_code', { code: a.place_code.code })}
                                                 </div>
                                             )}
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>Assigned: {date(a.created_at)}</div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_assigned', { date: date(a.created_at) })}</div>
                                         </td>
                                         <td style={{ padding: '12px 16px' }}>
                                             {a.user ? (
@@ -358,7 +354,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <span style={{ color: '#94a3b8' }}>Unassigned User</span>
+                                                <span style={{ color: '#94a3b8' }}>{translate('portal', 'area_unassigned')}</span>
                                             )}
                                         </td>
                                         <td style={{ padding: '12px 16px' }}>
@@ -370,12 +366,12 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                 background: levelConfig.bg,
                                                 color: levelConfig.text
                                             }}>
-                                                {levelConfig.label}
+                                                {levelLabel(a.level)}
                                             </span>
                                         </td>
                                         <td style={{ padding: '12px 16px', color: '#475569' }}>
                                             <div>{a.division || '—'}</div>
-                                            {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>District: {a.district}</div>}
+                                            {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_district', { name: a.district })}</div>}
                                         </td>
                                         <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
                                             {money(a.monthly_quota)}
@@ -389,7 +385,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                 background: a.is_active ? '#dcfce7' : '#fee2e2',
                                                 color: a.is_active ? '#15803d' : '#b91c1c'
                                             }}>
-                                                {a.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                                {a.is_active ? translate('portal', 'area_active') : translate('portal', 'area_inactive')}
                                             </span>
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
@@ -404,7 +400,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                     padding: 6,
                                                     borderRadius: 4
                                                 }}
-                                                title="Remove Assignment"
+                                                title={translate('portal', 'area_remove_title')}
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -415,7 +411,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                         ) : (
                             <tr>
                                 <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    No territory assignments matching your filters.
+                                    {translate('portal', 'area_empty')}
                                 </td>
                             </tr>
                         )}
@@ -423,7 +419,6 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                 </table>
             </div>
 
-            {/* Modal for Assigning Area Dealer */}
             {isAssignModalOpen && (
                 <div style={{
                     position: 'fixed',
@@ -448,7 +443,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                                Assign Area / Territory Dealer
+                                {translate('portal', 'area_modal_title')}
                             </h3>
                             <button
                                 type="button"
@@ -462,7 +457,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                         <form onSubmit={handleCreateAssignment} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Select Active Dealer
+                                    {translate('portal', 'area_fld_dealer')}
                                 </label>
                                 <select
                                     value={data.user_id}
@@ -472,7 +467,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                 >
                                     {dealers_list.map(d => (
                                         <option key={d.id} value={d.id}>
-                                            {d.name} ({d.dealer_code}) - {d.district || d.division || 'Unspecified'}
+                                            {d.name} ({d.dealer_code}) - {d.district || d.division || translate('portal', 'area_unspecified')}
                                         </option>
                                     ))}
                                 </select>
@@ -481,7 +476,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Territory Tier Level
+                                    {translate('portal', 'area_fld_tier')}
                                 </label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                                     {(['division', 'district', 'upazila', 'union'] as const).map(lvl => (
@@ -501,8 +496,8 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                 textAlign: 'left'
                                             }}
                                         >
-                                            <div>{levelLabels[lvl].label}</div>
-                                            <div style={{ fontSize: 10, color: '#64748b' }}>Quota: {money(levelLabels[lvl].defaultQuota)}</div>
+                                            <div>{levelLabel(lvl)}</div>
+                                            <div style={{ fontSize: 10, color: '#64748b' }}>{translate('portal', 'area_quota_label', { amount: money(levelMeta[lvl].defaultQuota) })}</div>
                                         </button>
                                     ))}
                                 </div>
@@ -510,7 +505,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Place code
+                                    {translate('portal', 'area_fld_place')}
                                 </label>
                                 <select
                                     value={data.place_code_id}
@@ -525,7 +520,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
                                     required={placesForLevel.length > 0}
                                 >
-                                    <option value="">Select place code…</option>
+                                    <option value="">{translate('portal', 'area_select_place')}</option>
                                     {placesForLevel.map((place) => (
                                         <option key={place.id} value={place.id}>
                                             {place.code} — {place.name}
@@ -535,18 +530,18 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                 {errors.place_code_id && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.place_code_id}</div>}
                                 {placesForLevel.length === 0 && (
                                     <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>
-                                        No {data.level} codes yet. Add them under Code management first.
+                                        {translate('portal', 'area_no_codes', { level: data.level })}
                                     </div>
                                 )}
                             </div>
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Zone label (optional)
+                                    {translate('portal', 'area_fld_zone')}
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder="Defaults to place name and code"
+                                    placeholder={translate('portal', 'area_zone_ph')}
                                     value={data.zone_name}
                                     onChange={e => setData('zone_name', e.target.value)}
                                     style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
@@ -556,7 +551,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
 
                             <div>
                                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    Monthly Sales Quota (BDT)
+                                    {translate('portal', 'area_fld_monthly')}
                                 </label>
                                 <input
                                     type="number"
@@ -583,7 +578,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Cancel
+                                    {translate('portal', 'area_cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -599,7 +594,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    {processing ? 'Saving…' : 'Save Territory Assignment'}
+                                    {processing ? translate('portal', 'area_saving') : translate('portal', 'area_save')}
                                 </button>
                             </div>
                         </form>

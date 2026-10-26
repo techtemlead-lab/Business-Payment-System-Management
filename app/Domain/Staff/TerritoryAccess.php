@@ -4,6 +4,7 @@ namespace App\Domain\Staff;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -74,7 +75,7 @@ final class TerritoryAccess
                 return;
             }
         }
-        abort(403, 'This location is outside your assigned territories.');
+        abort(403, __('portal.err_terr_outside'));
     }
 
     /** @param array<string, mixed> $data */
@@ -87,13 +88,13 @@ final class TerritoryAccess
             abort_unless($actor->fresh()->allows('staff_admin'), 403);
             $staff = User::findOrFail($data['staff_id']);
             if (! $staff->staff() || ! $staff->allows('field_sales') || $staff->id === $actor->id) {
-                throw ValidationException::withMessages(['staff_id' => 'Choose another active sales representative with field-sales access.']);
+                throw ValidationException::withMessages(['staff_id' => __('portal.err_terr_sr')]);
             }
             $path = [];
             foreach (self::Fields as $field) {
                 $value = trim((string) ($data[$field] ?? ''));
                 if ($value === '') {
-                    throw ValidationException::withMessages([$field => 'Specify the complete territory hierarchy.']);
+                    throw ValidationException::withMessages([$field => __('portal.err_terr_hierarchy')]);
                 }
                 $path[$field] = $value;
                 if ($field === $data['level']) {
@@ -108,8 +109,82 @@ final class TerritoryAccess
             $id = DB::table('staff_territories')->insertGetId([...$path, 'staff_id' => $staff->id, 'level' => $data['level'], 'territory_key' => $key,
                 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'staff.territory_assigned', (string) $id, ['staff_id' => $staff->id]);
+            $locale = $staff->preferredLocale();
+            $label = collect($path)->filter()->implode(' / ');
+            Audit::notice(
+                $staff->id,
+                __('portal.notice_staff_territory_title', [], $locale),
+                __('portal.notice_staff_territory_body', [
+                    'level' => $data['level'],
+                    'territory' => $label,
+                ], $locale),
+            );
+            DB::afterCommit(function () use ($staff, $locale, $data, $label): void {
+                app(PartnerEventSms::class)->send(
+                    $staff,
+                    'staff.territory_assigned',
+                    __('sms.staff_territory_assigned', [
+                        'level' => $data['level'],
+                        'territory' => $label,
+                    ], $locale),
+                );
+            });
 
             return $id;
+        }, 3);
+    }
+
+    public function remove(User $actor, int $territoryId, string $reason): void
+    {
+        abort_unless($actor->allows('staff_admin'), 403);
+
+        DB::transaction(function () use ($actor, $territoryId, $reason): void {
+            CommissionWallet::lock();
+            abort_unless($actor->fresh()->allows('staff_admin'), 403);
+            $row = DB::table('staff_territories')->where('id', $territoryId)->where('is_active', true)->first();
+            abort_unless($row !== null, 404);
+            $staff = User::findOrFail((int) $row->staff_id);
+            $path = [];
+            foreach (self::Fields as $field) {
+                $value = trim((string) ($row->{$field} ?? ''));
+                if ($value === '') {
+                    break;
+                }
+                $path[$field] = $value;
+                if ($field === $row->level) {
+                    break;
+                }
+            }
+            $label = collect($path)->filter()->implode(' / ');
+            DB::table('staff_territories')->where('id', $territoryId)->update([
+                'is_active' => false,
+                'territory_key' => null,
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'staff.territory_removed', (string) $territoryId, [
+                'staff_id' => $staff->id,
+                'reason' => $reason,
+            ]);
+            $locale = $staff->preferredLocale();
+            Audit::notice(
+                $staff->id,
+                __('portal.notice_staff_territory_removed_title', [], $locale),
+                __('portal.notice_staff_territory_removed_body', [
+                    'level' => $row->level,
+                    'territory' => $label,
+                    'reason' => $reason,
+                ], $locale),
+            );
+            DB::afterCommit(function () use ($staff, $locale, $row, $label): void {
+                app(PartnerEventSms::class)->send(
+                    $staff,
+                    'staff.territory_removed',
+                    __('sms.staff_territory_removed', [
+                        'level' => $row->level,
+                        'territory' => $label,
+                    ], $locale),
+                );
+            });
         }, 3);
     }
 

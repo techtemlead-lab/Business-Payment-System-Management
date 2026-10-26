@@ -81,7 +81,7 @@ class OrderController extends Controller
     {
         $service->claim($request->user(), $order, $request->validated());
 
-        return response()->json(['data' => ['message' => 'Payment reference submitted for verification.']], 201);
+        return response()->json(['data' => ['message' => __('portal.flash_payment_claim')]], 201);
     }
 
     public function verify(VerifyPaymentRequest $request, int $claim, OrderService $service): JsonResponse
@@ -89,7 +89,7 @@ class OrderController extends Controller
         $data = $request->validated();
         $service->verify($request->user(), $claim, $request->boolean('approve'), $data['reason']);
 
-        return response()->json(['data' => ['message' => 'Payment review recorded.']]);
+        return response()->json(['data' => ['message' => __('portal.flash_payment_review')]]);
     }
 
     public function delivered(ConfirmDeliveryRequest $request, Order $order, int $shipment, OrderService $service): OrderResource

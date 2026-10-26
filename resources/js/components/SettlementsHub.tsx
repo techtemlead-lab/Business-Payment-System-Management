@@ -5,6 +5,7 @@ import {
     ArrowUpRight, Play, RefreshCw, AlertCircle, FileText, ChevronRight, UserCheck
 } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface SettlementState {
     current_month: string;
@@ -46,6 +47,7 @@ interface SettlementState {
 }
 
 export default function SettlementsHub({ state }: { state: SettlementState }) {
+    const translate = useT();
     const { flash, financeActive, staffActions } = usePage<any>().props;
     const [selectedMonth, setSelectedMonth] = useState(state.current_month || new Date().toISOString().slice(0, 7));
     const [processingSalary, setProcessingSalary] = useState(false);
@@ -54,7 +56,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     const [claimingIncentive, setClaimingIncentive] = useState<number | null>(null);
 
     const handleSettleSalary = () => {
-        if (!confirm(`Are you sure you want to finalize and distribute dealer and sub-dealer salary allocations for ${selectedMonth}? This credits qualifying earnings to available balances.`)) {
+        if (!confirm(translate('portal', 'st_confirm_salary', { month: selectedMonth }))) {
             return;
         }
         setProcessingSalary(true);
@@ -64,7 +66,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleSettleRank = () => {
-        if (!confirm(`Are you sure you want to finalize and distribute the leadership royalty pool for ${selectedMonth}? Each source order's captured policy determines the shares and eligible MO, AM, SM and ME leaders.`)) {
+        if (!confirm(translate('portal', 'st_confirm_rank', { month: selectedMonth }))) {
             return;
         }
         setProcessingRank(true);
@@ -81,7 +83,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleClaimIncentive = (userId: number, leaderName: string, rank: string) => {
-        if (!confirm(`Confirm payout of one-time career milestone incentive for ${leaderName} (${rank.toUpperCase()})?`)) {
+        if (!confirm(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }))) {
             return;
         }
         setClaimingIncentive(userId);
@@ -119,14 +121,14 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         <Calendar size={24} />
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>Month-End Settlements & Pipeline</h2>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Finance-controlled month closing, cooling-off releases and funded leadership incentive claims.</p>
+                        <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>{translate('portal', 'st_heading')}</h2>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_sub')}</p>
                     </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        Period Month:
+                        {translate('portal', 'st_period')}
                         <input
                             type="month"
                             value={selectedMonth}
@@ -160,10 +162,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     <Clock size={22} color="#0284c7" />
                     <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
-                            Cooling-Off Maturing Funds: <span style={{ color: '#0284c7' }}>{money(state.maturing_amount)}</span> ({state.maturing_count} allocations)
+                            {translate('portal', 'st_cooling_title', { amount: money(state.maturing_amount), count: String(state.maturing_count) })}
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748b' }}>
-                            Commissions held during statutory return cooling-off period before releasing into available balance.
+                            {translate('portal', 'st_cooling_hint')}
                         </div>
                     </div>
                 </div>
@@ -188,7 +190,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     }}
                 >
                     <RefreshCw size={15} className={processingMatured ? 'spin' : ''} />
-                    {processingMatured ? 'Releasing…' : 'Release Matured Commissions'}
+                    {processingMatured ? translate('portal', 'st_releasing') : translate('portal', 'st_release')}
                 </button>
             </div>
 
@@ -210,10 +212,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                             <div>
                                 <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#10b981', textTransform: 'uppercase' }}>
-                                    Dealer Pool + Sub-dealer Salary
+                                    {translate('portal', 'st_salary_badge')}
                                 </span>
                                 <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0 0', color: '#0f172a' }}>
-                                    Dealer Monthly Salary Pool
+                                    {translate('portal', 'st_salary_title')}
                                 </h3>
                             </div>
                             <span style={{
@@ -224,7 +226,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 fontSize: '12px',
                                 fontWeight: 700
                             }}>
-                                Captured policy rates
+                                {translate('portal', 'st_policy_rates')}
                             </span>
                         </div>
 
@@ -236,15 +238,15 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             marginBottom: '16px'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Dealer Salary Pool:</span>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_dealer_pool')}</span>
                                 <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.dealer_salary_pool_pending)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Dealers Meeting Current Threshold:</span>
-                                <b style={{ fontSize: '14px', color: '#10b981' }}>{state.qualified_salary_dealers_count} dealers</b>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_dealers_threshold')}</span>
+                                <b style={{ fontSize: '14px', color: '#10b981' }}>{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Sub-dealer Salary Reserved:</span>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_sub_reserved')}</span>
                                 <b style={{ fontSize: '14px', color: '#2563eb' }}>
                                     {money(state.sub_dealer_salary_pending)}
                                 </b>
@@ -252,7 +254,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
-                            The dealer list uses the current qualification threshold and selected month's purchases. Actual settlement evaluates each source order's captured policy and eligibility. Sub-dealer salary is credited to its own purchaser separately.
+                            {translate('portal', 'st_salary_hint')}
                         </div>
 
                         {state.qualified_salary_dealers.length > 0 && (
@@ -260,9 +262,9 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>Dealer</th>
-                                            <th style={{ padding: '6px 10px' }}>Code</th>
-                                            <th style={{ padding: '6px 10px', textAlign: 'right' }}>Month Volume</th>
+                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_dealer')}</th>
+                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_code')}</th>
+                                            <th style={{ padding: '6px 10px', textAlign: 'right' }}>{translate('portal', 'st_col_volume')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -300,7 +302,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         }}
                     >
                         <Play size={16} fill="#ffffff" />
-                        {processingSalary ? 'Executing Settlement…' : `Finalize & Settle Salary (${selectedMonth})`}
+                        {processingSalary ? translate('portal', 'st_executing') : translate('portal', 'st_settle_salary', { month: selectedMonth })}
                     </button>
                 </div>
 
@@ -319,10 +321,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                             <div>
                                 <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#8b5cf6', textTransform: 'uppercase' }}>
-                                    4% Leadership Pool
+                                    {translate('portal', 'st_rank_badge')}
                                 </span>
                                 <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0 0', color: '#0f172a' }}>
-                                    Rank Royalty Distribution
+                                    {translate('portal', 'st_rank_title')}
                                 </h3>
                             </div>
                             <span style={{
@@ -333,7 +335,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 fontSize: '12px',
                                 fontWeight: 700
                             }}>
-                                Captured policy rates
+                                {translate('portal', 'st_policy_rates')}
                             </span>
                         </div>
 
@@ -345,21 +347,21 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             marginBottom: '16px'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Total Royalty Pool:</span>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_royalty_pool')}</span>
                                 <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.rank_pool_pending)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Tier Allocation:</span>
-                                <b style={{ fontSize: '14px', color: '#7c3aed' }}>Source policy weights</b>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_tier_alloc')}</span>
+                                <b style={{ fontSize: '14px', color: '#7c3aed' }}>{translate('portal', 'st_policy_weights')}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>Active Qualified Leaders:</span>
-                                <b style={{ fontSize: '14px', color: '#0f172a' }}>{state.qualified_rank_leaders_count} leaders</b>
+                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_active_leaders')}</span>
+                                <b style={{ fontSize: '14px', color: '#0f172a' }}>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</b>
                             </div>
                         </div>
 
                         <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
-                            Leadership tiers: <b>MO</b>, <b>AM</b>, <b>SM</b> and <b>ME</b>. The list uses the current maintenance policy; settlement uses each source order's captured weights and qualification rules, including applicable grace periods.
+                            {translate('portal', 'st_rank_hint')}
                         </div>
 
                         {state.qualified_rank_leaders.length > 0 && (
@@ -367,9 +369,9 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                                     <thead>
                                         <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>Leader</th>
-                                            <th style={{ padding: '6px 10px' }}>Rank</th>
-                                            <th style={{ padding: '6px 10px' }}>Status</th>
+                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_leader')}</th>
+                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_rank')}</th>
+                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_status')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -379,11 +381,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                                 <td style={{ padding: '6px 10px', textTransform: 'uppercase', fontWeight: 700, color: '#7c3aed' }}>{l.rank}</td>
                                                 <td style={{ padding: '6px 10px' }}>
                                                     {l.is_qualified ? (
-                                                        <span style={{ color: '#059669', fontWeight: 600 }}>Active</span>
+                                                        <span style={{ color: '#059669', fontWeight: 600 }}>{translate('portal', 'st_active')}</span>
                                                     ) : l.in_grace_period ? (
-                                                        <span style={{ color: '#d97706', fontWeight: 600 }}>Grace Period</span>
+                                                        <span style={{ color: '#d97706', fontWeight: 600 }}>{translate('portal', 'st_grace')}</span>
                                                     ) : (
-                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>Demoted</span>
+                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>{translate('portal', 'st_demoted')}</span>
                                                     )}
                                                 </td>
                                             </tr>
@@ -415,7 +417,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         }}
                     >
                         <Play size={16} fill="#ffffff" />
-                        {processingRank ? 'Executing Settlement…' : `Finalize & Settle Rank Royalty (${selectedMonth})`}
+                        {processingRank ? translate('portal', 'st_executing') : translate('portal', 'st_settle_rank', { month: selectedMonth })}
                     </button>
                 </div>
             </div>
@@ -431,10 +433,10 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
                     <div>
                         <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                            One-Time Career Milestone Incentives (2% Pool)
+                            {translate('portal', 'st_incentive_title')}
                         </h3>
                         <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                            Career achievement milestone bonus: MO (৳5,000), AM (৳15,000), SM (৳50,000), ME (৳200,000).
+                            {translate('portal', 'st_incentive_hint')}
                         </p>
                     </div>
                 </div>
@@ -443,19 +445,19 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>Leader</th>
-                                <th style={{ padding: '10px 14px' }}>Dealer Code</th>
-                                <th style={{ padding: '10px 14px' }}>Achieved Rank</th>
-                                <th style={{ padding: '10px 14px' }}>Standard Incentive</th>
-                                <th style={{ padding: '10px 14px' }}>Claim Status</th>
-                                <th style={{ padding: '10px 14px', textAlign: 'right' }}>Action</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_leader')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_dcode')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_achieved')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_incentive')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_claim')}</th>
+                                <th style={{ padding: '10px 14px', textAlign: 'right' }}>{translate('portal', 'st_col_action')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {state.qualified_rank_leaders.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                                        No rank leaders eligible for one-time milestone claims.
+                                        {translate('portal', 'st_no_incentive')}
                                     </td>
                                 </tr>
                             ) : (
@@ -490,17 +492,17 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                             <td style={{ padding: '10px 14px' }}>
                                                 {l.one_time_incentive_paid ? (
                                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600, fontSize: '12px' }}>
-                                                        <CheckCircle2 size={14} /> Paid & Disbursed
+                                                        <CheckCircle2 size={14} /> {translate('portal', 'st_paid')}
                                                     </span>
                                                 ) : (
                                                     <span style={{ color: '#d97706', fontWeight: 600, fontSize: '12px' }}>
-                                                        Pending Claim
+                                                        {translate('portal', 'st_pending_claim')}
                                                     </span>
                                                 )}
                                             </td>
                                             <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                                                 {l.one_time_incentive_paid ? (
-                                                    <span style={{ color: '#94a3b8', fontSize: '12px' }}>Settled</span>
+                                                    <span style={{ color: '#94a3b8', fontSize: '12px' }}>{translate('portal', 'st_settled')}</span>
                                                 ) : (
                                                     <button
                                                         type="button"
@@ -517,7 +519,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                                             cursor: 'pointer'
                                                         }}
                                                     >
-                                                        {claimingIncentive === l.user_id ? 'Claiming…' : 'Approve & Pay Payout'}
+                                                        {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}
                                                     </button>
                                                 )}
                                             </td>
@@ -539,22 +541,22 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
             }}>
                 <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 14px', color: '#0f172a' }}>
-                    Settled Pool Transactions & Journal Entries
+                    {translate('portal', 'st_journal_title')}
                 </h3>
                 <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                     <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>Date</th>
-                                <th style={{ padding: '10px 14px' }}>Event Reference</th>
-                                <th style={{ padding: '10px 14px' }}>Description</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_date')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_event')}</th>
+                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_desc')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {state.settled_history.length === 0 ? (
                                 <tr>
                                     <td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
-                                        No settlement journal entries recorded yet.
+                                        {translate('portal', 'st_no_journal')}
                                     </td>
                                 </tr>
                             ) : (

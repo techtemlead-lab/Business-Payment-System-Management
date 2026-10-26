@@ -74,11 +74,11 @@ final class FinancialReadiness
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $snapshot = $this->inspect();
                 if (! $snapshot['internally_reconciled']) {
-                    throw ValidationException::withMessages(['balances' => 'Resolve internal reconciliation failures before submitting opening balances.']);
+                    throw ValidationException::withMessages(['balances' => __('portal.err_ready_reconcile')]);
                 }
                 $expected = array_map(fn ($value): string => Money::decimal(Money::cents($value)), $totals);
                 if ($expected != $snapshot['totals']) {
-                    throw ValidationException::withMessages(['balances' => 'The independently supplied opening totals do not match the ledger.']);
+                    throw ValidationException::withMessages(['balances' => __('portal.err_ready_totals_mismatch')]);
                 }
                 $id = DB::table('financial_verifications')->insertGetId(['fingerprint' => $snapshot['fingerprint'], 'snapshot' => json_encode($snapshot, JSON_THROW_ON_ERROR),
                     'expected_totals' => json_encode($expected, JSON_THROW_ON_ERROR), 'source_reference' => $source, 'evidence_path' => $path,
@@ -102,7 +102,7 @@ final class FinancialReadiness
             $row = DB::table('financial_verifications')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
             if ($row->verified_at || $row->created_by === $actor->id || $row->fingerprint !== $this->inspect()['fingerprint']) {
-                throw ValidationException::withMessages(['balances' => 'A separate Finance reviewer must verify an unchanged opening snapshot.']);
+                throw ValidationException::withMessages(['balances' => __('portal.err_ready_separate_verify')]);
             }
             DB::table('financial_verifications')->where('id', $id)->update(['verified_by' => $actor->id, 'verified_at' => now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'opening_balances.verified', (string) $id);

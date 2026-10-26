@@ -34,5 +34,6 @@ Route::middleware(['auth', 'active', 'portal:sadmin'])->group(function () use ($
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
+    Route::redirect('/places', '/place-codes', 301);
     Route::get('/{section?}', [DashboardController::class, 'index']);
 });

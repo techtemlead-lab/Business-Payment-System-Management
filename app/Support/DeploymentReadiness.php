@@ -2,6 +2,10 @@
 
 namespace App\Support;
 
+use App\Domain\Finance\FinancialReadiness;
+use App\Domain\Integrations\IntegrationCatalog;
+use App\Domain\Integrations\IntegrationSettings;
+use App\Models\PlaceCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -9,7 +13,16 @@ use Illuminate\Support\Str;
 
 final class DeploymentReadiness
 {
-    /** @return array{ready: bool, checks: array<string, bool>, preview_mode: bool, financial_posting: bool} */
+    /**
+     * @return array{
+     *   ready: bool,
+     *   checks: array<string, bool>,
+     *   warnings: list<string>,
+     *   details: array<string, mixed>,
+     *   preview_mode: bool,
+     *   financial_posting: bool
+     * }
+     */
     public function inspect(bool $strict = false): array
     {
         $checks = ['php_84' => PHP_VERSION_ID >= 80400, 'required_extensions' => true];
@@ -64,7 +77,463 @@ final class DeploymentReadiness
             $checks['recent_verified_backup'] = Cache::has('operations:verified-backup');
         }
 
-        return ['ready' => ! in_array(false, $checks, true), 'checks' => $checks,
-            'preview_mode' => (bool) config('madina.preview_mode'), 'financial_posting' => (bool) config('madina.financial_activation')];
+        $warnings = [];
+        if (config('madina.preview_mode') && ! config('madina.financial_activation')) {
+            $warnings[] = 'preview_mode_enabled';
+        }
+        $smsDriver = (string) config('madina.sms.driver', 'log');
+        $smsGatewayReady = $this->smsGatewayConfigured();
+        if (in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
+            $warnings[] = 'sms_driver_logging_only';
+        }
+        if (! $strict) {
+            $mailDriver = (string) config('mail.default');
+            if (in_array($mailDriver, ['log', 'array', 'null'], true)) {
+                $warnings[] = 'mail_driver_logging_only';
+            } else {
+                $fromAddress = (string) config('mail.from.address');
+                if ($fromAddress === '' || str_ends_with(strtolower($fromAddress), '@example.com')) {
+                    $warnings[] = 'mail_from_address_is_example_placeholder';
+                }
+                if ($mailDriver === 'smtp') {
+                    $smtpHost = strtolower((string) config('mail.mailers.smtp.host'));
+                    if ($smtpHost === '' || in_array($smtpHost, ['mail', 'localhost', '127.0.0.1', '::1', 'mailpit', 'mailhog', 'smtp'], true)) {
+                        $warnings[] = 'mail_smtp_host_is_local_development';
+                    }
+                }
+            }
+        }
+        if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
+            $warnings[] = 'login_otp_requires_real_sms_before_go_live';
+        }
+        if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
+            $warnings[] = 'place_code_catalog_incomplete';
+        }
+        if ($checks['database'] && $this->placeCodeCatalogReady() && ! $this->areaDealerAssignmentsReady()) {
+            $warnings[] = 'area_dealer_assignments_missing';
+        }
+        if ($checks['database']
+            && $this->placeCodeCatalogReady()
+            && $this->areaDealerAssignmentsReady()
+            && $this->areaDealerCoverageIncomplete()) {
+            $warnings[] = 'area_dealer_coverage_incomplete';
+        }
+        if ($checks['database'] && $this->activePartnersMissingPlaceCodes()) {
+            $warnings[] = 'partners_missing_place_codes';
+        }
+        if ($checks['database'] && ! $this->openingBalancesVerified()) {
+            $warnings[] = 'opening_balances_unverified';
+        } elseif ($checks['database'] && $this->openingBalancesStale()) {
+            $warnings[] = 'opening_balances_stale';
+        }
+        if ($checks['database'] && ! $this->commissionPolicyReviewed()) {
+            $warnings[] = 'commission_policy_unreviewed';
+        }
+        if ($checks['database'] && $this->partnerBenefitOverridesActive()) {
+            $warnings[] = 'partner_benefit_overrides_active';
+        }
+        if ($this->appDomainMismatchesAppUrl()) {
+            $warnings[] = 'app_domain_mismatches_app_url';
+        }
+        if ($checks['database'] && ! $this->paymentCollectionAccountsReady()) {
+            $warnings[] = 'payment_collection_accounts_missing';
+        }
+        if ($checks['database'] && ! $this->paymentPayoutAccountsReady()) {
+            $warnings[] = 'payment_payout_accounts_missing';
+        }
+        if (! $strict && in_array(config('queue.default'), ['sync', 'null', ''], true)) {
+            $warnings[] = 'queue_driver_is_sync';
+        }
+        if (! $strict && ! Cache::has('operations:scheduler-heartbeat')) {
+            $warnings[] = 'scheduler_heartbeat_missing';
+        }
+        if (! $strict
+            && ! in_array(config('queue.default'), ['sync', 'null', ''], true)
+            && ! Cache::has('operations:queue-heartbeat')) {
+            $warnings[] = 'queue_worker_heartbeat_missing';
+        }
+        if (! $strict && config('app.debug') === true) {
+            $warnings[] = 'debug_mode_enabled';
+        }
+        if (! $strict && (! config('madina.backups_enabled') || strlen((string) config('madina.backup_password')) < 32)) {
+            $warnings[] = 'backups_not_configured';
+        }
+        if (! $strict && config('app.env') !== 'production') {
+            $warnings[] = 'app_environment_not_production';
+        }
+        if (! $strict && ! str_starts_with((string) config('app.url'), 'https://')) {
+            $warnings[] = 'app_url_not_https';
+        }
+        if (! $strict && (! (bool) config('session.secure') || ! (bool) config('session.encrypt'))) {
+            $warnings[] = 'session_cookies_not_hardened';
+        }
+        if (! $strict && (! is_string(config('app.key')) || strlen((string) config('app.key')) < 32)) {
+            $warnings[] = 'app_key_missing_or_weak';
+        }
+        if (! $strict
+            && str_starts_with((string) config('app.url'), 'https://')
+            && trim((string) config('madina.trusted_proxies')) === '') {
+            $warnings[] = 'trusted_proxies_not_configured';
+        }
+        if (! $strict
+            && config('madina.backups_enabled')
+            && strlen((string) config('madina.backup_password')) >= 32
+            && ! Cache::has('operations:verified-backup')) {
+            $warnings[] = 'verified_backup_missing';
+        }
+
+        $details = [];
+        if (in_array('partners_missing_place_codes', $warnings, true)) {
+            $details['partners_missing_place_codes'] = $this->partnersMissingPlaceCodeRows();
+        }
+        if (in_array('area_dealer_assignments_missing', $warnings, true)) {
+            $details['area_dealer_assignments_missing'] = [
+                'active_assignments' => 0,
+                'hint' => 'Assign at least one active area dealer seat after the place catalog is seeded.',
+            ];
+        }
+
+        return [
+            'ready' => ! in_array(false, $checks, true),
+            'checks' => $checks,
+            'warnings' => $warnings,
+            'details' => $details,
+            'preview_mode' => (bool) config('madina.preview_mode'),
+            'financial_posting' => (bool) config('madina.financial_activation'),
+        ];
+    }
+
+    /**
+     * @return list<array{id: int, role: string, dealer_code: string|null, name: string}>
+     */
+    private function partnersMissingPlaceCodeRows(): array
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNull('profile')
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                })
+                ->orderBy('id')
+                ->limit(50)
+                ->get(['id', 'role', 'dealer_code', 'name'])
+                ->map(fn ($row): array => [
+                    'id' => (int) $row->id,
+                    'role' => (string) $row->role,
+                    'dealer_code' => $row->dealer_code !== null ? (string) $row->dealer_code : null,
+                    'name' => (string) $row->name,
+                ])
+                ->all();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return [];
+        }
+    }
+
+    /**
+     * Bangladesh onboarding needs the seeded administrative place registry
+     * (8 divisions + 64 districts at minimum) before partner go-live.
+     */
+    private function placeCodeCatalogReady(): bool
+    {
+        try {
+            $divisions = PlaceCode::query()->where('level', PlaceCode::LevelDivision)->count();
+            $districts = PlaceCode::query()->where('level', PlaceCode::LevelDistrict)->count();
+
+            return $divisions >= 8 && $districts >= 64;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Geographic commission pools need at least one active area-dealer seat
+     * after the place catalog is ready; otherwise first posts land in unassigned reserve.
+     */
+    private function areaDealerAssignmentsReady(): bool
+    {
+        try {
+            return DB::table('area_dealer_assignments')->where('is_active', true)->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Active partners' division/district place paths need exactly one active seat
+     * each (place_code_id or unique legacy name). Missing or ambiguous seats leave
+     * geographic pools in unassigned reserve or skip wallet credit.
+     */
+    private function areaDealerCoverageIncomplete(): bool
+    {
+        try {
+            $partners = DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->whereRaw("COALESCE(profile->>'place_code', '') <> ''")
+                ->select(['id', 'division', 'district', 'profile'])
+                ->get();
+            if ($partners->isEmpty()) {
+                return false;
+            }
+
+            $required = [];
+            foreach ($partners as $partner) {
+                $profile = is_string($partner->profile)
+                    ? json_decode($partner->profile, true, 512, JSON_THROW_ON_ERROR)
+                    : (array) $partner->profile;
+                $code = trim((string) ($profile['place_code'] ?? ''));
+                if ($code === '') {
+                    continue;
+                }
+                $place = PlaceCode::findByCode($code);
+                if (! $place || $place->level === PlaceCode::LevelManagement) {
+                    continue;
+                }
+                $cursor = $place;
+                $guard = 0;
+                while ($cursor && $guard++ < 8) {
+                    if (in_array($cursor->level, [PlaceCode::LevelDivision, PlaceCode::LevelDistrict], true)) {
+                        $required[$cursor->level.':'.$cursor->id] = [
+                            'level' => $cursor->level,
+                            'place_id' => (int) $cursor->id,
+                            'name' => (string) $cursor->name,
+                        ];
+                    }
+                    $cursor = $cursor->parent;
+                }
+            }
+
+            foreach ($required as $seat) {
+                if (! $this->areaSeatIsUnique($seat['level'], $seat['place_id'], $seat['name'])) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    private function areaSeatIsUnique(string $level, int $placeId, string $name): bool
+    {
+        $byCode = DB::table('area_dealer_assignments')
+            ->where('is_active', true)
+            ->where('level', $level)
+            ->where('place_code_id', $placeId)
+            ->count();
+        if ($byCode === 1) {
+            return true;
+        }
+        if ($byCode > 1) {
+            return false;
+        }
+
+        $column = match ($level) {
+            PlaceCode::LevelDivision => 'division',
+            PlaceCode::LevelDistrict => 'district',
+            PlaceCode::LevelUpazila => 'upazila',
+            PlaceCode::LevelUnion => 'union',
+            default => null,
+        };
+        if ($column === null) {
+            return false;
+        }
+
+        $byName = DB::table('area_dealer_assignments')
+            ->where('is_active', true)
+            ->where('level', $level)
+            ->whereNull('place_code_id')
+            ->whereRaw('LOWER(TRIM("'.$column.'")) = ?', [mb_strtolower(trim($name))])
+            ->count();
+
+        return $byName === 1;
+    }
+
+    /**
+     * Dual-control opening-balance verification must exist before financial activation.
+     */
+    private function openingBalancesVerified(): bool
+    {
+        try {
+            return DB::table('financial_verifications')->whereNotNull('verified_at')->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * A verified opening record whose fingerprint no longer matches the live ledger
+     * means balances drifted after dual-control — re-submit and re-verify before activation.
+     */
+    private function openingBalancesStale(): bool
+    {
+        try {
+            $latest = DB::table('financial_verifications')
+                ->whereNotNull('verified_at')
+                ->orderByDesc('id')
+                ->first(['fingerprint']);
+            if (! $latest) {
+                return false;
+            }
+            $current = app(FinancialReadiness::class)->inspect()['fingerprint'] ?? null;
+
+            return ! is_string($current) || $current === '' || $latest->fingerprint !== $current;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    /**
+     * GO_LIVE requires a dual-control published commission policy draft before activation.
+     */
+    private function commissionPolicyReviewed(): bool
+    {
+        try {
+            return DB::table('policy_drafts')
+                ->where('status', 'published')
+                ->whereNotNull('published_by')
+                ->whereColumn('published_by', '!=', 'created_by')
+                ->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Unconditional salary / rank benefit overrides waive volume gates — flag any
+     * active partner profile that still has them before financial go-live.
+     */
+    private function partnerBenefitOverridesActive(): bool
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_salary', 'false') = 'true'")
+                        ->orWhereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_rank_royalty', 'false') = 'true'")
+                        ->orWhereRaw("COALESCE(profile->'benefit_controls'->>'unconditional_rank_incentive', 'false') = 'true'");
+                })
+                ->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return true;
+        }
+    }
+
+    /**
+     * Active dealers/sub-dealers without a canonical place_code cannot route
+     * geographic commission pools correctly after go-live.
+     */
+    private function activePartnersMissingPlaceCodes(): bool
+    {
+        try {
+            return DB::table('users')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where('status', 'active')
+                ->where(function ($query): void {
+                    $query->whereNull('profile')
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                })
+                ->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Portal hosts come from APP_DOMAIN while scheme/port come from APP_URL.
+     * A host mismatch breaks dealer/manage/sadmin login and reset links.
+     */
+    private function appDomainMismatchesAppUrl(): bool
+    {
+        $appHost = strtolower((string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: ''));
+        $domain = strtolower(trim((string) config('madina.app_domain')));
+        if ($appHost === '' || $domain === '') {
+            return true;
+        }
+
+        return $appHost !== $domain;
+    }
+
+    /**
+     * Partner collections and payment claims need at least one active account
+     * that accepts collections before financial go-live.
+     */
+    private function paymentCollectionAccountsReady(): bool
+    {
+        return $this->paymentAccountsReady(collectsPayments: true, paysOut: false);
+    }
+
+    /**
+     * Withdrawals and reserve payouts need at least one active account that
+     * can pay out before financial go-live.
+     */
+    private function paymentPayoutAccountsReady(): bool
+    {
+        return $this->paymentAccountsReady(collectsPayments: false, paysOut: true);
+    }
+
+    private function paymentAccountsReady(bool $collectsPayments, bool $paysOut): bool
+    {
+        try {
+            $query = DB::table('payment_accounts')->where('is_active', true);
+            if ($collectsPayments) {
+                $query->where('collects_payments', true);
+            }
+            if ($paysOut) {
+                $query->where('pays_out', true);
+            }
+
+            return $query->exists();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
+    }
+
+    /**
+     * Partner SMS tries enabled Service Integrations providers before the log driver.
+     * An enabled provider with credentials clears go-live SMS warnings.
+     */
+    private function smsGatewayConfigured(): bool
+    {
+        try {
+            $settings = app(IntegrationSettings::class);
+            foreach (array_keys(IntegrationCatalog::groups()['sms']['providers'] ?? []) as $provider) {
+                $config = $settings->provider('sms', $provider);
+                if (! ($config['enabled'] ?? false)) {
+                    continue;
+                }
+                if (filled($config['base_url'] ?? null) && filled($config['api_key'] ?? null)) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+
+        return false;
     }
 }

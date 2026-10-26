@@ -19,7 +19,7 @@ class CompanyCommissionBenefitsFundTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
     }
 
     public function test_purchase_surplus_is_posted_to_the_owner_commission_benefits_fund(): void

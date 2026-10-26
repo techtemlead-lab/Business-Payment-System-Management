@@ -7,8 +7,11 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use App\Support\DashboardManagement;
 use App\Support\Money;
+use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -21,7 +24,8 @@ final class PartnerDashboardHome
      *   profile: array<string, mixed>,
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
      *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
-     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>
+     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
+     *   referral: array{code: string, url: string, qr_url: string}|null
      * }
      */
     public function for(User $user): array
@@ -53,9 +57,9 @@ final class PartnerDashboardHome
             ->sum('amount'));
 
         $chart = [
-            ['key' => 'own', 'label' => 'Today purchase', 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
-            ['key' => 'team', 'label' => 'Team sales', 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
-            ['key' => 'commission', 'label' => 'Commission (month)', 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
+            ['key' => 'own', 'label' => __('portal.today_purchase'), 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
+            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
+            ['key' => 'commission', 'label' => __('portal.commission_month'), 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
         ];
 
         return [
@@ -74,6 +78,7 @@ final class PartnerDashboardHome
                 'photo_url' => $profile['photo_url'] ?? $profile['avatar_url'] ?? null,
                 'initial' => mb_strtoupper(mb_substr($user->name, 0, 1)),
                 'status' => $user->status,
+                'refer_code' => $user->refer_code,
             ],
             'snapshot' => [
                 'own_sales_today' => Money::decimal($ownSalesToday),
@@ -82,6 +87,11 @@ final class PartnerDashboardHome
             ],
             'chart' => $chart,
             'targets' => $this->targets($user, $rules, $month),
+            'referral' => $user->refer_code ? [
+                'code' => $user->refer_code,
+                'url' => PortalHost::url('public', '/join/'.$user->refer_code),
+                'qr_url' => '/referral-qr.svg',
+            ] : null,
         ];
     }
 
@@ -98,22 +108,26 @@ final class PartnerDashboardHome
         if ($controls['unconditional_salary']) {
             $targets[] = [
                 'key' => 'monthly_salary',
-                'label' => $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                'label' => $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
                 'current' => Money::decimal($monthlyVolume),
                 'target' => Money::decimal($salaryTarget),
                 'remaining' => '0.00',
                 'percent' => 100.0,
-                'hint' => 'Admin granted unconditional salary access — volume target is waived.',
+                'hint' => __('portal.target_unconditional_salary_hint'),
             ];
         } else {
             $targets[] = $this->progress(
                 key: 'monthly_salary',
-                label: $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
+                label: $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
                 current: $monthlyVolume,
                 target: $salaryTarget,
                 hint: $user->role === 'sub_dealer'
-                    ? 'Buy this much more from the company this month to stay on a healthy activity track.'
-                    : 'Remaining company purchase needed this month to qualify for the monthly salary pool.',
+                    ? __('portal.target_subdealer_purchase_hint')
+                    : __('portal.target_dealer_salary_hint'),
             );
         }
 
@@ -124,22 +138,22 @@ final class PartnerDashboardHome
         if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
             $targets[] = [
                 'key' => 'rank_reward',
-                'label' => 'Rank reward',
+                'label' => __('portal.target_rank_reward'),
                 'current' => Money::decimal($lifetime),
                 'target' => Money::decimal($moTarget),
                 'remaining' => '0.00',
                 'percent' => 100.0,
-                'hint' => 'Admin granted unconditional rank benefit access for this partner.',
+                'hint' => __('portal.target_unconditional_rank_hint'),
             ];
         } elseif ($user->role === 'sub_dealer' || ($rank->current_rank ?? 'dealer') === 'dealer') {
             $targets[] = $this->progress(
                 key: 'rank_reward',
-                label: 'MO rank reward',
+                label: __('portal.target_mo_rank_reward'),
                 current: $lifetime,
                 target: $moTarget,
                 hint: $user->role === 'sub_dealer'
-                    ? 'Cumulative own purchases toward the Marketing Officer (৳2.5L) rank reward track.'
-                    : 'Cumulative own purchases required to promote to Marketing Officer.',
+                    ? __('portal.target_subdealer_mo_hint')
+                    : __('portal.target_dealer_mo_hint'),
             );
         } else {
             $next = match ($rank->current_rank) {
@@ -166,34 +180,51 @@ final class PartnerDashboardHome
                 $requiredLabel = strtoupper($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => strtoupper($code).' rank reward',
+                    'label' => __('portal.target_named_rank_reward', ['rank' => strtoupper($code)]),
                     'current' => (string) $count,
                     'target' => (string) $needed,
                     'remaining' => (string) max(0, $needed - $count),
                     'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
-                    'hint' => "Need {$needed} {$requiredLabel} leaders in {$depth}-gen downline.",
+                    'hint' => __('portal.target_rank_leaders_hint', [
+                        'needed' => $needed,
+                        'rank' => $requiredLabel,
+                        'depth' => $depth,
+                    ]),
                 ];
             } else {
                 $targets[] = [
                     'key' => 'rank_reward',
-                    'label' => 'Rank reward',
+                    'label' => __('portal.target_rank_reward'),
                     'current' => 'ME',
                     'target' => 'ME',
                     'remaining' => '0',
                     'percent' => 100.0,
-                    'hint' => 'Highest rank achieved.',
+                    'hint' => __('portal.target_highest_rank_hint'),
                 ];
             }
         }
 
-        $bike = $this->qualification->milestone($user->id, 'bike');
-        $targets[] = $this->progress(
-            key: 'bike_incentive',
-            label: 'Bike incentive',
-            current: Money::cents((string) $bike['qualifying_volume']),
-            target: Money::cents((string) $bike['target_amount']),
-            hint: 'Qualified team volume toward the motorcycle incentive (leg caps applied).',
-        );
+        if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
+            $bike = RewardMilestoneProgress::query()
+                ->where('user_id', $user->id)
+                ->where('milestone_type', 'bike')
+                ->first();
+            if ($bike === null) {
+                $bikeData = $this->qualification->milestone($user->id, 'bike');
+                $bikeCurrent = Money::cents((string) $bikeData['qualifying_volume']);
+                $bikeTarget = Money::cents((string) $bikeData['target_amount']);
+            } else {
+                $bikeCurrent = Money::cents((string) $bike->qualifying_volume);
+                $bikeTarget = Money::cents((string) $bike->target_amount);
+            }
+            $targets[] = $this->progress(
+                key: 'bike_incentive',
+                label: __('portal.target_bike_incentive'),
+                current: $bikeCurrent,
+                target: $bikeTarget,
+                hint: __('portal.target_bike_incentive_hint'),
+            );
+        }
 
         return $targets;
     }

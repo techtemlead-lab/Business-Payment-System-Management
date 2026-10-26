@@ -1,0 +1,121 @@
+<?php
+
+namespace App\Domain\Accounts;
+
+use App\Models\User;
+use App\Support\JoinQr;
+use App\Support\PortalHost;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+/**
+ * Printable partner identity card — common in Bangladesh dealer networks.
+ * Preview artifact only; does not post financial entries.
+ */
+final class PartnerIdCard
+{
+    public function downloadPdf(User $user): BinaryFileResponse
+    {
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+
+        $locale = $user->preferredLocale();
+        $t = static fn (string $key, array $replace = []) => __('portal.'.$key, $replace, $locale);
+
+        $dir = Storage::disk('local')->path('report-exports');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $profile = is_array($user->profile) ? $user->profile : [];
+        $code = (string) ($user->dealer_code ?: 'PARTNER');
+        $refer = (string) ($user->refer_code ?: $code);
+        $joinUrl = PortalHost::url('public', '/join/'.$refer);
+        $safeCode = preg_replace('/[^A-Za-z0-9_-]+/', '-', $code) ?: 'partner';
+        $path = $dir.'/partner-id-'.$safeCode.'-'.now('Asia/Dhaka')->format('Ymd-His').'-'.Str::lower(Str::random(6)).'.pdf';
+
+        $shop = $user->role === 'sub_dealer'
+            ? (string) ($profile['shop_name'] ?? $profile['pharmacy'] ?? '')
+            : '';
+        $location = collect([$profile['upazila'] ?? null, $user->district, $user->division])
+            ->filter(fn ($part) => filled($part))
+            ->implode(', ');
+        $roleKey = 'acct_role_'.$user->role;
+        $roleLabel = __('portal.'.$roleKey, [], $locale);
+        if ($roleLabel === 'portal.'.$roleKey) {
+            $roleLabel = str_replace('_', ' ', (string) $user->role);
+        }
+        $issued = now('Asia/Dhaka')->format('d M Y');
+
+        $qrPng = $dir.'/partner-id-qr-'.$safeCode.'-'.Str::lower(Str::random(6)).'.png';
+        file_put_contents($qrPng, JoinQr::png($joinUrl, 140));
+
+        $html = '<html><head><style>
+            body{font-family:freeserif,sans-serif;color:#011627;margin:0}
+            .card{border:2px solid #2e3192;border-radius:10px;padding:14px 16px;width:100%}
+            .row{width:100%}
+            .brand{font-size:10pt;letter-spacing:.08em;text-transform:uppercase;color:#2e3192;font-weight:700}
+            .role{display:inline-block;margin-top:4px;padding:2px 8px;background:#eef0fb;color:#2e3192;font-size:8pt;border-radius:4px}
+            h1{font-size:15pt;margin:10px 0 2px}
+            .meta{font-size:9pt;color:#475569;margin:0 0 8px}
+            table{width:100%;border-collapse:collapse;font-size:9pt}
+            td{padding:3px 0;vertical-align:top}
+            td.k{width:30%;color:#64748b}
+            td.v{font-weight:600}
+            .code{font-size:13pt;letter-spacing:.1em;color:#ef4a23}
+            .foot{margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:7pt;color:#64748b}
+            .url{word-break:break-all;font-size:7pt;color:#334155}
+            .qr{width:28mm;height:28mm}
+        </style></head><body><div class="card">
+            <table class="row"><tr>
+            <td style="width:68%;padding-right:8px;vertical-align:top">
+            <div class="brand">'.e($t('brand_madina_natural_health_care')).'</div>
+            <div class="role">'.e($t('pdf_id_card_role', ['role' => $roleLabel])).'</div>
+            <h1>'.e($user->name).'</h1>
+            <p class="meta">'.e($shop !== '' ? $shop.' · ' : '').e($location !== '' ? $location : $t('pdf_location_bangladesh')).'</p>
+            <table>
+                <tr><td class="k">'.e($t('pdf_id_card_dealer_code')).'</td><td class="v">'.e($code).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_refer_code')).'</td><td class="v code">'.e($refer).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_mobile')).'</td><td class="v">'.e((string) ($user->phone ?: '—')).'</td></tr>
+                <tr><td class="k">'.e($t('pdf_id_card_join_link')).'</td><td class="url">'.e($joinUrl).'</td></tr>
+            </table>
+            </td>
+            <td style="width:32%;text-align:center;vertical-align:middle">
+                <img class="qr" src="'.e($qrPng).'" alt="'.e($t('pdf_id_card_scan')).'"/>
+                <div style="font-size:7pt;color:#64748b;margin-top:3px">'.e($t('pdf_id_card_scan')).'</div>
+            </td>
+            </tr></table>
+            <div class="foot">'.e($t('pdf_id_card_foot', ['when' => $issued])).'</div>
+        </div></body></html>';
+
+        try {
+            $pdf = new Mpdf([
+                'tempDir' => $dir,
+                'format' => [90, 55],
+                'margin_left' => 4,
+                'margin_right' => 4,
+                'margin_top' => 4,
+                'margin_bottom' => 4,
+                'default_font' => 'freeserif',
+                'autoScriptToLang' => true,
+                'autoLangToFont' => true,
+            ]);
+            $pdf->SetTitle($t('pdf_id_card_doc_title', ['code' => $code]));
+            $pdf->WriteHTML($html);
+            $pdf->Output($path, Destination::FILE);
+        } catch (\Throwable $exception) {
+            @unlink($path);
+            @unlink($qrPng);
+            throw $exception;
+        }
+        @unlink($qrPng);
+
+        return response()->download(
+            $path,
+            'Madina-partner-id-'.$safeCode.'.pdf',
+            ['Cache-Control' => 'private, no-store'],
+        )->deleteFileAfterSend();
+    }
+}

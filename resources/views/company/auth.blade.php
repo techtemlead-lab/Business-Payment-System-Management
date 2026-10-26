@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password')) }} · Madina</title>
+    <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password')) }} · {{ __('portal.brand_company_bar') }}</title>
     <link rel="stylesheet" href="/reference/instrument-sans-local.css">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
         </form>
     </div>
-    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care"></div>
+    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=6" alt="{{ __('portal.brand_alt') }}"></div>
     <section class="company-auth-card">
         <span class="eyebrow">{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</span>
         <h1>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password')) }}</h1>
@@ -40,7 +40,7 @@
             · <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">{{ __('auth_ui.subdealer_sign_in') }}</a>
         </div>
     </section>
-    <p class="company-auth-footer">Madina Natural Health Care · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
+    <p class="company-auth-footer">{{ __('portal.brand_company_bar') }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
 </main>
 </body>
 </html>

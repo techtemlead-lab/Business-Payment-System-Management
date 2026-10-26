@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class DashboardManagement
 {
@@ -63,7 +64,41 @@ class DashboardManagement
 
     public static function save(array $settings): void
     {
-        $clean = array_intersect_key($settings, self::defaults());
+        $defaults = self::defaults();
+        $clean = array_intersect_key($settings, $defaults);
+        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'company_treasury_enabled', 'company_commissions_enabled', 'company_customization_enabled', 'company_audit_enabled'] as $flag) {
+            if (array_key_exists($flag, $clean)) {
+                $clean[$flag] = filter_var($clean[$flag], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+        foreach (['dealer_announcement_type', 'subdealer_announcement_type', 'employee_announcement_type'] as $typeKey) {
+            if (array_key_exists($typeKey, $clean) && ! in_array($clean[$typeKey], ['info', 'warning', 'danger', 'success'], true)) {
+                $clean[$typeKey] = $defaults[$typeKey];
+            }
+        }
+        foreach (['dealer_announcement', 'subdealer_announcement', 'employee_announcement'] as $textKey) {
+            if (array_key_exists($textKey, $clean)) {
+                $clean[$textKey] = mb_substr(trim((string) $clean[$textKey]), 0, 500);
+            }
+        }
+        foreach (['dealer_min_order', 'subdealer_min_order'] as $moneyKey) {
+            if (! array_key_exists($moneyKey, $clean)) {
+                continue;
+            }
+            $amount = (string) $clean[$moneyKey];
+            if (! preg_match('/^\d{1,8}(\.\d{1,2})?$/', $amount)) {
+                throw ValidationException::withMessages([$moneyKey => __('portal.err_dash_min_order')]);
+            }
+            $clean[$moneyKey] = Money::decimal(Money::cents($amount));
+        }
+        if (array_key_exists('employee_default_permissions', $clean)) {
+            $known = array_unique(array_merge(...array_values(config('madina.roles'))));
+            $clean['employee_default_permissions'] = array_values(array_intersect(
+                array_map('strval', (array) $clean['employee_default_permissions']),
+                $known,
+            ));
+        }
+
         DB::table('content_pages')->updateOrInsert(
             ['slug' => self::SLUG],
             [
@@ -73,6 +108,117 @@ class DashboardManagement
                 'updated_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Map partner workspace features to dashboard_management setting keys.
+     */
+    public static function partnerFeatureSettingKey(User $user, string $feature): ?string
+    {
+        if ($user->role === 'dealer') {
+            return match ($feature) {
+                'orders' => 'dealer_orders_enabled',
+                'claims' => 'dealer_claims_enabled',
+                'catalog' => 'dealer_catalog_enabled',
+                'network' => 'dealer_network_tree_enabled',
+                'ranks' => 'dealer_ranks_enabled',
+                'rewards' => 'dealer_rewards_enabled',
+                'deliveries' => 'dealer_orders_enabled',
+                default => null,
+            };
+        }
+
+        if ($user->role === 'sub_dealer') {
+            return match ($feature) {
+                'orders' => 'subdealer_orders_enabled',
+                'claims' => 'subdealer_orders_enabled',
+                'catalog' => 'subdealer_catalog_enabled',
+                'salary' => 'subdealer_salary_enabled',
+                'deliveries' => 'subdealer_deliveries_enabled',
+                default => null,
+            };
+        }
+
+        return null;
+    }
+
+    public static function partnerFeatureEnabled(User $user, string $feature): bool
+    {
+        $key = self::partnerFeatureSettingKey($user, $feature);
+        if ($key === null) {
+            return true;
+        }
+
+        return (bool) (self::get()[$key] ?? true);
+    }
+
+    public static function assertPartnerFeature(User $user, string $feature): void
+    {
+        if (self::partnerFeatureEnabled($user, $feature)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'feature' => (string) __('portal.feature_disabled', ['feature' => $feature]),
+        ]);
+    }
+
+    /**
+     * Block partner section routes when the matching dashboard toggle is off.
+     */
+    public static function assertPartnerSection(User $user, string $section): void
+    {
+        $feature = match ($section) {
+            'catalog' => 'catalog',
+            'network' => 'network',
+            'ranks' => 'ranks',
+            'rewards' => 'rewards',
+            'salary' => 'salary',
+            'orders' => 'orders',
+            'deliveries' => 'deliveries',
+            default => null,
+        };
+
+        if ($feature === null || self::partnerFeatureEnabled($user, $feature)) {
+            return;
+        }
+
+        abort(403, (string) __('portal.feature_disabled', ['feature' => $feature]));
+    }
+
+    /**
+     * Enforce dashboard maintenance lockout and optional minimum order for partners.
+     */
+    public static function assertPartnerCanOrder(User $user, int $orderTotalCents): void
+    {
+        if (! in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            return;
+        }
+        $settings = self::get();
+        $maintenance = $user->role === 'dealer'
+            ? (bool) ($settings['dealer_maintenance_mode'] ?? false)
+            : (bool) ($settings['subdealer_maintenance_mode'] ?? false);
+        if ($maintenance) {
+            throw ValidationException::withMessages([
+                'items' => $user->role === 'dealer'
+                    ? __('portal.order_val_dealer_maintenance')
+                    : __('portal.order_val_subdealer_maintenance'),
+            ]);
+        }
+        if (! self::partnerFeatureEnabled($user, 'orders')) {
+            throw ValidationException::withMessages(['items' => __('portal.order_val_orders_disabled')]);
+        }
+        $minimum = $user->role === 'dealer'
+            ? (string) ($settings['dealer_min_order'] ?? '0.00')
+            : (string) ($settings['subdealer_min_order'] ?? '0.00');
+        $minimumCents = Money::cents($minimum);
+        if ($minimumCents > 0 && $orderTotalCents < $minimumCents) {
+            throw ValidationException::withMessages([
+                'items' => __('portal.order_val_minimum_amount', [
+                    'amount' => Money::decimal($minimumCents),
+                ]),
+            ]);
+        }
     }
 
     public static function reset(): void
@@ -89,24 +235,37 @@ class DashboardManagement
 
         if ($user->role === 'dealer') {
             return [
-                'text' => $settings['dealer_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('dealer_announcement', $settings['dealer_announcement'] ?? ''),
                 'type' => $settings['dealer_announcement_type'] ?? 'info',
                 'maintenance' => (bool) ($settings['dealer_maintenance_mode'] ?? false),
             ];
         } elseif ($user->role === 'sub_dealer') {
             return [
-                'text' => $settings['subdealer_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('subdealer_announcement', $settings['subdealer_announcement'] ?? ''),
                 'type' => $settings['subdealer_announcement_type'] ?? 'info',
                 'maintenance' => (bool) ($settings['subdealer_maintenance_mode'] ?? false),
             ];
         } elseif ($user->role === 'employee') {
             return [
-                'text' => $settings['employee_announcement'] ?? '',
+                'text' => self::localizedDefaultAnnouncement('employee_announcement', $settings['employee_announcement'] ?? ''),
                 'type' => $settings['employee_announcement_type'] ?? 'info',
                 'maintenance' => false,
             ];
         }
 
         return null;
+    }
+
+    /**
+     * Translate stock default banners with the active locale. Custom CMS copy is returned unchanged.
+     */
+    private static function localizedDefaultAnnouncement(string $key, string $text): string
+    {
+        $default = (string) (self::defaults()[$key] ?? '');
+        if ($text === '' || $text === $default) {
+            return (string) __('portal.'.$key.'_default');
+        }
+
+        return $text;
     }
 }

@@ -19,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
@@ -36,7 +36,7 @@ const sectionKeys: Record<string, string> = {
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
-    notifications: 'notifications', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
+    notifications: 'notifications', circulars: 'circulars', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
@@ -68,7 +68,8 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
+    const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
@@ -159,10 +160,11 @@ export default function Shell({ section, children, action }: { section: string; 
                 'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
         }
         if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
+        if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) items.add('reports');
         if (user.role === 'super_admin') items.add('access-management');
         if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
         if (capabilities.includes('accounts')) {
-            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers'].forEach((item) => items.add(item));
+            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
         }
         if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('benefits-fund');
         if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
@@ -178,14 +180,44 @@ export default function Shell({ section, children, action }: { section: string; 
     }, [capabilities, ownerPortal, user.role]);
 
     const partnerAvailable = useMemo(() => {
+        const controls = dashboardControls || {};
         if (user.role === 'dealer') {
-            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.dealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.dealer_network_tree_enabled === false) {
+                items.delete('network');
+            }
+            if (controls.dealer_ranks_enabled === false) {
+                items.delete('ranks');
+            }
+            if (controls.dealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('deliveries');
+                items.delete('dues');
+            }
+            return items;
         }
         if (user.role === 'sub_dealer') {
-            return new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.subdealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.subdealer_salary_enabled === false) {
+                items.delete('salary');
+            }
+            if (controls.subdealer_deliveries_enabled === false) {
+                items.delete('deliveries');
+            }
+            if (controls.subdealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('dues');
+            }
+            return items;
         }
         return new Set(['profile', 'security', 'notifications']);
-    }, [user.role]);
+    }, [user.role, dashboardControls]);
 
     const domainMothers = useMemo((): NavMother[] => {
         if (!staff) {
@@ -195,7 +227,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
                     mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
-                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
                 ]);
             }
             if (user.role === 'sub_dealer') {
@@ -203,7 +235,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
                     mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
-                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
                 ]);
             }
             return compactMothers([
@@ -354,8 +386,8 @@ export default function Shell({ section, children, action }: { section: string; 
                 <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
                     <X size={18} />
                 </button>
-                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label="Madina dashboard">
-                    <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" />
+                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
+                    <img src="/madina-header-logo.png?v=6" alt={translate('portal', 'brand_alt')} />
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />
@@ -413,8 +445,13 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                     <div className="header-actions">
                         <LanguageSwitcher compact />
-                        <Link href={base + '/notifications'} className="icon-button" aria-label={translate('portal', 'notifications')}>
+                        <Link href={base + '/notifications'} className="icon-button notice-bell" aria-label={translate('portal', 'notifications')}>
                             <Bell size={19} />
+                            {unreadCount > 0 && (
+                                <span className="notice-bell-count" aria-hidden="true">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
                         </Link>
                         <div className="avatar">{user.name.slice(0, 1)}</div>
                         <div className="user-caption">
@@ -437,7 +474,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 <main id="workspace-main" className="workspace-main">
                     <div className="page-heading portal-fade-in">
                         <div>
-                            <div className="eyebrow">MADINA / {portalLabel}</div>
+                            <div className="eyebrow">{translate('portal', 'brand_eyebrow', { portal: portalLabel })}</div>
                             <h1>{currentSectionTitle}</h1>
                             <p>{currentSectionHint}</p>
                         </div>
@@ -567,8 +604,8 @@ export default function Shell({ section, children, action }: { section: string; 
                         </div>
                     )}
                     <footer className="workspace-footer">
-                        <span>Madina Natural Health Care</span>
-                        <span>Asia/Dhaka · BDT</span>
+                        <span>{translate('portal', 'brand_company_bar')}</span>
+                        <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}

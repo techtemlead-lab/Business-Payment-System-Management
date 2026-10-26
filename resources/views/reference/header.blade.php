@@ -1,18 +1,7 @@
 @php
-    $isBangla = app()->getLocale() === 'bn';
-    $chrome = function (string $key, ?string $custom = null) use ($isBangla): string {
-        if ($isBangla) {
-            return (string) __('site.'.$key);
-        }
-        $legacyCompanyBar = ['MADINA NATURAL HEALTH CARE', 'Madina Natural Health Care'];
-        if ($key === 'company_bar' && filled($custom) && in_array((string) $custom, $legacyCompanyBar, true)) {
-            return (string) __('site.company_bar');
-        }
-
-        return filled($custom) ? (string) $custom : (string) __('site.'.$key);
-    };
+    $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
 @endphp
-<a class="ref-skip" href="#main">Skip to content</a>
+<a class="ref-skip" href="#main">{{ __('site.skip_to_content') }}</a>
 <div class="ref-company-bar">
     <div class="ref-company-bar-inner">
         <span class="ref-bar-flourish left" aria-hidden="true">
@@ -29,13 +18,13 @@
 <header class="ref-header">
     <div class="ref-container ref-header-inner">
         <!-- Mobile Hamburger Menu Button -->
-        <button type="button" class="ref-mobile-menu-btn" id="refMobileMenuToggle" aria-label="Open mobile navigation menu">
+        <button type="button" class="ref-mobile-menu-btn" id="refMobileMenuToggle" aria-label="{{ __('site.open_mobile_nav') }}">
             <i class="fa-solid fa-bars" aria-hidden="true"></i>
         </button>
 
         <!-- Logo -->
-        <a href="/" class="ref-logo ref-madina-logo" aria-label="Madina Natural Health Care home">
-            <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" width="500" height="500">
+        <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
+            <img src="/madina-header-logo.png?v=6" alt="{{ __('site.company_bar') }}" width="500" height="500">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -64,8 +53,8 @@
             <a href="/dealers"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><b>{{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</b><small>{{ $chrome('network_sub') }}</small></span></a>
             @endif
             @auth
-            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->owner() ? 'Owner Portal' : (auth()->user()->staff() ? 'Company Portal' : (auth()->user()->dealer_code ?? 'My Account')) }}</small></span></a>
-            <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="Log out" aria-label="Log out"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>Log out</b><small>Exit Session</small></span></button></form>
+            <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}"><i class="fa-solid fa-user-check" aria-hidden="true"></i><span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->owner() ? __('site.owner_portal') : (auth()->user()->staff() ? __('site.company_portal') : (auth()->user()->dealer_code ?? __('site.my_account'))) }}</small></span></a>
+            <form method="POST" action="/logout" class="ref-logout-form"><input type="hidden" name="_token" value="{{ csrf_token() }}"><button type="submit" class="ref-header-logout-btn" title="{{ __('site.log_out') }}" aria-label="{{ __('site.log_out') }}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span><b>{{ __('site.log_out') }}</b><small>{{ __('site.exit_session') }}</small></span></button></form>
             @else
             <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b><small>{{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}</small></span></a>
             @endauth
@@ -85,7 +74,7 @@
     <div class="ref-mobile-search-inner">
         <div class="ref-mobile-search-top">
             <span class="ref-mobile-search-title">{{ __('site.search_label') }}</span>
-            <button type="button" class="ref-mobile-search-close" id="refMobileSearchClose" aria-label="Close search">
+            <button type="button" class="ref-mobile-search-close" id="refMobileSearchClose" aria-label="{{ __('site.close_search') }}">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         </div>
@@ -102,38 +91,38 @@
 
 <!-- Mobile Off-Canvas Drawer & Overlay -->
 <div id="refMobileMenuOverlay" class="ref-mobile-menu-overlay" aria-hidden="true"></div>
-<aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="Mobile navigation drawer">
+<aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=6" alt="Madina Natural Health Care" class="ref-mobile-drawer-logo-img" onerror="this.src='/madina-header-logo.png?v=6'">
+            <img src="/madina-header-logo-white.png?v=6" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" onerror="this.src='/madina-header-logo.png?v=6'">
         </a>
-        <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="Close menu">
+        <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
     </div>
     <div class="ref-mobile-drawer-body">
         <div class="ref-mobile-drawer-group">
-            <div class="ref-mobile-drawer-group-title">Navigation</div>
+            <div class="ref-mobile-drawer-group-title">{{ __('site.navigation') }}</div>
             <ul class="ref-mobile-drawer-nav-list">
-                <li><a href="/"><i class="fa-solid fa-house"></i> Home</a></li>
+                <li><a href="/"><i class="fa-solid fa-house"></i> {{ __('site.home') }}</a></li>
                 @if($publicPageEnabled['products'] ?? true)<li><a href="/products"><i class="fa-solid fa-leaf"></i> {{ $chrome('products', $siteCustomization['header_catalog_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['dealers'] ?? true)<li><a href="/dealers"><i class="fa-solid fa-layer-group"></i> {{ $chrome('network', $siteCustomization['header_network_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['about'] ?? true)<li><a href="/about"><i class="fa-solid fa-circle-info"></i> {{ $chrome('about', $siteCustomization['header_about_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> Services</a></li>@endif
-                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> Become a Partner</a></li>@endif
+                @if($publicPageEnabled['services'] ?? true)<li><a href="/services"><i class="fa-solid fa-hand-holding-heart"></i> {{ __('site.services') }}</a></li>@endif
+                @if($publicPageEnabled['partnership'] ?? true)<li><a href="/partnership"><i class="fa-solid fa-handshake"></i> {{ __('site.become_a_partner') }}</a></li>@endif
                 @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
-                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> FAQ</a></li>@endif
+                @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ __('site.faq') }}</a></li>@endif
             </ul>
         </div>
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth
             <a href="{{ \App\Support\PortalHost::homeUrl(auth()->user()) }}" class="ref-drawer-btn ref-drawer-btn-primary">
-                <i class="fa-solid fa-user-check"></i> {{ auth()->user()->owner() ? 'Owner Portal' : (auth()->user()->staff() ? 'Company Portal' : 'Partner Workspace') }}
+                <i class="fa-solid fa-user-check"></i> {{ auth()->user()->owner() ? __('site.owner_portal') : (auth()->user()->staff() ? __('site.company_portal') : __('site.partner_workspace')) }}
             </a>
             <form method="POST" action="/logout" class="ref-drawer-logout-form">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <button type="submit" class="ref-drawer-btn ref-drawer-btn-secondary">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> {{ __('site.log_out') }}
                 </button>
             </form>
             @else
@@ -142,7 +131,7 @@
             </a>
             @if(($publicPageEnabled['partnership'] ?? true) || ($publicPageEnabled['contact'] ?? true))
             <a href="{{ ($publicPageEnabled['partnership'] ?? true) ? '/partnership' : '/contact#vendor' }}" class="ref-drawer-btn ref-drawer-btn-secondary">
-                <i class="fa-solid fa-handshake"></i> Become a Partner
+                <i class="fa-solid fa-handshake"></i> {{ __('site.become_a_partner') }}
             </a>
             @endif
             @endauth

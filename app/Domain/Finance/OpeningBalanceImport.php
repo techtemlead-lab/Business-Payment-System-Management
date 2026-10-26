@@ -3,7 +3,12 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Jobs\ApplyDataImport;
+use App\Models\AreaDealerAssignment;
+use App\Models\DealerRank;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -18,7 +23,11 @@ use Illuminate\Validation\ValidationException;
 
 final class OpeningBalanceImport
 {
-    public function __construct(private CommissionWallet $wallets, private ImportWorkbook $workbooks) {}
+    public function __construct(
+        private CommissionWallet $wallets,
+        private ImportWorkbook $workbooks,
+        private PlaceGeographyResolver $geography,
+    ) {}
 
     public function authorize(User $actor, string $type, string $action): void
     {
@@ -37,12 +46,12 @@ final class OpeningBalanceImport
         [$rows, $summary] = $this->workbooks->validate($type, $this->workbooks->read($file->getRealPath(), $type));
         $hash = hash_file('sha256', $file->getRealPath());
         if (DB::table('data_import_batches')->where('type', $type)->where('file_hash', $hash)->where('status', 'applied')->exists()) {
-            throw ValidationException::withMessages(['file' => 'This workbook was already imported. Existing data has been preserved.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_import_already_applied')]);
         }
         $id = (string) Str::uuid();
         $path = $file->storeAs('data-imports', $id.'.xlsx', 'local');
         if (! $path) {
-            throw ValidationException::withMessages(['file' => 'The workbook could not be stored securely. Please try again.']);
+            throw ValidationException::withMessages(['file' => __('portal.err_import_store_failed')]);
         }
         try {
             DB::transaction(function () use ($actor, $id, $type, $file, $source, $hash, $path, $rows, $summary): void {
@@ -72,12 +81,12 @@ final class OpeningBalanceImport
                 return;
             }
             if ($batch->status !== 'preview') {
-                throw ValidationException::withMessages(['import' => 'Only a valid preview can be queued. Upload a corrected workbook.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_queue_preview_only')]);
             }
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => 'A separate authorized Finance reviewer must approve opening entries.']);
+                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
                 }
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'queued', 'review_reason' => $reason, 'updated_at' => now()]);
@@ -102,24 +111,24 @@ final class OpeningBalanceImport
                 return;
             }
             if (! in_array($batch->status, ['preview', 'queued'], true)) {
-                throw ValidationException::withMessages(['import' => 'Only a valid preview can be imported. Correct the workbook and upload it again.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_apply_preview_only')]);
             }
             if ($batch->type === 'opening_balances') {
                 $this->assertOpeningAllowed();
                 if ($batch->created_by === $actor->id) {
-                    throw ValidationException::withMessages(['import' => 'A separate authorized Finance reviewer must approve opening entries.']);
+                    throw ValidationException::withMessages(['import' => __('portal.err_import_separate_reviewer')]);
                 }
             }
             if (! Storage::disk('local')->exists($batch->file_path) || ! hash_equals($batch->file_hash, hash_file('sha256', Storage::disk('local')->path($batch->file_path)))) {
-                throw ValidationException::withMessages(['import' => 'The original workbook is missing or changed. Upload it again.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_file_missing')]);
             }
             if (DB::table('data_import_batches')->where('type', $batch->type)->where('file_hash', $batch->file_hash)->where('status', 'applied')->exists()) {
-                throw ValidationException::withMessages(['import' => 'This workbook has already been applied through another preview.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_duplicate_apply')]);
             }
             $stored = json_decode($batch->rows, true, 512, JSON_THROW_ON_ERROR);
             [$rows, $summary] = $this->workbooks->validate($batch->type, array_map(fn (array $row): array => ['row' => $row['row'], 'data' => $row['data']], $stored));
             if ($summary['invalid_rows']) {
-                throw ValidationException::withMessages(['import' => 'Records changed after the preview. Upload the workbook again to review current row errors.']);
+                throw ValidationException::withMessages(['import' => __('portal.err_import_stale_rows')]);
             }
             foreach ($rows as $row) {
                 match ($batch->type) {
@@ -130,6 +139,29 @@ final class OpeningBalanceImport
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'applied', 'applied_by' => $actor->id, 'applied_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
             Audit::record($actor->id, 'data_import.applied', $id, ['type' => $batch->type, 'file_hash' => $batch->file_hash, 'summary' => $summary, 'reason' => $reason, 'prepared_by' => $batch->created_by]);
+            $preparer = User::find((int) $batch->created_by);
+            if ($preparer !== null && $preparer->id !== $actor->id) {
+                $locale = $preparer->preferredLocale();
+                $typeLabel = __('portal.import_type_'.$batch->type, [], $locale);
+                Audit::notice(
+                    $preparer->id,
+                    __('portal.notice_import_applied_title', [], $locale),
+                    __('portal.notice_import_applied_body', [
+                        'type' => $typeLabel,
+                        'reference' => $batch->source_reference,
+                    ], $locale),
+                );
+                DB::afterCommit(function () use ($preparer, $locale, $batch, $typeLabel): void {
+                    app(PartnerEventSms::class)->send(
+                        $preparer,
+                        'data_import.applied',
+                        __('sms.import_applied', [
+                            'type' => $typeLabel,
+                            'reference' => $batch->source_reference,
+                        ], $locale),
+                    );
+                });
+            }
         }, 3);
     }
 
@@ -145,37 +177,124 @@ final class OpeningBalanceImport
             if ($entry->released_at) {
                 return;
             }
-            abort_unless(User::whereKey($entry->user_id)->where('status', 'active')->exists(), 422, 'The partner must be active before release.');
+            $partner = User::whereKey($entry->user_id)->where('status', 'active')->first();
+            abort_unless($partner, 422, __('portal.err_import_partner_inactive'));
             $amount = Money::cents($entry->held);
             if ($amount <= 0 || $this->wallets->debit($entry->user_id, $amount, true)['unrecovered'] !== 0) {
-                throw ValidationException::withMessages(['hold' => 'The opening hold does not reconcile with the wallet.']);
+                throw ValidationException::withMessages(['hold' => __('portal.err_import_hold_mismatch')]);
             }
-            $this->wallets->journal('opening.hold_release.'.$id, 'Reviewed opening commission hold release', [
+            $locale = $partner->preferredLocale();
+            $this->wallets->journal('opening.hold_release.'.$id, __('portal.jr_opening_hold_release', [], $locale), [
                 ['account' => 'commission_held_liability', 'user_id' => $entry->user_id, 'debit' => $amount, 'credit' => 0],
                 ['account' => 'wallet_liability', 'user_id' => $entry->user_id, 'debit' => 0, 'credit' => $amount],
             ]);
             $this->wallets->credit($entry->user_id, $amount);
             DB::table('opening_balance_entries')->where('id', $id)->update(['held_released' => $entry->held, 'released_by' => $actor->id, 'released_at' => now(), 'release_reason' => $reason, 'updated_at' => now()]);
             Audit::record($actor->id, 'opening.hold_released', (string) $id, ['amount' => $entry->held, 'reason' => $reason]);
+            $categoryLabel = __('portal.report_cat_opening_hold', [], $locale);
+            $amountDecimal = Money::decimal($amount);
+            Audit::notice(
+                $partner->id,
+                __('portal.notice_commission_released_title', [], $locale),
+                __('portal.notice_commission_released_body', [
+                    'category' => $categoryLabel,
+                    'amount' => $amountDecimal,
+                ], $locale),
+            );
+            $userId = (int) $partner->id;
+            DB::afterCommit(function () use ($userId, $categoryLabel, $amountDecimal, $locale): void {
+                $notified = User::find($userId);
+                if (! $notified) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $notified,
+                    'opening.hold_released',
+                    __('sms.commission_released', [
+                        'category' => $categoryLabel,
+                        'amount' => $amountDecimal,
+                    ], $notified->preferredLocale() ?: $locale),
+                );
+            });
         }, 3);
     }
 
     private function assertOpeningAllowed(): void
     {
         if (config('madina.financial_activation') || DB::table('financial_verifications')->whereNotNull('verified_at')->exists()) {
-            throw ValidationException::withMessages(['import' => 'Opening entries are available before financial activation and opening verification. Use reviewed adjustments after go-live.']);
+            throw ValidationException::withMessages(['import' => __('portal.err_import_opening_locked')]);
         }
     }
 
     /** @param array<string, string> $data */
     private function createPartner(array $data): void
     {
-        $sponsor = $data['sponsor_code'] ? User::where('dealer_code', $data['sponsor_code'])->value('id') : null;
-        $partner = (new User)->forceFill([...collect($data)->except('sponsor_code')->all(), 'sponsor_id' => $sponsor, 'status' => 'active',
-            'directory_visible' => false, 'password' => Str::random(64), 'profile' => ['imported_account' => true, 'requires_password_setup' => true]]);
+        $role = (string) $data['role'];
+        $place = PlaceCode::findByCode((string) $data['place_code']);
+        if (! $place) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_unknown')]);
+        }
+        if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_sub_level')]);
+        }
+        if ($role === 'dealer' && $place->level === PlaceCode::LevelManagement) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_management')]);
+        }
+        if ($role === 'dealer' && AreaDealerAssignment::query()->where('place_code_id', $place->id)->where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_wb_place_taken')]);
+        }
+
+        $path = $this->geography->expandFromAnchor($place);
+        $sponsor = $data['sponsor_code'] !== '' ? User::where('dealer_code', $data['sponsor_code'])->value('id') : null;
+        $profile = [
+            'imported_account' => true,
+            'requires_password_setup' => true,
+            'place_code' => $place->code,
+            'place_code_id' => $place->id,
+            'area_code' => $role === 'sub_dealer' ? (string) $data['dealer_code'] : $place->code,
+            'upazila' => $path['upazila'] ?? null,
+            'union' => $path['union'] ?? null,
+            'union_place_code' => $role === 'sub_dealer' ? $place->code : null,
+        ];
+        $partner = (new User)->forceFill([
+            'dealer_code' => $data['dealer_code'],
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'],
+            'role' => $role,
+            'sponsor_id' => $sponsor,
+            'division' => $path['division'] ?? null,
+            'district' => $path['district'] ?? null,
+            'status' => 'active',
+            'directory_visible' => false,
+            'password' => Str::random(64),
+            'profile' => $profile,
+        ]);
         $partner->save();
         ReferralTreePath::attachUser($partner->id, $sponsor);
         DB::table('wallets')->insert(['user_id' => $partner->id, 'created_at' => now(), 'updated_at' => now()]);
+        DealerRank::firstOrCreate(['user_id' => $partner->id], ['current_rank' => 'dealer']);
+
+        if ($role === 'dealer') {
+            AreaDealerAssignment::create([
+                'user_id' => $partner->id,
+                'level' => $place->level,
+                'place_code_id' => $place->id,
+                'zone_name' => $place->name.' ('.$place->code.')',
+                'division' => $path['division'],
+                'district' => $path['district'],
+                'upazila' => $path['upazila'],
+                'union' => $path['union'],
+                'monthly_quota' => match ($place->level) {
+                    'division' => '50000.00',
+                    'district' => '40000.00',
+                    'upazila' => '20000.00',
+                    default => '10000.00',
+                },
+                'territory_key' => hash('sha256', $place->level.'|code:'.$place->code),
+                'is_active' => true,
+            ]);
+        }
     }
 
     /** @param array<string, string> $data */
@@ -184,7 +303,7 @@ final class OpeningBalanceImport
         $product = Product::create([...$data, 'active' => false]);
         if ((int) $data['stock'] > 0) {
             DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => $data['stock'], 'kind' => 'opening_import',
-                'reference' => $batchId.'.'.$product->id, 'reason' => 'Opening stock imported from approved workbook', 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+                'reference' => $batchId.'.'.$product->id, 'reason' => __('portal.stock_reason_opening_import'), 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
         }
     }
 
@@ -214,12 +333,12 @@ final class OpeningBalanceImport
             DB::table('orders')->insert(['id' => $orderId, 'number' => 'OPEN-'.$data['reference'], 'user_id' => $partner->id, 'status' => 'delivered',
                 'total' => Money::decimal($total), 'paid' => Money::decimal($paid), 'is_opening_balance' => true, 'idempotency_key' => $batchId,
                 'payload_hash' => hash('sha256', json_encode($data, JSON_THROW_ON_ERROR)), 'commission_policy_snapshot' => json_encode(['source' => 'opening_import', 'non_commissionable' => true], JSON_THROW_ON_ERROR),
-                'note' => 'Historical delivered order balance. No inventory movement or new commission entitlement.', 'credit_authorized_by' => $actor->id,
+                'note' => __('portal.ob_order_note'), 'credit_authorized_by' => $actor->id,
                 'credit_authorized_at' => now(), 'created_at' => $date, 'updated_at' => now()]);
             if ($paid > 0) {
-                $claim = DB::table('payment_claims')->insertGetId(['order_id' => $orderId, 'channel' => 'Opening balance', 'reference' => 'OPEN-'.$data['reference'],
-                    'amount' => Money::decimal($paid), 'status' => 'verified', 'verified_by' => $actor->id, 'reason' => 'Approved historical payment imported from workbook', 'created_at' => $date, 'updated_at' => now()]);
-                DB::table('receipts')->insert(['order_id' => $orderId, 'claim_id' => $claim, 'channel' => 'Opening balance', 'reference' => 'OPEN-'.$data['reference'], 'amount' => Money::decimal($paid), 'created_at' => $date, 'updated_at' => now()]);
+                $claim = DB::table('payment_claims')->insertGetId(['order_id' => $orderId, 'channel' => __('portal.opening_balance'), 'reference' => 'OPEN-'.$data['reference'],
+                    'amount' => Money::decimal($paid), 'status' => 'verified', 'verified_by' => $actor->id, 'reason' => __('portal.ob_claim_reason'), 'created_at' => $date, 'updated_at' => now()]);
+                DB::table('receipts')->insert(['order_id' => $orderId, 'claim_id' => $claim, 'channel' => __('portal.opening_balance'), 'reference' => 'OPEN-'.$data['reference'], 'amount' => Money::decimal($paid), 'created_at' => $date, 'updated_at' => now()]);
             }
             $lines = [...$lines,
                 ['account' => 'opening_receivables', 'user_id' => $partner->id, 'debit' => $total - $paid, 'credit' => 0],
@@ -228,7 +347,12 @@ final class OpeningBalanceImport
             ];
         }
         if ($lines !== []) {
-            $this->wallets->journal('opening.import.'.$batchId.'.'.$partner->id, 'Approved opening balances: '.$data['reference'], $lines);
+            $locale = $partner->preferredLocale();
+            $this->wallets->journal(
+                'opening.import.'.$batchId.'.'.$partner->id,
+                __('portal.ob_journal_approved', ['reference' => $data['reference']], $locale),
+                $lines,
+            );
         }
         DB::table('opening_balance_entries')->insert(['import_id' => $batchId, 'user_id' => $partner->id, 'reference' => $data['reference'], 'as_of_date' => $data['as_of_date'],
             'available' => Money::decimal($available), 'held' => Money::decimal($held), 'order_id' => $orderId, 'created_at' => now(), 'updated_at' => now()]);

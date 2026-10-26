@@ -43,6 +43,17 @@ class SiteCustomizationTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('section', 'website'));
     }
 
+    public function test_website_page_labels_follow_staff_locale(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor', 'locale' => 'bn']);
+
+        $this->actingAs($editor)->get('/company/website')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.websitePages.0.key', 'home')
+                ->where('data.websitePages.0.label', __('portal.website_page_home', [], 'bn')));
+    }
+
     public function test_customization_can_be_saved_and_reflected_on_public_home_page(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);

@@ -2,9 +2,11 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class PartnerBenefitControls
@@ -68,7 +70,7 @@ final class PartnerBenefitControls
     public function save(User $actor, User $partner, array $input): array
     {
         if (! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
-            throw ValidationException::withMessages(['user_id' => 'Benefit controls apply only to dealers and sub-dealers.']);
+            throw ValidationException::withMessages(['user_id' => __('portal.err_benefit_partners_only')]);
         }
 
         $rank = self::normalizeRank($input['forced_royalty_rank'] ?? 'mo') ?? 'mo';
@@ -91,6 +93,34 @@ final class PartnerBenefitControls
             'controls' => $controls,
             'reason' => (string) ($input['reason'] ?? ''),
         ]);
+
+        $locale = $partner->preferredLocale();
+        $enabled = collect([
+            $controls['unconditional_salary'] ? __('portal.pbc_flag_salary', [], $locale) : null,
+            $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => strtoupper($rank)], $locale) : null,
+            $controls['unconditional_rank_incentive'] ? __('portal.pbc_flag_incentive', [], $locale) : null,
+        ])->filter()->implode(', ');
+        $summary = $enabled !== ''
+            ? $enabled
+            : __('portal.pbc_flag_none', [], $locale);
+        $reason = trim((string) ($input['reason'] ?? ''));
+        Audit::notice(
+            $partner->id,
+            __('portal.notice_benefit_controls_title', [], $locale),
+            __('portal.notice_benefit_controls_body', [
+                'summary' => $summary,
+                'reason' => $reason,
+            ], $locale),
+        );
+        DB::afterCommit(function () use ($partner, $locale, $summary): void {
+            app(PartnerEventSms::class)->send(
+                $partner->fresh() ?? $partner,
+                'accounts.benefit_controls_updated',
+                __('sms.benefit_controls_updated', [
+                    'summary' => $summary,
+                ], $locale),
+            );
+        });
 
         return $controls;
     }

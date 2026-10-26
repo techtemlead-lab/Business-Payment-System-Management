@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\DueAdjustments;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
@@ -10,7 +9,6 @@ use App\Domain\Staff\TerritoryAccess;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Resources\Api\V1\OrderResource;
 use App\Models\Order;
-use App\Support\Audit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,16 +25,10 @@ class FieldSalesController extends Controller
         return $this->done($request, ['id' => $territories->assign($request->user(), $data)]);
     }
 
-    public function removeTerritory(Request $request, int $id): Response
+    public function removeTerritory(Request $request, int $id, TerritoryAccess $territories): Response
     {
-        abort_unless($request->user()->allows('staff_admin'), 403);
         $data = $request->validate(['reason' => FinanceOperationsController::Reason]);
-        DB::transaction(function () use ($request, $id, $data): void {
-            CommissionWallet::lock();
-            abort_unless(DB::table('staff_territories')->where('id', $id)->exists(), 404);
-            DB::table('staff_territories')->where('id', $id)->update(['is_active' => false, 'territory_key' => null, 'updated_at' => now()]);
-            Audit::record($request->user()->id, 'staff.territory_removed', (string) $id, ['reason' => $data['reason']]);
-        }, 3);
+        $territories->remove($request->user(), $id, $data['reason']);
 
         return $this->done($request);
     }
@@ -93,6 +85,8 @@ class FieldSalesController extends Controller
     /** @param array<string, mixed> $data */
     private function done(Request $request, array $data = []): Response
     {
-        return $request->expectsJson() ? response()->json(['data' => $data]) : back()->with('success', 'Sales operation recorded successfully.');
+        return $request->expectsJson()
+            ? response()->json(['data' => $data])
+            : back()->with('success', __('portal.flash_sales_operation'));
     }
 }

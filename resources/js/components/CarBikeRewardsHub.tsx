@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { Trophy, ShieldCheck, AlertCircle, ChevronRight, Eye, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface LegBreakdown {
     leg_user_id: number;
@@ -37,6 +38,7 @@ interface CarBikeRewardsHubProps {
 }
 
 export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rule_params }: CarBikeRewardsHubProps) {
+    const translate = useT();
     const [activeTab, setActiveTab] = useState<'bike' | 'car'>('bike');
     const [selectedCandidate, setSelectedCandidate] = useState<MilestoneRecord | null>(null);
 
@@ -48,8 +50,8 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     const currentMilestones = activeTab === 'bike' ? bike_milestones : car_milestones;
     const currentTarget = activeTab === 'bike' ? bikeTarget : carTarget;
     const currentCap = activeTab === 'bike' ? bikeCap : carCap;
-    const rewardTitle = activeTab === 'bike' ? '🏍️ Motorbike Reward Fund' : '🚗 Luxury Car Reward Fund';
-    const rewardPrize = activeTab === 'bike' ? '৳3,00,000 motorcycle reward, subject to approval and reserve funding' : 'Company-approved car reward, subject to reserve funding';
+    const rewardTitle = activeTab === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car');
+    const rewardPrize = activeTab === 'bike' ? translate('portal', 'rw_prize_bike') : translate('portal', 'rw_prize_car');
 
     // Parse legs for selected candidate
     const legs: LegBreakdown[] = useMemo(() => {
@@ -77,15 +79,13 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#047857' }}>
-                            <ShieldCheck size={18} /> INFINITE-DEPTH MILESTONE ENGINE WITH ANTI-WHALE BRANCH CAPPING
+                            <ShieldCheck size={18} /> {translate('portal', 'rw_badge')}
                         </div>
                         <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '6px 0 4px 0' }}>
-                            Company Car & Motorbike Milestone Treasury
+                            {translate('portal', 'rw_heading')}
                         </h2>
                         <p style={{ fontSize: 13, color: '#64748b', maxWidth: 740, lineHeight: 1.5, margin: 0 }}>
-                            To prevent single-line whale exploitation where an upline does no work while riding one massive leg,
-                            qualifying volume mathematically caps each frontline branch: <b>৳8 Lakh max/leg for Motorbike</b> and <b>৳2 Crore max/leg for Car</b>.
-                            This enforces balanced, multi-leg organizational development.
+                            {translate('portal', 'rw_intro')}
                         </p>
                     </div>
 
@@ -109,7 +109,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 boxShadow: activeTab === 'bike' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            🏍️ Motorbike (৳60 Lakh)
+                            {translate('portal', 'rw_tab_bike')}
                         </button>
                         <button
                             type="button"
@@ -129,7 +129,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 boxShadow: activeTab === 'car' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            🚗 Luxury Car (৳25 Crore)
+                            {translate('portal', 'rw_tab_car')}
                         </button>
                     </div>
                 </div>
@@ -144,27 +144,27 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                     gap: 14
                 }}>
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>TOTAL SALES TARGET</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal', 'rw_kpi_target')}</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{money(currentTarget)}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>Cumulative team volume</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{translate('portal', 'rw_kpi_target_hint')}</div>
                     </div>
 
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>MAX CAP PER BRANCH</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>{translate('portal', 'rw_kpi_cap')}</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#006837', marginTop: 2 }}>{money(currentCap)}</div>
-                        <div style={{ fontSize: 11, color: '#059669' }}>Anti-whale leg ceiling</div>
+                        <div style={{ fontSize: 11, color: '#059669' }}>{translate('portal', 'rw_kpi_cap_hint')}</div>
                     </div>
 
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>MINIMUM LEGS NEEDED</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>{translate('portal', 'rw_kpi_legs')}</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8', marginTop: 2 }}>
-                            {Math.ceil(currentTarget / currentCap)} Active Branches
+                            {translate('portal', 'rw_kpi_legs_value', { count: String(Math.ceil(currentTarget / currentCap)) })}
                         </div>
-                        <div style={{ fontSize: 11, color: '#3b82f6' }}>Balanced network build</div>
+                        <div style={{ fontSize: 11, color: '#3b82f6' }}>{translate('portal', 'rw_kpi_legs_hint')}</div>
                     </div>
 
                     <div style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>COMPANY REWARD</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>{translate('portal', 'rw_kpi_reward')}</div>
                         <div style={{ fontSize: 14, fontWeight: 800, color: '#006837', marginTop: 2 }}>{rewardPrize}</div>
                     </div>
                 </div>
@@ -175,27 +175,27 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                            {rewardTitle} — Candidate Leaderboard
+                            {translate('portal', 'rw_leaderboard', { title: rewardTitle })}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0 0' }}>
-                            Ranked by qualifying anti-whale volume. Click "Inspect Branches" to verify branch breakdown.
+                            {translate('portal', 'rw_leaderboard_hint')}
                         </p>
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 700, color: '#006837' }}>
-                        {currentMilestones.length} Registered Leaders
+                        {translate('portal', 'rw_registered', { count: String(currentMilestones.length) })}
                     </span>
                 </div>
 
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead>
                         <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>Dealer / Leader</th>
-                            <th style={{ padding: '12px 16px' }}>Dealer Code</th>
-                            <th style={{ padding: '12px 16px' }}>Qualifying Volume</th>
-                            <th style={{ padding: '12px 16px' }}>Progress</th>
-                            <th style={{ padding: '12px 16px' }}>Target</th>
-                            <th style={{ padding: '12px 16px' }}>Status</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Branches</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_dealer')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_code')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_qual')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_progress')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_target')}</th>
+                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_status')}</th>
+                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal', 'rw_col_branches')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -207,9 +207,9 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 return (
                                     <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{m.user?.name || 'Partner'}</div>
+                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{m.user?.name || translate('portal', 'rw_partner')}</div>
                                             <div style={{ fontSize: 11, color: '#64748b' }}>
-                                                {m.user?.phone || 'No phone'} {m.user?.district ? `• ${m.user.district}` : ''}
+                                                {m.user?.phone || translate('portal', 'rw_no_phone')} {m.user?.district ? `• ${m.user.district}` : ''}
                                             </div>
                                         </td>
                                         <td style={{ padding: '12px 16px', fontWeight: 600 }}>{m.user?.dealer_code || '—'}</td>
@@ -244,7 +244,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                                 color: m.is_claimed ? '#047857' : isAchieved ? '#1d4ed8' : '#64748b',
                                                 border: `1px solid ${m.is_claimed ? '#a7f3d0' : isAchieved ? '#bfdbfe' : '#cbd5e1'}`
                                             }}>
-                                                {m.is_claimed ? 'CLAIMED' : isAchieved ? 'ACHIEVED' : 'IN PROGRESS'}
+                                                {m.is_claimed ? translate('portal', 'rw_claimed') : isAchieved ? translate('portal', 'rw_achieved') : translate('portal', 'rw_in_progress')}
                                             </span>
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
@@ -255,7 +255,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                                         className="button small"
                                                         style={{ fontSize: 11, padding: '4px 10px' }}
                                                     >
-                                                        Record payout
+                                                        {translate('portal', 'rw_record_payout')}
                                                     </Link>
                                                 )}
                                                 <button
@@ -274,7 +274,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                                         gap: 4
                                                     }}
                                                 >
-                                                    <Eye size={12} /> Inspect Branches
+                                                    <Eye size={12} /> {translate('portal', 'rw_inspect')}
                                                 </button>
                                             </div>
                                         </td>
@@ -284,7 +284,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                         ) : (
                             <tr>
                                 <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    No milestone candidates recorded yet. Qualifying volumes update automatically upon delivered orders.
+                                    {translate('portal', 'rw_empty')}
                                 </td>
                             </tr>
                         )}
@@ -314,13 +314,13 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
                                 <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>
-                                    ANTI-WHALE BRANCH AUDIT
+                                    {translate('portal', 'rw_audit_badge')}
                                 </div>
                                 <h3 style={{ fontSize: 18, fontWeight: 800, margin: '4px 0 2px 0', color: '#0f172a' }}>
                                     {selectedCandidate.user?.name} ({selectedCandidate.user?.dealer_code})
                                 </h3>
                                 <div style={{ fontSize: 12, color: '#64748b' }}>
-                                    Milestone: {selectedCandidate.milestone_type === 'bike' ? '🏍️ Motorbike (৳60L)' : '🚗 Car (৳25Cr)'}
+                                    {selectedCandidate.milestone_type === 'bike' ? translate('portal', 'rw_milestone_bike') : translate('portal', 'rw_milestone_car')}
                                 </div>
                             </div>
                             <button
@@ -342,15 +342,15 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             fontSize: 12
                         }}>
                             <div>
-                                <span style={{ color: '#64748b' }}>Qualifying Volume: </span>
+                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_qual_vol')} </span>
                                 <b style={{ color: '#006837' }}>{money(selectedCandidate.qualifying_volume)}</b>
                             </div>
                             <div>
-                                <span style={{ color: '#64748b' }}>Branch Cap: </span>
+                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_branch_cap')} </span>
                                 <b>{money(currentCap)}</b>
                             </div>
                             <div>
-                                <span style={{ color: '#64748b' }}>Target: </span>
+                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_target')} </span>
                                 <b>{money(currentTarget)}</b>
                             </div>
                         </div>
@@ -358,7 +358,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                         {/* Frontline Legs List */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
-                                Frontline Branch Contributions ({legs.length} Active Legs)
+                                {translate('portal', 'rw_legs_heading', { count: String(legs.length) })}
                             </div>
 
                             {legs.length > 0 ? (
@@ -378,7 +378,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                         }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
-                                                    Branch {idx + 1}: {leg.leg_user_name || `Partner #${leg.leg_user_id}`}
+                                                    {translate('portal', 'rw_branch_n', { n: String(idx + 1), name: leg.leg_user_name || translate('portal', 'rw_partner_id', { id: String(leg.leg_user_id) }) })}
                                                 </div>
                                                 <div style={{ textAlign: 'right' }}>
                                                     <span style={{ fontSize: 12, fontWeight: 800, color: '#006837' }}>
@@ -406,13 +406,13 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                             </div>
 
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginTop: 6 }}>
-                                                <span>Raw Leg Volume: <b>{money(raw)}</b></span>
+                                                <span>{translate('portal', 'rw_raw_leg')} <b>{money(raw)}</b></span>
                                                 {isCapped ? (
                                                     <span style={{ color: '#b45309', fontWeight: 600 }}>
-                                                        ⚠️ Truncated by {money(excess)} (Exceeded {money(currentCap)} cap)
+                                                        {translate('portal', 'rw_truncated', { excess: money(excess), cap: money(currentCap) })}
                                                     </span>
                                                 ) : (
-                                                    <span style={{ color: '#047857' }}>✓ 100% Volume Qualifies</span>
+                                                    <span style={{ color: '#047857' }}>{translate('portal', 'rw_full_qualifies')}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -420,7 +420,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 })
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8', fontSize: 13 }}>
-                                    No branch sales recorded yet for this leader.
+                                    {translate('portal', 'rw_no_legs')}
                                 </div>
                             )}
                         </div>
@@ -440,7 +440,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                     cursor: 'pointer'
                                 }}
                             >
-                                Close Audit
+                                {translate('portal', 'rw_close')}
                             </button>
                         </div>
                     </div>

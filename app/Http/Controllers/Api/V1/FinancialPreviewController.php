@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Finance\CalculationMessage;
 use App\Domain\Finance\DistributionCalculator;
 use App\Domain\Finance\DistributionSchedule;
 use App\Domain\Finance\SalaryCalculator;
@@ -35,7 +36,7 @@ class FinancialPreviewController extends Controller
             $result = $calculator->calculate($data['mrp'], $data['account_type'], $data['discount_percent'],
                 $data['components'] ?? [], $data['company_share_percent'] ?? '30.00', $data['rounding'] ?? 'reject');
         } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['calculation' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['calculation' => CalculationMessage::localize($exception->getMessage())]);
         }
 
         return response()->json(['data' => $result]);
@@ -47,7 +48,7 @@ class FinancialPreviewController extends Controller
         try {
             $result = $calculator->calculate($data['monthly_purchases'], $data['rounding'] ?? 'reject');
         } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['calculation' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['calculation' => CalculationMessage::localize($exception->getMessage())]);
         }
 
         return response()->json(['data' => $result]);

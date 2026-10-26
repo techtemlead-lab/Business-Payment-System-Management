@@ -124,7 +124,7 @@ class PlatformTest extends TestCase
     {
         $u = $this->user();
         $this->actingAs($u)->patch('/commands/accounts/'.$u->id, ['name' => 'Changed'])->assertForbidden();
-        $u->update(['status' => 'suspended']);
+        $u->forceFill(['status' => 'suspended'])->save();
         $this->get('/workspace')->assertRedirect('/login');
         $this->assertGuest();
     }
@@ -163,7 +163,7 @@ class PlatformTest extends TestCase
     public function test_public_directory_excludes_private_profiles(): void
     {
         $u = $this->user();
-        $u->update(['nid' => '1234567890', 'phone' => 'Private phone', 'profile' => ['father_name' => 'Private parent']]);
+        $u->forceFill(['nid' => '1234567890', 'phone' => 'Private phone', 'profile' => ['father_name' => 'Private parent']])->save();
         $this->get('/dealers')->assertDontSee('Private phone')->assertDontSee('Private parent')->assertDontSee('1234567890');
         $this->actingAs($u)->get('/workspace')->assertInertia(fn (Assert $p) => $p->missing('auth.user.nid')->missing('auth.user.profile'));
     }

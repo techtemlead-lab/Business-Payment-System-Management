@@ -46,10 +46,10 @@ class IdentityLookupController extends Controller
         $own = strtoupper(trim((string) ($data['refer_code'] ?? '')));
         $warnings = [];
         if ($reference !== '' && $own !== '' && $reference === $own) {
-            $warnings[] = 'Reference code and your refer code must be different.';
+            $warnings[] = __('portal.acct_val_reference_same_as_refer');
         }
         if ($own !== '' && User::query()->whereRaw('UPPER(refer_code) = ?', [$own])->exists()) {
-            $warnings[] = 'This refer code is already in use.';
+            $warnings[] = __('portal.acct_val_refer_taken');
         }
         $sponsor = null;
         if ($reference !== '') {
@@ -59,7 +59,7 @@ class IdentityLookupController extends Controller
                 ->where('status', 'active')
                 ->first();
             if (! $sponsor) {
-                $warnings[] = 'No active dealer found with that reference code.';
+                $warnings[] = __('portal.acct_val_reference_missing');
             }
         }
 

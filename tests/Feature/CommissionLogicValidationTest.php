@@ -26,7 +26,7 @@ class CommissionLogicValidationTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
     }
 
@@ -45,7 +45,7 @@ class CommissionLogicValidationTest extends TestCase
         $user = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/Self-sponsorship is disallowed/');
+        $this->expectExceptionMessage(__('portal.err_tree_self_sponsor'));
 
         ReferralTreePath::attachUser($user->id, $user->id);
     }
@@ -64,9 +64,22 @@ class CommissionLogicValidationTest extends TestCase
 
         // Attempting to make C the sponsor of A must be rejected as an illegal cycle!
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/Circular hierarchy cycle detected/');
+        $this->expectExceptionMessage(__('portal.err_tree_circular_hierarchy'));
 
         ReferralTreePath::attachUser($userA->id, $userC->id);
+    }
+
+    public function test_referral_tree_guard_messages_follow_bangla_locale(): void
+    {
+        app()->setLocale('bn');
+        $user = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        try {
+            ReferralTreePath::attachUser($user->id, $user->id);
+            $this->fail('Expected InvalidArgumentException for self-sponsorship');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertSame(__('portal.err_tree_self_sponsor', [], 'bn'), $exception->getMessage());
+        }
     }
 
     public function test_reparenting_subtree_updates_all_descendant_depths_correctly(): void
