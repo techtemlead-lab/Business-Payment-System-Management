@@ -554,6 +554,56 @@ class PartnerEventSmsTest extends TestCase
         ]);
     }
 
+    public function test_partner_sponsor_reparent_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $oldSponsor = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MN-OLD-SPONSOR',
+            'name' => 'Old Sponsor',
+        ]);
+        $newSponsor = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MN-NEW-SPONSOR',
+            'name' => 'New Sponsor',
+        ]);
+        $partner = User::factory()->create([
+            'role' => 'sub_dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000106',
+            'sponsor_id' => $oldSponsor->id,
+        ]);
+        ReferralTreePath::attachUser($partner->id, $oldSponsor->id);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$partner->id, [
+                'sponsor_id' => $newSponsor->id,
+                'reason' => 'Move under verified Rangpur sponsor.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.sponsor_updated', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.sponsor_updated', [
+                'sponsor' => 'MN-NEW-SPONSOR · New Sponsor',
+                'reason' => 'Move under verified Rangpur sponsor.',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_sponsor_updated_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $partner->id, 'sponsor_id' => $newSponsor->id]);
+    }
+
     public function test_partner_suspend_and_reactivate_send_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

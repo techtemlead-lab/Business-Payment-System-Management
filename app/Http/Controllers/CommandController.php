@@ -281,12 +281,14 @@ class CommandController extends Controller
             }
         }
         $statusChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange) {
+        $sponsorChange = null;
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $previousStatus = (string) $locked->status;
+            $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
 
             if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
@@ -309,6 +311,17 @@ class CommandController extends Controller
                     'reason' => $reason,
                     'user_id' => $locked->id,
                 ];
+            }
+            if ($isPartner && array_key_exists('sponsor_id', $d)) {
+                $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
+                if ($previousSponsorId !== $nextSponsorId) {
+                    $sponsorChange = [
+                        'from' => $previousSponsorId,
+                        'to' => $nextSponsorId,
+                        'reason' => $reason,
+                        'user_id' => $locked->id,
+                    ];
+                }
             }
         });
         if (is_array($statusChange)) {
@@ -338,6 +351,32 @@ class CommandController extends Controller
                         __('sms.account_reactivated', [], $locale),
                     );
                 }
+            }
+        }
+        if (is_array($sponsorChange)) {
+            $partner = User::find($sponsorChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                $sponsor = $sponsorChange['to'] !== null ? User::find($sponsorChange['to']) : null;
+                $sponsorLabel = $sponsor
+                    ? trim(($sponsor->dealer_code ? $sponsor->dealer_code.' · ' : '').$sponsor->name)
+                    : __('portal.sponsor_none', [], $locale);
+                Audit::notice(
+                    $partner->id,
+                    __('portal.notice_sponsor_updated_title', [], $locale),
+                    __('portal.notice_sponsor_updated_body', [
+                        'sponsor' => $sponsorLabel,
+                        'reason' => $sponsorChange['reason'],
+                    ], $locale),
+                );
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'account.sponsor_updated',
+                    __('sms.sponsor_updated', [
+                        'sponsor' => $sponsorLabel,
+                        'reason' => $sponsorChange['reason'],
+                    ], $locale),
+                );
             }
         }
 

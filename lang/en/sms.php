@@ -39,6 +39,7 @@ return [
     'staff_territory_assigned' => 'Madina: you were assigned :level territory :territory. Check manage notices.',
     'geography_updated' => 'Madina: your partner place was updated to :place. :reason',
     'account_invitation_sent' => 'Madina: a password-reset invitation was emailed to your account. Use it to open your portal.',
+    'sponsor_updated' => 'Madina: your sponsor was updated to :sponsor. :reason',
     'err_otp_expired' => 'The login code expired. Sign in again to receive a new code.',
     'err_otp_too_many' => 'Too many incorrect codes. Sign in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',
