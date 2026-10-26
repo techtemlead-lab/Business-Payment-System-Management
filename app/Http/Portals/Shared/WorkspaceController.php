@@ -19,8 +19,10 @@ use App\Domain\Identity\BdrisLookup;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\GuidePrerequisites;
 use App\Domain\Support\SupportTickets;
 use App\Domain\Support\TourGuide;
+use App\Domain\Support\UserManual;
 use App\Http\Controllers\Controller;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -101,7 +103,6 @@ class WorkspaceController extends Controller
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
             if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
                 $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
-                $data['tour'] = app(TourGuide::class)->forPage($u, 'overview');
             } elseif ($staff) {
                 $data['admin_home'] = [
                     'profile' => [
@@ -410,9 +411,10 @@ class WorkspaceController extends Controller
             $data['full_report']['filters']['preset'] = $preset;
         }
         if ($section === 'help') {
-            $data['manual_sections'] = app(TourGuide::class)->manualSections($u);
+            $manualQuery = $r->filled('q') ? (string) $r->input('q') : null;
+            $data['manual_query'] = $manualQuery;
+            $data['manual_sections'] = app(UserManual::class)->chaptersFor($u, $manualQuery);
             $data['support_tickets'] = app(SupportTickets::class)->forUser($u);
-            $data['tour'] = app(TourGuide::class)->forPage($u, 'help');
             $data['support_categories'] = SupportTickets::Categories;
         }
         if ($section === 'support-admin') {
@@ -805,6 +807,12 @@ class WorkspaceController extends Controller
                 ->paginate(20);
             $tdsRule = CommissionRuleParameter::getRule('payout_tax_withholding');
             $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
+        }
+
+        if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
+            $tourKey = in_array($section, array_keys(app(TourGuide::class)->definitions()), true) ? $section : 'overview';
+            $data['tour'] = app(TourGuide::class)->forPage($u, $tourKey);
+            $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status'])]);

@@ -1,6 +1,8 @@
 import { Form, router, usePage } from '@inertiajs/react';
-import { BookOpen, LifeBuoy, RotateCcw } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BookOpen, LifeBuoy, RotateCcw, Search } from 'lucide-react';
 import { Badge, date, Empty, Table, type Row } from './UI';
+import PrerequisiteHelper from './PrerequisiteHelper';
 import { useT } from '../shared/i18n/t';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
@@ -9,9 +11,31 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     const sections: Row[] = data.manual_sections || [];
     const tickets: Row[] = data.support_tickets || [];
     const categories: string[] = data.support_categories || [];
+    const [query, setQuery] = useState(String(data.manual_query || ''));
+    const [activeKey, setActiveKey] = useState<string>(String(sections[0]?.key || ''));
+
+    const filtered = useMemo(() => {
+        const needle = query.trim().toLowerCase();
+        if (!needle) return sections;
+        return sections.filter((section) => {
+            const blob = [
+                section.key,
+                section.title,
+                section.summary,
+                ...(section.steps || []),
+                ...(section.tips || []),
+                ...(section.keywords || []),
+            ].join(' ').toLowerCase();
+            return blob.includes(needle);
+        });
+    }, [query, sections]);
+
+    const active = filtered.find((section) => section.key === activeKey) || filtered[0] || null;
 
     return (
         <div className="help-support-hub">
+            <PrerequisiteHelper guide={data.guide_prerequisites} tourBlocked={data.tour?.blocked_by || []} />
+
             <section className="panel" data-tour="help-manual">
                 <div className="panel-heading">
                     <div>
@@ -20,21 +44,65 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                     </div>
                     <BookOpen size={22} />
                 </div>
-                <div className="help-manual-grid">
-                    {sections.map((section) => (
-                        <article key={section.key} className="help-manual-card">
-                            <h3>{section.title}</h3>
-                            <p>{section.body}</p>
-                        </article>
-                    ))}
+                <label className="help-manual-search">
+                    <Search size={16} />
+                    <input
+                        value={query}
+                        onChange={(event) => {
+                            setQuery(event.target.value);
+                            router.get('/help', { q: event.target.value || undefined }, { preserveState: true, replace: true });
+                        }}
+                        placeholder={translate('portal', 'help_manual_search_ph')}
+                    />
+                </label>
+                <div className="help-manual-layout">
+                    <aside className="help-manual-toc">
+                        {filtered.map((section) => (
+                            <button
+                                key={section.key}
+                                type="button"
+                                className={active?.key === section.key ? 'active' : ''}
+                                onClick={() => setActiveKey(section.key)}
+                            >
+                                {section.title}
+                            </button>
+                        ))}
+                        {!filtered.length && <p className="muted">{translate('portal', 'help_manual_no_results')}</p>}
+                    </aside>
+                    <article className="help-manual-article">
+                        {active ? (
+                            <>
+                                <h3>{active.title}</h3>
+                                <p className="muted">{active.summary}</p>
+                                <ol>
+                                    {(active.steps || []).map((step: string, index: number) => (
+                                        <li key={`${active.key}-${index}`}>{step}</li>
+                                    ))}
+                                </ol>
+                                {(active.tips || []).length > 0 && (
+                                    <div className="help-manual-tips">
+                                        <strong>{translate('portal', 'help_manual_tips')}</strong>
+                                        <ul>
+                                            {(active.tips || []).map((tip: string, index: number) => (
+                                                <li key={`${active.key}-tip-${index}`}>{tip}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <Empty title={translate('portal', 'help_manual_no_results')} />
+                        )}
+                    </article>
                 </div>
-                <button
-                    type="button"
-                    className="button small"
-                    onClick={() => router.post('/commands/tours/restart', { page: 'overview' })}
-                >
-                    <RotateCcw size={14} /> {translate('portal', 'restart_tour')}
-                </button>
+                <div className="help-tour-actions">
+                    <button type="button" className="button small" onClick={() => router.post('/commands/tours/restart', {})}>
+                        <RotateCcw size={14} /> {translate('portal', 'restart_all_tours')}
+                    </button>
+                    <button type="button" className="button small" onClick={() => router.post('/commands/tours/restart', { page: 'overview' })}>
+                        <RotateCcw size={14} /> {translate('portal', 'restart_tour')}
+                    </button>
+                </div>
             </section>
 
             <section className="panel" data-tour="help-support">
