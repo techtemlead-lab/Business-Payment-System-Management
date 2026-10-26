@@ -191,6 +191,31 @@ final class OpeningBalanceImport
             $this->wallets->credit($entry->user_id, $amount);
             DB::table('opening_balance_entries')->where('id', $id)->update(['held_released' => $entry->held, 'released_by' => $actor->id, 'released_at' => now(), 'release_reason' => $reason, 'updated_at' => now()]);
             Audit::record($actor->id, 'opening.hold_released', (string) $id, ['amount' => $entry->held, 'reason' => $reason]);
+            $categoryLabel = __('portal.report_cat_opening_hold', [], $locale);
+            $amountDecimal = Money::decimal($amount);
+            Audit::notice(
+                $partner->id,
+                __('portal.notice_commission_released_title', [], $locale),
+                __('portal.notice_commission_released_body', [
+                    'category' => $categoryLabel,
+                    'amount' => $amountDecimal,
+                ], $locale),
+            );
+            $userId = (int) $partner->id;
+            DB::afterCommit(function () use ($userId, $categoryLabel, $amountDecimal, $locale): void {
+                $notified = User::find($userId);
+                if (! $notified) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $notified,
+                    'opening.hold_released',
+                    __('sms.commission_released', [
+                        'category' => $categoryLabel,
+                        'amount' => $amountDecimal,
+                    ], $notified->preferredLocale() ?: $locale),
+                );
+            });
         }, 3);
     }
 

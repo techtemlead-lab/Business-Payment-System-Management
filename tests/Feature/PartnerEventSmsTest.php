@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
@@ -839,6 +840,94 @@ class PartnerEventSmsTest extends TestCase
             'id' => $id,
             'status' => 'applied',
             'applied_by' => $reviewer->id,
+        ]);
+    }
+
+    public function test_opening_hold_release_sends_localized_sms(): void
+    {
+        Storage::fake('local');
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        config(['madina.financial_activation' => false]);
+
+        $preparer = User::factory()->staff('finance')->create();
+        $reviewer = User::factory()->staff('finance')->create();
+        $partner = User::factory()->dealer()->create([
+            'dealer_code' => 'D-HOLD-SMS',
+            'locale' => 'bn',
+            'phone' => '01720000108',
+        ]);
+
+        $path = tempnam(sys_get_temp_dir(), 'madina-hold-sms-');
+        $writer = new Writer;
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Data');
+        $writer->addRow(Row::fromValues(ImportWorkbook::Columns['opening_balances']));
+        $writer->addRow(new Row(array_map(
+            fn ($value) => $value instanceof Cell ? $value : Cell::fromValue($value),
+            ['D-HOLD-SMS', 'HOLD-SMS-101', '2026-01-01', '100', '50', '0', '0'],
+        )));
+        $writer->close();
+        $file = UploadedFile::fake()->createWithContent('source.xlsx', file_get_contents($path));
+        unlink($path);
+
+        $imports = app(OpeningBalanceImport::class);
+        $id = $imports->preview($preparer, 'opening_balances', $file, 'Hold SMS statement');
+        $imports->apply($reviewer, $id, 'Independent opening hold import.');
+        $entry = DB::table('opening_balance_entries')->where('user_id', $partner->id)->first();
+        $this->assertNotNull($entry);
+
+        $this->enableFinancialPosting();
+        Config::set('madina.sms.sent', []);
+        $imports->releaseHold($reviewer, (int) $entry->id, 'Client authorized hold release.');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('opening.hold_released', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000108', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.commission_released', [
+                'category' => __('portal.report_cat_opening_hold', [], 'bn'),
+                'amount' => '50.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_commission_released_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_benefit_controls_update_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create([
+            'locale' => 'bn',
+            'phone' => '01720000109',
+        ]);
+
+        app(PartnerBenefitControls::class)->save($admin, $dealer, [
+            'unconditional_salary' => true,
+            'unconditional_rank_royalty' => false,
+            'forced_royalty_rank' => 'mo',
+            'unconditional_rank_incentive' => false,
+            'note' => null,
+            'reason' => 'Approved unconditional salary for territory rebuild.',
+        ]);
+
+        $summary = __('portal.pbc_flag_salary', [], 'bn');
+        $sent = config('madina.sms.sent');
+        $this->assertSame('accounts.benefit_controls_updated', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000109', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.benefit_controls_updated', ['summary' => $summary], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_benefit_controls_title', [], 'bn'),
         ]);
     }
 

@@ -40,6 +40,7 @@ return [
     'staff_territory_removed' => 'Madina: your :level territory :territory was removed. Check manage notices.',
     'policy_published' => 'Madina: your :account_type policy draft ":name" was published. Check manage notices.',
     'import_applied' => 'Madina: your :type import ":reference" was applied. Check manage notices.',
+    'benefit_controls_updated' => 'Madina: your benefit controls were updated (:summary). Check partner notices.',
     'geography_updated' => 'Madina: your partner place was updated to :place. :reason',
     'account_invitation_sent' => 'Madina: a password-reset invitation was emailed to your account. Use it to open your portal.',
     'sponsor_updated' => 'Madina: your sponsor was updated to :sponsor. :reason',
