@@ -37,6 +37,7 @@ return [
     'account_reactivated' => 'Madina: your partner account was reactivated. You can sign in to your portal again.',
     'kyc_document_uploaded' => 'Madina: a :kind KYC document was filed on your partner account.',
     'staff_territory_assigned' => 'Madina: you were assigned :level territory :territory. Check manage notices.',
+    'staff_territory_removed' => 'Madina: your :level territory :territory was removed. Check manage notices.',
     'geography_updated' => 'Madina: your partner place was updated to :place. :reason',
     'account_invitation_sent' => 'Madina: a password-reset invitation was emailed to your account. Use it to open your portal.',
     'sponsor_updated' => 'Madina: your sponsor was updated to :sponsor. :reason',

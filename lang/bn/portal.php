@@ -2611,6 +2611,8 @@ return [
     'notice_kyc_uploaded_body' => 'আপনার পার্টনার অ্যাকাউন্টে :kind নথি সংরক্ষণ করা হয়েছে।',
     'notice_staff_territory_title' => 'টেরিটরি নিয়োগ',
     'notice_staff_territory_body' => 'আপনাকে :level টেরিটরি নিয়োগ দেওয়া হয়েছে: :territory।',
+    'notice_staff_territory_removed_title' => 'টেরিটরি সরানো হয়েছে',
+    'notice_staff_territory_removed_body' => 'আপনার :level টেরিটরি :territory সরানো হয়েছে। :reason',
     'notice_geography_updated_title' => 'স্থান কোড আপডেট',
     'notice_geography_updated_body' => 'আপনার পার্টনার স্থান এখন :place। :reason',
     'notice_account_invite_title' => 'পোর্টাল আমন্ত্রণ পাঠানো হয়েছে',

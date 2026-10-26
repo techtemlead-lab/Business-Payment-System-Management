@@ -691,6 +691,52 @@ class PartnerEventSmsTest extends TestCase
         ]);
     }
 
+    public function test_staff_territory_remove_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000105',
+        ]);
+
+        $territoryId = app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Khulna',
+        ]);
+        Config::set('madina.sms.sent', []);
+
+        app(TerritoryAccess::class)->remove(
+            $admin,
+            $territoryId,
+            'Coverage reassigned after district merge.',
+        );
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.territory_removed', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000105', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_territory_removed', [
+                'level' => 'division',
+                'territory' => 'Khulna',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $sr->id,
+            'title' => __('portal.notice_staff_territory_removed_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('staff_territories', [
+            'id' => $territoryId,
+            'is_active' => false,
+        ]);
+    }
+
     public function test_staff_target_save_sends_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

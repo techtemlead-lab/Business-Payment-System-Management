@@ -134,6 +134,60 @@ final class TerritoryAccess
         }, 3);
     }
 
+    public function remove(User $actor, int $territoryId, string $reason): void
+    {
+        abort_unless($actor->allows('staff_admin'), 403);
+
+        DB::transaction(function () use ($actor, $territoryId, $reason): void {
+            CommissionWallet::lock();
+            abort_unless($actor->fresh()->allows('staff_admin'), 403);
+            $row = DB::table('staff_territories')->where('id', $territoryId)->where('is_active', true)->first();
+            abort_unless($row !== null, 404);
+            $staff = User::findOrFail((int) $row->staff_id);
+            $path = [];
+            foreach (self::Fields as $field) {
+                $value = trim((string) ($row->{$field} ?? ''));
+                if ($value === '') {
+                    break;
+                }
+                $path[$field] = $value;
+                if ($field === $row->level) {
+                    break;
+                }
+            }
+            $label = collect($path)->filter()->implode(' / ');
+            DB::table('staff_territories')->where('id', $territoryId)->update([
+                'is_active' => false,
+                'territory_key' => null,
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'staff.territory_removed', (string) $territoryId, [
+                'staff_id' => $staff->id,
+                'reason' => $reason,
+            ]);
+            $locale = $staff->preferredLocale();
+            Audit::notice(
+                $staff->id,
+                __('portal.notice_staff_territory_removed_title', [], $locale),
+                __('portal.notice_staff_territory_removed_body', [
+                    'level' => $row->level,
+                    'territory' => $label,
+                    'reason' => $reason,
+                ], $locale),
+            );
+            DB::afterCommit(function () use ($staff, $locale, $row, $label): void {
+                app(PartnerEventSms::class)->send(
+                    $staff,
+                    'staff.territory_removed',
+                    __('sms.staff_territory_removed', [
+                        'level' => $row->level,
+                        'territory' => $label,
+                    ], $locale),
+                );
+            });
+        }, 3);
+    }
+
     /** @param list<array<string, mixed>>|null $regions */
     public function volume(int $staffId, string $month, ?array $regions = null): int
     {
