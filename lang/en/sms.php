@@ -41,6 +41,8 @@ return [
     'policy_published' => 'Madina: your :account_type policy draft ":name" was published. Check manage notices.',
     'import_applied' => 'Madina: your :type import ":reference" was applied. Check manage notices.',
     'benefit_controls_updated' => 'Madina: your benefit controls were updated (:summary). Check partner notices.',
+    'directory_listed' => 'Madina: your dealership is now listed in the public dealer directory.',
+    'directory_unlisted' => 'Madina: your dealership was removed from the public dealer directory.',
     'geography_updated' => 'Madina: your partner place was updated to :place. :reason',
     'account_invitation_sent' => 'Madina: a password-reset invitation was emailed to your account. Use it to open your portal.',
     'sponsor_updated' => 'Madina: your sponsor was updated to :sponsor. :reason',

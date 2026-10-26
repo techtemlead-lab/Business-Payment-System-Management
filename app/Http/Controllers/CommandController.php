@@ -282,13 +282,15 @@ class CommandController extends Controller
         }
         $statusChange = null;
         $sponsorChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange) {
+        $directoryChange = null;
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
             $previousStatus = (string) $locked->status;
             $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
+            $previousDirectoryVisible = (bool) $locked->directory_visible;
 
             if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
@@ -318,6 +320,16 @@ class CommandController extends Controller
                     $sponsorChange = [
                         'from' => $previousSponsorId,
                         'to' => $nextSponsorId,
+                        'reason' => $reason,
+                        'user_id' => $locked->id,
+                    ];
+                }
+            }
+            if ($isPartner && $locked->role === 'dealer' && array_key_exists('directory_visible', $d)) {
+                $nextDirectoryVisible = (bool) $d['directory_visible'];
+                if ($previousDirectoryVisible !== $nextDirectoryVisible) {
+                    $directoryChange = [
+                        'visible' => $nextDirectoryVisible,
                         'reason' => $reason,
                         'user_id' => $locked->id,
                     ];
@@ -376,6 +388,35 @@ class CommandController extends Controller
                         'sponsor' => $sponsorLabel,
                         'reason' => $sponsorChange['reason'],
                     ], $locale),
+                );
+            }
+        }
+        if (is_array($directoryChange)) {
+            $partner = User::find($directoryChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                $visible = (bool) $directoryChange['visible'];
+                Audit::notice(
+                    $partner->id,
+                    __(
+                        $visible ? 'portal.notice_directory_listed_title' : 'portal.notice_directory_unlisted_title',
+                        [],
+                        $locale,
+                    ),
+                    __(
+                        $visible ? 'portal.notice_directory_listed_body' : 'portal.notice_directory_unlisted_body',
+                        ['reason' => $directoryChange['reason']],
+                        $locale,
+                    ),
+                );
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    $visible ? 'account.directory_listed' : 'account.directory_unlisted',
+                    __(
+                        $visible ? 'sms.directory_listed' : 'sms.directory_unlisted',
+                        [],
+                        $locale,
+                    ),
                 );
             }
         }

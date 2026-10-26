@@ -931,6 +931,48 @@ class PartnerEventSmsTest extends TestCase
         ]);
     }
 
+    public function test_directory_visibility_toggle_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create([
+            'locale' => 'bn',
+            'phone' => '01720000110',
+            'directory_visible' => false,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'directory_visible' => true,
+                'reason' => 'Approved for public dealer directory listing.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.directory_listed', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000110', $sent[0]['phone'] ?? null);
+        $this->assertSame(__('sms.directory_listed', [], 'bn'), $sent[0]['message'] ?? null);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_directory_listed_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'directory_visible' => true]);
+
+        Config::set('madina.sms.sent', []);
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'directory_visible' => false,
+                'reason' => 'Temporarily hide from public directory.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.directory_unlisted', $sent[0]['event'] ?? null);
+        $this->assertSame(__('sms.directory_unlisted', [], 'bn'), $sent[0]['message'] ?? null);
+    }
+
     public function test_staff_target_save_sends_localized_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

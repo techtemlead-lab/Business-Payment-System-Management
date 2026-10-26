@@ -72,7 +72,11 @@ class ProjectAuditTest extends TestCase
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
         $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
-        $this->assertDatabaseCount('account_notices', 1);
+        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => 'Product ordering paused',
+        ]);
     }
 
     public function test_new_product_with_opening_stock_appears_in_partner_notifications(): void
