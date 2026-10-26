@@ -8,7 +8,6 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .sidebar.open{transform:translateX(0)}
 .company-shell .sidebar{background:#011627;transform:none}
 .company-shell .workspace,.dealer-shell .workspace,.subdealer-shell .workspace{margin-left:256px}
-.dealer-shell .workspace-menu-button,.subdealer-shell .workspace-menu-button{display:none}
 .app-shell .nav-group{margin-bottom:6px}
 .app-shell .nav-group>span{color:#d0d4fb;font-size:10px;letter-spacing:.08em;padding-left:12px}
 .app-shell .sidebar-domain-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9aa3d8;padding:4px 12px 10px;opacity:.9}
@@ -74,7 +73,10 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .breadcrumb{color:#64748b;font-size:12px;gap:14px}
 .app-shell .breadcrumb b{color:#011627}
 .app-shell .workspace-menu-button{display:flex;width:auto;padding:8px 12px;gap:8px;background:#2e3192;color:white;border-color:#2e3192;font-size:12px}
-.company-shell .workspace-menu-button{display:none}
+.app-shell.company-shell .workspace-menu-button,
+.app-shell.owner-shell .workspace-menu-button,
+.app-shell.dealer-shell .workspace-menu-button,
+.app-shell.subdealer-shell .workspace-menu-button{display:none}
 .app-shell .workspace-main{max-width:1320px;padding:0 16px 28px}
 .company-shell .workspace-main{max-width:1600px;padding:28px}
 .app-shell .page-heading{margin-bottom:22px;gap:18px}
@@ -190,7 +192,6 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .owner-shell .workspace{margin-left:256px}
 .owner-shell .workspace-header{background:rgba(255,253,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e8e2d6;max-width:none;height:78px;padding:0 28px}
 .owner-shell .workspace-main{max-width:1600px;padding:28px}
-.owner-shell .workspace-menu-button{display:none}
 .owner-shell .nav-group a.selected,.owner-shell .nav-mother-body>a.selected{background:#f8f1e7;color:#0b1f33}
 .owner-shell .nav-group a.selected i,.owner-shell .nav-mother-body>a.selected i{background:#c9a227}
 .owner-shell .sidebar-domain-label{color:#d4c39a}
@@ -259,7 +260,10 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
   .owner-shell .workspace,.company-shell .workspace,.dealer-shell .workspace,.subdealer-shell .workspace{margin-left:0}
   .owner-shell .sidebar,.company-shell .sidebar,.dealer-shell .sidebar,.subdealer-shell .sidebar{transform:translateX(-100%)}
   .owner-shell .sidebar.open,.company-shell .sidebar.open,.dealer-shell .sidebar.open,.subdealer-shell .sidebar.open{transform:translateX(0)}
-  .owner-shell .workspace-menu-button,.company-shell .workspace-menu-button,.dealer-shell .workspace-menu-button,.subdealer-shell .workspace-menu-button{display:flex}
+  .app-shell.owner-shell .workspace-menu-button,
+  .app-shell.company-shell .workspace-menu-button,
+  .app-shell.dealer-shell .workspace-menu-button,
+  .app-shell.subdealer-shell .workspace-menu-button{display:flex}
   .app-shell .sidebar-domain-switch{display:none}
   .domain-rail{display:none}
 }

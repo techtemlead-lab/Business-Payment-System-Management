@@ -120,6 +120,7 @@ export default function Shell({ section, children, action }: { section: string; 
     useEffect(() => {
         const media = matchMedia('(max-width:1023px)');
         const change = () => setMobile(media.matches);
+        change();
         media.addEventListener('change', change);
         return () => media.removeEventListener('change', change);
     }, []);
@@ -626,7 +627,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     </footer>
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}
-                {staff && mobile && (
+                {staff && (
                     <nav className="staff-domain-bottom-nav" aria-label={translate('portal', 'domain_switch')}>
                         {domainTabs}
                     </nav>
