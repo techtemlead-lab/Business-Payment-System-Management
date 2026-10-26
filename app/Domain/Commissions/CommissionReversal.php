@@ -2,10 +2,12 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
+use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -26,14 +28,14 @@ final class CommissionReversal
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $batch = DB::table('commission_batches')->where('order_id', $order->id)->lockForUpdate()->first();
             if (! $batch) {
-                throw ValidationException::withMessages(['order' => 'This order has no posted commissions to reverse. No adjustment was recorded.']);
+                throw ValidationException::withMessages(['order' => __('portal.err_rev_none')]);
             }
             if ($requestKey !== null) {
                 $byKey = DB::table('commission_refunds')->where('request_key', $requestKey)->first();
                 if ($byKey) {
                     if ($byKey->order_id !== $order->id || $byKey->reference !== $reference
                         || ($requested !== null && Money::cents($byKey->amount) !== $requested) || $byKey->reason !== $reason) {
-                        abort(409, 'Request key already used with different refund data.');
+                        abort(409, __('portal.err_idem_refund_key'));
                     }
 
                     return DB::table('commission_reversals')->where('refund_id', $byKey->id)->get()->map(fn ($r): array => (array) $r)->all();
@@ -43,7 +45,7 @@ final class CommissionReversal
             if ($existing) {
                 if (($requested !== null && Money::cents($existing->amount) !== $requested) || $existing->reason !== $reason
                     || ($requestKey !== null && $existing->request_key !== null && $existing->request_key !== $requestKey)) {
-                    abort(409, 'Refund reference already used with different data.');
+                    abort(409, __('portal.err_idem_refund_ref'));
                 }
 
                 return DB::table('commission_reversals')->where('refund_id', $existing->id)->get()->map(fn ($r): array => (array) $r)->all();
@@ -52,7 +54,7 @@ final class CommissionReversal
             $before = Money::cents($batch->refunded_amount);
             $amount = $requested ?? $cash - $before;
             if ($amount <= 0 || $amount > $cash - $before) {
-                throw ValidationException::withMessages(['refund_amount' => 'Refund must be positive and cannot exceed the remaining order value.']);
+                throw ValidationException::withMessages(['refund_amount' => __('portal.err_rev_refund')]);
             }
             $after = $before + $amount;
             $id = (string) Str::uuid();
@@ -130,7 +132,13 @@ final class CommissionReversal
             $expenseReversed = $recoveredTotal + $unrecoveredTotal;
             if ($expenseReversed > 0) {
                 $journal[] = ['user_id' => null, 'account' => 'commission_clawback_recovery', 'debit' => 0, 'credit' => $expenseReversed];
-                $this->wallets->journal('commissions.reversal.'.$id, 'Commission adjustment: '.$reason, $journal);
+                $buyer = User::find($order->user_id);
+                $locale = $buyer?->preferredLocale() ?? app()->getLocale();
+                $this->wallets->journal(
+                    'commissions.reversal.'.$id,
+                    __('portal.jr_commission_reversal', ['reason' => $reason], $locale),
+                    $journal,
+                );
             }
             DB::table('commission_batches')->where('id', $batch->id)->update(['refunded_amount' => Money::decimal($after), 'updated_at' => now()]);
             $rank = DealerRank::where('user_id', $order->user_id)->lockForUpdate()->first();
@@ -145,6 +153,35 @@ final class CommissionReversal
                 'buyer_id' => $order->user_id, 'reference' => $reference, 'request_key' => $requestKey,
                 'refund_amount' => Money::decimal($amount), 'reason' => $reason,
             ]);
+            $buyer = User::find($order->user_id);
+            $locale = $buyer?->preferredLocale() ?? app()->getLocale();
+            $amountDecimal = Money::decimal($amount);
+            Audit::notice(
+                $order->user_id,
+                __('portal.notice_order_refunded_title', [], $locale),
+                __('portal.notice_order_refunded_body', [
+                    'number' => $order->number,
+                    'amount' => $amountDecimal,
+                    'reason' => $reason,
+                ], $locale),
+            );
+            $userId = (int) $order->user_id;
+            $orderNumber = (string) $order->number;
+            DB::afterCommit(function () use ($userId, $orderNumber, $amountDecimal, $reason, $locale): void {
+                $partner = User::find($userId);
+                if (! $partner) {
+                    return;
+                }
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'order.refunded',
+                    __('sms.order_refunded', [
+                        'number' => $orderNumber,
+                        'amount' => $amountDecimal,
+                        'reason' => $reason,
+                    ], $partner->preferredLocale() ?: $locale),
+                );
+            });
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);

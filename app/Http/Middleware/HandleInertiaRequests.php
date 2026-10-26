@@ -10,6 +10,7 @@ use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Inertia\Middleware;
 
@@ -53,7 +54,12 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => ['success' => fn () => $request->session()->get('success')], 'financeActive' => (bool) config('madina.financial_activation'), 'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'), 'demoMode' => (bool) config('madina.preview_mode'),
             'staffRoles' => fn () => $u?->role === 'super_admin' ? ['employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()] : [],
-            'staffActions' => fn () => $u?->staff() ? app(StaffPermissions::class)->matrix($u) : [],
+            'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
+                ? app(StaffPermissions::class)->matrix($u)
+                : [],
+            'unreadNotices' => fn () => $u
+                ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
+                : 0,
             'dashboardNotice' => DashboardManagement::noticeForUser($u),
             'dashboardControls' => DashboardManagement::get()];
     }

@@ -3,13 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountProvisioning;
+use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Accounts\PartnerCreateMedia;
+use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\SupportTickets;
+use App\Domain\Support\TourGuide;
 use App\Http\Requests\Backend\AdjustStockRequest;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
 use App\Http\Requests\Backend\ConfirmDeliveryRequest;
@@ -36,6 +44,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CommandController extends Controller
 {
@@ -48,7 +57,7 @@ class CommandController extends Controller
     {
         $o = $service->create($r->user(), $r->validated());
 
-        return redirect('/orders/'.$o->id)->with('success', 'Order submitted for review.');
+        return redirect('/orders/'.$o->id)->with('success', __('portal.flash_order_submitted'));
     }
 
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -56,7 +65,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
-        return back()->with('success', 'Order decision recorded.');
+        return back()->with('success', __('portal.flash_order_decision'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse
@@ -64,7 +73,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->verify($r->user(), $claim, $d['approve'], $d['reason']);
 
-        return back()->with('success', 'Payment review recorded.');
+        return back()->with('success', __('portal.flash_payment_review'));
     }
 
     public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -72,7 +81,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->dispatch($r->user(), $order, $d);
 
-        return back()->with('success', 'Shipment recorded and stock updated.');
+        return back()->with('success', __('portal.flash_shipment_recorded'));
     }
 
     public function account(Request $r, PartnerAccountProvisioning $partners): RedirectResponse
@@ -122,6 +131,23 @@ class CommandController extends Controller
                 'reason' => 'nullable|string|max:1000',
             ]);
             $created = $partners->create($r->user(), $payload);
+            $media = [];
+            foreach (PartnerKycDocuments::Kinds as $kind) {
+                if ($r->hasFile('kyc_'.$kind)) {
+                    $media[$kind] = $r->file('kyc_'.$kind);
+                }
+            }
+            if ($media !== []) {
+                $r->validate([
+                    'kyc_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
+                    'kyc_nid_front' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_nid_back' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_birth_certificate' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_agreement' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_other' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                ]);
+                app(PartnerCreateMedia::class)->attachOptional($r->user(), $created['user'], $media);
+            }
 
             return redirect('/accounts')->with(
                 'success',
@@ -179,16 +205,16 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         if (! empty($d['sponsor_id'])) {
-            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+            abort_unless(User::whereKey($d['sponsor_id'])->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
         }
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
-            throw ValidationException::withMessages(['directory_visible' => 'Only approved dealer business contacts may be published. Sub-dealer publication is not approved.']);
+            throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
         }
         $u = DB::transaction(function () use ($r, $d, $isPartner) {
             CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
-            $reason = $d['reason'] ?? 'Account created by company staff';
+            $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
             $u = (new User)->forceFill([
                 ...$d,
@@ -209,20 +235,26 @@ class CommandController extends Controller
         });
         Password::sendResetLink(['email' => $u->email]);
         $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
-        $accountTypeLabel = ($d['role'] ?? '') === 'employee' ? 'Employee' : 'Partner';
+        $accountTypeLabel = ($d['role'] ?? '') === 'employee'
+            ? __('portal.acct_type_employee')
+            : __('portal.acct_type_partner');
 
-        return redirect($redirectUrl)->with('success', $accountTypeLabel.' account created. Unique code: '.($u->dealer_code ?? $u->name).'. A private password-setting invitation has been emailed.');
+        return redirect($redirectUrl)->with('success', __('portal.acct_created_flash', [
+            'type' => $accountTypeLabel,
+            'code' => $u->dealer_code ?? $u->name,
+        ]));
     }
 
-    public function accountUpdate(Request $r, User $user): RedirectResponse
+    public function accountUpdate(Request $r, User $user, PartnerAccountProvisioning $partners): RedirectResponse
     {
         $this->permit($r, 'accounts');
         abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
-        abort_if($r->user()->id === $user->id, 422, 'Use your security page; self-suspension is not allowed.');
+        abort_if($r->user()->id === $user->id, 422, __('portal.cmd_val_self_suspend'));
         if ($r->exists('nid')) {
             $this->permit($r, 'identity_write');
         }
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
+        $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
@@ -230,11 +262,11 @@ class CommandController extends Controller
             $newSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
             if ($newSponsorId) {
                 if ($newSponsorId === $user->id) {
-                    throw ValidationException::withMessages(['sponsor_id' => 'Self-sponsorship is disallowed. A partner cannot be their own sponsor.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_self_sponsor')]);
                 }
-                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, 'Sponsor must be an active dealer.');
+                abort_unless(User::whereKey($newSponsorId)->where('role', 'dealer')->where('status', 'active')->exists(), 422, __('portal.cmd_val_sponsor_active_dealer'));
                 if (ReferralTreePath::isDescendant($user->id, $newSponsorId)) {
-                    throw ValidationException::withMessages(['sponsor_id' => 'Circular referral cycle detected: The selected sponsor is already a downline descendant of this user.']);
+                    throw ValidationException::withMessages(['sponsor_id' => __('portal.cmd_val_circular_sponsor')]);
                 }
             }
         }
@@ -250,7 +282,7 @@ class CommandController extends Controller
             }
             if ($r->has('permissions')) {
                 if (isset($existing['action_permissions'])) {
-                    throw ValidationException::withMessages(['permissions' => 'Manage this account in Roles & permissions to retain its detailed action controls.']);
+                    throw ValidationException::withMessages(['permissions' => __('portal.cmd_val_permissions_roles')]);
                 }
                 $incoming['permissions'] = array_values(array_filter((array) $r->input('permissions')));
             }
@@ -260,25 +292,185 @@ class CommandController extends Controller
             $d['profile'] = array_merge($existing, $incoming);
         }
         unset($d['permissions']);
-        DB::transaction(function () use ($r, $user, $d) {
+        $placeCode = isset($d['place_code']) ? trim((string) $d['place_code']) : '';
+        unset($d['place_code']);
+        if ($isPartner && $placeCode !== '') {
+            // Catalog place code is the geography source of truth — ignore free-text geo overrides on the same request.
+            unset($d['division'], $d['district']);
+            if (isset($d['profile']) && is_array($d['profile'])) {
+                unset($d['profile']['upazila'], $d['profile']['union'], $d['profile']['area_code']);
+            }
+        }
+        $statusChange = null;
+        $sponsorChange = null;
+        $directoryChange = null;
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
             $locked = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $previousStatus = (string) $locked->status;
+            $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
+            $previousDirectoryVisible = (bool) $locked->directory_visible;
 
             if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
             }
 
-            $locked->update($d);
+            // Privilege fields are guarded on User; forceFill only after accounts authorization above.
+            $locked->forceFill($d)->save();
+            if ($isPartner && $placeCode !== '') {
+                $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
+            }
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
+            if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
+                $statusChange = [
+                    'from' => $previousStatus,
+                    'to' => (string) $d['status'],
+                    'reason' => $reason,
+                    'user_id' => $locked->id,
+                ];
+            }
+            if ($isPartner && array_key_exists('sponsor_id', $d)) {
+                $nextSponsorId = ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null;
+                if ($previousSponsorId !== $nextSponsorId) {
+                    $sponsorChange = [
+                        'from' => $previousSponsorId,
+                        'to' => $nextSponsorId,
+                        'reason' => $reason,
+                        'user_id' => $locked->id,
+                    ];
+                }
+            }
+            if ($isPartner && $locked->role === 'dealer' && array_key_exists('directory_visible', $d)) {
+                $nextDirectoryVisible = (bool) $d['directory_visible'];
+                if ($previousDirectoryVisible !== $nextDirectoryVisible) {
+                    $directoryChange = [
+                        'visible' => $nextDirectoryVisible,
+                        'reason' => $reason,
+                        'user_id' => $locked->id,
+                    ];
+                }
+            }
         });
+        if (is_array($statusChange)) {
+            $partner = User::find($statusChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                if ($statusChange['to'] === 'suspended') {
+                    Audit::notice(
+                        $partner->id,
+                        __('portal.notice_account_suspended_title', [], $locale),
+                        __('portal.notice_account_suspended_body', ['reason' => $statusChange['reason']], $locale),
+                    );
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'account.suspended',
+                        __('sms.account_suspended', ['reason' => $statusChange['reason']], $locale),
+                    );
+                } elseif ($statusChange['to'] === 'active' && $statusChange['from'] === 'suspended') {
+                    Audit::notice(
+                        $partner->id,
+                        __('portal.notice_account_reactivated_title', [], $locale),
+                        __('portal.notice_account_reactivated_body', [], $locale),
+                    );
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'account.reactivated',
+                        __('sms.account_reactivated', [], $locale),
+                    );
+                }
+            }
+        }
+        if (is_array($sponsorChange)) {
+            $partner = User::find($sponsorChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                $sponsor = $sponsorChange['to'] !== null ? User::find($sponsorChange['to']) : null;
+                $sponsorLabel = $sponsor
+                    ? trim(($sponsor->dealer_code ? $sponsor->dealer_code.' · ' : '').$sponsor->name)
+                    : __('portal.sponsor_none', [], $locale);
+                Audit::notice(
+                    $partner->id,
+                    __('portal.notice_sponsor_updated_title', [], $locale),
+                    __('portal.notice_sponsor_updated_body', [
+                        'sponsor' => $sponsorLabel,
+                        'reason' => $sponsorChange['reason'],
+                    ], $locale),
+                );
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    'account.sponsor_updated',
+                    __('sms.sponsor_updated', [
+                        'sponsor' => $sponsorLabel,
+                        'reason' => $sponsorChange['reason'],
+                    ], $locale),
+                );
+            }
+        }
+        if (is_array($directoryChange)) {
+            $partner = User::find($directoryChange['user_id']);
+            if ($partner) {
+                $locale = $partner->preferredLocale();
+                $visible = (bool) $directoryChange['visible'];
+                Audit::notice(
+                    $partner->id,
+                    __(
+                        $visible ? 'portal.notice_directory_listed_title' : 'portal.notice_directory_unlisted_title',
+                        [],
+                        $locale,
+                    ),
+                    __(
+                        $visible ? 'portal.notice_directory_listed_body' : 'portal.notice_directory_unlisted_body',
+                        ['reason' => $directoryChange['reason']],
+                        $locale,
+                    ),
+                );
+                app(PartnerEventSms::class)->send(
+                    $partner,
+                    $visible ? 'account.directory_listed' : 'account.directory_unlisted',
+                    __(
+                        $visible ? 'sms.directory_listed' : 'sms.directory_unlisted',
+                        [],
+                        $locale,
+                    ),
+                );
+            }
+        }
 
-        return back()->with('success', 'Account updated.');
+        return back()->with('success', __('portal.flash_account_updated'));
+    }
+
+    public function benefitControls(Request $r, User $user, PartnerBenefitControls $controls): RedirectResponse
+    {
+        abort_unless(
+            $r->user()->canAct('finance', 'approve') || $r->user()->role === 'super_admin',
+            403,
+            __('portal.pbc_finance_required'),
+        );
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 422, __('portal.pbc_partners_only'));
+        $d = $r->validate([
+            'unconditional_salary' => 'sometimes|boolean',
+            'unconditional_rank_royalty' => 'sometimes|boolean',
+            'forced_royalty_rank' => 'nullable|in:mo,am,sm,me',
+            'unconditional_rank_incentive' => 'sometimes|boolean',
+            'note' => 'nullable|string|max:500',
+            'reason' => 'required|string|min:5|max:1000',
+        ]);
+        $controls->save($r->user(), $user, [
+            'unconditional_salary' => $r->boolean('unconditional_salary'),
+            'unconditional_rank_royalty' => $r->boolean('unconditional_rank_royalty'),
+            'forced_royalty_rank' => $d['forced_royalty_rank'] ?? 'mo',
+            'unconditional_rank_incentive' => $r->boolean('unconditional_rank_incentive'),
+            'note' => $d['note'] ?? null,
+            'reason' => $d['reason'],
+        ]);
+
+        return back()->with('success', __('portal.pbc_saved', ['name' => $user->name]));
     }
 
     public function product(Request $r): RedirectResponse
@@ -288,21 +480,21 @@ class CommandController extends Controller
         $d = $r->validate(['name' => 'required|string|max:150', 'sku' => 'required|string|max:60|unique:products', 'category' => 'required|string|max:100', 'description' => 'nullable|string|max:3000',
             'mrp' => 'required|regex:/^\d{1,8}(\.\d{1,2})?$/', 'dealer_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/', 'unit' => 'required|string|max:30']);
         if (Money::cents($d['mrp']) <= 0 || (isset($d['dealer_price']) && (Money::cents($d['dealer_price']) <= 0 || Money::cents($d['dealer_price']) > Money::cents($d['mrp'])))) {
-            throw ValidationException::withMessages(['mrp' => 'Enter positive prices; dealer price cannot exceed MRP.']);
+            throw ValidationException::withMessages(['mrp' => __('portal.cmd_val_mrp_prices')]);
         }
         DB::transaction(function () use ($r, $d) {
             $p = Product::create($d);
             Audit::record($r->user()->id, 'product.created', (string) $p->id);
         });
 
-        return back()->with('success', 'Product created. Receive stock before dispatch.');
+        return back()->with('success', __('portal.flash_product_created'));
     }
 
     public function stock(AdjustStockRequest $r, StockService $service): RedirectResponse
     {
         $service->adjust($r->user(), $r->validated());
 
-        return back()->with('success', 'Stock movement recorded.');
+        return back()->with('success', __('portal.flash_stock_recorded'));
     }
 
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse
@@ -311,28 +503,35 @@ class CommandController extends Controller
         $d = $r->validate(['name' => 'required|string|max:150', 'account_type' => 'required|in:dealer,sub_dealer', 'components' => 'required|array|min:1|max:20', 'components.*.name' => 'required|string|max:80', 'components.*.rate' => 'required|numeric|min:0|max:100', 'notes' => 'required|string|max:4000']);
         $service->create($r->user(), $d);
 
-        return back()->with('success', 'Draft saved. No earnings will be posted.');
+        return back()->with('success', __('portal.flash_policy_draft_saved'));
     }
 
-    public function content(Request $r): RedirectResponse
+    public function content(Request $r, CircularPublishNotifications $circularNotices): RedirectResponse
     {
         $this->permit($r, 'content');
         $d = $r->validate([
-            'slug' => 'required|in:home,about,contact,notice,partnership,services,quality,faq,privacy,terms,products,dealers',
+            'slug' => 'required|in:home,about,contact,notice,circular-training,circular-price,circular-meeting,partnership,services,quality,faq,privacy,terms,products,dealers',
             'title' => 'required|string|max:150',
             'body' => 'required|string|max:10000',
             'published' => 'required|boolean',
         ]);
-        DB::transaction(function () use ($r, $d) {
-            $existing = DB::table('content_pages')->where('slug', $d['slug'])->exists();
+        DB::transaction(function () use ($r, $d, $circularNotices) {
+            $existing = DB::table('content_pages')->where('slug', $d['slug'])->first();
+            $wasPublished = $existing !== null && (bool) $existing->published;
             DB::table('content_pages')->updateOrInsert(
                 ['slug' => $d['slug']],
                 [...$d, 'updated_at' => now(), ...($existing ? [] : ['created_at' => now()])]
             );
             Audit::record($r->user()->id, 'content.updated', $d['slug']);
+            $circularNotices->notifyIfNewlyPublished(
+                $d['slug'],
+                $d['title'],
+                (bool) $d['published'],
+                $wasPublished,
+            );
         });
 
-        return back()->with('success', 'Content saved.');
+        return back()->with('success', __('portal.flash_content_saved'));
     }
 
     public function publishPolicy(Request $r, int $id, PolicyDraftService $service): RedirectResponse
@@ -340,7 +539,7 @@ class CommandController extends Controller
         $this->permit($r, 'finance');
         $service->publish($r->user(), $id);
 
-        return back()->with('success', 'Policy draft marked published for review. Live commission rates still use Commission Studio.');
+        return back()->with('success', __('portal.flash_policy_published'));
     }
 
     public function customization(Request $r): RedirectResponse
@@ -350,7 +549,7 @@ class CommandController extends Controller
         SiteCustomization::save($payload);
         Audit::record($r->user()->id, 'customization.updated', 'frontend');
 
-        return back()->with('success', 'Site customization saved successfully.');
+        return back()->with('success', __('portal.flash_customization_saved'));
     }
 
     public function resetCustomization(Request $r): RedirectResponse
@@ -359,7 +558,7 @@ class CommandController extends Controller
         SiteCustomization::reset();
         Audit::record($r->user()->id, 'customization.reset', 'frontend');
 
-        return back()->with('success', 'Customization reset to company defaults.');
+        return back()->with('success', __('portal.flash_customization_reset'));
     }
 
     public function saveDashboardSettings(Request $r): RedirectResponse
@@ -372,7 +571,7 @@ class CommandController extends Controller
         DashboardManagement::save($payload);
         Audit::record($r->user()->id, 'dashboard.updated', 'control_center');
 
-        return back()->with('success', 'Dashboard management configuration saved successfully.');
+        return back()->with('success', __('portal.flash_dashboard_saved'));
     }
 
     public function resetDashboardSettings(Request $r): RedirectResponse
@@ -381,18 +580,49 @@ class CommandController extends Controller
         DashboardManagement::reset();
         Audit::record($r->user()->id, 'dashboard.reset', 'control_center');
 
-        return back()->with('success', 'Dashboard settings reset to system defaults.');
+        return back()->with('success', __('portal.flash_dashboard_reset'));
     }
 
     public function enquiry(Request $r, int $id): RedirectResponse
     {
-        $this->permit($r, 'content');
+        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts'), 403);
         $d = $r->validate(['status' => 'required|in:new,contacted,closed']);
-        abort_unless(DB::table('enquiries')->where('id', $id)->exists(), 404);
+        $enquiry = DB::table('enquiries')->where('id', $id)->first();
+        abort_unless($enquiry, 404);
+        $previous = (string) $enquiry->status;
         DB::table('enquiries')->where('id', $id)->update([...$d, 'updated_at' => now()]);
         Audit::record($r->user()->id, 'enquiry.updated', (string) $id);
+        if ($previous !== $d['status'] && in_array($d['status'], ['contacted', 'closed'], true)) {
+            $supported = config('madina.locales', ['en', 'bn']);
+            $locale = is_string($enquiry->locale ?? null) && in_array($enquiry->locale, $supported, true)
+                ? $enquiry->locale
+                : app()->getLocale();
+            $topicLabel = match ((string) $enquiry->topic) {
+                'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
+                'partnership_enquiry', 'Partnership' => __('portal.enquiry_topic_partnership', [], $locale),
+                'product_enquiry' => __('portal.enquiry_topic_product', [], $locale),
+                'support' => __('portal.support_topic_support', [], $locale),
+                'complaint' => __('portal.support_topic_complaint', [], $locale),
+                'order_dispute' => __('portal.support_topic_order', [], $locale),
+                'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
+                'payout_question' => __('portal.support_topic_payout', [], $locale),
+                default => (string) $enquiry->topic,
+            };
+            $statusLabel = __('portal.enquiry_status_'.$d['status'], [], $locale);
+            $template = $d['status'] === 'contacted'
+                ? 'sms.enquiry_follow_up_contacted'
+                : 'sms.enquiry_follow_up_closed';
+            app(PartnerEventSms::class)->sendToPhone(
+                (string) $enquiry->phone,
+                'enquiry.'.$d['status'],
+                __($template, [
+                    'topic' => $topicLabel,
+                    'status' => $statusLabel,
+                ], $locale),
+            );
+        }
 
-        return back()->with('success', 'Enquiry updated.');
+        return back()->with('success', __('portal.flash_enquiry_updated'));
     }
 
     public function readNotice(Request $r, int $id): RedirectResponse
@@ -402,9 +632,72 @@ class CommandController extends Controller
         return back();
     }
 
+    public function readAllNotices(Request $r): RedirectResponse
+    {
+        DB::table('account_notices')
+            ->where('user_id', $r->user()->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now(), 'updated_at' => now()]);
+
+        return back()->with('success', __('portal.flash_notices_read'));
+    }
+
+    public function partnerSupport(Request $r): RedirectResponse
+    {
+        $user = $r->user();
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+        $data = $r->validate([
+            'topic' => ['required', Rule::in([
+                'support', 'complaint', 'order_dispute', 'kyc_correction', 'payout_question',
+                // Legacy English values still accepted from older clients.
+                'Support', 'Complaint', 'Order dispute', 'KYC correction', 'Payout question',
+            ])],
+            'message' => 'required|string|min:10|max:2000',
+        ]);
+        $topicKey = match ($data['topic']) {
+            'Support', 'support' => 'support',
+            'Complaint', 'complaint' => 'complaint',
+            'Order dispute', 'order_dispute' => 'order_dispute',
+            'KYC correction', 'kyc_correction' => 'kyc_correction',
+            'Payout question', 'payout_question' => 'payout_question',
+            default => strtolower((string) $data['topic']),
+        };
+        $locale = is_string($user->locale ?? null) && in_array($user->locale, config('madina.locales', ['en', 'bn']), true)
+            ? $user->locale
+            : app()->getLocale();
+        DB::table('enquiries')->insert([
+            'name' => $user->name,
+            'phone' => $user->phone ?: ($user->dealer_code ?: 'partner-'.$user->id),
+            'topic' => $topicKey,
+            'message' => '['.($user->dealer_code ?: $user->email).'] '.$data['message'],
+            'status' => 'new',
+            'locale' => $locale,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        Audit::record($user->id, 'enquiry.partner_support', (string) $user->id, [
+            'topic' => $topicKey,
+        ]);
+        $topicLabel = match ($topicKey) {
+            'support' => __('portal.support_topic_support', [], $locale),
+            'complaint' => __('portal.support_topic_complaint', [], $locale),
+            'order_dispute' => __('portal.support_topic_order', [], $locale),
+            'kyc_correction' => __('portal.support_topic_kyc', [], $locale),
+            'payout_question' => __('portal.support_topic_payout', [], $locale),
+            default => $topicKey,
+        };
+        app(PartnerEventSms::class)->send(
+            $user,
+            'support.requested',
+            __('sms.support_requested', ['topic' => $topicLabel], $locale),
+        );
+
+        return back()->with('success', __('portal.flash_support_sent'));
+    }
+
     public function financialGate(): never
     {
-        throw ValidationException::withMessages(['policy' => 'This action is unavailable until the financial policy is approved and verified.']);
+        throw ValidationException::withMessages(['policy' => __('portal.cmd_val_financial_gate')]);
     }
 
     public function claim(ClaimPaymentRequest $r, Order $order, OrderService $service): RedirectResponse
@@ -412,7 +705,7 @@ class CommandController extends Controller
         $data = $r->validated();
         $service->claim($r->user(), $order, $data);
 
-        return back()->with('success', 'Payment reference submitted for verification.');
+        return back()->with('success', __('portal.flash_payment_claim'));
     }
 
     public function delivered(ConfirmDeliveryRequest $r, Order $order, int $shipment, OrderService $service): RedirectResponse
@@ -420,7 +713,7 @@ class CommandController extends Controller
         $data = $r->validated();
         $service->deliver($r->user(), $order, $shipment, $data['reason']);
 
-        return back()->with('success', 'Delivery confirmation recorded.');
+        return back()->with('success', __('portal.flash_delivery_recorded'));
     }
 
     public function invite(Request $r, User $user): RedirectResponse
@@ -430,8 +723,49 @@ class CommandController extends Controller
         abort_unless($user->status === 'active', 422);
         Password::sendResetLink(['email' => $user->email]);
         Audit::record($r->user()->id, 'account.invitation_sent', (string) $user->id);
+        $locale = $user->preferredLocale();
+        Audit::notice(
+            $user->id,
+            __('portal.notice_account_invite_title', [], $locale),
+            __('portal.notice_account_invite_body', [], $locale),
+        );
+        app(PartnerEventSms::class)->send(
+            $user,
+            'account.invitation_sent',
+            __('sms.account_invitation_sent', [], $locale),
+        );
 
-        return back()->with('success', 'A private password-setting link has been emailed if the account is eligible.');
+        return back()->with('success', __('portal.acct_invite_flash'));
+    }
+
+    public function kycDocuments(Request $r, User $user, PartnerKycDocuments $documents): JsonResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+
+        return response()->json(['data' => $documents->listFor($user)]);
+    }
+
+    public function storeKycDocument(Request $r, User $user, PartnerKycDocuments $documents): RedirectResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        $data = $r->validate([
+            'kind' => ['required', Rule::in(PartnerKycDocuments::Kinds)],
+            'document' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'note' => 'nullable|string|max:500',
+        ]);
+        $stored = $documents->store($r->user(), $user, $data['kind'], $r->file('document'), $data['note'] ?? null);
+
+        return back()->with('success', __('portal.flash_kyc_stored', ['kind' => $stored['kind']]));
+    }
+
+    public function downloadKycDocument(Request $r, User $user, string $document, PartnerKycDocuments $documents): StreamedResponse
+    {
+        $this->permit($r, 'identity_write');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+
+        return $documents->download($user, $document);
     }
 
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse
@@ -440,7 +774,7 @@ class CommandController extends Controller
         $data = $r->validate(['rules' => 'required|array']);
         $policy->update($r->user(), $data['rules']);
 
-        return back()->with('success', 'Commission policy updated. Existing orders retain their captured policy.');
+        return back()->with('success', __('portal.flash_commission_policy_updated'));
     }
 
     public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse
@@ -450,16 +784,25 @@ class CommandController extends Controller
         $result = $commissionService->settleMonthlySalaryPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', "Salary pool for {$d['period_month']} is empty.");
+            return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
         if ($result['status'] === 'rolled_over') {
-            return back()->with('success', "No qualified dealers met minimum volume for {$d['period_month']}. ৳{$result['total_rolled_to_reserve']} moved to the salary settlement reserve.");
+            return back()->with('success', __('portal.flash_salary_pool_rolled', [
+                'period' => $d['period_month'],
+                'amount' => $result['total_rolled_to_reserve'],
+            ]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0 ? " Undistributed ৳{$rolled} moved to the salary settlement reserve." : '';
+        $extra = Money::cents((string) $rolled) > 0
+            ? __('portal.flash_salary_pool_reserve_extra', ['amount' => $rolled])
+            : '';
 
-        return back()->with('success', "Salary pool for {$d['period_month']} distributed ৳{$result['total_distributed']}. Qualifying partners: {$result['qualifiers_count']}.{$extra}");
+        return back()->with('success', __('portal.flash_salary_pool_distributed', [
+            'period' => $d['period_month'],
+            'amount' => $result['total_distributed'],
+            'count' => $result['qualifiers_count'],
+        ]).$extra);
     }
 
     public function settleRankRoyaltyPool(Request $r, CommissionService $commissionService): RedirectResponse
@@ -469,13 +812,18 @@ class CommandController extends Controller
         $result = $commissionService->settleRankRoyaltyPool($d['period_month'], $r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'empty_pool') {
-            return back()->with('success', "Rank royalty pool for {$d['period_month']} is empty.");
+            return back()->with('success', __('portal.flash_royalty_pool_empty', ['period' => $d['period_month']]));
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0 ? " Unfilled tiers ৳{$rolled} moved to the royalty settlement reserve." : '';
+        $extra = Money::cents((string) $rolled) > 0
+            ? __('portal.flash_royalty_pool_reserve_extra', ['amount' => $rolled])
+            : '';
 
-        return back()->with('success', "Rank royalty pool for {$d['period_month']} distributed ৳{$result['total_distributed']} across leadership tiers.{$extra}");
+        return back()->with('success', __('portal.flash_royalty_pool_distributed', [
+            'period' => $d['period_month'],
+            'amount' => $result['total_distributed'],
+        ]).$extra);
     }
 
     public function claimRankIncentive(Request $r, User $user, CommissionService $commissionService): RedirectResponse
@@ -488,7 +836,11 @@ class CommandController extends Controller
             throw ValidationException::withMessages(['incentive' => $result['message']]);
         }
 
-        return back()->with('success', "Paid one-time incentive of ৳{$result['amount']} to {$user->name} for rank ".strtoupper($result['rank']).'.');
+        return back()->with('success', __('portal.flash_rank_incentive_paid', [
+            'amount' => $result['amount'],
+            'name' => $user->name,
+            'rank' => strtoupper($result['rank']),
+        ]));
     }
 
     public function releaseMaturedCommissions(Request $r, CommissionService $commissionService): RedirectResponse
@@ -498,10 +850,13 @@ class CommandController extends Controller
         $result = $commissionService->releaseMaturedCommissions($r->user()->id, $d['request_key']);
 
         if ($result['status'] === 'no_matured_commissions') {
-            return back()->with('success', 'No matured commissions pending release.');
+            return back()->with('success', __('portal.flash_commissions_none_matured'));
         }
 
-        return back()->with('success', "Released {$result['released_count']} matured allocations (৳{$result['total_amount']}) to dealer available balances.");
+        return back()->with('success', __('portal.flash_commissions_released', [
+            'count' => $result['released_count'],
+            'amount' => $result['total_amount'],
+        ]));
     }
 
     public function simulateCommissions(Request $r, CommissionService $commissionService): JsonResponse
@@ -539,7 +894,7 @@ class CommandController extends Controller
                 ->where('is_active', true)
                 ->first();
             if (! $place) {
-                throw ValidationException::withMessages(['place_code_id' => 'Choose an active place code that matches the assignment level.']);
+                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
             }
             $path = $place->loadMissing('parent.parent.parent')->pathNames();
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
@@ -557,7 +912,7 @@ class CommandController extends Controller
             }
             foreach ($path as $field => $value) {
                 if (trim((string) $value) === '') {
-                    throw ValidationException::withMessages(['place_code_id' => 'The selected place code is missing its parent hierarchy.']);
+                    throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
                 }
                 $d[$field] = $value;
             }
@@ -568,7 +923,7 @@ class CommandController extends Controller
             $path = [];
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
                 if (empty($d[$field])) {
-                    throw ValidationException::withMessages([$field => 'Specify a place code or the full territorial hierarchy for this assignment.']);
+                    throw ValidationException::withMessages([$field => __('portal.cmd_val_territory_required')]);
                 }
                 $d[$field] = trim($d[$field]);
                 $path[$field] = $d[$field];
@@ -577,7 +932,7 @@ class CommandController extends Controller
                 }
             }
             if (trim((string) ($d['zone_name'] ?? '')) === '') {
-                throw ValidationException::withMessages(['zone_name' => 'Enter a zone name for legacy name-based assignments.']);
+                throw ValidationException::withMessages(['zone_name' => __('portal.cmd_val_zone_name_required')]);
             }
         }
 
@@ -585,7 +940,7 @@ class CommandController extends Controller
             CommissionWallet::lock();
             $user = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active') {
-                throw ValidationException::withMessages(['user_id' => 'Choose an active dealer.']);
+                throw ValidationException::withMessages(['user_id' => __('portal.cmd_val_active_dealer')]);
             }
             $query = AreaDealerAssignment::where('level', $d['level'])->where('is_active', true);
             if ($place) {
@@ -597,7 +952,7 @@ class CommandController extends Controller
                 }
             }
             if ($query->exists()) {
-                throw ValidationException::withMessages(['place_code_id' => 'This territory already has an active dealer. Remove that assignment before replacing it.']);
+                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_territory_taken')]);
             }
             $territoryKey = $place
                 ? hash('sha256', $d['level'].'|code:'.$place->code)
@@ -614,8 +969,28 @@ class CommandController extends Controller
             'zone' => $d['zone_name'],
             'place_code' => $place?->code,
         ]);
+        $dealer = User::find($d['user_id']);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('portal.notice_area_dealer_assigned_title', [], $locale),
+                __('portal.notice_area_dealer_assigned_body', [
+                    'zone' => $d['zone_name'],
+                    'quota' => $d['monthly_quota'],
+                ], $locale),
+            );
+            app(PartnerEventSms::class)->send(
+                $dealer,
+                'area_dealer.assigned',
+                __('sms.area_dealer_assigned', [
+                    'zone' => $d['zone_name'],
+                    'quota' => $d['monthly_quota'],
+                ], $locale),
+            );
+        }
 
-        return back()->with('success', "Assigned area dealer for {$d['zone_name']}.");
+        return back()->with('success', __('portal.flash_area_dealer_assigned', ['zone' => $d['zone_name']]));
     }
 
     public function removeAreaDealer(Request $r, int $id): RedirectResponse
@@ -624,7 +999,91 @@ class CommandController extends Controller
         $assignment = AreaDealerAssignment::findOrFail($id);
         $assignment->update(['is_active' => false, 'territory_key' => null]);
         Audit::record($r->user()->id, 'area_dealer.removed', (string) $assignment->user_id, ['level' => $assignment->level, 'zone' => $assignment->zone_name]);
+        $dealer = User::find($assignment->user_id);
+        if ($dealer) {
+            $locale = $dealer->preferredLocale();
+            Audit::notice(
+                $dealer->id,
+                __('portal.notice_area_dealer_removed_title', [], $locale),
+                __('portal.notice_area_dealer_removed_body', [
+                    'zone' => $assignment->zone_name,
+                ], $locale),
+            );
+            app(PartnerEventSms::class)->send(
+                $dealer,
+                'area_dealer.removed',
+                __('sms.area_dealer_removed', [
+                    'zone' => $assignment->zone_name,
+                ], $locale),
+            );
+        }
 
-        return back()->with('success', 'Area dealer assignment removed.');
+        return back()->with('success', __('portal.flash_area_dealer_removed'));
+    }
+
+    public function supportTicket(Request $r, SupportTickets $tickets): RedirectResponse
+    {
+        $tickets->create($r->user(), $r->only(['category', 'subject', 'body']), $r->file('attachment'));
+
+        return back()->with('success', __('portal.flash_support_ticket_sent'));
+    }
+
+    public function supportTicketReply(Request $r, string $id, SupportTickets $tickets): RedirectResponse
+    {
+        $data = $r->validate([
+            'body' => 'required|string|max:5000',
+            'status' => 'nullable|in:pending,in_progress,resolved',
+        ]);
+        $tickets->reply($r->user(), $id, $data['body'], $data['status'] ?? null);
+
+        return back()->with('success', __('portal.flash_support_reply_saved'));
+    }
+
+    public function completeTour(Request $r, string $page, TourGuide $tours): RedirectResponse|JsonResponse
+    {
+        $tours->complete($r->user(), $page);
+        if ($r->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back();
+    }
+
+    public function restartTour(Request $r, TourGuide $tours): RedirectResponse
+    {
+        $page = $r->string('page')->toString() ?: null;
+        $tours->restart($r->user(), $page ?: null);
+
+        return back()->with('success', __('portal.flash_tour_restarted'));
+    }
+
+    public function switchWorkspaceMode(Request $r, PartnerStaffLink $link): RedirectResponse
+    {
+        $mode = $r->validate(['mode' => 'required|in:partner,staff'])['mode'];
+        $link->switchMode($r->user(), $mode);
+
+        return redirect('/')->with('success', __('portal.flash_workspace_switched', ['mode' => $mode]));
+    }
+
+    public function linkStaffRole(Request $r, User $user, PartnerStaffLink $link): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        $data = $r->validate([
+            'linked_staff_role' => 'required|string|max:80',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|max:40',
+        ]);
+        $link->link($r->user(), $user, $data['linked_staff_role'], $data['permissions'] ?? []);
+
+        return back()->with('success', __('portal.flash_staff_linked'));
+    }
+
+    public function unlinkStaffRole(Request $r, User $user, PartnerStaffLink $link): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $link->unlink($r->user(), $user);
+
+        return back()->with('success', __('portal.flash_staff_unlinked'));
     }
 }

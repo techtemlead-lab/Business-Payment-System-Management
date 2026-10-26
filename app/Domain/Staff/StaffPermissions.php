@@ -28,7 +28,20 @@ final class StaffPermissions
     /** @return array<string, array<string, bool>> */
     public function matrix(User $user): array
     {
-        if ($user->status !== 'active' || ! $user->staff()) {
+        if ($user->status !== 'active') {
+            return [];
+        }
+        if ($user->usingStaffWorkspace()) {
+            $caps = app(PartnerStaffLink::class)->linkedCapabilities($user);
+            $matrix = [];
+            foreach ($this->modules() as $module) {
+                $enabled = in_array($module, $caps, true) || in_array('accounts', $caps, true);
+                $matrix[$module] = array_fill_keys(self::Actions, $enabled);
+            }
+
+            return $matrix;
+        }
+        if (! $user->staff()) {
             return [];
         }
         if ($user->role === 'super_admin') {
@@ -63,22 +76,22 @@ final class StaffPermissions
     public function validateMatrix(array $matrix): array
     {
         if (array_diff(array_keys($matrix), $this->modules())) {
-            throw ValidationException::withMessages(['permissions' => 'Unknown permission module.']);
+            throw ValidationException::withMessages(['permissions' => __('portal.err_perm_unknown_module')]);
         }
         $validated = [];
         foreach ($matrix as $module => $actions) {
             if (! is_array($actions) || array_diff(array_keys($actions), self::Actions)) {
-                throw ValidationException::withMessages(['permissions' => 'Use only view, create, edit and approve actions.']);
+                throw ValidationException::withMessages(['permissions' => __('portal.err_perm_actions')]);
             }
             $row = array_fill_keys(self::Actions, false);
             foreach ($actions as $action => $enabled) {
                 if (! is_bool($enabled)) {
-                    throw ValidationException::withMessages(['permissions' => 'Each permission must be true or false.']);
+                    throw ValidationException::withMessages(['permissions' => __('portal.err_perm_bool')]);
                 }
                 $row[$action] = $enabled;
             }
             if (! $row['view'] && in_array(true, array_diff_key($row, ['view' => false]), true)) {
-                throw ValidationException::withMessages(['permissions' => 'Allow viewing a module before granting its write actions.']);
+                throw ValidationException::withMessages(['permissions' => __('portal.err_perm_view_first')]);
             }
             $validated[$module] = $row;
         }
@@ -91,7 +104,7 @@ final class StaffPermissions
     {
         $matrix = $this->validateMatrix($permissions);
         if (! preg_match('/^custom_[a-z][a-z0-9_]{0,49}$/D', $key)) {
-            throw ValidationException::withMessages(['key' => 'Use a custom_ role key with lowercase letters, digits and underscores.']);
+            throw ValidationException::withMessages(['key' => __('portal.err_perm_role_key')]);
         }
 
         return DB::transaction(function () use ($actor, $key, $name, $matrix, $version, $reason): string {
@@ -99,7 +112,7 @@ final class StaffPermissions
             abort_unless($actor->fresh()->role === 'super_admin' && $actor->fresh()->status === 'active', 403);
             $before = DB::table('staff_roles')->where('key', $key)->first();
             if (($before?->version ?? 0) !== $version) {
-                throw ValidationException::withMessages(['version' => 'This role changed. Reload its current version.']);
+                throw ValidationException::withMessages(['version' => __('portal.err_perm_role_stale')]);
             }
             DB::table('staff_roles')->updateOrInsert(['key' => $key], ['name' => $name, 'permissions' => json_encode($matrix, JSON_THROW_ON_ERROR),
                 'version' => $version + 1, 'updated_by' => $actor->id, 'created_at' => $before?->created_at ?? now(), 'updated_at' => now()]);
@@ -119,13 +132,13 @@ final class StaffPermissions
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             abort_unless($user->staff() && $user->role !== 'super_admin', 403);
             if ($this->version($user) !== $version) {
-                throw ValidationException::withMessages(['version' => 'This staff account changed. Reload its permissions.']);
+                throw ValidationException::withMessages(['version' => __('portal.err_perm_staff_stale')]);
             }
             if (($user->role === 'sr' || $role === 'sr') && ($user->role === 'sr' && $role !== null && $role !== 'sr' || array_diff(array_keys($matrix), config('madina.roles.sr')))) {
-                throw ValidationException::withMessages(['permissions' => 'SR permissions must remain within field-sales duties.']);
+                throw ValidationException::withMessages(['permissions' => __('portal.err_perm_sr_scope')]);
             }
             if ($role !== null && ! in_array($role, ['employee', ...array_keys(config('madina.roles')), ...$this->roleKeys()], true) || $role === 'super_admin') {
-                throw ValidationException::withMessages(['role' => 'Choose a valid non-administrator staff role.']);
+                throw ValidationException::withMessages(['role' => __('portal.err_perm_staff_role')]);
             }
             $before = ['role' => $user->role, 'permissions' => $this->matrix($user)];
             $user->update(['role' => $role ?? $user->role, 'profile' => [...($user->profile ?? []), 'action_permissions' => $matrix, 'access_revision' => Str::uuid()->toString()]]);

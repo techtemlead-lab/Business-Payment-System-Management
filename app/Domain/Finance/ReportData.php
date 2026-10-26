@@ -28,7 +28,7 @@ final class ReportData
                 ->when($type === 'dues', fn ($q) => $q->whereRaw('o.paid < o.total-o.due_credit')->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])),
                 ['o.number', 'u.name', 'o.status', 'o.total', 'o.paid', 'o.due_credit', DB::raw('(o.total-o.due_credit-o.paid) AS outstanding'), 'o.created_at'], ['total', 'paid', 'due_credit', 'outstanding'], 'o.created_at', 'o.user_id'],
             'products' => [DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered'),
-                ['o.number', DB::raw("COALESCE(l.category_snapshot,p.category,'Uncategorised') AS category"), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
+                ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
             'product-summary', 'category-summary' => $this->salesSummary($type),
             'rank-achievements' => [DB::table('dealer_ranks as r')->join('users as u', 'u.id', '=', 'r.user_id')
                 ->crossJoin(DB::raw("LATERAL json_array_elements(CASE WHEN json_array_length(COALESCE(r.qualification_history,'[]'::json))>0 THEN r.qualification_history ELSE json_build_array(json_build_object('rank',r.current_rank,'achieved_at',r.achieved_at)) END) AS h(value)"))->whereRaw("h.value->>'rank' <> 'dealer'"),
@@ -80,7 +80,7 @@ final class ReportData
     /** @return array{Builder, array<mixed>, list<string>, string, string} */
     private function salesSummary(string $type): array
     {
-        $category = "COALESCE(l.category_snapshot,p.category,'Uncategorised')";
+        $category = 'COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().')';
         $query = DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered');
         $query->groupByRaw($category);
         $columns = [DB::raw($category.' AS category')];
@@ -91,5 +91,10 @@ final class ReportData
         $columns = [...$columns, DB::raw('COUNT(DISTINCT o.id) AS order_count'), DB::raw('SUM(l.quantity) AS quantity'), DB::raw('SUM(l.total) AS gross_sales')];
 
         return [$query, $columns, ['gross_sales'], 'o.created_at', 'o.user_id'];
+    }
+
+    private function uncategorisedSql(): string
+    {
+        return DB::getPdo()->quote(__('portal.report_uncategorised'));
     }
 }

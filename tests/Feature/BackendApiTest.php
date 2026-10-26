@@ -101,7 +101,9 @@ class BackendApiTest extends TestCase
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');
 
         $this->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Not staff'])->assertForbidden();
-        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Verified Bank payment'])->assertOk();
+        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', ['approve' => true, 'reason' => 'Verified Bank payment'])
+            ->assertOk()
+            ->assertJsonPath('data.message', __('portal.flash_payment_review'));
         $this->postJson('/api/v1/orders/'.$id.'/decision', ['status' => 'approved', 'reason' => 'Paid in full'])->assertOk();
         $line = DB::table('order_lines')->where('order_id', $id)->value('id');
         $dispatch = ['courier' => 'Test Courier', 'tracking' => 'API-TRACK-1', 'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $line, 'quantity' => 2]]];

@@ -3,6 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { PlugZap } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Badge, Row } from '../components/UI';
+import { useT } from '../shared/i18n/t';
 
 type Provider = Row & { key: string; label: string; fields: string[]; enabled: boolean };
 type Group = { label: string; description: string; providers: Record<string, Provider> };
@@ -14,6 +15,7 @@ function fieldLabel(name: string): string {
 }
 
 function ProviderForm({ group, provider, version, canEdit }: { group: string; provider: Provider; version: number; canEdit: boolean }) {
+    const translate = useT();
     const defaults = useMemo(() => {
         const data: Row = { group, provider: provider.key, version, reason: '', enabled: provider.enabled ? '1' : '0' };
         for (const field of provider.fields) {
@@ -35,27 +37,27 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
             form.post('/commands/operations/integrations/providers', { preserveScroll: true });
         }}>
             <div className="profile-grid" style={{ marginBottom: 12 }}>
-                <div><strong>{provider.label}</strong><p className="muted">Provider key: {provider.key}</p></div>
+                <div><strong>{provider.label}</strong><p className="muted">{translate('portal', 'si_provider_key')}: {provider.key}</p></div>
                 <div><Badge status={provider.enabled ? 'active' : 'inactive'} /></div>
             </div>
-            <label>Enabled
+            <label>{translate('portal', 'si_enabled')}
                 <select value={String(form.data.enabled)} onChange={e => form.setData('enabled', e.target.value)} disabled={!canEdit}>
-                    <option value="0">Disabled (default)</option>
-                    <option value="1">Enabled</option>
+                    <option value="0">{translate('portal', 'si_disabled_default')}</option>
+                    <option value="1">{translate('portal', 'si_enabled_option')}</option>
                 </select>
             </label>
             {provider.fields.filter(field => field !== 'enabled').map(field => (
                 <label key={field}>{fieldLabel(field)}
                     {field === 'mode' ? (
                         <select value={String(form.data[field] ?? 'sandbox')} onChange={e => form.setData(field, e.target.value)} disabled={!canEdit}>
-                            <option value="sandbox">Sandbox</option>
-                            <option value="live">Live</option>
+                            <option value="sandbox">{translate('portal', 'si_mode_sandbox')}</option>
+                            <option value="live">{translate('portal', 'si_mode_live')}</option>
                         </select>
                     ) : (
                         <input
                             type={secretFields.has(field) ? 'password' : field === 'timeout' ? 'number' : 'text'}
                             value={String(form.data[field] ?? '')}
-                            placeholder={secretFields.has(field) && provider[`${field}_set`] ? 'Leave blank to keep the saved secret' : ''}
+                            placeholder={secretFields.has(field) && provider[`${field}_set`] ? translate('portal', 'si_secret_keep') : ''}
                             onChange={e => form.setData(field, e.target.value)}
                             disabled={!canEdit}
                             autoComplete="off"
@@ -64,11 +66,11 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                     {form.errors[field] && <span className="field-error">{String(form.errors[field])}</span>}
                 </label>
             ))}
-            <label>Reason / approval note
+            <label>{translate('portal', 'si_reason')}
                 <textarea required minLength={5} maxLength={1000} rows={2} value={String(form.data.reason)} onChange={e => form.setData('reason', e.target.value)} disabled={!canEdit} />
             </label>
             {Object.keys(form.errors).length > 0 && <div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
-            <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? 'Saving…' : 'Save provider settings'}</button>
+            <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_provider')}</button>
         </form>
     );
 }
@@ -78,6 +80,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit }: 
     startup: { mode: string | null; version: number; label: string; description: string };
     canEdit: boolean;
 }) {
+    const translate = useT();
     const { flash } = usePage<any>().props;
     const [groupKey, setGroupKey] = useState(Object.keys(integrations.groups)[0] ?? 'bdris');
     const startupForm = useForm({ mode: startup.mode ?? 'fresh', version: startup.version, reason: '' });
@@ -85,42 +88,42 @@ export default function ServiceIntegrations({ integrations, startup, canEdit }: 
 
     return (
         <Shell section="service-integrations">
-            <Head title="Service integrations" />
+            <Head title={translate('portal', 'si_head_title')} />
             <div className="import-workspace">
                 <div className="section-header">
                     <div>
-                        <h2>Service integrations</h2>
-                        <p className="muted">BDRIS, SMS, Maps, courier and payment gateway APIs stay disabled until you enable them and enter credentials. Manual workflows keep working without these services.</p>
+                        <h2>{translate('portal', 'si_heading')}</h2>
+                        <p className="muted">{translate('portal', 'si_heading_hint')}</p>
                     </div>
                     <PlugZap size={30} aria-hidden="true" />
                 </div>
                 {flash?.success && <div className="notice" role="status">{flash.success}</div>}
 
                 <section className="panel">
-                    <h2>Finance startup mode</h2>
+                    <h2>{translate('portal', 'si_startup_title')}</h2>
                     <p>{startup.description}</p>
-                    <p>Current selection: <strong>{startup.label}</strong></p>
+                    <p>{translate('portal', 'si_current_selection')}: <strong>{startup.label}</strong></p>
                     <form className="action-form" onSubmit={event => {
                         event.preventDefault();
                         startupForm.post('/commands/operations/integrations/startup-mode', { preserveScroll: true });
                     }}>
-                        <label>How this deployment starts
+                        <label>{translate('portal', 'si_startup_how')}
                             <select value={String(startupForm.data.mode)} onChange={e => startupForm.setData('mode', e.target.value)} disabled={!canEdit}>
-                                <option value="fresh">1 · Fresh application (no past ledger import)</option>
-                                <option value="import">2 · Import opening balances / old Excel reports</option>
+                                <option value="fresh">{translate('portal', 'si_mode_fresh')}</option>
+                                <option value="import">{translate('portal', 'si_mode_import')}</option>
                             </select>
                         </label>
-                        <label>Reason / handover note
+                        <label>{translate('portal', 'si_startup_reason')}
                             <textarea required minLength={5} maxLength={1000} rows={2} value={String(startupForm.data.reason)} onChange={e => startupForm.setData('reason', e.target.value)} disabled={!canEdit} />
                         </label>
                         {Object.keys(startupForm.errors).length > 0 && <div role="alert" className="error">{Object.values(startupForm.errors).join(' ')}</div>}
-                        <button className="button dark" disabled={!canEdit || startupForm.processing}>{startupForm.processing ? 'Saving…' : 'Save startup mode'}</button>
+                        <button className="button dark" disabled={!canEdit || startupForm.processing}>{startupForm.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_startup')}</button>
                     </form>
-                    <p className="muted">Fresh mode does not require Excel. Import mode uses Data imports templates, then Opening balance review. Neither choice by itself turns on financial posting — that still needs verified opening evidence and the deployment activation switch.</p>
+                    <p className="muted">{translate('portal', 'si_startup_note')}</p>
                 </section>
 
                 <section className="panel">
-                    <h2>External services</h2>
+                    <h2>{translate('portal', 'si_external_title')}</h2>
                     <div className="import-options" style={{ marginBottom: 16 }}>
                         {Object.entries(integrations.groups).map(([key, item]) => (
                             <label key={key} className="import-choice">

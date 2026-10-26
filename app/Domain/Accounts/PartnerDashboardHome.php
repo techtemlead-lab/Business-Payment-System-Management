@@ -7,8 +7,11 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
+use App\Models\RewardMilestoneProgress;
 use App\Models\User;
+use App\Support\DashboardManagement;
 use App\Support\Money;
+use App\Support\PortalHost;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -21,19 +24,22 @@ final class PartnerDashboardHome
      *   profile: array<string, mixed>,
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
      *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
-     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>
+     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
+     *   referral: array{code: string, url: string, qr_url: string}|null
      * }
      */
     public function for(User $user): array
     {
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
-        $today = CarbonImmutable::now($tz)->startOfDay();
+        // Business-day bounds are Asia/Dhaka; timestamps in the DB are UTC.
+        $todayUtc = CarbonImmutable::now($tz)->startOfDay()->utc();
         $month = CommissionQualification::currentMonth();
+        $monthStartUtc = CarbonImmutable::createFromFormat('!Y-m', $month, $tz)->utc();
         $rules = app(CommissionPolicy::class)->snapshot(false)['rules'];
         $profile = is_array($user->profile) ? $user->profile : [];
 
         $ownSalesToday = $this->purchaseTotal(
-            Order::query()->where('user_id', $user->id)->where('created_at', '>=', $today),
+            Order::query()->where('user_id', $user->id)->where('created_at', '>=', $todayUtc),
         );
         $teamIds = ReferralTreePath::query()
             ->where('ancestor_id', $user->id)
@@ -42,18 +48,36 @@ final class PartnerDashboardHome
         $teamSalesToday = $teamIds->isEmpty()
             ? 0
             : $this->purchaseTotal(
-                Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $today),
+                Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
             );
+        $activeStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
         $commissionMonth = Money::cents((string) DB::table('commission_allocations')
             ->where('user_id', $user->id)
-            ->where('created_at', '>=', CarbonImmutable::createFromFormat('!Y-m', $month, $tz))
-            ->whereIn('status', ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'])
+            ->where('created_at', '>=', $monthStartUtc)
+            ->whereIn('status', $activeStatuses)
             ->sum('amount'));
+        $commissionToday = Money::cents((string) DB::table('commission_allocations')
+            ->where('user_id', $user->id)
+            ->where('created_at', '>=', $todayUtc)
+            ->whereIn('status', $activeStatuses)
+            ->sum('amount'));
+        $paidToday = Money::cents((string) DB::table('withdrawals')
+            ->where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->where('paid_at', '>=', $todayUtc)
+            ->sum(DB::raw('COALESCE(net_amount, amount)')));
+        if ($paidToday === 0) {
+            $paidToday = Money::cents((string) Order::query()
+                ->where('user_id', $user->id)
+                ->where('created_at', '>=', $todayUtc)
+                ->sum('paid'));
+        }
 
         $chart = [
-            ['key' => 'own', 'label' => 'Today purchase', 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
-            ['key' => 'team', 'label' => 'Team sales', 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
-            ['key' => 'commission', 'label' => 'Commission (month)', 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
+            ['key' => 'commission', 'label' => __('portal.today_commission'), 'value' => Money::decimal($commissionToday), 'cents' => $commissionToday, 'color' => '#ef4a23'],
+            ['key' => 'own', 'label' => __('portal.today_purchase'), 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
+            ['key' => 'paid', 'label' => __('portal.today_paid'), 'value' => Money::decimal($paidToday), 'cents' => $paidToday, 'color' => '#0f766e'],
+            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#c9a227'],
         ];
 
         return [
@@ -72,14 +96,22 @@ final class PartnerDashboardHome
                 'photo_url' => $profile['photo_url'] ?? $profile['avatar_url'] ?? null,
                 'initial' => mb_strtoupper(mb_substr($user->name, 0, 1)),
                 'status' => $user->status,
+                'refer_code' => $user->refer_code,
             ],
             'snapshot' => [
                 'own_sales_today' => Money::decimal($ownSalesToday),
                 'team_sales_today' => Money::decimal($teamSalesToday),
                 'commission_month' => Money::decimal($commissionMonth),
+                'commission_today' => Money::decimal($commissionToday),
+                'paid_today' => Money::decimal($paidToday),
             ],
             'chart' => $chart,
             'targets' => $this->targets($user, $rules, $month),
+            'referral' => $user->refer_code ? [
+                'code' => $user->refer_code,
+                'url' => PortalHost::url('public', '/join/'.$user->refer_code),
+                'qr_url' => '/referral-qr.svg',
+            ] : null,
         ];
     }
 
@@ -90,84 +122,129 @@ final class PartnerDashboardHome
     private function targets(User $user, array $rules, string $month): array
     {
         $targets = [];
+        $controls = PartnerBenefitControls::for($user);
         $monthlyVolume = $this->qualification->monthlyVolume($user->id, $month);
         $salaryTarget = Money::cents((string) ($rules['dealer_monthly_salary']['parameters']['min_monthly_volume'] ?? '10000.00'));
-        $targets[] = $this->progress(
-            key: 'monthly_salary',
-            label: $user->role === 'sub_dealer' ? 'Monthly purchase goal' : 'Monthly salary volume',
-            current: $monthlyVolume,
-            target: $salaryTarget,
-            hint: $user->role === 'sub_dealer'
-                ? 'Buy this much more from the company this month to stay on a healthy activity track.'
-                : 'Remaining company purchase needed this month to qualify for the monthly salary pool.',
-        );
+        if ($controls['unconditional_salary']) {
+            $targets[] = [
+                'key' => 'monthly_salary',
+                'label' => $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
+                'current' => Money::decimal($monthlyVolume),
+                'target' => Money::decimal($salaryTarget),
+                'remaining' => '0.00',
+                'percent' => 100.0,
+                'hint' => __('portal.target_unconditional_salary_hint'),
+            ];
+        } else {
+            $targets[] = $this->progress(
+                key: 'monthly_salary',
+                label: $user->role === 'sub_dealer'
+                    ? __('portal.target_monthly_purchase_goal')
+                    : __('portal.target_monthly_salary_volume'),
+                current: $monthlyVolume,
+                target: $salaryTarget,
+                hint: $user->role === 'sub_dealer'
+                    ? __('portal.target_subdealer_purchase_hint')
+                    : __('portal.target_dealer_salary_hint'),
+            );
+        }
 
-        if ($user->role === 'dealer') {
-            $rank = DealerRank::query()->firstOrCreate(['user_id' => $user->id]);
-            $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
-            $lifetime = Money::cents((string) $rank->lifetime_purchase_total);
-            if (($rank->current_rank ?? 'dealer') === 'dealer') {
-                $targets[] = $this->progress(
-                    key: 'rank_reward',
-                    label: 'MO rank reward',
-                    current: $lifetime,
-                    target: $moTarget,
-                    hint: 'Cumulative own purchases required to promote to Marketing Officer.',
-                );
+        $rank = DealerRank::query()->firstOrCreate(['user_id' => $user->id]);
+        $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
+        $lifetime = Money::cents((string) $rank->lifetime_purchase_total);
+
+        if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
+            $targets[] = [
+                'key' => 'rank_reward',
+                'label' => __('portal.target_rank_reward'),
+                'current' => Money::decimal($lifetime),
+                'target' => Money::decimal($moTarget),
+                'remaining' => '0.00',
+                'percent' => 100.0,
+                'hint' => __('portal.target_unconditional_rank_hint'),
+            ];
+        } elseif ($user->role === 'sub_dealer' || ($rank->current_rank ?? 'dealer') === 'dealer') {
+            $targets[] = $this->progress(
+                key: 'rank_reward',
+                label: __('portal.target_mo_rank_reward'),
+                current: $lifetime,
+                target: $moTarget,
+                hint: $user->role === 'sub_dealer'
+                    ? __('portal.target_subdealer_mo_hint')
+                    : __('portal.target_dealer_mo_hint'),
+            );
+        } else {
+            $next = match ($rank->current_rank) {
+                'mo' => ['am', 'am_count', 'mo'],
+                'am' => ['sm', 'sm_count', 'am'],
+                'sm' => ['me', 'me_count', 'sm'],
+                default => null,
+            };
+            if ($next) {
+                [$code, $countKey, $requiredRank] = $next;
+                $needed = (int) ($rules['rank_royalty']['parameters'][$countKey] ?? 10);
+                $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
+                $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
+                $minimumIndex = (int) array_search($requiredRank, $levels, true);
+                $count = DB::table('referral_tree_paths')
+                    ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
+                    ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
+                    ->where('ancestor_id', $user->id)
+                    ->whereBetween('depth', [1, $depth])
+                    ->where('users.status', 'active')
+                    ->where('users.role', 'dealer')
+                    ->whereIn('current_rank', array_slice($levels, $minimumIndex))
+                    ->count();
+                $requiredLabel = strtoupper($requiredRank);
+                $targets[] = [
+                    'key' => 'rank_reward',
+                    'label' => __('portal.target_named_rank_reward', ['rank' => strtoupper($code)]),
+                    'current' => (string) $count,
+                    'target' => (string) $needed,
+                    'remaining' => (string) max(0, $needed - $count),
+                    'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
+                    'hint' => __('portal.target_rank_leaders_hint', [
+                        'needed' => $needed,
+                        'rank' => $requiredLabel,
+                        'depth' => $depth,
+                    ]),
+                ];
             } else {
-                $next = match ($rank->current_rank) {
-                    'mo' => ['am', 'am_count', 'mo'],
-                    'am' => ['sm', 'sm_count', 'am'],
-                    'sm' => ['me', 'me_count', 'sm'],
-                    default => null,
-                };
-                if ($next) {
-                    [$code, $countKey, $requiredRank] = $next;
-                    $needed = (int) ($rules['rank_royalty']['parameters'][$countKey] ?? 10);
-                    $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
-                    $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
-                    $minimumIndex = (int) array_search($requiredRank, $levels, true);
-                    $count = DB::table('referral_tree_paths')
-                        ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-                        ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
-                        ->where('ancestor_id', $user->id)
-                        ->whereBetween('depth', [1, $depth])
-                        ->where('users.status', 'active')
-                        ->where('users.role', 'dealer')
-                        ->whereIn('current_rank', array_slice($levels, $minimumIndex))
-                        ->count();
-                    $requiredLabel = strtoupper($requiredRank);
-                    $targets[] = [
-                        'key' => 'rank_reward',
-                        'label' => strtoupper($code).' rank reward',
-                        'current' => (string) $count,
-                        'target' => (string) $needed,
-                        'remaining' => (string) max(0, $needed - $count),
-                        'percent' => $needed > 0 ? min(100, round(($count / $needed) * 100, 1)) : 0.0,
-                        'hint' => "Need {$needed} {$requiredLabel} leaders in {$depth}-gen downline.",
-                    ];
-                } else {
-                    $targets[] = [
-                        'key' => 'rank_reward',
-                        'label' => 'Rank reward',
-                        'current' => 'ME',
-                        'target' => 'ME',
-                        'remaining' => '0',
-                        'percent' => 100.0,
-                        'hint' => 'Highest rank achieved.',
-                    ];
-                }
+                $targets[] = [
+                    'key' => 'rank_reward',
+                    'label' => __('portal.target_rank_reward'),
+                    'current' => 'ME',
+                    'target' => 'ME',
+                    'remaining' => '0',
+                    'percent' => 100.0,
+                    'hint' => __('portal.target_highest_rank_hint'),
+                ];
             }
         }
 
-        $bike = $this->qualification->milestone($user->id, 'bike');
-        $targets[] = $this->progress(
-            key: 'bike_incentive',
-            label: 'Bike incentive',
-            current: Money::cents((string) $bike['qualifying_volume']),
-            target: Money::cents((string) $bike['target_amount']),
-            hint: 'Qualified team volume toward the motorcycle incentive (leg caps applied).',
-        );
+        if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
+            $bike = RewardMilestoneProgress::query()
+                ->where('user_id', $user->id)
+                ->where('milestone_type', 'bike')
+                ->first();
+            if ($bike === null) {
+                $bikeData = $this->qualification->milestone($user->id, 'bike');
+                $bikeCurrent = Money::cents((string) $bikeData['qualifying_volume']);
+                $bikeTarget = Money::cents((string) $bikeData['target_amount']);
+            } else {
+                $bikeCurrent = Money::cents((string) $bike->qualifying_volume);
+                $bikeTarget = Money::cents((string) $bike->target_amount);
+            }
+            $targets[] = $this->progress(
+                key: 'bike_incentive',
+                label: __('portal.target_bike_incentive'),
+                current: $bikeCurrent,
+                target: $bikeTarget,
+                hint: __('portal.target_bike_incentive_hint'),
+            );
+        }
 
         return $targets;
     }

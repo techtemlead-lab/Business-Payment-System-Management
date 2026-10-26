@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +20,10 @@ final class PolicyDraftService
                 $total += Percentage::from((string) $component['rate'])->basisPoints;
             }
         } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['components' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['components' => CalculationMessage::localize($exception->getMessage())]);
         }
         if ($total > 10000) {
-            throw ValidationException::withMessages(['components' => 'Total allocations cannot exceed 100% of the purchase value.']);
+            throw ValidationException::withMessages(['components' => __('portal.err_draft_alloc_100')]);
         }
 
         return DB::transaction(function () use ($actor, $data): int {
@@ -48,7 +49,7 @@ final class PolicyDraftService
                 return;
             }
             if ((int) $draft->created_by === (int) $actor->id) {
-                throw ValidationException::withMessages(['policy' => 'A different Finance reviewer must publish this draft.']);
+                throw ValidationException::withMessages(['policy' => __('portal.err_draft_publisher')]);
             }
             DB::table('policy_drafts')->where('id', $id)->update([
                 'status' => 'published',
@@ -62,6 +63,28 @@ final class PolicyDraftService
                 'name' => $draft->name,
                 'created_by' => $draft->created_by,
             ]);
+            $preparer = User::find((int) $draft->created_by);
+            if ($preparer !== null && $preparer->id !== $actor->id) {
+                $locale = $preparer->preferredLocale();
+                Audit::notice(
+                    $preparer->id,
+                    __('portal.notice_policy_published_title', [], $locale),
+                    __('portal.notice_policy_published_body', [
+                        'name' => $draft->name,
+                        'account_type' => $draft->account_type,
+                    ], $locale),
+                );
+                DB::afterCommit(function () use ($preparer, $locale, $draft): void {
+                    app(PartnerEventSms::class)->send(
+                        $preparer,
+                        'policy.published',
+                        __('sms.policy_published', [
+                            'name' => $draft->name,
+                            'account_type' => $draft->account_type,
+                        ], $locale),
+                    );
+                });
+            }
         }, 3);
     }
 }

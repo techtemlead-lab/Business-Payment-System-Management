@@ -3,9 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\PortalHost;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,18 +15,36 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Hidden(['password', 'remember_token', 'nid'])]
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    protected $guarded = ['id', 'password', 'remember_token', 'email_verified_at'];
+    protected $guarded = [
+        'id',
+        'password',
+        'remember_token',
+        'email_verified_at',
+        'role',
+        'status',
+        'sponsor_id',
+        'nid',
+        'dealer_code',
+    ];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
 
     public function owner(): bool
     {
         return in_array($this->role, ['super_admin', 'md', 'chairman'], true);
+    }
+
+    public function preferredLocale(): string
+    {
+        $locale = is_string($this->locale ?? null) ? $this->locale : (string) config('app.fallback_locale', 'en');
+        $supported = config('madina.locales', ['en', 'bn']);
+
+        return in_array($locale, $supported, true) ? $locale : (string) config('app.fallback_locale', 'en');
     }
 
     public function loginPath(): string
@@ -40,6 +60,23 @@ class User extends Authenticatable
     public function staff(): bool
     {
         return $this->role === 'employee' || str_starts_with($this->role, 'custom_') || array_key_exists($this->role, config('madina.roles'));
+    }
+
+    public function hasLinkedStaffAccess(): bool
+    {
+        return in_array($this->role, ['dealer', 'sub_dealer'], true)
+            && is_string($this->linked_staff_role)
+            && $this->linked_staff_role !== '';
+    }
+
+    public function usingStaffWorkspace(): bool
+    {
+        if (! $this->hasLinkedStaffAccess()) {
+            return false;
+        }
+
+        return (string) session('workspace_mode') === 'staff'
+            && (int) session('workspace_user_id') === (int) $this->id;
     }
 
     public function allows(string $capability): bool
@@ -71,6 +108,9 @@ class User extends Authenticatable
         if ($this->status !== 'active') {
             return [];
         }
+        if ($this->usingStaffWorkspace()) {
+            return app(PartnerStaffLink::class)->linkedCapabilities($this);
+        }
         if (str_starts_with($this->role, 'custom_') || isset($this->profile['action_permissions']) || in_array($this->role, ['md', 'chairman'], true)) {
             return array_keys(array_filter(app(StaffPermissions::class)->matrix($this), fn (array $actions): bool => $actions['view'] ?? false));
         }
@@ -88,8 +128,14 @@ class User extends Authenticatable
 
     public function safe(): array
     {
+        $profile = is_array($this->profile) ? $this->profile : [];
+
         return [
-            ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status']),
+            ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status', 'linked_staff_role']),
+            'shop_name' => is_string($profile['shop_name'] ?? null) ? $profile['shop_name'] : null,
+            'photo_url' => is_string($profile['photo_url'] ?? null) ? $profile['photo_url'] : null,
+            'has_linked_staff' => $this->hasLinkedStaffAccess(),
+            'workspace_mode' => $this->usingStaffWorkspace() ? 'staff' : 'partner',
             'permissions' => $this->capabilities(),
         ];
     }
@@ -132,6 +178,8 @@ class User extends Authenticatable
             'profile' => 'array',
             'nid' => 'encrypted',
             'directory_visible' => 'boolean',
+            'linked_staff_permissions' => 'array',
+            'staff_linked_at' => 'datetime',
         ];
     }
 }

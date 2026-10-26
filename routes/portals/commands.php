@@ -19,11 +19,14 @@ return function (string $portal): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/security/password', [AuthController::class, 'password'])->middleware('throttle:5,1');
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
+    Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
+    Route::post('/commands/partner-support', [CommandController::class, 'partnerSupport'])->middleware('throttle:5,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders', [CommandController::class, 'order']);
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store']);
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
+    Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);
@@ -32,7 +35,11 @@ return function (string $portal): void {
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
     Route::post('/commands/accounts', [CommandController::class, 'account']);
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
+    Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
+    Route::get('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'kycDocuments'])->middleware('throttle:60,1');
+    Route::post('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'storeKycDocument'])->middleware('throttle:20,1');
+    Route::get('/commands/accounts/{user}/kyc-documents/{document}', [CommandController::class, 'downloadKycDocument'])->middleware('throttle:60,1');
     Route::post('/commands/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->middleware('throttle:20,1');
     Route::get('/commands/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->middleware('throttle:60,1');
     Route::get('/commands/identity/refer-preview', [IdentityLookupController::class, 'referPreview'])->middleware('throttle:60,1');
@@ -60,6 +67,14 @@ return function (string $portal): void {
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
+
+    Route::post('/commands/support-tickets', [CommandController::class, 'supportTicket'])->middleware('throttle:10,1');
+    Route::post('/commands/support-tickets/{id}/reply', [CommandController::class, 'supportTicketReply'])->middleware('throttle:20,1');
+    Route::post('/commands/tours/{page}/complete', [CommandController::class, 'completeTour'])->middleware('throttle:30,1');
+    Route::post('/commands/tours/restart', [CommandController::class, 'restartTour'])->middleware('throttle:20,1');
+    Route::post('/commands/workspace-mode', [CommandController::class, 'switchWorkspaceMode'])->middleware('throttle:30,1');
+    Route::post('/commands/accounts/{user}/link-staff', [CommandController::class, 'linkStaffRole']);
+    Route::post('/commands/accounts/{user}/unlink-staff', [CommandController::class, 'unlinkStaffRole']);
     Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
 };

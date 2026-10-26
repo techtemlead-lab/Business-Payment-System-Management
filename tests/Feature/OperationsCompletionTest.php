@@ -115,7 +115,7 @@ class OperationsCompletionTest extends TestCase
         $this->postJson('/api/v1/operations/payroll/prepare', ['period_month' => '2026-09'])->assertOk()->assertJsonPath('data.ids.0', $id);
         $this->postJson('/api/v1/operations/payroll/prepare', ['period_month' => '2026-10'])->assertUnprocessable();
         $this->postJson('/api/v1/operations/payroll/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Salary reviewed'])->assertUnprocessable();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->postJson('/api/v1/operations/payroll/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Salary reviewed'])->assertUnprocessable();
         $this->actingAs($reviewer)->postJson('/api/v1/operations/payroll/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Salary reviewed independently'])->assertOk();
         $payment = ['payment_account_id' => $account, 'payment_reference' => 'SALARY-SEP', 'paid_at' => now()->subMinute()->timezone('Asia/Dhaka')->format('Y-m-d\TH:i'), 'reason' => 'Actual payment confirmed', 'receipt' => UploadedFile::fake()->create('proof.pdf', 5, 'application/pdf')];
@@ -133,7 +133,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_tour_reserve_is_owned_cannot_be_overdrawn_and_reverses_after_refund(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
@@ -154,7 +154,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_reward_after_partial_refund_only_claws_back_subsequent_refund_fraction(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
         $order = $this->postedOrder($buyer, '120.00');
         app(CommissionReversal::class)->refund($order, 6000, 'First half returned', 'FIRST-HALF');
@@ -167,7 +167,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_inactive_earning_is_released_once_only_when_recipient_active(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $sponsor = User::factory()->create(['status' => 'suspended']);
         $buyer = User::factory()->create(['sponsor_id' => $sponsor->id]);
         $this->postedOrder($buyer);
@@ -175,7 +175,7 @@ class OperationsCompletionTest extends TestCase
         $admin = User::factory()->create(['role' => 'finance']);
         $url = '/api/v1/operations/holds/'.$hold->id.'/release';
         $this->actingAs($admin)->postJson($url, ['reason' => 'Recipient status reviewed'])->assertUnprocessable();
-        $sponsor->update(['status' => 'active']);
+        $sponsor->forceFill(['status' => 'active'])->save();
         $this->postJson($url, ['reason' => 'Recipient status reviewed'])->assertOk();
         $this->assertDatabaseHas('wallets', ['user_id' => $sponsor->id, 'available' => '10.00']);
         $this->postJson($url, ['reason' => 'Repeat release attempt'])->assertUnprocessable();
@@ -200,7 +200,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_sr_targets_use_captured_geography_and_net_sales_in_closed_month_payroll(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sr = User::factory()->create(['role' => 'sr']);
         $buyer = User::factory()->create(['division' => 'RANGPUR', 'district' => 'Kurigram']);
@@ -221,7 +221,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_area_hold_uses_original_period_and_quota_despite_later_assignment_changes(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $area = User::factory()->create(['division' => 'Rangpur']);
         $buyer = User::factory()->create(['division' => 'Rangpur']);
@@ -239,7 +239,7 @@ class OperationsCompletionTest extends TestCase
     public function test_marketing_expenses_preserve_refund_clawbacks_and_private_recovery_proofs(): void
     {
         Storage::fake('local');
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $preparer = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $account = $this->account($preparer);
@@ -264,7 +264,7 @@ class OperationsCompletionTest extends TestCase
 
     public function test_salary_corrections_append_contract_revisions_and_preserve_rejected_payroll(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
         $reviewer = User::factory()->create(['role' => 'finance']);
         $staff = User::factory()->create(['role' => 'sr']);
@@ -282,12 +282,12 @@ class OperationsCompletionTest extends TestCase
         $this->assertDatabaseHas('payroll_entries', ['id' => $newPayroll, 'status' => 'draft', 'net' => '12000.00']);
     }
 
-    public function test_production_posting_requires_opening_verification_even_when_configuration_is_enabled(): void
+    public function test_posting_requires_opening_verification_even_when_configuration_is_enabled(): void
     {
-        config(['madina.financial_activation' => true]);
-        $this->app->instance('env', 'production');
+        config(['madina.financial_activation' => true, 'madina.preview_mode' => false]);
         $admin = User::factory()->create(['role' => 'finance']);
-        $this->actingAs($admin)->withSession(['_token' => 'production-opening-test'])->postJson('/api/v1/operations/holds/1/release', ['_token' => 'production-opening-test', 'reason' => 'Attempt posting before opening review'])->assertUnprocessable()->assertJsonValidationErrors('policy');
+        $this->actingAs($admin)->withSession(['_token' => 'opening-gate-test'])->postJson('/api/v1/operations/holds/1/release', ['_token' => 'opening-gate-test', 'reason' => 'Attempt posting before opening review'])->assertUnprocessable()->assertJsonValidationErrors('policy');
         $this->assertDatabaseCount('journal_entries', 0);
+        $this->assertDatabaseCount('financial_verifications', 0);
     }
 }

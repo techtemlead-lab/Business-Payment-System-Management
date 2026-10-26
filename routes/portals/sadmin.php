@@ -32,7 +32,9 @@ Route::middleware(['auth', 'active', 'portal:sadmin'])->group(function () use ($
     Route::get('/products/create', [ProductRegistryController::class, 'edit']);
     Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
+    Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
+    Route::redirect('/places', '/place-codes', 301);
     Route::get('/{section?}', [DashboardController::class, 'index']);
 });

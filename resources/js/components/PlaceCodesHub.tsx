@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, router, useForm } from '@inertiajs/react';
 import { Hash, Plus, Search, MapPinned, Building2, Landmark, Layers3, CheckCircle2 } from 'lucide-react';
 import { Table, Pagination, Badge, Modal, type Row } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface PlaceRow extends Row {
     id: number;
@@ -65,9 +66,11 @@ export default function PlaceCodesHub({
     parent_options,
     places,
 }: PlaceCodesHubProps) {
+    const translate = useT();
     const [search, setSearch] = useState(filters.q || '');
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<PlaceRow | null>(null);
+    const levelName = level_label.toLowerCase();
 
     const createForm = useForm({
         level,
@@ -149,16 +152,16 @@ export default function PlaceCodesHub({
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#0f766e', textTransform: 'uppercase' }}>
-                            <Hash size={15} /> Place codes
+                            <Hash size={15} /> {translate('portal', 'pc_badge')}
                         </div>
-                        <h2 style={{ margin: '6px 0' }}>{level_label} codes</h2>
+                        <h2 style={{ margin: '6px 0' }}>{translate('portal', 'pc_heading', { level: level_label })}</h2>
                         <p className="muted" style={{ margin: 0, maxWidth: 640 }}>
-                            Assign dealers by branded place code (for example MNHC-101 for Dhaka division, MNHC-100 for management). Enter digits alone and the MNHC- prefix is applied automatically. Base places define the last-serial path used when a higher-level assignee purchases.
+                            {translate('portal', 'pc_hint')}
                         </p>
                     </div>
                     {(level !== 'management' || places.data.length === 0) && (
                         <button type="button" className="button dark" onClick={() => setCreateOpen(true)}>
-                            <Plus size={16} /> Add {level_label.toLowerCase()} code
+                            <Plus size={16} /> {translate('portal', 'pc_add', { level: levelName })}
                         </button>
                     )}
                 </div>
@@ -184,10 +187,10 @@ export default function PlaceCodesHub({
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder={`Search ${level_label.toLowerCase()} by code, name, or parent…`}
+                        placeholder={translate('portal', 'pc_search_ph', { level: levelName })}
                         style={{ flex: 1, border: 0, outline: 'none', fontSize: 15, background: 'transparent' }}
                     />
-                    <button type="submit" className="button small dark">Search</button>
+                    <button type="submit" className="button small dark">{translate('portal', 'pc_search')}</button>
                 </form>
             )}
 
@@ -195,21 +198,21 @@ export default function PlaceCodesHub({
                 <Table
                     rows={places.data}
                     columns={[
-                        { key: 'code', title: 'Code', render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{r.code}</b> },
-                        { key: 'name', title: 'Place name' },
+                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{r.code}</b> },
+                        { key: 'name', title: translate('portal', 'pc_col_name') },
                         {
                             key: 'parent_name',
-                            title: 'Parent',
+                            title: translate('portal', 'pc_col_parent'),
                             render: (r) => (r.parent_code ? `${r.parent_name} (${r.parent_code})` : '—'),
                         },
                         {
                             key: 'base_place_name',
-                            title: 'Base place',
+                            title: translate('portal', 'pc_col_base'),
                             render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">—</span>),
                         },
                         {
                             key: 'is_active',
-                            title: 'Status',
+                            title: translate('portal', 'pc_col_status'),
                             render: (r) => <Badge status={r.is_active ? 'published' : 'draft'} />,
                         },
                         {
@@ -217,32 +220,32 @@ export default function PlaceCodesHub({
                             title: '',
                             render: (r) => (
                                 <button type="button" className="text-link" onClick={() => openEdit(r as PlaceRow)}>
-                                    Edit
+                                    {translate('portal', 'pc_edit')}
                                 </button>
                             ),
                         },
                     ]}
-                    empty={`No ${level_label.toLowerCase()} codes yet`}
+                    empty={translate('portal', 'pc_empty', { level: levelName })}
                 />
                 <Pagination page={places} />
             </section>
 
             {createOpen && (
-                <Modal title={`Add ${level_label.toLowerCase()} code`} onClose={() => setCreateOpen(false)}>
+                <Modal title={translate('portal', 'pc_create_title', { level: levelName })} onClose={() => setCreateOpen(false)}>
                     <form onSubmit={submitCreate} className="action-form">
                         <label>
-                            Code
-                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} required placeholder="e.g. MNHC-201" />
+                            {translate('portal', 'pc_fld_code')}
+                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} required placeholder={translate('portal', 'pc_ph_code')} />
                             {createForm.errors.code && <span className="field-error">{createForm.errors.code}</span>}
                         </label>
                         <label>
-                            Name
-                            <input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required placeholder="Place name" />
+                            {translate('portal', 'pc_fld_name')}
+                            <input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required placeholder={translate('portal', 'pc_ph_name')} />
                             {createForm.errors.name && <span className="field-error">{createForm.errors.name}</span>}
                         </label>
                         {parent_options.length > 0 && (
                             <label>
-                                Parent
+                                {translate('portal', 'pc_fld_parent')}
                                 <select value={createForm.data.parent_id} onChange={(e) => createForm.setData('parent_id', e.target.value)} required>
                                     {parent_options.map((option) => (
                                         <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
@@ -252,28 +255,28 @@ export default function PlaceCodesHub({
                             </label>
                         )}
                         <button type="submit" className="button dark" disabled={createForm.processing}>
-                            <CheckCircle2 size={16} /> Save code
+                            <CheckCircle2 size={16} /> {translate('portal', 'pc_save')}
                         </button>
                     </form>
                 </Modal>
             )}
 
             {editRow && (
-                <Modal title={`Edit ${editRow.name}`} onClose={() => setEditRow(null)}>
+                <Modal title={translate('portal', 'pc_edit_title', { name: editRow.name })} onClose={() => setEditRow(null)}>
                     <form onSubmit={submitEdit} className="action-form">
                         <label>
-                            Code
+                            {translate('portal', 'pc_fld_code')}
                             <input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} required />
                             {editForm.errors.code && <span className="field-error">{editForm.errors.code}</span>}
                         </label>
                         <label>
-                            Name
+                            {translate('portal', 'pc_fld_name')}
                             <input value={editForm.data.name} onChange={(e) => editForm.setData('name', e.target.value)} required />
                             {editForm.errors.name && <span className="field-error">{editForm.errors.name}</span>}
                         </label>
                         {parent_options.length > 0 && (
                             <label>
-                                Parent
+                                {translate('portal', 'pc_fld_parent')}
                                 <select value={editForm.data.parent_id} onChange={(e) => editForm.setData('parent_id', e.target.value)}>
                                     {parent_options.map((option) => (
                                         <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
@@ -283,7 +286,7 @@ export default function PlaceCodesHub({
                         )}
                         {(editRow.base_options?.length ?? 0) > 0 && (
                             <label>
-                                Base place (last-serial child)
+                                {translate('portal', 'pc_fld_base_serial')}
                                 <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
                                     <option value="">—</option>
                                     {editRow.base_options?.map((option) => (
@@ -295,9 +298,9 @@ export default function PlaceCodesHub({
                         )}
                         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <input type="checkbox" checked={editForm.data.is_active} onChange={(e) => editForm.setData('is_active', e.target.checked)} />
-                            Active
+                            {translate('portal', 'pc_fld_active')}
                         </label>
-                        <button type="submit" className="button dark" disabled={editForm.processing}>Save changes</button>
+                        <button type="submit" className="button dark" disabled={editForm.processing}>{translate('portal', 'pc_save_changes')}</button>
                     </form>
                 </Modal>
             )}

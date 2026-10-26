@@ -41,11 +41,20 @@ class CommissionController extends Controller
             return response()->json([
                 'data' => [],
                 'posted' => false,
-                'reason' => 'Financial posting is disabled until activation after approved policy and opening verification.',
+                'reason' => __('portal.err_wallet_posting_disabled'),
             ], 409);
         }
 
-        return response()->json(['data' => $service->processOrder($order, $request->user()->id), 'posted' => true]);
+        $allocations = $service->processOrder($order, $request->user()->id);
+        if ($allocations === []) {
+            return response()->json([
+                'data' => [],
+                'posted' => false,
+                'reason' => __('portal.err_commission_not_posted'),
+            ], 409);
+        }
+
+        return response()->json(['data' => $allocations, 'posted' => true]);
     }
 
     public function refund(Request $request, Order $order, CommissionService $service): JsonResponse

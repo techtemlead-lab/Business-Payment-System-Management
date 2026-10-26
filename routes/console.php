@@ -16,6 +16,9 @@ Schedule::call(fn () => Cache::put('operations:scheduler-heartbeat', now()->utc(
 Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled commission maturity release failed.'));
 
+Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled area-quota hold release failed.'));
+
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));

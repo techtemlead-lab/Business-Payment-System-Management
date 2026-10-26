@@ -3,6 +3,11 @@
 namespace App\Http\Portals\Shared;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Accounts\PartnerEarningsPresenter;
+use App\Domain\Accounts\PartnerFullReport;
+use App\Domain\Accounts\PartnerIdCard;
+use App\Domain\Accounts\PartnerJoinPoster;
+use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -11,8 +16,13 @@ use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
+use App\Domain\Orders\OrderInvoice;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\GuidePrerequisites;
+use App\Domain\Support\SupportTickets;
+use App\Domain\Support\TourGuide;
+use App\Domain\Support\UserManual;
 use App\Http\Controllers\Controller;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -25,15 +35,19 @@ use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\User;
 use App\Support\DashboardManagement;
+use App\Support\JoinQr;
 use App\Support\Money;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class WorkspaceController extends Controller
 {
@@ -41,15 +55,23 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         $portal = PortalHost::current($r) ?? PortalHost::forUser($u);
-        $staff = in_array($portal, ['manage', 'sadmin'], true);
+        $staffWorkspace = $u->usingStaffWorkspace();
+        $staff = in_array($portal, ['manage', 'sadmin'], true) || $staffWorkspace;
+        $catalogPortal = $staffWorkspace ? 'manage' : $portal;
         if ($staff && $section === 'customization') {
             $section = 'website';
         }
         if ($staff && $section === 'capital-flow') {
             $section = 'treasury';
         }
-        PortalCatalog::assertSection($u, $portal, $section);
-        $r->validate(['q' => 'nullable|string|max:100', 'status' => 'nullable|string|max:40', 'page' => 'nullable|integer|min:1']);
+        PortalCatalog::assertSection($u, $catalogPortal, $section);
+        $r->validate([
+            'q' => 'nullable|string|max:100',
+            'status' => 'nullable|string|max:40',
+            'page' => 'nullable|integer|min:1',
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+        ]);
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         $data = [];
         if (in_array($section, ['overview', 'orders', 'deliveries', 'dues', 'reports'])) {
@@ -79,7 +101,7 @@ class WorkspaceController extends Controller
                 'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
-            if (in_array($u->role, ['dealer', 'sub_dealer'], true)) {
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
                 $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
             } elseif ($staff) {
                 $data['admin_home'] = [
@@ -92,7 +114,7 @@ class WorkspaceController extends Controller
                         'status' => $u->status,
                     ],
                     'snapshot' => [
-                        'orders_today' => (clone $orders)->whereDate('created_at', now(config('madina.business_timezone')))->count(),
+                        'orders_today' => (clone $orders)->where('created_at', '>=', CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc())->count(),
                         'pending_review' => (clone $orders)->whereIn('status', ['submitted', 'held'])->count(),
                         'partner_accounts' => User::whereIn('role', ['dealer', 'sub_dealer'])->count(),
                         'purchases' => $data['stats']['purchases'],
@@ -102,7 +124,10 @@ class WorkspaceController extends Controller
             }
         }
         if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
-            $products = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name')->get();
+            $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
+            $productLimit = $staff ? 250 : 120;
+            $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
+            $products = (clone $productQuery)->limit($productLimit)->get();
             $revealStock = ! $staff || $u->allows('inventory');
             $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
             $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {
@@ -128,17 +153,29 @@ class WorkspaceController extends Controller
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();
                     $data['defaults'] = SiteCustomization::defaults();
-                    $data['all_catalog_products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
-                        'id' => $p->id,
-                        'name' => $p->name,
-                        'sku' => $p->sku,
-                        'mrp' => $p->mrp,
-                        ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
-                        'category' => $p->category,
-                        'featured' => (bool) $p->featured,
-                        ...($revealStock ? ['stock' => (int) $p->stock] : []),
-                        'image' => $p->media()['image_url'] ?? '',
-                    ]);
+                    $pickerQuery = Product::query()
+                        ->where('active', true)
+                        ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match
+                            ->where('name', 'ilike', '%'.$r->string('q').'%')
+                            ->orWhere('sku', 'ilike', '%'.$r->string('q').'%')
+                            ->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                        ->orderBy('name');
+                    $pickerLimit = 250;
+                    $data['all_catalog_products_truncated'] = (clone $pickerQuery)->count() > $pickerLimit;
+                    $data['all_catalog_products'] = (clone $pickerQuery)
+                        ->limit($pickerLimit)
+                        ->get()
+                        ->map(fn ($p) => [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'sku' => $p->sku,
+                            'mrp' => $p->mrp,
+                            ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
+                            'category' => $p->category,
+                            'featured' => (bool) $p->featured,
+                            ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                            'image' => $p->media()['image_url'] ?? '',
+                        ]);
                 }
             }
         }
@@ -154,7 +191,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {
@@ -166,7 +203,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
             $data['subdealer_stats'] = [
                 'total' => User::where('role', 'sub_dealer')->count(),
@@ -206,26 +243,35 @@ class WorkspaceController extends Controller
                 'active' => (clone $staffQuery)->where('status', 'active')->count(),
                 'suspended' => (clone $staffQuery)->where('status', 'suspended')->count(),
             ];
-            $data['available_permissions'] = [
-                ['key' => 'field_sales', 'label' => 'Field Sales Workspace', 'description' => 'Work with partners inside assigned territories', 'category' => 'Field Sales'],
-                ['key' => 'sr_orders', 'label' => 'Territory Orders', 'description' => 'Submit and track orders for assigned partners', 'category' => 'Field Sales'],
-                ['key' => 'sr_dues', 'label' => 'Territory Dues', 'description' => 'Read assigned partner dues and reports', 'category' => 'Field Sales'],
-                ['key' => 'sr_onboarding', 'label' => 'Dealer Applications', 'description' => 'Submit new partner applications for review', 'category' => 'Field Sales'],
-                ['key' => 'staff_admin', 'label' => 'Territories & Targets', 'description' => 'Assign territories and monthly targets', 'category' => 'Operations'],
-                ['key' => 'payroll', 'label' => 'Payroll Preparation', 'description' => 'Prepare closed-month staff salary drafts', 'category' => 'Finance'],
-                ['key' => 'orders', 'label' => 'Orders & Deliveries', 'description' => 'View orders, shipments, deliveries and payment claims', 'category' => 'Operations'],
-                ['key' => 'order_review', 'label' => 'Order Review & Approvals', 'description' => 'Approve purchase requests and verify credit allocations', 'category' => 'Operations'],
-                ['key' => 'inventory', 'label' => 'Inventory & Stock Movements', 'description' => 'Track stock levels, record receipts and stock adjustments', 'category' => 'Inventory'],
-                ['key' => 'catalog', 'label' => 'Product Catalogue & Pricing', 'description' => 'Manage products, units, descriptions and promotional flags', 'category' => 'Inventory'],
-                ['key' => 'accounts', 'label' => 'Partner Directory & Accounts', 'description' => 'Manage dealer and sub-dealer profiles and KYC', 'category' => 'Network'],
-                ['key' => 'finance', 'label' => 'Treasury, Commissions & Payouts', 'description' => 'View capital waterfall, settlements, commissions and payouts', 'category' => 'Finance'],
-                ['key' => 'reports', 'label' => 'Export Reports', 'description' => 'Export order CSVs and financial summaries', 'category' => 'Operations'],
-                ['key' => 'content', 'label' => 'Content Management & Customization', 'description' => 'Manage site content pages and visual hero customization', 'category' => 'Marketing'],
-                ['key' => 'audit', 'label' => 'Audit & Security Logs', 'description' => 'Inspect append-only system activity and security events', 'category' => 'Security'],
-                ['key' => 'pricing', 'label' => 'Price Modification', 'description' => 'Change MRP and wholesale pricing structures', 'category' => 'Pricing'],
-                ['key' => 'cost_read', 'label' => 'Cost Price Visibility', 'description' => 'View manufacturing/cost prices on products', 'category' => 'Finance'],
-                ['key' => 'identity_write', 'label' => 'KYC / NID Management', 'description' => 'View and edit sensitive NID credentials', 'category' => 'Security'],
+            $permissionCatalog = [
+                ['key' => 'field_sales', 'category' => 'field_sales'],
+                ['key' => 'sr_orders', 'category' => 'field_sales'],
+                ['key' => 'sr_dues', 'category' => 'field_sales'],
+                ['key' => 'sr_onboarding', 'category' => 'field_sales'],
+                ['key' => 'staff_admin', 'category' => 'operations'],
+                ['key' => 'payroll', 'category' => 'finance'],
+                ['key' => 'orders', 'category' => 'operations'],
+                ['key' => 'order_review', 'category' => 'operations'],
+                ['key' => 'inventory', 'category' => 'inventory'],
+                ['key' => 'catalog', 'category' => 'inventory'],
+                ['key' => 'accounts', 'category' => 'network'],
+                ['key' => 'finance', 'category' => 'finance'],
+                ['key' => 'reports', 'category' => 'operations'],
+                ['key' => 'content', 'category' => 'marketing'],
+                ['key' => 'audit', 'category' => 'security'],
+                ['key' => 'pricing', 'category' => 'pricing'],
+                ['key' => 'cost_read', 'category' => 'finance'],
+                ['key' => 'identity_write', 'category' => 'security'],
             ];
+            $data['available_permissions'] = array_map(
+                fn (array $permission): array => [
+                    'key' => $permission['key'],
+                    'label' => __('portal.perm_'.$permission['key']),
+                    'description' => __('portal.perm_'.$permission['key'].'_hint'),
+                    'category' => __('portal.perm_cat_'.$permission['category']),
+                ],
+                $permissionCatalog
+            );
         }
         if ($section === 'dashboards') {
             abort_unless($u->role === 'super_admin' || $u->allows('accounts'), 403);
@@ -251,11 +297,55 @@ class WorkspaceController extends Controller
             $data['policies'] = DB::table('policy_drafts')->orderByDesc('id')->get();
         }
         if ($section === 'profile') {
-            $data['profile'] = [...$u->safe(), 'phone' => $u->phone, 'fields' => $u->profile ?? [], 'nid_status' => $u->nid ? 'On file — access restricted' : 'Not provided'];
+            $profile = is_array($u->profile) ? $u->profile : [];
+            $identityType = (string) ($profile['identity_type'] ?? ($u->nid ? 'nid' : ''));
+            $hasBirthCert = filled($profile['birth_certificate_number'] ?? null);
+            $identityOnFile = ($identityType === 'nid' && filled($u->nid))
+                || ($identityType === 'birth_certificate' && $hasBirthCert)
+                || filled($u->nid)
+                || $hasBirthCert;
+            $data['profile'] = [
+                ...$u->safe(),
+                'phone' => $u->phone,
+                'shop_name' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
+                'place_code' => $profile['place_code'] ?? $profile['area_code'] ?? null,
+                'name_bn' => $profile['name_bn'] ?? null,
+                'upazila' => $profile['upazila'] ?? null,
+                'union' => $profile['union'] ?? null,
+                'village' => $profile['village'] ?? null,
+                'refer_code' => $u->refer_code,
+                'kyc' => [
+                    'identity_type' => $identityType !== '' ? $identityType : null,
+                    'identity_label' => match ($identityType) {
+                        'nid' => __('portal.kyc_label_nid'),
+                        'birth_certificate' => __('portal.kyc_label_birth_certificate'),
+                        default => __('portal.kyc_label_identity'),
+                    },
+                    'identity_status' => $identityOnFile ? 'on_file' : 'missing',
+                    'identity_status_label' => $identityOnFile
+                        ? __('portal.kyc_status_on_file')
+                        : __('portal.kyc_status_missing'),
+                    'date_of_birth_on_file' => filled($profile['date_of_birth'] ?? null),
+                ],
+            ];
         }
         if ($section === 'network') {
             $data['members'] = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')->where('ancestor_id', $u->id)
                 ->where('depth', '>', 0)->orderBy('depth')->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
+            if (! $staff && $u->role === 'dealer') {
+                $networkIds = DB::table('referral_tree_paths')
+                    ->where('ancestor_id', $u->id)
+                    ->pluck('descendant_id')
+                    ->push($u->id)
+                    ->unique()
+                    ->values()
+                    ->all();
+                $data['dealers'] = $this->networkDealerNodes(
+                    User::query()->whereIn('id', $networkIds),
+                    maskPhone: false,
+                );
+                $data['dealers_truncated'] = false;
+            }
             if ($r->filled('member_id')) {
                 $member = $r->validate(['member_id' => 'required|integer'])['member_id'];
                 abort_unless(ReferralTreePath::isDescendant($u->id, (int) $member), 404);
@@ -288,10 +378,61 @@ class WorkspaceController extends Controller
             }
         }
         if (in_array($section, ['withdrawals', 'earnings'])) {
+            $presenter = app(PartnerEarningsPresenter::class);
+            $preset = $r->string('preset')->toString() ?: null;
+            $resolved = $presenter->resolvePreset($preset, $this->optionalDate($r->input('from')), $this->optionalDate($r->input('to')));
+            $earningsFrom = $resolved['from'];
+            $earningsTo = $resolved['to'];
+            [$earningsFromUtc, $earningsToUtc] = $this->businessDayBounds($earningsFrom, $earningsTo);
             $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held', 'commission_held']);
-            $data['earnings'] = CommissionAllocation::where('user_id', $u->id)->latest()->limit(30)->get();
+            $data['withdrawal_balances'] = $presenter->withdrawalBalances($u);
+            $data['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo, 'preset' => $preset];
+            $data['earnings'] = $presenter->ledgerRows($u, $earningsFromUtc, $earningsToUtc);
+            $data['period_totals'] = [
+                'commission' => Money::decimal(Money::cents((string) collect($data['earnings'])->sum(fn ($row) => (float) $row['amount']))),
+            ];
             $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
-            $data['withdrawals'] = DB::table('withdrawals')->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->latest()->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
+            $data['withdrawals'] = DB::table('withdrawals')
+                ->when(! in_array($portal, ['manage', 'sadmin'], true), fn ($q) => $q->where('user_id', $u->id))
+                ->latest()
+                ->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true) && $section === 'earnings') {
+                $data['wallet_statement'] = app(PartnerWalletStatement::class)->for($u, $earningsFrom, $earningsTo);
+            }
+        }
+        if ($section === 'full-report') {
+            abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+            $presenter = app(PartnerEarningsPresenter::class);
+            $preset = $r->string('preset')->toString() ?: null;
+            $resolved = $presenter->resolvePreset($preset, $this->optionalDate($r->input('from')), $this->optionalDate($r->input('to')));
+            $reportFrom = $resolved['from'];
+            $reportTo = $resolved['to'];
+            $data['full_report'] = app(PartnerFullReport::class)->for($u, $reportFrom, $reportTo);
+            $data['full_report']['filters']['preset'] = $preset;
+        }
+        if ($section === 'help') {
+            $manualQuery = $r->filled('q') ? (string) $r->input('q') : null;
+            $data['manual_query'] = $manualQuery;
+            $data['manual_sections'] = app(UserManual::class)->chaptersFor($u, $manualQuery);
+            $data['support_tickets'] = app(SupportTickets::class)->forUser($u);
+            $data['support_categories'] = SupportTickets::Categories;
+        }
+        if ($section === 'support-admin') {
+            abort_unless($staff || $u->owner(), 403);
+            $data['support_admin'] = app(SupportTickets::class)->adminIndex(
+                $r->filled('status') ? (string) $r->input('status') : null
+            );
+        }
+        if ($section === 'circulars') {
+            abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+            $data['circulars'] = DB::table('content_pages')
+                ->where('published', true)
+                ->where(function ($query): void {
+                    $query->where('slug', 'notice')
+                        ->orWhere('slug', 'like', 'circular-%');
+                })
+                ->orderByDesc('updated_at')
+                ->get(['id', 'slug', 'title', 'body', 'updated_at']);
         }
         if ($section === 'ledger') {
             $data['entries'] = DB::table('journal_entries')->latest()->paginate(20);
@@ -301,7 +442,7 @@ class WorkspaceController extends Controller
         }
         if ($section === 'content') {
             $data['pages'] = DB::table('content_pages')
-                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
+                ->whereIn('slug', ['home', 'about', 'contact', 'notice', 'circular-training', 'circular-price', 'circular-meeting', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'products', 'dealers'])
                 ->orderBy('slug')
                 ->get();
         }
@@ -310,17 +451,17 @@ class WorkspaceController extends Controller
             $data['defaults'] = SiteCustomization::defaults();
             $enabled = SiteCustomization::enabledPagesMap();
             $data['websitePages'] = collect([
-                ['key' => 'home', 'slug' => '/', 'label' => 'Landing page', 'toggleable' => false],
-                ['key' => 'about', 'slug' => '/about', 'label' => 'About'],
-                ['key' => 'products', 'slug' => '/products', 'label' => 'Products'],
-                ['key' => 'dealers', 'slug' => '/dealers', 'label' => 'Dealer directory'],
-                ['key' => 'partnership', 'slug' => '/partnership', 'label' => 'Partnership'],
-                ['key' => 'services', 'slug' => '/services', 'label' => 'Services'],
-                ['key' => 'quality', 'slug' => '/quality', 'label' => 'Quality'],
-                ['key' => 'faq', 'slug' => '/faq', 'label' => 'FAQ'],
-                ['key' => 'contact', 'slug' => '/contact', 'label' => 'Contact'],
-                ['key' => 'privacy', 'slug' => '/privacy', 'label' => 'Privacy'],
-                ['key' => 'terms', 'slug' => '/terms', 'label' => 'Terms'],
+                ['key' => 'home', 'slug' => '/', 'label' => __('portal.website_page_home'), 'toggleable' => false],
+                ['key' => 'about', 'slug' => '/about', 'label' => __('portal.website_page_about')],
+                ['key' => 'products', 'slug' => '/products', 'label' => __('portal.website_page_products')],
+                ['key' => 'dealers', 'slug' => '/dealers', 'label' => __('portal.website_page_dealers')],
+                ['key' => 'partnership', 'slug' => '/partnership', 'label' => __('portal.website_page_partnership')],
+                ['key' => 'services', 'slug' => '/services', 'label' => __('portal.website_page_services')],
+                ['key' => 'quality', 'slug' => '/quality', 'label' => __('portal.website_page_quality')],
+                ['key' => 'faq', 'slug' => '/faq', 'label' => __('portal.website_page_faq')],
+                ['key' => 'contact', 'slug' => '/contact', 'label' => __('portal.website_page_contact')],
+                ['key' => 'privacy', 'slug' => '/privacy', 'label' => __('portal.website_page_privacy')],
+                ['key' => 'terms', 'slug' => '/terms', 'label' => __('portal.website_page_terms')],
             ])->map(function (array $page) use ($enabled) {
                 $key = $page['key'];
                 $toggleable = $page['toggleable'] ?? true;
@@ -336,17 +477,29 @@ class WorkspaceController extends Controller
             })->values()->all();
             $revealStock = $u->allows('inventory');
             $revealDealerPrice = $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
-            $data['products'] = Product::where('active', true)->select('id', 'name', 'sku', 'mrp', 'dealer_price', 'category', 'featured', 'stock')->orderBy('name')->get()->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'sku' => $p->sku,
-                'mrp' => $p->mrp,
-                ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
-                'category' => $p->category,
-                'featured' => (bool) $p->featured,
-                ...($revealStock ? ['stock' => (int) $p->stock] : []),
-                'image' => $p->media()['image_url'] ?? '',
-            ]);
+            $websiteProductQuery = Product::query()
+                ->where('active', true)
+                ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match
+                    ->where('name', 'ilike', '%'.$r->string('q').'%')
+                    ->orWhere('sku', 'ilike', '%'.$r->string('q').'%')
+                    ->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                ->orderBy('name');
+            $websiteProductLimit = 250;
+            $data['products_truncated'] = (clone $websiteProductQuery)->count() > $websiteProductLimit;
+            $data['products'] = (clone $websiteProductQuery)
+                ->limit($websiteProductLimit)
+                ->get()
+                ->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'sku' => $p->sku,
+                    'mrp' => $p->mrp,
+                    ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
+                    'category' => $p->category,
+                    'featured' => (bool) $p->featured,
+                    ...($revealStock ? ['stock' => (int) $p->stock] : []),
+                    'image' => $p->media()['image_url'] ?? '',
+                ]);
         }
         if ($section === 'enquiries') {
             $data['enquiries'] = DB::table('enquiries')
@@ -411,24 +564,15 @@ class WorkspaceController extends Controller
                 ->selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
         }
         if ($section === 'network-tree' || ($staff && $section === 'network')) {
-            $data['dealers'] = User::whereIn('role', ['dealer', 'sub_dealer'])
-                ->with(['rank', 'sponsor:id,name,dealer_code'])
-                ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
-                ->map(fn ($d) => [
-                    'id' => $d->id,
-                    'name' => $d->name,
-                    'dealer_code' => $d->dealer_code,
-                    'phone' => $d->phone,
-                    'district' => $d->district,
-                    'division' => $d->division,
-                    'sponsor_id' => $d->sponsor_id,
-                    'sponsor_name' => $d->sponsor?->name,
-                    'role' => $d->role,
-                    'status' => $d->status,
-                    'rank' => $d->rank?->current_rank ?? 'dealer',
-                    'lifetime_purchases' => (float) ($d->rank?->lifetime_purchase_total ?? 0),
-                    'created_at' => $d->created_at?->toIso8601String(),
-                ]);
+            $networkQuery = User::query()->whereIn('role', ['dealer', 'sub_dealer']);
+            $totalPartners = (clone $networkQuery)->count();
+            $limit = 2500;
+            $data['dealers_truncated'] = $totalPartners > $limit;
+            $data['dealers_total'] = $totalPartners;
+            $data['dealers'] = $this->networkDealerNodes(
+                $networkQuery->orderBy('id')->limit($limit),
+                maskPhone: true,
+            );
         }
         if ($section === 'area-dealers') {
             $data['assignments'] = AreaDealerAssignment::where('is_active', true)
@@ -482,6 +626,14 @@ class WorkspaceController extends Controller
                     'lifetime_purchase_total' => (float) $r->lifetime_purchase_total,
                     'monthly_purchase_total' => (float) $r->monthly_purchase_total,
                     'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                    'qualification_history' => collect($r->qualification_history ?? [])
+                        ->filter(fn ($entry) => is_array($entry) && isset($entry['rank'], $entry['achieved_at']))
+                        ->map(fn ($entry) => [
+                            'rank' => (string) $entry['rank'],
+                            'achieved_at' => (string) $entry['achieved_at'],
+                        ])
+                        ->values()
+                        ->all(),
                 ]);
             $data['stats'] = [];
             foreach (['dealer', 'mo', 'am', 'sm', 'me'] as $code) {
@@ -559,7 +711,7 @@ class WorkspaceController extends Controller
             $data['benefits_fund'] = [
                 'balance' => round((float) $balance, 2),
                 'entry_count' => CommissionAllocation::where('category', RetainedFundLedger::BenefitsCategory)->where('status', '!=', 'reversed')->count(),
-                'description' => 'Purchase surplus from dealer and sub-dealer orders after the company MRP share and the approved commission schedule. Visible only to owners. Each row shows the source order, buyer role, geography, purchase value, company share, distributed commissions, and benefits amount.',
+                'description' => __('portal.benefits_fund_desc_full'),
             ];
             $data['benefits_entries'] = $entries;
         }
@@ -579,31 +731,39 @@ class WorkspaceController extends Controller
             $salaryRule = CommissionRuleParameter::getRule('dealer_monthly_salary');
             $minSalaryVolume = $salaryRule && isset($salaryRule->parameters['min_monthly_volume']) ? (float) $salaryRule->parameters['min_monthly_volume'] : 10000.00;
 
-            $qualifiedSalaryDealers = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
+            $qualification = app(CommissionQualification::class);
+            $salaryCandidates = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
                 ->with('user:id,name,dealer_code,phone,district')
-                ->get()->filter(fn ($rank) => app(CommissionQualification::class)->monthlyVolume($rank->user_id, $currentMonth) >= Money::cents((string) $minSalaryVolume));
-
-            $commissionService = app(CommissionService::class);
-            $qualifiedRankLeaders = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
+                ->get();
+            $rankCandidates = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
                 ->whereHas('user', fn ($q) => $q->where('status', 'active'))
                 ->with('user:id,name,dealer_code,phone,district')
-                ->get()
-                ->map(function ($r) use ($currentMonth) {
-                    $eval = app(CommissionQualification::class)->paidAs($r->user_id, $currentMonth);
+                ->get();
+            $volumeByUser = $qualification->monthlyVolumesFor(
+                $salaryCandidates->pluck('user_id')->merge($rankCandidates->pluck('user_id'))->unique()->values()->all(),
+                $currentMonth,
+            );
+            $minSalaryCents = Money::cents((string) $minSalaryVolume);
+            $qualifiedSalaryDealers = $salaryCandidates
+                ->filter(fn ($rank) => ($volumeByUser[$rank->user_id] ?? 0) >= $minSalaryCents)
+                ->values();
 
-                    return [
-                        'id' => $r->id,
-                        'user_id' => $r->user_id,
-                        'name' => $r->user?->name,
-                        'dealer_code' => $r->user?->dealer_code,
-                        'rank' => $r->current_rank,
-                        'paid_as_rank' => $eval['paid_as_rank'],
-                        'is_qualified' => $eval['is_qualified'],
-                        'in_grace_period' => $eval['in_grace_period'],
-                        'monthly_volume' => (float) $eval['monthly_volume'],
-                        'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
-                    ];
-                });
+            $qualifiedRankLeaders = $rankCandidates->map(function ($r) use ($currentMonth, $qualification, $volumeByUser) {
+                $eval = $qualification->paidAs($r->user_id, $currentMonth);
+
+                return [
+                    'id' => $r->id,
+                    'user_id' => $r->user_id,
+                    'name' => $r->user?->name,
+                    'dealer_code' => $r->user?->dealer_code,
+                    'rank' => $r->current_rank,
+                    'paid_as_rank' => $eval['paid_as_rank'],
+                    'is_qualified' => $eval['is_qualified'],
+                    'in_grace_period' => $eval['in_grace_period'],
+                    'monthly_volume' => (float) ($eval['monthly_volume'] ?? Money::decimal($volumeByUser[$r->user_id] ?? 0)),
+                    'one_time_incentive_paid' => (bool) $r->one_time_incentive_paid,
+                ];
+            });
 
             $settledHistory = DB::table('journal_entries')
                 ->where('event_key', 'like', 'commissions.%')
@@ -623,7 +783,7 @@ class WorkspaceController extends Controller
                     'user_id' => $d->user_id,
                     'name' => $d->user?->name,
                     'dealer_code' => $d->user?->dealer_code,
-                    'monthly_volume' => app(CommissionQualification::class)->monthlyVolume($d->user_id, $currentMonth) / 100,
+                    'monthly_volume' => ($volumeByUser[$d->user_id] ?? 0) / 100,
                 ])->values(),
                 'rank_pool_pending' => (float) $rankPoolAllocations->sum('amount'),
                 'rank_pool_allocations_count' => $rankPoolAllocations->count(),
@@ -647,6 +807,16 @@ class WorkspaceController extends Controller
                 ->paginate(20);
             $tdsRule = CommissionRuleParameter::getRule('payout_tax_withholding');
             $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
+        }
+
+        $tourGuide = app(TourGuide::class);
+        $tourDefinitions = $tourGuide->definitionsFor($u);
+        if ($tourDefinitions !== []) {
+            $tourKey = array_key_exists($section, $tourDefinitions) ? $section : 'overview';
+            $data['tour'] = $tourGuide->forPage($u, $tourKey);
+        }
+        if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
+            $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status'])]);
@@ -675,6 +845,118 @@ class WorkspaceController extends Controller
             'default_identity_type' => 'birth_certificate',
             'bdris_enabled' => app(BdrisLookup::class)->enabled(),
         ]);
+    }
+
+    public function fullReportPdf(Request $r): BinaryFileResponse
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+        $presenter = app(PartnerEarningsPresenter::class);
+        $resolved = $presenter->resolvePreset(
+            $r->string('preset')->toString() ?: null,
+            $this->optionalDate($r->input('from')),
+            $this->optionalDate($r->input('to')),
+        );
+
+        return app(PartnerFullReport::class)->downloadPdf(
+            $u,
+            $resolved['from'],
+            $resolved['to'],
+        );
+    }
+
+    public function orderInvoice(Request $r, Order $order): BinaryFileResponse
+    {
+        return app(OrderInvoice::class)->downloadPdf($r->user(), $order);
+    }
+
+    public function idCardPdf(Request $r): BinaryFileResponse
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+
+        return app(PartnerIdCard::class)->downloadPdf($u);
+    }
+
+    public function joinPosterPdf(Request $r): BinaryFileResponse
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+
+        return app(PartnerJoinPoster::class)->downloadPdf($u);
+    }
+
+    public function referralQrSvg(Request $r): \Illuminate\Http\Response
+    {
+        $u = $r->user();
+        abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
+        abort_unless(filled($u->refer_code), 404);
+        $url = PortalHost::url('public', '/join/'.$u->refer_code);
+
+        return response(JoinQr::svg($url, 180), 200, [
+            'Content-Type' => 'image/svg+xml; charset=UTF-8',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
+
+    private function optionalDate(mixed $value): ?string
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
+     */
+    private function businessDayBounds(?string $from, ?string $to): array
+    {
+        $tz = (string) config('madina.business_timezone', 'Asia/Dhaka');
+        $fromUtc = $from
+            ? CarbonImmutable::createFromFormat('Y-m-d', $from, $tz)->startOfDay()->utc()
+            : null;
+        $toUtc = $to
+            ? CarbonImmutable::createFromFormat('Y-m-d', $to, $tz)->addDay()->startOfDay()->utc()
+            : null;
+
+        return [$fromUtc, $toUtc];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function networkDealerNodes(Builder $query, bool $maskPhone): array
+    {
+        return $query
+            ->with(['rank', 'sponsor:id,name,dealer_code'])
+            ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
+            ->map(function (User $dealer) use ($maskPhone): array {
+                $phone = (string) ($dealer->phone ?? '');
+                if ($maskPhone && $phone !== '') {
+                    $digits = preg_replace('/\D+/', '', $phone) ?: '';
+                    $phone = $digits !== '' ? '••••'.substr($digits, -4) : '';
+                }
+
+                return [
+                    'id' => $dealer->id,
+                    'name' => $dealer->name,
+                    'dealer_code' => $dealer->dealer_code,
+                    'phone' => $phone,
+                    'district' => $dealer->district,
+                    'division' => $dealer->division,
+                    'sponsor_id' => $dealer->sponsor_id,
+                    'sponsor_name' => $dealer->sponsor?->name,
+                    'role' => $dealer->role,
+                    'status' => $dealer->status,
+                    'rank' => $dealer->rank?->current_rank ?? 'dealer',
+                    'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
+                    'created_at' => $dealer->created_at?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function show(Request $r, Order $order): Response

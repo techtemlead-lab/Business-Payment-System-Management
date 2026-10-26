@@ -7,6 +7,7 @@ use App\Http\Portals\Shared\WorkspaceController;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DashboardController
 {
@@ -20,6 +21,11 @@ class DashboardController
     public function show(Request $request, Order $order): Response
     {
         return $this->workspace->show($request, $order);
+    }
+
+    public function orderInvoice(Request $request, Order $order): BinaryFileResponse
+    {
+        return $this->workspace->orderInvoice($request, $order);
     }
 
     public function createAccount(Request $request): Response

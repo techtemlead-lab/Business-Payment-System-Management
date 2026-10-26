@@ -23,7 +23,7 @@ class BackendIntegrationTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
     }
 
@@ -130,6 +130,20 @@ class BackendIntegrationTest extends TestCase
         $stored = DB::table('withdrawals')->first();
         $this->assertNotSame($payload['destination'], $stored->destination);
         $this->assertSame($payload['destination'], decrypt($stored->destination));
+    }
+
+    public function test_partner_can_request_withdrawal_through_rocket_channel(): void
+    {
+        $buyer = User::factory()->create();
+        DB::table('wallets')->insert(['user_id' => $buyer->id, 'available' => '300.00', 'held' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
+        $this->actingAs($buyer)->postJson('/api/v1/withdrawals', [
+            'amount' => '200.00',
+            'channel' => 'Rocket',
+            'destination' => '01812345678',
+            'idempotency_key' => (string) Str::uuid(),
+        ])->assertCreated();
+        $this->assertDatabaseHas('withdrawals', ['user_id' => $buyer->id, 'channel' => 'Rocket', 'amount' => '200.00']);
+        $this->assertDatabaseHas('wallets', ['user_id' => $buyer->id, 'available' => '100.00', 'held' => '200.00']);
     }
 
     public function test_pricing_and_stock_inputs_cannot_bypass_permissions(): void

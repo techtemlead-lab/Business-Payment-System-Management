@@ -6,6 +6,7 @@ import {
     Filter, ChevronRight, UserCheck
 } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface WithdrawalRecord {
     id: string;
@@ -38,6 +39,7 @@ interface PayoutsHubProps {
 }
 
 export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: PayoutsHubProps) {
+    const translate = useT();
     const { auth, flash } = usePage<any>().props;
     const currentUser = auth.user;
 
@@ -94,7 +96,9 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
         setProcessingReview(true);
         router.post(`/commands/withdrawals/${reviewModalRecord.id}/review`, {
             decision: reviewDecision,
-            reason: reviewReason || (reviewDecision === 'approved' ? 'Identity and wallet balance verified.' : 'Verification requirements not met.')
+            reason: reviewReason || (reviewDecision === 'approved'
+                ? translate('portal', 'pay_reason_approved')
+                : translate('portal', 'pay_reason_rejected'))
         }, {
             onFinish: () => {
                 setProcessingReview(false);
@@ -119,7 +123,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
         formData.append('receipt', receiptFile);
         formData.append('payment_reference', paymentReference);
         formData.append('paid_at', paidAt);
-        formData.append('note', settleNote || 'Bank transfer completed.');
+        formData.append('note', settleNote || translate('portal', 'pay_reason_paid'));
 
         setProcessingSettle(true);
         router.post(`/commands/withdrawals/${settleModalRecord.id}/record-payment`, formData, {
@@ -155,17 +159,17 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             fontWeight: 700,
                             textTransform: 'uppercase'
                         }}>
-                            FINANCE · STATUTORY COMPLIANCE
+                            {translate('portal', 'pay_badge')}
                         </span>
                         <span style={{ fontSize: '13px', color: '#64748b' }}>
-                            Configured withholding: <b>{tdsRate.toFixed(2)}%</b>
+                            {translate('portal', 'pay_withholding', { rate: tdsRate.toFixed(2) })}
                         </span>
                     </div>
                     <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
-                        Partner Payout & Disbursement Hub
+                        {translate('portal', 'pay_heading')}
                     </h2>
                     <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
-                        Review partner withdrawal requests with mandatory segregation of duties. Payments require manual bank/MFS reference confirmation and file receipt attachment.
+                        {translate('portal', 'pay_heading_hint')}
                     </p>
                 </div>
             </div>
@@ -173,42 +177,42 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
             {/* Metrics Overview Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Pending Review</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_pending')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>
                         ৳{totalPendingAmount.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {pendingRecords.length} requests awaiting authorization
+                        {translate('portal', 'pay_kpi_pending_hint', { count: String(pendingRecords.length) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Approved for Settlement</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_approved')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
                         ৳{totalApprovedAmount.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {approvedRecords.length} approved awaiting bank/MFS transfer
+                        {translate('portal', 'pay_kpi_approved_hint', { count: String(approvedRecords.length) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Total Settled</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_settled')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
                         ৳{totalPaidAmount.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {paidRecords.length} executed with private receipts
+                        {translate('portal', 'pay_kpi_settled_hint', { count: String(paidRecords.length) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>Recorded Withholding</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_withheld')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#475569', marginTop: '6px' }}>
                         ৳{totalTdsWithheld.toLocaleString()}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        Recorded withholding reserve
+                        {translate('portal', 'pay_kpi_withheld_hint')}
                     </span>
                 </div>
             </div>
@@ -243,7 +247,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                 textTransform: 'capitalize'
                             }}
                         >
-                            {st === 'all' ? 'All Requests' : st}
+                            {st === 'all' ? translate('portal', 'pay_filter_all') : translate('portal', `pay_status_${st}`)}
                         </button>
                     ))}
                 </div>
@@ -262,7 +266,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         <Search size={16} color="#64748b" />
                         <input
                             type="text"
-                            placeholder="Search by partner or dealer code…"
+                            placeholder={translate('portal', 'pay_search_ph')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{
@@ -288,21 +292,21 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                         <thead>
                             <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>Partner</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Date Requested</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Payment Method</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Gross Requested</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Withholding</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Net Disbursable</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
-                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>{translate('portal', 'pay_col_partner')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_date')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_method')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_gross')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_withholding')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_net')}</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_status')}</th>
+                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {displayedRecords.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                        No withdrawal requests matching current criteria.
+                                        {translate('portal', 'pay_empty')}
                                     </td>
                                 </tr>
                             ) : (
@@ -353,7 +357,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                                         w.status === 'approved' ? '#0369a1' :
                                                         w.status === 'rejected' ? '#b91c1c' : '#b45309'
                                                 }}>
-                                                    {w.status}
+                                                    {translate('portal', `pay_status_${w.status}`)}
                                                 </span>
                                             </td>
                                             <td style={{ padding: '12px 20px', textAlign: 'right' }}>
@@ -373,7 +377,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                                                 cursor: 'pointer'
                                                             }}
                                                         >
-                                                            Review
+                                                            {translate('portal', 'pay_review')}
                                                         </button>
                                                     )}
 
@@ -392,7 +396,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                                                 cursor: 'pointer'
                                                             }}
                                                         >
-                                                            Record Payout
+                                                            {translate('portal', 'pay_record_payout')}
                                                         </button>
                                                     )}
 
@@ -409,7 +413,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                                                 gap: '4px'
                                                             }}
                                                         >
-                                                            Details ↗
+                                                            {translate('portal', 'pay_details')}
                                                         </a>
                                                     )}
                                                 </div>
@@ -444,10 +448,10 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
                     }}>
                         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                            Review Partner Withdrawal Request
+                            {translate('portal', 'pay_review_title')}
                         </h3>
                         <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                            Request ID: {reviewModalRecord.id.slice(0, 8)} · {reviewModalRecord.user_name} ({reviewModalRecord.dealer_code})
+                            {translate('portal', 'pay_review_meta', { id: reviewModalRecord.id.slice(0, 8), name: reviewModalRecord.user_name, code: reviewModalRecord.dealer_code })}
                         </p>
 
                         <div style={{
@@ -458,15 +462,15 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             marginBottom: '16px'
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
-                                <span>Gross Amount:</span>
+<span>{translate('portal', 'pay_gross_amount')}</span>
                                 <b>৳{Number(reviewModalRecord.amount).toLocaleString()}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: '#dc2626' }}>
-                                <span>Recorded withholding:</span>
+<span>{translate('portal', 'pay_recorded_withholding')}</span>
                                 <b>-৳{Number(reviewModalRecord.withheld_amount??0).toLocaleString()}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: '#047857', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
-                                <span>Net Approved Disbursable:</span>
+<span>{translate('portal', 'pay_net_approved')}</span>
                                 <b>৳{Number(reviewModalRecord.net_amount??reviewModalRecord.amount).toLocaleString()}</b>
                             </div>
                         </div>
@@ -474,7 +478,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         <form onSubmit={handleSubmitReview}>
                             <div style={{ marginBottom: '16px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                                    Decision
+                                    {translate('portal', 'pay_decision')}
                                 </label>
                                 <div style={{ display: 'flex', gap: '16px' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
@@ -485,7 +489,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                             checked={reviewDecision === 'approved'}
                                             onChange={() => setReviewDecision('approved')}
                                         />
-                                        Approve Request
+                                        {translate('portal', 'pay_approve')}
                                     </label>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                                         <input
@@ -495,21 +499,21 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                             checked={reviewDecision === 'rejected'}
                                             onChange={() => setReviewDecision('rejected')}
                                         />
-                                        Reject Request
+                                        {translate('portal', 'pay_reject')}
                                     </label>
                                 </div>
                             </div>
 
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
-                                    Verification Note / Reason
+                                    {translate('portal', 'pay_verify_note')}
                                 </label>
                                 <textarea
                                     required
                                     rows={3}
                                     value={reviewReason}
                                     onChange={(e) => setReviewReason(e.target.value)}
-                                    placeholder={reviewDecision === 'approved' ? 'Verified partner KYC and available ledger balance.' : 'Specify reason for rejection…'}
+                                    placeholder={reviewDecision === 'approved' ? translate('portal', 'pay_ph_approve') : translate('portal', 'pay_ph_reject')}
                                     style={{
                                         width: '100%',
                                         padding: '8px 12px',
@@ -535,7 +539,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Cancel
+                                    {translate('portal', 'pay_cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -551,7 +555,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    {processingReview ? 'Submitting…' : `Confirm ${reviewDecision === 'approved' ? 'Approval' : 'Rejection'}`}
+                                    {processingReview ? translate('portal', 'pay_submitting') : (reviewDecision === 'approved' ? translate('portal', 'pay_confirm_approval') : translate('portal', 'pay_confirm_rejection'))}
                                 </button>
                             </div>
                         </form>
@@ -580,10 +584,10 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
                     }}>
                         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-                            Record Manual Payout & Proof
+                            {translate('portal', 'pay_settle_title')}
                         </h3>
                         <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                            {settleModalRecord.user_name} ({settleModalRecord.channel}) · Net to Disburse: <b>৳{Number(settleModalRecord.net_amount??settleModalRecord.amount).toLocaleString()}</b>
+                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: `৳${Number(settleModalRecord.net_amount??settleModalRecord.amount).toLocaleString()}` })}
                         </p>
 
                         <div style={{
@@ -595,18 +599,18 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             color: '#1e40af',
                             marginBottom: '16px'
                         }}>
-                            <b>Segregation of Duties:</b> Payment must be confirmed with an authentic bank deposit slip or MFS confirmation receipt.
+                            <b>{translate('portal', 'pay_sod')}</b> {translate('portal', 'pay_sod_body')}
                         </div>
 
                         <form onSubmit={handleSubmitSettle}>
                             <div style={{ marginBottom: '14px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                                    Payment Transaction Reference *
+                                    {translate('portal', 'pay_fld_reference')}
                                 </label>
                                 <input
                                     type="text"
                                     required
-                                    placeholder="e.g. TRX-BKASH-983172 or BANK-CHQ-10492"
+                                    placeholder={translate('portal', 'pay_ph_reference')}
                                     value={paymentReference}
                                     onChange={(e) => setPaymentReference(e.target.value)}
                                     style={{
@@ -621,7 +625,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
 
                             <div style={{ marginBottom: '14px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                                    Payment Execution Date & Time *
+                                    {translate('portal', 'pay_fld_paid_at')}
                                 </label>
                                 <input
                                     type="datetime-local"
@@ -640,7 +644,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
 
                             <div style={{ marginBottom: '14px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                                    Upload Payment Receipt (PDF / Image) *
+                                    {translate('portal', 'pay_fld_receipt')}
                                 </label>
                                 <input
                                     type="file"
@@ -659,12 +663,12 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
 
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
-                                    Disbursement Notes *
+                                    {translate('portal', 'pay_fld_notes')}
                                 </label>
                                 <textarea
                                     required
                                     rows={2}
-                                    placeholder="Disbursed via official company accounts."
+                                    placeholder={translate('portal', 'pay_ph_notes')}
                                     value={settleNote}
                                     onChange={(e) => setSettleNote(e.target.value)}
                                     style={{
@@ -692,7 +696,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    Cancel
+                                    {translate('portal', 'pay_cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -708,7 +712,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    {processingSettle ? 'Recording…' : 'Record & Post Ledger'}
+                                    {processingSettle ? translate('portal', 'pay_recording') : translate('portal', 'pay_record_ledger')}
                                 </button>
                             </div>
                         </form>

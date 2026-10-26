@@ -19,7 +19,7 @@ class ManualReceiptTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         Storage::fake('local');
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
     }
 
     private function withdrawal(User $owner, User $reviewer): string

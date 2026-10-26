@@ -10,15 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 final class PlaceCodeCatalog
 {
-    /** @var array<string, string> */
-    public const LevelLabels = [
-        PlaceCode::LevelManagement => 'Management',
-        PlaceCode::LevelDivision => 'Division',
-        PlaceCode::LevelDistrict => 'District / Zila',
-        PlaceCode::LevelUpazila => 'Upazila',
-        PlaceCode::LevelUnion => 'Union / City Corporation',
-    ];
-
     /** @var array<string, string|null> */
     public const ParentLevel = [
         PlaceCode::LevelManagement => null,
@@ -48,10 +39,15 @@ final class PlaceCodeCatalog
     public function assertLevel(string $level): string
     {
         if (! in_array($level, PlaceCode::Levels, true)) {
-            throw ValidationException::withMessages(['level' => 'Choose a valid place code level.']);
+            throw ValidationException::withMessages(['level' => __('portal.err_pc_invalid_level')]);
         }
 
         return $level;
+    }
+
+    public static function localizedLevelLabel(string $level): string
+    {
+        return __('portal.pc_lvl_'.$level);
     }
 
     /**
@@ -141,10 +137,10 @@ final class PlaceCodeCatalog
         $name = trim((string) ($input['name'] ?? ''));
         $code = PlaceCode::normalizeCode($rawCode);
         if ($code === null) {
-            throw ValidationException::withMessages(['code' => 'Enter a place code as MNHC-100 (or 100). Use 2–8 digits after the MNHC- prefix.']);
+            throw ValidationException::withMessages(['code' => __('portal.err_pc_code_format')]);
         }
         if ($name === '') {
-            throw ValidationException::withMessages(['name' => 'Enter the place name.']);
+            throw ValidationException::withMessages(['name' => __('portal.err_pc_name_required')]);
         }
 
         $legacy = substr($code, strlen(PlaceCode::BrandPrefix) + 1);
@@ -153,34 +149,36 @@ final class PlaceCodeCatalog
             ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
             ->exists();
         if ($duplicate) {
-            throw ValidationException::withMessages(['code' => 'This place code is already in use.']);
+            throw ValidationException::withMessages(['code' => __('portal.err_pc_code_taken')]);
         }
 
         $parentLevel = self::ParentLevel[$level];
         $parentId = $input['parent_id'] ?? null;
         if ($parentLevel === null) {
             if ($parentId !== null) {
-                throw ValidationException::withMessages(['parent_id' => 'Management has no parent place.']);
+                throw ValidationException::withMessages(['parent_id' => __('portal.err_pc_management_no_parent')]);
             }
             $parentId = null;
         } else {
             if ($parentId === null) {
-                throw ValidationException::withMessages(['parent_id' => 'Select the parent '.strtolower(self::LevelLabels[$parentLevel]).'.']);
+                throw ValidationException::withMessages(['parent_id' => __('portal.err_pc_parent_required', [
+                    'level' => mb_strtolower(self::localizedLevelLabel($parentLevel)),
+                ])]);
             }
             $parent = PlaceCode::query()->whereKey($parentId)->where('level', $parentLevel)->where('is_active', true)->first();
             if (! $parent) {
-                throw ValidationException::withMessages(['parent_id' => 'Choose an active parent place at the correct level.']);
+                throw ValidationException::withMessages(['parent_id' => __('portal.err_pc_parent_invalid')]);
             }
         }
 
         $basePlaceId = $input['base_place_id'] ?? null;
         if ($basePlaceId !== null) {
             if (! $existing) {
-                throw ValidationException::withMessages(['base_place_id' => 'Save the place first, then choose its base child.']);
+                throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_base_after_save')]);
             }
             $childLevel = self::ChildLevel[$level];
             if ($childLevel === null) {
-                throw ValidationException::withMessages(['base_place_id' => 'Union / city corporation places have no base child.']);
+                throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_union_no_base')]);
             }
             $base = PlaceCode::query()
                 ->whereKey($basePlaceId)
@@ -189,7 +187,7 @@ final class PlaceCodeCatalog
                 ->where('is_active', true)
                 ->first();
             if (! $base) {
-                throw ValidationException::withMessages(['base_place_id' => 'Base place must be an active direct child at the next level.']);
+                throw ValidationException::withMessages(['base_place_id' => __('portal.err_pc_base_invalid')]);
             }
         }
 
@@ -262,12 +260,12 @@ final class PlaceCodeCatalog
 
         return [
             'level' => $level,
-            'level_label' => self::LevelLabels[$level],
+            'level_label' => self::localizedLevelLabel($level),
             'searchable' => in_array($level, self::SearchableLevels, true),
             'filters' => ['q' => $query ?? '', 'level' => $level],
             'submodules' => collect(PlaceCode::Levels)->map(fn (string $key): array => [
                 'key' => $key,
-                'label' => self::LevelLabels[$key],
+                'label' => self::localizedLevelLabel($key),
                 'href' => '/place-codes?level='.$key,
             ])->values()->all(),
             'parent_options' => $this->optionsForParent($level),

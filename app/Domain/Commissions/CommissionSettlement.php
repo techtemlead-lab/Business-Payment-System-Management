@@ -2,7 +2,9 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
 use App\Models\User;
@@ -34,10 +36,11 @@ final class CommissionSettlement
         CommissionWallet::requireActive();
         [, $end] = CommissionQualification::period($month);
         if ($end->isFuture()) {
-            throw ValidationException::withMessages(['period_month' => 'Close the calendar month before settling its salary or royalty.']);
+            throw ValidationException::withMessages(['period_month' => __('portal.err_settle_month_open')]);
         }
 
-        return DB::transaction(function () use ($month, $kind, $actorId, $requestKey): array {
+        $replayed = false;
+        $result = DB::transaction(function () use ($month, $kind, $actorId, $requestKey, &$replayed): array {
             CommissionWallet::lock();
             if ($requestKey !== null) {
                 $existing = DB::table('commission_settlement_runs')
@@ -46,6 +49,8 @@ final class CommissionSettlement
                     ->where('request_key', $requestKey)
                     ->first();
                 if ($existing) {
+                    $replayed = true;
+
                     return json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
                 }
             }
@@ -62,27 +67,48 @@ final class CommissionSettlement
             $distributed = [];
             $tiers = [];
             $rolled = 0;
+            $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
+            $dealerIds = $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all();
+            $volumes = $this->qualification->monthlyVolumesFor($dealerIds, $month);
+            $dealerNames = $dealers->pluck('name', 'id')->all();
+            $subDealerNames = [];
+            /** @var array<string, array<int, array<string, mixed>>> */
+            $paidAsByRules = [];
             foreach ($funds as $fund) {
                 $source = DB::table('commission_batches')->where('order_id', $fund->order_id)->value('policy');
                 $rules = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR)['rules'] : $this->policies->snapshot()['rules'];
                 $parameters = $rules['dealer_monthly_salary']['parameters'];
-                $qualified = User::where('role', 'dealer')->where('status', 'active')->orderBy('id')->get()
-                    ->filter(fn (User $user): bool => $this->qualification->monthlyVolume($user->id, $month) >= Money::cents((string) $parameters['min_monthly_volume']))->values();
+                $minVolume = Money::cents((string) $parameters['min_monthly_volume']);
+                $qualifiedIds = $dealers
+                    ->filter(fn (User $user): bool => PartnerBenefitControls::waivesSalaryVolume($user)
+                        || ($volumes[$user->id] ?? 0) >= $minVolume)
+                    ->pluck('id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->all();
                 $cents = Money::cents($fund->amount);
                 $shares = [];
                 if ($fund->category === 'sub_dealer_salary') {
-                    $partner = User::find($fund->user_id);
+                    $partner = User::query()->find($fund->user_id);
                     if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
                         $shares[$partner->id] = $cents;
+                        $subDealerNames[$partner->id] = $partner->name;
+                        if (! array_key_exists($partner->id, $volumes)) {
+                            $volumes[$partner->id] = $this->qualification->monthlyVolume($partner->id, $month);
+                        }
                     }
                 } elseif ($kind === 'salary') {
-                    $shares = $this->divide($cents, $qualified->pluck('id')->all());
+                    $shares = $this->divide($cents, $qualifiedIds);
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
+                    $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
+                    if (! isset($paidAsByRules[$rulesKey])) {
+                        $paidAsByRules[$rulesKey] = $this->qualification->paidAsFor($dealerIds, $month, $rules);
+                    }
                     foreach (['mo', 'am', 'sm', 'me'] as $index => $code) {
-                        $ids = DealerRank::where('current_rank', '!=', 'dealer')->whereHas('user', fn ($q) => $q->where('role', 'dealer')->where('status', 'active'))
-                            ->orderBy('user_id')->get()->filter(fn (DealerRank $rank): bool => $this->qualification->paidAs($rank->user_id, $month, $rules)['paid_as_rank'] === $code)
-                            ->pluck('user_id')->all();
+                        $ids = array_values(array_filter(
+                            $dealerIds,
+                            fn (int $id): bool => ($paidAsByRules[$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
+                        ));
                         $tierShares = $this->divide($buckets[$index], $ids);
                         foreach ($tierShares as $id => $amount) {
                             $shares[$id] = ($shares[$id] ?? 0) + $amount;
@@ -111,9 +137,18 @@ final class CommissionSettlement
             }
             $totalPaid = array_sum($distributed);
             $result = [];
+            $names = $dealerNames + $subDealerNames;
+            $missingVolumeIds = array_values(array_diff(array_keys($distributed), array_keys($volumes)));
+            if ($missingVolumeIds !== []) {
+                $volumes += $this->qualification->monthlyVolumesFor($missingVolumeIds, $month);
+            }
             foreach ($distributed as $id => $amount) {
-                $result[] = ['user_id' => $id, 'user_name' => User::find($id)?->name, 'amount' => Money::decimal($amount),
-                    'monthly_volume' => Money::decimal($this->qualification->monthlyVolume($id, $month))];
+                $result[] = [
+                    'user_id' => $id,
+                    'user_name' => $names[$id] ?? User::query()->find($id)?->name,
+                    'amount' => Money::decimal($amount),
+                    'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
+                ];
             }
             foreach ($tiers as &$tier) {
                 $tier['allocated'] = Money::decimal($tier['allocated_cents']);
@@ -132,6 +167,50 @@ final class CommissionSettlement
                 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
             ]);
         }, 3);
+
+        if (! $replayed) {
+            $this->notifySettlementCredits($result, $month, $kind);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function notifySettlementCredits(array $result, string $month, string $kind): void
+    {
+        $rows = $result['distributed'] ?? null;
+        if (! is_array($rows) || $rows === []) {
+            return;
+        }
+
+        $sms = app(PartnerEventSms::class);
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $userId = (int) ($row['user_id'] ?? 0);
+            $amount = (string) ($row['amount'] ?? '0.00');
+            if ($userId <= 0 || Money::cents($amount) <= 0) {
+                continue;
+            }
+            $partner = User::find($userId);
+            if (! $partner) {
+                continue;
+            }
+            $locale = $partner->preferredLocale();
+            $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
+            $sms->send(
+                $partner,
+                'commission.settled',
+                __('sms.commission_settled', [
+                    'amount' => $amount,
+                    'kind' => $kindLabel,
+                    'month' => $month,
+                ], $locale),
+            );
+        }
     }
 
     /**
@@ -180,9 +259,10 @@ final class CommissionSettlement
                 'source_category' => $fund->category,
                 'settlement_kind' => $kind,
                 'retained_by' => 'settlement_rollover',
+                'reason_key' => $kind === 'salary' ? 'retained_reason_settle_rollover_salary' : 'retained_reason_settle_rollover_royalty',
                 'reason' => $kind === 'salary'
-                    ? 'Undistributed salary share rolled to company settlement reserve.'
-                    : 'Unfilled royalty tier share rolled to company settlement reserve.',
+                    ? __('portal.retained_reason_settle_rollover_salary')
+                    : __('portal.retained_reason_settle_rollover_royalty'),
             ],
         ])->id;
     }
@@ -212,7 +292,7 @@ final class CommissionSettlement
         }
         $total = array_sum($weights);
         if ($total === 0) {
-            throw ValidationException::withMessages(['rules' => 'The royalty pool needs nonzero rank shares.']);
+            throw ValidationException::withMessages(['rules' => __('portal.err_settle_royalty_shares')]);
         }
         $result = [];
         $fractions = [];
@@ -236,12 +316,26 @@ final class CommissionSettlement
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
             'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
-        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, 'Commission '.$kind.' settlement '.$month, [
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
+        $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, __('portal.jr_commission_settlement', [
+            'kind' => $kindLabel,
+            'month' => $month,
+        ], $locale), [
             ['user_id' => null, 'account' => 'commission_expense', 'debit' => $amount, 'credit' => 0],
             ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
         ]);
         $this->wallets->credit($userId, $amount);
-        Audit::notice($userId, 'Commission settlement', Money::decimal($amount).' BDT credited for '.$kind.' / '.$month.'.');
+        Audit::notice(
+            $userId,
+            __('portal.notice_settle_title', [], $locale),
+            __('portal.notice_settle_body', [
+                'amount' => Money::decimal($amount),
+                'kind' => $kindLabel,
+                'month' => $month,
+            ], $locale),
+        );
     }
 
     /** @return array<string, mixed> */
@@ -261,7 +355,7 @@ final class CommissionSettlement
                 if ($existing) {
                     $result = json_decode((string) $existing->result, true, 512, JSON_THROW_ON_ERROR);
                     if ((int) ($result['user_id'] ?? 0) !== $userId) {
-                        abort(409, 'Request key already used with different incentive data.');
+                        abort(409, __('portal.err_idem_incentive_key'));
                     }
 
                     return $result;
@@ -269,7 +363,7 @@ final class CommissionSettlement
                 $award = DB::table('rank_incentive_awards')->where('request_key', $requestKey)->first();
                 if ($award) {
                     if ((int) $award->user_id !== $userId) {
-                        abort(409, 'Request key already used with different incentive data.');
+                        abort(409, __('portal.err_idem_incentive_key'));
                     }
 
                     return ['success' => true, 'user_id' => $userId, 'rank' => $award->rank, 'amount' => (string) $award->amount, 'paid_at' => $award->created_at];
@@ -277,25 +371,34 @@ final class CommissionSettlement
             }
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
-            if ($user->role !== 'dealer' || $user->status !== 'active' || $rank->current_rank === 'dealer') {
-                return ['success' => false, 'message' => 'An active dealer with an achieved leadership rank is required.'];
+            $unconditionalIncentive = PartnerBenefitControls::waivesRankIncentive($user);
+            $awardRank = $rank->current_rank;
+            if ($unconditionalIncentive && ($awardRank === 'dealer' || $awardRank === null)) {
+                $awardRank = PartnerBenefitControls::forcedRoyaltyRank($user) ?? 'mo';
             }
-            if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $rank->current_rank)->exists()) {
-                return ['success' => false, 'message' => 'This rank incentive was already paid.'];
+            if ($user->role !== 'dealer' || $user->status !== 'active' || ($awardRank === 'dealer' && ! $unconditionalIncentive)) {
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_rank_required')];
+            }
+            if (DB::table('rank_incentive_awards')->where('user_id', $userId)->where('rank', $awardRank)->exists()) {
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_already_paid')];
             }
             if ($rank->one_time_incentive_paid && ! DB::table('rank_incentive_awards')->where('user_id', $userId)->exists()) {
-                return ['success' => false, 'message' => 'A legacy incentive payment is already recorded. Reconcile its rank history before another award.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_legacy')];
             }
             $rules = $this->policies->snapshot()['rules'];
-            $paidAs = $this->qualification->paidAs($userId, $period, $rules);
-            if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
-                return ['success' => false, 'message' => 'Rank incentive requires current maintenance qualification or grace for '.$rank->current_rank.'.'];
+            if (! $unconditionalIncentive) {
+                $paidAs = $this->qualification->paidAs($userId, $period, $rules);
+                if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
+                    return ['success' => false, 'message' => __('portal.cmd_val_incentive_qualification', [
+                        'rank' => $rank->current_rank,
+                    ])];
+                }
             }
-            $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$rank->current_rank.'_bonus']);
+            $amount = Money::cents((string) $rules['rank_incentive']['parameters'][$awardRank.'_bonus']);
             $funds = CommissionAllocation::where('category', 'rank_incentive_pool')->whereIn('status', ['pending', 'partially_settled'])->orderBy('id')->lockForUpdate()->get();
             $available = $funds->sum(fn ($fund): int => Money::cents($fund->amount) - Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00')));
             if ($amount <= 0 || $available < $amount) {
-                return ['success' => false, 'message' => 'The rank incentive reserve does not yet fund this award.'];
+                return ['success' => false, 'message' => __('portal.cmd_val_incentive_unfunded')];
             }
             $remaining = $amount;
             $sources = [];
@@ -303,7 +406,7 @@ final class CommissionSettlement
                 $used = Money::cents((string) ($fund->metadata['incentive_consumed'] ?? '0.00'));
                 $take = min($remaining, Money::cents($fund->amount) - $used);
                 if ($take > 0) {
-                    $this->pay($fund, $userId, $take, $period, 'rank_'.$rank->current_rank);
+                    $this->pay($fund, $userId, $take, $period, 'rank_'.$awardRank);
                     $sources[$fund->id] = Money::decimal($take);
                     $fund->update(['status' => $used + $take === Money::cents($fund->amount) ? 'settled' : 'partially_settled',
                         'metadata' => [...$fund->metadata, 'incentive_consumed' => Money::decimal($used + $take)]]);
@@ -313,16 +416,16 @@ final class CommissionSettlement
                     break;
                 }
             }
-            DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
+            DB::table('rank_incentive_awards')->insert(['user_id' => $userId, 'rank' => $awardRank, 'amount' => Money::decimal($amount),
                 'request_key' => $requestKey, 'sources' => json_encode($sources, JSON_THROW_ON_ERROR), 'created_at' => now(), 'updated_at' => now()]);
             $rank->update(['one_time_incentive_paid' => true, 'one_time_incentive_paid_at' => now()]);
             Audit::record($actorId, 'commissions.rank_incentive_paid', (string) $userId, [
-                'beneficiary_id' => $userId, 'rank' => $rank->current_rank, 'amount' => Money::decimal($amount),
-                'sources' => $sources, 'request_key' => $requestKey,
+                'beneficiary_id' => $userId, 'rank' => $awardRank, 'amount' => Money::decimal($amount),
+                'sources' => $sources, 'request_key' => $requestKey, 'unconditional' => $unconditionalIncentive,
             ]);
 
             return $this->rememberSettlement($period, 'rank_incentive', $requestKey, $actorId, [
-                'success' => true, 'user_id' => $userId, 'rank' => $rank->current_rank,
+                'success' => true, 'user_id' => $userId, 'rank' => $awardRank,
                 'amount' => Money::decimal($amount), 'paid_at' => now()->toIso8601String(),
             ]);
         }, 3);
@@ -357,14 +460,34 @@ final class CommissionSettlement
                 $amount = Money::cents($fund->amount);
                 $result = $this->wallets->debit($fund->user_id, $amount, true);
                 if ($result['unrecovered'] !== 0) {
-                    throw ValidationException::withMessages(['commissions' => 'Commission holds do not reconcile.']);
+                    throw ValidationException::withMessages(['commissions' => __('portal.err_settle_holds')]);
                 }
-                $this->wallets->journal('commissions.matured.'.$fund->id, 'Release matured commission', [
+                $partner = User::find($fund->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                $this->wallets->journal('commissions.matured.'.$fund->id, __('portal.jr_commission_matured', [], $locale), [
                     ['user_id' => $fund->user_id, 'account' => 'commission_held_liability', 'debit' => $amount, 'credit' => 0],
                     ['user_id' => $fund->user_id, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount],
                 ]);
                 $this->wallets->credit($fund->user_id, $amount);
                 $fund->update(['status' => 'available', 'metadata' => [...$fund->metadata, 'maturation_released' => true, 'matured_at' => now()->toIso8601String()]]);
+                $amountDecimal = Money::decimal($amount);
+                Audit::notice(
+                    $fund->user_id,
+                    __('portal.notice_commission_matured_title', [], $locale),
+                    __('portal.notice_commission_matured_body', ['amount' => $amountDecimal], $locale),
+                );
+                $userId = (int) $fund->user_id;
+                DB::afterCommit(function () use ($userId, $amountDecimal, $locale): void {
+                    $partner = User::find($userId);
+                    if (! $partner) {
+                        return;
+                    }
+                    app(PartnerEventSms::class)->send(
+                        $partner,
+                        'commission.matured',
+                        __('sms.commission_matured', ['amount' => $amountDecimal], $partner->preferredLocale() ?: $locale),
+                    );
+                });
                 $count++;
                 $total += $amount;
             }

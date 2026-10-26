@@ -85,6 +85,12 @@ class AdminPartnershipsTest extends TestCase
         $this->onPortal('public')->get('/partnership')
             ->assertOk()
             ->assertSee('href="#partner-apply"', false)
-            ->assertSee('Apply for Dealership', false);
+            ->assertSee('Apply for Dealership', false)
+            ->assertSee('autocomplete="name"', false)
+            ->assertSee('autocomplete="email"', false)
+            ->assertSee('autocomplete="tel"', false)
+            ->assertSee('autocomplete="address-level1"', false)
+            ->assertSee('autocomplete="address-level2"', false)
+            ->assertSee('autocomplete="address-level3"', false);
     }
 }

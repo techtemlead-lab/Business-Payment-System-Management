@@ -1,6 +1,8 @@
 # Madina Natural Health Care — Backend and Commission Integration
 
-Updated: 17 October 2026. This document describes the implemented services and release controls. The quotation and client business plan remain separate documents.
+Updated: 25 October 2026. This document describes the implemented services and release controls. The quotation and client business plan remain separate documents.
+
+**Current codebase checkpoint (25 Oct 2026):** ~25 database migrations; PHPUnit Feature/Unit suite well above 300 methods; default public address/contact copy uses Pirganj, Rangpur (`SiteCustomization` defaults); Marketing Officer volume target defaults to **BDT 250,000** (`mo_target`); financial posting remains off until `MADINA_FINANCIAL_ACTIVATION=true` after approved policy and verified opening balances. Older “14 migrations / 225 tests / Noyarhat address / ৳25,000 MO” figures below are historical checkpoints only.
 
 ## Requirements-to-code review - 17 October 2026
 
@@ -203,7 +205,7 @@ Default leadership criteria and funded awards:
 
 | Rank | Qualification | One-time award |
 |---|---|---:|
-| MO | BDT 25,000 qualifying own purchases | BDT 5,000 |
+| MO | BDT 250,000 qualifying own purchases | BDT 5,000 |
 | AM | 10 MO-or-higher leaders within 3 generations | BDT 50,000 |
 | SM | 10 AM-or-higher leaders within 3 generations | BDT 250,000 |
 | ME | 10 SM-or-higher leaders within 3 generations | BDT 300,000 |
@@ -214,7 +216,7 @@ Awards are unique per user and rank and require sufficient rank-incentive reserv
 
 Commission refund adjustments require a reference and reason. Repeating the same reference replays the result; changed data is rejected. Cumulative refunds cannot exceed the order value. Append-only refund and reversal records preserve the original financial trail. Adjustments recover direct earnings and payouts already settled from that order's pools. Unrecoverable amounts become clawback receivables, offset by later earnings.
 
-Commission cooling-off holds are tracked separately from withdrawal reservations. Maturation releases only the corresponding commission hold and cannot consume funds reserved for a withdrawal. Suspended recipients do not receive an available credit. Finance can release a held allocation after its recipient becomes active and, for an area earning, after the original recorded period and quota qualify. A release retains any unexpired cooling-off period and cannot be credited twice.
+Commission cooling-off holds are tracked separately from withdrawal reservations. Maturation releases only the corresponding commission hold and cannot consume funds reserved for a withdrawal. Suspended recipients do not receive an available credit. Finance can release a held allocation after its recipient becomes active and, for an area earning, after the original recorded period and quota qualify. A release retains any unexpired cooling-off period and cannot be credited twice. When `MADINA_AUTO_RELEASE_QUOTA_HOLDS` is enabled with financial activation (and preview mode off), `finance:release-quota-holds` automatically credits qualified area_* holds the same way; cooling-off still becomes maturing until maturity release.
 
 The default withdrawal minimum is BDT 200. Requests reserve available funds atomically, encrypt destination details and enforce idempotent payloads. Outstanding clawbacks block further requests, approval and payment recording. Rejecting an unpaid request releases its reserved funds through clawback reconciliation. An approved but unpaid request can also be rejected. A paid request cannot be cancelled through review.
 

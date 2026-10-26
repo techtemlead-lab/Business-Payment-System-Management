@@ -11,7 +11,8 @@ class BackendJson
     public function handle(Request $request, Closure $next): Response
     {
         $request->headers->set('Accept', 'application/json');
-        abort_unless($request->user()?->status === 'active', 403, 'This account is unavailable.');
+        $locale = $request->user()?->preferredLocale() ?? app()->getLocale();
+        abort_unless($request->user()?->status === 'active', 403, __('auth_ui.account_unavailable', [], $locale));
 
         $response = $next($request);
         $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
