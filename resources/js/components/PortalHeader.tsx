@@ -1,5 +1,5 @@
-import {Link, router, usePage} from '@inertiajs/react';
-import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, LogOut, Network, Wallet, Banknote} from 'lucide-react';
+import {Link, usePage} from '@inertiajs/react';
+import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, Network, Wallet, Banknote} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 import {partnerChromeEnabled} from '../shared/partnerChromeNav';
 
@@ -27,16 +27,13 @@ export function DealerHeader(){
                 </a>
                 <form method="get" action={`${publicBase}/products`} className="portal-site-search">
                     <input name="q" placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>
-                    <button aria-label={translate('portal', 'search_products')}><Search size={22}/></button>
+                    <button aria-label={translate('portal', 'search_products')} title={translate('portal', 'search_products')}><Search size={22}/></button>
                 </form>
                 <div className="portal-header-links">
                     <a href={`${publicBase}/#featured-products`}><Gift/><span><b>{offersTitle}</b><small>{offersSubtitle}</small></span></a>
                     <a href={`${publicBase}/dealers`}><Layers/><span><b>{networkTitle}</b><small>{networkSubtitle}</small></span></a>
-                    <Link href="/profile"><UserRound/><span><b>{translate('portal', 'nav_module_account')}</b><small>{translate('portal', 'profile')}</small></span></Link>
-                    <button type="button" onClick={()=>router.post('/logout')} className="portal-header-logout" aria-label={translate('portal', 'log_out')} title={translate('portal', 'log_out')}>
-                        <LogOut size={18}/><span><b>{translate('portal', 'log_out')}</b><small>{translate('portal', 'exit_session')}</small></span>
-                    </button>
-                    {showShop && <Link href="/catalog" className="portal-shop"><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>}
+                    <Link href="/profile" title={translate('portal', 'profile')}><UserRound/><span><b>{translate('portal', 'nav_module_account')}</b><small>{translate('portal', 'profile')}</small></span></Link>
+                    {showShop && <Link href="/catalog" className="portal-shop" title={translate('portal', 'shop')}><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>}
                 </div>
             </div>
         </header>
@@ -53,7 +50,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
     const item = (href: string, label: string, Icon: typeof Home, className = '') => {
         const active = href === '/' ? path === '/' : path === href || path.startsWith(href + '/');
         return (
-            <Link href={href} className={`${className} ${active ? 'is-active' : ''}`.trim()} aria-current={active ? 'page' : undefined}>
+            <Link href={href} className={`${className} ${active ? 'is-active' : ''}`.trim()} aria-current={active ? 'page' : undefined} title={label}>
                 <Icon size={href === '/' ? 22 : 20}/>
                 {label}
             </Link>
@@ -62,7 +59,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
 
     return (
         <nav className="portal-bottom-nav" aria-label={translate('portal', 'account_navigation')}>
-            <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')}>
+            <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
                 <Menu size={20}/>{translate('portal', 'menu')}
             </button>
             {partnerChromeEnabled(role, controls, 'catalog') && item('/catalog', translate('portal', 'shop'), Store)}

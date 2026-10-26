@@ -107,8 +107,11 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function safe(): array
     {
+        $profile = is_array($this->profile) ? $this->profile : [];
+
         return [
             ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status']),
+            'shop_name' => is_string($profile['shop_name'] ?? null) ? $profile['shop_name'] : null,
             'permissions' => $this->capabilities(),
         ];
     }

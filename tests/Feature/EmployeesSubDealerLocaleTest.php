@@ -32,7 +32,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.emp_create_title', 'নতুন কর্মচারী ড্যাশবোর্ড অ্যাকাউন্ট তৈরি')
                 ->where('translations.portal.emp_save', 'পারমিশন সংরক্ষণ')
                 ->where('translations.portal.emp_preset_finance', 'ফিন্যান্স ও ট্রেজারি')
-                ->where('data.available_permissions.0.label', 'ফিল্ড সেলস ওয়ার্কস্পেস')
+                ->where('data.available_permissions.0.label', 'ফিল্ড সেলস টার্মিনাল')
                 ->where('data.available_permissions.0.category', 'ফিল্ড সেলস')
                 ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
     }
