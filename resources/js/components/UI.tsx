@@ -54,7 +54,31 @@ export function Pagination({page}:{page?:Row}){
  const translate=useT();
  return page&&page.last_page>1?<div className="pagination"><span>{translate('portal','pagination_summary',{page:String(page.current_page),pages:String(page.last_page),total:String(page.total)})}</span><div>{page.prev_page_url&&<Link href={page.prev_page_url}>{translate('portal','pagination_previous')}</Link>}{page.next_page_url&&<Link href={page.next_page_url}>{translate('portal','pagination_next')}</Link>}</div></div>:null;
 }
-export function Modal({title,onClose,children}:{title:string,onClose:()=>void,children:React.ReactNode}){const translate=useT();const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{ref.current?.showModal();return ()=>ref.current?.close()},[]);return <dialog ref={ref} onCancel={onClose} onClick={e=>{if(e.target===ref.current)onClose()}} style={{position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',margin:0}}><div className="modal-heading"><h2>{title}</h2><button aria-label={translate('portal','close_dialog')} className="icon-button" onClick={onClose}><X/></button></div>{children}</dialog>}
+export function Modal({title,onClose,children}:{title:string,onClose:()=>void,children:React.ReactNode}){
+ const translate=useT();
+ const ref=useRef<HTMLDialogElement>(null);
+ useEffect(()=>{
+  const dialog=ref.current;
+  dialog?.showModal();
+  const previous=document.activeElement as HTMLElement|null;
+  dialog?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus();
+  return ()=>{dialog?.close();previous?.focus?.()};
+ },[]);
+ return (
+  <dialog
+   ref={ref}
+   className="portal-modal"
+   onCancel={onClose}
+   onClick={e=>{if(e.target===ref.current)onClose()}}
+  >
+   <div className="modal-heading">
+    <h2>{title}</h2>
+    <button type="button" aria-label={translate('portal','close_dialog')} title={translate('portal','close_dialog')} className="icon-button" onClick={onClose}><X/></button>
+   </div>
+   <div className="modal-body">{children}</div>
+  </dialog>
+ );
+}
 export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],required?:boolean,value?:any};
 export function ActionForm({action,fields,defaults={},submit,method='post',onDone}:{action:string,fields:Field[],defaults?:Row,submit?:string,method?:'post'|'patch',onDone?:()=>void}){
  const translate=useT();

@@ -5,7 +5,7 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, ChevronDown, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -96,17 +96,26 @@ export default function Shell({ section, children, action }: { section: string; 
         const key = sectionKeys[item];
         return key ? translate('portal', key) : translate('portal', 'order_details');
     };
-    const workspaceLabel = ownerPortal
-        ? translate('portal', 'owner_workspace')
-        : user.role === 'employee'
-            ? translate('portal', 'employee_workspace')
-            : staff
-                ? translate('portal', 'company_workspace')
-                : user.role === 'sub_dealer'
-                    ? translate('portal', 'subdealer_workspace')
-                    : translate('portal', 'dealer_workspace');
+    const hubLabel = (() => {
+        if (ownerPortal) {
+            const shop = typeof user.shop_name === 'string' && user.shop_name.trim() !== '' ? user.shop_name.trim() : null;
+            return shop
+                ? translate('portal', 'owner_hub_named', { shop })
+                : translate('portal', 'owner_workspace');
+        }
+        if (user.role === 'employee' || user.role === 'sr') {
+            return translate('portal', 'staff_terminal');
+        }
+        if (staff) {
+            return translate('portal', 'company_workspace');
+        }
+        if (user.role === 'sub_dealer') {
+            return translate('portal', 'subdealer_workspace');
+        }
+        return translate('portal', 'dealer_workspace');
+    })();
 
-    const [mobile, setMobile] = useState(() => matchMedia('(max-width:1023px)').matches);
+    const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && matchMedia('(max-width:1023px)').matches);
 
     useEffect(() => {
         const media = matchMedia('(max-width:1023px)');
@@ -116,8 +125,10 @@ export default function Shell({ section, children, action }: { section: string; 
     }, []);
 
     const [open, setOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
     const sidebar = useRef<HTMLElement>(null);
     const toggle = useRef<HTMLButtonElement>(null);
+    const profileMenu = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!open) return;
@@ -137,6 +148,24 @@ export default function Shell({ section, children, action }: { section: string; 
         document.addEventListener('keydown', keydown);
         return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); toggle.current?.focus(); };
     }, [open]);
+
+    useEffect(() => {
+        if (!profileOpen) return;
+        const onPointer = (event: MouseEvent) => {
+            if (!profileMenu.current?.contains(event.target as Node)) {
+                setProfileOpen(false);
+            }
+        };
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setProfileOpen(false);
+        };
+        document.addEventListener('mousedown', onPointer);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onPointer);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [profileOpen]);
 
     const isDashboardsDomain = section === 'dashboards';
     const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit',
@@ -359,6 +388,56 @@ export default function Shell({ section, children, action }: { section: string; 
         );
     });
 
+    const canDealerDomain = capabilities.some((c) => ['accounts', 'orders', 'finance'].includes(c));
+    const canDashboardsDomain = capabilities.includes('accounts');
+
+    const domainTabs = staff ? (
+        <>
+            <Link
+                href="/"
+                onClick={() => setOpen(false)}
+                className={`sidebar-domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
+                aria-current={currentDomain === 'company' ? 'page' : undefined}
+            >
+                <Briefcase size={14} />
+                {ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section')}
+            </Link>
+            {canDealerDomain && (
+                <Link
+                    href={capabilities.includes('accounts') ? '/accounts' : (capabilities.includes('orders') ? '/orders' : '/commissions')}
+                    onClick={() => setOpen(false)}
+                    className={`sidebar-domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
+                    aria-current={currentDomain === 'dealers' ? 'page' : undefined}
+                >
+                    <Users size={14} />
+                    {translate('portal', 'nav_dealer_section')}
+                </Link>
+            )}
+            {canDealerDomain && (
+                <Link
+                    href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('orders') ? '/sub-dealer-orders' : '/salary')}
+                    onClick={() => setOpen(false)}
+                    className={`sidebar-domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
+                    aria-current={currentDomain === 'sub_dealers' ? 'page' : undefined}
+                >
+                    <Store size={14} />
+                    {translate('portal', 'nav_subdealer_section')}
+                </Link>
+            )}
+            {canDashboardsDomain && (
+                <Link
+                    href="/dashboards"
+                    onClick={() => setOpen(false)}
+                    className={`sidebar-domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
+                    aria-current={currentDomain === 'dashboards' ? 'page' : undefined}
+                >
+                    <SlidersHorizontal size={14} />
+                    {translate('portal', 'nav_dashboard_mgmt')}
+                </Link>
+            )}
+        </>
+    ) : null;
+
     const currentSectionTitle = section === 'overview'
         ? dashboardTitle
         : sectionLabel(section);
@@ -367,6 +446,11 @@ export default function Shell({ section, children, action }: { section: string; 
         : (section === 'catalog' && staff
             ? translate('portal', 'catalog_staff_hint')
             : translate('portal', 'section_hint'));
+
+    const signOut = () => {
+        setProfileOpen(false);
+        router.post('/logout');
+    };
 
     return (
         <div className={`app-shell ${shellClass}`}>
@@ -377,13 +461,13 @@ export default function Shell({ section, children, action }: { section: string; 
                 ref={sidebar}
                 id="workspace-navigation"
                 className={`sidebar ${open ? 'open' : ''}`}
-                inert={!open && (!staff || mobile)}
-                aria-hidden={!open && (!staff || mobile)}
+                inert={!open && mobile}
+                aria-hidden={!open && mobile}
                 role={open ? 'dialog' : undefined}
                 aria-modal={open || undefined}
                 aria-label={staff ? translate('portal', 'company_navigation') : translate('portal', 'account_navigation')}
             >
-                <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
+                <button className="icon-button mobile-only" aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
                     <X size={18} />
                 </button>
                 <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
@@ -391,8 +475,14 @@ export default function Shell({ section, children, action }: { section: string; 
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />
-                    {workspaceLabel}
+                    {hubLabel}
                 </div>
+
+                {staff && (
+                    <nav className="sidebar-domain-switch" aria-label={translate('portal', 'domain_switch')}>
+                        {domainTabs}
+                    </nav>
+                )}
 
                 {staff && (
                     <div className="sidebar-domain-label">
@@ -419,15 +509,12 @@ export default function Shell({ section, children, action }: { section: string; 
                             )}
                         </div>
                     )}
-                    <button className="sign-out" onClick={() => router.post('/logout')}>
-                        <LogOut size={17} />{translate('portal', 'log_out')}
-                    </button>
                 </div>
             </aside>
 
             <div className="workspace" inert={open}>
                 {!staff && <DealerHeader />}
-                <header className="workspace-header">
+                <header className="workspace-header glass-header">
                     <div className="breadcrumb">
                         <button
                             ref={toggle}
@@ -439,13 +526,19 @@ export default function Shell({ section, children, action }: { section: string; 
                         >
                             <Menu size={19} />
                         </button>
-                        <span>{translate('portal', 'workspace')}</span>
+                        <span>{hubLabel}</span>
                         <span>/</span>
                         <b>{currentSectionTitle}</b>
                     </div>
                     <div className="header-actions">
                         <LanguageSwitcher compact />
-                        <Link href={base + '/notifications'} className="icon-button notice-bell" aria-label={translate('portal', 'notifications')}>
+                        <Link
+                            href={base + '/notifications'}
+                            className="icon-button notice-bell"
+                            aria-label={translate('portal', 'notifications')}
+                            title={translate('portal', 'notifications')}
+                            data-tooltip={translate('portal', 'notifications')}
+                        >
                             <Bell size={19} />
                             {unreadCount > 0 && (
                                 <span className="notice-bell-count" aria-hidden="true">
@@ -453,21 +546,43 @@ export default function Shell({ section, children, action }: { section: string; 
                                 </span>
                             )}
                         </Link>
-                        <div className="avatar">{user.name.slice(0, 1)}</div>
-                        <div className="user-caption">
-                            <b>{user.name}</b>
-                            <span>{user.role.replaceAll('_', ' ')}</span>
+                        <div className="profile-menu" ref={profileMenu}>
+                            <button
+                                type="button"
+                                className="profile-menu-trigger"
+                                aria-haspopup="menu"
+                                aria-expanded={profileOpen}
+                                aria-label={translate('portal', 'profile_menu')}
+                                onClick={() => setProfileOpen((value) => !value)}
+                            >
+                                <div className="avatar">{user.name.slice(0, 1)}</div>
+                                <div className="user-caption">
+                                    <b>{user.name}</b>
+                                    <span>{user.role.replaceAll('_', ' ')}</span>
+                                </div>
+                                <ChevronDown size={14} className={`profile-chevron ${profileOpen ? 'open' : ''}`} aria-hidden="true" />
+                            </button>
+                            {profileOpen && (
+                                <div className="profile-menu-panel" role="menu">
+                                    <Link href={base + '/profile'} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                        <UserRound size={16} />
+                                        {translate('portal', 'view_profile')}
+                                    </Link>
+                                    <Link href={base + '/security'} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                        <Settings size={16} />
+                                        {translate('portal', 'account_settings')}
+                                    </Link>
+                                    <Link href={base + '/notifications'} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                        <Bell size={16} />
+                                        {translate('portal', 'notifications')}
+                                    </Link>
+                                    <button type="button" role="menuitem" className="profile-menu-logout" onClick={signOut}>
+                                        <LogOut size={16} />
+                                        {translate('portal', 'log_out')}
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                        <button
-                            type="button"
-                            className="workspace-logout-btn"
-                            title={translate('portal', 'log_out')}
-                            aria-label={translate('portal', 'log_out')}
-                            onClick={() => router.post('/logout')}
-                        >
-                            <LogOut size={16} />
-                            <span>{translate('portal', 'log_out')}</span>
-                        </button>
                     </div>
                 </header>
 
@@ -480,104 +595,6 @@ export default function Shell({ section, children, action }: { section: string; 
                         </div>
                         {action}
                     </div>
-
-                    {staff && (
-                        <div className="domain-rail portal-fade-in">
-                            <div className="domain-rail-top">
-                                <div className="domain-rail-tabs" role="tablist" aria-label={translate('portal', 'workspace')}>
-                                    <Link
-                                        href="/"
-                                        id="domain-tab-company"
-                                        role="tab"
-                                        aria-selected={currentDomain === 'company'}
-                                        aria-controls="domain-panel"
-                                        tabIndex={currentDomain === 'company' ? 0 : -1}
-                                        className={`domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
-                                    >
-                                        <Briefcase size={15} />
-                                        {ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section')}
-                                    </Link>
-
-                                    {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
-                                        <Link
-                                            href={capabilities.includes('accounts') ? '/accounts' : (capabilities.includes('orders') ? '/orders' : '/commissions')}
-                                            id="domain-tab-dealers"
-                                            role="tab"
-                                            aria-selected={currentDomain === 'dealers'}
-                                            aria-controls="domain-panel"
-                                            tabIndex={currentDomain === 'dealers' ? 0 : -1}
-                                            className={`domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
-                                        >
-                                            <Users size={15} />
-                                            {translate('portal', 'nav_dealer_section')}
-                                        </Link>
-                                    )}
-
-                                    {capabilities.some(c => ['accounts', 'orders', 'finance'].includes(c)) && (
-                                        <Link
-                                            href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('orders') ? '/sub-dealer-orders' : '/salary')}
-                                            id="domain-tab-subdealers"
-                                            role="tab"
-                                            aria-selected={currentDomain === 'sub_dealers'}
-                                            aria-controls="domain-panel"
-                                            tabIndex={currentDomain === 'sub_dealers' ? 0 : -1}
-                                            className={`domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
-                                        >
-                                            <Store size={15} />
-                                            {translate('portal', 'nav_subdealer_section')}
-                                        </Link>
-                                    )}
-
-                                    {capabilities.includes('accounts') && (
-                                        <Link
-                                            href="/dashboards"
-                                            id="domain-tab-dashboards"
-                                            role="tab"
-                                            aria-selected={currentDomain === 'dashboards'}
-                                            aria-controls="domain-panel"
-                                            tabIndex={currentDomain === 'dashboards' ? 0 : -1}
-                                            className={`domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
-                                        >
-                                            <SlidersHorizontal size={15} />
-                                            {translate('portal', 'nav_dashboard_mgmt')}
-                                        </Link>
-                                    )}
-                                </div>
-
-                                <span className="domain-rail-caption">
-                                    {currentDomain === 'dashboards'
-                                        ? translate('portal', 'domain_dashboards')
-                                        : currentDomain === 'company'
-                                            ? translate('portal', 'domain_company')
-                                            : currentDomain === 'dealers'
-                                                ? translate('portal', 'domain_dealers')
-                                                : translate('portal', 'domain_sub_dealers')}
-                                </span>
-                            </div>
-
-                            {(() => {
-                                const activeMother = domainMothers.find((entry) => entry.items.includes(section) && entry.id !== 'account')
-                                    ?? domainMothers.find((entry) => entry.id !== 'account');
-                                if (!activeMother) {
-                                    return null;
-                                }
-                                return (
-                                    <div className="domain-rail-links">
-                                        <span>{translate('portal', activeMother.labelKey)}</span>
-                                        {activeMother.items.map((item) => (
-                                            <Link
-                                                key={item}
-                                                href={sectionHref(item)}
-                                                className={`button small ${section === item ? 'dark' : ''} ${item === 'commissions' ? 'accent' : ''}`}
-                                            >
-                                                {sectionLabel(item)}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    )}
 
                     {dashboardNotice && dashboardNotice.text && (
                         <div className={`portal-notice portal-notice-${dashboardNotice.type || 'info'}`}>
@@ -609,6 +626,11 @@ export default function Shell({ section, children, action }: { section: string; 
                     </footer>
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}
+                {staff && mobile && (
+                    <nav className="staff-domain-bottom-nav" aria-label={translate('portal', 'domain_switch')}>
+                        {domainTabs}
+                    </nav>
+                )}
             </div>
         </div>
     );
