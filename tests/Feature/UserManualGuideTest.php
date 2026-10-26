@@ -94,4 +94,73 @@ class UserManualGuideTest extends TestCase
         $this->assertSame([], $ready['blocked_by']);
         $this->assertNotEmpty($ready['pending']);
     }
+
+    public function test_live_tours_are_audience_aware_for_owner_staff_dealer_and_subdealer(): void
+    {
+        $tours = app(TourGuide::class);
+
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $subDealer = User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']);
+        $staff = User::factory()->create([
+            'role' => 'employee',
+            'status' => 'active',
+            'profile' => ['permissions' => ['orders', 'accounts', 'finance', 'catalog']],
+        ]);
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->assertSame('dealer', $tours->audience($dealer));
+        $this->assertSame('sub_dealer', $tours->audience($subDealer));
+        $this->assertSame('staff', $tours->audience($staff));
+        $this->assertSame('owner', $tours->audience($owner));
+
+        $dealerDefs = $tours->definitionsFor($dealer);
+        $subDefs = $tours->definitionsFor($subDealer);
+        $staffDefs = $tours->definitionsFor($staff);
+        $ownerDefs = $tours->definitionsFor($owner);
+
+        $this->assertArrayHasKey('network', $dealerDefs);
+        $this->assertArrayNotHasKey('salary', $dealerDefs);
+        $this->assertArrayHasKey('salary', $subDefs);
+        $this->assertArrayNotHasKey('network', $subDefs);
+        $this->assertGreaterThanOrEqual(5, count($dealerDefs['overview']['steps']));
+        $this->assertNotEmpty($dealerDefs['overview']['steps'][0]['tip'] ?? null);
+
+        $this->assertArrayHasKey('accounts', $staffDefs);
+        $this->assertArrayHasKey('payouts-hub', $staffDefs);
+        $this->assertArrayHasKey('support-admin', $staffDefs);
+        $this->assertArrayNotHasKey('earnings', $staffDefs);
+
+        $this->assertArrayHasKey('treasury', $ownerDefs);
+        $this->assertArrayHasKey('benefits-fund', $ownerDefs);
+        $this->assertSame('owner', $tours->forPage($owner, 'overview')['pending'][0]['audience']);
+        $this->assertSame('staff', $tours->forPage($staff, 'overview')['pending'][0]['audience']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('data.tour.pending')
+                ->where('data.tour.pending.0.key', 'overview')
+                ->where('data.tour.pending.0.audience', 'dealer'));
+
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.tour.pending.0.audience', 'sub_dealer'));
+
+        $this->actingAs($staff)->onPortal('manage')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.tour.pending.0.audience', 'staff')
+                ->where('data.tour.pending.0.key', 'overview'));
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.tour.pending.0.audience', 'owner'));
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('data.tour.blocked_by.0.key', 'overview'));
+    }
 }

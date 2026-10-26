@@ -809,9 +809,13 @@ class WorkspaceController extends Controller
             $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
         }
 
+        $tourGuide = app(TourGuide::class);
+        $tourDefinitions = $tourGuide->definitionsFor($u);
+        if ($tourDefinitions !== []) {
+            $tourKey = array_key_exists($section, $tourDefinitions) ? $section : 'overview';
+            $data['tour'] = $tourGuide->forPage($u, $tourKey);
+        }
         if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
-            $tourKey = in_array($section, array_keys(app(TourGuide::class)->definitions()), true) ? $section : 'overview';
-            $data['tour'] = app(TourGuide::class)->forPage($u, $tourKey);
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 

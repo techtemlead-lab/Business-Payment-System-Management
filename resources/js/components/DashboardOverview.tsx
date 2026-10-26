@@ -81,7 +81,7 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
     };
 
     return (
-        <section className="partner-home-referral" aria-label={translate('portal', 'invite_partners')}>
+        <section className="partner-home-referral" data-tour="home-referral" aria-label={translate('portal', 'invite_partners')}>
             <div className="partner-home-metrics-head">
                 <div>
                     <h3>{translate('portal', 'invite_partners')}</h3>
@@ -133,7 +133,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     return (
         <div className="partner-home">
             <section className="partner-home-grid">
-                <aside className="partner-home-profile">
+                <aside className="partner-home-profile" data-tour="home-profile">
                     <div className="partner-home-avatar" aria-hidden="true">
                         {profile.photo_url
                             ? <img src={profile.photo_url} alt="" />
@@ -190,7 +190,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <PieChart slices={chart} />
                 </section>
 
-                <section className="partner-home-targets">
+                <section className="partner-home-targets" data-tour="home-targets">
                     <div className="partner-home-metrics-head">
                         <div>
                             <h3>{translate('portal', 'targets')}</h3>
@@ -269,7 +269,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
 
     return (
         <div className="admin-home">
-            <section className="admin-home-hero">
+            <section className="admin-home-hero" data-tour="home-metrics">
                 <aside className="partner-home-profile compact">
                     <div className="partner-home-avatar" aria-hidden="true"><span>{profile.initial || u.name?.[0]}</span></div>
                     <h2>{profile.name || u.name}</h2>
@@ -289,7 +289,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                 </div>
             </section>
 
-            <section className="account-actions dense-actions" aria-label={translate('portal', 'admin_modules')}>
+            <section className="account-actions dense-actions" data-tour="admin-modules" aria-label={translate('portal', 'admin_modules')}>
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (

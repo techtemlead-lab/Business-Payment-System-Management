@@ -484,7 +484,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 </div>
 
                 {staff && (
-                    <nav className="sidebar-domain-switch" aria-label={translate('portal', 'domain_switch')}>
+                    <nav className="sidebar-domain-switch" data-tour="sidebar-domains" aria-label={translate('portal', 'domain_switch')}>
                         {domainTabs}
                     </nav>
                 )}
