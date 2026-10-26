@@ -55,6 +55,15 @@ class UserManualGuideTest extends TestCase
         $this->assertContains('orders', collect($guide['missing'])->pluck('key')->all());
         $this->assertContains('catalog', collect($guide['missing'])->pluck('key')->all());
 
+        $this->actingAs($dealer)
+            ->onPortal('dealer')
+            ->get('/withdrawals')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('section', 'withdrawals')
+                ->where('data.guide_prerequisites.ready', false)
+                ->where('data.guide_prerequisites.message', fn ($message) => is_string($message) && $message !== ''));
+
         Order::create([
             'user_id' => $dealer->id,
             'number' => 'MANUAL-1',

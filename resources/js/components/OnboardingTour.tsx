@@ -12,12 +12,21 @@ export default function OnboardingTour({ tour }: { tour?: { pending?: Tour[] } |
     const [rect, setRect] = useState<DOMRect | null>(null);
 
     useEffect(() => {
-        if (!pending) return;
+        if (!pending) {
+            return;
+        }
         const step = pending.steps[index];
-        if (!step) return;
+        if (!step) {
+            return;
+        }
         const el = document.querySelector(step.target) as HTMLElement | null;
         if (!el) {
             setRect(null);
+            // Skip missing targets so a partial page still allows the tour to finish.
+            if (index < pending.steps.length - 1) {
+                const timer = window.setTimeout(() => setIndex((value) => value + 1), 250);
+                return () => window.clearTimeout(timer);
+            }
             return;
         }
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
