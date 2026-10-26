@@ -50,16 +50,34 @@ final class PartnerDashboardHome
             : $this->purchaseTotal(
                 Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
             );
+        $activeStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
         $commissionMonth = Money::cents((string) DB::table('commission_allocations')
             ->where('user_id', $user->id)
             ->where('created_at', '>=', $monthStartUtc)
-            ->whereIn('status', ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'])
+            ->whereIn('status', $activeStatuses)
             ->sum('amount'));
+        $commissionToday = Money::cents((string) DB::table('commission_allocations')
+            ->where('user_id', $user->id)
+            ->where('created_at', '>=', $todayUtc)
+            ->whereIn('status', $activeStatuses)
+            ->sum('amount'));
+        $paidToday = Money::cents((string) DB::table('withdrawals')
+            ->where('user_id', $user->id)
+            ->where('status', 'paid')
+            ->where('paid_at', '>=', $todayUtc)
+            ->sum(DB::raw('COALESCE(net_amount, amount)')));
+        if ($paidToday === 0) {
+            $paidToday = Money::cents((string) Order::query()
+                ->where('user_id', $user->id)
+                ->where('created_at', '>=', $todayUtc)
+                ->sum('paid'));
+        }
 
         $chart = [
+            ['key' => 'commission', 'label' => __('portal.today_commission'), 'value' => Money::decimal($commissionToday), 'cents' => $commissionToday, 'color' => '#ef4a23'],
             ['key' => 'own', 'label' => __('portal.today_purchase'), 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
-            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#0f766e'],
-            ['key' => 'commission', 'label' => __('portal.commission_month'), 'value' => Money::decimal($commissionMonth), 'cents' => $commissionMonth, 'color' => '#ef4a23'],
+            ['key' => 'paid', 'label' => __('portal.today_paid'), 'value' => Money::decimal($paidToday), 'cents' => $paidToday, 'color' => '#0f766e'],
+            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#c9a227'],
         ];
 
         return [
@@ -84,6 +102,8 @@ final class PartnerDashboardHome
                 'own_sales_today' => Money::decimal($ownSalesToday),
                 'team_sales_today' => Money::decimal($teamSalesToday),
                 'commission_month' => Money::decimal($commissionMonth),
+                'commission_today' => Money::decimal($commissionToday),
+                'paid_today' => Money::decimal($paidToday),
             ],
             'chart' => $chart,
             'targets' => $this->targets($user, $rules, $month),

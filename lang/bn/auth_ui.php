@@ -38,7 +38,7 @@ return [
     'show_password' => 'পাসওয়ার্ড দেখান',
     'account_unavailable' => 'এই অ্যাকাউন্ট উপলব্ধ নয়।',
     'account_unavailable_contact' => 'এই অ্যাকাউন্ট উপলব্ধ নয়। কোম্পানির সাথে যোগাযোগ করুন।',
-    'partner_workspace_eyebrow' => 'আপনার পার্টনার ওয়ার্কস্পেস',
+    'partner_workspace_eyebrow' => 'আপনার পার্টনার স্টোর প্যানেল',
     'fresh_start_heading' => 'নতুন শুরু।',
     'fresh_start_subheading' => 'আপনার জন্য তৈরি।',
     'account_staff_maintained' => 'আপনার অ্যাকাউন্ট কোম্পানি স্টাফ তৈরি ও রক্ষণাবেক্ষণ করে।',

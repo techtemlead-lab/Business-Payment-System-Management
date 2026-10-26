@@ -67,6 +67,14 @@ return function (string $portal): void {
     Route::post('/commands/commissions/simulate', [CommandController::class, 'simulateCommissions']);
     Route::post('/commands/area-dealers', [CommandController::class, 'assignAreaDealer']);
     Route::delete('/commands/area-dealers/{id}', [CommandController::class, 'removeAreaDealer']);
+
+    Route::post('/commands/support-tickets', [CommandController::class, 'supportTicket'])->middleware('throttle:10,1');
+    Route::post('/commands/support-tickets/{id}/reply', [CommandController::class, 'supportTicketReply'])->middleware('throttle:20,1');
+    Route::post('/commands/tours/{page}/complete', [CommandController::class, 'completeTour'])->middleware('throttle:30,1');
+    Route::post('/commands/tours/restart', [CommandController::class, 'restartTour'])->middleware('throttle:20,1');
+    Route::post('/commands/workspace-mode', [CommandController::class, 'switchWorkspaceMode'])->middleware('throttle:30,1');
+    Route::post('/commands/accounts/{user}/link-staff', [CommandController::class, 'linkStaffRole']);
+    Route::post('/commands/accounts/{user}/unlink-staff', [CommandController::class, 'unlinkStaffRole']);
     Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
 };

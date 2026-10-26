@@ -38,7 +38,7 @@ return [
     'show_password' => 'Show password',
     'account_unavailable' => 'This account is unavailable.',
     'account_unavailable_contact' => 'This account is unavailable. Contact the company.',
-    'partner_workspace_eyebrow' => 'YOUR PARTNER WORKSPACE',
+    'partner_workspace_eyebrow' => 'YOUR PARTNER STORE PANEL',
     'fresh_start_heading' => 'A fresh start.',
     'fresh_start_subheading' => 'Made for you.',
     'account_staff_maintained' => 'Your account is created and maintained by company staff.',

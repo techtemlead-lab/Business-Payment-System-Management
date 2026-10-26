@@ -79,6 +79,12 @@ export default function AccountCreate({
         sponsor_id: '',
         latitude: '',
         longitude: '',
+        kyc_photo: null as File | null,
+        kyc_nid_front: null as File | null,
+        kyc_nid_back: null as File | null,
+        kyc_birth_certificate: null as File | null,
+        kyc_agreement: null as File | null,
+        kyc_other: null as File | null,
         profile: {
             name_bn: '',
             father_name: '',
@@ -312,8 +318,14 @@ export default function AccountCreate({
             directory_visible: data.directory_visible,
             status: data.status,
             reason: data.reason,
+            kyc_photo: data.kyc_photo,
+            kyc_nid_front: data.kyc_nid_front,
+            kyc_nid_back: data.kyc_nid_back,
+            kyc_birth_certificate: data.kyc_birth_certificate,
+            kyc_agreement: data.kyc_agreement,
+            kyc_other: data.kyc_other,
         }));
-        form.post('/commands/accounts', { preserveScroll: true });
+        form.post('/commands/accounts', { preserveScroll: true, forceFormData: true });
     };
 
     const commissionLines = useMemo(() => placePreview?.commission_places || [], [placePreview]);
@@ -680,6 +692,18 @@ export default function AccountCreate({
                                 <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
                                 <span>{translate('portal','acct_directory_visible')}</span>
                             </label>
+                        )}
+                        {isPartner && (
+                            <fieldset className="optional-media-fieldset" style={{ marginTop: 16 }}>
+                                <legend>{translate('portal', 'optional_media_title')}</legend>
+                                <p className="muted" style={{ fontSize: 12 }}>{translate('portal', 'optional_media_hint')}</p>
+                                <label>{translate('portal', 'kyc_photo')}<input type="file" accept="image/*" onChange={(e) => form.setData('kyc_photo', e.target.files?.[0] || null)} /></label>
+                                <label>{translate('portal', 'kyc_nid_front')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_front', e.target.files?.[0] || null)} /></label>
+                                <label>{translate('portal', 'kyc_nid_back')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_back', e.target.files?.[0] || null)} /></label>
+                                <label>{translate('portal', 'kyc_birth_certificate')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_birth_certificate', e.target.files?.[0] || null)} /></label>
+                                <label>{translate('portal', 'kyc_agreement')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_agreement', e.target.files?.[0] || null)} /></label>
+                                <label>{translate('portal', 'kyc_other')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_other', e.target.files?.[0] || null)} /></label>
+                            </fieldset>
                         )}
                         {Object.keys(form.errors).length > 0 && (
                             <div className="error" role="alert" style={{ marginTop: 12 }}>{translate('portal','acct_fix_errors')}</div>

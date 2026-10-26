@@ -28,7 +28,20 @@ final class StaffPermissions
     /** @return array<string, array<string, bool>> */
     public function matrix(User $user): array
     {
-        if ($user->status !== 'active' || ! $user->staff()) {
+        if ($user->status !== 'active') {
+            return [];
+        }
+        if ($user->usingStaffWorkspace()) {
+            $caps = app(PartnerStaffLink::class)->linkedCapabilities($user);
+            $matrix = [];
+            foreach ($this->modules() as $module) {
+                $enabled = in_array($module, $caps, true) || in_array('accounts', $caps, true);
+                $matrix[$module] = array_fill_keys(self::Actions, $enabled);
+            }
+
+            return $matrix;
+        }
+        if (! $user->staff()) {
             return [];
         }
         if ($user->role === 'super_admin') {

@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
@@ -15,8 +16,13 @@ use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
+use App\Domain\Orders\OrderInvoice;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\GuidePrerequisites;
+use App\Domain\Support\SupportTickets;
+use App\Domain\Support\TourGuide;
+use App\Domain\Support\UserManual;
 use App\Http\Controllers\Controller;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -49,14 +55,16 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         $portal = PortalHost::current($r) ?? PortalHost::forUser($u);
-        $staff = in_array($portal, ['manage', 'sadmin'], true);
+        $staffWorkspace = $u->usingStaffWorkspace();
+        $staff = in_array($portal, ['manage', 'sadmin'], true) || $staffWorkspace;
+        $catalogPortal = $staffWorkspace ? 'manage' : $portal;
         if ($staff && $section === 'customization') {
             $section = 'website';
         }
         if ($staff && $section === 'capital-flow') {
             $section = 'treasury';
         }
-        PortalCatalog::assertSection($u, $portal, $section);
+        PortalCatalog::assertSection($u, $catalogPortal, $section);
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
@@ -93,7 +101,7 @@ class WorkspaceController extends Controller
                 'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
                 'accounts' => $u->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
             $data['lowStock'] = $u->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
-            if (in_array($u->role, ['dealer', 'sub_dealer'], true)) {
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
                 $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
             } elseif ($staff) {
                 $data['admin_home'] = [
@@ -183,7 +191,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {
@@ -195,7 +203,7 @@ class WorkspaceController extends Controller
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
             $data['subdealer_stats'] = [
                 'total' => User::where('role', 'sub_dealer')->count(),
@@ -370,26 +378,50 @@ class WorkspaceController extends Controller
             }
         }
         if (in_array($section, ['withdrawals', 'earnings'])) {
-            $earningsFrom = $this->optionalDate($r->input('from'));
-            $earningsTo = $this->optionalDate($r->input('to'));
+            $presenter = app(PartnerEarningsPresenter::class);
+            $preset = $r->string('preset')->toString() ?: null;
+            $resolved = $presenter->resolvePreset($preset, $this->optionalDate($r->input('from')), $this->optionalDate($r->input('to')));
+            $earningsFrom = $resolved['from'];
+            $earningsTo = $resolved['to'];
             [$earningsFromUtc, $earningsToUtc] = $this->businessDayBounds($earningsFrom, $earningsTo);
             $data['wallet'] = DB::table('wallets')->where('user_id', $u->id)->first(['available', 'held', 'commission_held']);
-            $data['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo];
-            $data['earnings'] = CommissionAllocation::where('user_id', $u->id)
-                ->when($earningsFromUtc, fn ($query) => $query->where('created_at', '>=', $earningsFromUtc))
-                ->when($earningsToUtc, fn ($query) => $query->where('created_at', '<', $earningsToUtc))
-                ->latest()->limit(50)->get();
+            $data['withdrawal_balances'] = $presenter->withdrawalBalances($u);
+            $data['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo, 'preset' => $preset];
+            $data['earnings'] = $presenter->ledgerRows($u, $earningsFromUtc, $earningsToUtc);
+            $data['period_totals'] = [
+                'commission' => Money::decimal(Money::cents((string) collect($data['earnings'])->sum(fn ($row) => (float) $row['amount']))),
+            ];
             $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
-            $data['withdrawals'] = DB::table('withdrawals')->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->latest()->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
-            if (! $staff && $section === 'earnings') {
+            $data['withdrawals'] = DB::table('withdrawals')
+                ->when(! in_array($portal, ['manage', 'sadmin'], true), fn ($q) => $q->where('user_id', $u->id))
+                ->latest()
+                ->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
+            if (in_array($u->role, ['dealer', 'sub_dealer'], true) && $section === 'earnings') {
                 $data['wallet_statement'] = app(PartnerWalletStatement::class)->for($u, $earningsFrom, $earningsTo);
             }
         }
         if ($section === 'full-report') {
             abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
-            $reportFrom = $this->optionalDate($r->input('from'));
-            $reportTo = $this->optionalDate($r->input('to'));
+            $presenter = app(PartnerEarningsPresenter::class);
+            $preset = $r->string('preset')->toString() ?: null;
+            $resolved = $presenter->resolvePreset($preset, $this->optionalDate($r->input('from')), $this->optionalDate($r->input('to')));
+            $reportFrom = $resolved['from'];
+            $reportTo = $resolved['to'];
             $data['full_report'] = app(PartnerFullReport::class)->for($u, $reportFrom, $reportTo);
+            $data['full_report']['filters']['preset'] = $preset;
+        }
+        if ($section === 'help') {
+            $manualQuery = $r->filled('q') ? (string) $r->input('q') : null;
+            $data['manual_query'] = $manualQuery;
+            $data['manual_sections'] = app(UserManual::class)->chaptersFor($u, $manualQuery);
+            $data['support_tickets'] = app(SupportTickets::class)->forUser($u);
+            $data['support_categories'] = SupportTickets::Categories;
+        }
+        if ($section === 'support-admin') {
+            abort_unless($staff || $u->owner(), 403);
+            $data['support_admin'] = app(SupportTickets::class)->adminIndex(
+                $r->filled('status') ? (string) $r->input('status') : null
+            );
         }
         if ($section === 'circulars') {
             abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
@@ -777,6 +809,16 @@ class WorkspaceController extends Controller
             $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
         }
 
+        $tourGuide = app(TourGuide::class);
+        $tourDefinitions = $tourGuide->definitionsFor($u);
+        if ($tourDefinitions !== []) {
+            $tourKey = array_key_exists($section, $tourDefinitions) ? $section : 'overview';
+            $data['tour'] = $tourGuide->forPage($u, $tourKey);
+        }
+        if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
+            $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
+        }
+
         return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status'])]);
     }
 
@@ -809,12 +851,23 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
-
-        return app(PartnerFullReport::class)->downloadPdf(
-            $u,
+        $presenter = app(PartnerEarningsPresenter::class);
+        $resolved = $presenter->resolvePreset(
+            $r->string('preset')->toString() ?: null,
             $this->optionalDate($r->input('from')),
             $this->optionalDate($r->input('to')),
         );
+
+        return app(PartnerFullReport::class)->downloadPdf(
+            $u,
+            $resolved['from'],
+            $resolved['to'],
+        );
+    }
+
+    public function orderInvoice(Request $r, Order $order): BinaryFileResponse
+    {
+        return app(OrderInvoice::class)->downloadPdf($r->user(), $order);
     }
 
     public function idCardPdf(Request $r): BinaryFileResponse

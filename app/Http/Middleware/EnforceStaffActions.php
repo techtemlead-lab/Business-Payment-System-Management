@@ -32,7 +32,10 @@ class EnforceStaffActions
         if (! $actor->staff()) {
             $partnerAllowed = match ($controller) {
                 '' => true,
-                'CommandController' => in_array($method, ['order', 'claim', 'readNotice', 'readAllNotices', 'partnerSupport'], true),
+                'CommandController' => in_array($method, [
+                    'order', 'claim', 'readNotice', 'readAllNotices', 'partnerSupport',
+                    'supportTicket', 'supportTicketReply', 'completeTour', 'restartTour', 'switchWorkspaceMode',
+                ], true),
                 'OrderController' => in_array($method, ['index', 'show', 'store', 'claim'], true),
                 'WithdrawalController' => $method === 'store',
                 'CommissionController' => in_array($method, ['earnings', 'network', 'networkOrders'], true),
@@ -120,6 +123,8 @@ class EnforceStaffActions
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
                 'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
                 'order', 'claim' => [['orders', 'sr_orders'], 'create'],
+                'supportTicket', 'supportTicketReply', 'completeTour', 'restartTour' => [['accounts', 'content'], 'edit'],
+                'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
             'IntegrationSettingsController' => [['finance'], 'edit'],

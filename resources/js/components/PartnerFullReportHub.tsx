@@ -11,6 +11,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
     const filters = report?.filters ?? {};
     const [from, setFrom] = useState(String(filters.from ?? ''));
     const [to, setTo] = useState(String(filters.to ?? ''));
+    const preset = String(filters.preset ?? '');
     const commissions: Row[] = report?.commissions ?? [];
     const orders: Row[] = report?.orders ?? [];
     const teamActivity: Row[] = report?.team_activity ?? [];
@@ -18,6 +19,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
     const query = new URLSearchParams();
     if (from) query.set('from', from);
     if (to) query.set('to', to);
+    if (preset) query.set('preset', preset);
     const querySuffix = query.toString() ? `?${query.toString()}` : '';
 
     return (
@@ -41,6 +43,13 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         router.get(`${base}/full-report`, { from: from || undefined, to: to || undefined }, { preserveState: true });
                     }}
                 >
+                    <div className="preset-chips">
+                        {(['today','week','month','year'] as const).map((key) => (
+                            <button key={key} type="button" className={`button small ${preset===key?'dark':''}`} onClick={() => router.get(`${base}/full-report`, { preset: key }, { preserveState: true })}>
+                                {translate('portal', `preset_${key}`)}
+                            </button>
+                        ))}
+                    </div>
                     <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
                         {translate('portal', 'date_from')}
                         <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
