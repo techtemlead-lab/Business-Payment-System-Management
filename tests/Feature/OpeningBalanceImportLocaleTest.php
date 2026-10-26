@@ -54,7 +54,7 @@ class OpeningBalanceImportLocaleTest extends TestCase
 
         $preparer = User::factory()->staff('finance')->create();
         $reviewer = User::factory()->staff('finance')->create();
-        User::factory()->dealer()->create(['dealer_code' => 'D-OB-BN']);
+        User::factory()->dealer()->create(['dealer_code' => 'D-OB-BN', 'locale' => 'bn']);
 
         $imports = app(OpeningBalanceImport::class);
         $id = $imports->preview($preparer, 'opening_balances', $this->workbook([

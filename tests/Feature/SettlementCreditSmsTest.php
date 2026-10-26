@@ -44,6 +44,7 @@ class SettlementCreditSmsTest extends TestCase
         ]);
         $this->purchase($dealer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
+        Config::set('madina.sms.sent', []);
 
         $key = (string) Str::uuid();
         $service = app(CommissionService::class);
