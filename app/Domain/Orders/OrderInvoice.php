@@ -3,9 +3,11 @@
 namespace App\Domain\Orders;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\User;
+use App\Support\AmountInWords;
 use App\Support\Money;
-use Illuminate\Support\Facades\DB;
+use App\Support\SiteCustomization;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
@@ -65,8 +67,8 @@ final class OrderInvoice
             'autoLangToFont' => true,
             'margin_left' => 12,
             'margin_right' => 12,
-            'margin_top' => 12,
-            'margin_bottom' => 14,
+            'margin_top' => 10,
+            'margin_bottom' => 12,
         ]);
         $pdf->WriteHTML($html);
         $pdf->Output($path, Destination::FILE);
@@ -82,47 +84,112 @@ final class OrderInvoice
         $order->loadMissing(['user', 'lines']);
         $buyer = $order->user;
         $profile = is_array($buyer?->profile) ? $buyer->profile : [];
+        $custom = SiteCustomization::all();
+
+        $logoPath = public_path('branding/madina-logo-latest.png');
+        if (! is_file($logoPath)) {
+            $logoPath = public_path('madina-header-logo.png');
+        }
+
         $company = [
-            'name' => (string) config('madina.company_name', 'Madina Natural Health Care'),
-            'tagline' => (string) __('portal.brand_company_bar'),
-            'address' => (string) config('madina.company_address', 'Dhaka, Bangladesh'),
-            'phone' => (string) config('madina.company_phone', ''),
-            'email' => (string) config('madina.company_email', ''),
+            'name' => (string) ($custom['contact_company_title'] ?? config('madina.company_name', 'Madina Natural Health Care')),
+            'address' => (string) ($custom['office_address'] ?? $custom['footer_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh'),
+            'phones' => (string) ($custom['contact_phone'] ?? $custom['footer_phone'] ?? '+8801730532966'),
+            'manufacturer' => (string) config('madina.invoice_manufacturer', 'Holistic Nutracare'),
+            'marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
+            'marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
+            'logo_path' => is_file($logoPath) ? $logoPath : null,
         ];
 
-        $lines = $order->lines->map(fn ($line) => [
-            'name' => $line->name,
-            'sku' => $line->sku ?? '',
-            'quantity' => (int) $line->quantity,
-            'unit_price' => Money::decimal(Money::cents((string) $line->unit_price)),
-            'total' => Money::decimal(Money::cents((string) $line->total)),
-        ])->all();
+        $units = Product::query()
+            ->whereIn('id', $order->lines->pluck('product_id')->filter()->all())
+            ->pluck('unit', 'id');
 
-        $receipts = DB::table('receipts')->where('order_id', $order->id)->sum('amount');
+        $lines = [];
+        $sumQty = 0;
+        $sumMrpBill = 0;
+        $sumCommission = 0;
+        $sumTotal = 0;
+
+        foreach ($order->lines as $index => $line) {
+            $qty = (int) $line->quantity;
+            $mrpCents = Money::cents((string) $line->mrp);
+            $rateCents = Money::cents((string) $line->unit_price);
+            $totalCents = Money::cents((string) $line->total);
+            $mrpBillCents = $mrpCents * $qty;
+            $commissionCents = max(0, $mrpBillCents - $totalCents);
+            $remarkPct = $mrpCents > 0
+                ? (int) round((($mrpCents - $rateCents) / $mrpCents) * 100)
+                : 0;
+
+            $sumQty += $qty;
+            $sumMrpBill += $mrpBillCents;
+            $sumCommission += $commissionCents;
+            $sumTotal += $totalCents;
+
+            $lines[] = [
+                'sl' => $index + 1,
+                'name' => $line->name,
+                'pack_size' => (string) ($units[$line->product_id] ?? 'pack'),
+                'quantity' => $qty,
+                'rate' => Money::decimal($rateCents),
+                'mrp_bill' => Money::decimal($mrpBillCents),
+                'commission' => Money::decimal($commissionCents),
+                'total' => Money::decimal($totalCents),
+                'remark' => $remarkPct.'%',
+            ];
+        }
+
+        $sponsor = $buyer?->sponsor_id
+            ? User::query()->find($buyer->sponsor_id)
+            : null;
+
+        $bookingAddress = collect([
+            $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
+            $profile['village'] ?? null,
+            $profile['upazila'] ?? null,
+            $buyer?->district,
+            $buyer?->division,
+        ])->filter()->implode(', ');
+
+        $designation = match ($buyer?->role) {
+            'dealer' => 'Dealer',
+            'sub_dealer' => 'Sub-dealer',
+            default => str_replace('_', ' ', (string) $buyer?->role),
+        };
+
+        $tz = (string) config('madina.business_timezone', config('app.timezone'));
+        $created = optional($order->created_at)?->timezone($tz);
 
         return [
             'company' => $company,
             'order' => [
                 'number' => $order->number,
-                'created_at' => optional($order->created_at)?->timezone((string) config('madina.business_timezone', config('app.timezone')))->format('d M Y'),
+                'date' => $created?->format('d.m.y'),
+                'created_at' => $created?->format('d M Y'),
                 'status' => $order->status,
                 'total' => Money::decimal(Money::cents((string) $order->total)),
                 'paid' => Money::decimal(Money::cents((string) $order->paid)),
                 'due' => $order->outstanding(),
-                'receipts' => Money::decimal(Money::cents((string) $receipts)),
             ],
             'buyer' => [
                 'name' => $buyer?->name,
                 'code' => $buyer?->dealer_code,
-                'role' => $buyer?->role,
+                'designation' => $designation,
+                'area' => $buyer?->district
+                    ?: ($profile['upazila'] ?? $profile['place_code'] ?? $profile['area_code'] ?? '—'),
                 'phone' => $buyer?->phone,
-                'email' => $buyer?->email,
-                'shop' => $profile['shop_name'] ?? $profile['pharmacy'] ?? null,
-                'area' => $profile['place_code'] ?? $profile['area_code'] ?? null,
-                'division' => $buyer?->division,
-                'district' => $buyer?->district,
+                'booking_address' => $bookingAddress !== '' ? $bookingAddress : '—',
+                'referred_code' => $sponsor?->dealer_code ?: $sponsor?->refer_code,
             ],
             'lines' => $lines,
+            'totals' => [
+                'quantity' => $sumQty,
+                'mrp_bill' => Money::decimal($sumMrpBill),
+                'commission' => Money::decimal($sumCommission),
+                'total' => Money::decimal($sumTotal),
+                'in_words' => AmountInWords::taka(Money::decimal($sumTotal)),
+            ],
             'watermark' => $watermark,
             'watermark_label' => match ($watermark) {
                 'dealer' => 'DEALER COPY',

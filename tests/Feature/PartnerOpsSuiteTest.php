@@ -112,6 +112,73 @@ class PartnerOpsSuiteTest extends TestCase
             ->assertHeader('content-disposition');
     }
 
+    public function test_order_invoice_payload_matches_partner_letter_template(): void
+    {
+        $sponsor = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MNHC107',
+            'refer_code' => 'REFSP001',
+        ]);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'sponsor_id' => $sponsor->id,
+            'dealer_code' => 'MNHC114',
+            'phone' => '01793748891',
+            'district' => 'Dhaka',
+            'profile' => ['shop_name' => 'Madani Avenue Shop', 'upazila' => 'Vatara'],
+        ]);
+
+        $order = Order::create([
+            'user_id' => $dealer->id,
+            'number' => 'INV-33',
+            'status' => 'approved',
+            'total' => '4800.00',
+            'paid' => '4800.00',
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'INV-33'),
+        ]);
+        $product = Product::factory()->create([
+            'name' => 'Nutralife',
+            'unit' => '500 ml',
+            'mrp' => '800.00',
+            'dealer_price' => '400.00',
+        ]);
+        $order->lines()->create([
+            'product_id' => $product->id,
+            'name' => 'Nutralife',
+            'sku' => $product->sku,
+            'quantity' => 12,
+            'mrp' => '800.00',
+            'unit_price' => '400.00',
+            'total' => '4800.00',
+        ]);
+
+        $payload = app(OrderInvoice::class)->payload($order->fresh(['user', 'lines']), 'dealer');
+
+        $this->assertSame('Holistic Nutracare', $payload['company']['manufacturer']);
+        $this->assertSame('Madina Natural Health Care', $payload['company']['marketed_by']);
+        $this->assertSame('MNHC107', $payload['buyer']['referred_code']);
+        $this->assertSame('Dealer', $payload['buyer']['designation']);
+        $this->assertSame('500 ml', $payload['lines'][0]['pack_size']);
+        $this->assertSame('9600.00', $payload['lines'][0]['mrp_bill']);
+        $this->assertSame('4800.00', $payload['lines'][0]['commission']);
+        $this->assertSame('4800.00', $payload['lines'][0]['total']);
+        $this->assertSame('50%', $payload['lines'][0]['remark']);
+        $this->assertSame(12, $payload['totals']['quantity']);
+        $this->assertStringContainsString('Taka', $payload['totals']['in_words']);
+        $this->assertSame('DEALER COPY', $payload['watermark_label']);
+
+        $html = view('invoices.order-letter', $payload)->render();
+        $this->assertStringContainsString('Invoice', $html);
+        $this->assertStringContainsString('Marketed By:', $html);
+        $this->assertStringContainsString('Referred Dealer Code:', $html);
+        $this->assertStringContainsString('MRP Rate Bill', $html);
+        $this->assertStringContainsString('Customer Signature', $html);
+        $this->assertStringContainsString('Authority Signature', $html);
+    }
+
     public function test_support_ticket_flow_and_tour_completion(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);

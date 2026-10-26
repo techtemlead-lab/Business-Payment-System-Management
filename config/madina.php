@@ -15,6 +15,14 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Printable order invoice letterhead (matches partner invoice template layout).
+    'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', 'Holistic Nutracare'),
+    'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', 'Madina Natural Health Care'),
+    'invoice_marketed_phones' => env('MADINA_INVOICE_MARKETED_PHONES', '01723-731877, 01730532966'),
+    'company_name' => env('MADINA_COMPANY_NAME', 'Madina Natural Health Care'),
+    'company_address' => env('MADINA_COMPANY_ADDRESS', 'Thana Road, Pirganj 5470, Rangpur, Bangladesh'),
+    'company_phone' => env('MADINA_COMPANY_PHONE', '+8801730532966'),
+    'company_email' => env('MADINA_COMPANY_EMAIL', ''),
     // Legacy env fallbacks. Prefer Service integrations in the admin panel; all remain disabled by default.
     'bdris' => [
         'enabled' => env('MADINA_BDRIS_ENABLED', false),
