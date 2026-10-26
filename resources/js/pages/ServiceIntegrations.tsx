@@ -16,6 +16,8 @@ function fieldLabel(name: string): string {
 
 function ProviderForm({ group, provider, version, canEdit }: { group: string; provider: Provider; version: number; canEdit: boolean }) {
     const translate = useT();
+    const [balanceMsg, setBalanceMsg] = useState('');
+    const [balanceBusy, setBalanceBusy] = useState(false);
     const defaults = useMemo(() => {
         const data: Row = { group, provider: provider.key, version, reason: '', enabled: provider.enabled ? '1' : '0' };
         for (const field of provider.fields) {
@@ -25,6 +27,23 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
         return data;
     }, [group, provider, version]);
     const form = useForm(defaults);
+
+    const checkBalance = async () => {
+        setBalanceBusy(true);
+        setBalanceMsg('');
+        try {
+            const response = await fetch(`/commands/operations/integrations/sms-balance?provider=${encodeURIComponent(provider.key)}`, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            const json = await response.json();
+            setBalanceMsg(String(json?.data?.message || translate('portal', 'si_sms_balance_unavailable')));
+        } catch {
+            setBalanceMsg(translate('portal', 'si_sms_balance_unavailable'));
+        } finally {
+            setBalanceBusy(false);
+        }
+    };
 
     return (
         <form className="action-form" onSubmit={event => {
@@ -53,9 +72,15 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                             <option value="sandbox">{translate('portal', 'si_mode_sandbox')}</option>
                             <option value="live">{translate('portal', 'si_mode_live')}</option>
                         </select>
+                    ) : field === 'encryption' ? (
+                        <select value={String(form.data[field] || 'tls')} onChange={e => form.setData(field, e.target.value)} disabled={!canEdit}>
+                            <option value="tls">TLS</option>
+                            <option value="ssl">SSL</option>
+                            <option value="none">None</option>
+                        </select>
                     ) : (
                         <input
-                            type={secretFields.has(field) ? 'password' : field === 'timeout' ? 'number' : 'text'}
+                            type={secretFields.has(field) ? 'password' : (field === 'timeout' || field === 'port') ? 'number' : 'text'}
                             value={String(form.data[field] ?? '')}
                             placeholder={secretFields.has(field) && provider[`${field}_set`] ? translate('portal', 'si_secret_keep') : ''}
                             onChange={e => form.setData(field, e.target.value)}
@@ -70,15 +95,24 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                 <textarea required minLength={5} maxLength={1000} rows={2} value={String(form.data.reason)} onChange={e => form.setData('reason', e.target.value)} disabled={!canEdit} />
             </label>
             {Object.keys(form.errors).length > 0 && <div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
-            <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_provider')}</button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_provider')}</button>
+                {group === 'sms' && provider.enabled && (
+                    <button type="button" className="button" disabled={balanceBusy} onClick={checkBalance}>
+                        {balanceBusy ? translate('portal', 'si_saving') : translate('portal', 'si_sms_balance_check')}
+                    </button>
+                )}
+            </div>
+            {balanceMsg && <p className="muted" style={{ marginTop: 10 }}>{translate('portal', 'si_sms_balance')}: {balanceMsg}</p>}
         </form>
     );
 }
 
-export default function ServiceIntegrations({ integrations, startup, canEdit }: {
+export default function ServiceIntegrations({ integrations, startup, canEdit, channelHint }: {
     integrations: { version: number; groups: Record<string, Group> };
     startup: { mode: string | null; version: number; label: string; description: string };
     canEdit: boolean;
+    channelHint?: string;
 }) {
     const translate = useT();
     const { flash } = usePage<any>().props;
@@ -98,6 +132,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit }: 
                     <PlugZap size={30} aria-hidden="true" />
                 </div>
                 {flash?.success && <div className="notice" role="status">{flash.success}</div>}
+                <p className="muted">{channelHint || translate('portal', 'si_channel_hint')}</p>
 
                 <section className="panel">
                     <h2>{translate('portal', 'si_startup_title')}</h2>

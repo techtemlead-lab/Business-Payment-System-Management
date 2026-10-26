@@ -149,10 +149,12 @@ class CommandController extends Controller
                 app(PartnerCreateMedia::class)->attachOptional($r->user(), $created['user'], $media);
             }
 
-            return redirect('/accounts')->with(
+            $redirect = $created['user']->role === 'sub_dealer' ? '/sub-dealers' : '/accounts';
+
+            return redirect($redirect)->with(
                 'success',
                 ucfirst(str_replace('_', '-', $created['user']->role)).' account created. Code: '.$created['user']->dealer_code.
-                '. Login SMS sent to '.$created['user']->phone.' (username = mobile number).'
+                '. Login credentials delivered to '.$created['user']->phone.' / '.$created['user']->email.' (username = mobile number).'
             );
         }
 

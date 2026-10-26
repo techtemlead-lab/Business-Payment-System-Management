@@ -31,12 +31,14 @@ async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
 }
 
 export default function AccountCreate({
-    roles = ['dealer', 'sub_dealer'],
+    intent = 'dealer',
+    roles = ['dealer'],
     sponsors = [],
     place_divisions = [],
     default_identity_type = 'birth_certificate',
     bdris_enabled = false,
 }: {
+    intent?: 'dealer' | 'sub_dealer' | 'staff';
     roles: string[];
     sponsors: Row[];
     place_divisions?: PlaceOption[];
@@ -45,9 +47,12 @@ export default function AccountCreate({
 }) {
     const translate = useT();
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
+    const defaultRole = roles[0] || (intent === 'sub_dealer' ? 'sub_dealer' : intent === 'staff' ? 'employee' : 'dealer');
+    const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
+    const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
     const form = useForm({
-        role: 'dealer',
+        role: defaultRole,
         identity_type: default_identity_type as 'birth_certificate' | 'nid',
         birth_certificate_number: '',
         nid: '',
@@ -331,19 +336,19 @@ export default function AccountCreate({
     const commissionLines = useMemo(() => placePreview?.commission_places || [], [placePreview]);
 
     return (
-        <Shell section="accounts">
-            <Head title={translate('portal','acct_head_title')} />
+        <Shell section={shellSection}>
+            <Head title={intent === 'sub_dealer' ? translate('portal','acct_head_title_sub') : intent === 'staff' ? translate('portal','acct_head_title') : translate('portal','acct_head_title_dealer')} />
             <div className="section-header-row">
-                <Link href="/accounts" className="text-link flex-center">
-                    <ArrowLeft size={16} /> {translate('portal','acct_back')}
+                <Link href={intent === 'sub_dealer' ? '/sub-dealers' : intent === 'staff' ? '/employees' : '/accounts'} className="text-link flex-center">
+                    <ArrowLeft size={16} /> {intent === 'sub_dealer' ? translate('portal','acct_back_subdealers') : intent === 'staff' ? translate('portal','acct_back') : translate('portal','acct_back_dealers')}
                 </Link>
             </div>
 
             <div className="registry-heading">
                 <div>
-                    <h2>{translate('portal','acct_heading')}</h2>
+                    <h2>{intent === 'sub_dealer' ? translate('portal','acct_heading_sub') : translate('portal','acct_heading')}</h2>
                     <p>
-                        {translate('portal','acct_intro')}
+                        {intent === 'sub_dealer' ? translate('portal','acct_intro_sub') : translate('portal','acct_intro')}
                     </p>
                 </div>
             </div>
@@ -354,34 +359,40 @@ export default function AccountCreate({
                         <div className="panel-heading">
                             <div>
                                 <h3>{translate('portal','acct_step_type')}</h3>
-                                <p>{translate('portal','acct_step_type_hint')}</p>
+                                <p>{singlePartnerRole
+                                    ? (form.data.role === 'sub_dealer' ? translate('portal','acct_role_fixed_sub') : translate('portal','acct_role_fixed_dealer'))
+                                    : translate('portal','acct_step_type_hint')}</p>
                             </div>
                             <UserPlus size={22} className="text-muted" />
                         </div>
                         <div className="form-grid">
                             <label>
                                 {translate('portal','acct_role')}
-                                <select
-                                    value={form.data.role}
-                                    onChange={(e) => {
-                                        const newRole = e.target.value;
-                                        form.setData((prev) => ({
-                                            ...prev,
-                                            role: newRole,
-                                            place_code: '',
-                                            dealer_code: '',
-                                            permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
-                                        }));
-                                        setPlacePreview(null);
-                                    }}
-                                    required
-                                >
-                                    {roles.map((r) => (
-                                        <option key={r} value={r}>
-                                            {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
-                                        </option>
-                                    ))}
-                                </select>
+                                {singlePartnerRole ? (
+                                    <input readOnly value={form.data.role === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : translate('portal','acct_role_dealer')} />
+                                ) : (
+                                    <select
+                                        value={form.data.role}
+                                        onChange={(e) => {
+                                            const newRole = e.target.value;
+                                            form.setData((prev) => ({
+                                                ...prev,
+                                                role: newRole,
+                                                place_code: '',
+                                                dealer_code: '',
+                                                permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
+                                            }));
+                                            setPlacePreview(null);
+                                        }}
+                                        required
+                                    >
+                                        {roles.map((r) => (
+                                            <option key={r} value={r}>
+                                                {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </label>
                         </div>
                     </section>

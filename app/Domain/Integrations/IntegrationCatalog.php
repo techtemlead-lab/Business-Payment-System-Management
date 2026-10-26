@@ -35,18 +35,38 @@ final class IntegrationCatalog
                 'providers' => [
                     'ssl_wireless' => [
                         'label' => __('portal.si_provider_ssl_wireless'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'sender_id'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'https://smsplus.sslwireless.com/api/v3/send-sms', 'api_key' => '', 'api_secret' => '', 'sender_id' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://smsplus.sslwireless.com/api/v3/send-sms', 'api_key' => '', 'api_secret' => '', 'sender_id' => '', 'balance_url' => 'https://smsplus.sslwireless.com/api/v3/balance'],
                     ],
                     'bulk_sms_bd' => [
                         'label' => __('portal.si_provider_bulk_sms_bd'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id'],
-                        'defaults' => ['enabled' => false, 'base_url' => 'http://bulksmsbd.net/api/smsapi', 'api_key' => '', 'sender_id' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'http://bulksmsbd.net/api/smsapi', 'api_key' => '', 'sender_id' => '', 'balance_url' => 'http://bulksmsbd.net/api/getBalanceApi'],
                     ],
                     'custom' => [
                         'label' => __('portal.si_provider_custom_sms'),
-                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id'],
-                        'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'sender_id' => ''],
+                        'fields' => ['enabled', 'base_url', 'api_key', 'sender_id', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'sender_id' => '', 'balance_url' => ''],
+                    ],
+                ],
+            ],
+            'mail' => [
+                'label' => __('portal.si_group_mail_label'),
+                'description' => __('portal.si_group_mail_desc'),
+                'providers' => [
+                    'smtp' => [
+                        'label' => __('portal.si_provider_smtp'),
+                        'fields' => ['enabled', 'host', 'port', 'encryption', 'username', 'password', 'from_address', 'from_name'],
+                        'defaults' => [
+                            'enabled' => false,
+                            'host' => '',
+                            'port' => 587,
+                            'encryption' => 'tls', // tls|ssl|none
+                            'username' => '',
+                            'password' => '',
+                            'from_address' => '',
+                            'from_name' => 'Madina Natural Health Care',
+                        ],
                     ],
                 ],
             ],

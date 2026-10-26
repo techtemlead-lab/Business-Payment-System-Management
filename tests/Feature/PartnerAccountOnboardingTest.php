@@ -31,9 +31,18 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('AccountCreate')
+                ->where('intent', 'dealer')
+                ->where('roles', ['dealer'])
                 ->where('default_identity_type', 'birth_certificate')
                 ->has('place_divisions', 8)
                 ->where('place_divisions.0.code', 'MNHC-101'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/accounts/create?intent=sub_dealer')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('AccountCreate')
+                ->where('intent', 'sub_dealer')
+                ->where('roles', ['sub_dealer']));
     }
 
     public function test_bdris_lookup_falls_back_to_manual_when_disabled(): void

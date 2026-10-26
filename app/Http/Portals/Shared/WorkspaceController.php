@@ -183,7 +183,7 @@ class WorkspaceController extends Controller
             $data['movements'] = DB::table('stock_movements')->join('products', 'products.id', '=', 'product_id')->select('stock_movements.*', 'products.name')->orderByDesc('stock_movements.id')->paginate(20);
         }
         if ($section === 'accounts') {
-            $data['accounts'] = User::whereIn('role', ['dealer', 'sub_dealer'])->when($r->filled('q'), function ($q) use ($r) {
+            $data['accounts'] = User::where('role', 'dealer')->when($r->filled('q'), function ($q) use ($r) {
                 $term = '%'.$r->string('q').'%';
                 $q->where(function ($sub) use ($term) {
                     $sub->where('name', 'like', $term)
@@ -826,10 +826,18 @@ class WorkspaceController extends Controller
     {
         $u = $r->user();
         abort_unless($u->allows('accounts'), 403);
-        $roles = ['dealer', 'sub_dealer'];
-        if ($u->role === 'super_admin') {
-            $roles = [...$roles, 'employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()];
+        $intent = $r->string('intent')->toString();
+        if (! in_array($intent, ['dealer', 'sub_dealer', 'staff'], true)) {
+            $intent = 'dealer';
         }
+        $roles = match ($intent) {
+            'sub_dealer' => ['sub_dealer'],
+            'staff' => $u->role === 'super_admin'
+                ? ['employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()]
+                : ['employee'],
+            default => ['dealer'],
+        };
+        abort_if($intent === 'staff' && $u->role !== 'super_admin', 403);
         $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'refer_code', 'district']);
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
@@ -839,7 +847,8 @@ class WorkspaceController extends Controller
             ->get(['id', 'code', 'name', 'level', 'parent_id']);
 
         return Inertia::render('AccountCreate', [
-            'roles' => $roles,
+            'intent' => $intent,
+            'roles' => array_values(array_unique($roles)),
             'sponsors' => $sponsors,
             'place_divisions' => $divisions,
             'default_identity_type' => 'birth_certificate',
@@ -868,6 +877,11 @@ class WorkspaceController extends Controller
     public function orderInvoice(Request $r, Order $order): BinaryFileResponse
     {
         return app(OrderInvoice::class)->downloadPdf($r->user(), $order);
+    }
+
+    public function orderInvoicePrint(Request $r, Order $order): \Illuminate\Http\Response
+    {
+        return app(OrderInvoice::class)->printHtml($r->user(), $order);
     }
 
     public function idCardPdf(Request $r): BinaryFileResponse

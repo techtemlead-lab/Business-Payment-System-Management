@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, date, label, ActionForm } from '../components/UI';
@@ -33,10 +34,37 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
     const open = !['rejected', 'cancelled'].includes(order.status);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const printUrl = `/orders/${order.id}/invoice/print`;
+    const pdfUrl = `/orders/${order.id}/invoice`;
+    const shareText = translate('portal', 'share_invoice_text', { number: String(order.number) });
+    const absolutePrintUrl = typeof window !== 'undefined' ? `${window.location.origin}${printUrl}` : printUrl;
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(absolutePrintUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopied(false);
+        }
+    };
     return <Shell section="order">
         <Head title={order.number} />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
-        <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div style={{display:'flex',gap:8,alignItems:'center'}} data-tour="invoice-actions"><a className="button small dark" href={`/orders/${order.id}/invoice`}>{translate('portal','download_invoice')}</a><Badge status={order.status} /></div></div>
+        <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',position:'relative'}} data-tour="invoice-actions">
+            <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
+            <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
+            <button type="button" className="button small" onClick={() => setShareOpen((v) => !v)}>{translate('portal','share_invoice')}</button>
+            {shareOpen && (
+                <div className="panel" style={{position:'absolute',right:0,top:'110%',zIndex:20,minWidth:220,padding:12,boxShadow:'0 12px 28px #01162722'}}>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${absolutePrintUrl}`)}`}>{translate('portal','share_invoice_whatsapp')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} href={`mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_invoice_email')}</a>
+                    <button type="button" className="text-link" style={{display:'block',background:'none',border:0,padding:0,cursor:'pointer'}} onClick={copyLink}>{copied ? translate('portal','share_invoice_copied') : translate('portal','share_invoice_copy')}</button>
+                </div>
+            )}
+            <Badge status={order.status} />
+        </div></div>
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>

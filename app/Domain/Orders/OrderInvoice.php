@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\AmountInWords;
 use App\Support\Money;
 use App\Support\SiteCustomization;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Mpdf\Mpdf;
@@ -74,6 +75,25 @@ final class OrderInvoice
         $pdf->Output($path, Destination::FILE);
 
         return response()->download($path, $filename)->deleteFileAfterSend(true);
+    }
+
+    public function printHtml(User $actor, Order $order): Response
+    {
+        $this->assertVisible($actor, $order);
+        $watermark = $this->watermarkFor($actor, $order);
+        $payload = $this->payload($order, $watermark);
+        $payload['printable'] = true;
+        $payload['auto_print'] = true;
+        $payload['order_id'] = $order->id;
+        $payload['share_url'] = url('/orders/'.$order->id.'/invoice/print');
+        if (! empty($payload['company']['logo_path']) && is_file((string) $payload['company']['logo_path'])) {
+            $publicLogo = public_path('branding/madina-logo-latest.png');
+            $payload['company']['logo_path'] = is_file($publicLogo)
+                ? asset('branding/madina-logo-latest.png')
+                : asset('madina-header-logo.png');
+        }
+
+        return response()->view('invoices.order-letter', $payload);
     }
 
     /**

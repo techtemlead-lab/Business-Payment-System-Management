@@ -170,14 +170,9 @@ export default function Shell({ section, children, action }: { section: string; 
         };
     }, [profileOpen]);
 
-    const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit',
-        'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts',
-        'data-imports', 'service-integrations', 'commission-holds', 'financial-readiness', 'financial-reports',
-        'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'].includes(section);
     const isDealerDomain = ['accounts', 'partnerships', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
-    const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+    const currentDomain = isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
 
     const staffAvailable = useMemo(() => {
         const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
@@ -303,21 +298,15 @@ export default function Shell({ section, children, action }: { section: string; 
             mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
         ]);
 
-        const dashboards = compactMothers([
-            mother('controls', 'nav_module_dashboards', pick(staffAvailable, ['dashboards', 'employees'])),
-        ]);
-
         const account = compactMothers([
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]);
 
-        const domainModules = currentDomain === 'dashboards'
-            ? dashboards
-            : currentDomain === 'dealers'
-                ? dealers
-                : currentDomain === 'sub_dealers'
-                    ? subDealers
-                    : company;
+        const domainModules = currentDomain === 'dealers'
+            ? dealers
+            : currentDomain === 'sub_dealers'
+                ? subDealers
+                : company;
 
         return [...domainModules, ...account];
     }, [staff, user.role, partnerAvailable, staffAvailable, currentDomain]);
@@ -394,7 +383,6 @@ export default function Shell({ section, children, action }: { section: string; 
     });
 
     const canDealerDomain = capabilities.some((c) => ['accounts', 'orders', 'finance'].includes(c));
-    const canDashboardsDomain = capabilities.includes('accounts');
 
     const domainTabs = staff ? (
         <>
@@ -405,7 +393,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 aria-current={currentDomain === 'company' ? 'page' : undefined}
             >
                 <Briefcase size={14} />
-                {ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section')}
+                {ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section')}
             </Link>
             {canDealerDomain && (
                 <Link
@@ -427,17 +415,6 @@ export default function Shell({ section, children, action }: { section: string; 
                 >
                     <Store size={14} />
                     {translate('portal', 'nav_subdealer_section')}
-                </Link>
-            )}
-            {canDashboardsDomain && (
-                <Link
-                    href="/dashboards"
-                    onClick={() => setOpen(false)}
-                    className={`sidebar-domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
-                    aria-current={currentDomain === 'dashboards' ? 'page' : undefined}
-                >
-                    <SlidersHorizontal size={14} />
-                    {translate('portal', 'nav_dashboard_mgmt')}
                 </Link>
             )}
         </>
@@ -491,13 +468,11 @@ export default function Shell({ section, children, action }: { section: string; 
 
                 {staff && (
                     <div className="sidebar-domain-label">
-                        {currentDomain === 'dashboards'
-                            ? translate('portal', 'nav_dashboard_mgmt')
-                            : currentDomain === 'company'
-                                ? (ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'))
-                                : currentDomain === 'dealers'
-                                    ? translate('portal', 'nav_dealer_section')
-                                    : translate('portal', 'nav_subdealer_section')}
+                        {currentDomain === 'company'
+                            ? (ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section'))
+                            : currentDomain === 'dealers'
+                                ? translate('portal', 'nav_dealer_section')
+                                : translate('portal', 'nav_subdealer_section')}
                     </div>
                 )}
 

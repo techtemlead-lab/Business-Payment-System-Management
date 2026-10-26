@@ -110,6 +110,13 @@ class PartnerOpsSuiteTest extends TestCase
             ->get('/orders/'.$order->id.'/invoice')
             ->assertOk()
             ->assertHeader('content-disposition');
+
+        $this->actingAs($dealer)
+            ->onPortal('dealer')
+            ->get('/orders/'.$order->id.'/invoice/print')
+            ->assertOk()
+            ->assertSee('Invoice', false)
+            ->assertSee(__('portal.print_invoice'), false);
     }
 
     public function test_order_invoice_payload_matches_partner_letter_template(): void
