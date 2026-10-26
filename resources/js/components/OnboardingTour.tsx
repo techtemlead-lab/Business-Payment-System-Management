@@ -22,6 +22,34 @@ function audienceLabel(audience: string | undefined, translate: (ns: string, key
     return translate('portal', 'tour_live_guide');
 }
 
+/** Keep the guide card inside the viewport, near the spotlight when possible. */
+function cardPosition(rect: DOMRect | null): { top: number; left: number } {
+    const cardWidth = Math.min(360, window.innerWidth - 32);
+    const cardHeight = 280;
+    const gap = 14;
+    const margin = 16;
+
+    if (!rect) {
+        return {
+            top: Math.max(margin, window.innerHeight - cardHeight - margin),
+            left: Math.max(margin, (window.innerWidth - cardWidth) / 2),
+        };
+    }
+
+    let top = rect.bottom + gap;
+    if (top + cardHeight > window.innerHeight - margin) {
+        top = Math.max(margin, rect.top - cardHeight - gap);
+    }
+
+    let left = rect.left;
+    if (left + cardWidth > window.innerWidth - margin) {
+        left = window.innerWidth - cardWidth - margin;
+    }
+    left = Math.max(margin, left);
+
+    return { top, left };
+}
+
 export default function OnboardingTour({ tour }: { tour?: { pending?: Tour[] } | null }) {
     const translate = useT();
     const pending = tour?.pending?.[0];
@@ -61,10 +89,13 @@ export default function OnboardingTour({ tour }: { tour?: { pending?: Tour[] } |
         }
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         const measure = () => setRect(el.getBoundingClientRect());
+        // Remeasure after scroll settles so the spotlight tracks the target.
+        const settle = window.setTimeout(measure, 320);
         measure();
         window.addEventListener('resize', measure);
         window.addEventListener('scroll', measure, true);
         return () => {
+            window.clearTimeout(settle);
             window.removeEventListener('resize', measure);
             window.removeEventListener('scroll', measure, true);
         };
@@ -107,15 +138,7 @@ export default function OnboardingTour({ tour }: { tour?: { pending?: Tour[] } |
     }
 
     const progress = ((index + 1) / pending.steps.length) * 100;
-    const cardTop = (() => {
-        const preferred = (rect?.bottom || 120) + window.scrollY + 14;
-        const maxTop = window.scrollY + window.innerHeight - 280;
-        if (preferred > maxTop && rect) {
-            return Math.max(window.scrollY + 16, rect.top + window.scrollY - 250);
-        }
-        return Math.min(preferred, maxTop);
-    })();
-    const cardLeft = Math.max(16, Math.min((rect?.left || 24) + window.scrollX, window.innerWidth - 380));
+    const { top: cardTop, left: cardLeft } = cardPosition(rect);
 
     return (
         <div className="onboarding-tour" role="dialog" aria-modal="true" aria-label={pending.title}>
@@ -124,10 +147,10 @@ export default function OnboardingTour({ tour }: { tour?: { pending?: Tour[] } |
                 <div
                     className="onboarding-tour-spotlight"
                     style={{
-                        top: rect.top + window.scrollY - 10,
-                        left: rect.left + window.scrollX - 10,
-                        width: rect.width + 20,
-                        height: rect.height + 20,
+                        top: Math.max(8, rect.top - 10),
+                        left: Math.max(8, rect.left - 10),
+                        width: Math.min(rect.width + 20, window.innerWidth - 16),
+                        height: Math.min(rect.height + 20, window.innerHeight - 16),
                     }}
                 />
             )}

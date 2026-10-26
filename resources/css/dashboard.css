@@ -444,14 +444,15 @@ dialog.portal-modal::backdrop{
 
 
 /* Partner ops suite: tours, help, invoice actions */
-.onboarding-tour { position: relative; z-index: 80; }
-.onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.52); z-index: 80; }
+/* Fixed viewport overlay — absolute+scrollY coords were offset from the portal DOM nest. */
+.onboarding-tour { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+.onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.52); z-index: 80; pointer-events: auto; }
 .onboarding-tour-spotlight {
-  position: absolute; z-index: 81; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(1,22,39,.52);
+  position: fixed; z-index: 81; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(1,22,39,.52);
   border: 2px solid #ef4a23; pointer-events: none; transition: top .28s ease, left .28s ease, width .28s ease, height .28s ease;
 }
 .onboarding-tour-card {
-  position: absolute; z-index: 82; width: min(360px, calc(100vw - 32px));
+  position: fixed; z-index: 82; width: min(360px, calc(100vw - 32px)); pointer-events: auto;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 16px 14px;
   box-shadow: 0 22px 48px rgba(1,22,39,.22); animation: portal-rise .28s ease;
