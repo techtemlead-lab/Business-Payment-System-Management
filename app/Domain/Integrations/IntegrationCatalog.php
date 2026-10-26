@@ -19,100 +19,100 @@ final class IntegrationCatalog
     {
         return [
             'bdris' => [
-                'label' => 'BDRIS identity lookup',
-                'description' => 'Birth registration autofill for dealer onboarding. Disabled by default; leave off unless you have a live government or approved proxy endpoint.',
+                'label' => __('portal.si_group_bdris_label'),
+                'description' => __('portal.si_group_bdris_desc'),
                 'providers' => [
                     'bdris' => [
-                        'label' => 'BDRIS / birth registration API',
+                        'label' => __('portal.si_provider_bdris'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'timeout'],
                         'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'timeout' => 12],
                     ],
                 ],
             ],
             'sms' => [
-                'label' => 'SMS gateway',
-                'description' => 'Sends account-created and operational SMS. Log-only delivery remains available when SMS is disabled.',
+                'label' => __('portal.si_group_sms_label'),
+                'description' => __('portal.si_group_sms_desc'),
                 'providers' => [
                     'ssl_wireless' => [
-                        'label' => 'SSL Wireless',
+                        'label' => __('portal.si_provider_ssl_wireless'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'sender_id'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://smsplus.sslwireless.com/api/v3/send-sms', 'api_key' => '', 'api_secret' => '', 'sender_id' => ''],
                     ],
                     'bulk_sms_bd' => [
-                        'label' => 'BulkSMSBD',
+                        'label' => __('portal.si_provider_bulk_sms_bd'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'sender_id'],
                         'defaults' => ['enabled' => false, 'base_url' => 'http://bulksmsbd.net/api/smsapi', 'api_key' => '', 'sender_id' => ''],
                     ],
                     'custom' => [
-                        'label' => 'Custom HTTP SMS endpoint',
+                        'label' => __('portal.si_provider_custom_sms'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'sender_id'],
                         'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'sender_id' => ''],
                     ],
                 ],
             ],
             'maps' => [
-                'label' => 'Maps',
-                'description' => 'Optional Google Maps embed and Places support on the public contact page. Nearest-dealer search always uses saved coordinates without a paid API.',
+                'label' => __('portal.si_group_maps_label'),
+                'description' => __('portal.si_group_maps_desc'),
                 'providers' => [
                     'google' => [
-                        'label' => 'Google Maps Platform',
+                        'label' => __('portal.si_provider_google_maps'),
                         'fields' => ['enabled', 'api_key', 'map_embed_url'],
                         'defaults' => ['enabled' => false, 'api_key' => '', 'map_embed_url' => ''],
                     ],
                 ],
             ],
             'couriers' => [
-                'label' => 'Courier services',
-                'description' => 'Optional consignment creation and tracking lookup when dispatching orders. Manual courier name and tracking remain supported.',
+                'label' => __('portal.si_group_couriers_label'),
+                'description' => __('portal.si_group_couriers_desc'),
                 'providers' => [
                     'pathao' => [
-                        'label' => 'Pathao Courier',
+                        'label' => __('portal.si_provider_pathao'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'store_id'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://api-hermes.pathao.com', 'api_key' => '', 'api_secret' => '', 'store_id' => ''],
                     ],
                     'steadfast' => [
-                        'label' => 'Steadfast Courier',
+                        'label' => __('portal.si_provider_steadfast'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://portal.packzy.com/api/v1', 'api_key' => '', 'api_secret' => ''],
                     ],
                     'redx' => [
-                        'label' => 'RedX',
+                        'label' => __('portal.si_provider_redx'),
                         'fields' => ['enabled', 'base_url', 'api_key'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://openapi.redx.com.bd', 'api_key' => ''],
                     ],
                     'paperfly' => [
-                        'label' => 'Paperfly',
+                        'label' => __('portal.si_provider_paperfly'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'username', 'password'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://api.paperfly.com.bd', 'api_key' => '', 'username' => '', 'password' => ''],
                     ],
                     'ecourier' => [
-                        'label' => 'eCourier',
+                        'label' => __('portal.si_provider_ecourier'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'user_id'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://backoffice.ecourier.com.bd/api', 'api_key' => '', 'api_secret' => '', 'user_id' => ''],
                     ],
                 ],
             ],
             'payments' => [
-                'label' => 'Payment gateway APIs',
-                'description' => 'Optional transaction lookup when verifying payment claims. Manual TrxID verification remains the default included workflow.',
+                'label' => __('portal.si_group_payments_label'),
+                'description' => __('portal.si_group_payments_desc'),
                 'providers' => [
                     'bkash' => [
-                        'label' => 'bKash',
+                        'label' => __('portal.si_provider_bkash'),
                         'fields' => ['enabled', 'base_url', 'app_key', 'app_secret', 'username', 'password', 'mode'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://tokenized.sandbox.bka.sh/v1.2.0-beta', 'app_key' => '', 'app_secret' => '', 'username' => '', 'password' => '', 'mode' => 'sandbox'],
                     ],
                     'nagad' => [
-                        'label' => 'Nagad',
+                        'label' => __('portal.si_provider_nagad'),
                         'fields' => ['enabled', 'base_url', 'app_key', 'app_secret', 'mode'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://api.mynagad.com:10443', 'app_key' => '', 'app_secret' => '', 'mode' => 'sandbox'],
                     ],
                     'sslcommerz' => [
-                        'label' => 'SSLCommerz',
+                        'label' => __('portal.si_provider_sslcommerz'),
                         'fields' => ['enabled', 'base_url', 'store_id', 'store_password', 'mode'],
                         'defaults' => ['enabled' => false, 'base_url' => 'https://sandbox.sslcommerz.com', 'store_id' => '', 'store_password' => '', 'mode' => 'sandbox'],
                     ],
                     'rocket' => [
-                        'label' => 'Rocket (Dutch-Bangla)',
+                        'label' => __('portal.si_provider_rocket'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'mode'],
                         'defaults' => ['enabled' => false, 'base_url' => '', 'api_key' => '', 'api_secret' => '', 'mode' => 'sandbox'],
                     ],

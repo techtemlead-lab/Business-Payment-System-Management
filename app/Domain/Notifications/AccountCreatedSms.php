@@ -21,11 +21,11 @@ final class AccountCreatedSms
             return false;
         }
 
-        $message = sprintf(
-            'Madina account created. Username: %s Password: %s. Please sign in and change your password.',
-            $phone,
-            $plainPassword
-        );
+        $locale = $this->localeFor($user);
+        $message = __('sms.account_created', [
+            'username' => $phone,
+            'password' => $plainPassword,
+        ], $locale);
 
         $remote = $this->gateway->send($phone, $message);
         if ($remote['sent']) {
@@ -53,10 +53,9 @@ final class AccountCreatedSms
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'password_delivered' => true,
-                'message_redacted' => sprintf(
-                    'Madina account created. Username: %s Password: [REDACTED]. Please sign in and change your password.',
-                    $phone
-                ),
+                'message_redacted' => __('sms.account_created_redacted', [
+                    'username' => $phone,
+                ], $locale),
             ]);
             if ($driver === 'array') {
                 $bag = config('madina.sms.sent', []);
@@ -70,5 +69,13 @@ final class AccountCreatedSms
         Log::warning('account.created.sms.unsupported_driver', ['driver' => $driver, 'gateway' => $remote['message']]);
 
         return false;
+    }
+
+    private function localeFor(User $user): string
+    {
+        $locale = is_string($user->locale ?? null) ? $user->locale : app()->getLocale();
+        $supported = config('madina.locales', ['en', 'bn']);
+
+        return in_array($locale, $supported, true) ? $locale : (string) config('app.fallback_locale', 'en');
     }
 }

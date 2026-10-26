@@ -2,17 +2,19 @@ import { useForm, usePage, Link } from '@inertiajs/react';
 import { Percent } from 'lucide-react';
 import { type Row } from './UI';
 import { actionAllowed } from './action-permissions';
+import { useT } from '../shared/i18n/t';
 
 const editableKeys = [
-    { key: 'own_dealer_cashback', label: 'Own purchase cashback %' },
-    { key: 'direct_referral', label: 'Direct referral %' },
-    { key: 'd2d_multitier', label: 'D2D multitier pool %' },
-    { key: 'area_dealer_pool', label: 'Area dealer pool %' },
-    { key: 'dealer_monthly_salary', label: 'Dealer monthly salary pool %' },
-    { key: 'rank_royalty', label: 'Rank royalty pool %' },
+    { key: 'own_dealer_cashback', labelKey: 'pco_own' },
+    { key: 'direct_referral', labelKey: 'pco_direct' },
+    { key: 'd2d_multitier', labelKey: 'pco_d2d' },
+    { key: 'area_dealer_pool', labelKey: 'pco_area' },
+    { key: 'dealer_monthly_salary', labelKey: 'pco_salary' },
+    { key: 'rank_royalty', labelKey: 'pco_rank' },
 ] as const;
 
 export default function PartnerCommissionOverride({ account }: { account: Row }) {
+    const translate = useT();
     const { staffActions } = usePage<any>().props;
     const canPropose = actionAllowed('/commands/operations/policy-schedules', staffActions, 'post');
     const form = useForm({
@@ -38,13 +40,13 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
             <div className="panel-heading">
                 <div>
                     <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                        <Percent size={18} /> Custom commission plan
+                        <Percent size={18} /> {translate('portal', 'pco_title')}
                     </h3>
                     <p className="muted" style={{ margin: '6px 0 0' }}>
-                        Global rates are edited in Commission Studio. Use this to propose a buyer-specific plan for {account.name}. A second finance reviewer must approve the schedule before it applies.
+                        {translate('portal', 'pco_hint', { name: String(account.name) })}
                     </p>
                 </div>
-                <Link className="text-link" href="/operations/policy-schedules">Open schedules ↗</Link>
+                <Link className="text-link" href="/operations/policy-schedules">{translate('portal', 'pco_schedules')}</Link>
             </div>
             <form
                 className="action-form"
@@ -58,7 +60,7 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                         }
                     }
                     if (Object.keys(rules).length === 0) {
-                        form.setError('reason', 'Enter at least one customized percentage.');
+                        form.setError('reason', translate('portal', 'pco_need_one'));
                         return;
                     }
                     form.transform(() => ({
@@ -75,7 +77,7 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                 <div className="form-grid">
                     {editableKeys.map((item) => (
                         <label key={item.key}>
-                            {item.label}
+                            {translate('portal', item.labelKey)}
                             <input
                                 type="number"
                                 min="0"
@@ -83,12 +85,12 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                                 step="0.01"
                                 value={form.data[item.key]}
                                 onChange={(e) => form.setData(item.key, e.target.value)}
-                                placeholder="Leave blank to keep global"
+                                placeholder={translate('portal', 'pco_blank')}
                             />
                         </label>
                     ))}
                     <label>
-                        Effective from (Dhaka) *
+                        {translate('portal', 'pco_effective')}
                         <input
                             type="datetime-local"
                             required
@@ -97,7 +99,7 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                         />
                     </label>
                     <label>
-                        Expires (optional)
+                        {translate('portal', 'pco_expires')}
                         <input
                             type="datetime-local"
                             value={form.data.expires_at}
@@ -106,20 +108,20 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
                     </label>
                 </div>
                 <label>
-                    Proposal reason *
+                    {translate('portal', 'pco_reason')}
                     <textarea
                         required
                         rows={3}
                         value={form.data.reason}
                         onChange={(e) => form.setData('reason', e.target.value)}
-                        placeholder="Why this partner needs a different commission distribution"
+                        placeholder={translate('portal', 'pco_reason_ph')}
                     />
                 </label>
                 {Object.keys(form.errors).length > 0 && (
                     <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>
                 )}
                 <button className="button dark" disabled={form.processing}>
-                    {form.processing ? 'Submitting…' : 'Propose partner commission plan'}
+                    {form.processing ? translate('portal', 'pco_submitting') : translate('portal', 'pco_submit')}
                 </button>
             </form>
         </section>

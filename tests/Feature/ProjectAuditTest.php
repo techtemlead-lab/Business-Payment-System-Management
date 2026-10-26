@@ -29,6 +29,7 @@ class ProjectAuditTest extends TestCase
     {
         $dealer = User::factory()->create();
         $subDealer = User::factory()->create(['role' => 'sub_dealer']);
+        $banglaDealer = User::factory()->create(['locale' => 'bn']);
         User::factory()->create(['status' => 'suspended']);
         $admin = User::factory()->create(['role' => 'super_admin']);
         $product = Product::factory()->create(['stock' => 0]);
@@ -37,14 +38,22 @@ class ProjectAuditTest extends TestCase
         $this->actingAs($admin)->postJson('/api/v1/inventory/adjustments', $data)->assertOk();
         $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
         $this->assertDatabaseHas('account_notices', ['user_id' => $subDealer->id, 'title' => 'Product available']);
-        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $banglaDealer->id,
+            'title' => __('portal.notice_product_available_title', [], 'bn'),
+            'body' => __('portal.notice_product_available_body', [
+                'name' => $product->name,
+                'sku' => $product->sku,
+            ], 'bn'),
+        ]);
+        $this->assertDatabaseCount('account_notices', 3);
 
         $this->postJson('/api/v1/inventory/adjustments', $data)->assertUnprocessable()->assertJsonValidationErrors('reference');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'quantity' => -6, 'reference' => (string) Str::uuid()])
             ->assertUnprocessable()->assertJsonValidationErrors('quantity');
         $this->postJson('/api/v1/inventory/adjustments', [...$data, 'reference' => (string) Str::uuid()])->assertOk();
         $this->assertDatabaseHas('products', ['id' => $product->id, 'stock' => 10]);
-        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseCount('account_notices', 3);
         $this->actingAs($dealer)->get('/workspace/notifications')->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.notices.total', 1)->where('data.notices.data.0.title', 'Product available'));
     }
@@ -63,7 +72,11 @@ class ProjectAuditTest extends TestCase
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
         $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available']);
         $this->post('/commands/products/'.$paused->id.'/toggle-stock')->assertRedirect();
-        $this->assertDatabaseCount('account_notices', 1);
+        $this->assertDatabaseCount('account_notices', 2);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => 'Product ordering paused',
+        ]);
     }
 
     public function test_new_product_with_opening_stock_appears_in_partner_notifications(): void
@@ -129,7 +142,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_salary_qualification_preview_shows_the_selected_month_volume_instead_of_a_stale_cached_counter(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
         $buyer = User::factory()->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
@@ -147,7 +160,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_salary_screen_separates_partner_reserves_and_reports_only_the_amount_actually_distributed(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
         $buyer = User::factory()->create(['role' => 'sub_dealer']);
         $product = Product::factory()->create(['mrp' => '200.00', 'sub_dealer_price' => '120.00']);
@@ -161,7 +174,11 @@ class ProjectAuditTest extends TestCase
             ->where('data.settlement_state.dealer_salary_pool_pending', 24)
             ->where('data.settlement_state.sub_dealer_salary_pending', 36));
         $this->post('/commands/commissions/settle-salary', ['period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertRedirect()
-            ->assertSessionHas('success', 'Salary pool for 2026-09 distributed ৳36.00. Qualifying partners: 1. Undistributed ৳24.00 moved to the salary settlement reserve.');
+            ->assertSessionHas('success', __('portal.flash_salary_pool_distributed', [
+                'period' => '2026-09',
+                'amount' => '36.00',
+                'count' => 1,
+            ]).__('portal.flash_salary_pool_reserve_extra', ['amount' => '24.00']));
         $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '36.00']);
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
@@ -186,7 +203,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_area_commissions_match_the_full_territory_path_ignoring_case_and_surrounding_spaces(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $recipient = User::factory()->create();
         $other = User::factory()->create();
         $admin = User::factory()->create(['role' => 'super_admin']);
@@ -208,7 +225,7 @@ class ProjectAuditTest extends TestCase
 
     public function test_ambiguous_case_variant_legacy_area_assignments_do_not_receive_wallet_credits(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         foreach (['Dhaka', ' DHAKA '] as $division) {
             $recipient = User::factory()->create();
             AreaDealerAssignment::create(['user_id' => $recipient->id, 'level' => 'division', 'zone_name' => 'Legacy zone',

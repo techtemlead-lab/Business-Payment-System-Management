@@ -20,7 +20,7 @@ final class SafeSiteUrl
                 $image = str_contains($key, 'image') || str_contains($key, 'logo');
                 if (! is_string($value) || ! self::allowed($value, $image)) {
                     if ($validate) {
-                        throw ValidationException::withMessages([$path => 'Use a website address or a local path. Executable links and active image formats are not allowed.']);
+                        throw ValidationException::withMessages([$path => __('portal.err_safe_url')]);
                     }
                     $values[$key] = '';
                 }

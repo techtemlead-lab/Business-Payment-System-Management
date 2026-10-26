@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import {
     LayoutDashboard, ShoppingBag, Package, Users, Truck, Wallet, GitBranch,
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -19,7 +19,7 @@ const icons: Record<string, LucideIcon> = {
     overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
-    profile: Users, security: Settings, notifications: Bell, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
+    profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
@@ -36,7 +36,7 @@ const sectionKeys: Record<string, string> = {
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
-    notifications: 'notifications', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
+    notifications: 'notifications', circulars: 'circulars', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
@@ -49,8 +49,27 @@ const operationsSections = new Set([
     'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing',
 ]);
 
+type NavMother = {
+    id: string;
+    labelKey: string;
+    items: string[];
+};
+
+function pick(available: Set<string>, items: string[]): string[] {
+    return items.filter((item) => available.has(item));
+}
+
+function mother(id: string, labelKey: string, items: string[]): NavMother | null {
+    return items.length > 0 ? { id, labelKey, items } : null;
+}
+
+function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
+    return mothers.filter((entry): entry is NavMother => entry !== null);
+}
+
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, publicPageEnabled, publicBase } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
+    const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
@@ -119,69 +138,227 @@ export default function Shell({ section, children, action }: { section: string; 
         return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', keydown); toggle.current?.focus(); };
     }, [open]);
 
-    const companyGroup = staff ? [
-        'overview',
-        'my-payroll',
-        ...(capabilities.includes('field_sales') ? ['field-sales'] : []),
-        ...(capabilities.includes('staff_admin') ? ['staff-operations'] : []),
-        ...(capabilities.includes('payroll') ? ['payroll'] : []),
-        ...(capabilities.some(cap => ['finance', 'accounts'].includes(cap)) ? ['data-imports'] : []),
-        ...(capabilities.includes('finance') || user.role === 'super_admin' ? ['service-integrations'] : []),
-        ...(capabilities.includes('finance') ? ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings'] : []),
-        ...(capabilities.some(cap => ['finance', 'reports', 'field_sales'].includes(cap)) ? ['financial-reports'] : []),
-        ...(user.role === 'super_admin' ? ['access-management'] : []),
-        ...(capabilities.some(cap => ['content', 'catalog'].includes(cap)) ? ['video-marketing'] : []),
-        ...(capabilities.includes('accounts') ? ['dashboards', 'employees'] : []),
-        ...(capabilities.includes('finance') ? ['treasury'] : []),
-        ...(ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) ? ['benefits-fund'] : []),
-        ...(capabilities.includes('accounts') ? ['place-codes'] : []),
-        ...(capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) ? ['catalog'] : []),
-        ...(capabilities.includes('inventory') ? ['inventory'] : []),
-        ...(capabilities.includes('content') ? ['website', 'content', 'enquiries'] : []),
-        ...(capabilities.includes('audit') ? ['audit'] : [])
-    ] : [];
-
-    const dealerGroup = staff ? [
-        ...(capabilities.includes('accounts') ? ['accounts', 'partnerships'] : []),
-        ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['orders', 'deliveries', 'dues'] : []),
-        ...(capabilities.includes('finance') ? ['commissions', 'policies', 'ledger', 'reports'] : []),
-        ...(capabilities.includes('accounts') ? ['network-tree', 'area-dealers', 'ranks'] : []),
-        ...(capabilities.includes('finance') ? ['rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals'] : []),
-    ] : (user.role === 'dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals'] : []);
-
-    const subDealerGroup = staff ? [
-        ...(capabilities.includes('accounts') ? ['sub-dealers'] : []),
-        ...(capabilities.includes('orders') || capabilities.includes('finance') ? ['sub-dealer-orders'] : []),
-        ...(capabilities.includes('finance') ? ['salary'] : []),
-    ] : (user.role === 'sub_dealer' ? ['orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals'] : []);
-
-    const group = (title: string, items: string[]) => items.length > 0 && (
-        <nav className="nav-group" aria-label={title}>
-            <span>{title}</span>
-            {items.map(item => {
-                const Icon = icons[item] || LayoutDashboard;
-                return (
-                    <Link
-                        onClick={() => setOpen(false)}
-                        aria-current={section === item ? 'page' : undefined}
-                        className={section === item ? 'selected' : ''}
-                        href={`${base}/${operationsSections.has(item) ? 'operations/' : ''}${item === 'overview' ? '' : item}`}
-                        key={item}
-                    >
-                        <Icon size={18} />
-                        {sectionLabel(item)}
-                        {section === item && <i />}
-                    </Link>
-                );
-            })}
-        </nav>
-    );
-
     const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit'].includes(section);
+    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit',
+        'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts',
+        'data-imports', 'service-integrations', 'commission-holds', 'financial-readiness', 'financial-reports',
+        'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'].includes(section);
     const isDealerDomain = ['accounts', 'partnerships', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
     const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+
+    const staffAvailable = useMemo(() => {
+        const items = new Set<string>(['overview', 'profile', 'security', 'notifications']);
+        if (capabilities.includes('field_sales')) items.add('field-sales');
+        if (capabilities.includes('staff_admin')) items.add('staff-operations');
+        if (capabilities.includes('payroll')) items.add('payroll');
+        items.add('my-payroll');
+        if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
+        if (capabilities.includes('finance') || user.role === 'super_admin') items.add('service-integrations');
+        if (capabilities.includes('finance')) {
+            ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings', 'treasury',
+                'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
+        }
+        if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
+        if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) items.add('reports');
+        if (user.role === 'super_admin') items.add('access-management');
+        if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
+        if (capabilities.includes('accounts')) {
+            ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
+        }
+        if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('benefits-fund');
+        if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
+        if (capabilities.includes('inventory')) items.add('inventory');
+        if (capabilities.includes('content')) {
+            ['website', 'content', 'enquiries'].forEach((item) => items.add(item));
+        }
+        if (capabilities.includes('audit')) items.add('audit');
+        if (capabilities.includes('orders') || capabilities.includes('finance')) {
+            ['orders', 'deliveries', 'dues', 'sub-dealer-orders'].forEach((item) => items.add(item));
+        }
+        return items;
+    }, [capabilities, ownerPortal, user.role]);
+
+    const partnerAvailable = useMemo(() => {
+        const controls = dashboardControls || {};
+        if (user.role === 'dealer') {
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.dealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.dealer_network_tree_enabled === false) {
+                items.delete('network');
+            }
+            if (controls.dealer_ranks_enabled === false) {
+                items.delete('ranks');
+            }
+            if (controls.dealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('deliveries');
+                items.delete('dues');
+            }
+            return items;
+        }
+        if (user.role === 'sub_dealer') {
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            if (controls.subdealer_catalog_enabled === false) {
+                items.delete('catalog');
+            }
+            if (controls.subdealer_salary_enabled === false) {
+                items.delete('salary');
+            }
+            if (controls.subdealer_deliveries_enabled === false) {
+                items.delete('deliveries');
+            }
+            if (controls.subdealer_orders_enabled === false) {
+                items.delete('orders');
+                items.delete('dues');
+            }
+            return items;
+        }
+        return new Set(['profile', 'security', 'notifications']);
+    }, [user.role, dashboardControls]);
+
+    const domainMothers = useMemo((): NavMother[] => {
+        if (!staff) {
+            if (user.role === 'dealer') {
+                return compactMothers([
+                    mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
+                    mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
+                ]);
+            }
+            if (user.role === 'sub_dealer') {
+                return compactMothers([
+                    mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
+                ]);
+            }
+            return compactMothers([
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+            ]);
+        }
+
+        const company = compactMothers([
+            mother('home', 'nav_module_home', pick(staffAvailable, ['overview'])),
+            mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales'])),
+            mother('finance_ops', 'nav_module_finance_ops', pick(staffAvailable, [
+                'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
+                'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+            ])),
+            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
+            mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries'])),
+            mother('control', 'nav_module_control', pick(staffAvailable, ['audit'])),
+        ]);
+
+        const dealers = compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
+            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
+            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
+            mother('payouts', 'nav_module_payouts', pick(staffAvailable, ['rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals'])),
+            mother('books', 'nav_module_books', pick(staffAvailable, ['ledger', 'reports'])),
+        ]);
+
+        const subDealers = compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['sub-dealer-orders'])),
+            mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
+        ]);
+
+        const dashboards = compactMothers([
+            mother('controls', 'nav_module_dashboards', pick(staffAvailable, ['dashboards', 'employees'])),
+        ]);
+
+        const account = compactMothers([
+            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications'])),
+        ]);
+
+        const domainModules = currentDomain === 'dashboards'
+            ? dashboards
+            : currentDomain === 'dealers'
+                ? dealers
+                : currentDomain === 'sub_dealers'
+                    ? subDealers
+                    : company;
+
+        return [...domainModules, ...account];
+    }, [staff, user.role, partnerAvailable, staffAvailable, currentDomain]);
+
+    const activeMotherIds = useMemo(
+        () => domainMothers.filter((entry) => entry.items.includes(section)).map((entry) => entry.id),
+        [domainMothers, section],
+    );
+
+    const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds);
+
+    useEffect(() => {
+        setExpandedMothers((previous) => {
+            const next = new Set(previous);
+            activeMotherIds.forEach((id) => next.add(id));
+            if (next.size === 0 && domainMothers[0]) {
+                next.add(domainMothers[0].id);
+            }
+            return Array.from(next);
+        });
+    }, [activeMotherIds, domainMothers]);
+
+    const toggleMother = (id: string) => {
+        setExpandedMothers((previous) => (
+            previous.includes(id) ? previous.filter((entry) => entry !== id) : [...previous, id]
+        ));
+    };
+
+    const sectionHref = (item: string) => `${base}/${operationsSections.has(item) ? 'operations/' : ''}${item === 'overview' ? '' : item}`;
+
+    const renderLink = (item: string) => {
+        const Icon = icons[item] || LayoutDashboard;
+        return (
+            <Link
+                onClick={() => setOpen(false)}
+                aria-current={section === item ? 'page' : undefined}
+                className={section === item ? 'selected' : ''}
+                href={sectionHref(item)}
+                key={item}
+            >
+                <Icon size={17} />
+                {sectionLabel(item)}
+                {section === item && <i />}
+            </Link>
+        );
+    };
+
+    const renderMothers = (mothers: NavMother[]) => mothers.map((entry) => {
+        const expanded = expandedMothers.includes(entry.id);
+        const hasActive = entry.items.includes(section);
+        return (
+            <nav
+                key={entry.id}
+                className={`nav-group nav-mother ${hasActive ? 'has-active' : ''} ${expanded ? 'is-open' : ''}`}
+                aria-label={translate('portal', entry.labelKey)}
+            >
+                <button
+                    type="button"
+                    className="nav-mother-toggle"
+                    aria-expanded={expanded}
+                    onClick={() => toggleMother(entry.id)}
+                >
+                    <span>{translate('portal', entry.labelKey)}</span>
+                    <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
+                </button>
+                {expanded && (
+                    <div className="nav-mother-body">
+                        {entry.items.map(renderLink)}
+                    </div>
+                )}
+            </nav>
+        );
+    });
+
     const currentSectionTitle = section === 'overview'
         ? dashboardTitle
         : sectionLabel(section);
@@ -209,29 +386,27 @@ export default function Shell({ section, children, action }: { section: string; 
                 <button className={`icon-button ${staff ? 'mobile-only' : ''}`} aria-label={translate('portal', 'close_navigation')} onClick={() => setOpen(false)}>
                     <X size={18} />
                 </button>
-                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label="Madina dashboard">
-                    <img src="/madina-header-logo.png?v=6" alt="Madina Natural Health Care" />
+                <a href={base || '/'} className="portal-logo sidebar-logo" aria-label={translate('portal', 'brand_dashboard_aria')}>
+                    <img src="/madina-header-logo.png?v=6" alt={translate('portal', 'brand_alt')} />
                 </a>
                 <div className="workspace-label">
                     <span className="live-dot" />
                     {workspaceLabel}
                 </div>
 
-                {staff ? (
-                    <>
-                        {group(ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'), companyGroup)}
-                        {group(translate('portal', 'nav_dealer_section'), dealerGroup)}
-                        {group(translate('portal', 'nav_subdealer_section'), subDealerGroup)}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
-                    </>
-                ) : (
-                    <>
-                        {user.role === 'dealer' && group(translate('portal', 'nav_dealer_workspace'), dealerGroup)}
-                        {user.role === 'sub_dealer' && group(translate('portal', 'nav_subdealer_workspace'), subDealerGroup)}
-                        {group(translate('portal', 'nav_my_earnings'), ['earnings', 'withdrawals'])}
-                        {group(translate('portal', 'nav_account'), ['profile', 'security', 'notifications'])}
-                    </>
+                {staff && (
+                    <div className="sidebar-domain-label">
+                        {currentDomain === 'dashboards'
+                            ? translate('portal', 'nav_dashboard_mgmt')
+                            : currentDomain === 'company'
+                                ? (ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'))
+                                : currentDomain === 'dealers'
+                                    ? translate('portal', 'nav_dealer_section')
+                                    : translate('portal', 'nav_subdealer_section')}
+                    </div>
                 )}
+
+                {renderMothers(domainMothers)}
 
                 <div className="sidebar-footer">
                     {!staff && (
@@ -270,8 +445,13 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                     <div className="header-actions">
                         <LanguageSwitcher compact />
-                        <Link href={base + '/notifications'} className="icon-button" aria-label={translate('portal', 'notifications')}>
+                        <Link href={base + '/notifications'} className="icon-button notice-bell" aria-label={translate('portal', 'notifications')}>
                             <Bell size={19} />
+                            {unreadCount > 0 && (
+                                <span className="notice-bell-count" aria-hidden="true">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
                         </Link>
                         <div className="avatar">{user.name.slice(0, 1)}</div>
                         <div className="user-caption">
@@ -294,7 +474,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 <main id="workspace-main" className="workspace-main">
                     <div className="page-heading portal-fade-in">
                         <div>
-                            <div className="eyebrow">MADINA / {portalLabel}</div>
+                            <div className="eyebrow">{translate('portal', 'brand_eyebrow', { portal: portalLabel })}</div>
                             <h1>{currentSectionTitle}</h1>
                             <p>{currentSectionHint}</p>
                         </div>
@@ -375,82 +555,27 @@ export default function Shell({ section, children, action }: { section: string; 
                                 </span>
                             </div>
 
-                            <div className="domain-rail-links">
-                                <span>{translate('portal', 'subsections')}</span>
-                                {currentDomain === 'company' && (
-                                    <>
-                                        <Link href="/" className={`button small ${section === 'overview' ? 'dark' : ''}`}>{translate('portal', 'overview')}</Link>
-                                        {capabilities.includes('accounts') && (
-                                            <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
-                                        )}
-                                        {capabilities.includes('finance') && (
-                                            <Link href="/treasury" className={`button small ${['treasury', 'capital-flow'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'treasury')}</Link>
-                                        )}
-                                        {ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role) && (
-                                            <Link href="/benefits-fund" className={`button small ${section === 'benefits-fund' ? 'dark' : ''}`}>{translate('portal', 'benefits_fund')}</Link>
-                                        )}
-                                        {capabilities.includes('accounts') && (
-                                            <Link href="/place-codes" className={`button small ${section === 'place-codes' ? 'dark' : ''}`}>{translate('portal', 'place_codes')}</Link>
-                                        )}
-                                        {capabilities.some(cap => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap)) && (
-                                            <Link href="/catalog" className={`button small ${section === 'catalog' ? 'dark' : ''}`}>{translate('portal', 'product_management')}</Link>
-                                        )}
-                                        {capabilities.includes('inventory') && (
-                                            <Link href="/inventory" className={`button small ${section === 'inventory' ? 'dark' : ''}`}>{translate('portal', 'inventory')}</Link>
-                                        )}
-                                        {capabilities.includes('content') && (
-                                            <>
-                                                <Link href="/website" className={`button small ${['website', 'customization'].includes(section) ? 'dark' : ''}`}>{translate('portal', 'website')}</Link>
-                                                <Link href="/content" className={`button small ${section === 'content' ? 'dark' : ''}`}>{translate('portal', 'content')}</Link>
-                                                <Link href="/enquiries" className={`button small ${section === 'enquiries' ? 'dark' : ''}`}>{translate('portal', 'enquiries')}</Link>
-                                            </>
-                                        )}
-                                        {capabilities.includes('audit') && (
-                                            <Link href="/audit" className={`button small ${section === 'audit' ? 'dark' : ''}`}>{translate('portal', 'audit')}</Link>
-                                        )}
-                                    </>
-                                )}
-
-                                {currentDomain === 'dealers' && (
-                                    <>
-                                        {capabilities.includes('accounts') && <Link href="/accounts" className={`button small ${section === 'accounts' ? 'dark' : ''}`}>{translate('portal', 'accounts')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/partnerships" className={`button small ${section === 'partnerships' ? 'dark' : ''}`}>{translate('portal', 'partnerships')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/orders" className={`button small ${section === 'orders' ? 'dark' : ''}`}>{translate('portal', 'orders')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/deliveries" className={`button small ${section === 'deliveries' ? 'dark' : ''}`}>{translate('portal', 'deliveries')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/dues" className={`button small ${section === 'dues' ? 'dark' : ''}`}>{translate('portal', 'dues')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/commissions" className={`button small accent ${section === 'commissions' ? 'dark' : ''}`}>{translate('portal', 'commissions')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/policies" className={`button small ${section === 'policies' ? 'dark' : ''}`}>{translate('portal', 'policies')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/ledger" className={`button small ${section === 'ledger' ? 'dark' : ''}`}>{translate('portal', 'ledger')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/reports" className={`button small ${section === 'reports' ? 'dark' : ''}`}>{translate('portal', 'reports')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/network-tree" className={`button small ${section === 'network-tree' ? 'dark' : ''}`}>{translate('portal', 'network_tree')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/area-dealers" className={`button small ${section === 'area-dealers' ? 'dark' : ''}`}>{translate('portal', 'area_dealers')}</Link>}
-                                        {capabilities.includes('accounts') && <Link href="/ranks" className={`button small ${section === 'ranks' ? 'dark' : ''}`}>{translate('portal', 'ranks')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/rewards" className={`button small ${section === 'rewards' ? 'dark' : ''}`}>{translate('portal', 'rewards')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/settlements" className={`button small ${section === 'settlements' ? 'dark' : ''}`}>{translate('portal', 'settlements')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/simulator" className={`button small ${section === 'simulator' ? 'dark' : ''}`}>{translate('portal', 'simulator')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/payouts-hub" className={`button small ${section === 'payouts-hub' ? 'dark' : ''}`}>{translate('portal', 'payouts_hub')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/payments" className={`button small ${section === 'payments' ? 'dark' : ''}`}>{translate('portal', 'payments')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/withdrawals" className={`button small ${section === 'withdrawals' ? 'dark' : ''}`}>{translate('portal', 'withdrawals')}</Link>}
-                                    </>
-                                )}
-
-                                {currentDomain === 'sub_dealers' && (
-                                    <>
-                                        {capabilities.includes('accounts') && <Link href="/sub-dealers" className={`button small ${section === 'sub-dealers' ? 'dark' : ''}`}>{translate('portal', 'sub_dealers')}</Link>}
-                                        {(capabilities.includes('orders') || capabilities.includes('finance')) && <Link href="/sub-dealer-orders" className={`button small ${section === 'sub-dealer-orders' ? 'dark' : ''}`}>{translate('portal', 'sub_dealer_orders')}</Link>}
-                                        {capabilities.includes('finance') && <Link href="/salary" className={`button small ${section === 'salary' ? 'dark' : ''}`}>{translate('portal', 'salary')}</Link>}
-                                    </>
-                                )}
-
-                                {currentDomain === 'dashboards' && (
-                                    <>
-                                        <Link href="/dashboards" className={`button small ${section === 'dashboards' ? 'dark' : ''}`}>{translate('portal', 'dashboards')}</Link>
-                                        <Link href="/employees" className={`button small ${section === 'employees' ? 'dark' : ''}`}>{translate('portal', 'employees')}</Link>
-                                        <Link href="/accounts" className="button small">{translate('portal', 'accounts')}</Link>
-                                        <Link href="/sub-dealers" className="button small">{translate('portal', 'sub_dealers')}</Link>
-                                    </>
-                                )}
-                            </div>
+                            {(() => {
+                                const activeMother = domainMothers.find((entry) => entry.items.includes(section) && entry.id !== 'account')
+                                    ?? domainMothers.find((entry) => entry.id !== 'account');
+                                if (!activeMother) {
+                                    return null;
+                                }
+                                return (
+                                    <div className="domain-rail-links">
+                                        <span>{translate('portal', activeMother.labelKey)}</span>
+                                        {activeMother.items.map((item) => (
+                                            <Link
+                                                key={item}
+                                                href={sectionHref(item)}
+                                                className={`button small ${section === item ? 'dark' : ''} ${item === 'commissions' ? 'accent' : ''}`}
+                                            >
+                                                {sectionLabel(item)}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
@@ -479,8 +604,8 @@ export default function Shell({ section, children, action }: { section: string; 
                         </div>
                     )}
                     <footer className="workspace-footer">
-                        <span>Madina Natural Health Care</span>
-                        <span>Asia/Dhaka · BDT</span>
+                        <span>{translate('portal', 'brand_company_bar')}</span>
+                        <span>{translate('portal', 'footer_timezone_currency')}</span>
                     </footer>
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}

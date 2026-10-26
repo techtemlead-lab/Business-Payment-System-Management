@@ -8,12 +8,14 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\StockNotifications;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\DashboardManagement;
 use App\Support\Money;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +40,7 @@ class OrderService
             $hash = $this->hash($data);
             $existing = Order::where('user_id', $user->id)->where('idempotency_key', $data['idempotency_key'])->first();
             if ($existing) {
-                abort_if($existing->getRawOriginal('payload_hash') !== $hash, 409, 'Request key already used for different data.');
+                abort_if($existing->getRawOriginal('payload_hash') !== $hash, 409, __('portal.err_idem_order_key'));
 
                 return $existing;
             }
@@ -47,7 +49,7 @@ class OrderService
             foreach ($data['items'] as $item) {
                 $product = Product::whereKey($item['product_id'])->where('active', true)->firstOrFail();
                 if ($product->is_stock_paused) {
-                    throw ValidationException::withMessages(['items' => 'Ordering is temporarily paused for '.$product->name.'.']);
+                    throw ValidationException::withMessages(['items' => __('portal.err_order_paused', ['product' => $product->name])]);
                 }
                 $price = $this->pricing->unitPrice($product, $user);
                 $lineTotal = $price * $item['quantity'];
@@ -56,18 +58,37 @@ class OrderService
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {
-                throw ValidationException::withMessages(['items' => 'Order amount exceeds the allowed limit.']);
+                throw ValidationException::withMessages(['items' => __('portal.err_order_limit')]);
             }
+            DashboardManagement::assertPartnerCanOrder($user, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
             $order->lines()->createMany($lines);
             $this->commissions->capture($order, $user);
-            if (! empty($data['reference'])) {
+            $claimedWithOrder = ! empty($data['reference']);
+            if ($claimedWithOrder) {
                 $this->insertClaim($order, $data);
             }
             $this->event($order, $submittedBy ?? $user, 'order.submitted');
-            Audit::notice($user->id, 'Order submitted', $order->number.' is awaiting review.');
+            $this->partnerNotice($user->id, 'portal.notice_order_submitted_title', 'portal.notice_order_submitted_body', [
+                'number' => $order->number,
+            ]);
+            $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
+                'number' => $order->number,
+            ]);
+            if ($claimedWithOrder) {
+                $this->partnerNotice($user->id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
+                    'number' => $order->number,
+                    'amount' => (string) $data['amount'],
+                    'channel' => (string) $data['channel'],
+                ]);
+                $this->partnerSms($user->id, 'payment.claimed', 'sms.payment_claimed', [
+                    'number' => $order->number,
+                    'amount' => (string) $data['amount'],
+                    'channel' => (string) $data['channel'],
+                ]);
+            }
 
             return $order->refresh();
         }, 3);
@@ -76,18 +97,29 @@ class OrderService
     public function claim(User $actor, Order $order, array $data): void
     {
         abort_unless($order->user_id === $actor->id && in_array($actor->role, ['dealer', 'sub_dealer'], true), 404);
+        DashboardManagement::assertPartnerFeature($actor, 'claims');
         DB::transaction(function () use ($actor, $order, $data): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (in_array($locked->status, ['rejected', 'cancelled'], true)) {
-                throw ValidationException::withMessages(['reference' => 'This order is closed.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
             }
             $reference = Str::upper(trim($data['reference']));
             if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
                 || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
-                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
             $id = $this->insertClaim($locked, $data);
             $this->event($locked, $actor, 'payment.claimed', ['claim_id' => $id]);
+            $this->partnerNotice($locked->user_id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
+                'number' => $locked->number,
+                'amount' => (string) $data['amount'],
+                'channel' => (string) $data['channel'],
+            ]);
+            $this->partnerSms($locked->user_id, 'payment.claimed', 'sms.payment_claimed', [
+                'number' => $locked->number,
+                'amount' => (string) $data['amount'],
+                'channel' => (string) $data['channel'],
+            ]);
         }, 3);
     }
 
@@ -95,29 +127,29 @@ class OrderService
     {
         abort_unless($actor->allows('order_review'), 403);
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
-            throw ValidationException::withMessages(['status' => 'Choose approved, held or rejected.']);
+            throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
         DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit, $replacements): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
-                throw ValidationException::withMessages(['status' => 'This order has already been decided.']);
+                throw ValidationException::withMessages(['status' => __('portal.err_order_already_decided')]);
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 if (! $allowCredit || ! $actor->allows('finance')) {
-                    throw ValidationException::withMessages(['allow_credit' => 'Verify full payment or have Finance explicitly authorize this credit sale.']);
+                    throw ValidationException::withMessages(['allow_credit' => __('portal.err_order_credit_auth')]);
                 }
                 $changes['credit_authorized_by'] = $actor->id;
                 $changes['credit_authorized_at'] = now();
             }
             if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
-                throw ValidationException::withMessages(['status' => 'A paid order needs the approved refund workflow.']);
+                throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
             }
             if ($status === 'approved') {
                 $this->commissions->capture($locked, $locked->user, 'approval', $replacements, $actor);
             } elseif ($replacements !== []) {
-                throw ValidationException::withMessages(['replacement' => 'Select replacement recipients only when approving the order.']);
+                throw ValidationException::withMessages(['replacement' => __('portal.err_order_replacement_on_approve')]);
             }
             $locked->update($changes);
             $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by']),
@@ -126,7 +158,19 @@ class OrderService
                 Audit::record($actor->id, 'commissions.policy_approved', $locked->id, ['reason' => $reason, 'revision_id' => $locked->commission_policy_snapshot['revision_id'],
                     'referral_replacements' => $locked->commission_policy_snapshot['referral_replacements'], 'funding_decisions' => $locked->commission_policy_snapshot['funding_decisions']]);
             }
-            Audit::notice($locked->user_id, 'Order '.$status, $locked->number.': '.$reason);
+            $partner = User::find($locked->user_id);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            $statusLabel = __('portal.order_status_'.$status, [], $locale);
+            $this->partnerNotice($locked->user_id, 'portal.notice_order_decision_title', 'portal.notice_order_decision_body', [
+                'status' => $statusLabel,
+                'number' => $locked->number,
+                'reason' => $reason,
+            ]);
+            $this->partnerSms($locked->user_id, 'order.'.$status, 'sms.order_decision', [
+                'status' => $statusLabel,
+                'number' => $locked->number,
+                'reason' => $reason,
+            ]);
         }, 3);
     }
 
@@ -141,28 +185,30 @@ class OrderService
                 $order = Order::whereKey($initial->order_id)->lockForUpdate()->firstOrFail();
                 $claim = DB::table('payment_claims')->where('id', $claimId)->lockForUpdate()->first();
                 if ($claim->status !== 'pending') {
-                    throw ValidationException::withMessages(['payment' => 'Payment claim already reviewed.']);
+                    throw ValidationException::withMessages(['payment' => __('portal.err_payment_already_reviewed')]);
                 }
                 if ($approve) {
                     if (in_array($order->status, ['rejected', 'cancelled'], true)) {
-                        throw ValidationException::withMessages(['payment' => 'Cannot verify payment for a closed order.']);
+                        throw ValidationException::withMessages(['payment' => __('portal.err_payment_closed_order')]);
                     }
                     if (DB::table('receipts')->where('channel', $claim->channel)->where('reference', $claim->reference)->exists()) {
-                        throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
+                        throw ValidationException::withMessages(['payment' => __('portal.err_payment_ref_used')]);
                     }
                     $gateway = app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount);
                     if ($gateway['checked'] && ! $gateway['matched']) {
-                        throw ValidationException::withMessages(['payment' => $gateway['message'].' Disable the payment gateway under Service integrations to continue with manual verification only.']);
+                        throw ValidationException::withMessages(['payment' => __('portal.err_payment_gateway_manual', ['message' => $gateway['message']])]);
                     }
                     $paid = Money::cents($order->paid) + Money::cents($claim->amount);
                     if ($paid > Money::cents($order->total) - Money::cents($order->due_credit)) {
-                        throw ValidationException::withMessages(['payment' => 'This would overpay the order.']);
+                        throw ValidationException::withMessages(['payment' => __('portal.err_payment_overpay')]);
                     }
                     DB::table('receipts')->insert(['order_id' => $order->id, 'claim_id' => $claim->id, 'channel' => $claim->channel,
                         'reference' => $claim->reference, 'amount' => $claim->amount, 'payment_account_id' => $claim->payment_account_id, 'created_at' => now(), 'updated_at' => now()]);
+                    $partner = User::find($order->user_id);
+                    $locale = $partner?->preferredLocale() ?? app()->getLocale();
                     if ($order->is_opening_balance) {
                         CommissionWallet::requireActive();
-                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, 'Collection against imported receivable '.$order->number, [
+                        app(CommissionWallet::class)->journal('opening.collection.'.$claim->id, __('portal.jr_opening_collection', ['number' => $order->number], $locale), [
                             ['account' => 'manual_collection_clearing', 'user_id' => null, 'debit' => Money::cents($claim->amount), 'credit' => 0],
                             ['account' => 'opening_receivables', 'user_id' => $order->user_id, 'debit' => 0, 'credit' => Money::cents($claim->amount)],
                         ]);
@@ -175,11 +221,21 @@ class OrderService
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
                     'verified_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
                 $this->event($order, $actor, $approve ? 'payment.verified' : 'payment.rejected', ['claim_id' => $claimId, 'reason' => $reason]);
-                Audit::notice($order->user_id, 'Payment reviewed', $order->number.': payment '.($approve ? 'verified' : 'rejected').'.');
+                $partner = User::find($order->user_id);
+                $locale = $partner?->preferredLocale() ?? app()->getLocale();
+                $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
+                $this->partnerNotice($order->user_id, 'portal.notice_payment_reviewed_title', 'portal.notice_payment_reviewed_body', [
+                    'number' => $order->number,
+                    'outcome' => $outcome,
+                ]);
+                $this->partnerSms($order->user_id, $approve ? 'payment.verified' : 'payment.rejected', 'sms.payment_reviewed', [
+                    'number' => $order->number,
+                    'outcome' => $outcome,
+                ]);
             }, 3);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
-                throw ValidationException::withMessages(['payment' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['payment' => __('portal.err_payment_ref_used')]);
             }
             throw $exception;
         }
@@ -193,12 +249,12 @@ class OrderService
             $hash = $this->hash($data);
             $existing = DB::table('shipments')->where('order_id', $locked->id)->where('idempotency_key', $data['idempotency_key'])->first();
             if ($existing) {
-                abort_if($existing->payload_hash !== $hash, 409, 'Dispatch key already used for different data.');
+                abort_if($existing->payload_hash !== $hash, 409, __('portal.err_idem_dispatch_key'));
 
                 return;
             }
             if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
-                throw ValidationException::withMessages(['shipment' => 'Approve the order before dispatching.']);
+                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_approve_first')]);
             }
             $orderLines = $locked->lines()->whereIn('id', array_column($data['items'], 'line_id'))->get()->keyBy('id');
             abort_unless($orderLines->count() === count($data['items']), 404);
@@ -209,7 +265,7 @@ class OrderService
                 $product = $products[$line->product_id];
                 $quantity = $item['quantity'];
                 if ($quantity > $line->quantity - $line->dispatched || $quantity > $product->stock) {
-                    throw ValidationException::withMessages(['shipment' => 'Quantity exceeds remaining supply or stock for '.$product->name.'.']);
+                    throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
                 }
                 $previousStock = $product->stock;
                 $product->decrement('stock', $quantity);
@@ -241,7 +297,7 @@ class OrderService
                 $gatewayMeta = ['provider' => $provider, 'consignment_id' => $created['consignment_id']];
             }
             if ($tracking === '') {
-                throw ValidationException::withMessages(['tracking' => 'Enter a tracking reference, or enable a courier API that returns one.']);
+                throw ValidationException::withMessages(['tracking' => __('portal.err_shipment_tracking')]);
             }
             $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $locked->id, 'courier' => $courier, 'tracking' => $tracking,
                 'eta' => $data['eta'] ?? null, 'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR), 'actor_id' => $actor->id,
@@ -249,7 +305,16 @@ class OrderService
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched']);
             $this->event($locked, $actor, 'order.dispatched', ['shipment_id' => $shipmentId, 'courier_gateway' => $gatewayMeta]);
-            Audit::notice($locked->user_id, 'Shipment dispatched', $locked->number.' · '.$courier.' · '.$tracking);
+            $this->partnerNotice($locked->user_id, 'portal.notice_shipment_dispatched_title', 'portal.notice_shipment_dispatched_body', [
+                'number' => $locked->number,
+                'courier' => $courier,
+                'tracking' => $tracking,
+            ]);
+            $this->partnerSms($locked->user_id, 'order.dispatched', 'sms.shipment_dispatched', [
+                'number' => $locked->number,
+                'courier' => $courier,
+                'tracking' => $tracking,
+            ]);
         }, 3);
     }
 
@@ -273,22 +338,57 @@ class OrderService
                 $this->commissions->process($locked, $actor->id);
             }
             $this->event($locked, $actor, 'shipment.delivered', ['shipment_id' => $shipmentId, 'reason' => $reason]);
-            Audit::notice($locked->user_id, 'Delivery confirmed', $locked->number.': shipment delivery recorded by company staff.');
+            $this->partnerNotice($locked->user_id, 'portal.notice_delivery_confirmed_title', 'portal.notice_delivery_confirmed_body', [
+                'number' => $locked->number,
+            ]);
+            $this->partnerSms($locked->user_id, 'shipment.delivered', 'sms.delivery_confirmed', [
+                'number' => $locked->number,
+            ]);
         }, 3);
+    }
+
+    private function partnerNotice(int $userId, string $titleKey, string $bodyKey, array $replace = []): void
+    {
+        $partner = User::find($userId);
+        $locale = $partner?->preferredLocale() ?? app()->getLocale();
+        Audit::notice(
+            $userId,
+            __($titleKey, $replace, $locale),
+            __($bodyKey, $replace, $locale),
+        );
+    }
+
+    /**
+     * @param  array<string, string>  $replace
+     */
+    private function partnerSms(int $userId, string $event, string $template, array $replace = []): void
+    {
+        DB::afterCommit(function () use ($userId, $event, $template, $replace): void {
+            $partner = User::find($userId);
+            if (! $partner) {
+                return;
+            }
+            $locale = $partner->preferredLocale();
+            app(PartnerEventSms::class)->send(
+                $partner,
+                $event,
+                __($template, $replace, $locale),
+            );
+        });
     }
 
     private function insertClaim(Order $order, array $data): int
     {
         $amount = Money::cents((string) $data['amount']);
         if ($amount <= 0 || $amount > Money::cents($order->outstanding())) {
-            throw ValidationException::withMessages(['amount' => 'The payment claim must be positive and cannot exceed the unpaid order amount.']);
+            throw ValidationException::withMessages(['amount' => __('portal.err_claim_amount')]);
         }
 
         $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
         $reference = Str::upper(trim($data['reference']));
         if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
             || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
-            throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+            throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
         }
 
         try {
@@ -297,7 +397,7 @@ class OrderService
                 'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
-                throw ValidationException::withMessages(['reference' => 'This payment reference is already recorded.']);
+                throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
             throw $exception;
         }

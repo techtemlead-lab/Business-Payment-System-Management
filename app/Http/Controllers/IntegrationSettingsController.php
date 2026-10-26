@@ -77,6 +77,6 @@ class IntegrationSettingsController extends Controller
     {
         return $request->expectsJson()
             ? response()->json(['data' => $data])
-            : back()->with('success', 'Changes recorded successfully.');
+            : back()->with('success', __('portal.flash_changes_recorded'));
     }
 }

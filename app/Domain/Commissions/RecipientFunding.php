@@ -36,7 +36,7 @@ final class RecipientFunding
             if ($difference > 0) {
                 if ($mode === 'company') {
                     if ($difference > $company) {
-                        throw ValidationException::withMessages(['funding' => 'The company share cannot fund the selected recipient increase.']);
+                        throw ValidationException::withMessages(['funding' => __('portal.err_fund_company_share')]);
                     }
                     $company -= $difference;
                     $decision['sources']['company_share'] = $difference;
@@ -45,19 +45,19 @@ final class RecipientFunding
                     $basisPoints = [];
                     foreach ($sources as $category => $percentage) {
                         if (! in_array($category, self::Sources, true) || $category === $row['category']) {
-                            throw ValidationException::withMessages(['funding' => 'Choose a different, supported funding category.']);
+                            throw ValidationException::withMessages(['funding' => __('portal.err_fund_category')]);
                         }
                         $basisPoints[$category] = Percentage::from((string) $percentage)->basisPoints;
                     }
                     $requiredRate = $rate->basisPoints - Percentage::from($row['rate_percentage'])->basisPoints;
                     if ($requiredRate <= 0 || array_sum($basisPoints) !== $requiredRate) {
-                        throw ValidationException::withMessages(['funding' => 'Funding-source percentages must equal the recipient rate increase.']);
+                        throw ValidationException::withMessages(['funding' => __('portal.err_fund_pct_match')]);
                     }
                     $amounts = $this->split($difference, $basisPoints);
                     foreach ($amounts as $category => $amount) {
                         $sourceIndex = array_search($category, array_column($rows, 'category'), true);
                         if ($sourceIndex === false || isset($targets[$sourceIndex]) || $rows[$sourceIndex]['cents'] < $amount) {
-                            throw ValidationException::withMessages(['funding' => 'A selected funding category is unavailable, already overridden, or has insufficient funds.']);
+                            throw ValidationException::withMessages(['funding' => __('portal.err_fund_unavailable')]);
                         }
                         $rows[$sourceIndex]['cents'] -= $amount;
                         $rows[$sourceIndex]['metadata']['funding_deductions'][] = ['recipient_schedule_id' => $override['schedule_id'], 'recipient_id' => $row['user_id'], 'amount_cents' => $amount];
@@ -65,7 +65,7 @@ final class RecipientFunding
                         $decision['sources'][$category] = $amount;
                     }
                 } else {
-                    throw ValidationException::withMessages(['funding' => 'Choose company or allocation funding for an increased rate.']);
+                    throw ValidationException::withMessages(['funding' => __('portal.err_fund_mode')]);
                 }
             } elseif ($difference < 0) {
                 $rows[] = [...$row, 'category' => $row['category'].'_override_reserve', 'user_id' => null, 'status' => 'reserved',

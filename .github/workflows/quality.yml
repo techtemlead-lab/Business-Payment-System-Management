@@ -54,7 +54,7 @@ jobs:
       - run: npm audit
       - run: cp .env.example .env && php artisan key:generate --no-interaction
       - run: node node_modules/typescript/bin/tsc --noEmit
-      - run: node --test tests/Unit/business-date.test.mjs
+      - run: node --test tests/Unit/*.test.mjs
       - run: npm run build
       - run: php artisan test --compact --log-junit storage/test-results.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

@@ -48,13 +48,13 @@ class ReferralTreePath extends Model
     private static function ancestors(int $userId, ?int $sponsorId): array
     {
         if ($sponsorId === $userId) {
-            throw new InvalidArgumentException('Self-sponsorship is disallowed.');
+            throw new InvalidArgumentException(__('portal.err_tree_self_sponsor'));
         }
         $seen = [$userId];
         $ids = [];
         while ($sponsorId) {
             if (in_array($sponsorId, $seen, true)) {
-                throw new InvalidArgumentException('Circular hierarchy cycle detected.');
+                throw new InvalidArgumentException(__('portal.err_tree_circular_hierarchy'));
             }
             $seen[] = $sponsorId;
             $ids[] = $sponsorId;

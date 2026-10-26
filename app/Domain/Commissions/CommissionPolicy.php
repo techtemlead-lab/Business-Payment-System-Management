@@ -75,6 +75,15 @@ final class CommissionPolicy
             $rules = json_decode($override->rules, true, flags: JSON_THROW_ON_ERROR);
         }
         $rules['d2d_multitier']['parameters']['dynamic_compression'] = false;
+        foreach ($rules as $key => $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+            $translated = __('portal.rule_name_'.$key);
+            if ($translated !== 'portal.rule_name_'.$key) {
+                $rules[$key]['name'] = $translated;
+            }
+        }
         if ($validate) {
             $this->validateSchedule($rules);
         }
@@ -111,20 +120,20 @@ final class CommissionPolicy
     public function compose(array $base, array $changes): array
     {
         if ($changes === [] || array_diff_key($changes, self::defaults()) !== []) {
-            throw ValidationException::withMessages(['rules' => 'Supply known commission rule keys.']);
+            throw ValidationException::withMessages(['rules' => __('portal.err_policy_unknown_keys')]);
         }
         foreach ($changes as $key => $input) {
             if (! is_array($input)) {
-                throw ValidationException::withMessages(['rules' => 'Each rule must be an object.']);
+                throw ValidationException::withMessages(['rules' => __('portal.err_policy_rule_object')]);
             }
             $data = Validator::make($input, ['percentage' => 'sometimes|required|numeric|between:0,100|decimal:0,2',
                 'parameters' => 'sometimes|array', 'is_active' => 'sometimes|boolean'])->validate();
             if (($data['parameters']['dynamic_compression'] ?? false) === true) {
-                throw ValidationException::withMessages(['rules' => 'Automatic referral compression is disabled. Select inactive-recipient replacements explicitly when approving an order.']);
+                throw ValidationException::withMessages(['rules' => __('portal.err_policy_compression_disabled')]);
             }
             if (isset($data['parameters'])) {
                 if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
-                    throw ValidationException::withMessages(['rules' => 'Unsupported parameters for '.$key.'.']);
+                    throw ValidationException::withMessages(['rules' => __('portal.err_policy_unsupported_params', ['key' => $key])]);
                 }
                 $data['parameters'] = array_replace($base[$key]['parameters'], $data['parameters']);
             }
@@ -140,7 +149,7 @@ final class CommissionPolicy
     {
         abort_unless($actor->canAct('finance', 'edit'), 403);
         if ($rules === [] || array_diff_key($rules, self::defaults()) !== []) {
-            throw ValidationException::withMessages(['rules' => 'Supply known commission rule keys.']);
+            throw ValidationException::withMessages(['rules' => __('portal.err_policy_unknown_keys')]);
         }
         DB::transaction(function () use ($actor, $rules): void {
             CommissionWallet::lock();
@@ -148,7 +157,7 @@ final class CommissionPolicy
             $merged = $this->snapshot(false)['rules'];
             foreach ($rules as $key => $input) {
                 if (! is_array($input)) {
-                    throw ValidationException::withMessages(['rules' => 'Each rule must be an object.']);
+                    throw ValidationException::withMessages(['rules' => __('portal.err_policy_rule_object')]);
                 }
                 $data = Validator::make($input, [
                     'version' => ['sometimes', 'integer', 'min:1'],
@@ -158,15 +167,15 @@ final class CommissionPolicy
                     'parameters' => ['sometimes', 'array'], 'is_active' => ['sometimes', 'boolean'],
                 ])->validate();
                 if (isset($data['version']) && (int) $data['version'] !== (int) $merged[$key]['version']) {
-                    throw ValidationException::withMessages(['rules' => 'This commission rule changed while you were editing. Reload the page before saving.']);
+                    throw ValidationException::withMessages(['rules' => __('portal.err_policy_stale_version')]);
                 }
                 unset($data['version']);
                 if (($data['parameters']['dynamic_compression'] ?? false) === true) {
-                    throw ValidationException::withMessages(['rules' => 'Automatic referral compression is disabled. Select inactive-recipient replacements explicitly when approving an order.']);
+                    throw ValidationException::withMessages(['rules' => __('portal.err_policy_compression_disabled')]);
                 }
                 if (isset($data['parameters'])) {
                     if (array_diff_key($data['parameters'], self::defaults()[$key]['parameters']) !== []) {
-                        throw ValidationException::withMessages(['rules' => 'Unsupported parameters for '.$key.'.']);
+                        throw ValidationException::withMessages(['rules' => __('portal.err_policy_unsupported_params', ['key' => $key])]);
                     }
                     $data['parameters'] = array_replace($merged[$key]['parameters'] ?? [], $data['parameters']);
                 }
@@ -198,19 +207,19 @@ final class CommissionPolicy
                 $sub += self::rate($rules, $key)->basisPoints;
             }
             if ($dealer > 4000 || $sub > 5000) {
-                throw new InvalidArgumentException('Dealer allocations must fit 40%; sub-dealer allocations must fit 50%.');
+                throw new InvalidArgumentException(__('portal.err_policy_pool_limits'));
             }
             foreach ($rules as $rule) {
                 foreach (($rule['parameters'] ?? []) as $name => $value) {
                     if ($name === 'dynamic_compression') {
                         if (! is_bool($value)) {
-                            throw new InvalidArgumentException('Compression must be a boolean.');
+                            throw new InvalidArgumentException(__('portal.err_policy_compression_bool'));
                         }
                     } elseif (str_ends_with($name, '_pct')) {
                         Percentage::from((string) $value);
                     } elseif (in_array($name, ['cooling_off_days', 'grace_period_days', 'am_count', 'sm_count', 'me_count', 'qualification_depth'], true)) {
                         if (filter_var($value, FILTER_VALIDATE_INT) === false || $value < 0 || $value > 366 || (str_ends_with($name, '_count') && $value < 1)) {
-                            throw new InvalidArgumentException('Invalid integer parameter '.$name.'.');
+                            throw new InvalidArgumentException(__('portal.err_policy_invalid_int', ['name' => $name]));
                         }
                     } else {
                         Money::cents((string) $value);
@@ -219,7 +228,7 @@ final class CommissionPolicy
             }
             $d2d = $rules['d2d_multitier']['parameters'];
             if (Percentage::from((string) $d2d['gen2_pct'])->basisPoints + Percentage::from((string) $d2d['gen3_pct'])->basisPoints !== Percentage::from((string) $rules['d2d_multitier']['percentage'])->basisPoints) {
-                throw new InvalidArgumentException('D2D generation shares must equal the D2D pool.');
+                throw new InvalidArgumentException(__('portal.err_policy_d2d_shares'));
             }
             $area = $rules['area_dealer_pool']['parameters'];
             $areaTotal = 0;
@@ -227,14 +236,14 @@ final class CommissionPolicy
                 $areaTotal += Percentage::from((string) $area[$level.'_share_pct'])->basisPoints;
             }
             if ($areaTotal !== Percentage::from((string) $rules['area_dealer_pool']['percentage'])->basisPoints) {
-                throw new InvalidArgumentException('Area shares must equal the area pool.');
+                throw new InvalidArgumentException(__('portal.err_policy_area_shares'));
             }
             $royaltyTotal = 0;
             foreach (['mo', 'am', 'sm', 'me'] as $rank) {
                 $royaltyTotal += Percentage::from((string) $rules['rank_royalty']['parameters'][$rank.'_share_pct'])->basisPoints;
             }
             if ($royaltyTotal !== Percentage::from((string) $rules['rank_royalty']['percentage'])->basisPoints) {
-                throw new InvalidArgumentException('Rank shares must equal the royalty pool.');
+                throw new InvalidArgumentException(__('portal.err_policy_rank_shares'));
             }
         } catch (InvalidArgumentException $exception) {
             throw ValidationException::withMessages(['rules' => $exception->getMessage()]);

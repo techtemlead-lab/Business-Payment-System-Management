@@ -43,7 +43,7 @@ class ProductionReadinessTest extends TestCase
 
     public function test_commission_refund_rejects_an_order_without_posted_commissions(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
         $buyer = User::factory()->dealer()->create();
         $order = app(OrderService::class)->create($buyer, [

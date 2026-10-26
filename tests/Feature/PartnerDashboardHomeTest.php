@@ -8,6 +8,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -66,29 +67,54 @@ class PartnerDashboardHomeTest extends TestCase
         $this->assertSame(['monthly_salary', 'rank_reward', 'bike_incentive'], array_column($home['targets'], 'key'));
     }
 
-    public function test_partner_home_counts_today_own_and_team_sales(): void
+    public function test_partner_home_target_labels_follow_active_locale(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
-        $downline = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'sponsor_id' => $dealer->id]);
         ReferralTreePath::attachUser($dealer->id, null);
-        ReferralTreePath::attachUser($downline->id, $dealer->id);
 
-        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'active' => true, 'stock' => 1000]);
-        foreach ([$dealer, $downline] as $buyer) {
-            $order = app(OrderService::class)->create($buyer, [
-                'items' => [['product_id' => $product->id, 'quantity' => 10]],
-                'idempotency_key' => (string) Str::uuid(),
-            ]);
-            $order->update(['paid' => $order->total, 'status' => 'delivered']);
+        app()->setLocale('en');
+        $english = app(PartnerDashboardHome::class)->for($dealer);
+        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'en'), $english['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'en'), $english['targets'][2]['label']);
+
+        app()->setLocale('bn');
+        $bangla = app(PartnerDashboardHome::class)->for($dealer);
+        $this->assertSame(__('portal.target_monthly_salary_volume', [], 'bn'), $bangla['targets'][0]['label']);
+        $this->assertSame(__('portal.target_bike_incentive', [], 'bn'), $bangla['targets'][2]['label']);
+        $this->assertNotSame($english['targets'][0]['label'], $bangla['targets'][0]['label']);
+    }
+
+    public function test_partner_home_counts_today_own_and_team_sales(): void
+    {
+        // After 18:00 UTC the Dhaka calendar day has already rolled forward; freeze there
+        // so the business-day → UTC conversion is exercised, not skipped.
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-24 20:15:00', 'UTC'));
+
+        try {
+            $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+            $downline = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'sponsor_id' => $dealer->id]);
+            ReferralTreePath::attachUser($dealer->id, null);
+            ReferralTreePath::attachUser($downline->id, $dealer->id);
+
+            $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'active' => true, 'stock' => 1000]);
+            foreach ([$dealer, $downline] as $buyer) {
+                $order = app(OrderService::class)->create($buyer, [
+                    'items' => [['product_id' => $product->id, 'quantity' => 10]],
+                    'idempotency_key' => (string) Str::uuid(),
+                ]);
+                $order->update(['paid' => $order->total, 'status' => 'delivered']);
+            }
+
+            $home = app(PartnerDashboardHome::class)->for($dealer->fresh());
+
+            $this->assertSame('1000.00', $home['snapshot']['own_sales_today']);
+            $this->assertSame('1000.00', $home['snapshot']['team_sales_today']);
+            $this->assertSame('250000.00', CommissionPolicy::defaults()['rank_royalty']['parameters']['mo_target']);
+            $rankTarget = collect($home['targets'])->firstWhere('key', 'rank_reward');
+            $this->assertSame('250000.00', $rankTarget['target']);
+        } finally {
+            CarbonImmutable::setTestNow();
         }
-
-        $home = app(PartnerDashboardHome::class)->for($dealer->fresh());
-
-        $this->assertSame('1000.00', $home['snapshot']['own_sales_today']);
-        $this->assertSame('1000.00', $home['snapshot']['team_sales_today']);
-        $this->assertSame('250000.00', CommissionPolicy::defaults()['rank_royalty']['parameters']['mo_target']);
-        $rankTarget = collect($home['targets'])->firstWhere('key', 'rank_reward');
-        $this->assertSame('250000.00', $rankTarget['target']);
     }
 
     public function test_admin_overview_receives_mixed_admin_home(): void

@@ -462,6 +462,21 @@ class SiteCustomization
         }
     }
 
+    /**
+     * Prefer translated copy when CMS still holds the English factory default.
+     * Custom CMS text is returned unchanged.
+     */
+    public static function localizedCopy(array $customization, string $key, string $translationKey): string
+    {
+        $value = trim((string) ($customization[$key] ?? ''));
+        $default = trim((string) (self::defaults()[$key] ?? ''));
+        if ($value === '' || $value === $default) {
+            return (string) __($translationKey);
+        }
+
+        return $value;
+    }
+
     public static function all(): array
     {
         $defaults = self::defaults();
@@ -722,7 +737,7 @@ class SiteCustomization
                 $valid = $value === null || is_scalar($value);
             }
             if (! $valid) {
-                throw ValidationException::withMessages(['customization.'.$key => 'This content field has an invalid format. Reload the form and try again.']);
+                throw ValidationException::withMessages(['customization.'.$key => __('portal.err_cms_format')]);
             }
         }
     }

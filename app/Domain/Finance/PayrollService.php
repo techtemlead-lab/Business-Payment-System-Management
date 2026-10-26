@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\User;
 use App\Support\Audit;
@@ -29,7 +30,7 @@ final class PayrollService
             abort_unless($actor->fresh()->allows('finance'), 403);
             $staff = User::findOrFail($data['staff_id']);
             if (! $staff->staff() || $staff->status !== 'active' || Money::cents($data['deduction']) > Money::cents($data['base_salary']) + Money::cents($data['allowance'])) {
-                throw ValidationException::withMessages(['staff_id' => 'Choose active staff and a deduction within the contracted gross salary.']);
+                throw ValidationException::withMessages(['staff_id' => __('portal.err_payroll_contract')]);
             }
             $previous = DB::table('staff_contracts')->where('staff_id', $staff->id)->where('effective_month', $data['effective_month'])->orderByDesc('revision')->first();
             if ($previous && Money::cents($previous->base_salary) === Money::cents($data['base_salary'])
@@ -49,7 +50,7 @@ final class PayrollService
         abort_unless($actor->allows('payroll'), 403);
         [, $end] = CommissionQualification::period($month);
         if ($end->isFuture()) {
-            throw ValidationException::withMessages(['period_month' => 'Close the calendar month before preparing payroll.']);
+            throw ValidationException::withMessages(['period_month' => __('portal.err_payroll_month_open')]);
         }
 
         return DB::transaction(function () use ($actor, $month): array {
@@ -82,7 +83,7 @@ final class PayrollService
                         'qualifying_volume' => Money::decimal($volume), 'earned_bonus' => Money::decimal($bonus)], JSON_THROW_ON_ERROR),
                     'gross' => Money::decimal($gross), 'deduction' => Money::decimal($deduction), 'net' => Money::decimal($gross - $deduction),
                     'prepared_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-                $this->event($actor, $id, 'prepared', 'Prepared from the effective contract and captured target.');
+                $this->event($actor, $id, 'prepared', __('portal.payroll_event_prepared'));
                 $ids[] = $id;
             }
 
@@ -100,10 +101,10 @@ final class PayrollService
             $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
             abort_unless($entry, 404);
             if ($entry->status !== 'draft' || in_array($actor->id, [$entry->staff_id, $entry->prepared_by], true)) {
-                throw ValidationException::withMessages(['payroll' => 'A different Finance reviewer must review a draft payroll entry.']);
+                throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_reviewer')]);
             }
             if ($decision === 'approved') {
-                $this->wallets->journal('payroll.approved.'.$id, 'Approve staff payroll '.$entry->period_month, [
+                $this->wallets->journal('payroll.approved.'.$id, __('portal.jr_payroll_approved', ['month' => $entry->period_month]), [
                     ['account' => 'payroll_expense', 'user_id' => $entry->staff_id, 'debit' => Money::cents($entry->gross), 'credit' => 0],
                     ['account' => 'payroll_payable', 'user_id' => $entry->staff_id, 'debit' => 0, 'credit' => Money::cents($entry->net)],
                     ['account' => 'payroll_deductions_payable', 'user_id' => $entry->staff_id, 'debit' => 0, 'credit' => Money::cents($entry->deduction)],
@@ -127,11 +128,11 @@ final class PayrollService
                 $entry = DB::table('payroll_entries')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($entry, 404);
                 if ($entry->status !== 'approved' || in_array($actor->id, [$entry->staff_id, $entry->approved_by], true)) {
-                    throw ValidationException::withMessages(['payroll' => 'Only a separate Finance payer can record an approved salary payment.']);
+                    throw ValidationException::withMessages(['payroll' => __('portal.err_payroll_payer')]);
                 }
                 $this->accounts->recordReference($actor, $data['payment_reference'], 'payroll:'.$id, (int) $data['payment_account_id']);
                 $amount = Money::cents($entry->net);
-                $this->wallets->journal('payroll.paid.'.$id, 'Staff salary paid with receipt', [
+                $this->wallets->journal('payroll.paid.'.$id, __('portal.jr_payroll_paid'), [
                     ['account' => 'payroll_payable', 'user_id' => $entry->staff_id, 'debit' => $amount, 'credit' => 0],
                     ['account' => 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
                 ]);
@@ -140,7 +141,33 @@ final class PayrollService
                     'payment_account_id' => $data['payment_account_id'], 'receipt_path' => $path,
                     'receipt_hash' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
                 $this->event($actor, $id, 'paid', $data['reason']);
-                Audit::notice($entry->staff_id, 'Salary payment recorded', $entry->period_month.': '.Money::decimal($amount).' BDT; private receipt available in My payroll.');
+                $staff = User::find($entry->staff_id);
+                $locale = $staff?->preferredLocale() ?? app()->getLocale();
+                $amountDecimal = Money::decimal($amount);
+                Audit::notice(
+                    $entry->staff_id,
+                    __('portal.notice_payroll_paid_title', [], $locale),
+                    __('portal.notice_payroll_paid_body', [
+                        'month' => $entry->period_month,
+                        'amount' => $amountDecimal,
+                    ], $locale),
+                );
+                $staffId = (int) $entry->staff_id;
+                $periodMonth = (string) $entry->period_month;
+                DB::afterCommit(function () use ($staffId, $periodMonth, $amountDecimal, $locale): void {
+                    $staff = User::find($staffId);
+                    if (! $staff) {
+                        return;
+                    }
+                    app(PartnerEventSms::class)->send(
+                        $staff,
+                        'payroll.paid',
+                        __('sms.payroll_paid', [
+                            'month' => $periodMonth,
+                            'amount' => $amountDecimal,
+                        ], $staff->preferredLocale() ?: $locale),
+                    );
+                });
             }, 3);
         } catch (\Throwable $exception) {
             Storage::disk('local')->delete($path);

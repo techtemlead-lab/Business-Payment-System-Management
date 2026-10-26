@@ -5,6 +5,7 @@ import {
     PieChart, ArrowRight, Store, Users, ShoppingBag
 } from 'lucide-react';
 import { money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface CapitalFlowData {
     gross_cash_inflow: number;
@@ -112,11 +113,12 @@ function placeLabel(row: RetainedFundRow): string {
 }
 
 function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { title: string; hint: string; rows: RetainedFundRow[]; amountKey?: 'amount' | 'company_share' }) {
+    const translate = useT();
     if (!rows.length) {
         return (
             <div style={{ marginTop: 18, border: '1px dashed #cbd5e1', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
                 <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>No detailed entries yet.</p>
+                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>{translate('portal', 'tr_no_detail_entries')}</p>
             </div>
         );
     }
@@ -130,14 +132,14 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                         <tr style={{ textAlign: 'left', color: '#64748b', background: '#fcfcfd' }}>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Posted</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Order</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Buyer</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Location</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Purchase</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Rate</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Amount</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>Detail</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_posted')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_order')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_buyer')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'label_location')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_purchase_value')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_rate')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'col_amount')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_detail')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -151,7 +153,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
                                 </td>
                                 <td style={{ padding: '10px 12px' }}>
                                     <div>{placeLabel(row)}</div>
-                                    {row.area_level && <div style={{ color: '#64748b' }}>Level: {row.area_level}</div>}
+                                    {row.area_level && <div style={{ color: '#64748b' }}>{translate('portal', 'tr_level', { level: String(row.area_level) })}</div>}
                                 </td>
                                 <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{money(row.purchase_value)}</td>
                                 <td style={{ padding: '10px 12px' }}>{row.rate_percentage != null ? `${row.rate_percentage}%` : '—'}</td>
@@ -167,6 +169,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
 }
 
 export default function CompanyTreasuryHub({ flow, allocations_by_category, recent_allocations, retained_fund_details = null, payment_accounts = [] }: CompanyTreasuryHubProps) {
+    const translate = useT();
     const [activeTab, setActiveTab] = useState<'overview' | 'inflows' | 'deposits' | 'expenses' | 'ledger'>('overview');
 
     const grossCash = Number(flow.gross_cash_inflow) || 0;
@@ -218,15 +221,15 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ background: '#011627', color: '#ffffff', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-                            COMPANY SECTION
+                            {translate('portal', 'tr_badge_company')}
                         </span>
-                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Financial Treasury & Money Flow</span>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'tr_subtitle')}</span>
                     </div>
                     <h2 style={{ fontSize: 22, fontWeight: 800, color: '#011627', margin: '6px 0 2px' }}>
-                        Company Capital & Financial Records
+                        {translate('portal', 'tr_heading')}
                     </h2>
                     <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                        Track where company money comes from, where it is deposited, and where it is spent.
+                        {translate('portal', 'tr_heading_hint')}
                     </p>
                 </div>
 
@@ -245,7 +248,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'overview' ? '#ffffff' : '#475569'
                         }}
                     >
-                        Overview & Waterfall
+                        {translate('portal', 'tr_tab_overview')}
                     </button>
                     <button
                         type="button"
@@ -261,7 +264,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'inflows' ? '#ffffff' : '#475569'
                         }}
                     >
-                        1. Sources of Money
+                        {translate('portal', 'tr_tab_inflows')}
                     </button>
                     <button
                         type="button"
@@ -277,7 +280,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'deposits' ? '#ffffff' : '#475569'
                         }}
                     >
-                        2. Where Money is Deposited
+                        {translate('portal', 'tr_tab_deposits')}
                     </button>
                     <button
                         type="button"
@@ -293,7 +296,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'expenses' ? '#ffffff' : '#475569'
                         }}
                     >
-                        3. Where Money is Spent
+                        {translate('portal', 'tr_tab_expenses')}
                     </button>
                     <button
                         type="button"
@@ -309,7 +312,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             color: activeTab === 'ledger' ? '#ffffff' : '#475569'
                         }}
                     >
-                        Financial Ledger
+                        {translate('portal', 'tr_tab_ledger')}
                     </button>
                 </div>
             </div>
@@ -318,58 +321,58 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Total Money Received</span>
+                        <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_received')}</span>
                         <ArrowDownRight size={18} color="#059669" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#011627', marginTop: 6 }}>
                         {money(grossCash)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>From dealers & sub-dealers</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_received_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1.5px solid #006837', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>Company Deposited Capital</span>
+                        <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>{translate('portal', 'tr_kpi_deposited')}</span>
                         <Landmark size={18} color="#006837" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 6 }}>
                         {money(totalCompanyDeposits)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>30% of MRP + management reserves</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'tr_kpi_deposited_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: 10, padding: 18 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>Commission Pool Budget</span>
+                        <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_pool')}</span>
                         <ArrowUpRight size={18} color="#ea580c" />
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#c2410c', marginTop: 6 }}>
                         {money(maxPool)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>Dealer 40% · Sub-dealer 50%</div>
+                    <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>{translate('portal', 'tr_kpi_pool_hint')}</div>
                 </div>
 
                 {ownerBenefitsVisible ? (
                     <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>Commission Benefits Fund</span>
+                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_benefits')}</span>
                             <ShieldCheck size={18} color="#2563eb" />
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 6 }}>
                             {money(unallocatedBuffer)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>Owner-only purchase surplus</div>
+                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>{translate('portal', 'tr_kpi_benefits_hint')}</div>
                     </div>
                 ) : (
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Settled Disbursements</span>
+                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_settled')}</span>
                             <ShieldCheck size={18} color="#94a3b8" />
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
                             {money(Number(flow.settled_disbursements) || 0)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Paid partner withdrawals</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_settled_hint')}</div>
                     </div>
                 )}
             </div>
@@ -382,14 +385,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
                             <div>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: '#006837', letterSpacing: '0.05em' }}>
-                                    COMPANY TREASURY ARCHITECTURE
+                                    {translate('portal', 'tr_arch_badge')}
                                 </span>
                                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '4px 0 0' }}>
-                                    How Money Flows Through the Company
+                                    {translate('portal', 'tr_flow_title')}
                                 </h3>
                             </div>
                             <div style={{ background: '#ecfdf5', color: '#047857', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
-                                Mathematically Balanced · Zero Deficit
+                                {translate('portal', 'tr_flow_balanced')}
                             </div>
                         </div>
 
@@ -398,16 +401,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#0f172a', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>1</span>
-                                    Where Money Comes From
+                                    {translate('portal', 'tr_flow_from')}
                                 </div>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '12px 0 6px' }}>
                                     {money(grossCash)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                                    Cash received from dealer wholesale orders and sub-dealer purchases at configured product prices.
+                                    {translate('portal', 'tr_flow_from_body')}
                                 </p>
                                 <button type="button" onClick={() => setActiveTab('inflows')} style={{ marginTop: 12, color: '#2e3192', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
-                                    View Inflow Sources →
+                                    {translate('portal', 'tr_flow_from_cta')}
                                 </button>
                             </div>
 
@@ -415,16 +418,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#006837', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#006837', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>2</span>
-                                    Where Money is Deposited
+                                    {translate('portal', 'tr_flow_deposit')}
                                 </div>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#006837', margin: '12px 0 6px' }}>
                                     {money(totalCompanyDeposits)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#166534', margin: 0, lineHeight: 1.5 }}>
-                                    Deposited into company operational reserve (30% of MRP) plus territory reserves.
+                                    {translate('portal', 'tr_flow_deposit_body')}
                                 </p>
                                 <button type="button" onClick={() => setActiveTab('deposits')} style={{ marginTop: 12, color: '#006837', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
-                                    View Deposit Accounts →
+                                    {translate('portal', 'tr_flow_deposit_cta')}
                                 </button>
                             </div>
 
@@ -432,16 +435,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9a3412', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#ea580c', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>3</span>
-                                    Where Money is Spent
+                                    {translate('portal', 'tr_flow_spent')}
                                 </div>
                                 <div style={{ fontSize: 20, fontWeight: 800, color: '#9a3412', margin: '12px 0 6px' }}>
                                     {money(allocated)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#9a3412', margin: 0, lineHeight: 1.5 }}>
-                                    Allocated to commissions, dealer salaries, vehicle incentives, and marketing.
+                                    {translate('portal', 'tr_flow_spent_body')}
                                 </p>
                                 <button type="button" onClick={() => setActiveTab('expenses')} style={{ marginTop: 12, color: '#ea580c', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
-                                    View Outflows & Funds →
+                                    {translate('portal', 'tr_flow_spent_cta')}
                                 </button>
                             </div>
                         </div>
@@ -454,10 +457,10 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
-                            1. Where Money Comes From (Inflow Sources)
+                            {translate('portal', 'tr_inflow_title')}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
-                            Comprehensive record of all revenue channels generating cash for the company.
+                            {translate('portal', 'tr_inflow_hint')}
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
@@ -466,15 +469,15 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Store size={22} color="#2e3192" />
                                     <div>
-                                        <b style={{ fontSize: 14, color: '#0f172a' }}>Dealer Wholesale Orders</b>
-                                        <div style={{ fontSize: 11, color: '#64748b' }}>Primary 50% discount purchase volume</div>
+                                        <b style={{ fontSize: 14, color: '#0f172a' }}>{translate('portal', 'tr_inflow_dealer')}</b>
+                                        <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_dealer_hint')}</div>
                                     </div>
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#2e3192', marginTop: 14 }}>
                                     {money(dealerCash)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                                    {grossCash > 0 ? ((dealerCash / grossCash) * 100).toFixed(1) : 0}% of total collected cash
+                                    {translate('portal', 'tr_inflow_share', { pct: String(grossCash > 0 ? ((dealerCash / grossCash) * 100).toFixed(1) : 0) })}
                                 </div>
                             </div>
 
@@ -483,15 +486,15 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Users size={22} color="#059669" />
                                     <div>
-                                        <b style={{ fontSize: 14, color: '#0f172a' }}>Sub-Dealer Orders</b>
-                                        <div style={{ fontSize: 11, color: '#64748b' }}>Configured partner purchase prices</div>
+                                        <b style={{ fontSize: 14, color: '#0f172a' }}>{translate('portal', 'tr_inflow_subdealer')}</b>
+                                        <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_subdealer_hint')}</div>
                                     </div>
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', marginTop: 14 }}>
                                     {money(subDealerCash)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                                    {grossCash > 0 ? ((subDealerCash / grossCash) * 100).toFixed(1) : 0}% of total collected cash
+                                    {translate('portal', 'tr_inflow_share', { pct: String(grossCash > 0 ? ((subDealerCash / grossCash) * 100).toFixed(1) : 0) })}
                                 </div>
                             </div>
                         </div>
@@ -499,16 +502,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         {/* Payment Collection Channels */}
                         <div style={{ marginTop: 24 }}>
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-                                Cash Collection Channels & Gateways
+                                {translate('portal', 'tr_channels_title')}
                             </h4>
                             <div style={{ overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                                     <thead>
                                         <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                            <th style={{ padding: '10px 14px' }}>Payment Channel</th>
-                                            <th style={{ padding: '10px 14px' }}>Verified Amount</th>
-                                            <th style={{ padding: '10px 14px' }}>Share of Inflow</th>
-                                            <th style={{ padding: '10px 14px' }}>Status</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_channel')}</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_verified')}</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_share')}</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_status')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -522,7 +525,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                                     <td style={{ padding: '12px 14px', color: '#64748b' }}>{pct}%</td>
                                                     <td style={{ padding: '12px 14px' }}>
                                                         <span style={{ background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
-                                                            Active & Verified
+                                                            {translate('portal', 'tr_active_verified')}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -541,105 +544,105 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
-                            2. Where Money is Deposited (Company Retained Capital)
+                            {translate('portal', 'tr_deposit_title')}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
-                            Accounts and reserves where company funds are safely deposited and held.
+                            {translate('portal', 'tr_deposit_hint')}
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                             {/* 60% Operating Retention */}
                             <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>Company Operating & COGS Reserve</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>{translate('portal', 'tr_dep_operating')}</span>
                                     <Building2 size={20} color="#006837" />
                                 </div>
                                 <div style={{ fontSize: 26, fontWeight: 800, color: '#006837', margin: '10px 0 4px' }}>
                                     {money(companyShare)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#166534', margin: 0, lineHeight: 1.5 }}>
-                                    Retained by the company to cover product manufacturing/purchasing costs (COGS), warehouse overhead, and net margin.
+                                    {translate('portal', 'tr_dep_operating_body')}
                                 </p>
                             </div>
 
                             {/* 2% Management Area Share */}
                             <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Management Area Share</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_mgmt')}</span>
                                     <Landmark size={20} color="#2e3192" />
                                 </div>
                                 <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '10px 0 4px' }}>
                                     {money(mgmtReserve)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                                    Company central management allocation from the 10% Area Dealer Pool to cover regional administrative supervision.
+                                    {translate('portal', 'tr_dep_mgmt_body')}
                                 </p>
                             </div>
 
                             {/* Unassigned Territory Reserve */}
                             <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>Unassigned Geographic Reserve</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_geo')}</span>
                                     <ShieldCheck size={20} color="#059669" />
                                 </div>
                                 <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '10px 0 4px' }}>
                                     {money(unassignedReserve)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
-                                    Funds retained in company treasury when delivery areas (division, district, upazila, union) do not yet have an active area dealer assigned.
+                                    {translate('portal', 'tr_dep_geo_body')}
                                 </p>
                             </div>
                         </div>
 
                         <RetainedDetailTable
-                            title="Company operating share — amount details"
-                            hint="Each posted batch shows purchase value, MRP basis share, buyer and geography."
+                            title={translate('portal', 'tr_detail_operating')}
+                            hint={translate('portal', 'tr_detail_operating_hint')}
                             rows={companyShareRows}
                             amountKey="company_share"
                         />
                         <RetainedDetailTable
-                            title="Unassigned geographic reserve — amount details"
-                            hint="District/division/upazila/union slices retained when no active area dealer is assigned."
+                            title={translate('portal', 'tr_detail_geo')}
+                            hint={translate('portal', 'tr_detail_geo_hint')}
                             rows={unassignedRows}
                         />
                         <RetainedDetailTable
-                            title="Management area share — amount details"
-                            hint="Management portion of the area dealer pool, with source order and buyer context."
+                            title={translate('portal', 'tr_detail_mgmt')}
+                            hint={translate('portal', 'tr_detail_mgmt_hint')}
                             rows={managementRows}
                         />
                         {ownerBenefitsVisible && (
                             <RetainedDetailTable
-                                title="Company Commission Benefits Fund — amount details"
-                                hint="Owner-only purchase surplus after company share and distributed commissions."
+                                title={translate('portal', 'tr_detail_benefits')}
+                                hint={translate('portal', 'tr_detail_benefits_hint')}
                                 rows={benefitsRows}
                             />
                         )}
                         <RetainedDetailTable
-                            title="Override / breakage reserves — amount details"
-                            hint="Amounts retained when individual rates are reduced or referral recipients are missing."
+                            title={translate('portal', 'tr_detail_override')}
+                            hint={translate('portal', 'tr_detail_override_hint')}
                             rows={overrideRows}
                         />
                         <RetainedDetailTable
-                            title="Salary / royalty settlement reserves — amount details"
-                            hint="Undistributed dealer salary, sub-dealer salary, or unfilled royalty tier shares moved into dedicated company reserves at month close."
+                            title={translate('portal', 'tr_detail_settlement')}
+                            hint={translate('portal', 'tr_detail_settlement_hint')}
                             rows={settlementRows}
                         />
 
                         <div style={{ marginTop: 24 }}>
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-                                Designated Corporate Bank & Treasury Accounts
+                                {translate('portal', 'tr_accounts_title')}
                             </h4>
                             {payment_accounts.length === 0 ? (
                                 <div style={{ padding: 14, border: '1px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
-                                    No company payment accounts are configured yet. Add collection and payout accounts under Operations → Payment accounts.
+                                    {translate('portal', 'tr_accounts_empty')}
                                 </div>
                             ) : (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
                                     {payment_accounts.map((account) => {
                                         const roles = [
-                                            account.collects_payments ? 'Collection' : null,
-                                            account.pays_out ? 'Payout' : null,
-                                            account.is_active === false ? 'Inactive' : null,
+                                            account.collects_payments ? translate('portal', 'tr_role_collection') : null,
+                                            account.pays_out ? translate('portal', 'tr_role_payout') : null,
+                                            account.is_active === false ? translate('portal', 'tr_role_inactive') : null,
                                         ].filter(Boolean).join(' · ');
                                         return (
                                             <div key={account.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
@@ -647,7 +650,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                                                     {account.channel} · {account.account_number_masked || account.account_number || '••••'} · {account.holder}
                                                 </div>
-                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e', marginTop: 8 }}>{roles || 'Configured account'}</div>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e', marginTop: 8 }}>{roles || translate('portal', 'tr_account_configured')}</div>
                                             </div>
                                         );
                                     })}
@@ -663,93 +666,93 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
-                            3. Where Money is Spent (Disbursements, Funds & Taxes)
+                            {translate('portal', 'tr_expense_title')}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
-                            Record of all partner disbursements, company-sponsored funds, vehicle assets, and statutory taxes.
+                            {translate('portal', 'tr_expense_hint')}
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
                             {/* Commission Disbursements */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Settled Partner Payouts</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_payouts')}</span>
                                     <Wallet size={18} color="#059669" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', margin: '8px 0 4px' }}>
                                     {money(settledDisbursements)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Approved & disbursed to dealers via bank/bKash with private receipt
+                                    {translate('portal', 'tr_exp_payouts_hint')}
                                 </div>
                             </div>
 
                             {/* Marketing Fund */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Marketing & Branding Fund</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_marketing')}</span>
                                     <PieChart size={18} color="#2e3192" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#2e3192', margin: '8px 0 4px' }}>
                                     {money(marketingFund)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Dedicated reserve for promotional materials, media, and conferences
+                                    {translate('portal', 'tr_exp_marketing_hint')}
                                 </div>
                             </div>
 
                             {/* Car & Bike Incentive Fund */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Car & Bike Asset Fund</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_vehicle')}</span>
                                     <ShieldCheck size={18} color="#d97706" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706', margin: '8px 0 4px' }}>
                                     {money(carBikeFund)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Reserved to purchase vehicles for qualifying high-turnover network leaders
+                                    {translate('portal', 'tr_exp_vehicle_hint')}
                                 </div>
                             </div>
 
                             {/* Statutory TDS Tax */}
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Recorded payout withholding</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_withholding')}</span>
                                     <FileText size={18} color="#e11d48" />
                                 </div>
                                 <div style={{ fontSize: 22, fontWeight: 800, color: '#e11d48', margin: '8px 0 4px' }}>
                                     {money(tdsTax)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
-                                    Withheld from recorded payouts using each request's captured rate. Remittance is tracked outside this application.
+                                    {translate('portal', 'tr_exp_withholding_hint')}
                                 </div>
                             </div>
                         </div>
 
                         <RetainedDetailTable
-                            title="Marketing fund — amount details"
-                            hint="Each reserved marketing amount with source order, buyer and purchase value."
+                            title={translate('portal', 'tr_detail_marketing')}
+                            hint={translate('portal', 'tr_detail_marketing_hint')}
                             rows={marketingRows}
                         />
                         <RetainedDetailTable
-                            title="Car / motorcycle fund — amount details"
-                            hint="Vehicle reserve contributions with source order and buyer context."
+                            title={translate('portal', 'tr_detail_vehicle')}
+                            hint={translate('portal', 'tr_detail_vehicle_hint')}
                             rows={carBikeRows}
                         />
 
                         {/* Category Allocations Table */}
                         <div style={{ marginTop: 24 }}>
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-                                Breakdown of All 10 Commission & Incentive Slices
+                                {translate('portal', 'tr_slices_title')}
                             </h4>
                             <div style={{ overflowX: 'auto' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                                     <thead>
                                         <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                            <th style={{ padding: '10px 14px' }}>Category Name</th>
-                                            <th style={{ padding: '10px 14px' }}>Allocations Count</th>
-                                            <th style={{ padding: '10px 14px' }}>Total Amount</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_category')}</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_alloc_count')}</th>
+                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_total')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -758,7 +761,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                                 <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
                                                     {cat.category.replaceAll('_', ' ').toUpperCase()}
                                                 </td>
-                                                <td style={{ padding: '10px 14px', color: '#64748b' }}>{cat.count} allocations</td>
+                                                <td style={{ padding: '10px 14px', color: '#64748b' }}>{translate('portal', 'tr_alloc_count', { count: String(cat.count) })}</td>
                                                 <td style={{ padding: '10px 14px', fontWeight: 700, color: '#006837' }}>
                                                     {money(cat.total_amount)}
                                                 </td>
@@ -777,21 +780,21 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
                         <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
-                            Posted Financial Transactions & History
+                            {translate('portal', 'tr_ledger_title')}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
-                            Recent double-entry posted transactions and distributor commission events.
+                            {translate('portal', 'tr_ledger_hint')}
                         </p>
 
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                                 <thead>
                                     <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                        <th style={{ padding: '10px 14px' }}>Date</th>
-                                        <th style={{ padding: '10px 14px' }}>Recipient / Dealer</th>
-                                        <th style={{ padding: '10px 14px' }}>Category</th>
-                                        <th style={{ padding: '10px 14px' }}>Amount</th>
-                                        <th style={{ padding: '10px 14px' }}>Status</th>
+                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_date')}</th>
+                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_recipient')}</th>
+                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_category')}</th>
+                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_amount')}</th>
+                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_status')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -800,7 +803,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                             <tr key={rec.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                                                 <td style={{ padding: '10px 14px', color: '#64748b' }}>{date(rec.created_at)}</td>
                                                 <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
-                                                    {rec.user ? `${rec.user.name} (${rec.user.dealer_code})` : 'Company Reserve Pool'}
+                                                    {rec.user ? `${rec.user.name} (${rec.user.dealer_code})` : translate('portal', 'tr_company_reserve_pool')}
                                                 </td>
                                                 <td style={{ padding: '10px 14px' }}>
                                                     <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
@@ -819,7 +822,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                                         fontSize: 11,
                                                         fontWeight: 700
                                                     }}>
-                                                        {rec.is_settled ? 'Settled' : 'Pending / Maturing'}
+                                                        {rec.is_settled ? translate('portal', 'tr_status_settled') : translate('portal', 'tr_status_pending')}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -827,7 +830,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     ) : (
                                         <tr>
                                             <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>
-                                                No recorded transactions yet. New delivered orders will post here.
+                                                {translate('portal', 'tr_ledger_empty')}
                                             </td>
                                         </tr>
                                     )}

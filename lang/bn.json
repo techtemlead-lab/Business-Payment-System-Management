@@ -1,0 +1,7 @@
+{
+    "Reset your password": "পাসওয়ার্ড রিসেট করুন",
+    "You are receiving this email because we received a password reset request for your account.": "আপনার অ্যাকাউন্টের জন্য পাসওয়ার্ড রিসেট অনুরোধ পাওয়ায় এই ইমেইল পাঠানো হয়েছে।",
+    "Reset Password": "পাসওয়ার্ড রিসেট",
+    "This password reset link will expire in :count minutes.": "এই পাসওয়ার্ড রিসেট লিঙ্কের মেয়াদ :count মিনিটের মধ্যে শেষ হবে।",
+    "If you did not request a password reset, no further action is required.": "আপনি যদি পাসওয়ার্ড রিসেট না চেয়ে থাকেন, তাহলে আর কিছু করার দরকার নেই।"
+}

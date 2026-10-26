@@ -1,0 +1,1057 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Commissions\CommissionService;
+use App\Domain\Finance\ImportWorkbook;
+use App\Domain\Finance\OpeningBalanceImport;
+use App\Domain\Finance\PolicyDraftService;
+use App\Domain\Orders\OrderService;
+use App\Domain\Staff\StaffOperations;
+use App\Domain\Staff\TerritoryAccess;
+use App\Models\CommissionAllocation;
+use App\Models\CommissionRuleParameter;
+use App\Models\DealerRank;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\ReferralTreePath;
+use App\Models\User;
+use App\Support\Money;
+use Database\Seeders\CommissionRuleSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer;
+use Tests\TestCase;
+
+class PartnerEventSmsTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
+
+    public function test_partner_support_logs_event_sms_when_phone_present(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'phone' => '01720000088',
+            'dealer_code' => 'MNHC-SMS',
+        ]);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->post('/commands/partner-support', [
+                'topic' => 'support',
+                'message' => 'Please help update my shop address on file.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertIsArray($sent);
+        $this->assertNotEmpty($sent);
+        $this->assertSame('support.requested', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000088', $sent[0]['phone'] ?? null);
+    }
+
+    public function test_public_enquiry_acknowledges_phone_in_request_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/contact')
+            ->post('/enquiries', [
+                'name' => 'Public SMS Visitor',
+                'phone' => '01720000093',
+                'topic' => 'partnership_enquiry',
+                'message' => 'I want to join as an authorized dealer in Sylhet.',
+            ])
+            ->assertRedirect('/contact');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('enquiry.public_received', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000093', $sent[0]['phone'] ?? null);
+        $this->assertArrayHasKey('user_id', $sent[0]);
+        $this->assertNull($sent[0]['user_id']);
+        $this->assertSame(
+            __('sms.public_enquiry_received', [
+                'topic' => __('portal.enquiry_topic_partnership', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_public_partnership_application_acknowledges_phone_in_request_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Partnership SMS Applicant',
+                'email' => 'partnership.sms@example.test',
+                'phone' => '01720000094',
+                'role' => 'dealer',
+                'division' => 'Sylhet',
+                'district' => 'Sylhet',
+                'sponsor_code' => 'REF-SMOKE-01',
+            ])
+            ->assertRedirect('/partnership');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_received', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000094', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_received', [
+                'role' => __('portal.acct_role_dealer', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_partner_support_sms_uses_localized_topic_label(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000089',
+            'dealer_code' => 'MNHC-SMS-BN',
+        ]);
+
+        $this->actingAs($dealer)->onPortal('dealer')
+            ->post('/commands/partner-support', [
+                'topic' => 'Order dispute',
+                'message' => 'Delivery still shows pending after courier pickup.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('enquiries', [
+            'phone' => '01720000089',
+            'topic' => 'order_dispute',
+        ]);
+        $sent = config('madina.sms.sent');
+        $this->assertSame(
+            __('sms.support_requested', ['topic' => __('portal.support_topic_order', [], 'bn')], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_order_lifecycle_sms_uses_partner_locale_across_portal_hosts(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000090',
+        ]);
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+
+        $id = $this->actingAs($dealer)->onPortal('dealer')->postJson('/api/v1/orders', [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank',
+            'reference' => 'SMS-LIFECYCLE-RECEIPT',
+            'amount' => '100.00',
+        ])->assertCreated()->json('data.id');
+
+        $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');
+        $this->actingAs($staff)->onPortal('manage')->postJson('/api/v1/claims/'.$claim.'/verify', [
+            'approve' => true,
+            'reason' => 'Matched bank statement',
+        ])->assertOk();
+        $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/decision', [
+            'status' => 'approved',
+            'reason' => 'Payment confirmed',
+        ])->assertOk();
+        $line = DB::table('order_lines')->where('order_id', $id)->value('id');
+        $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/dispatch', [
+            'courier' => 'Portal courier',
+            'tracking' => 'SMS-TRACK-1',
+            'idempotency_key' => (string) Str::uuid(),
+            'items' => [['line_id' => $line, 'quantity' => 1]],
+        ])->assertOk();
+        $shipment = DB::table('shipments')->where('order_id', $id)->value('id');
+        $this->onPortal('manage')->postJson('/api/v1/orders/'.$id.'/shipments/'.$shipment.'/delivered', [
+            'reason' => 'Proof of delivery checked',
+        ])->assertOk();
+
+        $events = collect(config('madina.sms.sent'))->pluck('event')->all();
+        $this->assertSame(
+            ['order.submitted', 'payment.claimed', 'payment.verified', 'order.approved', 'order.dispatched', 'shipment.delivered'],
+            $events,
+        );
+
+        $orderNumber = DB::table('orders')->where('id', $id)->value('number');
+        $messages = collect(config('madina.sms.sent'))->pluck('message');
+        $this->assertTrue($messages->contains(
+            __('sms.delivery_confirmed', ['number' => $orderNumber], 'bn'),
+        ));
+        $this->assertTrue($messages->contains(
+            __('sms.shipment_dispatched', [
+                'number' => $orderNumber,
+                'courier' => 'Portal courier',
+                'tracking' => 'SMS-TRACK-1',
+            ], 'bn'),
+        ));
+    }
+
+    public function test_due_adjustment_review_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $buyer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000091',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($buyer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $order->update(['status' => 'approved', 'paid' => '0.00']);
+
+        Config::set('madina.sms.sent', []);
+        $preparer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $reviewer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+        $payload = [
+            'kind' => 'credit',
+            'amount' => '20.00',
+            'reference' => 'NOTE-SMS-'.Str::uuid(),
+            'request_key' => (string) Str::uuid(),
+            'reason' => 'Approved commercial allowance',
+        ];
+        $id = $this->actingAs($preparer)->postJson('/api/v1/operations/orders/'.$order->id.'/due-adjustments', $payload)
+            ->assertOk()->json('data.id');
+        $this->actingAs($reviewer)->postJson('/api/v1/operations/due-adjustments/'.$id.'/review', [
+            'decision' => 'approved',
+            'reason' => 'Independent allowance approval',
+        ])->assertOk();
+
+        $reference = DB::table('due_adjustments')->where('id', $id)->value('reference');
+        $sent = config('madina.sms.sent');
+        $this->assertSame('dues.adjustment_approved', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.due_adjustment', [
+                'number' => $order->number,
+                'decision' => __('portal.due_decision_approved', [], 'bn'),
+                'reference' => $reference,
+                'amount' => '80.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_matured_commission_release_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $cooling = CommissionRuleParameter::getRule('commission_cooling_off');
+        $cooling?->update(['is_active' => true, 'parameters' => ['cooling_off_days' => 7]]);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000092',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank',
+            'reference' => 'MATURE-SMS-RECEIPT',
+            'amount' => '100.00',
+        ]);
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $claim = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
+        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', [
+            'approve' => true,
+            'reason' => 'Matched',
+        ])->assertOk();
+        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
+            'status' => 'approved',
+            'reason' => 'OK',
+        ])->assertOk();
+        $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
+            'courier' => 'C',
+            'tracking' => 'T-MATURE',
+            'idempotency_key' => (string) Str::uuid(),
+            'items' => [['line_id' => $line, 'quantity' => 1]],
+        ])->assertOk();
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/shipments/'.$shipment.'/delivered', [
+            'reason' => 'Delivered',
+        ])->assertOk();
+
+        foreach (CommissionAllocation::where('user_id', $dealer->id)->where('status', 'maturing')->get() as $allocation) {
+            $meta = $allocation->metadata ?? [];
+            $meta['maturation_due_at'] = now()->subMinute()->toIso8601String();
+            $allocation->update(['metadata' => $meta]);
+        }
+
+        Config::set('madina.sms.sent', []);
+        $result = app(CommissionService::class)->releaseMaturedCommissions();
+        $this->assertSame('success', $result['status']);
+        $this->assertGreaterThan(0, $result['released_count']);
+
+        $events = collect(config('madina.sms.sent'))->pluck('event')->all();
+        $this->assertContains('commission.matured', $events);
+        $this->assertTrue(
+            collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'কুলিং-অফ')),
+        );
+    }
+
+    public function test_rank_promotion_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000095',
+        ]);
+        ReferralTreePath::attachUser($dealer->id, null);
+        DealerRank::firstOrCreate(
+            ['user_id' => $dealer->id],
+            ['current_rank' => 'dealer', 'lifetime_purchase_total' => 230000.00],
+        );
+
+        $order = Order::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'rank-sms'),
+            'number' => 'ORD-RANK-SMS',
+            'user_id' => $dealer->id,
+            'status' => 'delivered',
+            'total' => '20000.00',
+            'paid' => '20000.00',
+        ]);
+        $product = Product::factory()->create(['mrp' => Money::decimal(Money::cents('20000.00') * 2)]);
+        $order->lines()->create([
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'quantity' => 1,
+            'mrp' => $product->mrp,
+            'unit_price' => '20000.00',
+            'total' => '20000.00',
+        ]);
+
+        app(CommissionService::class)->processOrder($order);
+
+        $this->assertSame('mo', DealerRank::where('user_id', $dealer->id)->value('current_rank'));
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'rank.achieved');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.rank_achieved', ['rank' => __('portal.net_rank_mo', [], 'bn')], 'bn'),
+            $sent['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_rank_achieved_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_reward_milestone_achievement_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $rule = CommissionRuleParameter::getRule('car_bike_incentive');
+        $parameters = $rule?->parameters ?? [];
+        $rule?->update([
+            'is_active' => true,
+            'parameters' => [
+                ...$parameters,
+                'bike_target' => '100.00',
+                'bike_leg_cap' => '100.00',
+                'car_target' => '250000000.00',
+                'car_leg_cap' => '20000000.00',
+            ],
+        ]);
+
+        $leader = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000097',
+        ]);
+        ReferralTreePath::attachUser($leader->id, null);
+        $buyer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'sponsor_id' => $leader->id,
+        ]);
+        ReferralTreePath::attachUser($buyer->id, $leader->id);
+
+        $order = Order::create([
+            'idempotency_key' => (string) Str::uuid(),
+            'payload_hash' => hash('sha256', 'milestone-sms'),
+            'number' => 'ORD-MILE-SMS',
+            'user_id' => $buyer->id,
+            'status' => 'delivered',
+            'total' => '100.00',
+            'paid' => '100.00',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
+        $order->lines()->create([
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'quantity' => 1,
+            'mrp' => $product->mrp,
+            'unit_price' => '100.00',
+            'total' => '100.00',
+        ]);
+
+        app(CommissionService::class)->processOrder($order);
+
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'milestone.achieved');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.milestone_achieved', [
+                'milestone' => __('portal.milestone_label_bike', [], 'bn'),
+            ], 'bn'),
+            $sent['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $leader->id,
+            'title' => __('portal.notice_milestone_achieved_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_order_refund_sends_localized_partner_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $this->seed(CommissionRuleSeeder::class);
+
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000096',
+        ]);
+        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            'idempotency_key' => (string) Str::uuid(),
+            'channel' => 'Bank',
+            'reference' => 'REFUND-SMS-RECEIPT',
+            'amount' => '100.00',
+        ]);
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $claim = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
+        $this->actingAs($staff)->postJson('/api/v1/claims/'.$claim.'/verify', [
+            'approve' => true,
+            'reason' => 'Matched',
+        ])->assertOk();
+        $this->postJson('/api/v1/orders/'.$order->id.'/decision', [
+            'status' => 'approved',
+            'reason' => 'OK',
+        ])->assertOk();
+        $line = DB::table('order_lines')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/dispatch', [
+            'courier' => 'C',
+            'tracking' => 'T-REFUND',
+            'idempotency_key' => (string) Str::uuid(),
+            'items' => [['line_id' => $line, 'quantity' => 1]],
+        ])->assertOk();
+        $shipment = DB::table('shipments')->where('order_id', $order->id)->value('id');
+        $this->postJson('/api/v1/orders/'.$order->id.'/shipments/'.$shipment.'/delivered', [
+            'reason' => 'Delivered',
+        ])->assertOk();
+
+        Config::set('madina.sms.sent', []);
+        app(CommissionService::class)->reverseOrderPartial($order->fresh(), '50.00', 'Returned half', 'REFUND-SMS-1');
+
+        $sent = collect(config('madina.sms.sent'))->firstWhere('event', 'order.refunded');
+        $this->assertNotNull($sent);
+        $this->assertSame(
+            __('sms.order_refunded', [
+                'number' => $order->number,
+                'amount' => '50.00',
+                'reason' => 'Returned half',
+            ], 'bn'),
+            $sent['message'] ?? null,
+        );
+    }
+
+    public function test_partnership_approval_sms_and_notice_use_applicant_locale(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Approve SMS Applicant',
+                'email' => 'approve.sms@example.test',
+                'phone' => '01720000095',
+                'role' => 'dealer',
+                'division' => 'Khulna',
+                'district' => 'Khulna',
+            ])
+            ->assertRedirect('/partnership');
+        $id = DB::table('dealer_applications')->where('email', 'approve.sms@example.test')->value('id');
+        Config::set('madina.sms.sent', []);
+
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($reviewer)->onPortal('sadmin')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', [
+                'decision' => 'approved',
+                'reason' => 'Territory verified for SMS coverage.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_approved', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000095', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_approved', [
+                'role' => __('portal.acct_role_dealer', [], 'bn'),
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $partner = User::where('email', 'approve.sms@example.test')->firstOrFail();
+        $this->assertSame('bn', $partner->locale);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_partnership_approved_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_partner_sponsor_reparent_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $oldSponsor = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MN-OLD-SPONSOR',
+            'name' => 'Old Sponsor',
+        ]);
+        $newSponsor = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'dealer_code' => 'MN-NEW-SPONSOR',
+            'name' => 'New Sponsor',
+        ]);
+        $partner = User::factory()->create([
+            'role' => 'sub_dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000106',
+            'sponsor_id' => $oldSponsor->id,
+        ]);
+        ReferralTreePath::attachUser($partner->id, $oldSponsor->id);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$partner->id, [
+                'sponsor_id' => $newSponsor->id,
+                'reason' => 'Move under verified Rangpur sponsor.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.sponsor_updated', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.sponsor_updated', [
+                'sponsor' => 'MN-NEW-SPONSOR · New Sponsor',
+                'reason' => 'Move under verified Rangpur sponsor.',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_sponsor_updated_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $partner->id, 'sponsor_id' => $newSponsor->id]);
+    }
+
+    public function test_partner_suspend_and_reactivate_send_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->create([
+            'role' => 'dealer',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000102',
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'status' => 'suspended',
+                'reason' => 'Policy review pending for territory documents.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.suspended', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000102', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.account_suspended', [
+                'reason' => 'Policy review pending for territory documents.',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_account_suspended_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'suspended']);
+
+        Config::set('madina.sms.sent', []);
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'status' => 'active',
+                'reason' => 'Documents verified; restore portal access.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.reactivated', $sent[0]['event'] ?? null);
+        $this->assertSame(
+            __('sms.account_reactivated', [], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'status' => 'active']);
+    }
+
+    public function test_staff_territory_assign_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000104',
+        ]);
+
+        app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Rangpur',
+        ]);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.territory_assigned', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000104', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_territory_assigned', [
+                'level' => 'division',
+                'territory' => 'Rangpur',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $sr->id,
+            'title' => __('portal.notice_staff_territory_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_staff_territory_remove_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000105',
+        ]);
+
+        $territoryId = app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Khulna',
+        ]);
+        Config::set('madina.sms.sent', []);
+
+        app(TerritoryAccess::class)->remove(
+            $admin,
+            $territoryId,
+            'Coverage reassigned after district merge.',
+        );
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.territory_removed', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000105', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_territory_removed', [
+                'level' => 'division',
+                'territory' => 'Khulna',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $sr->id,
+            'title' => __('portal.notice_staff_territory_removed_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('staff_territories', [
+            'id' => $territoryId,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_policy_publish_notifies_draft_preparer(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $preparer = User::factory()->create([
+            'role' => 'finance',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000106',
+        ]);
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $id = app(PolicyDraftService::class)->create($preparer, [
+            'name' => 'Dealer schedule BN',
+            'account_type' => 'dealer',
+            'components' => [['name' => 'referral', 'rate' => '10']],
+            'notes' => 'Document purchase-value rates before go-live.',
+        ]);
+
+        app(PolicyDraftService::class)->publish($reviewer, $id);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('policy.published', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000106', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.policy_published', [
+                'name' => 'Dealer schedule BN',
+                'account_type' => 'dealer',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $preparer->id,
+            'title' => __('portal.notice_policy_published_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('policy_drafts', [
+            'id' => $id,
+            'status' => 'published',
+            'published_by' => $reviewer->id,
+        ]);
+    }
+
+    public function test_opening_import_apply_notifies_preparer(): void
+    {
+        Storage::fake('local');
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        config(['madina.financial_activation' => false]);
+
+        $preparer = User::factory()->create([
+            'role' => 'finance',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000107',
+        ]);
+        $reviewer = User::factory()->staff('finance')->create();
+        User::factory()->dealer()->create(['dealer_code' => 'D-IMP-SMS']);
+
+        $path = tempnam(sys_get_temp_dir(), 'madina-import-sms-');
+        $writer = new Writer;
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Data');
+        $writer->addRow(Row::fromValues(ImportWorkbook::Columns['opening_balances']));
+        $writer->addRow(new Row(array_map(
+            fn ($value) => $value instanceof Cell ? $value : Cell::fromValue($value),
+            ['D-IMP-SMS', 'IMP-SMS-101', '2026-01-01', '50', '0', '0', '0'],
+        )));
+        $writer->close();
+        $file = UploadedFile::fake()->createWithContent('source.xlsx', file_get_contents($path));
+        unlink($path);
+
+        $imports = app(OpeningBalanceImport::class);
+        $id = $imports->preview($preparer, 'opening_balances', $file, 'Import SMS statement');
+        Config::set('madina.sms.sent', []);
+        $imports->apply($reviewer, $id, 'Independent opening import review.');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('data_import.applied', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000107', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.import_applied', [
+                'type' => __('portal.import_type_opening_balances', [], 'bn'),
+                'reference' => 'Import SMS statement',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $preparer->id,
+            'title' => __('portal.notice_import_applied_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('data_import_batches', [
+            'id' => $id,
+            'status' => 'applied',
+            'applied_by' => $reviewer->id,
+        ]);
+    }
+
+    public function test_opening_hold_release_sends_localized_sms(): void
+    {
+        Storage::fake('local');
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        config(['madina.financial_activation' => false]);
+
+        $preparer = User::factory()->staff('finance')->create();
+        $reviewer = User::factory()->staff('finance')->create();
+        $partner = User::factory()->dealer()->create([
+            'dealer_code' => 'D-HOLD-SMS',
+            'locale' => 'bn',
+            'phone' => '01720000108',
+        ]);
+
+        $path = tempnam(sys_get_temp_dir(), 'madina-hold-sms-');
+        $writer = new Writer;
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Data');
+        $writer->addRow(Row::fromValues(ImportWorkbook::Columns['opening_balances']));
+        $writer->addRow(new Row(array_map(
+            fn ($value) => $value instanceof Cell ? $value : Cell::fromValue($value),
+            ['D-HOLD-SMS', 'HOLD-SMS-101', '2026-01-01', '100', '50', '0', '0'],
+        )));
+        $writer->close();
+        $file = UploadedFile::fake()->createWithContent('source.xlsx', file_get_contents($path));
+        unlink($path);
+
+        $imports = app(OpeningBalanceImport::class);
+        $id = $imports->preview($preparer, 'opening_balances', $file, 'Hold SMS statement');
+        $imports->apply($reviewer, $id, 'Independent opening hold import.');
+        $entry = DB::table('opening_balance_entries')->where('user_id', $partner->id)->first();
+        $this->assertNotNull($entry);
+
+        $this->enableFinancialPosting();
+        Config::set('madina.sms.sent', []);
+        $imports->releaseHold($reviewer, (int) $entry->id, 'Client authorized hold release.');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('opening.hold_released', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000108', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.commission_released', [
+                'category' => __('portal.report_cat_opening_hold', [], 'bn'),
+                'amount' => '50.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $partner->id,
+            'title' => __('portal.notice_commission_released_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_benefit_controls_update_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create([
+            'locale' => 'bn',
+            'phone' => '01720000109',
+        ]);
+
+        app(PartnerBenefitControls::class)->save($admin, $dealer, [
+            'unconditional_salary' => true,
+            'unconditional_rank_royalty' => false,
+            'forced_royalty_rank' => 'mo',
+            'unconditional_rank_incentive' => false,
+            'note' => null,
+            'reason' => 'Approved unconditional salary for territory rebuild.',
+        ]);
+
+        $summary = __('portal.pbc_flag_salary', [], 'bn');
+        $sent = config('madina.sms.sent');
+        $this->assertSame('accounts.benefit_controls_updated', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000109', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.benefit_controls_updated', ['summary' => $summary], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_benefit_controls_title', [], 'bn'),
+        ]);
+    }
+
+    public function test_directory_visibility_toggle_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $dealer = User::factory()->dealer()->create([
+            'locale' => 'bn',
+            'phone' => '01720000110',
+            'directory_visible' => false,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'directory_visible' => true,
+                'reason' => 'Approved for public dealer directory listing.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.directory_listed', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000110', $sent[0]['phone'] ?? null);
+        $this->assertSame(__('sms.directory_listed', [], 'bn'), $sent[0]['message'] ?? null);
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $dealer->id,
+            'title' => __('portal.notice_directory_listed_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('users', ['id' => $dealer->id, 'directory_visible' => true]);
+
+        Config::set('madina.sms.sent', []);
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->patch('/commands/accounts/'.$dealer->id, [
+                'directory_visible' => false,
+                'reason' => 'Temporarily hide from public directory.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('account.directory_unlisted', $sent[0]['event'] ?? null);
+        $this->assertSame(__('sms.directory_unlisted', [], 'bn'), $sent[0]['message'] ?? null);
+    }
+
+    public function test_staff_target_save_sends_localized_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $sr = User::factory()->create([
+            'role' => 'sr',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000099',
+        ]);
+        app(TerritoryAccess::class)->assign($admin, [
+            'staff_id' => $sr->id,
+            'level' => 'division',
+            'division' => 'Rangpur',
+        ]);
+        Config::set('madina.sms.sent', []);
+        $month = now('Asia/Dhaka')->format('Y-m');
+
+        app(StaffOperations::class)->target($admin, [
+            'staff_id' => $sr->id,
+            'period_month' => $month,
+            'target' => '10000.00',
+            'bonus' => '500.00',
+            'version' => 0,
+        ]);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('staff.target_saved', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000099', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.staff_target_saved', [
+                'month' => $month,
+                'target' => '10000.00',
+                'bonus' => '500.00',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+    }
+
+    public function test_partnership_rejection_sms_reaches_applicant_phone(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'en'])->assertRedirect('/');
+        $this->onPortal('public')
+            ->from('/partnership')
+            ->post('/partnership/apply', [
+                'name' => 'Reject SMS Applicant',
+                'email' => 'reject.sms@example.test',
+                'phone' => '01720000096',
+                'role' => 'sub_dealer',
+                'division' => 'Barisal',
+                'district' => 'Barisal',
+            ])
+            ->assertRedirect('/partnership');
+        $id = DB::table('dealer_applications')->where('email', 'reject.sms@example.test')->value('id');
+        Config::set('madina.sms.sent', []);
+
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($reviewer)->onPortal('sadmin')
+            ->post('/commands/operations/staff/applications/'.$id.'/review', [
+                'decision' => 'rejected',
+                'reason' => 'Incomplete territory documentation.',
+            ])
+            ->assertRedirect();
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('partnership.application_rejected', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000096', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.partnership_application_rejected', [
+                'role' => __('portal.acct_role_sub_dealer', [], 'en'),
+                'reason' => 'Incomplete territory documentation.',
+            ], 'en'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseMissing('users', ['email' => 'reject.sms@example.test']);
+    }
+}

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Auth\LoginOtpChallenge;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,38 @@ class AuthController extends Controller
         return $this->authenticate($r, $portal);
     }
 
+    public function showOtp(Request $r): View|Response
+    {
+        $portal = PortalHost::current($r);
+        abort_unless(is_string($portal) && in_array($portal, ['dealer', 'subdealer'], true), 404);
+        if (! $r->session()->has('pending_login_id')) {
+            return redirect('/login');
+        }
+
+        return view('reference.auth', ['mode' => 'otp', 'portal' => $portal]);
+    }
+
+    public function verifyOtp(Request $r, LoginOtpChallenge $otp): Response
+    {
+        $portal = PortalHost::current($r);
+        abort_unless(is_string($portal) && in_array($portal, ['dealer', 'subdealer'], true), 404);
+        $pendingId = $r->session()->get('pending_login_id');
+        if (! (is_int($pendingId) || (is_string($pendingId) && ctype_digit($pendingId)))) {
+            return redirect('/login');
+        }
+        $data = $r->validate(['code' => 'required|digits:6']);
+        $user = User::query()->whereKey((int) $pendingId)->where('status', 'active')->first();
+        if (! $user || PortalHost::forUser($user) !== $portal) {
+            $r->session()->forget(['pending_login_id', 'pending_login_portal']);
+
+            throw ValidationException::withMessages(['code' => __('portal.flash_otp_sign_in_again')]);
+        }
+        $otp->verify($user, $portal, $data['code']);
+        $r->session()->forget(['pending_login_id', 'pending_login_portal']);
+
+        return $this->completeLogin($r, $user);
+    }
+
     private function authenticate(Request $r, string $portal): Response
     {
         $data = $r->validate(['email' => 'required|string|max:254', 'password' => 'required|string|max:200'], [], ['email' => 'e-mail or phone number']);
@@ -37,7 +71,7 @@ class AuthController extends Controller
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
         $key = ($isEmail ? Str::lower($identity) : ($phone ?? Str::lower($identity))).'|'.$r->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => 'Too many attempts. Please wait a minute.']);
+            throw ValidationException::withMessages(['email' => __('portal.flash_too_many_attempts')]);
         }
         $query = User::where('status', 'active');
         if ($isEmail) {
@@ -53,19 +87,53 @@ class AuthController extends Controller
         $candidate = $matches->count() === 1 ? $matches->first() : null;
         if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
             RateLimiter::hit($key, 60);
-            throw ValidationException::withMessages(['email' => 'These credentials could not be verified.']);
+            throw ValidationException::withMessages(['email' => __('portal.flash_bad_credentials')]);
         }
-        Auth::login($candidate);
         RateLimiter::clear($key);
+
+        $otp = app(LoginOtpChallenge::class);
+        if ($otp->requiredFor($candidate)) {
+            $otp->issue($candidate, $portal);
+            $r->session()->put([
+                'pending_login_id' => $candidate->id,
+                'pending_login_portal' => $portal,
+            ]);
+
+            return redirect('/login/otp')->with('success', __('portal.flash_otp_sent'));
+        }
+
+        return $this->completeLogin($r, $candidate);
+    }
+
+    private function completeLogin(Request $r, User $candidate): Response
+    {
+        Auth::login($candidate);
         $r->session()->regenerate();
+        $this->persistLoginLocale($r);
         Audit::record($r->user()->id, 'login', 'account');
         $intended = $r->session()->pull('url.intended');
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
-        if (is_string($intended) && is_string($path) && $path !== '/login' && parse_url($intended, PHP_URL_HOST) === $r->getHost()) {
+        if (is_string($intended) && is_string($path) && $path !== '/login' && $path !== '/login/otp' && parse_url($intended, PHP_URL_HOST) === $r->getHost()) {
             return redirect($intended);
         }
 
         return redirect('/');
+    }
+
+    /** Keep the language chosen on the login screen after authentication. */
+    private function persistLoginLocale(Request $r): void
+    {
+        $supported = config('madina.locales', ['en', 'bn']);
+        $locale = $r->session()->get('locale') ?? $r->cookie('locale');
+        if (! is_string($locale) || ! in_array($locale, $supported, true)) {
+            return;
+        }
+        $user = $r->user();
+        if (! $user || $user->locale === $locale) {
+            return;
+        }
+        $user->forceFill(['locale' => $locale])->save();
+        app()->setLocale($locale);
     }
 
     public function logout(Request $r): Response
@@ -83,7 +151,7 @@ class AuthController extends Controller
         $data = $r->validate(['email' => 'required|email|max:254']);
         Password::sendResetLink($data);
 
-        return back()->with('success', 'If the account is eligible, a password reset link will be sent.');
+        return back()->with('success', __('portal.flash_reset_link_sent'));
     }
 
     public function reset(Request $r): Response
@@ -98,7 +166,7 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', 'Password set. You can sign in now.');
+        return redirect(User::where('email', $data['email'])->first()?->loginPath() ?? PortalHost::url(PortalHost::current() ?? 'dealer', '/login'))->with('success', __('portal.flash_password_set'));
     }
 
     public function ownerContact(Request $request): Response
@@ -120,7 +188,7 @@ class AuthController extends Controller
         });
         $request->session()->regenerate();
 
-        return back()->with('success', 'Owner email updated. Use this email or your registered phone number to sign in.');
+        return back()->with('success', __('portal.flash_owner_email_updated'));
     }
 
     public function password(Request $r): Response
@@ -131,6 +199,6 @@ class AuthController extends Controller
         $r->session()->regenerate();
         Audit::record($r->user()->id, 'password.change', 'account');
 
-        return back()->with('success', 'Password updated. Other sessions have been revoked.');
+        return back()->with('success', __('portal.flash_password_updated'));
     }
 }

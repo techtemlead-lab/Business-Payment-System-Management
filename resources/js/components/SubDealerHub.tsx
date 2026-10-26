@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
-    Store, Plus, Search, ArrowUpRight, BadgeCheck, Users, ShoppingBag,
-    Wallet, ShieldCheck, MapPin, ChevronRight
+    Plus, Search, ArrowUpRight, BadgeCheck
 } from 'lucide-react';
-import { Table, Pagination, Badge, money, date, label } from './UI';
+import { Table, Pagination, Badge, money, date } from './UI';
+import { useT } from '../shared/i18n/t';
 
 interface SubDealerHubProps {
     accounts: any;
@@ -28,12 +28,20 @@ export default function SubDealerHub({
     filters = {},
     onEditAccount
 }: SubDealerHubProps) {
+    const translate = useT();
     const [tab, setTab] = useState<'accounts' | 'orders' | 'salary' | 'territory'>('accounts');
     const [q, setQ] = useState(filters.q ?? '');
     const { portalBase: base } = usePage<any>().props;
 
     const subdealersList = accounts?.data ?? [];
     const ordersList = orders?.data ?? [];
+
+    const salaryTiers = [
+        { tierKey: 'sd_tier_01', rate: '1.0%', min: 10000, descKey: 'sd_tier_01_desc' },
+        { tierKey: 'sd_tier_02', rate: '2.0%', min: 25000, descKey: 'sd_tier_02_desc' },
+        { tierKey: 'sd_tier_03', rate: '3.0%', min: 40000, descKey: 'sd_tier_03_desc' },
+        { tierKey: 'sd_tier_04', rate: '4.0%', min: 50000, descKey: 'sd_tier_04_desc' },
+    ];
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -52,15 +60,15 @@ export default function SubDealerHub({
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ background: '#059669', color: '#ffffff', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
-                            SUB-DEALER SECTION
+                            {translate('portal', 'sd_badge')}
                         </span>
-                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Product Prices, Orders & Salary · 3%</span>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'sd_badge_hint')}</span>
                     </div>
                     <h2 style={{ fontSize: 22, fontWeight: 800, color: '#011627', margin: '6px 0 2px' }}>
-                        Sub-Dealer Operations & Records
+                        {translate('portal', 'sd_heading')}
                     </h2>
                     <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                        Separate accounts, purchase orders at configured partner prices, territory mapping, and monthly flat 3% salary.
+                        {translate('portal', 'sd_heading_hint')}
                     </p>
                 </div>
 
@@ -80,7 +88,7 @@ export default function SubDealerHub({
                                 color: tab === 'accounts' ? '#ffffff' : '#475569'
                             }}
                         >
-                            1. Sub-Dealer Directory ({stats.total})
+                            {translate('portal', 'sd_tab_directory', { count: String(stats.total) })}
                         </button>
                         <button
                             type="button"
@@ -96,7 +104,7 @@ export default function SubDealerHub({
                                 color: tab === 'orders' ? '#ffffff' : '#475569'
                             }}
                         >
-                            2. Purchase Orders
+                            {translate('portal', 'sd_tab_orders')}
                         </button>
                         <button
                             type="button"
@@ -112,12 +120,12 @@ export default function SubDealerHub({
                                 color: tab === 'salary' ? '#ffffff' : '#475569'
                             }}
                         >
-                            3. Monthly Salary · 3%
+                            {translate('portal', 'sd_tab_salary')}
                         </button>
                     </div>
 
                     <Link href="/accounts/create" className="button dark" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#059669', borderColor: '#059669' }}>
-                        <Plus size={16} /> Add Sub-Dealer
+                        <Plus size={16} /> {translate('portal', 'sd_add')}
                     </Link>
                 </div>
             </div>
@@ -125,35 +133,35 @@ export default function SubDealerHub({
             {/* Quick Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Total Registered Sub-Dealers</div>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'sd_kpi_total')}</div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#011627', marginTop: 4 }}>
                         {stats.total}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{stats.active} Active & Operating</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'sd_kpi_active', { count: String(stats.active) })}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Approved Pricing Discount</div>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'sd_kpi_discount')}</div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#059669', marginTop: 4 }}>
-                        40.0% OFF MRP
+                        {translate('portal', 'sd_kpi_discount_value')}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Configured sub-dealer purchase prices</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'sd_kpi_discount_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Sub-Dealer Orders Placed</div>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'sd_kpi_orders')}</div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#011627', marginTop: 4 }}>
                         {stats.orders_count || ordersList.length}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Processed in system</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'sd_kpi_orders_hint')}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>Salary Qualification Range</div>
+                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'sd_kpi_salary_range')}</div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#2e3192', marginTop: 4 }}>
-                        1% to 4%
+                        {translate('portal', 'sd_kpi_salary_value')}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Based on ৳10k to ৳50k monthly volume</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'sd_kpi_salary_hint')}</div>
                 </div>
             </div>
 
@@ -162,15 +170,15 @@ export default function SubDealerHub({
                 <section className="panel table-panel">
                     <div className="panel-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 0' }}>
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 2px' }}>Sub-Dealer Partner Directory</h3>
-                            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Showing all retail partners operating under the sub-dealer agreement.</p>
+                            <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 2px' }}>{translate('portal', 'sd_dir_title')}</h3>
+                            <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>{translate('portal', 'sd_dir_hint')}</p>
                         </div>
                         <form className="filter-bar" onSubmit={e => { e.preventDefault(); router.get(`${base}/sub-dealers`, { q }, { preserveState: true }); }}>
                             <div className="search-input">
                                 <Search size={16} />
-                                <input placeholder="Search sub-dealer name or code..." value={q} onChange={e => setQ(e.target.value)} />
+                                <input placeholder={translate('portal', 'sd_search_ph')} value={q} onChange={e => setQ(e.target.value)} />
                             </div>
-                            <button className="button small">Search</button>
+                            <button className="button small">{translate('portal', 'sd_search')}</button>
                         </form>
                     </div>
 
@@ -180,7 +188,7 @@ export default function SubDealerHub({
                             columns={[
                                 {
                                     key: 'name',
-                                    title: 'Sub-Dealer / Pharmacy',
+                                    title: translate('portal', 'sd_col_partner'),
                                     render: r => (
                                         <div>
                                             <b>{r.name}</b>
@@ -195,12 +203,12 @@ export default function SubDealerHub({
                                 },
                                 {
                                     key: 'dealer_code',
-                                    title: 'Sub-Dealer Code',
+                                    title: translate('portal', 'sd_col_code'),
                                     render: r => <b style={{ color: '#059669' }}>{r.dealer_code ?? '—'}</b>
                                 },
                                 {
                                     key: 'sponsor',
-                                    title: 'Parent Dealer',
+                                    title: translate('portal', 'sd_col_parent'),
                                     render: r => {
                                         const sponsor = sponsors.find(s => s.id === r.sponsor_id);
                                         return sponsor ? (
@@ -208,22 +216,22 @@ export default function SubDealerHub({
                                                 <b>{sponsor.name}</b>
                                                 <small className="cell-sub">{sponsor.dealer_code}</small>
                                             </div>
-                                        ) : <span style={{ color: '#94a3b8' }}>Direct / None</span>;
+                                        ) : <span style={{ color: '#94a3b8' }}>{translate('portal', 'sd_parent_none')}</span>;
                                     }
                                 },
                                 {
                                     key: 'location',
-                                    title: 'Territory',
+                                    title: translate('portal', 'sd_col_territory'),
                                     render: r => <>{r.district ?? '—'}{r.division ? `, ${r.division}` : ''}</>
                                 },
                                 {
                                     key: 'status',
-                                    title: 'Status',
+                                    title: translate('portal', 'col_status'),
                                     render: r => <Badge status={r.status} />
                                 },
                                 {
                                     key: 'action',
-                                    title: 'Manage',
+                                    title: translate('portal', 'sd_col_manage'),
                                     render: r => (
                                         <div className="inline-actions">
                                             <button
@@ -231,7 +239,7 @@ export default function SubDealerHub({
                                                 className="text-link"
                                                 onClick={() => onEditAccount && onEditAccount(r)}
                                             >
-                                                Edit / Status
+                                                {translate('portal', 'sd_edit_status')}
                                             </button>
                                             <button
                                                 type="button"
@@ -239,7 +247,7 @@ export default function SubDealerHub({
                                                 disabled={r.status !== 'active'}
                                                 onClick={() => router.post(`/commands/accounts/${r.id}/invite`)}
                                             >
-                                                Invite
+                                                {translate('portal', 'sd_invite')}
                                             </button>
                                         </div>
                                     )
@@ -255,8 +263,8 @@ export default function SubDealerHub({
             {tab === 'orders' && (
                 <section className="panel table-panel">
                     <div className="panel-heading" style={{ padding: '20px 24px 0' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 2px' }}>Sub-Dealer Purchase Orders</h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>Wholesale purchases placed by sub-dealers with configured product prices.</p>
+                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 2px' }}>{translate('portal', 'sd_orders_title')}</h3>
+                        <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>{translate('portal', 'sd_orders_hint')}</p>
                     </div>
 
                     <div style={{ padding: '0 24px 20px' }}>
@@ -265,7 +273,7 @@ export default function SubDealerHub({
                             columns={[
                                 {
                                     key: 'number',
-                                    title: 'Order Number',
+                                    title: translate('portal', 'sd_col_order'),
                                     render: r => (
                                         <Link className="record-link" href={`${base}/orders/${r.id}`}>
                                             {r.number}
@@ -275,7 +283,7 @@ export default function SubDealerHub({
                                 },
                                 {
                                     key: 'user',
-                                    title: 'Sub-Dealer',
+                                    title: translate('portal', 'sd_col_subdealer'),
                                     render: r => (
                                         <>
                                             {r.user.name}
@@ -285,24 +293,24 @@ export default function SubDealerHub({
                                 },
                                 {
                                     key: 'lines',
-                                    title: 'Items',
+                                    title: translate('portal', 'sd_col_items'),
                                     render: r => r.lines?.reduce((n: number, l: any) => n + l.quantity, 0) ?? 0
                                 },
                                 {
                                     key: 'total',
-                                    title: 'Wholesale Purchase Value',
+                                    title: translate('portal', 'sd_col_wholesale'),
                                     render: r => <b style={{ color: '#006837' }}>{money(r.total)}</b>
                                 },
                                 {
                                     key: 'status',
-                                    title: 'Status',
+                                    title: translate('portal', 'col_status'),
                                     render: r => <Badge status={r.status} />
                                 },
                                 {
                                     key: 'action',
                                     title: '',
                                     render: r => (
-                                        <Link aria-label={`View ${r.number}`} href={`${base}/orders/${r.id}`} className="icon-button">
+                                        <Link aria-label={translate('portal', 'a11y_view_order', { number: String(r.number) })} href={`${base}/orders/${r.id}`} className="icon-button">
                                             <ArrowUpRight size={17} />
                                         </Link>
                                     )
@@ -321,32 +329,27 @@ export default function SubDealerHub({
                         <BadgeCheck size={24} color="#059669" />
                         <div>
                             <h3 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: '#011627' }}>
-                                Confirmed Sub-Dealer Monthly Salary · 3%
+                                {translate('portal', 'sd_salary_title')}
                             </h3>
                             <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
-                                According to client specifications, the highest qualifying tier applies once to the entire monthly qualifying purchase amount.
+                                {translate('portal', 'sd_salary_hint')}
                             </p>
                         </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 16 }}>
-                        {[
-                            { tier: 'TIER 01', rate: '1.0%', min: 10000, desc: 'Qualifying monthly purchases from ৳10,000' },
-                            { tier: 'TIER 02', rate: '2.0%', min: 25000, desc: 'Qualifying monthly purchases from ৳25,000' },
-                            { tier: 'TIER 03', rate: '3.0%', min: 40000, desc: 'Qualifying monthly purchases from ৳40,000' },
-                            { tier: 'TIER 04', rate: '4.0%', min: 50000, desc: 'Qualifying monthly purchases from ৳50,000+' }
-                        ].map((t, idx) => (
-                            <div key={idx} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>{t.tier}</span>
-                                <div style={{ fontSize: 26, fontWeight: 800, color: '#059669', margin: '4px 0' }}>{t.rate}</div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{money(t.min)}+</div>
-                                <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>{t.desc}</p>
+                        {salaryTiers.map((tier) => (
+                            <div key={tier.tierKey} style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>{translate('portal', tier.tierKey)}</span>
+                                <div style={{ fontSize: 26, fontWeight: 800, color: '#059669', margin: '4px 0' }}>{tier.rate}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{money(tier.min)}+</div>
+                                <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0 0', lineHeight: 1.4 }}>{translate('portal', tier.descKey)}</p>
                             </div>
                         ))}
                     </div>
 
                     <div style={{ marginTop: 20, padding: 14, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 12, color: '#166534' }}>
-                        💡 <b>Policy Rule:</b> Monthly volume below ৳10,000 receives 0% salary. When a sub-dealer hits ৳50,000+, they earn the full 4.0% salary on their entire monthly volume.
+                        💡 <b>{translate('portal', 'sd_policy_rule')}</b> {translate('portal', 'sd_policy_body')}
                     </div>
                 </section>
             )}

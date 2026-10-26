@@ -124,7 +124,7 @@ class RemainingHardeningTest extends TestCase
 
     public function test_settlement_request_key_is_idempotent(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $key = (string) Str::uuid();
         $first = app(CommissionService::class)->settleMonthlySalaryPool('2024-01', null, $key);
         $second = app(CommissionService::class)->settleMonthlySalaryPool('2024-01', null, $key);
@@ -136,7 +136,7 @@ class RemainingHardeningTest extends TestCase
 
     public function test_rank_incentive_and_refund_request_keys_are_idempotent(): void
     {
-        config(['madina.financial_activation' => true]);
+        $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);

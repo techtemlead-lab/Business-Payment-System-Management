@@ -1,19 +1,22 @@
 import { Link, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp,
+    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
 } from 'lucide-react';
 import { Badge, money, type Row } from './UI';
+import { useT } from '../shared/i18n/t';
 
 type ChartSlice = { key: string; label: string; value: string; cents: number; color: string };
 type TargetRow = { key: string; label: string; current: string; target: string; remaining: string; percent: number; hint: string };
 
 function PieChart({ slices }: { slices: ChartSlice[] }) {
     const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.cents), 0);
+    const translate = useT();
     if (total <= 0) {
         return (
             <div className="home-pie empty" aria-hidden="true">
-                <span>No activity yet</span>
+                <span>{translate('portal', 'no_activity_yet')}</span>
             </div>
         );
     }
@@ -41,8 +44,88 @@ function PieChart({ slices }: { slices: ChartSlice[] }) {
     );
 }
 
+function ReferralShare({ referral }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null }) {
+    const translate = useT();
+    const [copied, setCopied] = useState(false);
+    if (!referral?.url || !referral?.code) {
+        return null;
+    }
+
+    const shareText = `${translate('portal', 'share_join_text', { code: String(referral.code) })} ${referral.url}`;
+    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+    const copyLink = async () => {
+        try {
+            await navigator.clipboard.writeText(referral.url!);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 2000);
+        } catch {
+            setCopied(false);
+        }
+    };
+
+    const shareNative = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: translate('portal', 'share_join_title'),
+                    text: translate('portal', 'share_join_text', { code: String(referral.code) }),
+                    url: referral.url,
+                });
+                return;
+            } catch {
+                // Fall through to copy when the share sheet is dismissed or unavailable.
+            }
+        }
+        await copyLink();
+    };
+
+    return (
+        <section className="partner-home-referral" aria-label={translate('portal', 'invite_partners')}>
+            <div className="partner-home-metrics-head">
+                <div>
+                    <h3>{translate('portal', 'invite_partners')}</h3>
+                    <p>{referral.hint || translate('portal', 'invite_partners_hint')}</p>
+                </div>
+                <Share2 size={18} />
+            </div>
+            <div className="partner-home-referral-body">
+                <div className="partner-home-referral-poster">
+                    {referral.qr_url
+                        ? <img src={referral.qr_url} alt="" width={96} height={96} className="partner-home-referral-qr" />
+                        : null}
+                    <small>{translate('portal', 'brand_company_bar')}</small>
+                    <b>{referral.code}</b>
+                    <span>{translate('portal', 'open_join_page')}</span>
+                </div>
+                <div className="partner-home-referral-meta">
+                    <div className="partner-home-referral-code">
+                        <span>{translate('portal', 'refer_code')}</span>
+                        <strong>{referral.code}</strong>
+                    </div>
+                    <code className="partner-home-referral-url">{referral.url}</code>
+                    <div className="partner-home-referral-actions">
+                        <button type="button" className="button small" onClick={copyLink}>
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            {copied ? translate('portal', 'copied') : translate('portal', 'copy_link')}
+                        </button>
+                        <button type="button" className="button small dark" onClick={shareNative}>
+                            <Share2 size={14} /> {translate('portal', 'share')}
+                        </button>
+                        <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">
+                            {translate('portal', 'share_whatsapp')}
+                        </a>
+                        <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    );
+}
+
 function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     const { portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const profile = home.profile ?? {};
     const targets: TargetRow[] = home.targets ?? [];
     const chart: ChartSlice[] = home.chart ?? [];
@@ -61,39 +144,47 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <small>{profile.dealer_code || '—'} · {String(profile.role || '').replaceAll('_', ' ')}</small>
                     <Badge status={profile.status || 'active'} />
                     <dl>
-                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>Email</dt><dd>{profile.email || '—'}</dd></div>
-                        <div><dt>Area code</dt><dd>{profile.area_code || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
                         {(profile.district || profile.division) && (
-                            <div><dt>Location</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
+                            <div><dt>{translate('portal', 'label_location')}</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
+                        )}
+                        {profile.refer_code && (
+                            <div><dt>{translate('portal', 'refer_code')}</dt><dd>{profile.refer_code}</dd></div>
                         )}
                     </dl>
-                    <Link href={`${base}/profile`} className="text-link">Full profile ↗</Link>
+                    <Link href={`${base}/profile`} className="text-link">{translate('portal', 'full_profile')}</Link>
+                    <Link href={`${base}/full-report`} className="text-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <FileBarChart2 size={14} /> {translate('portal', 'full_report')}
+                    </Link>
+                    <a href={`${base}/id-card/pdf`} className="text-link">{translate('portal', 'download_id_card')}</a>
+                    <a href={`${base}/join-poster/pdf`} className="text-link">{translate('portal', 'download_join_poster')}</a>
                 </aside>
 
                 <section className="partner-home-metrics">
                     <div className="partner-home-metrics-head">
                         <div>
-                            <h3>Today’s activity</h3>
-                            <p>Company purchase, team sales and this month’s commission.</p>
+                            <h3>{translate('portal', 'today_activity')}</h3>
+                            <p>{translate('portal', 'today_activity_hint')}</p>
                         </div>
                         <TrendingUp size={18} />
                     </div>
                     <div className="partner-home-metric-cards">
                         <div>
-                            <span>Today purchase</span>
+                            <span>{translate('portal', 'today_purchase')}</span>
                             <strong>{money(home.snapshot?.own_sales_today)}</strong>
-                            <small>From company (Kubani)</small>
+                            <small>{translate('portal', 'today_purchase_hint')}</small>
                         </div>
                         <div>
-                            <span>Team sales</span>
+                            <span>{translate('portal', 'team_sales')}</span>
                             <strong>{money(home.snapshot?.team_sales_today)}</strong>
-                            <small>Downline today</small>
+                            <small>{translate('portal', 'team_sales_hint')}</small>
                         </div>
                         <div>
-                            <span>Commission</span>
+                            <span>{translate('portal', 'commission_month')}</span>
                             <strong>{money(home.snapshot?.commission_month)}</strong>
-                            <small>This month</small>
+                            <small>{translate('portal', 'commission_month_hint')}</small>
                         </div>
                     </div>
                     <PieChart slices={chart} />
@@ -102,8 +193,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 <section className="partner-home-targets">
                     <div className="partner-home-metrics-head">
                         <div>
-                            <h3>Targets</h3>
-                            <p>Monthly salary, rank reward and bike incentive.</p>
+                            <h3>{translate('portal', 'targets')}</h3>
+                            <p>{translate('portal', 'targets_hint')}</p>
                         </div>
                         <Target size={18} />
                     </div>
@@ -121,8 +212,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                                     <i style={{ width: `${Math.min(100, target.percent)}%` }} />
                                 </div>
                                 <div className="partner-home-target-meta">
-                                    <span>Done {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
-                                    <span>Left {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
+                                    <span>{translate('portal', 'target_done')} {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
+                                    <span>{translate('portal', 'target_left')} {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
                                 </div>
                                 <small>{target.hint}</small>
                             </article>
@@ -131,13 +222,15 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 </section>
             </section>
 
+            <ReferralShare referral={home.referral ?? null} />
+
             <section className="panel table-panel dense-panel">
                 <div className="panel-heading">
                     <div>
-                        <h2>Recent orders</h2>
-                        <p>Latest purchase requests and fulfilment.</p>
+                        <h2>{translate('portal', 'recent_orders')}</h2>
+                        <p>{translate('portal', 'recent_orders_hint')}</p>
                     </div>
-                    <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                    <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                 </div>
                 {orders}
             </section>
@@ -147,6 +240,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
 
 function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const u = auth.user;
     const caps: string[] = auth.capabilities;
     const staff = caps.length > 0;
@@ -154,23 +248,23 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
     const profile = home.profile ?? {};
     const snapshot = home.snapshot ?? {};
     const cards = [
-        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
-        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
-        { route: 'deliveries', name: 'Pending supply & deliveries', description: 'Remaining quantities and courier updates', icon: Truck, show: commerce },
-        { route: 'dues', name: 'Outstanding dues', description: 'Unpaid balances and verified payments', icon: Wallet, show: commerce },
-        { route: 'accounts', name: 'Partner accounts', description: 'Dealers, sub-dealers and staff access', icon: Users, show: caps.includes('accounts') },
-        { route: 'partnerships', name: 'Partnership applications', description: 'Dealership applications awaiting review', icon: Users, show: caps.includes('accounts') },
-        { route: 'inventory', name: 'Inventory', description: 'Stock receipts, issues and adjustments', icon: Package, show: caps.includes('inventory') },
-        { route: 'payments', name: 'Payment review', description: 'Verify manual payment references', icon: Coins, show: caps.includes('finance') },
-        { route: 'policies', name: 'Commission policies', description: 'Inactive drafts and policy status', icon: ShieldCheck, show: caps.includes('finance') },
-        { route: 'ledger', name: 'Financial ledger', description: 'Posted financial history', icon: FileText, show: caps.includes('finance') },
-        { route: 'reports', name: 'Reports', description: 'Order reports and permitted exports', icon: FileText, show: caps.includes('reports') },
-        { route: 'content', name: 'Website content', description: 'Published company pages and notices', icon: FileText, show: caps.includes('content') },
-        { route: 'enquiries', name: 'Contact enquiries', description: 'Public contact-form messages', icon: Users, show: caps.includes('content') },
-        { route: 'audit', name: 'Activity log', description: 'Staff actions and recorded changes', icon: ShieldCheck, show: caps.includes('audit') },
-        { route: 'profile', name: 'My profile', description: 'Company-maintained account information', icon: Users, show: true },
-        { route: 'security', name: 'Account security', description: 'Change your account password', icon: Settings, show: true },
-        { route: 'notifications', name: 'Notifications', description: 'Stock, order and account updates', icon: Bell, show: true },
+        { route: 'catalog', name: translate('portal', 'admin_tile_catalog'), description: translate('portal', 'admin_tile_catalog_hint'), icon: Package, show: true },
+        { route: 'orders', name: translate('portal', 'admin_tile_orders'), description: translate('portal', 'admin_tile_orders_hint'), icon: ShoppingBag, show: commerce },
+        { route: 'deliveries', name: translate('portal', 'admin_tile_deliveries'), description: translate('portal', 'admin_tile_deliveries_hint'), icon: Truck, show: commerce },
+        { route: 'dues', name: translate('portal', 'admin_tile_dues'), description: translate('portal', 'admin_tile_dues_hint'), icon: Wallet, show: commerce },
+        { route: 'accounts', name: translate('portal', 'admin_tile_accounts'), description: translate('portal', 'admin_tile_accounts_hint'), icon: Users, show: caps.includes('accounts') },
+        { route: 'partnerships', name: translate('portal', 'admin_tile_partnerships'), description: translate('portal', 'admin_tile_partnerships_hint'), icon: Users, show: caps.includes('accounts') },
+        { route: 'inventory', name: translate('portal', 'admin_tile_inventory'), description: translate('portal', 'admin_tile_inventory_hint'), icon: Package, show: caps.includes('inventory') },
+        { route: 'payments', name: translate('portal', 'admin_tile_payments'), description: translate('portal', 'admin_tile_payments_hint'), icon: Coins, show: caps.includes('finance') },
+        { route: 'policies', name: translate('portal', 'admin_tile_policies'), description: translate('portal', 'admin_tile_policies_hint'), icon: ShieldCheck, show: caps.includes('finance') },
+        { route: 'ledger', name: translate('portal', 'admin_tile_ledger'), description: translate('portal', 'admin_tile_ledger_hint'), icon: FileText, show: caps.includes('finance') },
+        { route: 'reports', name: translate('portal', 'admin_tile_reports'), description: translate('portal', 'admin_tile_reports_hint'), icon: FileText, show: caps.includes('reports') },
+        { route: 'content', name: translate('portal', 'admin_tile_content'), description: translate('portal', 'admin_tile_content_hint'), icon: FileText, show: caps.includes('content') },
+        { route: 'enquiries', name: translate('portal', 'admin_tile_enquiries'), description: translate('portal', 'admin_tile_enquiries_hint'), icon: Users, show: caps.includes('content') || caps.includes('accounts') },
+        { route: 'audit', name: translate('portal', 'admin_tile_audit'), description: translate('portal', 'admin_tile_audit_hint'), icon: ShieldCheck, show: caps.includes('audit') },
+        { route: 'profile', name: translate('portal', 'admin_tile_profile'), description: translate('portal', 'admin_tile_profile_hint'), icon: Users, show: true },
+        { route: 'security', name: translate('portal', 'admin_tile_security'), description: translate('portal', 'admin_tile_security_hint'), icon: Settings, show: true },
+        { route: 'notifications', name: translate('portal', 'admin_tile_notifications'), description: translate('portal', 'admin_tile_notifications_hint'), icon: Bell, show: true },
     ].filter((x) => x.show);
 
     return (
@@ -182,20 +276,20 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                     <small>{labelRole(profile.role || u.role)}</small>
                     <Badge status={profile.status || u.status} />
                     <dl>
-                        <div><dt>Mobile</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>Email</dt><dd>{profile.email || u.email || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
+                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || u.email || '—'}</dd></div>
                     </dl>
                 </aside>
                 <div className="admin-home-stats">
-                    <div><span>Orders today</span><strong>{snapshot.orders_today ?? 0}</strong></div>
-                    <div><span>Awaiting review</span><strong>{snapshot.pending_review ?? 0}</strong></div>
-                    <div><span>Partner accounts</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
-                    <div><span>Approved purchases</span><strong>{money(snapshot.purchases)}</strong></div>
-                    <div><span>Outstanding dues</span><strong>{money(snapshot.dues)}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_orders_today')}</span><strong>{snapshot.orders_today ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_awaiting_review')}</span><strong>{snapshot.pending_review ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_partner_accounts')}</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_approved_purchases')}</span><strong>{money(snapshot.purchases)}</strong></div>
+                    <div><span>{translate('portal', 'admin_stat_outstanding_dues')}</span><strong>{money(snapshot.dues)}</strong></div>
                 </div>
             </section>
 
-            <section className="account-actions dense-actions" aria-label="Company modules">
+            <section className="account-actions dense-actions" aria-label={translate('portal', 'admin_modules')}>
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
@@ -215,19 +309,19 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                 <section className="panel table-panel dense-panel">
                     <div className="panel-heading">
                         <div>
-                            <h2>Recent orders</h2>
-                            <p>Purchase requests and fulfilment progress.</p>
+                            <h2>{translate('portal', 'recent_orders')}</h2>
+                            <p>{translate('portal', 'recent_orders_hint')}</p>
                         </div>
-                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                        <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
                     {orders}
                 </section>
             )}
             {data.lowStock?.length > 0 && (
                 <section className="notice">
-                    <h2>Low-stock alerts</h2>
+                    <h2>{translate('portal', 'low_stock_alerts')}</h2>
                     <p>{data.lowStock.map((p: Row) => `${p.name} (${p.stock} left)`).join(' · ')}</p>
-                    <Link href={`${base}/inventory`} className="text-link">Review inventory</Link>
+                    <Link href={`${base}/inventory`} className="text-link">{translate('portal', 'review_inventory')}</Link>
                 </section>
             )}
         </div>
@@ -240,6 +334,7 @@ function labelRole(role: string) {
 
 export default function DashboardOverview({ data, orders }: { data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
+    const translate = useT();
     const u = auth.user;
     const caps: string[] = auth.capabilities;
     const staff = caps.length > 0;
@@ -254,13 +349,13 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     // Fallback for edge roles
     const commerce = !staff || caps.includes('orders') || caps.includes('finance');
     const cards = [
-        { route: 'catalog', name: 'Product collection', description: 'Products, prices and available stock', icon: Package, show: true },
-        { route: 'orders', name: 'Orders', description: 'Purchase requests and order history', icon: ShoppingBag, show: commerce },
-        { route: 'earnings', name: 'My earnings', description: 'View earnings and payouts', icon: Coins, show: !staff },
-        { route: 'network', name: 'My network', description: 'Direct referrals', icon: GitBranch, show: u.role === 'dealer' },
-        { route: 'ranks', name: 'Rank progress', description: 'Qualification status', icon: BadgeCheck, show: u.role === 'dealer' },
-        { route: 'profile', name: 'My profile', description: 'Account information', icon: Users, show: true },
-        { route: 'security', name: 'Account security', description: 'Change password', icon: Settings, show: true },
+        { route: 'catalog', name: translate('portal','dash_card_catalog'), description: translate('portal','dash_card_catalog_desc'), icon: Package, show: true },
+        { route: 'orders', name: translate('portal','dash_card_orders'), description: translate('portal','dash_card_orders_desc'), icon: ShoppingBag, show: commerce },
+        { route: 'earnings', name: translate('portal','nav_my_earnings'), description: translate('portal','dash_card_earnings_desc'), icon: Coins, show: !staff },
+        { route: 'network', name: translate('portal','dash_card_network'), description: translate('portal','dash_card_network_desc'), icon: GitBranch, show: u.role === 'dealer' },
+        { route: 'ranks', name: translate('portal','dash_card_ranks'), description: translate('portal','dash_card_ranks_desc'), icon: BadgeCheck, show: u.role === 'dealer' },
+        { route: 'profile', name: translate('portal','dash_card_profile'), description: translate('portal','dash_card_profile_desc'), icon: Users, show: true },
+        { route: 'security', name: translate('portal','dash_card_security'), description: translate('portal','dash_card_security_desc'), icon: Settings, show: true },
     ].filter((x) => x.show);
 
     return (
@@ -269,14 +364,14 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
                 <div className="account-profile-info">
                     <div className="account-avatar" aria-hidden="true">{u.name[0]}</div>
                     <div>
-                        <p>Hello,</p>
+                        <p>{translate('portal','dash_hello')}</p>
                         <h2>{u.name}</h2>
-                        <small>{u.dealer_code ?? 'Company staff'} · {labelRole(u.role)}</small>
+                        <small>{u.dealer_code ?? translate('portal','company_staff')} · {labelRole(u.role)}</small>
                         <Badge status={u.status} />
                     </div>
                 </div>
             </section>
-            <section className="account-actions dense-actions" aria-label="Account actions">
+            <section className="account-actions dense-actions" aria-label={translate('portal','dash_account_actions')}>
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
@@ -294,8 +389,8 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
             {commerce && (
                 <section className="panel table-panel dense-panel">
                     <div className="panel-heading">
-                        <div><h2>Recent orders</h2></div>
-                        <Link href={`${base}/orders`} className="text-link">View all <ArrowUpRight size={15} /></Link>
+                        <div><h2>{translate('portal', 'recent_orders')}</h2></div>
+                        <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
                     </div>
                     {orders}
                 </section>

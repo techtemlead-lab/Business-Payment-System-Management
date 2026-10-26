@@ -2,11 +2,13 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Finance\CalculationMessage;
 use App\Domain\Finance\Percentage;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -23,14 +25,17 @@ final class CommissionService
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrder(Order $order, string $reason = 'Order cancelled/refunded', ?int $actorId = null, ?string $requestKey = null): array
+    public function reverseOrder(Order $order, ?string $reason = null, ?int $actorId = null, ?string $requestKey = null): array
     {
+        $reason ??= __('portal.jr_order_cancelled_refunded');
+
         return $this->reversals->refund($order, null, $reason, 'full-refund', $actorId, $requestKey);
     }
 
     /** @return list<array<string, mixed>> */
-    public function reverseOrderPartial(Order $order, string|float $refundAmount, string $reason = 'Partial refund', ?string $reference = null, ?int $actorId = null, ?string $requestKey = null): array
+    public function reverseOrderPartial(Order $order, string|float $refundAmount, ?string $reason = null, ?string $reference = null, ?int $actorId = null, ?string $requestKey = null): array
     {
+        $reason ??= __('portal.jr_partial_refund');
         $amount = is_float($refundAmount) ? number_format($refundAmount, 2, '.', '') : $refundAmount;
 
         return $this->reversals->refund($order, Money::cents($amount), $reason, $reference ?? hash('sha256', $reason.'|'.$amount), $actorId, $requestKey);
@@ -55,7 +60,7 @@ final class CommissionService
             $rank = DealerRank::where('user_id', $userId)->value('current_rank');
             $approved = $this->policies->snapshot()['rules']['rank_incentive']['parameters'][$rank.'_bonus'] ?? '0.00';
             if (Money::cents(number_format($customAmount, 2, '.', '')) !== Money::cents((string) $approved)) {
-                throw ValidationException::withMessages(['incentive' => 'Change the approved rule rather than overriding an individual award.']);
+                throw ValidationException::withMessages(['incentive' => __('portal.err_incentive_override')]);
             }
         }
 
@@ -134,7 +139,7 @@ final class CommissionService
             $rates[$key] = CommissionPolicy::rate($rules, $key)->decimal();
         }
         if (array_diff_key($parameterOverrides, $rates) !== []) {
-            throw ValidationException::withMessages(['overrides' => 'Unknown simulation category.']);
+            throw ValidationException::withMessages(['overrides' => __('portal.err_sim_unknown_category')]);
         }
         $proposed = $rates;
         try {
@@ -142,11 +147,18 @@ final class CommissionService
                 $proposed[$key] = Percentage::from((string) $value)->decimal();
             }
         } catch (\InvalidArgumentException $exception) {
-            throw ValidationException::withMessages(['overrides' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['overrides' => CalculationMessage::localize($exception->getMessage())]);
         }
+        $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $orders = Order::with(['lines', 'user'])->where('status', 'delivered')->whereColumn('paid', 'total')
-            ->when($dateFrom, fn ($q) => $q->whereDate('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->whereDate('created_at', '<=', $dateTo))->orderBy('id')->limit(max(1, min($limitOrders, 1000)))->get();
+            ->when($dateFrom, function ($q) use ($dateFrom, $tz) {
+                $start = CarbonImmutable::parse($dateFrom, $tz)->startOfDay()->utc();
+                $q->where('created_at', '>=', $start);
+            })
+            ->when($dateTo, function ($q) use ($dateTo, $tz) {
+                $end = CarbonImmutable::parse($dateTo, $tz)->addDay()->startOfDay()->utc();
+                $q->where('created_at', '<', $end);
+            })->orderBy('id')->limit(max(1, min($limitOrders, 1000)))->get();
         $refunds = DB::table('commission_batches')->whereIn('order_id', $orders->modelKeys())->pluck('refunded_amount', 'order_id');
         $cash = 0;
         $subCash = 0;
@@ -174,7 +186,11 @@ final class CommissionService
             }
             $baselineTotal += $base;
             $proposedTotal += $test;
-            $slices[] = ['key' => $key, 'name' => ucwords(str_replace('_', ' ', $key)), 'baseline_pct' => (float) $rate,
+            $name = __('portal.rule_name_'.$key);
+            if ($name === 'portal.rule_name_'.$key) {
+                $name = ucwords(str_replace('_', ' ', $key));
+            }
+            $slices[] = ['key' => $key, 'name' => $name, 'baseline_pct' => (float) $rate,
                 'simulated_pct' => (float) $proposed[$key], 'baseline_amount' => $base / 100, 'simulated_amount' => $test / 100, 'delta_amount' => ($test - $base) / 100];
         }
         $subExtras = 0;
@@ -203,6 +219,6 @@ final class CommissionService
             'total_proposed_pct' => $sum / 100, 'sub_dealer_pool_sum_pct' => ($sum + $subExtras) / 100, 'exceeds_cap' => ! $safe, 'is_safe' => $safe,
             'baseline' => $baseline, 'simulated' => $simulated, 'variance' => ['amount' => ($proposedTotal - $baselineTotal) / 100,
                 'pct' => $baselineTotal > 0 ? ($proposedTotal - $baselineTotal) / $baselineTotal * 100 : 0],
-            'slices' => $slices, 'slices_comparison' => $slices, 'guardrail_alerts' => [$safe ? 'Preview fits the configured funding limits.' : 'Proposed rules or product prices exceed the funding limits.']];
+            'slices' => $slices, 'slices_comparison' => $slices, 'guardrail_alerts' => [$safe ? __('portal.jr_preview_fits_limits') : __('portal.jr_preview_exceeds_limits')]];
     }
 }

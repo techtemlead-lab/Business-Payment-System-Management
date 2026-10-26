@@ -7,6 +7,7 @@ import {
     Layers, ToggleLeft, ToggleRight, Radio, ExternalLink
 } from 'lucide-react';
 import { Badge, type Row } from './UI';
+import { useT } from '../shared/i18n/t';
 
 export interface DashboardManagementHubProps {
     settings: Record<string, any>;
@@ -24,6 +25,7 @@ export interface DashboardManagementHubProps {
 }
 
 export default function DashboardManagementHub({ settings, defaults, stats, recent_employees = [] }: DashboardManagementHubProps) {
+    const translate = useT();
     const [activeTab, setActiveTab] = useState<'dealers' | 'subdealers' | 'employees' | 'company'>('dealers');
 
     const form = useForm({
@@ -52,7 +54,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
     };
 
     const handleReset = () => {
-        if (confirm('Are you sure you want to reset all dashboard settings to default system rules?')) {
+        if (confirm(translate('portal','dash_mgmt_reset_confirm'))) {
             router.post('/commands/dashboards/reset');
         }
     };
@@ -65,14 +67,13 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                     <div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#2e3192', textTransform: 'uppercase', marginBottom: 4 }}>
                             <SlidersHorizontal size={16} />
-                            SUPER DASHBOARD CONTROL CENTER
+                            {translate('portal','dash_mgmt_eyebrow')}
                         </div>
                         <h2 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
-                            Dashboard Management &amp; Role-Specific Controls
+                            {translate('portal','dash_mgmt_title')}
                         </h2>
                         <p style={{ margin: 0, color: '#64748b', fontSize: 13, maxWidth: 820 }}>
-                            Central headquarters to manage and control all dashboards across the platform.
-                            Configure individual feature switches, broadcast targeted announcement banners to specific dashboards, and maintain emergency lockout controls.
+                            {translate('portal','dash_mgmt_body')}
                         </p>
                     </div>
 
@@ -84,7 +85,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                         >
                             <RotateCcw size={15} />
-                            Restore Defaults
+                            {translate('portal','dash_mgmt_restore')}
                         </button>
                         <button
                             type="button"
@@ -94,7 +95,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12 }}
                         >
                             <Save size={15} />
-                            {form.processing ? 'Saving Changes…' : 'Save Dashboard Configuration'}
+                            {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
                         </button>
                     </div>
                 </div>
@@ -117,23 +118,23 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#2e3192', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>🤝</span> DEALER DASHBOARD
+                            <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_card_dealer')}
                         </span>
                         {form.data.settings.dealer_maintenance_mode ? (
                             <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                                LOCKED
+                                {translate('portal','dash_mgmt_badge_locked')}
                             </span>
                         ) : (
                             <span style={{ background: '#ecfdf5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                                ACTIVE
+                                {translate('portal','dash_mgmt_badge_active')}
                             </span>
                         )}
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ {stats.dealers_count} Dealers</small>
+                        {stats.active_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_dealers_of',{total:String(stats.dealers_count)})}</small>
                     </div>
                     <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
-                        Network tree, ranks, rewards &amp; purchase requests.
+                        {translate('portal','dash_mgmt_card_dealer_hint')}
                     </p>
                 </div>
 
@@ -152,23 +153,23 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>🏬</span> SUB-DEALER DASHBOARD
+                            <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_card_subdealer')}
                         </span>
                         {form.data.settings.subdealer_maintenance_mode ? (
                             <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                                LOCKED
+                                {translate('portal','dash_mgmt_badge_locked')}
                             </span>
                         ) : (
                             <span style={{ background: '#ecfdf5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                                ACTIVE
+                                {translate('portal','dash_mgmt_badge_active')}
                             </span>
                         )}
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_sub_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ {stats.sub_dealers_count} Sub-Dealers</small>
+                        {stats.active_sub_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_subdealers_of',{total:String(stats.sub_dealers_count)})}</small>
                     </div>
                     <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
-                        product-priced orders &amp; 3% salary and 3% tour reserve.
+                        {translate('portal','dash_mgmt_card_subdealer_hint')}
                     </p>
                 </div>
 
@@ -187,17 +188,17 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#0284c7', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>👥</span> EMPLOYEE DASHBOARD
+                            <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_card_employee')}
                         </span>
                         <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                            PERMITTED
+                            {translate('portal','dash_mgmt_badge_permitted')}
                         </span>
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_employees} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ {stats.employees_count} Employees</small>
+                        {stats.active_employees} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_employees_of',{total:String(stats.employees_count)})}</small>
                     </div>
                     <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
-                        Granular checkbox permissions &amp; audit logging.
+                        {translate('portal','dash_mgmt_card_employee_hint')}
                     </p>
                 </div>
 
@@ -216,17 +217,17 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#011627', display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span>🏢</span> SUPER HEADQUARTERS
+                            <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_card_company')}
                         </span>
                         <span style={{ background: '#f1f5f9', color: '#334155', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
-                            ROOT ADMIN
+                            {translate('portal','dash_mgmt_badge_root')}
                         </span>
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.super_admins_count} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Super Admins</small>
+                        {stats.super_admins_count} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_super_admins')}</small>
                     </div>
                     <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
-                        Treasury, commissions, audit &amp; platform settings.
+                        {translate('portal','dash_mgmt_card_company_hint')}
                     </p>
                 </div>
             </div>
@@ -250,7 +251,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         gap: 8,
                     }}
                 >
-                    <span>🤝</span> Dealer Dashboard Controls
+                    <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_tab_dealer')}
                 </button>
 
                 <button
@@ -270,7 +271,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         gap: 8,
                     }}
                 >
-                    <span>🏬</span> Sub-Dealer Dashboard Controls
+                    <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_tab_subdealer')}
                 </button>
 
                 <button
@@ -290,7 +291,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         gap: 8,
                     }}
                 >
-                    <span>👥</span> Employee Dashboard &amp; Privileges
+                    <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_tab_employee')}
                 </button>
 
                 <button
@@ -310,7 +311,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         gap: 8,
                     }}
                 >
-                    <span>🏢</span> Company Hub Controls
+                    <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_tab_company')}
                 </button>
             </div>
 
@@ -324,10 +325,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Dealer Workspace Feature Switches
+                                        {translate('portal','dash_mgmt_dealer_switches_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Enable or disable specific sections shown to dealers when they log into their dashboard.
+                                        {translate('portal','dash_mgmt_dealer_switches_hint')}
                                     </p>
                                 </div>
                                 <Layers size={20} className="text-muted" />
@@ -335,12 +336,12 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
                                 {[
-                                    { key: 'dealer_network_tree_enabled', label: 'Network Tree Explorer', desc: 'Allows dealers to view their visual downline tree and genealogy.' },
-                                    { key: 'dealer_ranks_enabled', label: 'Ranks & Royalties Progression', desc: 'Allows dealers to view their rank progress (MO, AM, SM, ME) and purchase totals.' },
-                                    { key: 'dealer_rewards_enabled', label: 'Car & Bike Milestone Tracker', desc: 'Allows dealers to inspect their qualifying volume toward ৳60L & ৳25Cr incentives.' },
-                                    { key: 'dealer_orders_enabled', label: 'Product Purchase Requests', desc: 'Permits dealers to submit new stock orders from their dashboard.' },
-                                    { key: 'dealer_claims_enabled', label: 'Payment Claim Submission', desc: 'Permits dealers to submit bank, bKash, and Nagad payment references.' },
-                                    { key: 'dealer_catalog_enabled', label: 'Dealer Product Catalog', desc: 'Displays partner wholesale catalogue with savings tags.' },
+                                    { key: 'dealer_network_tree_enabled', label: translate('portal','dash_mgmt_toggle_network'), desc: translate('portal','dash_mgmt_toggle_network_desc') },
+                                    { key: 'dealer_ranks_enabled', label: translate('portal','dash_mgmt_toggle_ranks'), desc: translate('portal','dash_mgmt_toggle_ranks_desc') },
+                                    { key: 'dealer_rewards_enabled', label: translate('portal','dash_mgmt_toggle_rewards'), desc: translate('portal','dash_mgmt_toggle_rewards_desc') },
+                                    { key: 'dealer_orders_enabled', label: translate('portal','dash_mgmt_toggle_orders'), desc: translate('portal','dash_mgmt_toggle_orders_desc') },
+                                    { key: 'dealer_claims_enabled', label: translate('portal','dash_mgmt_toggle_claims'), desc: translate('portal','dash_mgmt_toggle_claims_desc') },
+                                    { key: 'dealer_catalog_enabled', label: translate('portal','dash_mgmt_toggle_catalog'), desc: translate('portal','dash_mgmt_toggle_catalog_desc') },
                                 ].map(toggle => {
                                     const active = Boolean(form.data.settings[toggle.key]);
                                     return (
@@ -378,10 +379,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Dealer Workspace Broadcast Announcement
+                                        {translate('portal','dash_mgmt_dealer_announce_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Broadcast a prominent banner at the very top of all Dealer Dashboards.
+                                        {translate('portal','dash_mgmt_dealer_announce_hint')}
                                     </p>
                                 </div>
                                 <Bell size={20} color="#2e3192" />
@@ -389,18 +390,18 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div style={{ marginTop: 12 }}>
                                 <label style={{ display: 'block', marginBottom: 10 }}>
-                                    Announcement Text:
+                                    {translate('portal','dash_mgmt_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.dealer_announcement || ''}
-                                        placeholder="e.g. Monthly volume cut-off is on the 25th of this month. Please finalize orders ahead of time."
+                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_dealer')}
                                         onChange={e => updateField('dealer_announcement', e.target.value)}
                                         style={{ width: '100%', marginTop: 4 }}
                                     />
                                 </label>
 
                                 <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Banner Style:</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{translate('portal','dash_mgmt_banner_style')}</span>
                                     {['info', 'success', 'warning'].map(t => (
                                         <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
                                             <input
@@ -421,10 +422,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#9f1239' }}>
-                                        Dealer Portal Emergency Lockout / Maintenance Mode
+                                        {translate('portal','dash_mgmt_dealer_lock_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        When toggled ON, dealers will see a temporary maintenance notice when accessing their dashboard while staff can still operate.
+                                        {translate('portal','dash_mgmt_dealer_lock_hint')}
                                     </p>
                                 </div>
                                 <AlertTriangle size={20} color="#e11d48" />
@@ -443,10 +444,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                         fontWeight: 700
                                     }}
                                 >
-                                    {form.data.settings.dealer_maintenance_mode ? '🚨 Maintenance Lockout is ON' : '✓ Normal Operations (Unlocked)'}
+                                    {form.data.settings.dealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
                                 </button>
                                 <span style={{ fontSize: 12, color: '#64748b' }}>
-                                    {form.data.settings.dealer_maintenance_mode ? 'Dealers cannot place orders until deactivated.' : 'Dealers can log in and place purchase requests normally.'}
+                                    {form.data.settings.dealer_maintenance_mode ? translate('portal','dash_mgmt_dealer_lock_on_hint') : translate('portal','dash_mgmt_dealer_lock_off_hint')}
                                 </span>
                             </div>
                         </section>
@@ -461,10 +462,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Sub-Dealer Workspace Feature Switches
+                                        {translate('portal','dash_mgmt_sub_switches_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Manage visibility of product-priced orders, flat 3% salary, and delivery tracking.
+                                        {translate('portal','dash_mgmt_sub_switches_hint')}
                                     </p>
                                 </div>
                                 <Store size={20} className="text-muted" />
@@ -472,10 +473,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
                                 {[
-                                    { key: 'subdealer_salary_enabled', label: 'Monthly Salary · 3% Display', desc: 'Allows sub-dealers to view the 4 qualifying flat 3% salary (10k/1%, 25k/2%, 40k/3%, 50k/4%).' },
-                                    { key: 'subdealer_orders_enabled', label: 'Product-price Direct Ordering', desc: 'Allows sub-dealers to place purchase requests with configured product prices.' },
-                                    { key: 'subdealer_deliveries_enabled', label: 'Delivery & Courier Tracking', desc: 'Allows sub-dealers to track dispatch courier tracking IDs and shipments.' },
-                                    { key: 'subdealer_catalog_enabled', label: 'Sub-Dealer Product Catalog', desc: 'Sub-dealer pricing view with wholesale calculations.' },
+                                    { key: 'subdealer_salary_enabled', label: translate('portal','dash_mgmt_toggle_sub_salary'), desc: translate('portal','dash_mgmt_toggle_sub_salary_desc') },
+                                    { key: 'subdealer_orders_enabled', label: translate('portal','dash_mgmt_toggle_sub_orders'), desc: translate('portal','dash_mgmt_toggle_sub_orders_desc') },
+                                    { key: 'subdealer_deliveries_enabled', label: translate('portal','dash_mgmt_toggle_sub_deliveries'), desc: translate('portal','dash_mgmt_toggle_sub_deliveries_desc') },
+                                    { key: 'subdealer_catalog_enabled', label: translate('portal','dash_mgmt_toggle_sub_catalog'), desc: translate('portal','dash_mgmt_toggle_sub_catalog_desc') },
                                 ].map(toggle => {
                                     const active = Boolean(form.data.settings[toggle.key]);
                                     return (
@@ -513,10 +514,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Sub-Dealer Workspace Broadcast Announcement
+                                        {translate('portal','dash_mgmt_sub_announce_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Broadcast a banner at the top of all Sub-Dealer Dashboards.
+                                        {translate('portal','dash_mgmt_sub_announce_hint')}
                                     </p>
                                 </div>
                                 <Bell size={20} color="#059669" />
@@ -524,18 +525,18 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div style={{ marginTop: 12 }}>
                                 <label style={{ display: 'block', marginBottom: 10 }}>
-                                    Announcement Text:
+                                    {translate('portal','dash_mgmt_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.subdealer_announcement || ''}
-                                        placeholder="e.g. Sub-dealer salary qualification will be calculated on the last day of each calendar month."
+                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_sub')}
                                         onChange={e => updateField('subdealer_announcement', e.target.value)}
                                         style={{ width: '100%', marginTop: 4 }}
                                     />
                                 </label>
 
                                 <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Banner Style:</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{translate('portal','dash_mgmt_banner_style')}</span>
                                     {['info', 'success', 'warning'].map(t => (
                                         <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
                                             <input
@@ -556,10 +557,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#9f1239' }}>
-                                        Sub-Dealer Portal Emergency Maintenance Mode
+                                        {translate('portal','dash_mgmt_sub_lock_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Temporarily disable sub-dealer ordering during stock take or server maintenance.
+                                        {translate('portal','dash_mgmt_sub_lock_hint')}
                                     </p>
                                 </div>
                                 <AlertTriangle size={20} color="#e11d48" />
@@ -578,7 +579,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                         fontWeight: 700
                                     }}
                                 >
-                                    {form.data.settings.subdealer_maintenance_mode ? '🚨 Sub-Dealer Maintenance is ON' : '✓ Normal Operations (Unlocked)'}
+                                    {form.data.settings.subdealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_sub_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
                                 </button>
                             </div>
                         </section>
@@ -592,10 +593,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Employee Dashboard &amp; Staff Roles Control
+                                        {translate('portal','dash_mgmt_employee_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Each employee dashboard is isolated to manually assigned checkboxes.
+                                        {translate('portal','dash_mgmt_employee_hint')}
                                     </p>
                                 </div>
                                 <Link
@@ -603,17 +604,17 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                     className="button small dark"
                                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                                 >
-                                    <UserCheck size={16} /> Open Employees Directory ↗
+                                    <UserCheck size={16} /> {translate('portal','dash_mgmt_open_employees')}
                                 </Link>
                             </div>
 
                             <div style={{ marginTop: 14 }}>
                                 <label style={{ display: 'block', marginBottom: 12 }}>
-                                    Staff Broadcast Announcement (Shown on all Employee Dashboards):
+                                    {translate('portal','dash_mgmt_staff_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.employee_announcement || ''}
-                                        placeholder="e.g. Please verify physical stock receipts before dispatching pending deliveries."
+                                        placeholder={translate('portal','dash_mgmt_announce_placeholder_staff')}
                                         onChange={e => updateField('employee_announcement', e.target.value)}
                                         style={{ width: '100%', marginTop: 4 }}
                                     />
@@ -624,7 +625,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             {recent_employees.length > 0 && (
                                 <div style={{ marginTop: 16 }}>
                                     <h4 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px 0', color: '#334155' }}>
-                                        Recently Active Employee Dashboards:
+                                        {translate('portal','dash_mgmt_recent_employees')}
                                     </h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
                                         {recent_employees.map(emp => {
@@ -643,7 +644,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                                             </span>
                                                         ))}
                                                         {perms.length > 4 && (
-                                                            <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>+{perms.length - 4} more</span>
+                                                            <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>{translate('portal','dash_mgmt_more_perms',{count:String(perms.length - 4)})}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -663,10 +664,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             <div className="panel-heading">
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
-                                        Company Headquarters Active Modules
+                                        {translate('portal','dash_mgmt_company_title')}
                                     </h3>
                                     <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
-                                        Enable or disable core management engines on the company portal.
+                                        {translate('portal','dash_mgmt_company_hint')}
                                     </p>
                                 </div>
                                 <Building2 size={20} className="text-muted" />
@@ -674,10 +675,10 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
                                 {[
-                                    { key: 'company_treasury_enabled', label: 'Treasury & Money Flow Hub', desc: 'Tracks gross cash inflows, company retained deposits, and settled payouts.' },
-                                    { key: 'company_commissions_enabled', label: 'Commission Studio & Waterfall Engine', desc: '10 dynamic pools, anti-whale milestone tracking, and what-if simulator.' },
-                                    { key: 'company_customization_enabled', label: 'Public Storefront CMS Customization', desc: 'Live customization of public carousel slides, side banners, and placeholders.' },
-                                    { key: 'company_audit_enabled', label: 'Append-Only System Audit Trail', desc: 'Immutable security log of all staff approvals, stock movements, and account changes.' },
+                                    { key: 'company_treasury_enabled', label: translate('portal','dash_mgmt_toggle_treasury'), desc: translate('portal','dash_mgmt_toggle_treasury_desc') },
+                                    { key: 'company_commissions_enabled', label: translate('portal','dash_mgmt_toggle_commissions'), desc: translate('portal','dash_mgmt_toggle_commissions_desc') },
+                                    { key: 'company_customization_enabled', label: translate('portal','dash_mgmt_toggle_cms'), desc: translate('portal','dash_mgmt_toggle_cms_desc') },
+                                    { key: 'company_audit_enabled', label: translate('portal','dash_mgmt_toggle_audit'), desc: translate('portal','dash_mgmt_toggle_audit_desc') },
                                 ].map(toggle => {
                                     const active = Boolean(form.data.settings[toggle.key]);
                                     return (
@@ -728,7 +729,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         onClick={handleReset}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
-                        <RotateCcw size={15} /> Reset to Defaults
+                        <RotateCcw size={15} /> {translate('portal','dash_mgmt_reset_footer')}
                     </button>
                     <button
                         type="submit"
@@ -736,7 +737,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         disabled={form.processing}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, padding: '10px 20px' }}
                     >
-                        <Save size={16} /> {form.processing ? 'Saving Changes…' : 'Save Dashboard Configuration'}
+                        <Save size={16} /> {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
                     </button>
                 </div>
             </form>
