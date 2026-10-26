@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Finance\ImportWorkbook;
+use App\Domain\Finance\OpeningBalanceImport;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
@@ -17,9 +19,14 @@ use App\Models\User;
 use App\Support\Money;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer;
 use Tests\TestCase;
 
 class PartnerEventSmsTest extends TestCase
@@ -777,6 +784,61 @@ class PartnerEventSmsTest extends TestCase
             'id' => $id,
             'status' => 'published',
             'published_by' => $reviewer->id,
+        ]);
+    }
+
+    public function test_opening_import_apply_notifies_preparer(): void
+    {
+        Storage::fake('local');
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        config(['madina.financial_activation' => false]);
+
+        $preparer = User::factory()->create([
+            'role' => 'finance',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000107',
+        ]);
+        $reviewer = User::factory()->staff('finance')->create();
+        User::factory()->dealer()->create(['dealer_code' => 'D-IMP-SMS']);
+
+        $path = tempnam(sys_get_temp_dir(), 'madina-import-sms-');
+        $writer = new Writer;
+        $writer->openToFile($path);
+        $writer->getCurrentSheet()->setName('Data');
+        $writer->addRow(Row::fromValues(ImportWorkbook::Columns['opening_balances']));
+        $writer->addRow(new Row(array_map(
+            fn ($value) => $value instanceof Cell ? $value : Cell::fromValue($value),
+            ['D-IMP-SMS', 'IMP-SMS-101', '2026-01-01', '50', '0', '0', '0'],
+        )));
+        $writer->close();
+        $file = UploadedFile::fake()->createWithContent('source.xlsx', file_get_contents($path));
+        unlink($path);
+
+        $imports = app(OpeningBalanceImport::class);
+        $id = $imports->preview($preparer, 'opening_balances', $file, 'Import SMS statement');
+        Config::set('madina.sms.sent', []);
+        $imports->apply($reviewer, $id, 'Independent opening import review.');
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('data_import.applied', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000107', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.import_applied', [
+                'type' => __('portal.import_type_opening_balances', [], 'bn'),
+                'reference' => 'Import SMS statement',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $preparer->id,
+            'title' => __('portal.notice_import_applied_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('data_import_batches', [
+            'id' => $id,
+            'status' => 'applied',
+            'applied_by' => $reviewer->id,
         ]);
     }
 

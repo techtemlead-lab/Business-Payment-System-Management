@@ -39,6 +39,7 @@ return [
     'staff_territory_assigned' => 'মদিনা: আপনাকে :level টেরিটরি :territory নিয়োগ দেওয়া হয়েছে। ম্যানেজে নোটিশ দেখুন।',
     'staff_territory_removed' => 'মদিনা: আপনার :level টেরিটরি :territory সরানো হয়েছে। ম্যানেজে নোটিশ দেখুন।',
     'policy_published' => 'মদিনা: আপনার :account_type পলিসি ড্রাফট ":name" প্রকাশিত হয়েছে। ম্যানেজে নোটিশ দেখুন।',
+    'import_applied' => 'মদিনা: আপনার :type আমদানি ":reference" প্রয়োগ হয়েছে। ম্যানেজে নোটিশ দেখুন।',
     'geography_updated' => 'মদিনা: আপনার পার্টনার স্থান :place এ আপডেট হয়েছে। :reason',
     'account_invitation_sent' => 'মদিনা: আপনার অ্যাকাউন্টে পাসওয়ার্ড-রিসেট আমন্ত্রণ ইমেইল করা হয়েছে। পোর্টাল খুলতে এটি ব্যবহার করুন।',
     'sponsor_updated' => 'মদিনা: আপনার স্পনসর :sponsor এ আপডেট হয়েছে। :reason',

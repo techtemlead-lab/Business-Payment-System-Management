@@ -4,6 +4,7 @@ namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Notifications\PartnerEventSms;
 use App\Jobs\ApplyDataImport;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
@@ -138,6 +139,29 @@ final class OpeningBalanceImport
             }
             DB::table('data_import_batches')->where('id', $id)->update(['status' => 'applied', 'applied_by' => $actor->id, 'applied_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
             Audit::record($actor->id, 'data_import.applied', $id, ['type' => $batch->type, 'file_hash' => $batch->file_hash, 'summary' => $summary, 'reason' => $reason, 'prepared_by' => $batch->created_by]);
+            $preparer = User::find((int) $batch->created_by);
+            if ($preparer !== null && $preparer->id !== $actor->id) {
+                $locale = $preparer->preferredLocale();
+                $typeLabel = __('portal.import_type_'.$batch->type, [], $locale);
+                Audit::notice(
+                    $preparer->id,
+                    __('portal.notice_import_applied_title', [], $locale),
+                    __('portal.notice_import_applied_body', [
+                        'type' => $typeLabel,
+                        'reference' => $batch->source_reference,
+                    ], $locale),
+                );
+                DB::afterCommit(function () use ($preparer, $locale, $batch, $typeLabel): void {
+                    app(PartnerEventSms::class)->send(
+                        $preparer,
+                        'data_import.applied',
+                        __('sms.import_applied', [
+                            'type' => $typeLabel,
+                            'reference' => $batch->source_reference,
+                        ], $locale),
+                    );
+                });
+            }
         }, 3);
     }
 
