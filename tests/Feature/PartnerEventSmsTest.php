@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
 use App\Domain\Staff\TerritoryAccess;
@@ -734,6 +735,48 @@ class PartnerEventSmsTest extends TestCase
         $this->assertDatabaseHas('staff_territories', [
             'id' => $territoryId,
             'is_active' => false,
+        ]);
+    }
+
+    public function test_policy_publish_notifies_draft_preparer(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+
+        $preparer = User::factory()->create([
+            'role' => 'finance',
+            'status' => 'active',
+            'locale' => 'bn',
+            'phone' => '01720000106',
+        ]);
+        $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $id = app(PolicyDraftService::class)->create($preparer, [
+            'name' => 'Dealer schedule BN',
+            'account_type' => 'dealer',
+            'components' => [['name' => 'referral', 'rate' => '10']],
+            'notes' => 'Document purchase-value rates before go-live.',
+        ]);
+
+        app(PolicyDraftService::class)->publish($reviewer, $id);
+
+        $sent = config('madina.sms.sent');
+        $this->assertSame('policy.published', $sent[0]['event'] ?? null);
+        $this->assertSame('01720000106', $sent[0]['phone'] ?? null);
+        $this->assertSame(
+            __('sms.policy_published', [
+                'name' => 'Dealer schedule BN',
+                'account_type' => 'dealer',
+            ], 'bn'),
+            $sent[0]['message'] ?? null,
+        );
+        $this->assertDatabaseHas('account_notices', [
+            'user_id' => $preparer->id,
+            'title' => __('portal.notice_policy_published_title', [], 'bn'),
+        ]);
+        $this->assertDatabaseHas('policy_drafts', [
+            'id' => $id,
+            'status' => 'published',
+            'published_by' => $reviewer->id,
         ]);
     }
 

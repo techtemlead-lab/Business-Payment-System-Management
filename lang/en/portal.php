@@ -2613,6 +2613,8 @@ return [
     'notice_staff_territory_body' => 'You were assigned :level territory: :territory.',
     'notice_staff_territory_removed_title' => 'Territory removed',
     'notice_staff_territory_removed_body' => 'Your :level territory :territory was removed. :reason',
+    'notice_policy_published_title' => 'Policy draft published',
+    'notice_policy_published_body' => 'Your :account_type policy draft ":name" was published after dual-control review.',
     'notice_geography_updated_title' => 'Place code updated',
     'notice_geography_updated_body' => 'Your partner place is now :place. :reason',
     'notice_account_invite_title' => 'Portal invitation sent',
