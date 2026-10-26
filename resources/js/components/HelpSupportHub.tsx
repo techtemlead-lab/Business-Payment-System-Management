@@ -45,7 +45,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                     </div>
                     <LifeBuoy size={22} />
                 </div>
-                <Form action="/commands/support-tickets" method="post" encType="multipart/form-data" className="action-form" options={{ forceFormData: true }}>
+                <Form action="/commands/support-tickets" method="post" encType="multipart/form-data" className="action-form">
                     {({ errors, processing }) => (
                         <>
                             <label>
