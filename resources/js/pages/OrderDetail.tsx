@@ -36,7 +36,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     return <Shell section="order">
         <Head title={order.number} />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
-        <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><Badge status={order.status} /></div>
+        <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div style={{display:'flex',gap:8,alignItems:'center'}} data-tour="invoice-actions"><a className="button small dark" href={`/orders/${order.id}/invoice`}>{translate('portal','download_invoice')}</a><Badge status={order.status} /></div></div>
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>

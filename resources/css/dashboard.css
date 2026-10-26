@@ -441,3 +441,30 @@ dialog.portal-modal::backdrop{
   dialog.portal-modal,dialog.portal-modal::backdrop,.profile-menu-panel,.skeleton,.shimmer{animation:none!important}
   .app-shell .button:active,.app-shell .icon-button:active,.profile-menu-trigger:active{transform:none}
 }
+
+
+/* Partner ops suite: tours, help, invoice actions */
+.onboarding-tour { position: relative; z-index: 80; }
+.onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.45); z-index: 80; }
+.onboarding-tour-spotlight {
+  position: absolute; z-index: 81; border-radius: 12px; box-shadow: 0 0 0 9999px rgba(1,22,39,.45);
+  border: 2px solid #ef4a23; pointer-events: none; transition: all .25s ease;
+}
+.onboarding-tour-card {
+  position: absolute; z-index: 82; width: min(320px, calc(100vw - 32px));
+  background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 18px 40px rgba(1,22,39,.18);
+  animation: portal-rise .28s ease;
+}
+.onboarding-tour-card small { color: #64748b; text-transform: uppercase; letter-spacing: .06em; font-size: 10px; }
+.onboarding-tour-card h3 { margin: 6px 0 8px; font-size: 16px; }
+.onboarding-tour-card p { margin: 0 0 12px; color: #334155; font-size: 13px; line-height: 1.45; }
+.onboarding-tour-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.help-manual-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 14px; }
+.help-manual-card { padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: linear-gradient(180deg,#fff,#f8fafc); }
+.help-manual-card h3 { margin: 0 0 6px; font-size: 15px; }
+.help-manual-card p { margin: 0; color: #475569; font-size: 13px; line-height: 1.45; }
+.preset-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-right: 8px; }
+.metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+.optional-media-fieldset { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.optional-media-fieldset legend { padding: 0 6px; font-weight: 600; }

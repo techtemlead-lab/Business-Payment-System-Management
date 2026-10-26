@@ -5,7 +5,7 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -23,7 +23,7 @@ const icons: Record<string, LucideIcon> = {
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
-    employees: UserCheck, dashboards: SlidersHorizontal
+    employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare
 };
 
 const sectionKeys: Record<string, string> = {
@@ -41,6 +41,7 @@ const sectionKeys: Record<string, string> = {
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders', employees: 'employees', dashboards: 'dashboards',
+    help: 'help', 'support-admin': 'support_admin',
 };
 
 const operationsSections = new Set([
@@ -73,10 +74,11 @@ export default function Shell({ section, children, action }: { section: string; 
     const translate = useT();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
-    const staff = portal === 'manage' || portal === 'sadmin';
+    const workspaceMode = String(user.workspace_mode || 'partner');
+    const staff = portal === 'manage' || portal === 'sadmin' || workspaceMode === 'staff';
     const ownerPortal = portal === 'sadmin';
     const base = portalBase || '';
-    const shellClass = portal === 'sadmin' ? 'owner-shell' : portal === 'manage' ? 'company-shell' : portal === 'subdealer' ? 'subdealer-shell' : 'dealer-shell';
+    const shellClass = portal === 'sadmin' ? 'owner-shell' : (portal === 'manage' || workspaceMode === 'staff') ? 'company-shell' : portal === 'subdealer' ? 'subdealer-shell' : 'dealer-shell';
     const portalLabel = ownerPortal
         ? translate('portal', 'owner_portal')
         : staff
@@ -178,7 +180,8 @@ export default function Shell({ section, children, action }: { section: string; 
     const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
 
     const staffAvailable = useMemo(() => {
-        const items = new Set<string>(['overview', 'profile', 'security', 'notifications']);
+        const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
+        if (capabilities.includes('accounts') || ownerPortal) items.add('support-admin');
         if (capabilities.includes('field_sales')) items.add('field-sales');
         if (capabilities.includes('staff_admin')) items.add('staff-operations');
         if (capabilities.includes('payroll')) items.add('payroll');
@@ -212,7 +215,7 @@ export default function Shell({ section, children, action }: { section: string; 
     const partnerAvailable = useMemo(() => {
         const controls = dashboardControls || {};
         if (user.role === 'dealer') {
-            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
             if (controls.dealer_catalog_enabled === false) {
                 items.delete('catalog');
             }
@@ -230,7 +233,7 @@ export default function Shell({ section, children, action }: { section: string; 
             return items;
         }
         if (user.role === 'sub_dealer') {
-            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars']);
+            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
             if (controls.subdealer_catalog_enabled === false) {
                 items.delete('catalog');
             }
@@ -257,7 +260,7 @@ export default function Shell({ section, children, action }: { section: string; 
                     mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
                     mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
-                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
                 ]);
             }
             if (user.role === 'sub_dealer') {
@@ -265,11 +268,11 @@ export default function Shell({ section, children, action }: { section: string; 
                     mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
                     mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
-                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars'])),
+                    mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
                 ]);
             }
             return compactMothers([
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications'])),
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'help'])),
             ]);
         }
 
@@ -282,7 +285,7 @@ export default function Shell({ section, children, action }: { section: string; 
             ])),
             mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
             mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries'])),
-            mother('control', 'nav_module_control', pick(staffAvailable, ['audit'])),
+            mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
 
         const dealers = compactMothers([
@@ -305,7 +308,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ]);
 
         const account = compactMothers([
-            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications'])),
+            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]);
 
         const domainModules = currentDomain === 'dashboards'
@@ -354,6 +357,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 className={section === item ? 'selected' : ''}
                 href={sectionHref(item)}
                 key={item}
+                data-tour={item === 'help' ? 'sidebar-help' : undefined}
             >
                 <Icon size={17} />
                 {sectionLabel(item)}
@@ -577,6 +581,23 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <Bell size={16} />
                                         {translate('portal', 'notifications')}
                                     </Link>
+                                    {user.has_linked_staff && (
+                                        <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={() => {
+                                                setProfileOpen(false);
+                                                router.post('/commands/workspace-mode', {
+                                                    mode: workspaceMode === 'staff' ? 'partner' : 'staff',
+                                                });
+                                            }}
+                                        >
+                                            <ArrowLeftRight size={16} />
+                                            {workspaceMode === 'staff'
+                                                ? translate('portal', 'switch_to_partner_dashboard')
+                                                : translate('portal', 'switch_to_staff_dashboard')}
+                                        </button>
+                                    )}
                                     <button type="button" role="menuitem" className="profile-menu-logout" onClick={signOut}>
                                         <LogOut size={16} />
                                         {translate('portal', 'log_out')}

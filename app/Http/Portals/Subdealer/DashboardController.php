@@ -42,4 +42,9 @@ class DashboardController
     {
         return $this->workspace->show($request, $order);
     }
+
+    public function orderInvoice(Request $request, Order $order): BinaryFileResponse
+    {
+        return $this->workspace->orderInvoice($request, $order);
+    }
 }

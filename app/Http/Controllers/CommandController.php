@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
@@ -13,7 +14,10 @@ use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Orders\OrderService;
+use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\SupportTickets;
+use App\Domain\Support\TourGuide;
 use App\Http\Requests\Backend\AdjustStockRequest;
 use App\Http\Requests\Backend\ClaimPaymentRequest;
 use App\Http\Requests\Backend\ConfirmDeliveryRequest;
@@ -127,6 +131,23 @@ class CommandController extends Controller
                 'reason' => 'nullable|string|max:1000',
             ]);
             $created = $partners->create($r->user(), $payload);
+            $media = [];
+            foreach (PartnerKycDocuments::Kinds as $kind) {
+                if ($r->hasFile('kyc_'.$kind)) {
+                    $media[$kind] = $r->file('kyc_'.$kind);
+                }
+            }
+            if ($media !== []) {
+                $r->validate([
+                    'kyc_photo' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:10240',
+                    'kyc_nid_front' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_nid_back' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_birth_certificate' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_agreement' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                    'kyc_other' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+                ]);
+                app(PartnerCreateMedia::class)->attachOptional($r->user(), $created['user'], $media);
+            }
 
             return redirect('/accounts')->with(
                 'success',
@@ -998,5 +1019,71 @@ class CommandController extends Controller
         }
 
         return back()->with('success', __('portal.flash_area_dealer_removed'));
+    }
+
+    public function supportTicket(Request $r, SupportTickets $tickets): RedirectResponse
+    {
+        $tickets->create($r->user(), $r->only(['category', 'subject', 'body']), $r->file('attachment'));
+
+        return back()->with('success', __('portal.flash_support_ticket_sent'));
+    }
+
+    public function supportTicketReply(Request $r, string $id, SupportTickets $tickets): RedirectResponse
+    {
+        $data = $r->validate([
+            'body' => 'required|string|max:5000',
+            'status' => 'nullable|in:pending,in_progress,resolved',
+        ]);
+        $tickets->reply($r->user(), $id, $data['body'], $data['status'] ?? null);
+
+        return back()->with('success', __('portal.flash_support_reply_saved'));
+    }
+
+    public function completeTour(Request $r, string $page, TourGuide $tours): RedirectResponse|JsonResponse
+    {
+        $tours->complete($r->user(), $page);
+        if ($r->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back();
+    }
+
+    public function restartTour(Request $r, TourGuide $tours): RedirectResponse
+    {
+        $page = $r->string('page')->toString() ?: null;
+        $tours->restart($r->user(), $page ?: null);
+
+        return back()->with('success', __('portal.flash_tour_restarted'));
+    }
+
+    public function switchWorkspaceMode(Request $r, PartnerStaffLink $link): RedirectResponse
+    {
+        $mode = $r->validate(['mode' => 'required|in:partner,staff'])['mode'];
+        $link->switchMode($r->user(), $mode);
+
+        return redirect('/')->with('success', __('portal.flash_workspace_switched', ['mode' => $mode]));
+    }
+
+    public function linkStaffRole(Request $r, User $user, PartnerStaffLink $link): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        abort_unless($r->user()->role === 'super_admin' || $r->user()->allows('accounts'), 403);
+        $data = $r->validate([
+            'linked_staff_role' => 'required|string|max:80',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string|max:40',
+        ]);
+        $link->link($r->user(), $user, $data['linked_staff_role'], $data['permissions'] ?? []);
+
+        return back()->with('success', __('portal.flash_staff_linked'));
+    }
+
+    public function unlinkStaffRole(Request $r, User $user, PartnerStaffLink $link): RedirectResponse
+    {
+        $this->permit($r, 'accounts');
+        $link->unlink($r->user(), $user);
+
+        return back()->with('success', __('portal.flash_staff_unlinked'));
     }
 }

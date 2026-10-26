@@ -29,7 +29,7 @@ function PieChart({ slices }: { slices: ChartSlice[] }) {
     }).join(', ');
 
     return (
-        <div className="home-pie-wrap">
+        <div className="home-pie-wrap" data-tour="home-chart">
             <div className="home-pie" style={{ background: `conic-gradient(${stops})` }} aria-hidden="true" />
             <ul className="home-pie-legend">
                 {slices.map((slice) => (
@@ -162,7 +162,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <a href={`${base}/join-poster/pdf`} className="text-link">{translate('portal', 'download_join_poster')}</a>
                 </aside>
 
-                <section className="partner-home-metrics">
+                <section className="partner-home-metrics" data-tour="home-metrics">
                     <div className="partner-home-metrics-head">
                         <div>
                             <h3>{translate('portal', 'today_activity')}</h3>

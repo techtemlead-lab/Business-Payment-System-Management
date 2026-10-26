@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\PortalHost;
 use Database\Factories\UserFactory;
@@ -61,6 +62,23 @@ class User extends Authenticatable implements HasLocalePreference
         return $this->role === 'employee' || str_starts_with($this->role, 'custom_') || array_key_exists($this->role, config('madina.roles'));
     }
 
+    public function hasLinkedStaffAccess(): bool
+    {
+        return in_array($this->role, ['dealer', 'sub_dealer'], true)
+            && is_string($this->linked_staff_role)
+            && $this->linked_staff_role !== '';
+    }
+
+    public function usingStaffWorkspace(): bool
+    {
+        if (! $this->hasLinkedStaffAccess()) {
+            return false;
+        }
+
+        return (string) session('workspace_mode') === 'staff'
+            && (int) session('workspace_user_id') === (int) $this->id;
+    }
+
     public function allows(string $capability): bool
     {
         if ($this->status !== 'active') {
@@ -90,6 +108,9 @@ class User extends Authenticatable implements HasLocalePreference
         if ($this->status !== 'active') {
             return [];
         }
+        if ($this->usingStaffWorkspace()) {
+            return app(PartnerStaffLink::class)->linkedCapabilities($this);
+        }
         if (str_starts_with($this->role, 'custom_') || isset($this->profile['action_permissions']) || in_array($this->role, ['md', 'chairman'], true)) {
             return array_keys(array_filter(app(StaffPermissions::class)->matrix($this), fn (array $actions): bool => $actions['view'] ?? false));
         }
@@ -110,8 +131,11 @@ class User extends Authenticatable implements HasLocalePreference
         $profile = is_array($this->profile) ? $this->profile : [];
 
         return [
-            ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status']),
+            ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status', 'linked_staff_role']),
             'shop_name' => is_string($profile['shop_name'] ?? null) ? $profile['shop_name'] : null,
+            'photo_url' => is_string($profile['photo_url'] ?? null) ? $profile['photo_url'] : null,
+            'has_linked_staff' => $this->hasLinkedStaffAccess(),
+            'workspace_mode' => $this->usingStaffWorkspace() ? 'staff' : 'partner',
             'permissions' => $this->capabilities(),
         ];
     }
@@ -154,6 +178,8 @@ class User extends Authenticatable implements HasLocalePreference
             'profile' => 'array',
             'nid' => 'encrypted',
             'directory_visible' => 'boolean',
+            'linked_staff_permissions' => 'array',
+            'staff_linked_at' => 'datetime',
         ];
     }
 }

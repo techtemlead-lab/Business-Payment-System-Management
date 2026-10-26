@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { Row, label } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
 import PartnerBenefitControls from './PartnerBenefitControls';
@@ -208,6 +208,35 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 ) : null}
             </section>
         )}
+
+        {caps.includes('accounts') && ['dealer','sub_dealer'].includes(account.role) && (
+            <section className="panel">
+                <div className="panel-heading"><div><h2>{translate('portal', 'link_staff_access')}</h2><p className="muted">{translate('portal', 'linked_staff_role')}</p></div></div>
+                {account.linked_staff_role ? (
+                    <div className="metric-grid two">
+                        <div className="metric"><span>{translate('portal', 'linked_staff_role')}</span><strong>{account.linked_staff_role}</strong></div>
+                        <form onSubmit={event=>{event.preventDefault(); router.post(`/commands/accounts/${account.id}/unlink-staff`);}}>
+                            <button className="button" type="submit">{translate('portal', 'unlink_staff_access')}</button>
+                        </form>
+                    </div>
+                ) : (
+                    <form className="action-form" onSubmit={event=>{
+                        event.preventDefault();
+                        const fd=new FormData(event.currentTarget);
+                        router.post(`/commands/accounts/${account.id}/link-staff`, { linked_staff_role: String(fd.get('linked_staff_role')||'employee') });
+                    }}>
+                        <label>{translate('portal', 'linked_staff_role')}
+                            <select name="linked_staff_role" defaultValue="employee">
+                                <option value="employee">employee</option>
+                                <option value="sr">sr</option>
+                            </select>
+                        </label>
+                        <button className="button dark" type="submit">{translate('portal', 'link_staff_access')}</button>
+                    </form>
+                )}
+            </section>
+        )}
+
         <PartnerCommissionOverride account={account} />
         <PartnerBenefitControls account={account} />
     </>;
