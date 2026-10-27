@@ -71,7 +71,11 @@ class OwnerContactTest extends TestCase
         User::factory()->staff('finance')->create();
 
         $this->actingAs($owner)->get('/company/accounts')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 2)
-                ->where('data.accounts.data.0.role', 'sub_dealer')->where('data.accounts.data.1.role', 'dealer'));
+            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 1)
+                ->where('data.accounts.data.0.role', 'dealer'));
+
+        $this->actingAs($owner)->get('/company/sub-dealers')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 1)
+                ->where('data.accounts.data.0.role', 'sub_dealer'));
     }
 }
