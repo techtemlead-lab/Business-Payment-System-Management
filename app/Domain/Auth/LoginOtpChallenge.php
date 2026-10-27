@@ -2,6 +2,7 @@
 
 namespace App\Domain\Auth;
 
+use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Security\SecuritySettings;
 use App\Models\User;
@@ -15,12 +16,14 @@ use Illuminate\Validation\ValidationException;
  * Bangladesh mobile is on file. Staff portals stay password-only.
  *
  * Effective enablement is owned by SecuritySettings (owner toggle + preview force-off).
+ * OTP is skipped when no deliverable SMS path exists so partners are never trapped.
  */
 final class LoginOtpChallenge
 {
     public function __construct(
         private PartnerEventSms $sms,
         private SecuritySettings $security,
+        private SmsGatewayClient $gateway,
     ) {}
 
     public function enabled(): bool
@@ -28,9 +31,27 @@ final class LoginOtpChallenge
         return $this->security->partnerLoginOtpEnabled();
     }
 
+    /**
+     * True when login OTP can actually reach the partner (test array driver or
+     * a configured SMS provider). Preview mode and missing gateways skip OTP.
+     */
+    public function canDeliver(): bool
+    {
+        if ($this->security->previewMode()) {
+            return false;
+        }
+
+        $driver = (string) config('madina.sms.driver', 'log');
+        if ($driver === 'array') {
+            return true;
+        }
+
+        return $this->gateway->isConfigured();
+    }
+
     public function requiredFor(User $user): bool
     {
-        if (! $this->enabled()) {
+        if (! $this->enabled() || ! $this->canDeliver()) {
             return false;
         }
         if (! in_array($user->role, ['dealer', 'sub_dealer'], true)) {
@@ -40,16 +61,15 @@ final class LoginOtpChallenge
         return PhoneIdentity::normalize((string) $user->phone) !== null;
     }
 
-    public function issue(User $user, string $portal): void
+    public function issue(User $user, string $portal): bool
     {
-        $code = (string) random_int(100000, 999999);
-        Cache::put($this->cacheKey($user->id, $portal), [
-            'hash' => Hash::make($code),
-            'attempts' => 0,
-        ], now()->addSeconds((int) config('madina.login_otp.ttl', 300)));
+        if (! $this->canDeliver()) {
+            return false;
+        }
 
+        $code = (string) random_int(100000, 999999);
         $locale = $this->localeFor($user);
-        $this->sms->send(
+        $sent = $this->sms->send(
             $user,
             'login.otp',
             __('sms.login_otp', [
@@ -57,6 +77,16 @@ final class LoginOtpChallenge
                 'minutes' => (string) (int) (config('madina.login_otp.ttl', 300) / 60),
             ], $locale),
         );
+        if (! $sent) {
+            return false;
+        }
+
+        Cache::put($this->cacheKey($user->id, $portal), [
+            'hash' => Hash::make($code),
+            'attempts' => 0,
+        ], now()->addSeconds((int) config('madina.login_otp.ttl', 300)));
+
+        return true;
     }
 
     public function verify(User $user, string $portal, string $code): void

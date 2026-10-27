@@ -31,6 +31,17 @@ return [
     'skip_to_content' => 'Skip to content',
     'timezone_currency' => 'Asia/Dhaka · BDT',
 
+    'error_back_home' => 'Back to homepage',
+    'error_404_title' => 'Page not found',
+    'error_404_heading' => 'We could not find that page',
+    'error_404_body' => 'The link may be outdated, or the page may have moved. Return home to continue browsing Madina products and partner services.',
+    'error_403_title' => 'Access denied',
+    'error_403_heading' => 'You do not have access',
+    'error_403_body' => 'This area is restricted. Sign in with the correct portal, or contact the company if you believe this is a mistake.',
+    'error_500_title' => 'Something went wrong',
+    'error_500_heading' => 'We hit an unexpected problem',
+    'error_500_body' => 'Please try again in a moment. If the problem continues, contact company support with the time of the error.',
+
     'company_intro_eyebrow' => 'Company & Partner Network',
     'company_intro_title' => 'Madina Natural Health Care',
     'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
