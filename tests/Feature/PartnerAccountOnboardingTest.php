@@ -123,6 +123,8 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertSame($sponsor->id, $user->sponsor_id);
         $this->assertSame('01712345678', $user->phone);
         $this->assertSame('birth_certificate', $user->profile['identity_type']);
+        $this->assertSame(User::PasswordManagedByAdmin, $user->password_managed_by);
+        $this->assertNotEmpty($user->adminVisiblePassword());
         $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $user->id)->where('place_code_id', $rangpur->id)->where('is_active', true)->exists());
 
         $sent = config('madina.sms.sent');

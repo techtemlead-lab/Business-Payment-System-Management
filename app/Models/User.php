@@ -14,9 +14,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Hidden(['password', 'remember_token', 'nid'])]
+#[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher'])]
 class User extends Authenticatable implements HasLocalePreference
 {
+    public const PasswordManagedByAdmin = 'admin';
+
+    public const PasswordManagedByPartner = 'partner';
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
@@ -30,6 +34,8 @@ class User extends Authenticatable implements HasLocalePreference
         'sponsor_id',
         'nid',
         'dealer_code',
+        'password_managed_by',
+        'admin_password_cipher',
     ];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
@@ -177,9 +183,44 @@ class User extends Authenticatable implements HasLocalePreference
             'password' => 'hashed',
             'profile' => 'array',
             'nid' => 'encrypted',
+            'admin_password_cipher' => 'encrypted',
             'directory_visible' => 'boolean',
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
         ];
+    }
+
+    public function isPasswordAdminManaged(): bool
+    {
+        return $this->password_managed_by === self::PasswordManagedByAdmin
+            && filled($this->admin_password_cipher);
+    }
+
+    public function adminVisiblePassword(): ?string
+    {
+        if (! $this->isPasswordAdminManaged()) {
+            return null;
+        }
+
+        $plain = $this->admin_password_cipher;
+
+        return is_string($plain) && $plain !== '' ? $plain : null;
+    }
+
+    public function storeAdminManagedPassword(string $plainPassword): void
+    {
+        $this->forceFill([
+            'password' => $plainPassword,
+            'password_managed_by' => self::PasswordManagedByAdmin,
+            'admin_password_cipher' => $plainPassword,
+        ])->save();
+    }
+
+    public function markPasswordSelfManaged(): void
+    {
+        $this->forceFill([
+            'password_managed_by' => self::PasswordManagedByPartner,
+            'admin_password_cipher' => null,
+        ])->save();
     }
 }

@@ -4,6 +4,8 @@ return [
     'login_otp' => 'Madina login code: :code. Valid for :minutes minutes. Do not share.',
     'account_created' => 'Madina account created. Username: :username Password: :password. Please sign in and change your password.',
     'account_created_redacted' => 'Madina account created. Username: :username Password: [REDACTED]. Please sign in and change your password.',
+    'password_reset_by_admin' => 'Madina password reset by company. Username: :username New password: :password. Sign in and change it if you want.',
+    'password_reset_by_admin_redacted' => 'Madina password reset by company. Username: :username New password: [REDACTED]. Sign in and change it if you want.',
     'support_requested' => 'Madina: your support request (:topic) was received. The company will follow up.',
     'withdrawal_requested' => 'Madina: withdrawal of BDT :amount via :channel was requested and reserved for review.',
     'withdrawal_approved' => 'Madina: your withdrawal of BDT :amount via :channel was approved and awaits manual payment.',

@@ -173,6 +173,8 @@ final class PartnerAccountProvisioning
                 'directory_visible' => $role === 'dealer' && ! empty($input['directory_visible']),
                 'status' => in_array(($status = (string) ($input['status'] ?? 'active')), ['active', 'suspended'], true) ? $status : 'active',
                 'password' => $plainPassword,
+                'password_managed_by' => User::PasswordManagedByAdmin,
+                'admin_password_cipher' => $plainPassword,
                 'profile' => $profile,
             ]);
             $user->save();

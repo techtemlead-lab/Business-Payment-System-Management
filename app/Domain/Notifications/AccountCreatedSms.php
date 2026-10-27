@@ -21,9 +21,19 @@ final class AccountCreatedSms
 
     public function send(User $user, string $plainPassword): bool
     {
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'account_created', 'account_created_redacted', 'account.created');
+    }
+
+    public function sendPasswordReset(User $user, string $plainPassword): bool
+    {
+        return $this->deliverTemporaryPassword($user, $plainPassword, 'password_reset_by_admin', 'password_reset_by_admin_redacted', 'account.password_reset');
+    }
+
+    private function deliverTemporaryPassword(User $user, string $plainPassword, string $messageKey, string $redactedKey, string $logPrefix): bool
+    {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
         $locale = $this->localeFor($user);
-        $message = __('sms.account_created', [
+        $message = __('sms.'.$messageKey, [
             'username' => $phone !== '' ? $phone : (string) $user->email,
             'password' => $plainPassword,
         ], $locale);
@@ -31,7 +41,7 @@ final class AccountCreatedSms
         if ($phone !== '' && $this->gateway->anyEnabled()) {
             $remote = $this->gateway->send($phone, $message);
             if ($remote['sent']) {
-                Log::info('account.created.sms.gateway', [
+                Log::info($logPrefix.'.sms.gateway', [
                     'user_id' => $user->id,
                     'phone' => $phone,
                     'provider' => $remote['provider'],
@@ -49,7 +59,7 @@ final class AccountCreatedSms
                     $mail->to((string) $user->email)
                         ->subject(__('portal.notice_account_invite_title', [], $this->localeFor($user)));
                 });
-                Log::info('account.created.mail.smtp', [
+                Log::info($logPrefix.'.mail.smtp', [
                     'user_id' => $user->id,
                     'email' => $user->email,
                     'password_delivered' => true,
@@ -57,7 +67,7 @@ final class AccountCreatedSms
 
                 return true;
             } catch (\Throwable $exception) {
-                Log::warning('account.created.mail.failed', [
+                Log::warning($logPrefix.'.mail.failed', [
                     'user_id' => $user->id,
                     'error' => $exception->getMessage(),
                 ]);
@@ -71,17 +81,17 @@ final class AccountCreatedSms
         $driver = (string) config('madina.sms.driver', 'log');
         if ($driver === 'log' || $driver === 'array') {
             if (app()->environment('production') && $driver === 'log') {
-                Log::critical('account.created.sms.log_driver_in_production', [
+                Log::critical($logPrefix.'.sms.log_driver_in_production', [
                     'user_id' => $user->id,
                     'phone' => $phone,
                     'message' => 'MADINA_SMS_DRIVER=log will not deliver real SMS in production. Enable an SMS provider or SMTP under Service integrations.',
                 ]);
             }
-            Log::channel((string) config('madina.sms.log_channel', 'stack'))->info('account.created.sms', [
+            Log::channel((string) config('madina.sms.log_channel', 'stack'))->info($logPrefix.'.sms', [
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'password_delivered' => true,
-                'message_redacted' => __('sms.account_created_redacted', [
+                'message_redacted' => __('sms.'.$redactedKey, [
                     'username' => $phone,
                 ], $locale),
             ]);
@@ -94,7 +104,7 @@ final class AccountCreatedSms
             return true;
         }
 
-        Log::warning('account.created.sms.unsupported_driver', ['driver' => $driver]);
+        Log::warning($logPrefix.'.sms.unsupported_driver', ['driver' => $driver]);
 
         return false;
     }

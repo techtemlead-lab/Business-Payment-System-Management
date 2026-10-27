@@ -17,12 +17,23 @@ type KycDoc = {
     created_at: string;
 };
 
+type PasswordStatus = {
+    managed_by: string;
+    can_reveal: boolean;
+    password: string | null;
+};
+
 const kycKinds = ['nid_front', 'nid_back', 'birth_certificate', 'agreement', 'photo', 'other'] as const;
+
+function csrfToken(): string {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
 
 export default function AccountEditor({ account, onDone }: { account: Row; onDone: () => void }) {
     const translate = useT();
     const caps = ((usePage().props as any).auth?.capabilities ?? []) as string[];
     const canKyc = caps.includes('identity_write');
+    const canAccounts = caps.includes('accounts');
     const isPartner = ['dealer', 'sub_dealer'].includes(account.role);
     const isSubDealer = account.role === 'sub_dealer';
     const form = useForm({
@@ -46,6 +57,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     });
     const [docs, setDocs] = useState<KycDoc[]>([]);
     const [docsError, setDocsError] = useState('');
+    const [passwordStatus, setPasswordStatus] = useState<PasswordStatus | null>(null);
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordBusy, setPasswordBusy] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
 
     useEffect(() => {
         if (!canKyc || !isPartner) {
@@ -75,6 +90,67 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             });
         return () => { cancelled = true; };
     }, [account.id, canKyc, isPartner]);
+
+    useEffect(() => {
+        if (!canAccounts || !isPartner) {
+            return;
+        }
+        let cancelled = false;
+        fetch(`/commands/accounts/${account.id}/password-status`, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error('failed');
+                }
+                return response.json();
+            })
+            .then((json) => {
+                if (!cancelled) {
+                    setPasswordStatus(json.data || null);
+                    setPasswordError('');
+                    setPasswordVisible(false);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setPasswordError(translate('portal', 'acct_password_load_failed'));
+                }
+            });
+        return () => { cancelled = true; };
+    }, [account.id, canAccounts, isPartner, translate]);
+
+    const resetPartnerPassword = () => {
+        if (passwordBusy) {
+            return;
+        }
+        setPasswordBusy(true);
+        setPasswordError('');
+        fetch(`/commands/accounts/${account.id}/reset-password`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({}),
+        })
+            .then(async (response) => {
+                const json = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(json.message || 'failed');
+                }
+                setPasswordStatus(json.data || null);
+                setPasswordVisible(true);
+            })
+            .catch(() => {
+                setPasswordError(translate('portal', 'acct_password_reset_failed'));
+            })
+            .finally(() => setPasswordBusy(false));
+    };
 
     return <>
         <form className="action-form" onSubmit={event => {
@@ -209,7 +285,41 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             </section>
         )}
 
-        {caps.includes('accounts') && ['dealer','sub_dealer'].includes(account.role) && (
+        {canAccounts && isPartner && (
+            <section className="panel" style={{ marginTop: 16 }}>
+                <div className="panel-heading">
+                    <div>
+                        <h3>{translate('portal', 'acct_password_title')}</h3>
+                        <p className="muted">{translate('portal', 'acct_password_hint')}</p>
+                    </div>
+                </div>
+                {passwordError && <p className="muted" role="alert">{passwordError}</p>}
+                {passwordStatus?.can_reveal && passwordStatus.password ? (
+                    <div className="metric-grid two" style={{ marginBottom: 12 }}>
+                        <div className="metric">
+                            <span>{translate('portal', 'acct_password_current')}</span>
+                            <strong style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: 0.4 }}>
+                                {passwordVisible ? passwordStatus.password : '••••••••••••'}
+                            </strong>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'end', flexWrap: 'wrap' }}>
+                            <button type="button" className="button" onClick={() => setPasswordVisible((value) => !value)}>
+                                {passwordVisible ? translate('portal', 'acct_password_hide') : translate('portal', 'acct_password_show')}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="muted" style={{ marginBottom: 12 }}>
+                        {translate('portal', 'acct_password_self_changed')}
+                    </p>
+                )}
+                <button type="button" className="button dark" disabled={passwordBusy} onClick={resetPartnerPassword}>
+                    {passwordBusy ? translate('portal', 'acct_password_resetting') : translate('portal', 'acct_password_reset')}
+                </button>
+            </section>
+        )}
+
+        {canAccounts && isPartner && (
             <section className="panel">
                 <div className="panel-heading"><div><h2>{translate('portal', 'link_staff_access')}</h2><p className="muted">{translate('portal', 'linked_staff_role')}</p></div></div>
                 {account.linked_staff_role ? (

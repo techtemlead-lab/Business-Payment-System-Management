@@ -12,6 +12,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Inventory\StockService;
+use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\PartnerStaffLink;
@@ -738,6 +739,58 @@ class CommandController extends Controller
         );
 
         return back()->with('success', __('portal.acct_invite_flash'));
+    }
+
+    public function partnerPasswordStatus(Request $r, User $user): JsonResponse
+    {
+        $this->permit($r, 'accounts');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+
+        $visible = $user->adminVisiblePassword();
+
+        return response()->json([
+            'data' => [
+                'managed_by' => $user->password_managed_by ?: User::PasswordManagedByPartner,
+                'can_reveal' => $visible !== null,
+                'password' => $visible,
+            ],
+        ]);
+    }
+
+    public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms): RedirectResponse|JsonResponse
+    {
+        $this->permit($r, 'accounts');
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
+
+        $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
+
+        DB::transaction(function () use ($r, $user, $plainPassword): void {
+            $user->storeAdminManagedPassword($plainPassword);
+            $user->forceFill(['remember_token' => Str::random(60)])->save();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            Audit::record($r->user()->id, 'account.password_reset_by_admin', (string) $user->id, [
+                'role' => $user->role,
+                'dealer_code' => $user->dealer_code,
+            ]);
+        });
+
+        $sms->sendPasswordReset($user->fresh(), $plainPassword);
+
+        if ($r->expectsJson() || $r->wantsJson()) {
+            return response()->json([
+                'data' => [
+                    'managed_by' => User::PasswordManagedByAdmin,
+                    'can_reveal' => true,
+                    'password' => $plainPassword,
+                ],
+                'message' => __('portal.acct_password_reset_flash'),
+            ]);
+        }
+
+        return back()->with('success', __('portal.acct_password_reset_flash_with_password', [
+            'password' => $plainPassword,
+        ]));
     }
 
     public function kycDocuments(Request $r, User $user, PartnerKycDocuments $documents): JsonResponse
