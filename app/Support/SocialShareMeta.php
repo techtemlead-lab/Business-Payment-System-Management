@@ -9,19 +9,30 @@ use App\Models\User;
  */
 final class SocialShareMeta
 {
+    /** Landscape share card image used when CMS does not set a custom og_image. */
+    public const DefaultShareImage = '/branding/madina-hero-banner-1.jpg';
+
+    public const DefaultShareImageWidth = 1376;
+
+    public const DefaultShareImageHeight = 768;
+
     /**
-     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string}
+     * @return array{title:string,description:string,url:string,image:?string,image_width:?int,image_height:?int,type:string,site_name:string}
      */
     public static function homepage(): array
     {
         $custom = SiteCustomization::all();
-        $image = self::absoluteUrl((string) ($custom['og_image'] ?? $custom['logo_url'] ?? '/reference/favicon.png'));
+        $customImage = trim((string) ($custom['og_image'] ?? ''));
+        $image = self::absoluteUrl($customImage !== '' ? $customImage : self::DefaultShareImage);
+        $usingDefault = $customImage === '';
 
         return [
             'title' => (string) ($custom['meta_title'] ?? __('site.meta_title_default')),
             'description' => (string) ($custom['meta_description'] ?? __('site.meta_description')),
             'url' => PortalHost::url('public', '/'),
             'image' => $image,
+            'image_width' => $usingDefault ? self::DefaultShareImageWidth : null,
+            'image_height' => $usingDefault ? self::DefaultShareImageHeight : null,
             'type' => 'website',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
         ];
@@ -42,7 +53,11 @@ final class SocialShareMeta
         if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
             $url = PortalHost::url('public', str_starts_with($url, '/') ? $url : '/'.$url);
         }
-        $image = self::absoluteUrl((string) ($product['image_url'] ?? $product['image_path'] ?? '/reference/favicon.png'));
+        $rawImage = trim((string) ($product['image_url'] ?? $product['image_path'] ?? ''));
+        $usingDefault = $rawImage === '';
+        $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $rawImage);
+        $imageWidth = $usingDefault ? self::DefaultShareImageWidth : null;
+        $imageHeight = $usingDefault ? self::DefaultShareImageHeight : null;
         $partnerPayload = null;
 
         if ($partner && in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
@@ -60,6 +75,8 @@ final class SocialShareMeta
             $description = $contactLine.' '.$description;
             if ($partnerPayload['photo']) {
                 $image = $partnerPayload['photo'];
+                $imageWidth = null;
+                $imageHeight = null;
             }
         }
 
@@ -68,6 +85,8 @@ final class SocialShareMeta
             'description' => mb_substr($description, 0, 280),
             'url' => $url,
             'image' => $image,
+            'image_width' => $imageWidth,
+            'image_height' => $imageHeight,
             'type' => 'product',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => $partnerPayload,
@@ -80,7 +99,8 @@ final class SocialShareMeta
     public static function referral(User $partner): array
     {
         $code = (string) ($partner->refer_code ?: $partner->dealer_code);
-        $photo = self::partnerPhoto($partner) ?: self::absoluteUrl('/reference/favicon.png');
+        $partnerPhoto = self::partnerPhoto($partner);
+        $photo = $partnerPhoto ?: self::absoluteUrl(self::DefaultShareImage);
         $description = __('site.share_refer_description', [
             'name' => $partner->name,
             'code' => $code,
@@ -92,6 +112,8 @@ final class SocialShareMeta
             'description' => mb_substr($description, 0, 280),
             'url' => PortalHost::url('public', '/join/'.$code),
             'image' => $photo,
+            'image_width' => $partnerPhoto ? null : self::DefaultShareImageWidth,
+            'image_height' => $partnerPhoto ? null : self::DefaultShareImageHeight,
             'type' => 'profile',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => [
@@ -132,7 +154,7 @@ final class SocialShareMeta
     public static function absoluteUrl(string $pathOrUrl): string
     {
         if ($pathOrUrl === '') {
-            return PortalHost::url('public', '/reference/favicon.png');
+            return PortalHost::url('public', self::DefaultShareImage);
         }
         if (str_starts_with($pathOrUrl, 'http://') || str_starts_with($pathOrUrl, 'https://')) {
             return self::preferAppScheme($pathOrUrl);
