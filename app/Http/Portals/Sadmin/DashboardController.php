@@ -5,6 +5,7 @@ namespace App\Http\Portals\Sadmin;
 use App\Domain\Pricing\ProductPricing;
 use App\Http\Portals\Shared\WorkspaceController;
 use App\Models\Order;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -13,7 +14,7 @@ class DashboardController
 {
     public function __construct(private WorkspaceController $workspace) {}
 
-    public function index(Request $request, ProductPricing $pricing, string $section = 'overview'): Response
+    public function index(Request $request, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
     {
         return $this->workspace->index($request, $pricing, $section);
     }
