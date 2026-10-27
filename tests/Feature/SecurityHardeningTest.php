@@ -160,8 +160,24 @@ class SecurityHardeningTest extends TestCase
         $csp = (string) $response->headers->get('Content-Security-Policy');
         $this->assertStringContainsString("default-src 'self'", $csp);
         $this->assertStringContainsString("script-src 'self'", $csp);
+        $this->assertStringContainsString('example.test', $csp);
+        $this->assertStringContainsString('*.example.test', $csp);
+        $this->assertStringContainsString('frame-src', $csp);
         $response->assertHeader('Referrer-Policy', 'no-referrer')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function test_portal_subdomain_csp_allows_apex_asset_host(): void
+    {
+        $this->withoutVite();
+        $csp = (string) $this->onPortal('dealer')->get('/login')
+            ->assertOk()
+            ->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString('example.test', $csp);
+        $this->assertStringContainsString('*.example.test', $csp);
+        $this->assertMatchesRegularExpression('/script-src[^;]*example\\.test/', $csp);
+        $this->assertMatchesRegularExpression('/style-src[^;]*example\\.test/', $csp);
     }
 
     public function test_audit_events_are_append_only(): void

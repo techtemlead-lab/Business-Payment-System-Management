@@ -149,7 +149,7 @@ class PublicWebsiteTest extends TestCase
                 $response->assertDontSee($privateOrShoppingElement, false);
             }
         }
-        $this->get('/products/'.$product->id)->assertSee('233.00 BDT')->assertSee('Dealer / Sub-dealer Login');
+        $this->get('/products/'.$product->id)->assertSee('৳ 233.00', false)->assertDontSee('233.00 BDT')->assertSee('Dealer / Sub-dealer Login');
         $this->post('/commands/orders', ['items' => [['product_id' => $product->id, 'quantity' => 1]]])->assertRedirect('/login');
         $this->assertDatabaseCount('orders', 0);
     }

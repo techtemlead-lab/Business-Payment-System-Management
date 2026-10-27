@@ -305,7 +305,7 @@ class SiteCustomizationTest extends TestCase
         $response->assertDontSee('Save 501 Tk');
         $response->assertDontSee('Community Pharmacy Starter Package');
         $response->assertDontSee('Family Daily Immunity Crate');
-        $this->get('/products/'.$product->id)->assertOk()->assertSee('1500.00 BDT')->assertDontSee('999 Tk')->assertDontSee('Save 501 Tk');
+        $this->get('/products/'.$product->id)->assertOk()->assertSee('৳ 1,500.00', false)->assertDontSee('999 Tk')->assertDontSee('Save 501 Tk');
 
         // 2. Test disabling campaign section
         $this->actingAs($editor)->post('/commands/customization', [
@@ -512,7 +512,7 @@ class SiteCustomizationTest extends TestCase
         $response->assertDontSee('Package Includes (2 Products):');
         $response->assertDontSee('Add to Cart');
         $response->assertDontSee('Buy Now');
-        $this->get('/products/'.$p1->id)->assertOk()->assertSee('1000.00 BDT')->assertDontSee('400 Tk')->assertDontSee('Save 600 Tk');
+        $this->get('/products/'.$p1->id)->assertOk()->assertSee('৳ 1,000.00', false)->assertDontSee('400 Tk')->assertDontSee('Save 600 Tk');
 
         // Public product information always uses MRP, even with stored legacy campaign settings.
         $cardActive = SiteCustomization::formatPublicProductCard($p1);

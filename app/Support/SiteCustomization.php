@@ -259,20 +259,20 @@ class SiteCustomization
             'compare_dialog_title' => 'Product Comparison',
             'compare_dialog_desc' => 'Select products to compare.',
 
-            // Social Media & Chat
-            'social_facebook' => '#',
-            'social_youtube' => '#',
-            'social_linkedin' => '#',
-            'social_instagram' => '#',
+            // Social Media & Chat (empty = omit icon; never render href="#")
+            'social_facebook' => '',
+            'social_youtube' => '',
+            'social_linkedin' => '',
+            'social_instagram' => '',
             'social_whatsapp' => 'https://wa.me/8801730532966',
             'social_twitter' => '',
             'social_tiktok' => '',
             'social_telegram' => '',
             'whatsapp_link' => 'https://wa.me/8801730532966',
 
-            // Mobile App Store Badges (default to #)
-            'app_google_play_link' => '#',
-            'app_apple_store_link' => '#',
+            // Mobile App Store Badges (empty = omit badge)
+            'app_google_play_link' => '',
+            'app_apple_store_link' => '',
             'app_badges_enabled' => '1',
 
             // Payment Methods Logo & Visibility

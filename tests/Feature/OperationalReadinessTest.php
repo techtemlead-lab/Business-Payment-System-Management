@@ -621,6 +621,8 @@ class OperationalReadinessTest extends TestCase
         $this->assertStringContainsString("default-src 'self'", $csp);
         $this->assertStringContainsString("script-src 'self'", $csp);
         $this->assertStringContainsString("base-uri 'self'", $csp);
+        $this->assertStringContainsString('example.test', $csp);
+        $this->assertStringContainsString('*.example.test', $csp);
     }
 
     public function test_commission_hold_partner_search_resolves_duplicate_names_by_code(): void

@@ -23,12 +23,22 @@ class ProtectPrivateResponses
             $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         }
         // H4: tighten CSP beyond frame/base/object/form defaults.
+        // Portal subdomains load Vite assets from the apex host (ASSET_URL), so
+        // 'self' alone blocks JS/CSS and blanks dealer/subdealer/manage/sadmin SPAs.
+        $domain = PortalHost::domain();
+        $domainHosts = ($domain !== '' && $domain !== 'localhost') ? " {$domain} *.{$domain}" : '';
+
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'; "
-            ."script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
-            ."img-src 'self' data: blob:; font-src 'self' data: https://fonts.bunny.net; "
-            ."connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:; upgrade-insecure-requests"
+            "default-src 'self'{$domainHosts}; base-uri 'self'; object-src 'none'; "
+            ."frame-ancestors 'self'{$domainHosts}; form-action 'self'{$domainHosts}; "
+            ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com; "
+            ."script-src 'self' 'unsafe-inline'{$domainHosts}; "
+            ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}; "
+            ."img-src 'self' data: blob:{$domainHosts}; "
+            ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}; "
+            ."connect-src 'self'{$domainHosts}; media-src 'self' blob:{$domainHosts}; "
+            ."worker-src 'self' blob:{$domainHosts}; upgrade-insecure-requests"
         );
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
         // M4: HSTS with includeSubDomains on production HTTPS.
