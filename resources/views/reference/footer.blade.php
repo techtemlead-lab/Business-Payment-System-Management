@@ -245,7 +245,7 @@
                     @elseif($publicPageEnabled['contact'] ?? true)
                     <a href="/contact" class="ref-primary-button">{{ __('site.contact_us') }}</a>
                     @endif
-                    <a href="#" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
+                    <a href="{{ ($publicPageEnabled['products'] ?? true) ? '/products' : '/' }}" class="ref-secondary-button ref-qv-view-details" id="qvViewDetails">
                         {{ __('site.view_full_details') }} <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                     </a>
                 </div>

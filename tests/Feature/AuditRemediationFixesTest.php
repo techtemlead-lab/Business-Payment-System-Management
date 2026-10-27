@@ -19,6 +19,19 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertStringContainsString('id="qvImage"', $html);
         $this->assertDoesNotMatchRegularExpression('/id="qvImage"[^>]*\ssrc=""/', $html);
         $this->assertDoesNotMatchRegularExpression('/id="qvImage"[^>]*\ssrc=\'\'/', $html);
+        $this->assertMatchesRegularExpression('/<a[^>]*href="\/products"[^>]*id="qvViewDetails"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/<a[^>]*href="#"[^>]*id="qvViewDetails"/', $html);
+    }
+
+    public function test_error_layout_logo_declares_stable_dimensions(): void
+    {
+        $html = (string) $this->view('errors.404');
+
+        $this->assertMatchesRegularExpression(
+            '/madina-header-logo\.png[^>]*width="180"[^>]*height="48"/',
+            $html,
+        );
+        $this->assertStringContainsString('max-height:48px', $html);
     }
 
     public function test_bangla_footer_uses_taka_symbol_instead_of_bdt_acronym(): void
