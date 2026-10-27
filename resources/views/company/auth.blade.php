@@ -19,7 +19,7 @@
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
         </form>
     </div>
-    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=6" alt="{{ __('portal.brand_alt') }}"></div>
+    <div class="company-auth-brand"><img src="/madina-header-logo.png?v=8" alt="{{ __('portal.brand_alt') }}"></div>
     <section class="company-auth-card">
         <span class="eyebrow">{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</span>
         <h1>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='totp'?__('auth_ui.totp_title'):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password'))) }}</h1>

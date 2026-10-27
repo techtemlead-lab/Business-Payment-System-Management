@@ -137,19 +137,19 @@ class SiteCustomization
 
             // Homepage About
             'about_headline' => 'Natural Food, Medicine & Wellness Product Shop in Bangladesh',
-            'about_lead' => 'Madina Natural Health Care connects products, dealers and communities across Bangladesh. Explore the collection and contact the company for product information and partnership enquiries.',
+            'about_lead' => 'Licensed distributor of Holistic Nutracare herbal and nutrition products. Explore the collection and contact Madina Natural Health Care for product information and partnership enquiries.',
             'about_summary_title' => 'Read More',
             'about_summary_body' => 'Our partner workspace brings product requests, deliveries, verified manual payments and company support together. Dealer accounts are created by authorized company staff.',
 
             // About Us Page (/about)
             'about_hero_title' => 'About Madina Natural Health Care',
-            'about_hero_lead' => 'Madina Natural Health Care connects quality wellness products, dealers, healthcare practitioners and communities through an approved distribution network across Bangladesh.',
+            'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563, Pirganj Municipality) supplying chemical-free herbal and Holistic Nutracare nutrition products through an authorized dealer network across Bangladesh.',
             'about_history_title' => 'Company History',
-            'about_history' => 'Established with a commitment to pure wellness, Madina Natural Health Care began by addressing the growing need for authentic natural food supplements, unani medicines and accessible community healthcare. Our distribution model connects the company with authorized dealers and sub-dealers. Contact us for current service coverage and product availability.',
+            'about_history' => 'Madina Natural Health Care (Owner: Md Anowar Hossain) is a licensed distributor based on Thana Road, Pirganj, Rangpur. We market Holistic Nutracare nutrition and herbal products made from natural raw materials with modern process standards, connecting the company with authorized dealers and sub-dealers nationwide.',
             'about_mission_title' => 'Our Mission',
-            'about_mission' => 'To formulate, source and deliver reliable, high-standard natural health products while empowering local entrepreneurship through a transparent, staff-verified dealer and distribution ecosystem.',
+            'about_mission' => 'To protect public health by ensuring adulterant-free food and popularizing the correct use of herbal products, while empowering local entrepreneurship through a transparent, staff-verified dealer network.',
             'about_vision_title' => 'Our Vision',
-            'about_vision' => 'To become Bangladesh’s foremost trusted name in natural preventive healthcare, unani medicine and community wellness, fostering healthier families and resilient partner livelihoods in every district.',
+            'about_vision' => 'To deliver chemical-free natural herbal and food products to every home in Bangladesh, fostering healthier families and resilient partner livelihoods in every district.',
             'about_objectives_title' => 'Core Objectives',
             'about_obj1_title' => 'Authentic Wellness',
             'about_obj1_desc' => 'Supply safe, verified unani and dietary supplements with clear quality standards.',
@@ -166,12 +166,12 @@ class SiteCustomization
             // Contact Page (/contact)
             'contact_title' => 'Contact Us',
             'contact_company_title' => 'Madina Natural Health Care',
-            'contact_company_desc' => 'For product information, dealer enquiries or support, send us a message or visit our head office.',
+            'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Factory/warehouse: Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka. Hotline: 01730532966 · 01723731877 · 01727612379.',
             'contact_phone_title' => 'Customer Care & Hotline',
             'contact_phone' => '+8801730532966',
-            'contact_phone_hours' => '',
+            'contact_phone_hours' => 'Hotline also: 01723731877 · 01727612379',
             'contact_email_title' => 'Official Email',
-            'contact_email' => '',
+            'contact_email' => 'holisticnutracare@gmail.com',
             'contact_topic1_title' => 'Dealer Enquiries',
             'contact_topic1_desc' => 'Dealer accounts are created by company staff after review.',
             'contact_topic2_title' => 'Products & Support',
@@ -181,8 +181,8 @@ class SiteCustomization
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
             'contact_form_title' => 'Send an Enquiry',
             'map_title' => 'Office & Healthcare Center Location',
-            'map_subtitle' => 'Visit Madina Natural Health Care at our registered center or navigate with map directions.',
-            'map_facility' => 'Madina Natural Health Care & Physiotherapy Center',
+            'map_subtitle' => 'Visit Madina Natural Health Care at our licensed Pirganj head office or navigate with map directions.',
+            'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
             'map_directions_text' => 'Open Map Directions',
 
             // Dealer Directory Page (/dealers)
@@ -231,7 +231,7 @@ class SiteCustomization
             'footer_directory_link' => '/dealers',
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             'footer_phone' => '+8801730532966',
-            'footer_email' => '',
+            'footer_email' => 'holisticnutracare@gmail.com',
             'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
             'footer_link_about' => 'About Us',
             'footer_link_about_url' => '/about',
@@ -246,8 +246,8 @@ class SiteCustomization
             'footer_link_dealer_apply' => 'Apply for Dealership',
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
-            'footer_about_desc' => 'Products, partners and communities across Bangladesh.',
-            'footer_logo_url' => '/madina-header-logo-white.png?v=6',
+            'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
+            'footer_logo_url' => '/madina-header-logo-white.png?v=8',
 
             // Floating Tools & Dialogs
             'floating_compare_label' => 'COMPARE',

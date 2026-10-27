@@ -24,7 +24,7 @@
 
         <!-- Logo -->
         <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="/madina-header-logo.png?v=7" alt="{{ __('site.company_bar') }}" width="180" height="48" style="height:auto;max-height:48px;width:auto;" decoding="async">
+            <img src="/madina-header-logo.png?v=8" alt="{{ __('site.company_bar') }}" width="180" height="48" style="height:auto;max-height:48px;width:auto;" decoding="async">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -94,7 +94,7 @@
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=7" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async" onerror="this.src='/madina-header-logo.png?v=7'">
+            <img src="/madina-header-logo-white.png?v=8" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async" onerror="this.src='/madina-header-logo.png?v=8'">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>

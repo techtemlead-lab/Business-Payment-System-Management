@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title') · {{ __('site.company_bar') }}</title>
     <meta name="robots" content="noindex">
-    <link rel="icon" href="/reference/favicon.png">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" href="/reference/favicon.png?v=8">
+    <link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
     <link rel="stylesheet" href="/reference/fontawesome-local.css">
     <link rel="stylesheet" href="/reference/instrument-sans-local.css">
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -23,7 +25,7 @@
     <header class="ref-header">
         <div class="ref-container ref-header-inner" style="justify-content:center">
             <a class="ref-logo ref-madina-logo" href="/" aria-label="{{ __('site.home') }}">
-                <img src="/madina-header-logo.png?v=7" width="180" height="48" style="height:auto;max-height:48px;width:auto;" alt="{{ __('site.company_bar') }}" decoding="async">
+                <img src="/madina-header-logo.png?v=8" width="180" height="48" style="height:auto;max-height:48px;width:auto;" alt="{{ __('site.company_bar') }}" decoding="async">
             </a>
         </div>
     </header>

@@ -104,7 +104,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-quick-view]').forEach(button
         if (!card || !qvDialog) return;
         const image = document.getElementById('qvImage') as HTMLImageElement | null;
         if (image) {
-            image.src = card.dataset.image || '/madina-header-logo.png?v=6';
+            image.src = card.dataset.image || '/madina-header-logo.png?v=8';
             image.alt = card.dataset.name || siteUi.product_image;
         }
         for (const [id, value] of Object.entries({qvTitle: card.dataset.name, qvCategory: card.dataset.categoryName, qvMrp: card.dataset.mrp, qvDescription: card.dataset.desc})) {
