@@ -38,7 +38,10 @@ final class SocialShareMeta
         if ($description === '') {
             $description = __('site.meta_description');
         }
-        $url = (string) ($product['url'] ?? PortalHost::url('public', '/products/'.($product['id'] ?? '')));
+        $url = self::preferAppScheme((string) ($product['url'] ?? PortalHost::url('public', '/products/'.($product['id'] ?? ''))));
+        if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
+            $url = PortalHost::url('public', str_starts_with($url, '/') ? $url : '/'.$url);
+        }
         $image = self::absoluteUrl((string) ($product['image_url'] ?? $product['image_path'] ?? '/reference/favicon.png'));
         $partnerPayload = null;
 
@@ -108,15 +111,46 @@ final class SocialShareMeta
         return is_string($url) && $url !== '' ? self::absoluteUrl($url) : null;
     }
 
+    /**
+     * @return array{title:string,description:string,url:string,image:?string,type:string,site_name:string}
+     */
+    public static function page(string $page, ?string $title = null, ?string $description = null): array
+    {
+        $home = self::homepage();
+        $path = $page === 'home' || $page === '' ? '/' : '/'.ltrim($page, '/');
+        $label = $title ?: (ucfirst(str_replace('-', ' ', $page)).' · '.$home['site_name']);
+
+        return [
+            ...$home,
+            'title' => $label,
+            'description' => $description ?: $home['description'],
+            'url' => PortalHost::url('public', $path),
+            'type' => 'website',
+        ];
+    }
+
     public static function absoluteUrl(string $pathOrUrl): string
     {
         if ($pathOrUrl === '') {
             return PortalHost::url('public', '/reference/favicon.png');
         }
         if (str_starts_with($pathOrUrl, 'http://') || str_starts_with($pathOrUrl, 'https://')) {
-            return $pathOrUrl;
+            return self::preferAppScheme($pathOrUrl);
         }
 
         return PortalHost::url('public', str_starts_with($pathOrUrl, '/') ? $pathOrUrl : '/'.$pathOrUrl);
+    }
+
+    /**
+     * Prefer the APP_URL scheme so crawlers always see https share cards in production.
+     */
+    public static function preferAppScheme(string $url): string
+    {
+        $appScheme = parse_url((string) config('app.url'), PHP_URL_SCHEME);
+        if ($appScheme !== 'https' || ! str_starts_with($url, 'http://')) {
+            return $url;
+        }
+
+        return 'https://'.substr($url, strlen('http://'));
     }
 }

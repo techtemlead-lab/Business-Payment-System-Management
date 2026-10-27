@@ -7,6 +7,7 @@ use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
@@ -91,11 +92,9 @@ class PublicController extends Controller
         $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
         $maps = app(MapsPresentation::class)->forAddress($officeAddress);
 
-        $homeSocial = SocialShareMeta::homepage();
-        $social = $page === 'home' ? $homeSocial : array_merge($homeSocial, [
-            'title' => ucfirst(str_replace('-', ' ', $page)).' · '.config('app.name'),
-            'url' => url('/'.$page),
-        ]);
+        $social = $page === 'home'
+            ? SocialShareMeta::homepage()
+            : SocialShareMeta::page($page);
 
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
             'content' => DB::table('content_pages')->where('slug', $page)->where('published', true)->first(),
@@ -129,7 +128,7 @@ class PublicController extends Controller
             'price' => $p->mrp,
             'mrp' => $p->mrp,
             'stock_status' => $p->stockStatus(),
-            'url' => route('products.show', $p->id),
+            'url' => PortalHost::url('public', '/products/'.$p->id),
             'image_path' => $p->media()['image_url'],
             ...$p->media(),
             'preview' => false,
@@ -152,8 +151,9 @@ class PublicController extends Controller
         $catalog = $query->orderBy('id')->paginate(12)->withQueryString()
             ->through(fn (Product $product) => $this->publicProduct($product));
         $catalogCategories = Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
+        $social = SocialShareMeta::page('products', __('site.products').' · '.config('app.name'), __('site.meta_description'));
 
-        return view('reference.catalog', compact('catalog', 'catalogCategories'));
+        return view('reference.catalog', compact('catalog', 'catalogCategories', 'social'));
     }
 
     public function enquiry(Request $request): RedirectResponse
