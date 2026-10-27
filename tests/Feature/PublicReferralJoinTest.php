@@ -92,13 +92,20 @@ class PublicReferralJoinTest extends TestCase
 
     public function test_homepage_includes_open_graph_company_meta(): void
     {
+        $hero = PortalHost::url('public', '/branding/madina-hero-banner-1.jpg').'?v=og-20261027';
+
         $this->onPortal('public')
             ->get('/')
             ->assertOk()
             ->assertSee('og:title', false)
             ->assertSee('og:description', false)
             ->assertSee('twitter:card', false)
-            ->assertSee('property="og:url" content="'.PortalHost::url('public', '/').'"', false);
+            ->assertSee('property="og:url" content="'.PortalHost::url('public', '/').'"', false)
+            ->assertSee('property="og:image" content="'.$hero.'"', false)
+            ->assertSee('property="og:image:secure_url" content="'.$hero.'"', false)
+            ->assertSee('property="og:image:type" content="image/jpeg"', false)
+            ->assertSee('property="og:image:width" content="1376"', false)
+            ->assertSee('property="og:image:height" content="768"', false);
     }
 
     public function test_products_index_and_detail_expose_https_ready_open_graph_cards(): void
