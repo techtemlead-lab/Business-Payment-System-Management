@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,6 +97,34 @@ class PublicReferralJoinTest extends TestCase
             ->assertOk()
             ->assertSee('og:title', false)
             ->assertSee('og:description', false)
-            ->assertSee('twitter:card', false);
+            ->assertSee('twitter:card', false)
+            ->assertSee('property="og:url" content="'.PortalHost::url('public', '/').'"', false);
+    }
+
+    public function test_products_index_and_detail_expose_https_ready_open_graph_cards(): void
+    {
+        config(['app.url' => 'https://'.PortalHost::domain()]);
+
+        $product = Product::factory()->create([
+            'active' => true,
+            'name' => 'OG Face Wash',
+            'description' => 'Shareable wellness product for social cards.',
+        ]);
+
+        $this->onPortal('public')
+            ->get('/products')
+            ->assertOk()
+            ->assertSee('property="og:url" content="'.PortalHost::url('public', '/products').'"', false)
+            ->assertSee('og:title', false);
+
+        $this->onPortal('public')
+            ->get('/products/'.$product->id)
+            ->assertOk()
+            ->assertSee('property="og:type" content="product"', false)
+            ->assertSee('OG Face Wash', false)
+            ->assertSee('property="og:url" content="'.PortalHost::url('public', '/products/'.$product->id).'"', false)
+            ->assertSee('facebook.com/dialog/send', false)
+            ->assertSee('sms:?&body=', false)
+            ->assertSee('mailto:?subject=', false);
     }
 }

@@ -324,6 +324,8 @@ return [
     'share_telegram' => 'Telegram',
     'share_linkedin' => 'LinkedIn',
     'share_x' => 'X / Twitter',
+    'share_email' => 'Email',
+    'share_sms' => 'SMS',
     'preview_banner' => 'Preview mode · Demonstration data only. Financial posting stays disabled until activation.',
     'promotional_banners' => 'Promotional banners',
     'featured_promotions' => 'Featured promotions',
