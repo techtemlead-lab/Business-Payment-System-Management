@@ -43,7 +43,7 @@
 </div>
 @endif
 <section class="ref-detail-card"><div class="ref-detail-image">@if(!empty($item['image_path']))<img src="{{ $item['image_path'] }}" alt="{{ $item['name'] }}">@else<div class="ref-no-image" aria-hidden="true"><i class="fa-solid fa-leaf"></i><span>{{ __('site.photo_coming_soon') }}</span></div>@endif</div><div class="ref-detail-info"><h1>{{ $item['name'] }}</h1>
-<div class="ref-metadata"><span>{{ __('site.mrp') }}: <b>{{ $item['mrp'] }} BDT</b></span><span>{{ __('site.availability') }}: <b class="{{ $inStock ? 'ref-green' : 'ref-orange' }}">{{ $stockLabel }}</b></span><span>{{ __('site.product_code') }}: <b>{{ $item['sku'] }}</b></span><span>{{ __('site.category') }}: <b>{{ $item['category'] }}</b></span></div>
+<div class="ref-metadata"><span>{{ __('site.mrp') }}: <b>৳ {{ number_format((float) $item['mrp'], 2) }}</b></span><span>{{ __('site.availability') }}: <b class="{{ $inStock ? 'ref-green' : 'ref-orange' }}">{{ $stockLabel }}</b></span><span>{{ __('site.product_code') }}: <b>{{ $item['sku'] }}</b></span><span>{{ __('site.category') }}: <b>{{ $item['category'] }}</b></span></div>
 <div class="ref-partner-information">
     <span class="ref-company-eyebrow">{{ __('site.product_network_eyebrow') }}</span>
     <h2>{{ __('site.product_available_title') }}</h2>

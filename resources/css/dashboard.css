@@ -523,3 +523,21 @@ dialog.portal-modal::backdrop{
 .help-manual-tips { margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0; }
 .help-tour-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
 @media (max-width: 800px) { .help-manual-layout { grid-template-columns:1fr; } }
+
+/* Mobile sticky checkout summary (catalog) */
+.mobile-sticky-cart-bar{display:none}
+.desktop-cart-bar{display:flex}
+.sponsor-card{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:16px}
+.sponsor-actions{display:flex;gap:10px;flex-wrap:wrap}
+.sponsor-actions .button{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:768px){
+ .desktop-cart-bar{display:none!important}
+ .mobile-sticky-cart-bar{
+  position:fixed;bottom:56px;left:0;right:0;background:#ffffff;border-top:1px solid #e2e8f0;
+  padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:50;
+  box-shadow:0 -4px 14px rgba(0,0,0,.08);gap:12px
+ }
+ .mobile-sticky-cart-bar .cart-summary{display:flex;flex-direction:column;gap:2px}
+ .mobile-sticky-cart-bar .cart-count{font-size:12px;color:#64748b}
+ .mobile-sticky-cart-bar .cart-total{font-size:16px}
+}

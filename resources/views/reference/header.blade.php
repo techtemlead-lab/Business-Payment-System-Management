@@ -24,7 +24,7 @@
 
         <!-- Logo -->
         <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="/madina-header-logo.png?v=6" alt="{{ __('site.company_bar') }}" width="500" height="500">
+            <img src="/madina-header-logo.png?v=6" alt="{{ __('site.company_bar') }}" width="180" height="48" style="height:auto;max-height:48px;width:auto;">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)

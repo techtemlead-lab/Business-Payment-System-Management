@@ -25,7 +25,8 @@ final class PartnerDashboardHome
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
      *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
      *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
-     *   referral: array{code: string, url: string, qr_url: string}|null
+     *   referral: array{code: string, url: string, qr_url: string}|null,
+     *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null
      * }
      */
     public function for(User $user): array
@@ -112,6 +113,31 @@ final class PartnerDashboardHome
                 'url' => PortalHost::url('public', '/join/'.$user->refer_code),
                 'qr_url' => '/referral-qr.svg',
             ] : null,
+            'sponsor' => $this->sponsorCard($user),
+        ];
+    }
+
+    /**
+     * @return array{id: int, name: string, dealer_code: string|null, phone: string|null}|null
+     */
+    private function sponsorCard(User $user): ?array
+    {
+        if ($user->role !== 'sub_dealer' || ! $user->sponsor_id) {
+            return null;
+        }
+        $sponsor = User::query()
+            ->whereKey($user->sponsor_id)
+            ->where('status', 'active')
+            ->first(['id', 'name', 'dealer_code', 'phone']);
+        if (! $sponsor) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $sponsor->id,
+            'name' => (string) $sponsor->name,
+            'dealer_code' => $sponsor->dealer_code !== null ? (string) $sponsor->dealer_code : null,
+            'phone' => $sponsor->phone !== null ? (string) $sponsor->phone : null,
         ];
     }
 

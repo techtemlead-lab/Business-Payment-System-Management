@@ -73,22 +73,22 @@
         <div class="ref-socials">
             @php
                 $socialMap = [
-                    'facebook' => $siteCustomization['social_facebook'] ?? '#',
-                    'youtube' => $siteCustomization['social_youtube'] ?? '#',
-                    'linkedin' => $siteCustomization['social_linkedin'] ?? '#',
-                    'instagram' => $siteCustomization['social_instagram'] ?? '#',
+                    'facebook' => $siteCustomization['social_facebook'] ?? '',
+                    'youtube' => $siteCustomization['social_youtube'] ?? '',
+                    'linkedin' => $siteCustomization['social_linkedin'] ?? '',
+                    'instagram' => $siteCustomization['social_instagram'] ?? '',
                     'whatsapp' => $siteCustomization['social_whatsapp'] ?? 'https://wa.me/8801730532966',
                 ];
             @endphp
             @foreach($socialMap as $social => $link)
             @php
-                $href = $link ?: '#';
-                if ($social === 'whatsapp' && $href !== '#' && !str_starts_with($href, 'http')) {
+                $href = filled($link) && $link !== '#' ? $link : '';
+                if ($social === 'whatsapp' && $href !== '' && ! str_starts_with($href, 'http')) {
                     $cleaned = preg_replace('/[^0-9]/', '', $href);
-                    $href = $cleaned ? 'https://wa.me/' . (str_starts_with($cleaned, '01') ? '88' . $cleaned : $cleaned) : '#';
+                    $href = $cleaned ? 'https://wa.me/'.(str_starts_with($cleaned, '01') ? '88'.$cleaned : $cleaned) : '';
                 }
             @endphp
-            @if($href !== '#')
+            @if(filled($href) && $href !== '#')
             <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($social) }}"><img src="/reference/icons/{{ $social }}.png" alt="{{ ucfirst($social) }}"></a>
             @endif
             @endforeach

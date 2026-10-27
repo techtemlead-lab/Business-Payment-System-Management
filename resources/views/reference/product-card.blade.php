@@ -16,7 +16,7 @@
     data-category="{{ $catSlug }}"
     data-id="{{ $item['id'] }}"
     data-name="{{ $item['name'] }}"
-    data-mrp="{{ $displayMrp }} BDT"
+    data-mrp="৳ {{ $displayMrp }}"
     data-image="{{ $imageSrc }}"
     data-category-name="{{ $catName }}"
     data-stock-status="{{ $stockStatus }}"
@@ -40,7 +40,7 @@
         <span class="ref-stock-pill {{ ! $inStock ? 'out-of-stock' : ($stockStatus === 'low_stock' ? 'low-stock' : 'in-stock') }}">
             <span class="ref-stock-dot"></span> {{ $stockLabel }}
         </span>
-        <div class="ref-catalog-mrp"><span>{{ __('site.mrp') }}</span><strong>{{ $displayMrp }} BDT</strong></div>
+        <div class="ref-catalog-mrp"><span>{{ __('site.mrp') }}</span><strong>৳ {{ $displayMrp }}</strong></div>
         <a class="ref-product-details-link" href="{{ $item['url'] }}">{{ __('site.view_product_details') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
     </div>
 </article>

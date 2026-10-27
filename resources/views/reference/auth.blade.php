@@ -51,8 +51,8 @@
                 <p class="ref-form-hint">{{ __('auth_ui.otp_hint') }}</p>
                 <button class="ref-auth-submit" type="submit">{{ __('auth_ui.otp_verify') }}</button>
             @else
-                <label for="account-email">{{ $mode === 'login' ? __('auth_ui.email_or_phone') : __('auth_ui.email') }}</label>
-                <input id="account-email" type="{{ $mode === 'login' ? 'text' : 'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email', $email ?? '') }}" placeholder="{{ $mode === 'login' ? __('auth_ui.email_or_phone_placeholder') : __('auth_ui.email_placeholder') }}" @if($errors->has('email')) aria-invalid="true" @endif>
+                <label for="account-email">{{ $mode === 'login' ? __('auth_ui.email_phone_or_code') : __('auth_ui.email') }}</label>
+                <input id="account-email" type="{{ $mode === 'login' ? 'text' : 'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email', $email ?? '') }}" placeholder="{{ $mode === 'login' ? __('auth_ui.email_phone_or_code_placeholder') : __('auth_ui.email_placeholder') }}" @if($errors->has('email')) aria-invalid="true" @endif>
                 @if($mode !== 'forgot')
                     <div class="ref-password-label">
                         <label for="account-password">{{ __('auth_ui.password') }}</label>

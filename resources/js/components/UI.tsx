@@ -6,8 +6,8 @@ import {businessDate} from '../business-date';
 import {useT} from '../shared/i18n/t';
 export type Row=Record<string,any>;
 export const money=(value:unknown)=>{
- const locale=typeof document!=='undefined'&&document.documentElement.lang.toLowerCase().startsWith('bn')?'bn-BD':'en-BD';
- return new Intl.NumberFormat(locale,{style:'currency',currency:'BDT',maximumFractionDigits:2}).format(Number(value??0));
+ const num=Number(value??0);
+ return `৳ ${num.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 };
 export const date=businessDate;
 type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;

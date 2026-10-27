@@ -65,13 +65,17 @@ class AuthController extends Controller
 
     private function authenticate(Request $r, string $portal): Response
     {
-        $data = $r->validate(['email' => 'required|string|max:254', 'password' => 'required|string|max:200'], [], ['email' => 'e-mail or phone number']);
+        $data = $r->validate(['email' => 'required|string|max:254', 'password' => 'required|string|max:200'], [], ['email' => 'e-mail, phone number, or dealer code']);
         $identity = trim($data['email']);
         $isEmail = filter_var($identity, FILTER_VALIDATE_EMAIL) !== false;
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
-        $key = ($isEmail ? Str::lower($identity) : ($phone ?? Str::lower($identity))).'|'.$r->ip();
+        $rateLimiterIdentity = $isEmail ? Str::lower($identity) : ($phone ?? Str::upper($identity));
+        $key = $rateLimiterIdentity.'|'.$r->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
-            throw ValidationException::withMessages(['email' => __('portal.flash_too_many_attempts')]);
+            $seconds = RateLimiter::availableIn($key);
+            throw ValidationException::withMessages([
+                'email' => __('portal.flash_too_many_attempts_seconds', ['seconds' => $seconds]),
+            ]);
         }
         $query = User::where('status', 'active');
         if ($isEmail) {
@@ -79,7 +83,8 @@ class AuthController extends Controller
         } elseif ($phone) {
             $query->whereNotNull('phone')->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")->whereRaw('('.PhoneIdentity::SQL.') = ?', [$phone]);
         } else {
-            $query->whereRaw('1=0');
+            // Partner ID-card / dealer codes (e.g. MNHC-1001, MNHC-100001-000001).
+            $query->whereNotNull('dealer_code')->whereRaw('UPPER(dealer_code) = ?', [Str::upper($identity)]);
         }
         // Shared phone contacts must never select an arbitrary account. Email
         // remains available if more than one active identity matches a phone.

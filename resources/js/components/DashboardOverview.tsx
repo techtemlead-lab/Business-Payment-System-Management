@@ -3,6 +3,7 @@ import { useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
+    Phone, MessageCircle,
 } from 'lucide-react';
 import { Badge, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -232,6 +233,31 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 </section>
             </section>
 
+            {home.sponsor && (
+                <section className="panel sponsor-card" data-tour="sponsor-contact">
+                    <div className="sponsor-info">
+                        <span className="eyebrow">{translate('portal', 'assigned_sponsor_dealer')}</span>
+                        <h4>{home.sponsor.name}{home.sponsor.dealer_code ? ` (${home.sponsor.dealer_code})` : ''}</h4>
+                        <p>{home.sponsor.phone || translate('portal', 'no_phone_provided')}</p>
+                    </div>
+                    {home.sponsor.phone && (
+                        <div className="sponsor-actions">
+                            <a href={`tel:${home.sponsor.phone}`} className="button small">
+                                <Phone size={14} /> {translate('portal', 'call_dealer')}
+                            </a>
+                            <a
+                                href={`https://wa.me/${String(home.sponsor.phone).replace(/[^0-9]/g, '').replace(/^01/, '8801')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="button small"
+                                style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#047857' }}
+                            >
+                                <MessageCircle size={14} /> {translate('portal', 'whatsapp')}
+                            </a>
+                        </div>
+                    )}
+                </section>
+            )}
             <ReferralShare referral={home.referral ?? null} />
 
             <section className="panel table-panel dense-panel">
