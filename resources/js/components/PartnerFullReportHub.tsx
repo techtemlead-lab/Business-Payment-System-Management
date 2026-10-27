@@ -32,7 +32,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         </h2>
                         <p className="muted">{translate('portal', 'full_report_hint')}</p>
                     </div>
-                    <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} target="_blank" rel="noopener noreferrer" download="partner-statement.pdf" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Download size={15} /> {translate('portal', 'download_pdf')}
                     </a>
                 </div>

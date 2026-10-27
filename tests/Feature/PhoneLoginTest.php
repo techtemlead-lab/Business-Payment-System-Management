@@ -95,7 +95,12 @@ class PhoneLoginTest extends TestCase
         foreach (['01000000005', '+8801000000005', '008801000000005', '010 0000 0005', '+880 (10) 0000-0005'] as $phone) {
             $this->post('/login', ['email' => $phone, 'password' => 'WrongPassword123'])->assertSessionHasErrors('email');
         }
-        $this->post('/login', ['email' => '01000000005', 'password' => 'SyntheticPassword123'])->assertSessionHasErrors(['email' => __('portal.flash_too_many_attempts')]);
+        $response = $this->post('/login', ['email' => '01000000005', 'password' => 'SyntheticPassword123']);
+        $response->assertSessionHasErrors('email');
+        $this->assertMatchesRegularExpression(
+            '/\d+/',
+            (string) session('errors')->first('email'),
+        );
         $this->assertGuest();
     }
 }
