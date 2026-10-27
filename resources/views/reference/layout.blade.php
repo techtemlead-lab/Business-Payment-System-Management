@@ -4,8 +4,16 @@
 @if(($social ?? null) !== false)
 @include('reference.partials.social-meta', ['social' => is_array($social ?? null) ? $social : \App\Support\SocialShareMeta::homepage()])
 @endif
-<link rel="icon" href="/reference/favicon.png"><link rel="stylesheet" href="/reference/fontawesome-local.css"><link rel="stylesheet" href="/reference/instrument-sans-local.css">
-<link rel="preconnect" href="https://fonts.bunny.net"><link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
+<link rel="icon" href="/reference/favicon.png">
+<link rel="preload" as="image" href="/madina-header-logo.png?v=7" fetchpriority="high">
+<link rel="stylesheet" href="/reference/instrument-sans-local.css">
+@if(app()->getLocale() === 'bn')
+<link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap">
+@endif
+{{-- Defer Font Awesome so first paint is not blocked by the 100KB icon stylesheet. --}}
+<link rel="stylesheet" href="/reference/fontawesome-local.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/reference/fontawesome-local.css"></noscript>
 @vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])</head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
 @include('reference.header')

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\ProductVideo;
+use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,6 +16,13 @@ class Product extends Model
     protected $hidden = ['cost_price', 'image_path', 'video_path', 'video_mime'];
 
     protected $attributes = ['stock' => 0, 'low_stock_at' => 10, 'active' => true, 'tone' => 'sage', 'unit' => 'pack'];
+
+    protected static function booted(): void
+    {
+        $bust = static fn () => SiteCustomization::forgetCache();
+        static::saved($bust);
+        static::deleted($bust);
+    }
 
     protected function casts(): array
     {

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -10,6 +11,13 @@ use Illuminate\Validation\ValidationException;
 class SiteCustomization
 {
     private const SLUG = 'frontend_customization';
+
+    private const CacheKey = 'site_customization:v1';
+
+    private const CacheTtlSeconds = 300;
+
+    /** @var array<string, mixed>|null */
+    private static ?array $requestMemo = null;
 
     public static function defaults(): array
     {
@@ -477,7 +485,24 @@ class SiteCustomization
         return $value;
     }
 
+    public static function forgetCache(): void
+    {
+        self::$requestMemo = null;
+        Cache::forget(self::CacheKey);
+        Cache::forget('public:content_pages:v1');
+        Cache::forget('public:product_categories:v1');
+        Cache::forget('public:featured_products:v1');
+    }
+
     public static function all(): array
+    {
+        return self::$requestMemo ??= Cache::remember(self::CacheKey, self::CacheTtlSeconds, function (): array {
+            return self::loadAll();
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private static function loadAll(): array
     {
         $defaults = self::defaults();
         try {
@@ -705,6 +730,7 @@ class SiteCustomization
                 ]
             );
         }, 3);
+        self::forgetCache();
     }
 
     /** @param array<string, mixed> $defaults @param array<string, mixed> $payload */
@@ -1263,5 +1289,6 @@ class SiteCustomization
     public static function reset(): void
     {
         DB::table('content_pages')->where('slug', self::SLUG)->delete();
+        self::forgetCache();
     }
 }

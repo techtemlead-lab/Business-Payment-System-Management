@@ -534,7 +534,9 @@ class SiteCustomizationTest extends TestCase
         $home->assertOk();
         $home->assertSee('+8801730532966');
         $home->assertSee('tel:+8801730532966');
-        $home->assertSee('href="#"', false);
+        $home->assertSee('id="qvViewDetails"', false);
+        $home->assertSee('href="/products"', false);
+        $home->assertDontSee('id="qvViewDetails" href="#"', false);
         $home->assertSee('https://wa.me/8801730532966');
 
         $contact = $this->get('/contact');
