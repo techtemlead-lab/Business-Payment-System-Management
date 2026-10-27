@@ -84,10 +84,17 @@
     <div class="print-toolbar">
         <strong>{{ __('portal.print_invoice') }} — {{ $order['number'] ?? '' }}</strong>
         <div class="actions">
+            @php
+                $invoiceShareUrl = $share_url ?? request()->url();
+                $invoiceShareText = __('portal.share_invoice_text', ['number' => $order['number'] ?? '']);
+                $invoiceShareBody = $invoiceShareText.' '.$invoiceShareUrl;
+            @endphp
             <button type="button" onclick="window.print()">{{ __('portal.print_invoice') }}</button>
             <a class="secondary" href="{{ url('/orders/'.($order_id ?? '').'/invoice') }}">{{ __('portal.download_invoice') }}</a>
-            <a class="secondary" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode((__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])).' '.($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_whatsapp') }}</a>
-            <a class="secondary" href="mailto:?subject={{ rawurlencode(__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])) }}&body={{ rawurlencode(($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_email') }}</a>
+            <a class="secondary" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode($invoiceShareBody) }}">{{ __('portal.share_invoice_whatsapp') }}</a>
+            <a class="secondary" target="_blank" rel="noopener" href="https://www.facebook.com/dialog/send?link={{ rawurlencode($invoiceShareUrl) }}&app_id=0&redirect_uri={{ rawurlencode($invoiceShareUrl) }}">{{ __('portal.share_messenger') }}</a>
+            <a class="secondary" href="mailto:?subject={{ rawurlencode($invoiceShareText) }}&body={{ rawurlencode($invoiceShareBody) }}">{{ __('portal.share_invoice_email') }}</a>
+            <a class="secondary" href="sms:?&body={{ rawurlencode($invoiceShareBody) }}">{{ __('portal.share_invoice_sms') }}</a>
         </div>
     </div>
 @endif

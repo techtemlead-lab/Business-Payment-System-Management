@@ -116,7 +116,32 @@ class PartnerOpsSuiteTest extends TestCase
             ->get('/orders/'.$order->id.'/invoice/print')
             ->assertOk()
             ->assertSee('Invoice', false)
-            ->assertSee(__('portal.print_invoice'), false);
+            ->assertSee(__('portal.print_invoice'), false)
+            ->assertSee(__('portal.share_invoice_whatsapp'), false)
+            ->assertSee(__('portal.share_messenger'), false)
+            ->assertSee(__('portal.share_invoice_email'), false)
+            ->assertSee(__('portal.share_invoice_sms'), false)
+            ->assertSee('facebook.com/dialog/send', false)
+            ->assertSee('sms:?&body=', false)
+            ->assertSee('wa.me/?text=', false);
+    }
+
+    public function test_guest_cannot_open_shared_invoice_links_without_login(): void
+    {
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $order = $this->makeOrder($dealer, 'INV-GUEST-1', '500.00');
+
+        $this->onPortal('dealer')
+            ->get('/orders/'.$order->id.'/invoice/print')
+            ->assertRedirect('/login');
+
+        $this->onPortal('dealer')
+            ->get('/orders/'.$order->id.'/invoice')
+            ->assertRedirect('/login');
+
+        $this->onPortal('manage')
+            ->get('/orders/'.$order->id.'/invoice/print')
+            ->assertRedirect('/login');
     }
 
     public function test_order_invoice_payload_matches_partner_letter_template(): void

@@ -40,6 +40,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     const pdfUrl = `/orders/${order.id}/invoice`;
     const shareText = translate('portal', 'share_invoice_text', { number: String(order.number) });
     const absolutePrintUrl = typeof window !== 'undefined' ? `${window.location.origin}${printUrl}` : printUrl;
+    const encodedUrl = encodeURIComponent(absolutePrintUrl);
+    const encodedShareBody = encodeURIComponent(`${shareText} ${absolutePrintUrl}`);
     const copyLink = async () => {
         try {
             await navigator.clipboard.writeText(absolutePrintUrl);
@@ -49,6 +51,17 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             setCopied(false);
         }
     };
+    const shareNative = async () => {
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({ title: shareText, text: shareText, url: absolutePrintUrl });
+                return;
+            } catch {
+                // Fall through to copy when the sheet is dismissed or unavailable.
+            }
+        }
+        await copyLink();
+    };
     return <Shell section="order">
         <Head title={order.number} />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
@@ -57,14 +70,18 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
             <button type="button" className="button small" onClick={() => setShareOpen((v) => !v)}>{translate('portal','share_invoice')}</button>
             {shareOpen && (
-                <div className="panel" style={{position:'absolute',right:0,top:'110%',zIndex:20,minWidth:240,padding:12,boxShadow:'0 12px 28px #01162722'}}>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${absolutePrintUrl}`)}`}>{translate('portal','share_invoice_whatsapp')}</a>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_facebook')}</a>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://t.me/share/url?url=${encodeURIComponent(absolutePrintUrl)}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_telegram')}</a>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_linkedin')}</a>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(absolutePrintUrl)}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_x')}</a>
-                    <a className="text-link" style={{display:'block',marginBottom:8}} href={`mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_invoice_email')}</a>
+                <div className="panel" style={{position:'absolute',right:0,top:'110%',zIndex:20,minWidth:260,padding:12,boxShadow:'0 12px 28px #01162722'}} data-tour="invoice-share-menu">
+                    <button type="button" className="text-link" style={{display:'block',marginBottom:8,background:'none',border:0,padding:0,cursor:'pointer'}} onClick={shareNative}>{translate('portal','share_invoice_direct')}</button>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodedShareBody}`}>{translate('portal','share_invoice_whatsapp')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=0&redirect_uri=${encodedUrl}`}>{translate('portal','share_messenger')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`}>{translate('portal','share_facebook')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_telegram')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`}>{translate('portal','share_linkedin')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_x')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} href={`mailto:?subject=${encodeURIComponent(shareText)}&body=${encodedShareBody}`}>{translate('portal','share_invoice_email')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} href={`sms:?&body=${encodedShareBody}`}>{translate('portal','share_invoice_sms')}</a>
                     <button type="button" className="text-link" style={{display:'block',background:'none',border:0,padding:0,cursor:'pointer'}} onClick={copyLink}>{copied ? translate('portal','share_invoice_copied') : translate('portal','share_invoice_copy')}</button>
+                    <p className="muted" style={{marginTop:10,marginBottom:0,fontSize:12}}>{translate('portal','share_invoice_login_hint')}</p>
                 </div>
             )}
             <Badge status={order.status} />
