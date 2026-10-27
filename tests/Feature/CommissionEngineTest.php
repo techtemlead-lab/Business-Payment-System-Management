@@ -318,12 +318,15 @@ class CommissionEngineTest extends TestCase
             'capital-flow',
             'treasury',
             'sub-dealers',
-            'sub-dealer-orders',
+            'orders',
         ];
 
         foreach ($sections as $section) {
             $response = $this->actingAs($admin)->get("/company/{$section}");
             $response->assertOk();
         }
+
+        $this->actingAs($admin)->get('/company/sub-dealer-orders')
+            ->assertRedirect('/orders?buyer_role=sub_dealer');
     }
 }

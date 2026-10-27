@@ -262,20 +262,46 @@ class AuthController extends Controller
         abort_unless($owner?->owner(), 403);
         $data = $request->validate([
             'current_password' => 'required|current_password',
+            'name' => ['sometimes', 'required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:254', Rule::unique('users')->ignore($owner->id)],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
         ]);
         DB::transaction(function () use ($owner, $data, $request): void {
             $previousEmail = $owner->email;
+            $changed = [];
+            $updates = [];
+
+            if (array_key_exists('name', $data) && $data['name'] !== $owner->name) {
+                $updates['name'] = $data['name'];
+                $changed[] = 'name';
+            }
+            if (array_key_exists('phone', $data) && ($data['phone'] ?: null) !== ($owner->phone ?: null)) {
+                $updates['phone'] = filled($data['phone'] ?? null) ? $data['phone'] : null;
+                $changed[] = 'phone';
+            }
             if ($previousEmail !== $data['email']) {
-                $owner->forceFill(['email' => $data['email'], 'email_verified_at' => null, 'remember_token' => Str::random(60)])->save();
+                $updates['email'] = $data['email'];
+                $updates['email_verified_at'] = null;
+                $updates['remember_token'] = Str::random(60);
+                $changed[] = 'email';
+            }
+
+            if ($changed === []) {
+                return;
+            }
+
+            $owner->forceFill($updates)->save();
+
+            if (in_array('email', $changed, true)) {
                 DB::table('password_reset_tokens')->whereIn('email', [$previousEmail, $data['email']])->delete();
                 DB::table('sessions')->where('user_id', $owner->id)->where('id', '!=', $request->session()->getId())->delete();
-                Audit::record($owner->id, 'owner.contact_updated', (string) $owner->id, ['changed_fields' => ['email']]);
             }
+
+            Audit::record($owner->id, 'owner.contact_updated', (string) $owner->id, ['changed_fields' => $changed]);
         });
         $request->session()->regenerate();
 
-        return back()->with('success', __('portal.flash_owner_email_updated'));
+        return back()->with('success', __('portal.flash_owner_profile_updated'));
     }
 
     public function password(Request $r): Response

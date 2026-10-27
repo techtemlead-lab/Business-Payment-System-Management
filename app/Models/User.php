@@ -140,7 +140,7 @@ class User extends Authenticatable implements HasLocalePreference
         $profile = is_array($this->profile) ? $this->profile : [];
 
         return [
-            ...$this->only(['id', 'name', 'email', 'role', 'dealer_code', 'district', 'division', 'status', 'linked_staff_role']),
+            ...$this->only(['id', 'name', 'email', 'phone', 'role', 'dealer_code', 'district', 'division', 'status', 'linked_staff_role']),
             'shop_name' => is_string($profile['shop_name'] ?? null) ? $profile['shop_name'] : null,
             'photo_url' => is_string($profile['photo_url'] ?? null) ? $profile['photo_url'] : null,
             'has_linked_staff' => $this->hasLinkedStaffAccess(),

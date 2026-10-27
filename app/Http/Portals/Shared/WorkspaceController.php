@@ -42,6 +42,7 @@ use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -51,7 +52,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class WorkspaceController extends Controller
 {
-    public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response
+    public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
     {
         $u = $r->user();
         $portal = PortalHost::current($r) ?? PortalHost::forUser($u);
@@ -68,10 +69,19 @@ class WorkspaceController extends Controller
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
+            'buyer_role' => 'nullable|in:dealer,sub_dealer',
             'page' => 'nullable|integer|min:1',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
         ]);
+        if ($staff && $section === 'sub-dealer-orders') {
+            return redirect('/orders?'.http_build_query(array_filter([
+                'buyer_role' => 'sub_dealer',
+                'q' => $r->query('q'),
+                'status' => $r->query('status'),
+                'page' => $r->query('page'),
+            ], fn ($value) => $value !== null && $value !== '')));
+        }
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         $data = [];
         if (in_array($section, ['overview', 'orders', 'deliveries', 'dues', 'reports'])) {
@@ -82,13 +92,17 @@ class WorkspaceController extends Controller
             if ($r->filled('status')) {
                 $q->where('status', $r->string('status'));
             }
+            if ($staff && $r->filled('buyer_role')) {
+                $buyerRole = $r->string('buyer_role')->toString();
+                $q->whereHas('user', fn ($users) => $users->where('role', $buyerRole));
+            }
             if ($section === 'deliveries') {
                 $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched'])->whereHas('lines', fn ($lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
             }
             if ($section === 'dues') {
                 $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->whereRaw('paid < total-due_credit');
             }
-            $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
+            $data['orders'] = $q->with(['user:id,name,dealer_code,role', 'lines'])->latest()->paginate(12)->withQueryString();
         }
         if ($section === 'overview') {
             $approved = (clone $orders)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered']);
@@ -211,16 +225,6 @@ class WorkspaceController extends Controller
                 'orders_count' => Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->count(),
                 'orders_volume' => (float) Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->whereIn('status', ['submitted', 'approved', 'dispatched', 'partially_dispatched', 'delivered'])->sum('total'),
             ];
-        }
-        if ($section === 'sub-dealer-orders') {
-            $q = Order::query()->whereHas('user', fn ($qu) => $qu->where('role', 'sub_dealer'));
-            if ($r->filled('q')) {
-                $q->where('number', 'like', '%'.$r->string('q').'%');
-            }
-            if ($r->filled('status')) {
-                $q->where('status', $r->string('status'));
-            }
-            $data['orders'] = $q->with(['user:id,name,dealer_code', 'lines'])->latest()->paginate(12)->withQueryString();
         }
         if ($section === 'employees') {
             $query = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
@@ -819,7 +823,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role'])]);
     }
 
     public function createAccount(Request $r): Response

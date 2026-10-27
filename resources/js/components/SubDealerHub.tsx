@@ -92,7 +92,13 @@ export default function SubDealerHub({
                         </button>
                         <button
                             type="button"
-                            onClick={() => setTab('orders')}
+                            onClick={() => {
+                                if (orders) {
+                                    setTab('orders');
+                                    return;
+                                }
+                                router.get(`${base}/orders`, { buyer_role: 'sub_dealer' }, { preserveState: false });
+                            }}
                             style={{
                                 padding: '6px 14px',
                                 fontSize: 12,

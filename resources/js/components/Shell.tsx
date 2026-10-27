@@ -261,7 +261,7 @@ export default function Shell({ section, children, action }: { section: string; 
         }
         if (capabilities.includes('audit')) items.add('audit');
         if (capabilities.includes('orders') || capabilities.includes('finance')) {
-            ['orders', 'deliveries', 'dues', 'sub-dealer-orders'].forEach((item) => items.add(item));
+            ['orders', 'deliveries', 'dues'].forEach((item) => items.add(item));
         }
         return items;
     }, [capabilities, ownerPortal, user.role]);
@@ -333,14 +333,14 @@ export default function Shell({ section, children, action }: { section: string; 
         const company = compactMothers([
             mother('home', 'nav_module_home', pick(staffAvailable, ['overview'])),
             mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales'])),
-            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues', 'sub-dealer-orders'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
             mother('finance_ops', 'nav_module_finance_ops', pick(staffAvailable, [
                 'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
-                'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+                'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports',
                 'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
             ])),
             mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
-            mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries'])),
+            mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries', 'service-integrations'])),
             mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
 
