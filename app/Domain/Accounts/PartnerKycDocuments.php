@@ -99,6 +99,16 @@ final class PartnerKycDocuments
             'size_bytes' => (int) $file->getSize(),
         ]);
 
+        if ($kind === 'photo') {
+            $publicRelative = 'partner-photos/'.$partner->id.'/'.$id.'.'.$extension;
+            Storage::disk('public')->put($publicRelative, Storage::disk('local')->get($path));
+            $url = Storage::disk('public')->url($publicRelative);
+            $profile = is_array($partner->profile) ? $partner->profile : [];
+            $profile['photo_url'] = $url;
+            $profile['avatar_url'] = $url;
+            $partner->forceFill(['profile' => $profile])->save();
+        }
+
         $locale = $partner->preferredLocale();
         $kindLabel = match ($kind) {
             'nid_front' => __('portal.kyc_kind_nid_front', [], $locale),

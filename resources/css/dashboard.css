@@ -382,8 +382,9 @@ dialog.portal-modal{
   left:50%!important;
   transform:translate(-50%,-50%)!important;
   margin:0!important;
-  max-width:650px;
+  max-width:720px;
   width:calc(100% - 28px);
+  max-height:min(92vh,920px);
   border:1px solid #e2e8f0;
   border-radius:16px;
   padding:0;
@@ -392,6 +393,8 @@ dialog.portal-modal{
   box-shadow:0 28px 64px #01162733;
   animation:portalModalIn .22s ease both;
   overflow:hidden;
+  display:flex;
+  flex-direction:column;
 }
 dialog.portal-modal::backdrop{
   background:rgba(1,22,39,.55);
@@ -406,9 +409,18 @@ dialog.portal-modal::backdrop{
   padding:18px 20px;
   border-bottom:1px solid #eef2f7;
   background:linear-gradient(180deg,#fff,#f8fafc);
+  flex-shrink:0;
 }
 .portal-modal .modal-heading h2{font-size:17px;margin:0}
-.portal-modal .modal-body{padding:18px 20px 22px}
+.portal-modal .modal-body{
+  padding:18px 20px 22px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  flex:1 1 auto;
+  min-height:0;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
 @keyframes portalModalIn{from{opacity:0;transform:translate(-50%,-46%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @keyframes portalBackdropIn{from{opacity:0}to{opacity:1}}
 [data-tooltip]{position:relative}
@@ -444,14 +456,15 @@ dialog.portal-modal::backdrop{
 
 
 /* Partner ops suite: tours, help, invoice actions */
-.onboarding-tour { position: relative; z-index: 80; }
-.onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.52); z-index: 80; }
+/* Fixed viewport overlay — absolute+scrollY coords were offset from the portal DOM nest. */
+.onboarding-tour { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+.onboarding-tour-backdrop { position: fixed; inset: 0; background: rgba(1,22,39,.52); z-index: 80; pointer-events: auto; }
 .onboarding-tour-spotlight {
-  position: absolute; z-index: 81; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(1,22,39,.52);
+  position: fixed; z-index: 81; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(1,22,39,.52);
   border: 2px solid #ef4a23; pointer-events: none; transition: top .28s ease, left .28s ease, width .28s ease, height .28s ease;
 }
 .onboarding-tour-card {
-  position: absolute; z-index: 82; width: min(360px, calc(100vw - 32px));
+  position: fixed; z-index: 82; width: min(360px, calc(100vw - 32px)); pointer-events: auto;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px 16px 14px;
   box-shadow: 0 22px 48px rgba(1,22,39,.22); animation: portal-rise .28s ease;

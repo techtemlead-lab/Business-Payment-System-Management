@@ -25,6 +25,7 @@ Route::middleware(['auth', 'active', 'portal:dealer'])->group(function () use ($
     $registerCommands('dealer');
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
+    Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
     Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');

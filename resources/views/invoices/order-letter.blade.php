@@ -3,116 +3,216 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: freeserif, DejaVu Sans, sans-serif; color: #011627; font-size: 12px; }
-        .letterhead { border-bottom: 2px solid #2e3192; padding-bottom: 10px; margin-bottom: 16px; }
-        .brand { font-size: 22px; font-weight: 700; color: #2e3192; letter-spacing: .02em; }
-        .tagline { color: #64748b; font-size: 11px; margin-top: 2px; }
-        .meta { width: 100%; margin-top: 10px; }
-        .meta td { vertical-align: top; }
-        .box { border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 4px; }
-        .label { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
-        h1 { font-size: 18px; margin: 0 0 8px; color: #011627; }
-        table.items { width: 100%; border-collapse: collapse; margin-top: 14px; }
-        table.items th { background: #f1f5f9; color: #334155; font-size: 10px; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; }
-        table.items td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 11px; }
-        .totals { width: 280px; margin-left: auto; margin-top: 14px; }
-        .totals td { padding: 5px 0; }
-        .totals .grand { font-size: 14px; font-weight: 700; border-top: 2px solid #2e3192; padding-top: 8px; }
-        .footer { margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 10px; color: #64748b; font-size: 10px; }
+        body { font-family: freeserif, DejaVu Sans, sans-serif; color: #111827; font-size: 11px; }
+        .sheet { width: 100%; }
+        .header { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        .header td { vertical-align: middle; }
+        .logo { width: 72px; }
+        .logo img { width: 64px; height: 64px; object-fit: contain; }
+        .brand-block { text-align: center; }
+        .brand-name { font-size: 22px; font-weight: 700; color: #15803d; letter-spacing: .02em; margin: 0; }
+        .brand-address { font-size: 11px; color: #111827; margin: 2px 0 0; }
+        .brand-phone { font-size: 11px; color: #111827; margin: 1px 0 0; }
+        .marketed { text-align: center; margin: 6px 0 2px; }
+        .marketed .by { color: #1d4ed8; font-weight: 700; font-size: 12px; }
+        .marketed .phones { color: #111827; font-size: 11px; }
+        .invoice-title { text-align: center; margin: 8px 0 12px; }
+        .invoice-title span {
+            display: inline-block; font-size: 20px; font-weight: 700; color: #15803d;
+            border-bottom: 2px solid #15803d; padding: 0 18px 2px; letter-spacing: .04em;
+        }
+        .row { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .row td { vertical-align: top; }
+        .invoice-no { font-size: 12px; padding-top: 4px; }
+        .referred {
+            border: 1px solid #94a3b8; padding: 6px 10px; font-size: 11px; font-weight: 600;
+            text-align: center; min-width: 160px;
+        }
+        .dealer-box {
+            border: 1.5px solid #1e3a8a; padding: 8px 10px; width: 62%;
+        }
+        .dealer-box table { width: 100%; border-collapse: collapse; }
+        .dealer-box td { padding: 1px 0; font-size: 11px; }
+        .dealer-box .k { width: 34%; font-weight: 600; }
+        .date-cell { text-align: right; padding-top: 8px; font-size: 12px; font-weight: 600; }
+        table.items { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.items th {
+            font-size: 10px; font-weight: 700; text-align: center; padding: 5px 3px;
+            border-bottom: 1.5px solid #111827; color: #111827;
+        }
+        table.items th.name, table.items td.name { text-align: left; }
+        table.items td {
+            font-size: 10px; padding: 5px 3px; border-bottom: 0.5px solid #cbd5e1;
+            text-align: center; vertical-align: middle;
+        }
+        table.items td.name { text-align: left; }
+        table.items tr.total-row td {
+            font-weight: 700; border-top: 1.5px solid #111827; border-bottom: 1.5px solid #111827;
+            padding-top: 7px; padding-bottom: 7px;
+        }
+        .in-words { margin-top: 12px; font-size: 12px; }
+        .in-words strong { font-weight: 700; }
+        .signs { width: 100%; margin-top: 42px; border-collapse: collapse; }
+        .signs td { width: 33%; text-align: center; font-size: 11px; padding-top: 28px; }
+        .signs .line { border-top: 1px solid #111827; margin: 0 auto 4px; width: 78%; }
         .watermark {
-            position: fixed;
-            top: 38%;
-            left: 8%;
-            width: 84%;
-            text-align: center;
-            font-size: 54px;
-            font-weight: 700;
-            color: rgba(46, 49, 146, 0.12);
-            transform: rotate(-28deg);
-            letter-spacing: .08em;
-            z-index: 0;
+            position: fixed; top: 38%; left: 8%; width: 84%; text-align: center;
+            font-size: 54px; font-weight: 700; color: rgba(21, 128, 61, 0.10);
+            transform: rotate(-28deg); letter-spacing: .08em; z-index: 0;
         }
         .content { position: relative; z-index: 1; }
+        .print-toolbar {
+            position: sticky; top: 0; z-index: 30;
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: #011627; color: #fff;
+            font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px;
+        }
+        .print-toolbar .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .print-toolbar button, .print-toolbar a {
+            appearance: none; border: 0; border-radius: 8px; padding: 8px 12px;
+            font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; color: #011627; background: #fff;
+        }
+        .print-toolbar a.secondary { background: #e2e8f0; }
         @media print {
-            .watermark {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-                color: rgba(46, 49, 146, 0.14) !important;
-            }
+            .print-toolbar { display: none !important; }
+            .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: rgba(21, 128, 61, 0.12) !important; }
         }
     </style>
 </head>
 <body>
+@if (! empty($printable))
+    <div class="print-toolbar">
+        <strong>{{ __('portal.print_invoice') }} — {{ $order['number'] ?? '' }}</strong>
+        <div class="actions">
+            <button type="button" onclick="window.print()">{{ __('portal.print_invoice') }}</button>
+            <a class="secondary" href="{{ url('/orders/'.($order_id ?? '').'/invoice') }}">{{ __('portal.download_invoice') }}</a>
+            <a class="secondary" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode((__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])).' '.($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_whatsapp') }}</a>
+            <a class="secondary" href="mailto:?subject={{ rawurlencode(__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])) }}&body={{ rawurlencode(($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_email') }}</a>
+        </div>
+    </div>
+@endif
 @if (! empty($watermark_label))
     <div class="watermark">{{ $watermark_label }}</div>
 @endif
-<div class="content">
-    <div class="letterhead">
-        <div class="brand">{{ $company['name'] }}</div>
-        <div class="tagline">{{ $company['tagline'] }}</div>
-        <div class="tagline">{{ $company['address'] }}@if($company['phone']) · {{ $company['phone'] }}@endif @if($company['email']) · {{ $company['email'] }}@endif</div>
-    </div>
-
-    <table class="meta">
+<div class="content sheet">
+    <table class="header">
         <tr>
-            <td style="width:55%">
-                <div class="box">
-                    <div class="label">Bill to</div>
-                    <strong>{{ $buyer['name'] }}</strong><br>
-                    {{ $buyer['code'] }} · {{ str_replace('_', ' ', (string) $buyer['role']) }}<br>
-                    @if($buyer['shop']){{ $buyer['shop'] }}<br>@endif
-                    @if($buyer['area'])Area: {{ $buyer['area'] }}<br>@endif
-                    {{ collect([$buyer['district'], $buyer['division']])->filter()->implode(', ') }}<br>
-                    {{ $buyer['phone'] }} @if($buyer['email']) · {{ $buyer['email'] }}@endif
+            <td class="logo">
+                @if (! empty($company['logo_path']))
+                    <img src="{{ $company['logo_path'] }}" alt="Logo">
+                @endif
+            </td>
+            <td class="brand-block">
+                @if (! empty($company['manufacturer']))
+                    <div class="brand-name">{{ $company['manufacturer'] }}</div>
+                @else
+                    <div class="brand-name">{{ $company['name'] }}</div>
+                @endif
+                <div class="brand-address">{{ $company['address'] }}</div>
+                <div class="brand-phone">Mob: {{ $company['phones'] }}</div>
+            </td>
+            <td class="logo"></td>
+        </tr>
+    </table>
+
+    @if (! empty($company['marketed_by']))
+        <div class="marketed">
+            <div class="by">Marketed By: {{ $company['marketed_by'] }}.</div>
+            @if (! empty($company['marketed_phones']))
+                <div class="phones">Mob: {{ $company['marketed_phones'] }}</div>
+            @endif
+        </div>
+    @endif
+
+    <div class="invoice-title"><span>Invoice</span></div>
+
+    <table class="row">
+        <tr>
+            <td class="invoice-no">Invoice No : {{ $order['number'] }}</td>
+            <td style="text-align:right">
+                @if (! empty($buyer['referred_code']))
+                    <div class="referred">Referred Dealer Code: {{ $buyer['referred_code'] }}</div>
+                @endif
+            </td>
+        </tr>
+    </table>
+
+    <table class="row">
+        <tr>
+            <td>
+                <div class="dealer-box">
+                    <table>
+                        <tr><td class="k">Name :</td><td>{{ $buyer['name'] }}</td></tr>
+                        <tr><td class="k">Dealer Code :</td><td>{{ $buyer['code'] ?: '—' }}</td></tr>
+                        <tr><td class="k">Designation :</td><td>{{ $buyer['designation'] }}</td></tr>
+                        <tr><td class="k">Area :</td><td>{{ $buyer['area'] }}</td></tr>
+                        <tr><td class="k">Mobile No :</td><td>{{ $buyer['phone'] ?: '—' }}</td></tr>
+                        <tr><td class="k">Booking Address :</td><td>{{ $buyer['booking_address'] }}</td></tr>
+                    </table>
                 </div>
             </td>
-            <td style="width:45%; padding-left:12px;">
-                <h1>Invoice Letter</h1>
-                <div><span class="label">Invoice No</span><br><strong>{{ $order['number'] }}</strong></div>
-                <div style="margin-top:8px"><span class="label">Date</span><br>{{ $order['created_at'] }}</div>
-                <div style="margin-top:8px"><span class="label">Status</span><br>{{ str_replace('_', ' ', $order['status']) }}</div>
-            </td>
+            <td class="date-cell">Date : {{ $order['date'] }}</td>
         </tr>
     </table>
 
     <table class="items">
         <thead>
             <tr>
-                <th style="width:8%">#</th>
-                <th>Product</th>
-                <th style="width:12%">Qty</th>
-                <th style="width:16%">Unit</th>
-                <th style="width:18%">Amount</th>
+                <th style="width:6%">Sl.No</th>
+                <th class="name" style="width:18%">Product's Name</th>
+                <th style="width:9%">Pack Size</th>
+                <th style="width:8%">Quantity</th>
+                <th style="width:9%">Rate</th>
+                <th style="width:12%">MRP Rate Bill</th>
+                <th style="width:11%">Commission</th>
+                <th style="width:11%">Total Bill</th>
+                <th style="width:8%">Remarks</th>
             </tr>
         </thead>
         <tbody>
-        @foreach ($lines as $index => $line)
+        @foreach ($lines as $line)
             <tr>
-                <td>{{ $index + 1 }}</td>
-                <td>{{ $line['name'] }}@if($line['sku']) <span style="color:#64748b">({{ $line['sku'] }})</span>@endif</td>
+                <td>{{ $line['sl'] }}</td>
+                <td class="name">{{ $line['name'] }}</td>
+                <td>{{ $line['pack_size'] }}</td>
                 <td>{{ $line['quantity'] }}</td>
-                <td>৳{{ $line['unit_price'] }}</td>
-                <td>৳{{ $line['total'] }}</td>
+                <td>{{ $line['rate'] }}</td>
+                <td>{{ $line['mrp_bill'] }}</td>
+                <td>{{ $line['commission'] }}</td>
+                <td>{{ $line['total'] }}</td>
+                <td>{{ $line['remark'] }}</td>
             </tr>
         @endforeach
+            <tr class="total-row">
+                <td></td>
+                <td class="name">Total =</td>
+                <td></td>
+                <td>{{ $totals['quantity'] }}</td>
+                <td></td>
+                <td>{{ $totals['mrp_bill'] }}</td>
+                <td>{{ $totals['commission'] }}</td>
+                <td>{{ $totals['total'] }}</td>
+                <td></td>
+            </tr>
         </tbody>
     </table>
 
-    <table class="totals">
-        <tr><td>Subtotal</td><td style="text-align:right">৳{{ $order['total'] }}</td></tr>
-        <tr><td>Verified paid</td><td style="text-align:right">৳{{ $order['paid'] }}</td></tr>
-        <tr><td>Outstanding</td><td style="text-align:right">৳{{ $order['due'] }}</td></tr>
-        <tr class="grand"><td>Invoice total</td><td style="text-align:right">৳{{ $order['total'] }}</td></tr>
-    </table>
+    <div class="in-words"><strong>In Word :</strong> {{ $totals['in_words'] }}</div>
 
-    <div class="footer">
-        This invoice letter is issued by {{ $company['name'] }}.
-        @if ($watermark_label)
-            This print is a {{ $watermark_label }} for partner records and does not replace the company delivery original.
-        @else
-            This is the company delivery original (no partner watermark).
-        @endif
-    </div>
+    <table class="signs">
+        <tr>
+            <td><div class="line"></div>Customer Signature</td>
+            <td><div class="line"></div>Distributor Signature</td>
+            <td><div class="line"></div>Authority Signature</td>
+        </tr>
+    </table>
 </div>
+@if (! empty($auto_print))
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 250);
+    });
+</script>
+@endif
 </body>
 </html>

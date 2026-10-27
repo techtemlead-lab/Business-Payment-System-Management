@@ -16,44 +16,18 @@ final class TourGuide
      */
     public function forPage(User $user, string $pageKey): array
     {
-        $definitions = $this->definitionsFor($user);
-        $definition = $definitions[$pageKey] ?? null;
         $completed = DB::table('tour_completions')
             ->where('user_id', $user->id)
             ->pluck('page_key')
             ->map(fn ($key) => (string) $key)
             ->all();
 
-        if (! $definition) {
-            return ['completed' => $completed, 'pending' => [], 'blocked_by' => []];
-        }
-
-        $blockedBy = [];
-        foreach ($definition['requires'] ?? [] as $required) {
-            if (in_array($required, $completed, true)) {
-                continue;
-            }
-            if (! isset($definitions[$required])) {
-                continue;
-            }
-            $blockedBy[] = [
-                'key' => $required,
-                'title' => $definitions[$required]['title'],
-                'href' => $required === 'overview' ? '/' : '/'.$required,
-            ];
-        }
-
-        $pending = in_array($pageKey, $completed, true) || $blockedBy !== [] ? [] : [[
-            'key' => $pageKey,
-            'title' => $definition['title'],
-            'audience' => $this->audience($user),
-            'steps' => $definition['steps'],
-        ]];
-
+        // Live overlay tours are disabled: spotlight placement was unreliable across
+        // portal layouts. Written Help → User Manual remains the supported guide.
         return [
             'completed' => $completed,
-            'pending' => $pending,
-            'blocked_by' => $blockedBy,
+            'pending' => [],
+            'blocked_by' => [],
         ];
     }
 

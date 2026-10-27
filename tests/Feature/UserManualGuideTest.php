@@ -78,24 +78,27 @@ class UserManualGuideTest extends TestCase
         $this->assertFalse(collect($after['missing'])->contains(fn ($row) => $row['key'] === 'orders'));
     }
 
-    public function test_live_tour_requires_previous_page_completion(): void
+    public function test_live_overlay_tours_are_disabled(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         $tours = app(TourGuide::class);
 
-        $earnings = $tours->forPage($dealer, 'earnings');
-        $this->assertNotEmpty($earnings['blocked_by']);
-        $this->assertSame('orders', $earnings['blocked_by'][0]['key']);
-        $this->assertSame([], $earnings['pending']);
+        $overview = $tours->forPage($dealer, 'overview');
+        $this->assertSame([], $overview['pending']);
+        $this->assertSame([], $overview['blocked_by']);
 
-        $tours->complete($dealer, 'catalog');
-        $tours->complete($dealer, 'orders');
-        $ready = $tours->forPage($dealer->fresh(), 'earnings');
-        $this->assertSame([], $ready['blocked_by']);
-        $this->assertNotEmpty($ready['pending']);
+        $earnings = $tours->forPage($dealer, 'earnings');
+        $this->assertSame([], $earnings['pending']);
+        $this->assertSame([], $earnings['blocked_by']);
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('data.tour.pending', 0)
+                ->has('data.tour.blocked_by', 0));
     }
 
-    public function test_live_tours_are_audience_aware_for_owner_staff_dealer_and_subdealer(): void
+    public function test_tour_definitions_remain_audience_aware_for_manual_content(): void
     {
         $tours = app(TourGuide::class);
 
@@ -132,35 +135,5 @@ class UserManualGuideTest extends TestCase
 
         $this->assertArrayHasKey('treasury', $ownerDefs);
         $this->assertArrayHasKey('benefits-fund', $ownerDefs);
-        $this->assertSame('owner', $tours->forPage($owner, 'overview')['pending'][0]['audience']);
-        $this->assertSame('staff', $tours->forPage($staff, 'overview')['pending'][0]['audience']);
-
-        $this->actingAs($dealer)->onPortal('dealer')->get('/')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->has('data.tour.pending')
-                ->where('data.tour.pending.0.key', 'overview')
-                ->where('data.tour.pending.0.audience', 'dealer'));
-
-        $this->actingAs($subDealer)->onPortal('subdealer')->get('/')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('data.tour.pending.0.audience', 'sub_dealer'));
-
-        $this->actingAs($staff)->onPortal('manage')->get('/')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('data.tour.pending.0.audience', 'staff')
-                ->where('data.tour.pending.0.key', 'overview'));
-
-        $this->actingAs($owner)->onPortal('sadmin')->get('/')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('data.tour.pending.0.audience', 'owner'));
-
-        $this->actingAs($owner)->onPortal('sadmin')->get('/treasury')
-            ->assertOk()
-            ->assertInertia(fn ($page) => $page
-                ->where('data.tour.blocked_by.0.key', 'overview'));
     }
 }

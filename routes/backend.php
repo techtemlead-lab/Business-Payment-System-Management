@@ -72,6 +72,7 @@ $operations = function (): void {
     $integrations = IntegrationSettingsController::class;
     Route::post('/integrations/providers', [$integrations, 'saveProvider']);
     Route::post('/integrations/startup-mode', [$integrations, 'saveStartup']);
+    Route::get('/integrations/sms-balance', [$integrations, 'smsBalance'])->middleware('throttle:20,1');
     $finance = FinanceOperationsController::class;
     $sales = FieldSalesController::class;
     Route::get('/payment-accounts', [$finance, 'accounts']);

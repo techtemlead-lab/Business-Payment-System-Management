@@ -34,11 +34,13 @@
             <button class="button dark" type="submit">{{ $mode==='login'?__('auth_ui.sign_in'):($mode==='forgot'?__('auth_ui.send_reset'):__('auth_ui.reset_password')) }}</button>
         </form>
         <div class="company-auth-help"><a href="{{ $mode==='login'?'/forgot-password':'/login' }}">{{ $mode==='login'?__('auth_ui.forgot_password_link'):__('auth_ui.back_to_sign_in') }}</a></div>
-        <div class="company-auth-help">
-            <a href="{{ \App\Support\PortalHost::url($ownerPortal ? 'manage' : 'sadmin', '/login') }}">{{ $ownerPortal ? __('auth_ui.employee_sign_in') : __('auth_ui.owner_sign_in') }}</a>
+        @if($ownerPortal && $mode === 'login')
+        <div class="company-auth-help" data-tour="owner-login-portals">
+            <a href="{{ \App\Support\PortalHost::url('manage', '/login') }}">{{ __('auth_ui.employee_sign_in') }}</a>
             · <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">{{ __('auth_ui.dealer_sign_in') }}</a>
             · <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">{{ __('auth_ui.subdealer_sign_in') }}</a>
         </div>
+        @endif
     </section>
     <p class="company-auth-footer">{{ __('portal.brand_company_bar') }} · {{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</p>
 </main>

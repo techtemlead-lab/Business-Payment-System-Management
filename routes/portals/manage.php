@@ -33,6 +33,7 @@ Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($
     Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
+    Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
     Route::redirect('/places', '/place-codes', 301);
