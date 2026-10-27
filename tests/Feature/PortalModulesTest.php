@@ -95,7 +95,36 @@ class PortalModulesTest extends TestCase
             ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false)
             ->assertDontSee('Account Login', false)
             ->assertDontSee('Need a dealer account?', false)
-            ->assertDontSee('Madina Natural Health Care', false);
+            ->assertDontSee('Madina Natural Health Care', false)
+            ->assertDontSee('সাব-ডিলার সাইন ইন', false)
+            ->assertDontSee('Sub-dealer Sign In', false);
+    }
+
+    public function test_cross_portal_login_links_only_appear_on_owner_login(): void
+    {
+        $this->onPortal('sadmin')->get('/login')
+            ->assertOk()
+            ->assertSee('data-tour="owner-login-portals"', false)
+            ->assertSee('Employee Sign In', false)
+            ->assertSee('Dealer Sign In', false)
+            ->assertSee('Sub-dealer Sign In', false);
+
+        $this->onPortal('manage')->get('/login')
+            ->assertOk()
+            ->assertDontSee('data-tour="owner-login-portals"', false)
+            ->assertDontSee('Owner Sign In', false)
+            ->assertDontSee('Dealer Sign In', false)
+            ->assertDontSee('Sub-dealer Sign In', false);
+
+        $this->onPortal('dealer')->get('/login')
+            ->assertOk()
+            ->assertDontSee('Sub-dealer Sign In', false)
+            ->assertDontSee('Owner Sign In', false);
+
+        $this->onPortal('subdealer')->get('/login')
+            ->assertOk()
+            ->assertDontSee('Dealer Sign In', false)
+            ->assertDontSee('Owner Sign In', false);
     }
 
     public function test_access_management_exposes_bangla_staff_access_copy(): void
