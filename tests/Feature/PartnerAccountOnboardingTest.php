@@ -157,6 +157,36 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertSame('REF-CUSTOM-01', $user->refer_code);
     }
 
+    public function test_sub_dealer_defaults_refer_code_to_auto_dealer_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->first();
+        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-311', 'name' => 'Refer Dist']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-411', 'name' => 'Refer Upazila']);
+        PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-457490', 'name' => 'Refer Union']);
+        $this->assertNotNull($management);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'sub_dealer',
+            'identity_type' => 'birth_certificate',
+            'birth_certificate_number' => '20001234567890999',
+            'date_of_birth' => '2000-03-03',
+            'name' => 'Sub Default Refer',
+            'name_bn' => 'সাব ডিফল্ট',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-457490',
+            'phone' => '01819990001',
+            'email' => 'sub-default-refer@example.com',
+            'reason' => 'Refer code should match auto sub-dealer code',
+        ])->assertRedirect('/sub-dealers');
+
+        $user = User::query()->where('email', 'sub-default-refer@example.com')->firstOrFail();
+        $this->assertSame('MNHC-457490-000001', $user->dealer_code);
+        $this->assertSame('MNHC-457490-000001', $user->refer_code);
+    }
+
     public function test_second_dealer_cannot_take_same_area_code(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);

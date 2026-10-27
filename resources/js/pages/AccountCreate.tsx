@@ -325,7 +325,8 @@ export default function AccountCreate({
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
-            refer_code: data.refer_code,
+            // Empty refer_code falls back to dealer/sub-dealer code (admin may override).
+            refer_code: (data.refer_code || data.dealer_code || '').trim(),
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
@@ -641,9 +642,15 @@ export default function AccountCreate({
                                     </label>
                                     <label>
                                         {translate('portal','acct_your_refer_code')}
-                                        <input required value={form.data.refer_code} onChange={(e) => {
+                                        <input value={form.data.refer_code} onChange={(e) => {
+                                            const next = e.target.value.toUpperCase();
+                                            if (next === '') {
+                                                setReferCodeTouched(false);
+                                                form.setData('refer_code', form.data.dealer_code || '');
+                                                return;
+                                            }
                                             setReferCodeTouched(true);
-                                            form.setData('refer_code', e.target.value.toUpperCase());
+                                            form.setData('refer_code', next);
                                         }} placeholder={form.data.dealer_code || translate('portal','acct_refer_placeholder')} />
                                         <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_refer_defaults_hint')}</span>
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
