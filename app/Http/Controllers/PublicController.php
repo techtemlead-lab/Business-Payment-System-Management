@@ -73,7 +73,8 @@ class PublicController extends Controller
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
             'content' => $contentPages[$page] ?? null,
             'notice' => $contentPages['notice'] ?? null,
-            'categories' => $needsCatalog ? $this->cachedProductCategories() : collect(),
+            // Home does not render catalog category filters; skip the cached pluck there.
+            'categories' => collect(),
             'maps' => $maps,
             'social' => $social,
         ])->withHeaders([
@@ -193,31 +194,78 @@ class PublicController extends Controller
     /** @return array<string, object|null> */
     private function cachedContentPages(): array
     {
-        return Cache::remember('public:content_pages:v1', 300, function (): array {
+        $cached = $this->rememberArray('public:content_pages:v2', 300, function (): array {
             $rows = DB::table('content_pages')->where('published', true)->get(['slug', 'title', 'body', 'published']);
             $map = [];
             foreach ($rows as $row) {
-                $map[(string) $row->slug] = $row;
+                $map[(string) $row->slug] = [
+                    'slug' => (string) $row->slug,
+                    'title' => $row->title !== null ? (string) $row->title : null,
+                    'body' => $row->body !== null ? (string) $row->body : null,
+                    'published' => (bool) $row->published,
+                ];
             }
 
             return $map;
         });
+
+        $pages = [];
+        foreach ($cached as $slug => $row) {
+            $pages[$slug] = is_array($row) ? (object) $row : null;
+        }
+
+        return $pages;
     }
 
     /** @return Collection<int, string> */
     private function cachedProductCategories(): Collection
     {
-        return Cache::remember('public:product_categories:v1', 300, function (): Collection {
-            return Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
+        // Persist a plain string list only — Support/Eloquent Collections unserialize as
+        // __PHP_Incomplete_Class under the database cache driver and 500 public pages.
+        $categories = $this->rememberArray('public:product_categories:v2', 300, function (): array {
+            return Product::query()
+                ->where('active', true)
+                ->whereNotNull('category')
+                ->orderBy('category')
+                ->distinct()
+                ->pluck('category')
+                ->map(fn (mixed $category): string => (string) $category)
+                ->values()
+                ->all();
         });
+
+        return collect($categories)->values();
     }
 
     /** @return list<array<string, mixed>> */
     private function cachedFeaturedProducts(): array
     {
-        return Cache::remember('public:featured_products:v1', 120, function (): array {
+        return $this->rememberArray('public:featured_products:v2', 120, function (): array {
             return SiteCustomization::getFeaturedProducts();
         });
+    }
+
+    /**
+     * Cache only JSON-safe arrays. Discard poisoned values (e.g. unserialized Collections).
+     *
+     * @param  callable(): array<mixed>  $callback
+     * @return array<mixed>
+     */
+    private function rememberArray(string $key, int $ttlSeconds, callable $callback): array
+    {
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+
+        if ($cached !== null) {
+            Cache::forget($key);
+        }
+
+        $fresh = $callback();
+        Cache::put($key, $fresh, $ttlSeconds);
+
+        return $fresh;
     }
 
     public function enquiry(Request $request): RedirectResponse
