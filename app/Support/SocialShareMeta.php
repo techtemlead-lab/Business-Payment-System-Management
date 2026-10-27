@@ -12,19 +12,24 @@ final class SocialShareMeta
     /** Landscape share card image used when CMS does not set a custom og_image. */
     public const DefaultShareImage = '/branding/madina-hero-banner-1.jpg';
 
+    /** Bump when replacing the default share image so Facebook/Messenger re-fetch the card. */
+    public const DefaultShareImageVersion = 'og-20261027';
+
     public const DefaultShareImageWidth = 1376;
 
     public const DefaultShareImageHeight = 768;
 
+    public const DefaultShareImageType = 'image/jpeg';
+
     /**
-     * @return array{title:string,description:string,url:string,image:?string,image_width:?int,image_height:?int,type:string,site_name:string}
+     * @return array{title:string,description:string,url:string,image:?string,image_width:?int,image_height:?int,image_type:?string,type:string,site_name:string}
      */
     public static function homepage(): array
     {
         $custom = SiteCustomization::all();
         $customImage = trim((string) ($custom['og_image'] ?? ''));
-        $image = self::absoluteUrl($customImage !== '' ? $customImage : self::DefaultShareImage);
         $usingDefault = $customImage === '';
+        $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $customImage, $usingDefault);
 
         return [
             'title' => (string) ($custom['meta_title'] ?? __('site.meta_title_default')),
@@ -33,6 +38,7 @@ final class SocialShareMeta
             'image' => $image,
             'image_width' => $usingDefault ? self::DefaultShareImageWidth : null,
             'image_height' => $usingDefault ? self::DefaultShareImageHeight : null,
+            'image_type' => $usingDefault ? self::DefaultShareImageType : null,
             'type' => 'website',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
         ];
@@ -55,9 +61,10 @@ final class SocialShareMeta
         }
         $rawImage = trim((string) ($product['image_url'] ?? $product['image_path'] ?? ''));
         $usingDefault = $rawImage === '';
-        $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $rawImage);
+        $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $rawImage, $usingDefault);
         $imageWidth = $usingDefault ? self::DefaultShareImageWidth : null;
         $imageHeight = $usingDefault ? self::DefaultShareImageHeight : null;
+        $imageType = $usingDefault ? self::DefaultShareImageType : null;
         $partnerPayload = null;
 
         if ($partner && in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
@@ -77,6 +84,7 @@ final class SocialShareMeta
                 $image = $partnerPayload['photo'];
                 $imageWidth = null;
                 $imageHeight = null;
+                $imageType = null;
             }
         }
 
@@ -87,6 +95,7 @@ final class SocialShareMeta
             'image' => $image,
             'image_width' => $imageWidth,
             'image_height' => $imageHeight,
+            'image_type' => $imageType,
             'type' => 'product',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => $partnerPayload,
@@ -100,7 +109,8 @@ final class SocialShareMeta
     {
         $code = (string) ($partner->refer_code ?: $partner->dealer_code);
         $partnerPhoto = self::partnerPhoto($partner);
-        $photo = $partnerPhoto ?: self::absoluteUrl(self::DefaultShareImage);
+        $usingDefault = $partnerPhoto === null;
+        $photo = $partnerPhoto ?: self::absoluteUrl(self::DefaultShareImage, true);
         $description = __('site.share_refer_description', [
             'name' => $partner->name,
             'code' => $code,
@@ -112,8 +122,9 @@ final class SocialShareMeta
             'description' => mb_substr($description, 0, 280),
             'url' => PortalHost::url('public', '/join/'.$code),
             'image' => $photo,
-            'image_width' => $partnerPhoto ? null : self::DefaultShareImageWidth,
-            'image_height' => $partnerPhoto ? null : self::DefaultShareImageHeight,
+            'image_width' => $usingDefault ? self::DefaultShareImageWidth : null,
+            'image_height' => $usingDefault ? self::DefaultShareImageHeight : null,
+            'image_type' => $usingDefault ? self::DefaultShareImageType : null,
             'type' => 'profile',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => [
@@ -151,16 +162,30 @@ final class SocialShareMeta
         ];
     }
 
-    public static function absoluteUrl(string $pathOrUrl): string
+    public static function absoluteUrl(string $pathOrUrl, bool $versionDefaultImage = false): string
     {
         if ($pathOrUrl === '') {
-            return PortalHost::url('public', self::DefaultShareImage);
+            return self::withShareImageVersion(PortalHost::url('public', self::DefaultShareImage));
         }
         if (str_starts_with($pathOrUrl, 'http://') || str_starts_with($pathOrUrl, 'https://')) {
-            return self::preferAppScheme($pathOrUrl);
+            $absolute = self::preferAppScheme($pathOrUrl);
+
+            return $versionDefaultImage ? self::withShareImageVersion($absolute) : $absolute;
         }
 
-        return PortalHost::url('public', str_starts_with($pathOrUrl, '/') ? $pathOrUrl : '/'.$pathOrUrl);
+        $absolute = PortalHost::url('public', str_starts_with($pathOrUrl, '/') ? $pathOrUrl : '/'.$pathOrUrl);
+
+        return $versionDefaultImage ? self::withShareImageVersion($absolute) : $absolute;
+    }
+
+    /**
+     * Cache-bust the default hero so Messenger/Facebook re-scrape after OG fixes.
+     */
+    public static function withShareImageVersion(string $url): string
+    {
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$separator.'v='.self::DefaultShareImageVersion;
     }
 
     /**

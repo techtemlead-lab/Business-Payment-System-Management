@@ -1,12 +1,14 @@
 @php
-    /** @var array{title?:string,description?:string,url?:string,image?:?string,image_width?:?int,image_height?:?int,type?:string,site_name?:string} $social */
+    /** @var array{title?:string,description?:string,url?:string,image?:?string,image_width?:?int,image_height?:?int,image_type?:?string,type?:string,site_name?:string} $social */
     $social = $social ?? [];
     $title = $social['title'] ?? __('site.meta_title_default');
     $description = $social['description'] ?? __('site.meta_description');
     $url = $social['url'] ?? url()->current();
-    $image = $social['image'] ?? \App\Support\PortalHost::url('public', \App\Support\SocialShareMeta::DefaultShareImage);
+    $fallbackImage = \App\Support\SocialShareMeta::absoluteUrl(\App\Support\SocialShareMeta::DefaultShareImage, true);
+    $image = $social['image'] ?? $fallbackImage;
     $imageWidth = $social['image_width'] ?? null;
     $imageHeight = $social['image_height'] ?? null;
+    $imageType = $social['image_type'] ?? null;
     $type = $social['type'] ?? 'website';
     $siteName = $social['site_name'] ?? config('app.name', 'Madina Natural Health Care');
 @endphp
@@ -20,6 +22,7 @@
 @if($image)
 <meta property="og:image" content="{{ $image }}">
 <meta property="og:image:secure_url" content="{{ $image }}">
+@if($imageType)<meta property="og:image:type" content="{{ $imageType }}">@endif
 @if($imageWidth)<meta property="og:image:width" content="{{ $imageWidth }}">@endif
 @if($imageHeight)<meta property="og:image:height" content="{{ $imageHeight }}">@endif
 <meta property="og:image:alt" content="{{ $title }}">
