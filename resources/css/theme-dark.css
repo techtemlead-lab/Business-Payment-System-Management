@@ -226,21 +226,65 @@ html[data-theme="dark"] .ref-mobile-drawer,
 html[data-theme="dark"] .ref-auth-card,
 html[data-theme="dark"] .ref-product-card,
 html[data-theme="dark"] .ref-filter-panel,
+html[data-theme="dark"] .ref-filter-sidebar,
 html[data-theme="dark"] .ref-compare-dialog,
 html[data-theme="dark"] .ref-promotion-dialog,
 html[data-theme="dark"] .ref-page-panel,
+html[data-theme="dark"] .ref-content-card,
 html[data-theme="dark"] .ref-contact-card,
 html[data-theme="dark"] .ref-dealer-card,
 html[data-theme="dark"] .ref-faq-item,
 html[data-theme="dark"] .ref-intro,
+html[data-theme="dark"] .ref-company-intro,
+html[data-theme="dark"] .ref-company-paths > *,
 html[data-theme="dark"] .ref-section,
+html[data-theme="dark"] .ref-featured-products,
+html[data-theme="dark"] .ref-featured-categories,
+html[data-theme="dark"] .ref-dealer-network-banner,
+html[data-theme="dark"] .ref-announcement,
 html[data-theme="dark"] .ref-footer-top,
 html[data-theme="dark"] .ref-catalog-layout,
 html[data-theme="dark"] .ref-catalog-sidebar,
-html[data-theme="dark"] .ref-catalog-main {
+html[data-theme="dark"] .ref-catalog-main,
+html[data-theme="dark"] .ref-catalog-page,
+html[data-theme="dark"] .ref-catalog-hero,
+html[data-theme="dark"] .ref-inner-main > section,
+html[data-theme="dark"] .ref-inner-main > article,
+html[data-theme="dark"] .ref-directory-heading,
+html[data-theme="dark"] .ref-page-hero,
+html[data-theme="dark"] .ref-about-hero,
+html[data-theme="dark"] .ref-contact-hero {
     background: #121a28 !important;
     color: #e8eef6 !important;
     border-color: #2a3648 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-company-intro h1,
+html[data-theme="dark"] .ref-page-title,
+html[data-theme="dark"] .ref-directory-heading h1,
+html[data-theme="dark"] .ref-featured-products h2,
+html[data-theme="dark"] .ref-featured-categories h2,
+html[data-theme="dark"] .ref-catalog-page h1 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-company-intro p,
+html[data-theme="dark"] .ref-company-paths p,
+html[data-theme="dark"] .ref-featured-products p,
+html[data-theme="dark"] .ref-catalog-page p,
+html[data-theme="dark"] .ref-filter-sidebar label,
+html[data-theme="dark"] .ref-filter-sidebar legend {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-filter-sidebar input,
+html[data-theme="dark"] .ref-filter-sidebar select,
+html[data-theme="dark"] .ref-catalog-page input,
+html[data-theme="dark"] .ref-catalog-page select {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
 }
 
 html[data-theme="dark"] .ref-header {
