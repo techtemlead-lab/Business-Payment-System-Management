@@ -69,6 +69,12 @@ class HandleInertiaRequests extends Middleware
             'unreadNotices' => fn () => $u
                 ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
                 : 0,
+            'tour' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
+                ? app(\App\Domain\Support\TourGuide::class)->forPage($u, 'overview')
+                : null,
+            'userManualChapters' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
+                ? app(\App\Domain\Support\UserManual::class)->chaptersFor($u)
+                : [],
             'dashboardNotice' => DashboardManagement::noticeForUser($u),
             'dashboardControls' => DashboardManagement::get()];
     }

@@ -5,11 +5,12 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, Compass, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
+import OnboardingTour from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
 
 const icons: Record<string, LucideIcon> = {
@@ -69,7 +70,8 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0 } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, tour, userManualChapters } = usePage<any>().props;
+    const [manualOpen, setManualOpen] = useState(false);
     const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
     const user = auth.user;
@@ -550,6 +552,17 @@ export default function Shell({ section, children, action }: { section: string; 
                 {renderMothers(domainMothers)}
 
                 <div className="sidebar-footer">
+                    <button
+                        type="button"
+                        className="sidebar-guide-button"
+                        onClick={() => {
+                            setOpen(false);
+                            setManualOpen(true);
+                        }}
+                    >
+                        <Compass size={18} />
+                        <span>{translate('portal', 'tour_guide_launcher')}</span>
+                    </button>
                     {!staff && (
                         <div className="help-card">
                             <Leaf size={22} />
@@ -583,6 +596,16 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                     <div className="header-actions">
                         <LanguageSwitcher compact />
+                        <button
+                            type="button"
+                            className="icon-button tour-guide-launcher"
+                            aria-label={translate('portal', 'tour_guide_launcher')}
+                            title={translate('portal', 'tour_guide_launcher')}
+                            data-tooltip={translate('portal', 'tour_guide_launcher')}
+                            onClick={() => setManualOpen(true)}
+                        >
+                            <Compass size={19} />
+                        </button>
                         <Link
                             href={base + '/notifications'}
                             className="icon-button notice-bell"
@@ -631,6 +654,17 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <Bell size={16} />
                                         {translate('portal', 'notifications')}
                                     </Link>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        onClick={() => {
+                                            setProfileOpen(false);
+                                            setManualOpen(true);
+                                        }}
+                                    >
+                                        <Compass size={16} />
+                                        {translate('portal', 'tour_guide_launcher')}
+                                    </button>
                                     {user.has_linked_staff && (
                                         <button
                                             type="button"
@@ -704,6 +738,12 @@ export default function Shell({ section, children, action }: { section: string; 
                     </nav>
                 )}
             </div>
+            <OnboardingTour
+                tour={tour}
+                chapters={userManualChapters}
+                forceOpenManual={manualOpen}
+                onCloseManual={() => setManualOpen(false)}
+            />
         </div>
     );
 }

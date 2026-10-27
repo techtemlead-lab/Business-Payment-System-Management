@@ -78,24 +78,33 @@ class UserManualGuideTest extends TestCase
         $this->assertFalse(collect($after['missing'])->contains(fn ($row) => $row['key'] === 'orders'));
     }
 
-    public function test_live_overlay_tours_are_disabled(): void
+    public function test_live_overlay_tours_are_active_on_first_login_and_comprehensive(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
         $tours = app(TourGuide::class);
 
         $overview = $tours->forPage($dealer, 'overview');
-        $this->assertSame([], $overview['pending']);
-        $this->assertSame([], $overview['blocked_by']);
-
-        $earnings = $tours->forPage($dealer, 'earnings');
-        $this->assertSame([], $earnings['pending']);
-        $this->assertSame([], $earnings['blocked_by']);
+        $this->assertTrue($overview['is_first_login']);
+        $this->assertNotEmpty($overview['pending']);
+        $this->assertSame('overview', $overview['pending'][0]['key']);
+        $this->assertGreaterThanOrEqual(5, count($overview['pending'][0]['steps']));
+        $this->assertNotEmpty($overview['all_tours']);
+        $this->assertNotEmpty($overview['chapters']);
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('data.tour.pending', 0)
-                ->has('data.tour.blocked_by', 0));
+                ->where('data.tour.is_first_login', true)
+                ->has('data.tour.pending', 1)
+                ->has('data.tour.all_tours')
+                ->has('data.tour.chapters'));
+
+        // Once completed, pending is cleared and is_first_login becomes false
+        $tours->complete($dealer, 'overview');
+        $after = $tours->forPage($dealer, 'overview');
+        $this->assertFalse($after['is_first_login']);
+        $this->assertSame([], $after['pending']);
+        $this->assertContains('overview', $after['completed']);
     }
 
     public function test_tour_definitions_remain_audience_aware_for_manual_content(): void

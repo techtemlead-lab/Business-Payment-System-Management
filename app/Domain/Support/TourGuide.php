@@ -16,18 +16,63 @@ final class TourGuide
      */
     public function forPage(User $user, string $pageKey): array
     {
+        $definitions = $this->definitionsFor($user);
+        $definition = $definitions[$pageKey] ?? null;
         $completed = DB::table('tour_completions')
             ->where('user_id', $user->id)
             ->pluck('page_key')
             ->map(fn ($key) => (string) $key)
             ->all();
 
-        // Live overlay tours are disabled: spotlight placement was unreliable across
-        // portal layouts. Written Help → User Manual remains the supported guide.
+        $isFirstLogin = ! in_array('overview', $completed, true);
+        $targetKey = $isFirstLogin ? 'overview' : $pageKey;
+        $targetDef = $definitions[$targetKey] ?? $definition ?? null;
+
+        $blockedBy = [];
+        if ($targetDef && isset($targetDef['requires'])) {
+            foreach ($targetDef['requires'] as $required) {
+                if (in_array($required, $completed, true)) {
+                    continue;
+                }
+                if (! isset($definitions[$required])) {
+                    continue;
+                }
+                $blockedBy[] = [
+                    'key' => $required,
+                    'title' => $definitions[$required]['title'],
+                    'href' => $required === 'overview' ? '/' : '/'.$required,
+                ];
+            }
+        }
+
+        $pending = [];
+        if ($targetDef && ! in_array($targetKey, $completed, true) && $blockedBy === []) {
+            $pending[] = [
+                'key' => $targetKey,
+                'title' => $targetDef['title'],
+                'audience' => $this->audience($user),
+                'steps' => $targetDef['steps'],
+            ];
+        }
+
+        $allTours = [];
+        foreach ($definitions as $key => $def) {
+            $allTours[] = [
+                'key' => $key,
+                'title' => $def['title'],
+                'step_count' => count($def['steps']),
+                'completed' => in_array($key, $completed, true),
+                'steps' => $def['steps'],
+            ];
+        }
+
         return [
             'completed' => $completed,
-            'pending' => [],
-            'blocked_by' => [],
+            'pending' => $pending,
+            'blocked_by' => $blockedBy,
+            'is_first_login' => $isFirstLogin,
+            'all_tours' => $allTours,
+            'chapters' => app(UserManual::class)->chaptersFor($user),
         ];
     }
 

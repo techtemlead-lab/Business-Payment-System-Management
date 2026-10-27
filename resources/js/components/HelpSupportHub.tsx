@@ -1,6 +1,6 @@
 import { Form, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { BookOpen, LifeBuoy, Search } from 'lucide-react';
+import { BookOpen, LifeBuoy, Search, Sparkles, Compass } from 'lucide-react';
 import { Badge, date, Empty, Table, type Row } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { useT } from '../shared/i18n/t';
@@ -42,7 +42,17 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         <h2>{translate('portal', 'help_manual_title')}</h2>
                         <p className="muted">{translate('portal', 'help_manual_hint')}</p>
                     </div>
-                    <BookOpen size={22} />
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button
+                            type="button"
+                            className="button small dark"
+                            onClick={() => router.post('/commands/tours/restart', {}, { preserveScroll: true })}
+                        >
+                            <Sparkles size={15} />
+                            {translate('portal', 'tour_btn_start_tour')}
+                        </button>
+                        <BookOpen size={22} />
+                    </div>
                 </div>
                 <label className="help-manual-search">
                     <Search size={16} />

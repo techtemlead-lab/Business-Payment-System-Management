@@ -541,3 +541,278 @@ dialog.portal-modal::backdrop{
  .mobile-sticky-cart-bar .cart-count{font-size:12px;color:#64748b}
  .mobile-sticky-cart-bar .cart-total{font-size:16px}
 }
+
+/* =========================================================================
+   COMPREHENSIVE ONBOARDING TOUR & INTERACTIVE USER MANUAL STYLING
+   ========================================================================= */
+
+/* Header & Sidebar launcher triggers */
+.tour-guide-launcher { color: #059669 !important; }
+.tour-guide-launcher:hover { background: #ecfdf5 !important; }
+.sidebar-guide-button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; margin-bottom: 12px;
+  border: 1px solid #a7f3d0; border-radius: 12px; background: #ecfdf5; color: #047857;
+  font-weight: 700; font-size: 13px; cursor: pointer; transition: all .2s ease;
+}
+.sidebar-guide-button:hover { background: #d1fae5; border-color: #6ee7b7; transform: translateY(-1px); }
+
+/* 1. First-Time Login Welcome Modal */
+.onboarding-welcome-backdrop {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px); z-index: 99999; display: flex;
+  align-items: center; justify-content: center; padding: 16px; animation: portal-rise .22s ease;
+}
+.onboarding-welcome-dialog {
+  background: #ffffff; border-radius: 22px; max-width: 700px; width: 100%;
+  box-shadow: 0 25px 65px -15px rgba(0, 0, 0, 0.4); overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+.onboarding-welcome-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px 12px;
+}
+.onboarding-welcome-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px;
+  background: #ecfdf5; color: #047857; font-weight: 700; font-size: 12px;
+  border-radius: 999px; border: 1px solid #a7f3d0;
+}
+.onboarding-close-btn {
+  border: none; background: transparent; color: #64748b; cursor: pointer;
+  border-radius: 8px; padding: 6px; display: flex; align-items: center; justify-content: center;
+  transition: all .15s ease;
+}
+.onboarding-close-btn:hover { background: #f1f5f9; color: #0f172a; }
+.onboarding-welcome-body { padding: 8px 26px 20px; }
+.onboarding-welcome-body h2 {
+  font-size: 23px; font-weight: 800; color: #0f172a; margin: 0 0 6px; line-height: 1.3;
+}
+.onboarding-welcome-subtitle {
+  font-size: 14px; color: #64748b; line-height: 1.5; margin: 0 0 16px;
+}
+.onboarding-user-pill {
+  display: inline-flex; align-items: center; gap: 8px; background: #f8fafc;
+  border: 1px solid #e2e8f0; border-radius: 999px; padding: 4px 14px;
+  font-size: 12px; margin-bottom: 20px; flex-wrap: wrap; color: #334155;
+}
+.onboarding-role-tag {
+  font-weight: 700; color: #2e3192; background: #eef2ff; padding: 2px 8px;
+  border-radius: 999px; font-size: 11px; border: 1px solid #c7d2fe;
+}
+.onboarding-pillars-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 8px;
+}
+@media (max-width: 640px) {
+  .onboarding-pillars-grid { grid-template-columns: 1fr; }
+}
+.onboarding-pillar-card {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px;
+  padding: 14px; text-align: left; display: flex; flex-direction: column; gap: 6px;
+}
+.onboarding-pillar-card .pillar-icon {
+  width: 40px; height: 40px; border-radius: 10px; display: flex;
+  align-items: center; justify-content: center; margin-bottom: 4px;
+}
+.onboarding-pillar-card .pillar-icon.ops { background: #eef2ff; color: #4338ca; }
+.onboarding-pillar-card .pillar-icon.fin { background: #ecfdf5; color: #047857; }
+.onboarding-pillar-card .pillar-icon.help { background: #fff7ed; color: #c2410c; }
+.onboarding-pillar-card h4 { font-size: 13.5px; font-weight: 700; color: #1e293b; margin: 0; }
+.onboarding-pillar-card p { font-size: 12px; color: #64748b; margin: 0; line-height: 1.45; }
+
+.onboarding-welcome-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+  gap: 12px; flex-wrap: wrap;
+}
+.onboarding-primary-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.onboarding-start-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important; border: none !important; font-weight: 700 !important;
+  display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+.onboarding-start-btn:hover { background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; }
+.onboarding-manual-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.onboarding-skip-btn { color: #64748b; }
+
+/* 2. Interactive Spotlight Layer */
+.onboarding-spotlight-layer { position: fixed; inset: 0; z-index: 99998; pointer-events: none; }
+.onboarding-spotlight-backdrop {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); pointer-events: auto;
+}
+.onboarding-spotlight-ring {
+  position: fixed; z-index: 99999; border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.65), 0 0 0 3px #10b981, 0 0 25px rgba(16, 185, 129, 0.55);
+  pointer-events: none; transition: top .24s cubic-bezier(0.16, 1, 0.3, 1), left .24s cubic-bezier(0.16, 1, 0.3, 1), width .24s ease, height .24s ease;
+}
+
+/* Floating Tour Card */
+.floating-step-card {
+  position: fixed; z-index: 100000; width: min(390px, calc(100vw - 32px));
+  pointer-events: auto; background: #ffffff; border: 1px solid #e2e8f0;
+  border-radius: 18px; padding: 18px 20px 14px;
+  box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.3); animation: portal-rise .22s ease;
+}
+.onboarding-card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; margin-bottom: 10px;
+}
+.onboarding-card-tags { display: flex; gap: 6px; align-items: center; }
+.onboarding-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; padding: 2px 8px; border-radius: 999px;
+}
+.onboarding-tag.audience { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+.onboarding-tag.missing { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.onboarding-card-step-badge {
+  font-size: 11px; font-weight: 700; color: #64748b; background: #f1f5f9;
+  padding: 3px 8px; border-radius: 6px;
+}
+.onboarding-progress-track {
+  height: 4px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin-bottom: 12px;
+}
+.onboarding-progress-fill {
+  height: 100%; background: linear-gradient(90deg, #10b981, #2563eb);
+  border-radius: 999px; transition: width .25s ease;
+}
+.onboarding-step-title { margin: 0 0 6px; font-size: 16.5px; font-weight: 800; color: #0f172a; line-height: 1.35; }
+.onboarding-step-body { margin: 0 0 12px; font-size: 13px; color: #334155; line-height: 1.5; }
+.onboarding-step-tip {
+  display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px;
+  border-radius: 10px; background: #fffbeb; border: 1px solid #fef3c7;
+  color: #92400e; font-size: 12px; line-height: 1.45; margin-bottom: 14px;
+}
+.onboarding-step-tip .tip-icon { flex-shrink: 0; margin-top: 1px; color: #d97706; }
+.onboarding-step-tip strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.onboarding-step-tip p { margin: 0; }
+.onboarding-card-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; flex-wrap: wrap; margin-top: 4px;
+}
+.tour-manual-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #2563eb; }
+.onboarding-footer-nav { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+.onboarding-keyboard-hint {
+  margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0;
+  text-align: center; color: #94a3b8; font-size: 10.5px;
+}
+
+/* 3. Searchable Full User Manual Modal */
+.onboarding-manual-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px); z-index: 99999; display: flex;
+  align-items: center; justify-content: center; padding: 16px; animation: portal-rise .2s ease;
+}
+.onboarding-manual-modal {
+  background: #ffffff; border-radius: 20px; width: min(1000px, 96vw);
+  height: min(720px, 92vh); display: flex; flex-direction: column;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.4); border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+.onboarding-manual-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 24px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+}
+.manual-header-title { display: flex; gap: 12px; align-items: center; }
+.manual-brand-icon { color: #10b981; flex-shrink: 0; }
+.onboarding-manual-header h3 { margin: 0 0 2px; font-size: 17.5px; font-weight: 800; color: #0f172a; }
+.onboarding-manual-header p { margin: 0; font-size: 12px; color: #64748b; }
+.onboarding-manual-search-bar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 24px;
+  border-bottom: 1px solid #e2e8f0; background: #ffffff;
+}
+.onboarding-manual-search-bar .search-icon { color: #94a3b8; }
+.onboarding-manual-search-bar input {
+  width: 100%; border: none; outline: none; font-size: 14px; color: #0f172a;
+}
+.clear-search-btn {
+  border: none; background: transparent; color: #94a3b8; cursor: pointer;
+  padding: 4px; display: flex; align-items: center; justify-content: center;
+}
+.clear-search-btn:hover { color: #0f172a; }
+.onboarding-manual-container {
+  display: grid; grid-template-columns: 290px 1fr; flex: 1; overflow: hidden;
+}
+@media (max-width: 800px) {
+  .onboarding-manual-container { grid-template-columns: 1fr; }
+  .onboarding-manual-toc { max-height: 180px; }
+}
+.onboarding-manual-toc {
+  border-right: 1px solid #e2e8f0; background: #f8fafc; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.toc-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 12px;
+  font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .04em;
+}
+.chapter-count-badge { background: #e2e8f0; padding: 2px 7px; border-radius: 6px; font-size: 11px; }
+.toc-list { display: flex; flex-direction: column; }
+.toc-item {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+  border: none; border-bottom: 1px solid #f1f5f9; background: transparent;
+  text-align: left; cursor: pointer; transition: all .15s ease;
+}
+.toc-item:hover { background: #f1f5f9; }
+.toc-item.is-active { background: #ecfdf5; border-left: 3px solid #10b981; }
+.toc-number {
+  width: 22px; height: 22px; border-radius: 6px; background: #e2e8f0;
+  color: #475569; font-weight: 700; font-size: 11px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+}
+.toc-item.is-active .toc-number { background: #10b981; color: #ffffff; }
+.toc-meta { display: flex; flex-direction: column; gap: 2px; }
+.toc-title { font-size: 13px; color: #1e293b; font-weight: 600; line-height: 1.3; }
+.toc-summary-snippet {
+  font-size: 11px; color: #64748b; line-height: 1.35; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.toc-empty {
+  padding: 30px 16px; text-align: center; color: #94a3b8; display: flex;
+  flex-direction: column; align-items: center; gap: 8px; font-size: 12px;
+}
+.onboarding-manual-reader { padding: 26px 30px; overflow-y: auto; background: #ffffff; }
+.reader-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.reader-eyebrow {
+  display: inline-block; font-size: 11px; font-weight: 700; color: #10b981;
+  text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px;
+}
+.reader-header h2 { margin: 0 0 6px; font-size: 22px; font-weight: 800; color: #0f172a; }
+.reader-summary { margin: 0; color: #475569; font-size: 14px; line-height: 1.5; }
+.launch-spotlight-btn {
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 600;
+  background: #0f172a !important; color: #fff !important; white-space: nowrap;
+}
+.reader-steps-list h4 {
+  font-size: 13.5px; font-weight: 700; color: #334155; text-transform: uppercase;
+  letter-spacing: .04em; margin: 0 0 12px;
+}
+.step-cards-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.manual-step-card {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px;
+  border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc;
+}
+.step-badge {
+  width: 24px; height: 24px; border-radius: 50%; background: #10b981;
+  color: #ffffff; font-weight: 700; font-size: 12px; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+}
+.step-text { margin: 0; font-size: 13.5px; color: #1e293b; line-height: 1.5; }
+.tips-callout {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px;
+  border-radius: 12px; background: #ecfdf5; border: 1px solid #a7f3d0;
+  color: #065f46; margin-top: 16px;
+}
+.tip-callout-icon { flex-shrink: 0; color: #059669; margin-top: 2px; }
+.tips-callout strong { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.tips-callout ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.45; }
+.reader-empty {
+  padding: 60px 20px; text-align: center; color: #94a3b8; display: flex;
+  flex-direction: column; align-items: center; gap: 12px;
+}
+.onboarding-manual-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+}
+
