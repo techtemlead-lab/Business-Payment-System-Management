@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -50,5 +51,41 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertStringNotContainsString('fonts.bunny.net', $html);
         $this->assertStringContainsString('/madina-header-logo.png?v=7', $html);
         $this->assertStringContainsString('rel="preload" as="image"', $html);
+    }
+
+    public function test_home_and_products_recover_from_poisoned_category_cache(): void
+    {
+        Product::factory()->create(['active' => true, 'category' => 'Herbal Oils', 'name' => 'Neem Oil']);
+
+        // Simulate the production failure: a Support Collection was written to the
+        // database cache and later unserialized into an unusable value.
+        Cache::put('public:product_categories:v2', collect(['Herbal Oils']), 300);
+        Cache::put('public:featured_products:v2', collect([]), 120);
+
+        $this->get('/')->assertOk()->assertSee('Neem Oil', false);
+        $this->get('/products')->assertOk()->assertSee('Herbal Oils');
+
+        $this->assertIsArray(Cache::get('public:product_categories:v2'));
+        $this->assertIsArray(Cache::get('public:featured_products:v2'));
+        $this->assertContains('Herbal Oils', Cache::get('public:product_categories:v2'));
+    }
+
+    public function test_product_category_cache_is_reused_as_plain_array(): void
+    {
+        Product::factory()->create(['active' => true, 'category' => 'Tonics', 'name' => 'Ashwagandha']);
+
+        Cache::flush();
+        $this->get('/products')->assertOk()->assertSee('Tonics');
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get('/products')->assertOk()->assertSee('Tonics');
+
+        $categoryQueries = collect(DB::getQueryLog())->filter(
+            fn (array $query): bool => str_contains(strtolower($query['query']), 'distinct')
+                && str_contains(strtolower($query['query']), 'category')
+        );
+        $this->assertCount(0, $categoryQueries);
+        $this->assertSame(['Tonics'], Cache::get('public:product_categories:v2'));
     }
 }

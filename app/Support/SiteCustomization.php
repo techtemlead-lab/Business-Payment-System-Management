@@ -490,8 +490,11 @@ class SiteCustomization
         self::$requestMemo = null;
         Cache::forget(self::CacheKey);
         Cache::forget('public:content_pages:v1');
+        Cache::forget('public:content_pages:v2');
         Cache::forget('public:product_categories:v1');
+        Cache::forget('public:product_categories:v2');
         Cache::forget('public:featured_products:v1');
+        Cache::forget('public:featured_products:v2');
     }
 
     public static function all(): array
