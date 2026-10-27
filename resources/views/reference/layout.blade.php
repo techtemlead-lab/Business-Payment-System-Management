@@ -4,8 +4,10 @@
 @if(($social ?? null) !== false)
 @include('reference.partials.social-meta', ['social' => is_array($social ?? null) ? $social : \App\Support\SocialShareMeta::homepage()])
 @endif
-<link rel="icon" href="/reference/favicon.png">
-<link rel="preload" as="image" href="/madina-header-logo.png?v=7" fetchpriority="high">
+<link rel="icon" href="/favicon.ico">
+<link rel="icon" type="image/png" href="/reference/favicon.png?v=8">
+<link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
+<link rel="preload" as="image" href="/madina-header-logo.png?v=8" fetchpriority="high">
 <link rel="stylesheet" href="/reference/instrument-sans-local.css">
 @if(app()->getLocale() === 'bn')
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>

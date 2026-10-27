@@ -23,7 +23,7 @@ export function DealerHeader(){
         <header className="portal-site-header">
             <div className="portal-container portal-header-inner">
                 <a href={`${publicBase}/`} className="portal-logo" aria-label={translate('portal', 'brand_home_aria')}>
-                    <img src="/madina-header-logo.png?v=6" alt={translate('portal', 'brand_alt')}/>
+                    <img src="/madina-header-logo.png?v=8" alt={translate('portal', 'brand_alt')}/>
                 </a>
                 <form method="get" action={`${publicBase}/products`} className="portal-site-search">
                     <input name="q" placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>

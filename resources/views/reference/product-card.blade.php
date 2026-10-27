@@ -1,7 +1,7 @@
 @php
     $catName = $item['category'] ?? 'General';
     $catSlug = $item['category_slug'] ?? \Illuminate\Support\Str::slug($catName);
-    $imageSrc = ($item['image_path'] ?? '') ?: '/madina-header-logo.png?v=6';
+    $imageSrc = ($item['image_path'] ?? '') ?: '/madina-header-logo.png?v=8';
     $stockStatus = $item['stock_status'] ?? 'out_of_stock';
     $inStock = $stockStatus !== 'out_of_stock';
     $stockLabel = ! $inStock

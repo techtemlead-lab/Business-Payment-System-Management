@@ -29,7 +29,7 @@
     <section class="ref-auth-card">
         <div class="ref-auth-brand" style="text-align:center;margin-bottom:20px;">
             <a href="{{ \App\Support\PortalHost::url('public', '/') }}" aria-label="{{ __('portal.brand_home_aria') }}">
-                <img src="/madina-header-logo.png?v=6" alt="{{ __('portal.brand_alt') }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
+                <img src="/madina-header-logo.png?v=8" alt="{{ __('portal.brand_alt') }}" style="height:85px;width:85px;margin:0 auto;object-fit:contain;">
             </a>
         </div>
         <h1>{{ $title }}</h1>
