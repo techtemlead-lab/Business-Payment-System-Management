@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Support\DashboardManagement;
 use App\Support\PortalCatalog;
@@ -52,7 +53,15 @@ class HandleInertiaRequests extends Middleware
                 'portal' => Lang::get('portal'),
                 'auth' => Lang::get('auth_ui'),
             ],
-            'flash' => ['success' => fn () => $request->session()->get('success')], 'financeActive' => (bool) config('madina.financial_activation'), 'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'), 'demoMode' => (bool) config('madina.preview_mode'),
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'totp_setup' => fn () => $request->session()->get('totp_setup'),
+                'totp_recovery_codes' => fn () => $request->session()->get('totp_recovery_codes'),
+            ],
+            'financeActive' => (bool) config('madina.financial_activation'),
+            'withdrawalMinimum' => fn () => $u ? app(FinanceSettings::class)->withdrawalMinimum()['amount'] : config('madina.withdrawal_minimum'),
+            'demoMode' => (bool) config('madina.preview_mode'),
+            'securityControls' => fn () => $u ? app(SecuritySettings::class)->portalPayload($u) : null,
             'staffRoles' => fn () => $u?->role === 'super_admin' ? ['employee', ...array_keys(config('madina.roles')), ...app(StaffPermissions::class)->roleKeys()] : [],
             'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
                 ? app(StaffPermissions::class)->matrix($u)

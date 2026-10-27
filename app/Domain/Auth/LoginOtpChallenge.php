@@ -3,6 +3,7 @@
 namespace App\Domain\Auth;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\PhoneIdentity;
 use Illuminate\Support\Facades\Cache;
@@ -12,14 +13,19 @@ use Illuminate\Validation\ValidationException;
 /**
  * SMS one-time code challenge for dealer / sub-dealer logins when a valid
  * Bangladesh mobile is on file. Staff portals stay password-only.
+ *
+ * Effective enablement is owned by SecuritySettings (owner toggle + preview force-off).
  */
 final class LoginOtpChallenge
 {
-    public function __construct(private PartnerEventSms $sms) {}
+    public function __construct(
+        private PartnerEventSms $sms,
+        private SecuritySettings $security,
+    ) {}
 
     public function enabled(): bool
     {
-        return (bool) config('madina.login_otp.enabled', true);
+        return $this->security->partnerLoginOtpEnabled();
     }
 
     public function requiredFor(User $user): bool
