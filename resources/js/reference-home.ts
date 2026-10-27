@@ -1,3 +1,7 @@
+import { bindThemeToggles } from './shared/theme';
+
+bindThemeToggles();
+
 let toastTimer:ReturnType<typeof setTimeout>;
 type SiteUi = {
     in_stock: string;

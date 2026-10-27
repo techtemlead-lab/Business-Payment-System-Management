@@ -58,6 +58,11 @@
             @else
             <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b><small>{{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}</small></span></a>
             @endauth
+            <button type="button" class="ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}">
+                <span class="theme-icon-day" aria-hidden="true"><i class="fa-solid fa-sun"></i></span>
+                <span class="theme-icon-night" aria-hidden="true"><i class="fa-solid fa-moon"></i></span>
+                <span class="ref-theme-toggle-label">{{ __('site.theme') }}</span>
+            </button>
             <form method="post" action="/locale" class="ref-locale-switch" aria-label="{{ __('site.language') }}">@csrf
                 <button type="submit" name="locale" value="en" class="{{ app()->getLocale() === 'en' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'en' ? 'true' : 'false' }}">EN</button>
                 <button type="submit" name="locale" value="bn" class="{{ app()->getLocale() === 'bn' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'bn' ? 'true' : 'false' }}">বাংলা</button>
@@ -113,6 +118,14 @@
                 @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ __('site.faq') }}</a></li>@endif
             </ul>
+        </div>
+        <div class="ref-mobile-drawer-group">
+            <div class="ref-mobile-drawer-group-title">{{ __('site.theme') }}</div>
+            <button type="button" class="ref-drawer-btn ref-drawer-btn-secondary ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}" style="width:100%;justify-content:flex-start;">
+                <span class="theme-icon-day" aria-hidden="true"><i class="fa-solid fa-sun"></i></span>
+                <span class="theme-icon-night" aria-hidden="true"><i class="fa-solid fa-moon"></i></span>
+                <span>{{ __('site.day_night_mode') }}</span>
+            </button>
         </div>
         <div class="ref-mobile-drawer-group ref-mobile-drawer-auth-group">
             @auth

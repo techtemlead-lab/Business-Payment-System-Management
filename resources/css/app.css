@@ -1,5 +1,7 @@
 @import 'tailwindcss';
+@import './theme-dark.css';
 @source '../../resources/**/*.{tsx,blade.php}';
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 .demo-banner { background: #eaf0e2; border-bottom: 1px solid #d6e0c9; text-align: center; padding: 8px 20px; font-size: 10px; color: #526548; }
 .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; margin-top: 35px; }
 .product-detail .product-art { height: 400px; border-radius: 12px; }

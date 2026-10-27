@@ -10,6 +10,7 @@ import {
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
+import ThemeToggle from './ThemeToggle';
 import { useT } from '../shared/i18n/t';
 
 const icons: Record<string, LucideIcon> = {
@@ -582,6 +583,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         <b>{currentSectionTitle}</b>
                     </div>
                     <div className="header-actions">
+                        <ThemeToggle compact />
                         <LanguageSwitcher compact />
                         <Link
                             href={base + '/notifications'}
