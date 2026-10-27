@@ -51,6 +51,7 @@ export default function AccountCreate({
     const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
     const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
+    const [referCodeTouched, setReferCodeTouched] = useState(false);
     const form = useForm({
         role: defaultRole,
         identity_type: default_identity_type as 'birth_certificate' | 'nid',
@@ -240,9 +241,19 @@ export default function AccountCreate({
             );
             setPlacePreview(json.data);
             if (form.data.role === 'sub_dealer' && json.data.next_sub_dealer_code) {
-                form.setData('dealer_code', json.data.next_sub_dealer_code);
-            } else if (form.data.role === 'dealer' && !form.data.dealer_code) {
-                form.setData('dealer_code', form.data.place_code.trim());
+                const nextCode = String(json.data.next_sub_dealer_code).toUpperCase();
+                form.setData((prev) => ({
+                    ...prev,
+                    dealer_code: nextCode,
+                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
+                }));
+            } else if (form.data.role === 'dealer') {
+                const nextCode = (form.data.dealer_code || form.data.place_code).trim().toUpperCase();
+                form.setData((prev) => ({
+                    ...prev,
+                    dealer_code: nextCode,
+                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
+                }));
             }
             if (json.data.path) {
                 form.setData((prev) => ({
@@ -572,7 +583,14 @@ export default function AccountCreate({
                                     {form.data.role === 'dealer' && (
                                         <label>
                                             {translate('portal','acct_dealer_code_override')}
-                                            <input value={form.data.dealer_code} onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_dealer_code_default')} />
+                                            <input value={form.data.dealer_code} onChange={(e) => {
+                                                const next = e.target.value.toUpperCase();
+                                                form.setData((prev) => ({
+                                                    ...prev,
+                                                    dealer_code: next,
+                                                    refer_code: referCodeTouched ? prev.refer_code : next,
+                                                }));
+                                            }} placeholder={translate('portal','acct_dealer_code_default')} />
                                         </label>
                                     )}
                                     {form.data.role === 'sub_dealer' && (
@@ -623,7 +641,11 @@ export default function AccountCreate({
                                     </label>
                                     <label>
                                         {translate('portal','acct_your_refer_code')}
-                                        <input required value={form.data.refer_code} onChange={(e) => form.setData('refer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_refer_placeholder')} />
+                                        <input required value={form.data.refer_code} onChange={(e) => {
+                                            setReferCodeTouched(true);
+                                            form.setData('refer_code', e.target.value.toUpperCase());
+                                        }} placeholder={form.data.dealer_code || translate('portal','acct_refer_placeholder')} />
+                                        <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_refer_defaults_hint')}</span>
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>

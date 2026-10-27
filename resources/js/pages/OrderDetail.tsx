@@ -57,8 +57,12 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <a className="button small" href={printUrl} target="_blank" rel="noopener noreferrer">{translate('portal','print_invoice')}</a>
             <button type="button" className="button small" onClick={() => setShareOpen((v) => !v)}>{translate('portal','share_invoice')}</button>
             {shareOpen && (
-                <div className="panel" style={{position:'absolute',right:0,top:'110%',zIndex:20,minWidth:220,padding:12,boxShadow:'0 12px 28px #01162722'}}>
+                <div className="panel" style={{position:'absolute',right:0,top:'110%',zIndex:20,minWidth:240,padding:12,boxShadow:'0 12px 28px #01162722'}}>
                     <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${absolutePrintUrl}`)}`}>{translate('portal','share_invoice_whatsapp')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_facebook')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://t.me/share/url?url=${encodeURIComponent(absolutePrintUrl)}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_telegram')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_linkedin')}</a>
+                    <a className="text-link" style={{display:'block',marginBottom:8}} target="_blank" rel="noopener noreferrer" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(absolutePrintUrl)}&text=${encodeURIComponent(shareText)}`}>{translate('portal','share_x')}</a>
                     <a className="text-link" style={{display:'block',marginBottom:8}} href={`mailto:?subject=${encodeURIComponent(shareText)}&body=${encodeURIComponent(absolutePrintUrl)}`}>{translate('portal','share_invoice_email')}</a>
                     <button type="button" className="text-link" style={{display:'block',background:'none',border:0,padding:0,cursor:'pointer'}} onClick={copyLink}>{copied ? translate('portal','share_invoice_copied') : translate('portal','share_invoice_copy')}</button>
                 </div>

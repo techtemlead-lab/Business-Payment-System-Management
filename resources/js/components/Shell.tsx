@@ -606,7 +606,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                 aria-label={translate('portal', 'profile_menu')}
                                 onClick={() => setProfileOpen((value) => !value)}
                             >
-                                <div className="avatar">{user.name.slice(0, 1)}</div>
+                                <div className="avatar">
+                                    {user.photo_url
+                                        ? <img src={user.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                        : user.name.slice(0, 1)}
+                                </div>
                                 <div className="user-caption">
                                     <b>{user.name}</b>
                                     <span>{user.role.replaceAll('_', ' ')}</span>

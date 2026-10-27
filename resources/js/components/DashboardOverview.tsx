@@ -52,7 +52,14 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
     }
 
     const shareText = `${translate('portal', 'share_join_text', { code: String(referral.code) })} ${referral.url}`;
-    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    const encodedUrl = encodeURIComponent(referral.url!);
+    const encodedText = encodeURIComponent(shareText);
+    const whatsappHref = `https://wa.me/?text=${encodedText}`;
+    const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+    const messengerHref = `https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=0&redirect_uri=${encodedUrl}`;
+    const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
+    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+    const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
 
     const copyLink = async () => {
         try {
@@ -112,9 +119,12 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
                         <button type="button" className="button small dark" onClick={shareNative}>
                             <Share2 size={14} /> {translate('portal', 'share')}
                         </button>
-                        <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">
-                            {translate('portal', 'share_whatsapp')}
-                        </a>
+                        <a className="button small" href={whatsappHref} target="_blank" rel="noreferrer">{translate('portal', 'share_whatsapp')}</a>
+                        <a className="button small" href={facebookHref} target="_blank" rel="noreferrer">{translate('portal', 'share_facebook')}</a>
+                        <a className="button small" href={messengerHref} target="_blank" rel="noreferrer">{translate('portal', 'share_messenger')}</a>
+                        <a className="button small" href={telegramHref} target="_blank" rel="noreferrer">{translate('portal', 'share_telegram')}</a>
+                        <a className="button small" href={linkedinHref} target="_blank" rel="noreferrer">{translate('portal', 'share_linkedin')}</a>
+                        <a className="button small" href={xHref} target="_blank" rel="noreferrer">{translate('portal', 'share_x')}</a>
                         <a className="text-link" href={referral.url} target="_blank" rel="noreferrer">{translate('portal', 'open_join_page')}</a>
                     </div>
                 </div>

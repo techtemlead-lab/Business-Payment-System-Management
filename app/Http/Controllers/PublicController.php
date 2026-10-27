@@ -8,10 +8,12 @@ use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
+use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -89,20 +91,35 @@ class PublicController extends Controller
         $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
         $maps = app(MapsPresentation::class)->forAddress($officeAddress);
 
+        $homeSocial = SocialShareMeta::homepage();
+        $social = $page === 'home' ? $homeSocial : array_merge($homeSocial, [
+            'title' => ucfirst(str_replace('-', ' ', $page)).' · '.config('app.name'),
+            'url' => url('/'.$page),
+        ]);
+
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
             'content' => DB::table('content_pages')->where('slug', $page)->where('published', true)->first(),
             'notice' => DB::table('content_pages')->where('slug', 'notice')->where('published', true)->first(),
             'categories' => Product::where('active', true)->orderBy('category')->distinct()->pluck('category'),
             'maps' => $maps,
+            'social' => $social,
         ]);
     }
 
-    public function product(Product $product): View
+    public function product(Request $request, Product $product): View
     {
         abort_unless(SiteCustomization::isPageEnabled('products'), 404);
         abort_unless($product->active, 404);
 
-        return view('reference.product', ['item' => $this->publicProduct($product)]);
+        $item = $this->publicProduct($product);
+        $partner = $this->resolveSharePartner($request);
+        $social = SocialShareMeta::product($item, $partner);
+
+        return view('reference.product', [
+            'item' => $item,
+            'social' => $social,
+            'sharePartner' => $partner,
+        ]);
     }
 
     private function publicProduct(Product $p): array
@@ -145,6 +162,7 @@ class PublicController extends Controller
             'name' => 'required|string|max:150',
             'phone' => 'required|string|max:30',
             'topic' => 'required|in:dealer_enquiry,partnership_enquiry,product_enquiry,support,complaint,Dealer enquiry,Partnership enquiry,Product enquiry,Support,Complaint',
+            'referred_by' => 'nullable|string|max:40',
             'message' => 'required|string|min:10|max:2000',
             'website' => 'nullable|max:0',
         ]);
@@ -157,6 +175,8 @@ class PublicController extends Controller
             'Complaint', 'complaint' => 'complaint',
             default => strtolower((string) $data['topic']),
         };
+        $referredBy = strtoupper(trim((string) ($data['referred_by'] ?? '')));
+        $data['referred_by'] = $referredBy !== '' ? $referredBy : null;
         $locale = app()->getLocale();
         DB::table('enquiries')->insert([
             ...$data,
@@ -188,13 +208,59 @@ class PublicController extends Controller
         return view('reference.partner-login');
     }
 
-    public function join(string $code): RedirectResponse
+    public function join(string $code): View|RedirectResponse
     {
-        abort_unless(SiteCustomization::isPageEnabled('partnership'), 404);
         $normalized = strtoupper(trim($code));
         abort_if($normalized === '' || strlen($normalized) > 40, 404);
 
-        return redirect('/partnership?sponsor_code='.rawurlencode($normalized).'#partner-apply');
+        $partner = User::query()
+            ->where('status', 'active')
+            ->whereIn('role', ['dealer', 'sub_dealer'])
+            ->where(function ($query) use ($normalized): void {
+                $query->whereRaw('UPPER(refer_code) = ?', [$normalized])
+                    ->orWhereRaw('UPPER(dealer_code) = ?', [$normalized]);
+            })
+            ->first();
+
+        if (! $partner) {
+            // Unknown code still opens the company contact form with the code prefilled.
+            return redirect('/contact?referred_by='.rawurlencode($normalized).'&topic=partnership_enquiry#enquiry');
+        }
+
+        $social = SocialShareMeta::referral($partner);
+
+        return view('reference.join', [
+            'partner' => $partner,
+            'code' => (string) ($partner->refer_code ?: $partner->dealer_code ?: $normalized),
+            'social' => $social,
+        ]);
+    }
+
+    private function resolveSharePartner(Request $request): ?User
+    {
+        $ref = strtoupper(trim((string) $request->query('ref', '')));
+        if ($ref !== '') {
+            $fromRef = User::query()
+                ->where('status', 'active')
+                ->whereIn('role', ['dealer', 'sub_dealer'])
+                ->where(function ($query) use ($ref): void {
+                    $query->whereRaw('UPPER(refer_code) = ?', [$ref])
+                        ->orWhereRaw('UPPER(dealer_code) = ?', [$ref]);
+                })
+                ->first();
+            if ($fromRef) {
+                return $fromRef;
+            }
+        }
+
+        $user = Auth::user();
+        if ($user instanceof User && in_array($user->role, ['dealer', 'sub_dealer', 'super_admin', 'md', 'chairman', 'employee', 'sr', 'finance', 'account_manager'], true)) {
+            if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+                return $user;
+            }
+        }
+
+        return null;
     }
 
     public function apply(Request $request, PublicPartnerApplication $applications): RedirectResponse

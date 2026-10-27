@@ -187,10 +187,13 @@
                 <option value="{{ $topicValue }}" @selected($selectedTopicKey===$topicValue)>{{ $enquiryTopics[$topicKey] }}</option>
                 @endforeach
             </select>
+            @php $referredBy = old('referred_by', request('referred_by')); @endphp
+            <label for="enquiry-referred-by">{{ $chrome('contact_form_referred_by', null) ?: __('site.contact_form_referred_by') }}</label>
+            <input id="enquiry-referred-by" name="referred_by" value="{{ is_string($referredBy) ? strtoupper($referredBy) : '' }}" maxlength="40" autocomplete="off" @if(filled($referredBy)) readonly @endif>
             <label for="enquiry-message">{{ $chrome('contact_form_message') }}</label>
             <textarea id="enquiry-message" name="message" rows="5" minlength="10" maxlength="2000" required>{{ old('message') }}</textarea>
             <input name="website" type="text" class="ref-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
-            <button class="ref-primary-button" type="submit">{{ $chrome('contact_form_submit') }} <i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
+            <button class="ref-primary-button" type="submit" id="enquiry">{{ $chrome('contact_form_submit') }} <i class="fa-solid fa-paper-plane" aria-hidden="true"></i></button>
         </form>
     </section>
 </div>

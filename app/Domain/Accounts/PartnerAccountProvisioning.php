@@ -38,25 +38,12 @@ final class PartnerAccountProvisioning
 
         $phone = $this->normalizeBdMobile((string) ($input['phone'] ?? ''));
         $email = strtolower(trim((string) ($input['email'] ?? '')));
-        $referCode = strtoupper(trim((string) ($input['refer_code'] ?? '')));
         $referenceCode = strtoupper(trim((string) ($input['reference_code'] ?? '')));
         $identityType = (string) ($input['identity_type'] ?? 'birth_certificate');
         if (! in_array($identityType, ['birth_certificate', 'nid'], true)) {
             throw ValidationException::withMessages(['identity_type' => __('portal.acct_val_identity_type')]);
         }
 
-        if ($referCode === '') {
-            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_required')]);
-        }
-        if ($referenceCode !== '' && $referenceCode === $referCode) {
-            throw ValidationException::withMessages([
-                'refer_code' => __('portal.acct_val_refer_same_as_reference'),
-                'reference_code' => __('portal.acct_val_reference_same_as_refer'),
-            ]);
-        }
-        if (User::query()->whereRaw('UPPER(refer_code) = ?', [$referCode])->exists()) {
-            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
-        }
         if (User::query()->where('phone', $phone)->exists()) {
             throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
         }
@@ -67,7 +54,10 @@ final class PartnerAccountProvisioning
         $sponsor = null;
         if ($referenceCode !== '') {
             $sponsor = User::query()
-                ->whereRaw('UPPER(refer_code) = ?', [$referenceCode])
+                ->where(function ($query) use ($referenceCode): void {
+                    $query->whereRaw('UPPER(refer_code) = ?', [$referenceCode])
+                        ->orWhereRaw('UPPER(dealer_code) = ?', [$referenceCode]);
+                })
                 ->where('role', 'dealer')
                 ->where('status', 'active')
                 ->first();
@@ -108,6 +98,24 @@ final class PartnerAccountProvisioning
             }
         } else {
             $dealerCode = $this->nextSubDealerCode($place->code);
+        }
+
+        // By default refer_code matches dealer/sub-dealer code; admin may override explicitly.
+        $referCode = strtoupper(trim((string) ($input['refer_code'] ?? '')));
+        if ($referCode === '') {
+            $referCode = strtoupper($dealerCode);
+        }
+        if ($referenceCode !== '' && $referenceCode === $referCode) {
+            throw ValidationException::withMessages([
+                'refer_code' => __('portal.acct_val_refer_same_as_reference'),
+                'reference_code' => __('portal.acct_val_reference_same_as_refer'),
+            ]);
+        }
+        if (User::query()->whereRaw('UPPER(refer_code) = ?', [$referCode])->exists()) {
+            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
+        }
+        if ($referCode !== strtoupper($dealerCode) && User::query()->whereRaw('UPPER(dealer_code) = ?', [$referCode])->exists()) {
+            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
 
         $path = $this->geography->expandFromAnchor($place);

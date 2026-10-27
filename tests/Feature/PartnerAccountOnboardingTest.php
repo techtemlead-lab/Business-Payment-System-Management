@@ -88,7 +88,7 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertJsonPath('data.details.name_bn', 'মোঃ করিম');
     }
 
-    public function test_dealer_created_by_place_code_with_unique_refer_codes_and_sms(): void
+    public function test_dealer_created_by_place_code_defaults_refer_code_to_dealer_code(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sponsor = User::factory()->dealer()->create([
@@ -110,7 +110,6 @@ class PartnerAccountOnboardingTest extends TestCase
             'occupation' => 'Pharmacy',
             'place_code' => 'MNHC-102',
             'reference_code' => 'REF-SPONSOR',
-            'refer_code' => 'REF-RAFIQ',
             'phone' => '01712345678',
             'email' => 'rafiq-place@example.com',
             'reason' => 'Onboarded under Rangpur division code.',
@@ -119,7 +118,7 @@ class PartnerAccountOnboardingTest extends TestCase
         $user = User::query()->where('email', 'rafiq-place@example.com')->firstOrFail();
         $this->assertSame('dealer', $user->role);
         $this->assertSame('MNHC-102', $user->dealer_code);
-        $this->assertSame('REF-RAFIQ', $user->refer_code);
+        $this->assertSame('MNHC-102', $user->refer_code);
         $this->assertSame($sponsor->id, $user->sponsor_id);
         $this->assertSame('01712345678', $user->phone);
         $this->assertSame('birth_certificate', $user->profile['identity_type']);
@@ -131,6 +130,31 @@ class PartnerAccountOnboardingTest extends TestCase
         $this->assertNotEmpty($sent);
         $this->assertStringContainsString('01712345678', $sent[0]['message']);
         $this->assertStringContainsString('Password:', $sent[0]['message']);
+    }
+
+    public function test_admin_can_override_refer_code_away_from_dealer_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456789',
+            'date_of_birth' => '1985-05-01',
+            'name' => 'Custom Refer',
+            'name_bn' => 'কাস্টম',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-101',
+            'refer_code' => 'REF-CUSTOM-01',
+            'phone' => '01710000999',
+            'email' => 'custom-refer@example.com',
+            'reason' => 'Custom refer code override',
+        ])->assertRedirect('/accounts');
+
+        $user = User::query()->where('email', 'custom-refer@example.com')->firstOrFail();
+        $this->assertSame('MNHC-101', $user->dealer_code);
+        $this->assertSame('REF-CUSTOM-01', $user->refer_code);
     }
 
     public function test_second_dealer_cannot_take_same_area_code(): void

@@ -121,7 +121,7 @@ class CommandController extends Controller
                 'place_code' => 'required|string|max:32',
                 'dealer_code' => 'nullable|string|max:40',
                 'reference_code' => 'nullable|string|max:40',
-                'refer_code' => 'required|string|max:40',
+                'refer_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
                 'email' => 'required|email|max:254',
                 'extra_contact' => 'nullable|string|max:80',
