@@ -18,6 +18,7 @@ class DayNightModeTest extends TestCase
         $html = $this->onPortal('public')->get('/')->assertOk()->getContent();
 
         $this->assertStringContainsString('madina-color-scheme', $html);
+        $this->assertStringContainsString('madina-theme-domain', $html);
         $this->assertStringContainsString('data-theme-toggle', $html);
         $this->assertStringContainsString(__('site.night_mode'), $html);
         $this->assertStringContainsString('color-scheme', $html);
