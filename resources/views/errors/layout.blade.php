@@ -23,7 +23,7 @@
     <header class="ref-header">
         <div class="ref-container ref-header-inner" style="justify-content:center">
             <a class="ref-logo ref-madina-logo" href="/" aria-label="{{ __('site.home') }}">
-                <img src="/madina-header-logo.png?v=6" width="180" height="48" style="height:auto;max-height:48px;width:auto;" alt="{{ __('site.company_bar') }}">
+                <img src="/madina-header-logo.png?v=7" width="180" height="48" style="height:auto;max-height:48px;width:auto;" alt="{{ __('site.company_bar') }}" decoding="async">
             </a>
         </div>
     </header>

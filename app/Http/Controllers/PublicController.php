@@ -14,7 +14,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -32,76 +34,51 @@ class PublicController extends Controller
         if ($page === 'products') {
             return $this->catalog($request);
         }
-        $products = Product::where('active', true)
-            ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
-            ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
-            ->orderBy('name')->paginate($page === 'home' ? 4 : 12, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'tone'])->withQueryString();
-        $directory = User::where('directory_visible', true)->where('status', 'active')->where('role', 'dealer');
-        $dealerCols = ['name', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
-        if ($page === 'dealers' && $request->filled(['lat', 'lng'])) {
-            $userLat = (float) $request->input('lat');
-            $userLng = (float) $request->input('lng');
-            $allDealers = (clone $directory)
-                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
-                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
-                ->get($dealerCols)
-                ->map(function ($dealer) use ($userLat, $userLng) {
-                    if ($dealer->latitude !== null && $dealer->longitude !== null) {
-                        $lat1 = deg2rad($userLat);
-                        $lon1 = deg2rad($userLng);
-                        $lat2 = deg2rad((float) $dealer->latitude);
-                        $lon2 = deg2rad((float) $dealer->longitude);
-                        $dLat = $lat2 - $lat1;
-                        $dLon = $lon2 - $lon1;
-                        $a = sin($dLat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dLon / 2) ** 2;
-                        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-                        $dealer->distance_km = round(6371 * $c, 1);
-                    } else {
-                        $dealer->distance_km = null;
-                    }
 
-                    return $dealer;
-                })->sort(function ($a, $b) {
-                    if ($a->distance_km === null && $b->distance_km === null) {
-                        return strcmp($a->name, $b->name);
-                    }
-                    if ($a->distance_km === null) {
-                        return 1;
-                    }
-                    if ($b->distance_km === null) {
-                        return -1;
-                    }
+        $needsCatalog = in_array($page, ['home'], true);
+        $needsDealers = $page === 'dealers';
+        $needsMaps = in_array($page, ['contact', 'about', 'services'], true);
 
-                    return $a->distance_km <=> $b->distance_km;
-                })->values();
-            $pageNumber = $request->integer('page', 1);
-            $dealers = new LengthAwarePaginator($allDealers->slice(($pageNumber - 1) * 12, 12)->values(), $allDealers->count(), 12, $pageNumber, ['path' => '/dealers', 'query' => $request->query()]);
-        } else {
-            $dealers = (clone $directory)
-                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
-                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
-                ->orderBy('name')->paginate(12, $dealerCols)->withQueryString();
+        $products = $needsCatalog
+            ? Product::where('active', true)
+                ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
+                ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
+                ->orderBy('name')->paginate(4, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'tone'])->withQueryString()
+            : new LengthAwarePaginator([], 0, 12);
+
+        $dealers = new LengthAwarePaginator([], 0, 12);
+        $districts = collect();
+        $divisions = collect();
+        if ($needsDealers) {
+            [$dealers, $districts, $divisions] = $this->dealerDirectory($request);
         }
-        $districts = (clone $directory)->whereNotNull('district')->orderBy('district')->distinct()->pluck('district');
-        $divisions = (clone $directory)->whereNotNull('division')->orderBy('division')->distinct()->pluck('division');
-        $featuredProducts = SiteCustomization::getFeaturedProducts();
-        $featuredCategoryTabs = SiteCustomization::getFeaturedCategoryTabs($featuredProducts);
+
+        $featuredProducts = $needsCatalog ? $this->cachedFeaturedProducts() : [];
+        $featuredCategoryTabs = $needsCatalog ? SiteCustomization::getFeaturedCategoryTabs($featuredProducts) : [];
         $featuredItems = $featuredProducts;
 
         $siteCustomization = SiteCustomization::all();
-        $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
-        $maps = app(MapsPresentation::class)->forAddress($officeAddress);
+        $maps = null;
+        if ($needsMaps) {
+            $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
+            $maps = app(MapsPresentation::class)->forAddress($officeAddress);
+        }
 
         $social = $page === 'home'
             ? SocialShareMeta::homepage()
             : SocialShareMeta::page($page);
 
+        $contentPages = $this->cachedContentPages();
+
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
-            'content' => DB::table('content_pages')->where('slug', $page)->where('published', true)->first(),
-            'notice' => DB::table('content_pages')->where('slug', 'notice')->where('published', true)->first(),
-            'categories' => Product::where('active', true)->orderBy('category')->distinct()->pluck('category'),
+            'content' => $contentPages[$page] ?? null,
+            'notice' => $contentPages['notice'] ?? null,
+            'categories' => $needsCatalog ? $this->cachedProductCategories() : collect(),
             'maps' => $maps,
             'social' => $social,
+        ])->withHeaders([
+            'Cache-Control' => 'private, no-cache',
+            'X-Public-Render' => 'lean',
         ]);
     }
 
@@ -150,10 +127,97 @@ class PublicController extends Controller
         };
         $catalog = $query->orderBy('id')->paginate(12)->withQueryString()
             ->through(fn (Product $product) => $this->publicProduct($product));
-        $catalogCategories = Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
+        $catalogCategories = $this->cachedProductCategories();
         $social = SocialShareMeta::page('products', __('site.products').' · '.config('app.name'), __('site.meta_description'));
 
         return view('reference.catalog', compact('catalog', 'catalogCategories', 'social'));
+    }
+
+    /**
+     * @return array{0: LengthAwarePaginator, 1: Collection<int, string>, 2: Collection<int, string>}
+     */
+    private function dealerDirectory(Request $request): array
+    {
+        $directory = User::where('directory_visible', true)->where('status', 'active')->where('role', 'dealer');
+        $dealerCols = ['name', 'dealer_code', 'phone', 'division', 'district', 'latitude', 'longitude', 'profile'];
+        if ($request->filled(['lat', 'lng'])) {
+            $userLat = (float) $request->input('lat');
+            $userLng = (float) $request->input('lng');
+            $allDealers = (clone $directory)
+                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
+                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->get($dealerCols)
+                ->map(function ($dealer) use ($userLat, $userLng) {
+                    if ($dealer->latitude !== null && $dealer->longitude !== null) {
+                        $lat1 = deg2rad($userLat);
+                        $lon1 = deg2rad($userLng);
+                        $lat2 = deg2rad((float) $dealer->latitude);
+                        $lon2 = deg2rad((float) $dealer->longitude);
+                        $dLat = $lat2 - $lat1;
+                        $dLon = $lon2 - $lon1;
+                        $a = sin($dLat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dLon / 2) ** 2;
+                        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+                        $dealer->distance_km = round(6371 * $c, 1);
+                    } else {
+                        $dealer->distance_km = null;
+                    }
+
+                    return $dealer;
+                })->sort(function ($a, $b) {
+                    if ($a->distance_km === null && $b->distance_km === null) {
+                        return strcmp($a->name, $b->name);
+                    }
+                    if ($a->distance_km === null) {
+                        return 1;
+                    }
+                    if ($b->distance_km === null) {
+                        return -1;
+                    }
+
+                    return $a->distance_km <=> $b->distance_km;
+                })->values();
+            $pageNumber = $request->integer('page', 1);
+            $dealers = new LengthAwarePaginator($allDealers->slice(($pageNumber - 1) * 12, 12)->values(), $allDealers->count(), 12, $pageNumber, ['path' => '/dealers', 'query' => $request->query()]);
+        } else {
+            $dealers = (clone $directory)
+                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
+                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->orderBy('name')->paginate(12, $dealerCols)->withQueryString();
+        }
+        $districts = (clone $directory)->whereNotNull('district')->orderBy('district')->distinct()->pluck('district');
+        $divisions = (clone $directory)->whereNotNull('division')->orderBy('division')->distinct()->pluck('division');
+
+        return [$dealers, $districts, $divisions];
+    }
+
+    /** @return array<string, object|null> */
+    private function cachedContentPages(): array
+    {
+        return Cache::remember('public:content_pages:v1', 300, function (): array {
+            $rows = DB::table('content_pages')->where('published', true)->get(['slug', 'title', 'body', 'published']);
+            $map = [];
+            foreach ($rows as $row) {
+                $map[(string) $row->slug] = $row;
+            }
+
+            return $map;
+        });
+    }
+
+    /** @return Collection<int, string> */
+    private function cachedProductCategories(): Collection
+    {
+        return Cache::remember('public:product_categories:v1', 300, function (): Collection {
+            return Product::where('active', true)->orderBy('category')->distinct()->pluck('category');
+        });
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function cachedFeaturedProducts(): array
+    {
+        return Cache::remember('public:featured_products:v1', 120, function (): array {
+            return SiteCustomization::getFeaturedProducts();
+        });
     }
 
     public function enquiry(Request $request): RedirectResponse
