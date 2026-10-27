@@ -1,5 +1,7 @@
 @extends('reference.layout')
 @php
+    // Auth screens are not share targets — skip homepage OG so locale UI stays free of English CMS/meta leakage.
+    $social = false;
     $title = match ($mode) {
         'otp' => __('auth_ui.otp_title'),
         'forgot' => __('auth_ui.forgot_password'),

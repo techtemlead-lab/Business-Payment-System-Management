@@ -135,8 +135,8 @@ class PortalModulesTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'Commerce')
-                ->where('translations.portal.nav_module_earnings', 'Earnings & payouts')
+                ->where('translations.portal.nav_module_commerce', 'Orders & catalog')
+                ->where('translations.portal.nav_module_earnings', 'Earnings')
                 ->where('translations.portal.download_join_poster', 'Download join poster')
                 ->where('translations.portal.new_purchase_request', 'New purchase request'));
 
@@ -144,8 +144,8 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'কমার্স')
-                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.nav_module_commerce', 'অর্ডার ও ক্যাটালগ')
+                ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
@@ -173,7 +173,7 @@ class PortalModulesTest extends TestCase
                 ->component('portals/subdealer/Dashboard')
                 ->where('locale', 'bn')
                 ->where('translations.portal.log_out', 'লগ আউট')
-                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }
 }
