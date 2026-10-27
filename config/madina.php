@@ -12,6 +12,16 @@ return [
     'backup_password' => env('MADINA_BACKUP_PASSWORD'),
     'backup_disk' => env('MADINA_BACKUP_DISK', 'backups'),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+    // Comma/space-separated IPs or CIDRs for manage/sadmin. Empty = unrestricted (preview-safe).
+    'admin_ip_allowlist' => env('MADINA_ADMIN_IP_ALLOWLIST', ''),
+    // Staff/owner TOTP after optional post-login enrollment. Forced off while MADINA_PREVIEW_MODE=true.
+    'totp' => [
+        'enabled' => env('MADINA_TOTP_ENABLED', true),
+    ],
+    'privacy' => [
+        // Days to retain closed support/enquiry records; 0 disables automated retention guidance.
+        'closed_record_retention_days' => (int) env('MADINA_PRIVACY_RETENTION_DAYS', 365),
+    ],
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
@@ -35,7 +45,8 @@ return [
         'log_channel' => env('MADINA_SMS_LOG_CHANNEL', 'stack'),
         'sent' => [],
     ],
-    // Partner (dealer/sub-dealer) password login requires a one-time SMS code when a valid mobile is on file.
+    // Partner (dealer/sub-dealer) password login OTP default. Owner can override in Security;
+    // MADINA_PREVIEW_MODE forces OTP off until SMS is live.
     'login_otp' => [
         'enabled' => env('MADINA_LOGIN_OTP', true),
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),

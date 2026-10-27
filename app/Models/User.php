@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher'])]
+#[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
 {
     public const PasswordManagedByAdmin = 'admin';
@@ -36,6 +36,9 @@ class User extends Authenticatable implements HasLocalePreference
         'dealer_code',
         'password_managed_by',
         'admin_password_cipher',
+        'totp_secret',
+        'totp_confirmed_at',
+        'totp_recovery_codes',
     ];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];
@@ -184,10 +187,18 @@ class User extends Authenticatable implements HasLocalePreference
             'profile' => 'array',
             'nid' => 'encrypted',
             'admin_password_cipher' => 'encrypted',
+            'totp_secret' => 'encrypted',
+            'totp_recovery_codes' => 'encrypted:array',
+            'totp_confirmed_at' => 'datetime',
             'directory_visible' => 'boolean',
             'linked_staff_permissions' => 'array',
             'staff_linked_at' => 'datetime',
         ];
+    }
+
+    public function hasTotpEnabled(): bool
+    {
+        return filled($this->totp_confirmed_at) && filled($this->totp_secret);
     }
 
     public function isPasswordAdminManaged(): bool

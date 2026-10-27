@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Middleware\ActiveAccount;
+use App\Http\Middleware\BindSessionFingerprint;
 use App\Http\Middleware\CoordinateBackups;
 use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
 use App\Http\Middleware\ProtectPrivateResponses;
+use App\Http\Middleware\RestrictAdminIp;
 use App\Http\Middleware\SetLocale;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
@@ -28,7 +30,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return $hosts;
         });
-        $middleware->web(append: [SetLocale::class, CoordinateBackups::class, ProtectPrivateResponses::class, EnforceStaffActions::class, HandleInertiaRequests::class]);
+        $middleware->web(append: [
+            RestrictAdminIp::class,
+            SetLocale::class,
+            CoordinateBackups::class,
+            ProtectPrivateResponses::class,
+            BindSessionFingerprint::class,
+            EnforceStaffActions::class,
+            HandleInertiaRequests::class,
+        ]);
         $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class]);
         $middleware->redirectGuestsTo(fn (Request $r) => '/login');
         $middleware->redirectUsersTo(fn (Request $r) => $r->user() ? PortalHost::homeUrl($r->user()) : '/');

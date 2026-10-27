@@ -615,8 +615,12 @@ class OperationalReadinessTest extends TestCase
     {
         $this->withoutVite();
         $this->get('/up')->assertOk();
-        $this->get('/')->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; form-action 'self'");
+        $csp = (string) $this->get('/')->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Referrer-Policy', 'no-referrer')
+            ->headers->get('Content-Security-Policy');
+        $this->assertStringContainsString("default-src 'self'", $csp);
+        $this->assertStringContainsString("script-src 'self'", $csp);
+        $this->assertStringContainsString("base-uri 'self'", $csp);
     }
 
     public function test_commission_hold_partner_search_resolves_duplicate_names_by_code(): void

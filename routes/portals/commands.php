@@ -18,10 +18,16 @@ use Illuminate\Support\Facades\Route;
 return function (string $portal): void {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/security/password', [AuthController::class, 'password'])->middleware('throttle:5,1');
+    Route::post('/security/totp/begin', [AuthController::class, 'beginTotp'])->middleware('throttle:5,1');
+    Route::post('/security/totp/confirm', [AuthController::class, 'confirmTotp'])->middleware('throttle:5,1');
+    Route::post('/security/totp/disable', [AuthController::class, 'disableTotp'])->middleware('throttle:5,1');
+    Route::post('/security/sessions/revoke-others', [AuthController::class, 'revokeOtherSessions'])->middleware('throttle:5,1');
+    Route::post('/security/privacy-export', [AuthController::class, 'privacyExport'])->middleware('throttle:3,1');
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
     Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
     Route::post('/commands/partner-support', [CommandController::class, 'partnerSupport'])->middleware('throttle:5,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders', [CommandController::class, 'order']);
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store']);

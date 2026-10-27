@@ -15,8 +15,8 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:30,1');
     Route::get('/forgot-password', fn () => view('reference.auth', ['mode' => 'forgot', 'portal' => 'dealer']))->name('password.request');
     Route::get('/reset-password/{token}', fn (string $token) => view('reference.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'portal' => 'dealer']))->name('password.reset');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
-    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:20,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1');
     Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });

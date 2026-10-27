@@ -16,9 +16,11 @@ Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttl
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', fn () => view('company.auth', ['mode' => 'login', 'ownerPortal' => true]))->name('owner.login');
+    Route::get('/login/2fa', [AuthController::class, 'showTotp']);
     Route::get('/forgot-password', fn () => view('company.auth', ['mode' => 'forgot', 'ownerPortal' => true]))->name('owner.password.request');
     Route::get('/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'ownerPortal' => true]))->name('owner.password.reset');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:20,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('/login/2fa', [AuthController::class, 'verifyTotp'])->middleware('throttle:5,1');
     Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });

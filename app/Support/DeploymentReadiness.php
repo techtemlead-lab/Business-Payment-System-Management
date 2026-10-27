@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Security\SecuritySettings;
 use App\Models\PlaceCode;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -103,8 +104,21 @@ final class DeploymentReadiness
                 }
             }
         }
-        if (config('madina.login_otp.enabled') && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
+        $partnerOtp = app(SecuritySettings::class)->partnerLoginOtp();
+        if ($partnerOtp['enabled'] && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
             $warnings[] = 'login_otp_requires_real_sms_before_go_live';
+        }
+        if ($partnerOtp['preview_forced_off'] && $partnerOtp['stored_enabled']) {
+            $warnings[] = 'partner_login_otp_forced_off_in_preview';
+        }
+        if (config('madina.preview_mode') && (bool) config('madina.totp.enabled', true)) {
+            $warnings[] = 'staff_totp_forced_off_in_preview';
+        }
+        if (! config('madina.preview_mode') && ! app(SecuritySettings::class)->adminIpRestricted()) {
+            $warnings[] = 'admin_ip_allowlist_empty';
+        }
+        if ((int) config('madina.privacy.closed_record_retention_days', 0) < 1) {
+            $warnings[] = 'privacy_retention_unconfigured';
         }
         if ($checks['database'] && ! $this->placeCodeCatalogReady()) {
             $warnings[] = 'place_code_catalog_incomplete';
