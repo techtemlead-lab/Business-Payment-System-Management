@@ -160,8 +160,7 @@ class AuthController extends Controller
         RateLimiter::clear($key);
 
         $otp = app(LoginOtpChallenge::class);
-        if ($otp->requiredFor($candidate)) {
-            $otp->issue($candidate, $portal);
+        if ($otp->requiredFor($candidate) && $otp->issue($candidate, $portal)) {
             $r->session()->put([
                 'pending_login_id' => $candidate->id,
                 'pending_login_portal' => $portal,

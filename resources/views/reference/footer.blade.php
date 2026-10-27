@@ -228,7 +228,7 @@
         </button>
         <div class="ref-quickview-grid">
             <div class="ref-qv-image-col">
-                <img id="qvImage" src="" alt="{{ __('site.product_image') }}" loading="lazy">
+                <img id="qvImage" alt="{{ __('site.product_image') }}" loading="lazy" decoding="async">
 
             </div>
             <div class="ref-qv-info-col">

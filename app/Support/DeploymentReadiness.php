@@ -3,8 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Finance\FinancialReadiness;
-use App\Domain\Integrations\IntegrationCatalog;
-use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Security\SecuritySettings;
 use App\Models\PlaceCode;
 use Illuminate\Support\Facades\Cache;
@@ -534,20 +533,11 @@ final class DeploymentReadiness
     private function smsGatewayConfigured(): bool
     {
         try {
-            $settings = app(IntegrationSettings::class);
-            foreach (array_keys(IntegrationCatalog::groups()['sms']['providers'] ?? []) as $provider) {
-                $config = $settings->provider('sms', $provider);
-                if (! ($config['enabled'] ?? false)) {
-                    continue;
-                }
-                if (filled($config['base_url'] ?? null) && filled($config['api_key'] ?? null)) {
-                    return true;
-                }
-            }
+            return app(SmsGatewayClient::class)->isConfigured();
         } catch (\Throwable $exception) {
             report($exception);
-        }
 
-        return false;
+            return false;
+        }
     }
 }

@@ -49,6 +49,25 @@ final class SmsGatewayClient
     }
 
     /**
+     * True when at least one SMS provider is enabled with send credentials.
+     * Logging/array drivers alone do not count — login OTP must not trap users.
+     */
+    public function isConfigured(): bool
+    {
+        foreach (array_keys(IntegrationCatalog::groups()['sms']['providers'] ?? []) as $provider) {
+            $config = $this->settings->provider('sms', $provider);
+            if (! ($config['enabled'] ?? false)) {
+                continue;
+            }
+            if (filled($config['base_url'] ?? null) && filled($config['api_key'] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return array{ok: bool, provider: ?string, balance: ?string, message: string}
      */
     public function balance(?string $provider = null): array

@@ -1088,3 +1088,14 @@ details.ref-content-card summary i{transition:transform .18s ease}
 /* Back-to-top raise */
 .ref-back-top{bottom:34px}
 @media(max-width:1023px){.ref-back-top{bottom:88px;right:16px}}
+
+/* Branded HTTP error pages */
+body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#f2f4f8 0%,#e8eef5 100%)}
+.ref-error-main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 16px}
+.ref-error-card{width:100%;max-width:560px;text-align:center;padding:40px 28px;background:#fff;border-radius:14px;box-shadow:0 8px 28px #01162714}
+.ref-error-code{margin:0 0 8px;font-size:48px;font-weight:800;letter-spacing:.04em;color:#f34c20;line-height:1}
+.ref-error-card h1{margin:0 0 12px;font-size:24px;font-weight:700;color:#011627}
+.ref-error-body{margin:0 0 24px;font-size:15px;line-height:1.65;color:#475569}
+.ref-error-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{min-width:150px;justify-content:center}
+@media(max-width:640px){.ref-error-card{padding:28px 18px}.ref-error-code{font-size:40px}.ref-error-card h1{font-size:20px}}
