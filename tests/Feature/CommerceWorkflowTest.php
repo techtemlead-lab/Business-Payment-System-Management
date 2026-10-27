@@ -50,7 +50,7 @@ class CommerceWorkflowTest extends TestCase
         }
 
         $this->onPortal('public')->get('/join/REF-SMOKE-01')
-            ->assertRedirect('/partnership?sponsor_code=REF-SMOKE-01#partner-apply');
+            ->assertRedirect('/contact?referred_by=REF-SMOKE-01&topic=partnership_enquiry#enquiry');
     }
 
     public function test_authenticated_dealer_and_staff_module_surfaces_load(): void

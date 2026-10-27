@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\User;
@@ -67,5 +68,11 @@ class AppServiceProvider extends ServiceProvider
             $view->with('siteCustomization', $customization);
             $view->with('publicPageEnabled', SiteCustomization::enabledPagesMap($customization));
         });
+
+        try {
+            $this->app->make(SmtpMailConfig::class)->apply();
+        } catch (\Throwable) {
+            // Integrations table may be unavailable during early migrate/install.
+        }
     }
 }

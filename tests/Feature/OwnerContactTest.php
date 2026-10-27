@@ -71,7 +71,26 @@ class OwnerContactTest extends TestCase
         User::factory()->staff('finance')->create();
 
         $this->actingAs($owner)->get('/company/accounts')->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 2)
-                ->where('data.accounts.data.0.role', 'sub_dealer')->where('data.accounts.data.1.role', 'dealer'));
+            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 1)
+                ->where('data.accounts.data.0.role', 'dealer'));
+
+        $this->actingAs($owner)->get('/company/sub-dealers')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 1)
+                ->where('data.accounts.data.0.role', 'sub_dealer'));
+    }
+
+    public function test_owner_can_open_management_orders_and_finance_pages(): void
+    {
+        $this->withoutVite();
+        $owner = User::factory()->staff()->create();
+
+        $this->actingAs($owner)->get('/company/orders')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'orders'));
+        $this->actingAs($owner)->get('/company/sub-dealer-orders')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'sub-dealer-orders'));
+        $this->actingAs($owner)->get('/company/ledger')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'ledger'));
+        $this->actingAs($owner)->get('/company/salary')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('section', 'salary'));
     }
 }

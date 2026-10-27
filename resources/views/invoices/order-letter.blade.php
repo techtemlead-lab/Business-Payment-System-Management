@@ -61,12 +61,36 @@
             transform: rotate(-28deg); letter-spacing: .08em; z-index: 0;
         }
         .content { position: relative; z-index: 1; }
+        .print-toolbar {
+            position: sticky; top: 0; z-index: 30;
+            display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+            padding: 12px 16px; background: #011627; color: #fff;
+            font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px;
+        }
+        .print-toolbar .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .print-toolbar button, .print-toolbar a {
+            appearance: none; border: 0; border-radius: 8px; padding: 8px 12px;
+            font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; color: #011627; background: #fff;
+        }
+        .print-toolbar a.secondary { background: #e2e8f0; }
         @media print {
+            .print-toolbar { display: none !important; }
             .watermark { -webkit-print-color-adjust: exact; print-color-adjust: exact; color: rgba(21, 128, 61, 0.12) !important; }
         }
     </style>
 </head>
 <body>
+@if (! empty($printable))
+    <div class="print-toolbar">
+        <strong>{{ __('portal.print_invoice') }} — {{ $order['number'] ?? '' }}</strong>
+        <div class="actions">
+            <button type="button" onclick="window.print()">{{ __('portal.print_invoice') }}</button>
+            <a class="secondary" href="{{ url('/orders/'.($order_id ?? '').'/invoice') }}">{{ __('portal.download_invoice') }}</a>
+            <a class="secondary" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode((__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])).' '.($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_whatsapp') }}</a>
+            <a class="secondary" href="mailto:?subject={{ rawurlencode(__('portal.share_invoice_text', ['number' => $order['number'] ?? ''])) }}&body={{ rawurlencode(($share_url ?? request()->url())) }}">{{ __('portal.share_invoice_email') }}</a>
+        </div>
+    </div>
+@endif
 @if (! empty($watermark_label))
     <div class="watermark">{{ $watermark_label }}</div>
 @endif
@@ -183,5 +207,12 @@
         </tr>
     </table>
 </div>
+@if (! empty($auto_print))
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 250);
+    });
+</script>
+@endif
 </body>
 </html>

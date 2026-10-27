@@ -37,6 +37,117 @@ final class SmsGatewayClient
         return ['sent' => false, 'provider' => null, 'message' => __('portal.si_sms_none_accepted')];
     }
 
+    public function anyEnabled(): bool
+    {
+        foreach (array_keys(IntegrationCatalog::groups()['sms']['providers']) as $provider) {
+            if ($this->settings->isEnabled('sms', $provider)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{ok: bool, provider: ?string, balance: ?string, message: string}
+     */
+    public function balance(?string $provider = null): array
+    {
+        $providers = $provider
+            ? [$provider]
+            : array_keys(IntegrationCatalog::groups()['sms']['providers']);
+
+        foreach ($providers as $key) {
+            $config = $this->settings->provider('sms', $key);
+            if (! ($config['enabled'] ?? false)) {
+                continue;
+            }
+            try {
+                $balance = match ($key) {
+                    'ssl_wireless' => $this->balanceSslWireless($config),
+                    'bulk_sms_bd' => $this->balanceBulkSmsBd($config),
+                    default => $this->balanceCustom($config),
+                };
+                if ($balance !== null) {
+                    return [
+                        'ok' => true,
+                        'provider' => $key,
+                        'balance' => $balance,
+                        'message' => __('portal.si_sms_balance_value', ['balance' => $balance]),
+                    ];
+                }
+            } catch (\Throwable $exception) {
+                Log::warning('sms.balance_failed', ['provider' => $key, 'error' => $exception->getMessage()]);
+            }
+        }
+
+        return [
+            'ok' => false,
+            'provider' => $provider,
+            'balance' => null,
+            'message' => __('portal.si_sms_balance_unavailable'),
+        ];
+    }
+
+    /** @param  array<string, mixed>  $config */
+    private function balanceSslWireless(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->asJson()->post($url, [
+            'api_token' => $config['api_key'],
+            'sid' => $config['sender_id'] ?: $config['api_secret'],
+        ]);
+        if (! $response->successful()) {
+            return null;
+        }
+        $json = $response->json();
+        $value = $json['balance'] ?? $json['data']['balance'] ?? $json['Balance'] ?? null;
+
+        return $value === null ? null : (string) $value;
+    }
+
+    /** @param  array<string, mixed>  $config */
+    private function balanceBulkSmsBd(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? 'http://bulksmsbd.net/api/getBalanceApi'));
+        $response = Http::connectTimeout(3)->timeout(12)->get($url, [
+            'api_key' => $config['api_key'],
+        ]);
+        if (! $response->successful()) {
+            return null;
+        }
+        $json = $response->json();
+        if (is_array($json)) {
+            $value = $json['balance'] ?? $json['data']['balance'] ?? $json['Balance'] ?? null;
+            if ($value !== null) {
+                return (string) $value;
+            }
+        }
+        $body = trim($response->body());
+
+        return $body !== '' ? $body : null;
+    }
+
+    /** @param  array<string, mixed>  $config */
+    private function balanceCustom(array $config): ?string
+    {
+        $url = trim((string) ($config['balance_url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+        $response = Http::connectTimeout(3)->timeout(12)->acceptJson()->withToken((string) $config['api_key'])->get($url);
+        if (! $response->successful()) {
+            return null;
+        }
+        $json = $response->json();
+        $value = is_array($json) ? ($json['balance'] ?? $json['data']['balance'] ?? $json['remaining'] ?? null) : null;
+
+        return $value === null ? null : (string) $value;
+    }
+
     /** @param  array<string, mixed>  $config */
     private function sendSslWireless(array $config, string $phone, string $message): bool
     {

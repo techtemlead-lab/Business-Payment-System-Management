@@ -170,14 +170,66 @@ export default function Shell({ section, children, action }: { section: string; 
         };
     }, [profileOpen]);
 
-    const isDashboardsDomain = section === 'dashboards';
-    const isCompanyDomain = ['overview', 'employees', 'treasury', 'benefits-fund', 'place-codes', 'capital-flow', 'catalog', 'inventory', 'website', 'customization', 'content', 'enquiries', 'audit',
-        'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts',
-        'data-imports', 'service-integrations', 'commission-holds', 'financial-readiness', 'financial-reports',
-        'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'].includes(section);
-    const isDealerDomain = ['accounts', 'partnerships', 'orders', 'deliveries', 'dues', 'commissions', 'network-tree', 'area-dealers', 'ranks', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'policies', 'ledger', 'reports', 'withdrawals'].includes(section);
-    const isSubDealerDomain = ['sub-dealers', 'sub-dealer-orders', 'salary'].includes(section);
-    const currentDomain = isDashboardsDomain ? 'dashboards' : isSubDealerDomain ? 'sub_dealers' : isDealerDomain ? 'dealers' : 'company';
+    const dealerOnlySections = ['accounts', 'partnerships', 'area-dealers'];
+    const subDealerOnlySections = ['sub-dealers', 'salary'];
+    const sharedPartnerSections = ['commissions', 'policies', 'simulator', 'network-tree', 'ranks'];
+    const accountSections = ['profile', 'security', 'notifications', 'help'];
+    const managementSections = [
+        'overview', 'employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales',
+        'orders', 'deliveries', 'dues', 'sub-dealer-orders',
+        'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
+        'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+        'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
+        'catalog', 'inventory', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'audit', 'support-admin',
+    ];
+
+    const readDomainPin = (): 'company' | 'dealers' | 'sub_dealers' | null => {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+        try {
+            const pin = window.sessionStorage.getItem('madina.staff.domain');
+            return pin === 'company' || pin === 'dealers' || pin === 'sub_dealers' ? pin : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const writeDomainPin = (domain: 'company' | 'dealers' | 'sub_dealers') => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        try {
+            window.sessionStorage.setItem('madina.staff.domain', domain);
+        } catch {
+            // Ignore private-mode storage failures.
+        }
+    };
+
+    const resolvedDomain = ((): 'company' | 'dealers' | 'sub_dealers' => {
+        if (dealerOnlySections.includes(section)) {
+            return 'dealers';
+        }
+        if (subDealerOnlySections.includes(section)) {
+            return 'sub_dealers';
+        }
+        if (sharedPartnerSections.includes(section)) {
+            const pin = readDomainPin();
+            if (pin === 'dealers' || pin === 'sub_dealers') {
+                return pin;
+            }
+            return 'dealers';
+        }
+        if (accountSections.includes(section)) {
+            return readDomainPin() ?? 'company';
+        }
+        if (managementSections.includes(section) || section === '') {
+            return 'company';
+        }
+        const pin = readDomainPin();
+        return pin ?? 'company';
+    })();
+    const currentDomain = resolvedDomain;
 
     const staffAvailable = useMemo(() => {
         const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
@@ -279,9 +331,11 @@ export default function Shell({ section, children, action }: { section: string; 
         const company = compactMothers([
             mother('home', 'nav_module_home', pick(staffAvailable, ['overview'])),
             mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales'])),
+            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues', 'sub-dealer-orders'])),
             mother('finance_ops', 'nav_module_finance_ops', pick(staffAvailable, [
                 'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
                 'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+                'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
             ])),
             mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
             mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries'])),
@@ -290,34 +344,26 @@ export default function Shell({ section, children, action }: { section: string; 
 
         const dealers = compactMothers([
             mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
-            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
             mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
             mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
-            mother('payouts', 'nav_module_payouts', pick(staffAvailable, ['rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals'])),
-            mother('books', 'nav_module_books', pick(staffAvailable, ['ledger', 'reports'])),
         ]);
 
         const subDealers = compactMothers([
             mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers'])),
-            mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['sub-dealer-orders'])),
+            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
+            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
             mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
-        ]);
-
-        const dashboards = compactMothers([
-            mother('controls', 'nav_module_dashboards', pick(staffAvailable, ['dashboards', 'employees'])),
         ]);
 
         const account = compactMothers([
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]);
 
-        const domainModules = currentDomain === 'dashboards'
-            ? dashboards
-            : currentDomain === 'dealers'
-                ? dealers
-                : currentDomain === 'sub_dealers'
-                    ? subDealers
-                    : company;
+        const domainModules = currentDomain === 'dealers'
+            ? dealers
+            : currentDomain === 'sub_dealers'
+                ? subDealers
+                : company;
 
         return [...domainModules, ...account];
     }, [staff, user.role, partnerAvailable, staffAvailable, currentDomain]);
@@ -352,11 +398,16 @@ export default function Shell({ section, children, action }: { section: string; 
         const Icon = icons[item] || LayoutDashboard;
         return (
             <Link
-                onClick={() => setOpen(false)}
                 aria-current={section === item ? 'page' : undefined}
                 className={section === item ? 'selected' : ''}
                 href={sectionHref(item)}
                 key={item}
+                onClick={() => {
+                    if (staff) {
+                        writeDomainPin(currentDomain);
+                    }
+                    setOpen(false);
+                }}
                 data-tour={item === 'help' ? 'sidebar-help' : undefined}
             >
                 <Icon size={17} />
@@ -394,23 +445,28 @@ export default function Shell({ section, children, action }: { section: string; 
     });
 
     const canDealerDomain = capabilities.some((c) => ['accounts', 'orders', 'finance'].includes(c));
-    const canDashboardsDomain = capabilities.includes('accounts');
 
     const domainTabs = staff ? (
         <>
             <Link
                 href="/"
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                    writeDomainPin('company');
+                    setOpen(false);
+                }}
                 className={`sidebar-domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
                 aria-current={currentDomain === 'company' ? 'page' : undefined}
             >
                 <Briefcase size={14} />
-                {ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section')}
+                {ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section')}
             </Link>
             {canDealerDomain && (
                 <Link
-                    href={capabilities.includes('accounts') ? '/accounts' : (capabilities.includes('orders') ? '/orders' : '/commissions')}
-                    onClick={() => setOpen(false)}
+                    href={capabilities.includes('accounts') ? '/accounts' : '/commissions'}
+                    onClick={() => {
+                        writeDomainPin('dealers');
+                        setOpen(false);
+                    }}
                     className={`sidebar-domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
                     aria-current={currentDomain === 'dealers' ? 'page' : undefined}
                 >
@@ -420,24 +476,16 @@ export default function Shell({ section, children, action }: { section: string; 
             )}
             {canDealerDomain && (
                 <Link
-                    href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('orders') ? '/sub-dealer-orders' : '/salary')}
-                    onClick={() => setOpen(false)}
+                    href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('finance') ? '/salary' : '/commissions')}
+                    onClick={() => {
+                        writeDomainPin('sub_dealers');
+                        setOpen(false);
+                    }}
                     className={`sidebar-domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
                     aria-current={currentDomain === 'sub_dealers' ? 'page' : undefined}
                 >
                     <Store size={14} />
                     {translate('portal', 'nav_subdealer_section')}
-                </Link>
-            )}
-            {canDashboardsDomain && (
-                <Link
-                    href="/dashboards"
-                    onClick={() => setOpen(false)}
-                    className={`sidebar-domain-tab domain-tab-dashboards ${currentDomain === 'dashboards' ? 'active' : ''}`}
-                    aria-current={currentDomain === 'dashboards' ? 'page' : undefined}
-                >
-                    <SlidersHorizontal size={14} />
-                    {translate('portal', 'nav_dashboard_mgmt')}
                 </Link>
             )}
         </>
@@ -491,13 +539,11 @@ export default function Shell({ section, children, action }: { section: string; 
 
                 {staff && (
                     <div className="sidebar-domain-label">
-                        {currentDomain === 'dashboards'
-                            ? translate('portal', 'nav_dashboard_mgmt')
-                            : currentDomain === 'company'
-                                ? (ownerPortal ? translate('portal', 'nav_owner_section') : translate('portal', 'nav_company_section'))
-                                : currentDomain === 'dealers'
-                                    ? translate('portal', 'nav_dealer_section')
-                                    : translate('portal', 'nav_subdealer_section')}
+                        {currentDomain === 'company'
+                            ? (ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section'))
+                            : currentDomain === 'dealers'
+                                ? translate('portal', 'nav_dealer_section')
+                                : translate('portal', 'nav_subdealer_section')}
                     </div>
                 )}
 
@@ -560,7 +606,11 @@ export default function Shell({ section, children, action }: { section: string; 
                                 aria-label={translate('portal', 'profile_menu')}
                                 onClick={() => setProfileOpen((value) => !value)}
                             >
-                                <div className="avatar">{user.name.slice(0, 1)}</div>
+                                <div className="avatar">
+                                    {user.photo_url
+                                        ? <img src={user.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                        : user.name.slice(0, 1)}
+                                </div>
                                 <div className="user-caption">
                                     <b>{user.name}</b>
                                     <span>{user.role.replaceAll('_', ' ')}</span>

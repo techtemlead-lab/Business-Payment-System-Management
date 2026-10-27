@@ -31,9 +31,18 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('AccountCreate')
+                ->where('intent', 'dealer')
+                ->where('roles', ['dealer'])
                 ->where('default_identity_type', 'birth_certificate')
                 ->has('place_divisions', 8)
                 ->where('place_divisions.0.code', 'MNHC-101'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/accounts/create?intent=sub_dealer')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('AccountCreate')
+                ->where('intent', 'sub_dealer')
+                ->where('roles', ['sub_dealer']));
     }
 
     public function test_bdris_lookup_falls_back_to_manual_when_disabled(): void
@@ -79,7 +88,7 @@ class PartnerAccountOnboardingTest extends TestCase
             ->assertJsonPath('data.details.name_bn', 'মোঃ করিম');
     }
 
-    public function test_dealer_created_by_place_code_with_unique_refer_codes_and_sms(): void
+    public function test_dealer_created_by_place_code_defaults_refer_code_to_dealer_code(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sponsor = User::factory()->dealer()->create([
@@ -101,7 +110,6 @@ class PartnerAccountOnboardingTest extends TestCase
             'occupation' => 'Pharmacy',
             'place_code' => 'MNHC-102',
             'reference_code' => 'REF-SPONSOR',
-            'refer_code' => 'REF-RAFIQ',
             'phone' => '01712345678',
             'email' => 'rafiq-place@example.com',
             'reason' => 'Onboarded under Rangpur division code.',
@@ -110,16 +118,73 @@ class PartnerAccountOnboardingTest extends TestCase
         $user = User::query()->where('email', 'rafiq-place@example.com')->firstOrFail();
         $this->assertSame('dealer', $user->role);
         $this->assertSame('MNHC-102', $user->dealer_code);
-        $this->assertSame('REF-RAFIQ', $user->refer_code);
+        $this->assertSame('MNHC-102', $user->refer_code);
         $this->assertSame($sponsor->id, $user->sponsor_id);
         $this->assertSame('01712345678', $user->phone);
         $this->assertSame('birth_certificate', $user->profile['identity_type']);
+        $this->assertSame(User::PasswordManagedByAdmin, $user->password_managed_by);
+        $this->assertNotEmpty($user->adminVisiblePassword());
         $this->assertTrue(AreaDealerAssignment::query()->where('user_id', $user->id)->where('place_code_id', $rangpur->id)->where('is_active', true)->exists());
 
         $sent = config('madina.sms.sent');
         $this->assertNotEmpty($sent);
         $this->assertStringContainsString('01712345678', $sent[0]['message']);
         $this->assertStringContainsString('Password:', $sent[0]['message']);
+    }
+
+    public function test_admin_can_override_refer_code_away_from_dealer_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456789',
+            'date_of_birth' => '1985-05-01',
+            'name' => 'Custom Refer',
+            'name_bn' => 'কাস্টম',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-101',
+            'refer_code' => 'REF-CUSTOM-01',
+            'phone' => '01710000999',
+            'email' => 'custom-refer@example.com',
+            'reason' => 'Custom refer code override',
+        ])->assertRedirect('/accounts');
+
+        $user = User::query()->where('email', 'custom-refer@example.com')->firstOrFail();
+        $this->assertSame('MNHC-101', $user->dealer_code);
+        $this->assertSame('REF-CUSTOM-01', $user->refer_code);
+    }
+
+    public function test_sub_dealer_defaults_refer_code_to_auto_dealer_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->first();
+        $division = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+        $district = PlaceCode::factory()->district($division)->create(['code' => 'MNHC-311', 'name' => 'Refer Dist']);
+        $upazila = PlaceCode::factory()->upazila($district)->create(['code' => 'MNHC-411', 'name' => 'Refer Upazila']);
+        PlaceCode::factory()->union($upazila)->create(['code' => 'MNHC-457490', 'name' => 'Refer Union']);
+        $this->assertNotNull($management);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'sub_dealer',
+            'identity_type' => 'birth_certificate',
+            'birth_certificate_number' => '20001234567890999',
+            'date_of_birth' => '2000-03-03',
+            'name' => 'Sub Default Refer',
+            'name_bn' => 'সাব ডিফল্ট',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => 'MNHC-457490',
+            'phone' => '01819990001',
+            'email' => 'sub-default-refer@example.com',
+            'reason' => 'Refer code should match auto sub-dealer code',
+        ])->assertRedirect('/sub-dealers');
+
+        $user = User::query()->where('email', 'sub-default-refer@example.com')->firstOrFail();
+        $this->assertSame('MNHC-457490-000001', $user->dealer_code);
+        $this->assertSame('MNHC-457490-000001', $user->refer_code);
     }
 
     public function test_second_dealer_cannot_take_same_area_code(): void
@@ -182,7 +247,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'phone' => '01810000001',
             'email' => 'sub1@example.com',
             'reason' => 'First sub under union',
-        ])->assertRedirect('/accounts');
+        ])->assertRedirect('/sub-dealers');
 
         $first = User::query()->where('email', 'sub1@example.com')->firstOrFail();
         $this->assertSame('MNHC-457482-000001', $first->dealer_code);
@@ -201,7 +266,7 @@ class PartnerAccountOnboardingTest extends TestCase
             'phone' => '01810000002',
             'email' => 'sub2@example.com',
             'reason' => 'Second sub under same union',
-        ])->assertRedirect('/accounts');
+        ])->assertRedirect('/sub-dealers');
 
         $second = User::query()->where('email', 'sub2@example.com')->firstOrFail();
         $this->assertSame('MNHC-457482-000002', $second->dealer_code);

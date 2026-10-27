@@ -163,6 +163,14 @@ final class IntegrationSettings
                 if ($group === 'payments' && blank($next['api_key'] ?? null) && blank($next['app_key'] ?? null) && blank($next['store_id'] ?? null)) {
                     throw ValidationException::withMessages(['api_key' => __('portal.si_err_credentials')]);
                 }
+                if ($group === 'mail') {
+                    if (blank($next['host'] ?? null)) {
+                        throw ValidationException::withMessages(['host' => __('portal.si_err_base_url')]);
+                    }
+                    if (blank($next['from_address'] ?? null)) {
+                        throw ValidationException::withMessages(['from_address' => __('portal.si_err_credentials')]);
+                    }
+                }
             }
 
             $stored = $this->stored(self::SettingsKey);

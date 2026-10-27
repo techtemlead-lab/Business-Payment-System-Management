@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Integrations\IntegrationSettings;
+use App\Domain\Integrations\SmsGatewayClient;
+use App\Domain\Integrations\SmtpMailConfig;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +19,7 @@ class IntegrationSettingsController extends Controller
             'integrations' => $integrations->snapshot(false),
             'startup' => $integrations->startupMode(),
             'canEdit' => $actor->canAct('finance', 'edit') || $actor->role === 'super_admin',
+            'channelHint' => __('portal.si_channel_hint'),
         ];
 
         return $request->expectsJson()
@@ -24,7 +27,7 @@ class IntegrationSettingsController extends Controller
             : Inertia::render('ServiceIntegrations', $data)->toResponse($request);
     }
 
-    public function saveProvider(Request $request, IntegrationSettings $integrations): Response
+    public function saveProvider(Request $request, IntegrationSettings $integrations, SmtpMailConfig $smtp): Response
     {
         $data = $request->validate([
             'group' => 'required|string|max:40',
@@ -33,6 +36,7 @@ class IntegrationSettingsController extends Controller
             'reason' => FinanceOperationsController::Reason,
             'enabled' => 'required|boolean',
             'base_url' => 'nullable|string|max:255',
+            'balance_url' => 'nullable|string|max:255',
             'api_key' => 'nullable|string|max:500',
             'api_secret' => 'nullable|string|max:500',
             'app_key' => 'nullable|string|max:500',
@@ -47,7 +51,15 @@ class IntegrationSettingsController extends Controller
             'timeout' => 'nullable|integer|min:3|max:60',
             'mode' => 'nullable|string|in:sandbox,live',
             'map_embed_url' => 'nullable|string|max:1000',
+            'host' => 'nullable|string|max:255',
+            'port' => 'nullable|integer|min:1|max:65535',
+            'encryption' => 'nullable|string|in:tls,ssl,none',
+            'from_address' => 'nullable|email|max:254',
+            'from_name' => 'nullable|string|max:150',
         ]);
+        if (($data['encryption'] ?? null) === 'none') {
+            $data['encryption'] = '';
+        }
         $integrations->saveProvider(
             $request->user(),
             $data['group'],
@@ -56,8 +68,21 @@ class IntegrationSettingsController extends Controller
             (int) $data['version'],
             $data['reason']
         );
+        if ($data['group'] === 'mail') {
+            $smtp->apply();
+        }
 
         return $this->done($request);
+    }
+
+    public function smsBalance(Request $request, SmsGatewayClient $sms): Response
+    {
+        $actor = $request->user();
+        abort_unless($actor && ($actor->canAct('finance', 'view') || $actor->role === 'super_admin'), 403);
+        $provider = $request->string('provider')->toString() ?: null;
+        $result = $sms->balance($provider);
+
+        return response()->json(['data' => $result]);
     }
 
     public function saveStartup(Request $request, IntegrationSettings $integrations): Response

@@ -95,7 +95,36 @@ class PortalModulesTest extends TestCase
             ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false)
             ->assertDontSee('Account Login', false)
             ->assertDontSee('Need a dealer account?', false)
-            ->assertDontSee('Madina Natural Health Care', false);
+            ->assertDontSee('Madina Natural Health Care', false)
+            ->assertDontSee('সাব-ডিলার সাইন ইন', false)
+            ->assertDontSee('Sub-dealer Sign In', false);
+    }
+
+    public function test_cross_portal_login_links_only_appear_on_owner_login(): void
+    {
+        $this->onPortal('sadmin')->get('/login')
+            ->assertOk()
+            ->assertSee('data-tour="owner-login-portals"', false)
+            ->assertSee('Employee Sign In', false)
+            ->assertSee('Dealer Sign In', false)
+            ->assertSee('Sub-dealer Sign In', false);
+
+        $this->onPortal('manage')->get('/login')
+            ->assertOk()
+            ->assertDontSee('data-tour="owner-login-portals"', false)
+            ->assertDontSee('Owner Sign In', false)
+            ->assertDontSee('Dealer Sign In', false)
+            ->assertDontSee('Sub-dealer Sign In', false);
+
+        $this->onPortal('dealer')->get('/login')
+            ->assertOk()
+            ->assertDontSee('Sub-dealer Sign In', false)
+            ->assertDontSee('Owner Sign In', false);
+
+        $this->onPortal('subdealer')->get('/login')
+            ->assertOk()
+            ->assertDontSee('Dealer Sign In', false)
+            ->assertDontSee('Owner Sign In', false);
     }
 
     public function test_access_management_exposes_bangla_staff_access_copy(): void
@@ -135,8 +164,8 @@ class PortalModulesTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'Commerce')
-                ->where('translations.portal.nav_module_earnings', 'Earnings & payouts')
+                ->where('translations.portal.nav_module_commerce', 'Orders & catalog')
+                ->where('translations.portal.nav_module_earnings', 'Earnings')
                 ->where('translations.portal.download_join_poster', 'Download join poster')
                 ->where('translations.portal.new_purchase_request', 'New purchase request'));
 
@@ -144,8 +173,8 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'কমার্স')
-                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.nav_module_commerce', 'অর্ডার ও ক্যাটালগ')
+                ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
@@ -173,7 +202,7 @@ class PortalModulesTest extends TestCase
                 ->component('portals/subdealer/Dashboard')
                 ->where('locale', 'bn')
                 ->where('translations.portal.log_out', 'লগ আউট')
-                ->where('translations.portal.nav_module_earnings', 'আয় ও পেআউট')
+                ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }
 }

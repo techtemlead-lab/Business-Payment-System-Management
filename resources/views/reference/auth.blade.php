@@ -1,5 +1,7 @@
 @extends('reference.layout')
 @php
+    // Auth screens are not share targets — skip homepage OG so locale UI stays free of English CMS/meta leakage.
+    $social = false;
     $title = match ($mode) {
         'otp' => __('auth_ui.otp_title'),
         'forgot' => __('auth_ui.forgot_password'),
@@ -75,8 +77,6 @@
             @if($mode === 'login')
                 {{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_help_text', 'auth_ui.dealer_help') }}
                 <a href="{{ \App\Support\PortalHost::url('public', '/contact') }}">{{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_contact_text', 'auth_ui.contact_company') }}</a>
-                <span class="ref-auth-sep" aria-hidden="true"> · </span>
-                <a href="{{ \App\Support\PortalHost::url(($portal ?? 'dealer') === 'subdealer' ? 'dealer' : 'subdealer', '/login') }}">{{ ($portal ?? 'dealer') === 'subdealer' ? __('auth_ui.dealer_sign_in') : __('auth_ui.subdealer_sign_in') }}</a>
             @elseif($mode === 'otp')
                 <a href="/login">{{ __('auth_ui.back_to_sign_in') }}</a>
             @else

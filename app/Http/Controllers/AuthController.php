@@ -158,7 +158,12 @@ class AuthController extends Controller
     {
         $data = $r->validate(['token' => 'required|string', 'email' => 'required|email', 'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()]]);
         $status = Password::reset($data, function (User $u, string $password) {
-            $u->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
+            $u->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60),
+                'password_managed_by' => User::PasswordManagedByPartner,
+                'admin_password_cipher' => null,
+            ])->save();
             DB::table('sessions')->where('user_id', $u->id)->delete();
             Audit::record($u->id, 'password.reset', 'account');
         });
@@ -194,7 +199,12 @@ class AuthController extends Controller
     public function password(Request $r): Response
     {
         $data = $r->validate(['current_password' => 'required|current_password', 'password' => ['required', 'confirmed', PasswordRule::min(12)->mixedCase()->numbers()]]);
-        $r->user()->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60)])->save();
+        $r->user()->forceFill([
+            'password' => $data['password'],
+            'remember_token' => Str::random(60),
+            'password_managed_by' => User::PasswordManagedByPartner,
+            'admin_password_cipher' => null,
+        ])->save();
         DB::table('sessions')->where('user_id', $r->user()->id)->where('id', '!=', $r->session()->getId())->delete();
         $r->session()->regenerate();
         Audit::record($r->user()->id, 'password.change', 'account');

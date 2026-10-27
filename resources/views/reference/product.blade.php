@@ -12,7 +12,33 @@
 @section('bodyClass','ref-detail-page')
 @section('content')
 <main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><a href="/products">{{ __('site.products') }}</a><span>/</span><span>{{ $item['name'] }}</span></nav>
-<div class="ref-share-bar"><span>{{ $chrome('product_share_label', $siteCustomization['product_share_label'] ?? null) }}</span><button data-share-url aria-label="{{ __('site.share_product') }}"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button><button data-copy-url aria-label="{{ __('site.copy_product_link') }}"><i class="fa-solid fa-link" aria-hidden="true"></i></button></div>
+@php
+    $shareUrl = $social['url'] ?? url()->current();
+    $shareText = $social['description'] ?? ($item['name'].' — '.config('app.name'));
+    $encodedUrl = rawurlencode($shareUrl);
+    $encodedText = rawurlencode($shareText.' '.$shareUrl);
+@endphp
+<div class="ref-share-bar" data-share-panel>
+    <span>{{ $chrome('product_share_label', $siteCustomization['product_share_label'] ?? null) }}</span>
+    <button type="button" data-share-url aria-label="{{ __('site.share_product') }}"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button>
+    <button type="button" data-copy-url aria-label="{{ __('site.copy_product_link') }}"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
+    <a href="https://wa.me/?text={{ $encodedText }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+    <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+    <a href="https://t.me/share/url?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
+</div>
+@if(!empty($sharePartner))
+<div class="ref-content-card" style="margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+    @if(!empty($social['partner']['photo']))
+        <img src="{{ $social['partner']['photo'] }}" alt="{{ $sharePartner->name }}" width="64" height="64" style="border-radius:50%;object-fit:cover;">
+    @endif
+    <div>
+        <strong>{{ __('site.share_product_partner_headline', ['name' => $sharePartner->name]) }}</strong>
+        <p style="margin:4px 0 0;">{{ __('site.share_product_partner_contact', ['name' => $sharePartner->name, 'phone' => $sharePartner->phone ?: '—']) }}</p>
+    </div>
+</div>
+@endif
 <section class="ref-detail-card"><div class="ref-detail-image">@if(!empty($item['image_path']))<img src="{{ $item['image_path'] }}" alt="{{ $item['name'] }}">@else<div class="ref-no-image" aria-hidden="true"><i class="fa-solid fa-leaf"></i><span>{{ __('site.photo_coming_soon') }}</span></div>@endif</div><div class="ref-detail-info"><h1>{{ $item['name'] }}</h1>
 <div class="ref-metadata"><span>{{ __('site.mrp') }}: <b>{{ $item['mrp'] }} BDT</b></span><span>{{ __('site.availability') }}: <b class="{{ $inStock ? 'ref-green' : 'ref-orange' }}">{{ $stockLabel }}</b></span><span>{{ __('site.product_code') }}: <b>{{ $item['sku'] }}</b></span><span>{{ __('site.category') }}: <b>{{ $item['category'] }}</b></span></div>
 <div class="ref-partner-information">

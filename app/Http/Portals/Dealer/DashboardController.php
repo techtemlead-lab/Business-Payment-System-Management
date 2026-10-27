@@ -47,4 +47,9 @@ class DashboardController
     {
         return $this->workspace->orderInvoice($request, $order);
     }
+
+    public function orderInvoicePrint(Request $request, Order $order): \Illuminate\Http\Response
+    {
+        return $this->workspace->orderInvoicePrint($request, $order);
+    }
 }

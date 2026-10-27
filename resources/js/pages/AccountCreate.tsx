@@ -31,12 +31,14 @@ async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
 }
 
 export default function AccountCreate({
-    roles = ['dealer', 'sub_dealer'],
+    intent = 'dealer',
+    roles = ['dealer'],
     sponsors = [],
     place_divisions = [],
     default_identity_type = 'birth_certificate',
     bdris_enabled = false,
 }: {
+    intent?: 'dealer' | 'sub_dealer' | 'staff';
     roles: string[];
     sponsors: Row[];
     place_divisions?: PlaceOption[];
@@ -45,9 +47,13 @@ export default function AccountCreate({
 }) {
     const translate = useT();
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
+    const defaultRole = roles[0] || (intent === 'sub_dealer' ? 'sub_dealer' : intent === 'staff' ? 'employee' : 'dealer');
+    const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
+    const singlePartnerRole = roles.length === 1 && ['dealer', 'sub_dealer'].includes(roles[0]);
 
+    const [referCodeTouched, setReferCodeTouched] = useState(false);
     const form = useForm({
-        role: 'dealer',
+        role: defaultRole,
         identity_type: default_identity_type as 'birth_certificate' | 'nid',
         birth_certificate_number: '',
         nid: '',
@@ -235,9 +241,19 @@ export default function AccountCreate({
             );
             setPlacePreview(json.data);
             if (form.data.role === 'sub_dealer' && json.data.next_sub_dealer_code) {
-                form.setData('dealer_code', json.data.next_sub_dealer_code);
-            } else if (form.data.role === 'dealer' && !form.data.dealer_code) {
-                form.setData('dealer_code', form.data.place_code.trim());
+                const nextCode = String(json.data.next_sub_dealer_code).toUpperCase();
+                form.setData((prev) => ({
+                    ...prev,
+                    dealer_code: nextCode,
+                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
+                }));
+            } else if (form.data.role === 'dealer') {
+                const nextCode = (form.data.dealer_code || form.data.place_code).trim().toUpperCase();
+                form.setData((prev) => ({
+                    ...prev,
+                    dealer_code: nextCode,
+                    refer_code: referCodeTouched && prev.refer_code ? prev.refer_code : nextCode,
+                }));
             }
             if (json.data.path) {
                 form.setData((prev) => ({
@@ -309,7 +325,8 @@ export default function AccountCreate({
             place_code: data.place_code,
             dealer_code: data.dealer_code,
             reference_code: data.reference_code,
-            refer_code: data.refer_code,
+            // Empty refer_code falls back to dealer/sub-dealer code (admin may override).
+            refer_code: (data.refer_code || data.dealer_code || '').trim(),
             phone: data.phone,
             email: data.email,
             extra_contact: data.extra_contact,
@@ -331,19 +348,19 @@ export default function AccountCreate({
     const commissionLines = useMemo(() => placePreview?.commission_places || [], [placePreview]);
 
     return (
-        <Shell section="accounts">
-            <Head title={translate('portal','acct_head_title')} />
+        <Shell section={shellSection}>
+            <Head title={intent === 'sub_dealer' ? translate('portal','acct_head_title_sub') : intent === 'staff' ? translate('portal','acct_head_title') : translate('portal','acct_head_title_dealer')} />
             <div className="section-header-row">
-                <Link href="/accounts" className="text-link flex-center">
-                    <ArrowLeft size={16} /> {translate('portal','acct_back')}
+                <Link href={intent === 'sub_dealer' ? '/sub-dealers' : intent === 'staff' ? '/employees' : '/accounts'} className="text-link flex-center">
+                    <ArrowLeft size={16} /> {intent === 'sub_dealer' ? translate('portal','acct_back_subdealers') : intent === 'staff' ? translate('portal','acct_back') : translate('portal','acct_back_dealers')}
                 </Link>
             </div>
 
             <div className="registry-heading">
                 <div>
-                    <h2>{translate('portal','acct_heading')}</h2>
+                    <h2>{intent === 'sub_dealer' ? translate('portal','acct_heading_sub') : translate('portal','acct_heading')}</h2>
                     <p>
-                        {translate('portal','acct_intro')}
+                        {intent === 'sub_dealer' ? translate('portal','acct_intro_sub') : translate('portal','acct_intro')}
                     </p>
                 </div>
             </div>
@@ -354,34 +371,40 @@ export default function AccountCreate({
                         <div className="panel-heading">
                             <div>
                                 <h3>{translate('portal','acct_step_type')}</h3>
-                                <p>{translate('portal','acct_step_type_hint')}</p>
+                                <p>{singlePartnerRole
+                                    ? (form.data.role === 'sub_dealer' ? translate('portal','acct_role_fixed_sub') : translate('portal','acct_role_fixed_dealer'))
+                                    : translate('portal','acct_step_type_hint')}</p>
                             </div>
                             <UserPlus size={22} className="text-muted" />
                         </div>
                         <div className="form-grid">
                             <label>
                                 {translate('portal','acct_role')}
-                                <select
-                                    value={form.data.role}
-                                    onChange={(e) => {
-                                        const newRole = e.target.value;
-                                        form.setData((prev) => ({
-                                            ...prev,
-                                            role: newRole,
-                                            place_code: '',
-                                            dealer_code: '',
-                                            permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
-                                        }));
-                                        setPlacePreview(null);
-                                    }}
-                                    required
-                                >
-                                    {roles.map((r) => (
-                                        <option key={r} value={r}>
-                                            {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
-                                        </option>
-                                    ))}
-                                </select>
+                                {singlePartnerRole ? (
+                                    <input readOnly value={form.data.role === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : translate('portal','acct_role_dealer')} />
+                                ) : (
+                                    <select
+                                        value={form.data.role}
+                                        onChange={(e) => {
+                                            const newRole = e.target.value;
+                                            form.setData((prev) => ({
+                                                ...prev,
+                                                role: newRole,
+                                                place_code: '',
+                                                dealer_code: '',
+                                                permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
+                                            }));
+                                            setPlacePreview(null);
+                                        }}
+                                        required
+                                    >
+                                        {roles.map((r) => (
+                                            <option key={r} value={r}>
+                                                {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </label>
                         </div>
                     </section>
@@ -561,7 +584,14 @@ export default function AccountCreate({
                                     {form.data.role === 'dealer' && (
                                         <label>
                                             {translate('portal','acct_dealer_code_override')}
-                                            <input value={form.data.dealer_code} onChange={(e) => form.setData('dealer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_dealer_code_default')} />
+                                            <input value={form.data.dealer_code} onChange={(e) => {
+                                                const next = e.target.value.toUpperCase();
+                                                form.setData((prev) => ({
+                                                    ...prev,
+                                                    dealer_code: next,
+                                                    refer_code: referCodeTouched ? prev.refer_code : next,
+                                                }));
+                                            }} placeholder={translate('portal','acct_dealer_code_default')} />
                                         </label>
                                     )}
                                     {form.data.role === 'sub_dealer' && (
@@ -612,7 +642,17 @@ export default function AccountCreate({
                                     </label>
                                     <label>
                                         {translate('portal','acct_your_refer_code')}
-                                        <input required value={form.data.refer_code} onChange={(e) => form.setData('refer_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_refer_placeholder')} />
+                                        <input value={form.data.refer_code} onChange={(e) => {
+                                            const next = e.target.value.toUpperCase();
+                                            if (next === '') {
+                                                setReferCodeTouched(false);
+                                                form.setData('refer_code', form.data.dealer_code || '');
+                                                return;
+                                            }
+                                            setReferCodeTouched(true);
+                                            form.setData('refer_code', next);
+                                        }} placeholder={form.data.dealer_code || translate('portal','acct_refer_placeholder')} />
+                                        <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_refer_defaults_hint')}</span>
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>
