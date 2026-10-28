@@ -2412,6 +2412,25 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     padding-bottom: 24px;
 }
 
+/* Keep company intro, but tighten the heavy boxed spacing called out in annotations. */
+.ref-company-intro {
+    margin: 4px 0 12px;
+    padding: 22px 24px;
+    gap: 24px;
+}
+
+.ref-company-intro h1 {
+    margin: 0 0 10px;
+}
+
+.ref-company-intro p {
+    margin: 0 0 14px;
+}
+
+.ref-company-paths > a {
+    padding: 14px 16px;
+}
+
 .ref-announcement {
     margin-top: 10px;
     height: 40px;
