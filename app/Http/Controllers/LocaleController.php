@@ -26,7 +26,12 @@ class LocaleController extends Controller
 
         $returnUrl = $this->returnUrl($request);
 
-        if (! $request->header('X-Inertia') && ($request->expectsJson() || $request->ajax())) {
+        $isInertia = (bool) $request->header('X-Inertia');
+        $acceptsHtml = $request->acceptsHtml();
+
+        // Only return JSON if caller explicitly requested JSON, does NOT accept HTML,
+        // and is not an Inertia request. Inertia and browsers request HTML and require a redirect response.
+        if (! $isInertia && ! $acceptsHtml && ($request->wantsJson() || $request->expectsJson())) {
             return response()->json([
                 'ok' => true,
                 'locale' => $data['locale'],

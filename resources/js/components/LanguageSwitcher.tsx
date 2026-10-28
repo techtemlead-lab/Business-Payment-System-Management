@@ -9,7 +9,15 @@ export default function LanguageSwitcher({ compact = false }: { compact?: boolea
         router.post('/locale', {
             locale: next,
             return_url: typeof window !== 'undefined' ? window.location.href : undefined,
-        }, { preserveScroll: true, preserveState: false });
+        }, {
+            preserveScroll: true,
+            preserveState: false,
+            onError: () => {
+                if (typeof window !== 'undefined') {
+                    window.location.reload();
+                }
+            },
+        });
     };
 
     return (

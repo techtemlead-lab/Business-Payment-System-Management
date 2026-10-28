@@ -135,6 +135,35 @@ class SiteCustomization
             'featured_products_items' => [],
             'products_empty_title' => 'Our collection is being prepared.',
 
+            // Core Brand Promises & Trust Pillars (Toggleable by Admin)
+            'trust_pillars_enabled' => '1',
+            'trust_pillars_title' => 'Our Core Brand Commitments',
+            'trust_pillars' => [
+                ['icon' => 'fa-leaf', 'title' => '100% Authentic Botanical Herbs', 'subtitle' => 'Pure natural unani formulations certified for potency and safety.'],
+                ['icon' => 'fa-certificate', 'title' => 'GMP Standard Quality', 'subtitle' => 'Manufactured under modern hygienic pharmaceutical guidelines.'],
+                ['icon' => 'fa-truck-fast', 'title' => 'Nationwide Partner Network', 'subtitle' => 'Distributed through verified authorized dealers across 64 districts.'],
+                ['icon' => 'fa-user-doctor', 'title' => 'Dedicated Health Support', 'subtitle' => 'Expert consultation and product guidance for authentic holistic care.'],
+            ],
+
+            // Customer & Partner Testimonials (Toggleable by Admin)
+            'testimonials_section_enabled' => '1',
+            'testimonials_title' => 'Community Trust & Feedback',
+            'testimonials_subtitle' => 'Real clinical feedback and experiences from verified partners, dealers and families across Bangladesh.',
+            'testimonials' => [
+                ['name' => 'Tasmin Ahmed', 'role' => 'Wellness Client', 'location' => 'Dhaka', 'rating' => 5, 'text' => 'Madina botanical products have become an indispensable part of my family routine. 100% natural and remarkably effective!'],
+                ['name' => 'Md. Farhad Hossain', 'role' => 'Authorized Dealer Partner', 'location' => 'Chittagong', 'rating' => 5, 'text' => 'The product consistency and genuine herbal composition make it widely respected and trusted among our local clients.'],
+                ['name' => 'Nusrat Jahan', 'role' => 'Verified Client', 'location' => 'Sylhet', 'rating' => 5, 'text' => 'The natural hair vitality shampoo and botanical care lotion gave noticeable results without any chemical irritation.'],
+            ],
+
+            // Brand Video Gallery Showcase (Toggleable by Admin)
+            'video_gallery_enabled' => '1',
+            'video_gallery_title' => 'Brand & Product Video Showcase',
+            'video_gallery_subtitle' => 'Watch authentic tutorials, herbal extraction highlights and professional product demonstrations.',
+            'video_gallery_items' => [
+                ['title' => 'Herbal Hair & Scalp Nourishment Ritual', 'subtitle' => 'Application guide for herbal hair oil and shampoo', 'video_url' => '', 'video_embed_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'thumbnail' => '/branding/madina-top-skincare.jpg'],
+                ['title' => 'Botanical Skincare Gentle Routine', 'subtitle' => 'Natural face wash and herbal protective barrier guide', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-side-banner-1.jpg'],
+            ],
+
             // Homepage About
             'about_headline' => 'Natural Food, Medicine & Wellness Product Shop in Bangladesh',
             'about_lead' => 'Licensed distributor of Holistic Nutracare herbal and nutrition products. Explore the collection and contact Madina Natural Health Care for product information and partnership enquiries.',
@@ -1100,6 +1129,92 @@ class SiteCustomization
         }
 
         return null;
+    }
+
+    public static function getTrustPillars(): array
+    {
+        $all = self::all();
+        $enabled = filter_var($all['trust_pillars_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        if (! $enabled) {
+            return [];
+        }
+        $raw = $all['trust_pillars'] ?? self::defaults()['trust_pillars'];
+        if (! is_array($raw) || empty($raw)) {
+            $raw = self::defaults()['trust_pillars'];
+        }
+
+        $items = [];
+        foreach ($raw as $pillar) {
+            if (! is_array($pillar)) {
+                continue;
+            }
+            $items[] = [
+                'icon' => trim((string) ($pillar['icon'] ?? 'fa-leaf')),
+                'title' => trim((string) ($pillar['title'] ?? '')),
+                'subtitle' => trim((string) ($pillar['subtitle'] ?? '')),
+            ];
+        }
+
+        return $items;
+    }
+
+    public static function getTestimonials(): array
+    {
+        $all = self::all();
+        $enabled = filter_var($all['testimonials_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        if (! $enabled) {
+            return [];
+        }
+        $raw = $all['testimonials'] ?? self::defaults()['testimonials'];
+        if (! is_array($raw) || empty($raw)) {
+            $raw = self::defaults()['testimonials'];
+        }
+
+        $items = [];
+        foreach ($raw as $t) {
+            if (! is_array($t)) {
+                continue;
+            }
+            $items[] = [
+                'name' => trim((string) ($t['name'] ?? '')),
+                'role' => trim((string) ($t['role'] ?? 'Verified Client')),
+                'location' => trim((string) ($t['location'] ?? 'Bangladesh')),
+                'rating' => max(1, min(5, (int) ($t['rating'] ?? 5))),
+                'text' => trim((string) ($t['text'] ?? '')),
+                'avatar' => trim((string) ($t['avatar'] ?? '')),
+            ];
+        }
+
+        return $items;
+    }
+
+    public static function getVideoGallery(): array
+    {
+        $all = self::all();
+        $enabled = filter_var($all['video_gallery_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+        if (! $enabled) {
+            return [];
+        }
+        $raw = $all['video_gallery_items'] ?? self::defaults()['video_gallery_items'];
+        if (! is_array($raw) || empty($raw)) {
+            $raw = self::defaults()['video_gallery_items'];
+        }
+
+        $items = [];
+        foreach ($raw as $v) {
+            if (! is_array($v)) {
+                continue;
+            }
+            $items[] = [
+                'title' => trim((string) ($v['title'] ?? '')),
+                'subtitle' => trim((string) ($v['subtitle'] ?? '')),
+                'video_url' => trim((string) ($v['video_url'] ?? '')),
+                'video_embed_url' => trim((string) ($v['video_embed_url'] ?? '')),
+                'thumbnail' => trim((string) ($v['thumbnail'] ?? '')),
+            ];
+        }
+
+        return $items;
     }
 
     public static function getFeaturedCategories(): array

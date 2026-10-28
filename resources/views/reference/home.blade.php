@@ -161,6 +161,28 @@
         @endforeach
     </section>
     @endif
+
+    {{-- Core Brand Promises & Trust Pillars Strip (Admin-controlled toggle) --}}
+    @php
+        $trustPillars = \App\Support\SiteCustomization::getTrustPillars();
+    @endphp
+    @if(!empty($trustPillars))
+    <section class="ref-trust-pillars" aria-label="{{ $siteCustomization['trust_pillars_title'] ?? __('site.trust_pillars_title') }}">
+        <div class="ref-trust-pillars-inner">
+            @foreach($trustPillars as $pillar)
+            <div class="ref-trust-pillar-card">
+                <div class="ref-trust-pillar-icon" aria-hidden="true">
+                    <i class="fa-solid {{ $pillar['icon'] ?? 'fa-leaf' }}"></i>
+                </div>
+                <div class="ref-trust-pillar-content">
+                    <h3 class="ref-trust-pillar-title">{{ $pillar['title'] }}</h3>
+                    <p class="ref-trust-pillar-subtitle">{{ $pillar['subtitle'] }}</p>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </section>
+    @endif
     @php
         $categoriesEnabled = ($publicPageEnabled['products'] ?? true) && filter_var($siteCustomization['featured_categories_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
         $categoriesList = \App\Support\SiteCustomization::getFeaturedCategories();
@@ -295,6 +317,89 @@
         @else
             <video controls playsinline preload="metadata" @if($homepageVideo['media']['image_url']) poster="{{ $homepageVideo['media']['image_url'] }}" @endif><source src="{{ $homepageVideo['media']['video_url'] }}">Your browser does not support video playback.</video>
         @endif
+    </section>
+    @endif
+
+    {{-- Brand Video Gallery / Product Reels Showcase (Admin-controlled toggle) --}}
+    @php
+        $videoGallery = \App\Support\SiteCustomization::getVideoGallery();
+    @endphp
+    @if(!empty($videoGallery))
+    <section class="ref-video-gallery-section" aria-labelledby="video-gallery-title">
+        <div class="ref-section-title">
+            <h2 id="video-gallery-title">{{ $siteCustomization['video_gallery_title'] ?? __('site.video_gallery_title') }}</h2>
+            <p>{{ $siteCustomization['video_gallery_subtitle'] ?? __('site.video_gallery_subtitle') }}</p>
+        </div>
+        <div class="ref-video-gallery-grid">
+            @foreach($videoGallery as $idx => $v)
+            <article class="ref-video-card">
+                <div class="ref-video-frame">
+                    @if(!empty($v['video_embed_url']))
+                        <iframe src="{{ $v['video_embed_url'] }}" title="{{ $v['title'] }}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                    @elseif(!empty($v['video_url']))
+                        <video controls playsinline preload="metadata" @if(!empty($v['thumbnail'])) poster="{{ $v['thumbnail'] }}" @endif>
+                            <source src="{{ $v['video_url'] }}">
+                            {{ __('site.product_video_unsupported') }}
+                        </video>
+                    @elseif(!empty($v['thumbnail']))
+                        <div class="ref-video-poster" style="background-image: url('{{ $v['thumbnail'] }}');">
+                            <span class="ref-video-play-badge"><i class="fa-solid fa-play"></i></span>
+                        </div>
+                    @else
+                        <div class="ref-video-poster placeholder">
+                            <i class="fa-solid fa-film"></i>
+                        </div>
+                    @endif
+                </div>
+                <div class="ref-video-card-body">
+                    <h3>{{ $v['title'] }}</h3>
+                    @if(!empty($v['subtitle']))
+                        <p>{{ $v['subtitle'] }}</p>
+                    @endif
+                </div>
+            </article>
+            @endforeach
+        </div>
+    </section>
+    @endif
+
+    {{-- Customer & Partner Testimonials Section (Admin-controlled toggle) --}}
+    @php
+        $testimonials = \App\Support\SiteCustomization::getTestimonials();
+    @endphp
+    @if(!empty($testimonials))
+    <section class="ref-testimonials-section" aria-labelledby="testimonials-title">
+        <div class="ref-section-title">
+            <h2 id="testimonials-title">{{ $siteCustomization['testimonials_title'] ?? __('site.testimonials_title') }}</h2>
+            <p>{{ $siteCustomization['testimonials_subtitle'] ?? __('site.testimonials_subtitle') }}</p>
+        </div>
+        <div class="ref-testimonials-grid">
+            @foreach($testimonials as $t)
+            <article class="ref-testimonial-card">
+                <div class="ref-testimonial-header">
+                    <div class="ref-testimonial-avatar">
+                        @if(!empty($t['avatar']))
+                            <img src="{{ $t['avatar'] }}" alt="{{ $t['name'] }}" loading="lazy">
+                        @else
+                            <div class="ref-avatar-initial">{{ mb_substr($t['name'], 0, 1) }}</div>
+                        @endif
+                    </div>
+                    <div>
+                        <h3 class="ref-testimonial-author">{{ $t['name'] }}</h3>
+                        <span class="ref-testimonial-meta">{{ $t['role'] }} · {{ $t['location'] }}</span>
+                    </div>
+                </div>
+                <div class="ref-testimonial-stars" aria-label="{{ $t['rating'] }} out of 5 stars">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="fa-solid fa-star {{ $i <= $t['rating'] ? 'is-filled' : 'is-empty' }}" aria-hidden="true"></i>
+                    @endfor
+                </div>
+                <blockquote class="ref-testimonial-quote">
+                    “{{ $t['text'] }}”
+                </blockquote>
+            </article>
+            @endforeach
+        </div>
     </section>
     @endif
 

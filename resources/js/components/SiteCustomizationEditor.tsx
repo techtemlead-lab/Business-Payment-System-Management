@@ -182,6 +182,16 @@ export interface CustomizationData {
     product_tab_description?: string;
     product_tab_specification?: string;
 
+    // Brand Trust & Showcase (Category খ)
+    trust_pillars_enabled?: string;
+    trust_pillars_title?: string;
+    video_gallery_enabled?: string;
+    video_gallery_title?: string;
+    video_gallery_subtitle?: string;
+    testimonials_section_enabled?: string;
+    testimonials_title?: string;
+    testimonials_subtitle?: string;
+
     // Homepage Story
     company_intro_title?: string;
     company_intro_body?: string;
@@ -4465,6 +4475,16 @@ export default function SiteCustomizationEditor({
             product_tab_description: customization.product_tab_description || '',
             product_tab_specification: customization.product_tab_specification || '',
 
+            // Brand Trust & Engagement Controls
+            trust_pillars_enabled: customization.trust_pillars_enabled !== undefined ? customization.trust_pillars_enabled : '1',
+            trust_pillars_title: customization.trust_pillars_title || '',
+            video_gallery_enabled: customization.video_gallery_enabled !== undefined ? customization.video_gallery_enabled : '1',
+            video_gallery_title: customization.video_gallery_title || '',
+            video_gallery_subtitle: customization.video_gallery_subtitle || '',
+            testimonials_section_enabled: customization.testimonials_section_enabled !== undefined ? customization.testimonials_section_enabled : '1',
+            testimonials_title: customization.testimonials_title || '',
+            testimonials_subtitle: customization.testimonials_subtitle || '',
+
             // Homepage Story
             company_intro_title: customization.company_intro_title || '',
             company_intro_body: customization.company_intro_body || '',
@@ -5185,6 +5205,97 @@ export default function SiteCustomizationEditor({
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
                                 <Field label="Company Introduction Title" fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
                                 <Field label="Company Introduction Text" fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
+                            </div>
+
+                            {/* Brand Trust, Video Showcase & Testimonials Toggle Controls */}
+                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 28 }}>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: '#011627' }}>
+                                    Corporate Brand Trust & Engagement Sections (Homepage)
+                                </h3>
+                                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
+                                    Enable or disable trust and media sections on the public homepage. If disabled by admin, the section will not appear on the website.
+                                </p>
+
+                                {/* 1. Core Brand Commitments & Trust Pillars */}
+                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                        <div>
+                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>1. Core Brand Commitments & Trust Pillars</strong>
+                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays the 4 key commitments (Authentic herbs, GMP quality, 64-district network, Dedicated support).</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`button small ${form.data.customization.trust_pillars_enabled !== '0' ? 'dark' : ''}`}
+                                            style={{
+                                                background: form.data.customization.trust_pillars_enabled !== '0' ? '#047857' : '#f1f5f9',
+                                                color: form.data.customization.trust_pillars_enabled !== '0' ? '#ffffff' : '#64748b',
+                                                borderColor: form.data.customization.trust_pillars_enabled !== '0' ? '#047857' : '#cbd5e1',
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                            }}
+                                            onClick={() => updateField('trust_pillars_enabled', form.data.customization.trust_pillars_enabled !== '0' ? '0' : '1')}
+                                        >
+                                            {form.data.customization.trust_pillars_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                        </button>
+                                    </div>
+                                    <Field label="Trust Pillars Section Title" fieldKey="trust_pillars_title" value={form.data.customization.trust_pillars_title} placeholder={defaults.trust_pillars_title} onChange={updateField} />
+                                </div>
+
+                                {/* 2. Video Gallery & Demonstrations */}
+                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                        <div>
+                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>2. Brand & Product Video Showcase</strong>
+                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays video tutorials, extraction processes and herbal application demonstrations.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`button small ${form.data.customization.video_gallery_enabled !== '0' ? 'dark' : ''}`}
+                                            style={{
+                                                background: form.data.customization.video_gallery_enabled !== '0' ? '#047857' : '#f1f5f9',
+                                                color: form.data.customization.video_gallery_enabled !== '0' ? '#ffffff' : '#64748b',
+                                                borderColor: form.data.customization.video_gallery_enabled !== '0' ? '#047857' : '#cbd5e1',
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                            }}
+                                            onClick={() => updateField('video_gallery_enabled', form.data.customization.video_gallery_enabled !== '0' ? '0' : '1')}
+                                        >
+                                            {form.data.customization.video_gallery_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                        </button>
+                                    </div>
+                                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                                        <Field label="Video Showcase Title" fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
+                                        <Field label="Video Showcase Subtitle" fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
+                                    </div>
+                                </div>
+
+                                {/* 3. Customer & Partner Testimonials */}
+                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                        <div>
+                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>3. Customer & Partner Testimonials</strong>
+                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays authentic reviews from verified clients and authorized dealers across Bangladesh.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className={`button small ${form.data.customization.testimonials_section_enabled !== '0' ? 'dark' : ''}`}
+                                            style={{
+                                                background: form.data.customization.testimonials_section_enabled !== '0' ? '#047857' : '#f1f5f9',
+                                                color: form.data.customization.testimonials_section_enabled !== '0' ? '#ffffff' : '#64748b',
+                                                borderColor: form.data.customization.testimonials_section_enabled !== '0' ? '#047857' : '#cbd5e1',
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                            }}
+                                            onClick={() => updateField('testimonials_section_enabled', form.data.customization.testimonials_section_enabled !== '0' ? '0' : '1')}
+                                        >
+                                            {form.data.customization.testimonials_section_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                        </button>
+                                    </div>
+                                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                                        <Field label="Testimonials Section Title" fieldKey="testimonials_title" value={form.data.customization.testimonials_title} placeholder={defaults.testimonials_title} onChange={updateField} />
+                                        <Field label="Testimonials Section Subtitle" fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
+                                    </div>
+                                </div>
                             </div>
 
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>About Us Page (/about)</h3>
