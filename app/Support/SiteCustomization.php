@@ -1173,6 +1173,20 @@ class SiteCustomization
         return array_values($all);
     }
 
+    public static function getConfiguredSubCategories(?string $category = null): array
+    {
+        $defaults = ['Tablet', 'Capsule', 'Syrup', 'Drop', 'Ointment', 'Oil', 'Powder', 'Cream', 'Tonic', 'Gel'];
+        $query = Product::query()->whereNotNull('sub_category')->where('sub_category', '!=', '');
+        if ($category) {
+            $query->where('category', $category);
+        }
+        $existing = $query->distinct()->pluck('sub_category')->toArray();
+        $all = array_values(array_unique(array_filter(array_merge($defaults, $existing))));
+        natcasesort($all);
+
+        return array_values($all);
+    }
+
     public static function getFeaturedProducts(): array
     {
         $customization = self::all();

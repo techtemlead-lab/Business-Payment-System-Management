@@ -122,9 +122,10 @@ final class OrderInvoice
             'logo_path' => is_file($logoPath) ? $logoPath : null,
         ];
 
-        $units = Product::query()
+        $products = Product::query()
             ->whereIn('id', $order->lines->pluck('product_id')->filter()->all())
-            ->pluck('unit', 'id');
+            ->get(['id', 'unit', 'strength', 'sub_category', 'category'])
+            ->keyBy('id');
 
         $lines = [];
         $sumQty = 0;
@@ -133,6 +134,7 @@ final class OrderInvoice
         $sumTotal = 0;
 
         foreach ($order->lines as $index => $line) {
+            $product = $products->get($line->product_id);
             $qty = (int) $line->quantity;
             $mrpCents = Money::cents((string) $line->mrp);
             $rateCents = Money::cents((string) $line->unit_price);
@@ -151,13 +153,17 @@ final class OrderInvoice
             $lines[] = [
                 'sl' => $index + 1,
                 'name' => $line->name,
-                'pack_size' => (string) ($units[$line->product_id] ?? 'pack'),
+                'strength' => $product?->strength,
+                'sub_category' => $product?->sub_category,
+                'category' => $product?->category,
+                'pack_size' => (string) ($product?->unit ?: 'pack'),
                 'quantity' => $qty,
+                'mrp' => Money::decimal($mrpCents),
                 'rate' => Money::decimal($rateCents),
                 'mrp_bill' => Money::decimal($mrpBillCents),
                 'commission' => Money::decimal($commissionCents),
                 'total' => Money::decimal($totalCents),
-                'remark' => $remarkPct.'%',
+                'remark' => $remarkPct > 0 ? $remarkPct.'%' : '—',
             ];
         }
 

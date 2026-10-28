@@ -302,6 +302,16 @@ class PublicController extends Controller
             'updated_at' => now(),
         ]);
 
+        Audit::notifyAdminsAndStaff(
+            ['content', 'accounts'],
+            __('portal.notice_admin_enquiry_title'),
+            __('portal.notice_admin_enquiry_body', [
+                'name' => (string) $data['name'],
+                'phone' => (string) $data['phone'],
+                'topic' => (string) $data['topic'],
+            ])
+        );
+
         $topicLabel = match ($data['topic']) {
             'dealer_enquiry' => __('portal.enquiry_topic_dealer', [], $locale),
             'partnership_enquiry' => __('portal.enquiry_topic_partnership', [], $locale),
