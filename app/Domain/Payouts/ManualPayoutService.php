@@ -52,11 +52,7 @@ class ManualPayoutService
             DB::table('wallets')->where('id', $wallet->id)->update(['available' => Money::decimal(Money::cents($wallet->available) - $amount),
                 'held' => Money::decimal(Money::cents($wallet->held) + $amount), 'updated_at' => now()]);
             $risk = app(FraudAnomalyDetector::class)->analyzeWithdrawal($actor, (float) $data['amount']);
-            $eventNote = __('portal.wd_event_funds_reserved');
-            if (! empty($risk['flags'])) {
-                $eventNote .= ' [Flags: '.implode(', ', $risk['flags']).']';
-            }
-            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => $eventNote, 'created_at' => now()]);
+            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => __('portal.wd_event_funds_reserved'), 'created_at' => now()]);
             Audit::record($actor->id, 'withdrawal.requested', $id, [
                 'risk_score' => $risk['score'],
                 'risk_level' => $risk['risk_level'],

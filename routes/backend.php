@@ -30,6 +30,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/healthz', [HealthCheckController::class, 'liveness'])->name('healthz');
 Route::get('/readyz', [HealthCheckController::class, 'readiness'])->name('readyz');
 Route::get('/api/v1/openapi.json', [OpenApiController::class, 'spec'])->name('openapi');
+Route::get('/manifest.webmanifest', fn () => response()->file(public_path('manifest.webmanifest'), ['Content-Type' => 'application/manifest+json']))->name('pwa.manifest');
+Route::get('/sw.js', fn () => response()->file(public_path('sw.js'), ['Content-Type' => 'application/javascript']))->name('pwa.sw');
 
 Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group(function (): void {
     Route::get('/health', [HealthCheckController::class, 'readiness'])->name('health');

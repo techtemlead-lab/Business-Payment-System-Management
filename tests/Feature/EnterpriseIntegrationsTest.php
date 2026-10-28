@@ -21,6 +21,7 @@ class EnterpriseIntegrationsTest extends TestCase
         $response->assertHeader('X-Correlation-ID', 'CORR-TEST-998877');
 
         // 2. Missing correlation ID generates a UUID
+        $this->flushHeaders();
         $autoResponse = $this->get('/healthz');
         $autoResponse->assertOk();
         $header = $autoResponse->headers->get('X-Correlation-ID');
