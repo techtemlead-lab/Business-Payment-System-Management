@@ -108,9 +108,12 @@ class EnterpriseIntegrationsTest extends TestCase
     {
         $this->get('/manifest.webmanifest')
             ->assertOk()
+            ->assertHeader('Content-Type', 'application/manifest+json')
             ->assertJsonPath('short_name', 'Madina Health');
 
         $this->get('/sw.js')
-            ->assertOk();
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/javascript')
+            ->assertSee('madina-cache-v1');
     }
 }
