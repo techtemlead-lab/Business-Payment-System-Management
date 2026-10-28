@@ -27,12 +27,28 @@ class UserManualGuideTest extends TestCase
         $manual = app(UserManual::class);
 
         $all = $manual->chaptersFor($dealer);
-        $this->assertNotEmpty($all);
+        $this->assertGreaterThanOrEqual(12, count($all));
         $this->assertTrue(collect($all)->contains(fn ($chapter) => $chapter['key'] === 'catalog_orders'));
-        $this->assertFalse(collect($all)->contains(fn ($chapter) => $chapter['key'] === 'staff_ops'));
+        $this->assertFalse(collect($all)->contains(fn ($chapter) => $chapter['key'] === 'branch_performance'));
+        $this->assertFalse(collect($all)->contains(fn ($chapter) => $chapter['key'] === 'staff_people_accounts'));
+        $this->assertFalse(collect($all)->contains(fn ($chapter) => $chapter['key'] === 'owner_benefits_fund'));
+
+        $orders = collect($all)->firstWhere('key', 'catalog_orders');
+        $this->assertNotNull($orders);
+        $this->assertNotEmpty($orders['purpose']);
+        $this->assertNotEmpty($orders['why']);
+        $this->assertGreaterThanOrEqual(8, count($orders['steps']));
+        $this->assertNotEmpty($orders['outcomes']);
+        $this->assertNotEmpty($orders['warnings']);
 
         $hits = $manual->chaptersFor($dealer, 'withdrawal');
         $this->assertTrue(collect($hits)->contains(fn ($chapter) => $chapter['key'] === 'withdrawals'));
+
+        $owner = User::factory()->staff('super_admin')->create();
+        $ownerChapters = $manual->chaptersFor($owner);
+        $this->assertTrue(collect($ownerChapters)->contains(fn ($chapter) => $chapter['key'] === 'owner_benefits_fund'));
+        $this->assertTrue(collect($ownerChapters)->contains(fn ($chapter) => $chapter['key'] === 'branch_performance'));
+        $this->assertGreaterThanOrEqual(20, count($ownerChapters));
 
         $this->actingAs($dealer)
             ->onPortal('dealer')
