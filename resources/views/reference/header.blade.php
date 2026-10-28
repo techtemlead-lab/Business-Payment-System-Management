@@ -2,6 +2,7 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
 @endphp
 <a class="ref-skip" href="#main">{{ __('site.skip_to_content') }}</a>
+<div class="ref-sticky-chrome">
 <div class="ref-company-bar">
     <div class="ref-company-bar-inner">
         <span class="ref-bar-flourish left" aria-hidden="true">
@@ -24,7 +25,7 @@
 
         <!-- Logo -->
         <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="/madina-header-logo.png?v=8" alt="{{ __('site.company_bar') }}" width="180" height="48" style="height:auto;max-height:48px;width:auto;" decoding="async">
+            <img src="/madina-header-logo.png?v=8" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -74,6 +75,7 @@
         </div>
     </div>
 </header>
+</div>
 
 <!-- Mobile Fullscreen Search Overlay -->
 <div id="refMobileSearchOverlay" class="ref-mobile-search-overlay" aria-hidden="true">

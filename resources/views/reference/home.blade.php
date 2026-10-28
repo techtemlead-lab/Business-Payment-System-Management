@@ -45,29 +45,6 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
 @endphp
 <main id="main" class="ref-container ref-main">
-    <section class="ref-company-intro" aria-labelledby="company-intro-title">
-        <div>
-            <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow') }}</span>
-            <h1 id="company-intro-title">{{ $chrome('company_intro_title', $siteCustomization['company_intro_title'] ?? null) }}</h1>
-            <p>{{ $chrome('company_intro_body', $siteCustomization['company_intro_body'] ?? null) }}</p>
-            <div class="ref-company-intro-actions">
-                @if($publicPageEnabled['about'] ?? true)<a href="/about" class="ref-primary-button">{{ $chrome('about_our_company') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
-                @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('find_a_dealer') }}</a>@elseif($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-secondary-button"><i class="fa-solid fa-handshake" aria-hidden="true"></i> {{ $chrome('become_a_partner') }}</a>@endif
-            </div>
-        </div>
-        <div class="ref-company-paths">
-            @if($publicPageEnabled['products'] ?? true)
-            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>{{ $chrome('product_range_title') }}</strong><small>{{ $chrome('product_range_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @elseif($publicPageEnabled['services'] ?? true)
-            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>{{ $chrome('our_services_title') }}</strong><small>{{ $chrome('our_services_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @endif
-            @if($publicPageEnabled['partnership'] ?? true)
-            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @elseif($publicPageEnabled['contact'] ?? true)
-            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
-            @endif
-        </div>
-    </section>
     <section class="ref-promotions" aria-label="{{ __('site.promotional_banners') }}">
         <div class="ref-carousel ref-carousel-instance" aria-roledescription="carousel" aria-label="{{ __('site.featured_promotions') }}">
             <div class="ref-slides">
