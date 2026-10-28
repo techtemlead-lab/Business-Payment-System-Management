@@ -1496,6 +1496,157 @@ html[data-theme="dark"] .ref-pagination a:hover {
     background: #008744 !important;
 }
 
+/* Luxury product cards: title links + MRP stay dark-ink unless overridden */
+html[data-theme="dark"] .luxury-product-card,
+html[data-theme="dark"] .ref-product-card.luxury-product-card {
+    background: #111a28 !important;
+    border-color: #1e293b !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .luxury-product-title,
+html[data-theme="dark"] .luxury-product-title a,
+html[data-theme="dark"] .ref-product-card .luxury-product-title,
+html[data-theme="dark"] .ref-product-card .luxury-product-title a {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .luxury-product-title a:hover,
+html[data-theme="dark"] .ref-product-card .luxury-product-title a:hover {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .luxury-price-val,
+html[data-theme="dark"] .luxury-price-val .currency,
+html[data-theme="dark"] .ref-product-card .luxury-price-val,
+html[data-theme="dark"] .ref-product-card .luxury-price-val .currency {
+    color: #f8fafc !important;
+    text-shadow: none !important;
+}
+
+html[data-theme="dark"] .luxury-price-label,
+html[data-theme="dark"] .luxury-status-caption,
+html[data-theme="dark"] .luxury-mrp-row,
+html[data-theme="dark"] .ref-product-card .luxury-price-label {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .luxury-action-row {
+    border-top-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .luxury-btn-details {
+    background: #0f1724 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .luxury-btn-details:hover {
+    background: #1e293b !important;
+    border-color: #4ade80 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .luxury-category-pill {
+    background: rgba(15, 23, 36, 0.92) !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .luxury-discount-pill {
+    background: #064e3b !important;
+    border-color: #047857 !important;
+    color: #a7f3d0 !important;
+}
+
+/* Catalog intro banner kept a light panel while page text went night-mode */
+html[data-theme="dark"] .ref-public-catalog-note {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-public-catalog-note strong {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-public-catalog-note p {
+    color: #94a3b8 !important;
+}
+
+/* Trust pillars strip + testimonials: light surfaces with night-mode title color */
+html[data-theme="dark"] .ref-trust-pillars-inner {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-trust-pillar-card {
+    border-right-color: #2a3648 !important;
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-trust-pillar-title {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-trust-pillar-subtitle {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-trust-pillar-icon {
+    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+    border-color: #047857 !important;
+    color: #6ee7b7 !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-section,
+html[data-theme="dark"] .ref-video-gallery-section {
+    background: linear-gradient(180deg, #121a28 0%, #0f1724 100%) !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-section .ref-section-title,
+html[data-theme="dark"] .ref-testimonials-section .ref-section-title h2,
+html[data-theme="dark"] .ref-video-gallery-section .ref-section-title,
+html[data-theme="dark"] .ref-video-gallery-section .ref-section-title h2 {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-section .ref-section-title p,
+html[data-theme="dark"] .ref-video-gallery-section .ref-section-title p {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-testimonial-card,
+html[data-theme="dark"] .ref-video-card {
+    background: #111a28 !important;
+    border-color: #1e293b !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-testimonial-author,
+html[data-theme="dark"] .ref-video-card-body h3 {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-testimonial-meta,
+html[data-theme="dark"] .ref-testimonial-quote,
+html[data-theme="dark"] .ref-video-card-body p {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-testimonial-avatar {
+    background: #064e3b !important;
+}
+
+html[data-theme="dark"] .ref-avatar-initial {
+    color: #a7f3d0 !important;
+}
+
+html[data-theme="dark"] .ref-testimonial-stars .is-empty {
+    color: #334155 !important;
+}
 
 
 
