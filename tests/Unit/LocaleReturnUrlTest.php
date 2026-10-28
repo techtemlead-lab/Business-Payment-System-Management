@@ -92,7 +92,26 @@ class LocaleReturnUrlTest extends TestCase
         $request->headers->set('X-Requested-With', 'XMLHttpRequest');
 
         // Verify that X-Inertia header is present and falsifies the plain JSON condition
-        $isPlainJsonEligible = ! $request->header('X-Inertia') && ($request->expectsJson() || $request->ajax());
+        $isInertia = (bool) $request->header('X-Inertia');
+        $acceptsHtml = $request->acceptsHtml();
+        $isPlainJsonEligible = ! $isInertia && ! $acceptsHtml && ($request->wantsJson() || $request->expectsJson());
+        $this->assertFalse($isPlainJsonEligible);
+    }
+
+    public function test_ajax_request_accepting_html_does_not_receive_plain_json(): void
+    {
+        // When Inertia or browser makes an AJAX request behind a proxy that strips X-Inertia,
+        // it still sends Accept: text/html, application/xhtml+xml.
+        $request = Request::create('http://127.0.0.1:8088/locale', 'POST', [
+            'locale' => 'bn',
+            'return_url' => 'http://127.0.0.1:8088/orders/test-123',
+        ]);
+        $request->headers->set('Accept', 'text/html, application/xhtml+xml');
+        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+
+        $isInertia = (bool) $request->header('X-Inertia');
+        $acceptsHtml = $request->acceptsHtml();
+        $isPlainJsonEligible = ! $isInertia && ! $acceptsHtml && ($request->wantsJson() || $request->expectsJson());
         $this->assertFalse($isPlainJsonEligible);
     }
 }
