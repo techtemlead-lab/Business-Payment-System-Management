@@ -37,7 +37,7 @@ class ProductRegistryController extends Controller
         if (! $product) {
             abort_unless($r->user()->allows('catalog') && $r->user()->allows('pricing'), 403);
         }
-        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
+        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
         if ($data && ($r->user()->allows('pricing') || $r->user()->allows('orders') || $r->user()->allows('finance'))) {
             $data['dealer_price'] = $product->dealer_price;
             $data['sub_dealer_price'] = $product->sub_dealer_price;
@@ -54,7 +54,11 @@ class ProductRegistryController extends Controller
             $data['external_video_url'] = $product->video_external_url ?? '';
         }
 
-        return Inertia::render('ProductEditor', ['product' => $data, 'categories' => SiteCustomization::getConfiguredCategoryNames()]);
+        return Inertia::render('ProductEditor', [
+            'product' => $data,
+            'categories' => SiteCustomization::getConfiguredCategoryNames(),
+            'sub_categories' => SiteCustomization::getConfiguredSubCategories(),
+        ]);
     }
 
     public function store(Request $r): RedirectResponse
@@ -126,11 +130,14 @@ class ProductRegistryController extends Controller
         $pricing = $r->user()->allows('pricing');
         $inventory = $r->user()->allows('inventory');
         $required = $product ? 'sometimes|required' : 'required';
-        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? $required.'|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? $required.'|string|max:30' : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
+        $isOwner = $r->user()->owner();
+        $maxDealerPct = $isOwner ? 70 : 50;
+        $maxSubDealerPct = $isOwner ? 70 : 40;
+        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? $required.'|string|max:100' : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? $required.'|string|max:30' : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
             'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
-            'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:20,50|decimal:0,2' : 'prohibited',
+            'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxDealerPct.'|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited',
-            'sub_dealer_discount_pct' => $pricing ? 'nullable|numeric|between:20,50|decimal:0,2' : 'prohibited',
+            'sub_dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxSubDealerPct.'|decimal:0,2' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
             'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
         $d = $r->validate($rules);
@@ -148,13 +155,30 @@ class ProductRegistryController extends Controller
             $rate = Percentage::from((string) $d['sub_dealer_discount_pct']);
             $d['sub_dealer_price'] = Money::decimal(Percentage::from(Money::decimal(10000 - $rate->basisPoints))->of(Money::cents($mrp), 'half_up'));
         }
-        foreach (['dealer_price' => $dealer, 'sub_dealer_price' => $d['sub_dealer_price'] ?? $product?->sub_dealer_price] as $field => $price) {
-            if ($price !== null && (array_key_exists($field, $d) || array_key_exists('mrp', $d))) {
-                $value = Money::cents($price);
-                $retail = Money::cents($mrp);
-                if ($value < intdiv($retail * 50 + 50, 100) || $value > intdiv($retail * 80 + 50, 100)) {
-                    throw ValidationException::withMessages([$field => __('portal.err_prod_discount_range')]);
-                }
+
+        $retail = Money::cents($mrp);
+        if ($dealer !== null && (array_key_exists('dealer_price', $d) || array_key_exists('mrp', $d) || array_key_exists('dealer_discount_pct', $d))) {
+            $dealerCents = Money::cents($dealer);
+            $minDealerPrice = intdiv($retail * (100 - $maxDealerPct) + 50, 100);
+            $maxDealerPrice = intdiv($retail * 80 + 50, 100);
+            if ($dealerCents < $minDealerPrice || $dealerCents > $maxDealerPrice) {
+                throw ValidationException::withMessages([
+                    'dealer_discount_pct' => __('portal.err_dealer_discount_limit'),
+                    'dealer_price' => __('portal.err_dealer_discount_limit'),
+                ]);
+            }
+        }
+
+        $subDealer = $d['sub_dealer_price'] ?? $product?->sub_dealer_price;
+        if ($subDealer !== null && (array_key_exists('sub_dealer_price', $d) || array_key_exists('mrp', $d) || array_key_exists('sub_dealer_discount_pct', $d))) {
+            $subDealerCents = Money::cents($subDealer);
+            $minSubDealerPrice = intdiv($retail * (100 - $maxSubDealerPct) + 50, 100);
+            $maxSubDealerPrice = intdiv($retail * 80 + 50, 100);
+            if ($subDealerCents < $minSubDealerPrice || $subDealerCents > $maxSubDealerPrice) {
+                throw ValidationException::withMessages([
+                    'sub_dealer_discount_pct' => __('portal.err_sub_dealer_discount_limit'),
+                    'sub_dealer_price' => __('portal.err_sub_dealer_discount_limit'),
+                ]);
             }
         }
         if (Money::cents($mrp) <= 0 || ($dealer !== null && (Money::cents($dealer) <= 0 || Money::cents($dealer) > Money::cents($mrp)))) {
@@ -215,7 +239,7 @@ class ProductRegistryController extends Controller
                 if ($product && (string) $p->registry_version !== (string) $d['version']) {
                     throw ValidationException::withMessages(['version' => __('portal.err_prod_stale')]);
                 }
-                $attributes = collect($d)->only(['name', 'sku', 'category', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at'])->all();
+                $attributes = collect($d)->only(['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at'])->all();
                 if (! $product && $initialStock > 0) {
                     $attributes['stock'] = $initialStock;
                 }

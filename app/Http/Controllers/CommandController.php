@@ -66,15 +66,16 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
-        return back()->with('success', __('portal.flash_order_decision'));
+        return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_decision'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
+        $claimRow = DB::table('payment_claims')->find($claim);
         $s->verify($r->user(), $claim, $d['approve'], $d['reason']);
 
-        return back()->with('success', __('portal.flash_payment_review'));
+        return back(fallback: $claimRow ? '/orders/'.$claimRow->order_id : '/payments')->with('success', __('portal.flash_payment_review'));
     }
 
     public function dispatch(DispatchOrderRequest $r, Order $order, OrderService $s): RedirectResponse
@@ -82,7 +83,7 @@ class CommandController extends Controller
         $d = $r->validated();
         $s->dispatch($r->user(), $order, $d);
 
-        return back()->with('success', __('portal.flash_shipment_recorded'));
+        return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_shipment_recorded'));
     }
 
     public function account(Request $r, PartnerAccountProvisioning $partners): RedirectResponse

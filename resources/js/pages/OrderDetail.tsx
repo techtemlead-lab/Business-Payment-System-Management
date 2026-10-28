@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { Row, Table, Badge, money, date, label, ActionForm, DateInput } from '../components/UI';
+import { Row, Table, Badge, money, date, label, ActionForm, DateInput, Flash } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 function DispatchForm({ order }: { order: Row }) {
@@ -64,6 +64,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
     };
     return <Shell section="order">
         <Head title={order.number} />
+        <Flash />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
         <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap',position:'relative'}} data-tour="invoice-actions">
             <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
