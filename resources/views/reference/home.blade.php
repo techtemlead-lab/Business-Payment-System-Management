@@ -167,16 +167,23 @@
         $trustPillars = \App\Support\SiteCustomization::getTrustPillars();
     @endphp
     @if(!empty($trustPillars))
-    <section class="ref-trust-pillars" aria-label="{{ $siteCustomization['trust_pillars_title'] ?? __('site.trust_pillars_title') }}">
+    <section class="ref-trust-pillars" aria-label="{{ $chrome('trust_pillars_title', $siteCustomization['trust_pillars_title'] ?? null) }}">
         <div class="ref-trust-pillars-inner">
-            @foreach($trustPillars as $pillar)
+            @foreach($trustPillars as $idx => $pillar)
+            @php
+                $n = $idx + 1;
+                $title = $chrome('trust_pillar'.$n.'_title', filled($pillar['title'] ?? null) ? $pillar['title'] : null);
+                $subtitle = filled($pillar['subtitle'] ?? null) ? $chrome('trust_pillar'.$n.'_subtitle', $pillar['subtitle']) : '';
+            @endphp
             <div class="ref-trust-pillar-card">
                 <div class="ref-trust-pillar-icon" aria-hidden="true">
                     <i class="fa-solid {{ $pillar['icon'] ?? 'fa-leaf' }}"></i>
                 </div>
                 <div class="ref-trust-pillar-content">
-                    <h3 class="ref-trust-pillar-title">{{ $pillar['title'] }}</h3>
-                    <p class="ref-trust-pillar-subtitle">{{ $pillar['subtitle'] }}</p>
+                    <h3 class="ref-trust-pillar-title">{{ $title }}</h3>
+                    @if($subtitle !== '')
+                    <p class="ref-trust-pillar-subtitle">{{ $subtitle }}</p>
+                    @endif
                 </div>
             </div>
             @endforeach

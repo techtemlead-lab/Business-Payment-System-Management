@@ -28,7 +28,8 @@ class PublicSiteLocaleChromeTest extends TestCase
             'active' => true,
         ]);
 
-        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])
+            ->assertRedirect();
 
         $this->onPortal('public')->get('/')
             ->assertOk()
@@ -169,5 +170,23 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertOk()
             ->assertSee('Our Product Catalogue', false)
             ->assertSee('Find a Dealer', false);
+    }
+
+    public function test_bangla_locale_translates_homepage_trust_pillar_cards(): void
+    {
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])
+            ->assertRedirect();
+
+        $this->onPortal('public')->get('/')
+            ->assertOk()
+            ->assertSee('১০০% প্রামাণিক ভেষজ উদ্ভিদ', false)
+            ->assertSee('শক্তি ও নিরাপত্তার জন্য সনদপ্রাপ্ত বিশুদ্ধ প্রাকৃতিক ইউনানি ফর্মুলেশন।', false)
+            ->assertSee('জিএমপি মানসম্মত কোয়ালিটি', false)
+            ->assertSee('সারাদেশব্যাপী পার্টনার নেটওয়ার্ক', false)
+            ->assertSee('নিবেদিত স্বাস্থ্য সহায়তা', false)
+            ->assertDontSee('100% Authentic Botanical Herbs', false)
+            ->assertDontSee('GMP Standard Quality', false)
+            ->assertDontSee('Nationwide Partner Network', false)
+            ->assertDontSee('Dedicated Health Support', false);
     }
 }
