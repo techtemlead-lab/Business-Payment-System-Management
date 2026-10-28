@@ -52,7 +52,7 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertJsonPath('data.password', $partner->adminVisiblePassword());
     }
 
-    public function test_partner_self_password_change_hides_password_from_admin(): void
+    public function test_partner_self_password_change_keeps_password_visible_to_admin_per_policy(): void
     {
         $admin = User::factory()->staff()->create();
         $partner = User::factory()->dealer()->create([
@@ -68,15 +68,15 @@ class PartnerAdminPasswordTest extends TestCase
         ])->assertRedirect();
 
         $partner->refresh();
-        $this->assertSame(User::PasswordManagedByPartner, $partner->password_managed_by);
-        $this->assertNull($partner->adminVisiblePassword());
+        $this->assertSame(User::PasswordManagedByAdmin, $partner->password_managed_by);
+        $this->assertSame('PartnerOwnedPass1', $partner->adminVisiblePassword());
         $this->assertTrue(Hash::check('PartnerOwnedPass1', $partner->password));
 
         $this->actingAs($admin)->onPortal('sadmin')
             ->getJson('/commands/accounts/'.$partner->id.'/password-status')
             ->assertOk()
-            ->assertJsonPath('data.can_reveal', false)
-            ->assertJsonPath('data.password', null);
+            ->assertJsonPath('data.can_reveal', true)
+            ->assertJsonPath('data.password', 'PartnerOwnedPass1');
     }
 
     public function test_admin_reset_makes_new_password_visible_again(): void
@@ -109,6 +109,25 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertStringContainsString($plain, $sent[array_key_last($sent)]['message']);
     }
 
+    public function test_admin_can_reset_with_custom_password(): void
+    {
+        $admin = User::factory()->staff()->create();
+        $partner = User::factory()->dealer()->create(['status' => 'active']);
+
+        $response = $this->actingAs($admin)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$partner->id.'/reset-password', [
+                'password' => 'CustomAdminPass999!',
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.can_reveal', true)
+            ->assertJsonPath('data.password', 'CustomAdminPass999!');
+
+        $partner->refresh();
+        $this->assertTrue(Hash::check('CustomAdminPass999!', $partner->password));
+        $this->assertSame('CustomAdminPass999!', $partner->adminVisiblePassword());
+    }
+
     public function test_password_status_is_forbidden_for_non_accounts_staff(): void
     {
         $finance = User::factory()->staff('finance')->create();
@@ -119,17 +138,43 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_password_endpoints_reject_staff_targets(): void
+    public function test_admin_can_manage_staff_password_while_non_superadmin_is_rejected(): void
     {
         $admin = User::factory()->staff()->create();
-        $employee = User::factory()->staff('employee')->create();
+        $employee = User::factory()->staff('employee')->create([
+            'status' => 'active',
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'StaffInitialPass1!',
+        ]);
 
+        // Superadmin CAN view staff password
         $this->actingAs($admin)->onPortal('sadmin')
             ->getJson('/commands/accounts/'.$employee->id.'/password-status')
-            ->assertNotFound();
+            ->assertOk()
+            ->assertJsonPath('data.can_reveal', true)
+            ->assertJsonPath('data.password', 'StaffInitialPass1!');
 
+        // Superadmin CAN reset staff password
         $this->actingAs($admin)->onPortal('sadmin')
-            ->postJson('/commands/accounts/'.$employee->id.'/reset-password')
-            ->assertNotFound();
+            ->postJson('/commands/accounts/'.$employee->id.'/reset-password', [
+                'password' => 'NewStaffPass888!',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.password', 'NewStaffPass888!');
+
+        $employee->refresh();
+        $this->assertSame('NewStaffPass888!', $employee->adminVisiblePassword());
+
+        // Regular staff without super_admin is forbidden
+        $regularStaff = User::factory()->staff('editor')->create();
+        $this->actingAs($regularStaff)->onPortal('manage')
+            ->getJson('/commands/accounts/'.$employee->id.'/password-status')
+            ->assertForbidden();
+
+        $this->actingAs($regularStaff)->onPortal('manage')
+            ->postJson('/commands/accounts/'.$employee->id.'/reset-password', [
+                'password' => 'HackedPass123!',
+            ])
+            ->assertForbidden();
     }
 }

@@ -219,10 +219,13 @@ class CommandController extends Controller
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
             $reason = $d['reason'] ?? __('portal.audit_account_created_staff');
             unset($d['reason']);
+            $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
             $u = (new User)->forceFill([
                 ...$d,
                 'dealer_code' => $dealerCode,
-                'password' => Str::random(48),
+                'password' => $plainPassword,
+                'password_managed_by' => User::PasswordManagedByAdmin,
+                'admin_password_cipher' => $plainPassword,
             ]);
             $u->save();
             DB::table('wallets')->insert(['user_id' => $u->id, 'created_at' => now(), 'updated_at' => now()]);
@@ -744,13 +747,16 @@ class CommandController extends Controller
     public function partnerPasswordStatus(Request $r, User $user): JsonResponse
     {
         $this->permit($r, 'accounts');
-        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        abort_if($user->role === 'super_admin', 403);
+        abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
+        $isManageable = in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff();
+        abort_unless($isManageable, 404);
 
         $visible = $user->adminVisiblePassword();
 
         return response()->json([
             'data' => [
-                'managed_by' => $user->password_managed_by ?: User::PasswordManagedByPartner,
+                'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => $visible !== null,
                 'password' => $visible,
             ],
@@ -760,10 +766,21 @@ class CommandController extends Controller
     public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms): RedirectResponse|JsonResponse
     {
         $this->permit($r, 'accounts');
-        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
+        abort_if($user->role === 'super_admin', 403);
+        abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
+        $isManageable = in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff();
+        abort_unless($isManageable, 404);
         abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
 
-        $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
+        $custom = $r->input('password');
+        if (is_string($custom) && trim($custom) !== '') {
+            $r->validate([
+                'password' => ['required', 'string', 'min:8', 'max:64'],
+            ]);
+            $plainPassword = trim($custom);
+        } else {
+            $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
+        }
 
         DB::transaction(function () use ($r, $user, $plainPassword): void {
             $user->storeAdminManagedPassword($plainPassword);
@@ -775,7 +792,9 @@ class CommandController extends Controller
             ]);
         });
 
-        $sms->sendPasswordReset($user->fresh(), $plainPassword);
+        if (filled($user->phone) && in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            $sms->sendPasswordReset($user->fresh(), $plainPassword);
+        }
 
         if ($r->expectsJson() || $r->wantsJson()) {
             return response()->json([

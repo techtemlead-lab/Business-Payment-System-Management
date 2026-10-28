@@ -6,6 +6,7 @@ import {
     XCircle, Clock, ArrowRight, ShieldAlert, Award
 } from 'lucide-react';
 import { Table, Pagination, Badge, Empty, date, type Row } from './UI';
+import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 
 export interface PermissionDefinition {
@@ -775,6 +776,13 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                 </button>
                             </div>
                         </form>
+
+                        {canManageStaff && (
+                            <AccountPasswordManager
+                                account={editModalEmployee}
+                                canManage={canManageStaff}
+                            />
+                        )}
                     </div>
                 </div>
             )}

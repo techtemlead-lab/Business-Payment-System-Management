@@ -214,16 +214,11 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function isPasswordAdminManaged(): bool
     {
-        return $this->password_managed_by === self::PasswordManagedByAdmin
-            && filled($this->admin_password_cipher);
+        return filled($this->admin_password_cipher);
     }
 
     public function adminVisiblePassword(): ?string
     {
-        if (! $this->isPasswordAdminManaged()) {
-            return null;
-        }
-
         $plain = $this->admin_password_cipher;
 
         return is_string($plain) && $plain !== '' ? $plain : null;

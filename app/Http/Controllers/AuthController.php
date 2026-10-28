@@ -243,8 +243,8 @@ class AuthController extends Controller
             $u->forceFill([
                 'password' => Hash::make($password),
                 'remember_token' => Str::random(60),
-                'password_managed_by' => User::PasswordManagedByPartner,
-                'admin_password_cipher' => null,
+                'password_managed_by' => User::PasswordManagedByAdmin,
+                'admin_password_cipher' => $password,
             ])->save();
             DB::table('sessions')->where('user_id', $u->id)->delete();
             Audit::record($u->id, 'password.reset', 'account');
@@ -310,8 +310,8 @@ class AuthController extends Controller
         $r->user()->forceFill([
             'password' => $data['password'],
             'remember_token' => Str::random(60),
-            'password_managed_by' => User::PasswordManagedByPartner,
-            'admin_password_cipher' => null,
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => $data['password'],
         ])->save();
         DB::table('sessions')->where('user_id', $r->user()->id)->where('id', '!=', $r->session()->getId())->delete();
         $r->session()->regenerate();
