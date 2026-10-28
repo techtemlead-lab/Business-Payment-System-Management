@@ -156,12 +156,13 @@ class SiteCustomization
             ],
 
             // Brand Video Gallery Showcase (Toggleable by Admin)
-            'video_gallery_enabled' => '1',
-            'video_gallery_title' => 'Brand & Product Video Showcase',
-            'video_gallery_subtitle' => 'Watch authentic tutorials, herbal extraction highlights and professional product demonstrations.',
+            // Off by default until real company videos are configured — avoids placeholder embeds on a corporate site.
+            'video_gallery_enabled' => '0',
+            'video_gallery_title' => 'Brand & Product Stories',
+            'video_gallery_subtitle' => 'Company stories, herbal process highlights and authentic product demonstrations.',
             'video_gallery_items' => [
-                ['title' => 'Herbal Hair & Scalp Nourishment Ritual', 'subtitle' => 'Application guide for herbal hair oil and shampoo', 'video_url' => '', 'video_embed_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ', 'thumbnail' => '/branding/madina-top-skincare.jpg'],
-                ['title' => 'Botanical Skincare Gentle Routine', 'subtitle' => 'Natural face wash and herbal protective barrier guide', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-side-banner-1.jpg'],
+                ['title' => 'Herbal Care Guidance', 'subtitle' => 'Application guidance for Madina botanical care', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-top-skincare.jpg'],
+                ['title' => 'Natural Formulation Story', 'subtitle' => 'How Madina prepares botanical formulations', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-side-banner-1.jpg'],
             ],
 
             // Homepage About
@@ -1205,11 +1206,17 @@ class SiteCustomization
             if (! is_array($v)) {
                 continue;
             }
+            $videoUrl = trim((string) ($v['video_url'] ?? ''));
+            $embedUrl = trim((string) ($v['video_embed_url'] ?? ''));
+            // Corporate site: only publish gallery cards that have a real media source.
+            if ($videoUrl === '' && $embedUrl === '') {
+                continue;
+            }
             $items[] = [
                 'title' => trim((string) ($v['title'] ?? '')),
                 'subtitle' => trim((string) ($v['subtitle'] ?? '')),
-                'video_url' => trim((string) ($v['video_url'] ?? '')),
-                'video_embed_url' => trim((string) ($v['video_embed_url'] ?? '')),
+                'video_url' => $videoUrl,
+                'video_embed_url' => $embedUrl,
                 'thumbnail' => trim((string) ($v['thumbnail'] ?? '')),
             ];
         }

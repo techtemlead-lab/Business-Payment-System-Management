@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { router } from '@inertiajs/react';
 import { X, Upload, Sparkles, AlertCircle, Percent, Package } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
@@ -143,32 +144,72 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
         });
     };
 
-    if (!isOpen) return null;
-    return (
-        <div style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(1, 22, 39, 0.72)',
-            backdropFilter: 'blur(5px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-            overflowY: 'auto'
-        }}>
-            <div style={{
-                background: '#ffffff',
-                borderRadius: 14,
-                width: '100%',
-                maxWidth: 680,
-                maxHeight: '92vh',
+    useEffect(() => {
+        if (!isOpen || typeof document === 'undefined') {
+            return;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen || typeof document === 'undefined') {
+        return null;
+    }
+
+    return createPortal(
+        <div
+            className="pcm-modal-overlay"
+            role="presentation"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 10000,
+                background: 'rgba(1, 22, 39, 0.72)',
+                backdropFilter: 'blur(5px)',
                 display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-                overflow: 'hidden',
-                animation: 'modalSlideIn 0.2s ease-out'
-            }}>
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+                padding: 'max(16px, 4vh) 16px',
+                overflowY: 'auto',
+                overscrollBehavior: 'contain',
+            }}
+        >
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pcm-modal-title"
+                style={{
+                    background: '#ffffff',
+                    borderRadius: 14,
+                    width: '100%',
+                    maxWidth: 680,
+                    maxHeight: 'min(92vh, 920px)',
+                    margin: '0 auto',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+                    overflow: 'hidden',
+                    position: 'relative',
+                }}
+            >
                 {/* Header */}
                 <div style={{
                     padding: '18px 24px',
@@ -183,7 +224,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                             <Package size={20} />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                            <h2 id="pcm-modal-title" style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
                                 {translate('portal', 'pcm_title')}
                             </h2>
                             <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
@@ -212,7 +253,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, flex: '1 1 auto', minHeight: 0, WebkitOverflowScrolling: 'touch' }}>
                     {errorMsg && (
                         <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <AlertCircle size={16} />
@@ -633,6 +674,7 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
                     </div>
                 </form>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
