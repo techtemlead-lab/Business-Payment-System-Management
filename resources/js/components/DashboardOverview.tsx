@@ -260,7 +260,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
             )}
             <ReferralShare referral={home.referral ?? null} />
 
-            <section className="panel table-panel dense-panel">
+            <section className="panel table-panel dense-panel" data-tour="recent-orders">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'recent_orders')}</h2>
@@ -342,7 +342,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
             </section>
 
             {commerce && (
-                <section className="panel table-panel dense-panel">
+                <section className="panel table-panel dense-panel" data-tour="recent-orders">
                     <div className="panel-heading">
                         <div>
                             <h2>{translate('portal', 'recent_orders')}</h2>
@@ -423,7 +423,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
                 })}
             </section>
             {commerce && (
-                <section className="panel table-panel dense-panel">
+                <section className="panel table-panel dense-panel" data-tour="recent-orders">
                     <div className="panel-heading">
                         <div><h2>{translate('portal', 'recent_orders')}</h2></div>
                         <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>

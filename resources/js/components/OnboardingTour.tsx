@@ -3,7 +3,7 @@ import { router, usePage } from '@inertiajs/react';
 import {
     Sparkles, BookOpen, Compass, ChevronRight, ChevronLeft, X, Search,
     CheckCircle2, HelpCircle, Lightbulb, ArrowUpRight, ShoppingBag, Coins,
-    ShieldCheck, Layers, FileText, ArrowRight, RotateCcw
+    ShieldCheck, Layers, FileText, ArrowRight, RotateCcw, MapPin, Zap
 } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 
@@ -13,6 +13,8 @@ export type TourStep = {
     body: string;
     tip?: string;
     category?: string;
+    location?: string;
+    action?: string;
 };
 
 export type TourDefinition = {
@@ -313,8 +315,119 @@ export default function OnboardingTour({
         return chapters.find((c) => c.key === selectedChapterKey) || filteredChapters[0] || null;
     }, [chapters, selectedChapterKey, filteredChapters]);
 
-    const { top: cardTop, left: cardLeft } = calculateCardLayout(rect);
+    const { top: cardTop, left: cardLeft, position: cardPos } = calculateCardLayout(rect);
     const progressPercent = stepCount > 0 ? Math.round(((stepIndex + 1) / stepCount) * 100) : 0;
+
+    const roleWelcome = useMemo(() => {
+        const aud = activeTour?.audience || tour?.pending?.[0]?.audience || 'dealer';
+        switch (aud) {
+            case 'owner':
+                return {
+                    badge: translate('portal', 'tour_welcome_owner_badge'),
+                    title: translate('portal', 'tour_welcome_owner_title'),
+                    subtitle: translate('portal', 'tour_welcome_owner_sub'),
+                    pillars: [
+                        {
+                            icon: <ShieldCheck size={22} />,
+                            iconClass: 'ops',
+                            title: translate('portal', 'tour_pillar_owner_gov_title'),
+                            desc: translate('portal', 'tour_pillar_owner_gov_desc'),
+                        },
+                        {
+                            icon: <Coins size={22} />,
+                            iconClass: 'fin',
+                            title: translate('portal', 'tour_pillar_owner_treasury_title'),
+                            desc: translate('portal', 'tour_pillar_owner_treasury_desc'),
+                        },
+                        {
+                            icon: <Layers size={22} />,
+                            iconClass: 'help',
+                            title: translate('portal', 'tour_pillar_owner_branches_title'),
+                            desc: translate('portal', 'tour_pillar_owner_branches_desc'),
+                        },
+                    ],
+                };
+            case 'sub_dealer':
+                return {
+                    badge: translate('portal', 'tour_welcome_subdealer_badge'),
+                    title: translate('portal', 'tour_welcome_subdealer_title'),
+                    subtitle: translate('portal', 'tour_welcome_subdealer_sub'),
+                    pillars: [
+                        {
+                            icon: <ShoppingBag size={22} />,
+                            iconClass: 'ops',
+                            title: translate('portal', 'tour_pillar_subdealer_retail_title'),
+                            desc: translate('portal', 'tour_pillar_subdealer_retail_desc'),
+                        },
+                        {
+                            icon: <HelpCircle size={22} />,
+                            iconClass: 'help',
+                            title: translate('portal', 'tour_pillar_subdealer_sponsor_title'),
+                            desc: translate('portal', 'tour_pillar_subdealer_sponsor_desc'),
+                        },
+                        {
+                            icon: <Coins size={22} />,
+                            iconClass: 'fin',
+                            title: translate('portal', 'tour_pillar_subdealer_salary_title'),
+                            desc: translate('portal', 'tour_pillar_subdealer_salary_desc'),
+                        },
+                    ],
+                };
+            case 'staff':
+                return {
+                    badge: translate('portal', 'tour_welcome_staff_badge'),
+                    title: translate('portal', 'tour_welcome_staff_title'),
+                    subtitle: translate('portal', 'tour_welcome_staff_sub'),
+                    pillars: [
+                        {
+                            icon: <ShoppingBag size={22} />,
+                            iconClass: 'ops',
+                            title: translate('portal', 'tour_pillar_staff_dispatch_title'),
+                            desc: translate('portal', 'tour_pillar_staff_dispatch_desc'),
+                        },
+                        {
+                            icon: <CheckCircle2 size={22} />,
+                            iconClass: 'fin',
+                            title: translate('portal', 'tour_pillar_staff_claims_title'),
+                            desc: translate('portal', 'tour_pillar_staff_claims_desc'),
+                        },
+                        {
+                            icon: <Layers size={22} />,
+                            iconClass: 'help',
+                            title: translate('portal', 'tour_pillar_staff_inventory_title'),
+                            desc: translate('portal', 'tour_pillar_staff_inventory_desc'),
+                        },
+                    ],
+                };
+            case 'dealer':
+            default:
+                return {
+                    badge: translate('portal', 'tour_welcome_dealer_badge'),
+                    title: translate('portal', 'tour_welcome_dealer_title'),
+                    subtitle: translate('portal', 'tour_welcome_dealer_sub'),
+                    pillars: [
+                        {
+                            icon: <ShoppingBag size={22} />,
+                            iconClass: 'ops',
+                            title: translate('portal', 'tour_pillar_dealer_wholesale_title'),
+                            desc: translate('portal', 'tour_pillar_dealer_wholesale_desc'),
+                        },
+                        {
+                            icon: <Layers size={22} />,
+                            iconClass: 'help',
+                            title: translate('portal', 'tour_pillar_dealer_network_title'),
+                            desc: translate('portal', 'tour_pillar_dealer_network_desc'),
+                        },
+                        {
+                            icon: <Coins size={22} />,
+                            iconClass: 'fin',
+                            title: translate('portal', 'tour_pillar_dealer_wallet_title'),
+                            desc: translate('portal', 'tour_pillar_dealer_wallet_desc'),
+                        },
+                    ],
+                };
+        }
+    }, [activeTour?.audience, tour?.pending, translate]);
 
     return (
         <>
@@ -330,7 +443,7 @@ export default function OnboardingTour({
                         <div className="onboarding-welcome-header">
                             <div className="onboarding-welcome-badge">
                                 <Sparkles size={16} />
-                                <span>{translate('portal', 'tour_welcome_badge')}</span>
+                                <span>{roleWelcome.badge}</span>
                             </div>
                             <button
                                 type="button"
@@ -344,10 +457,10 @@ export default function OnboardingTour({
 
                         <div className="onboarding-welcome-body">
                             <h2 id="onboarding-welcome-heading">
-                                {translate('portal', 'tour_welcome_title')}
+                                {roleWelcome.title}
                             </h2>
                             <p className="onboarding-welcome-subtitle">
-                                {translate('portal', 'tour_welcome_subtitle')}
+                                {roleWelcome.subtitle}
                             </p>
 
                             <div className="onboarding-user-pill">
@@ -359,27 +472,15 @@ export default function OnboardingTour({
                             </div>
 
                             <div className="onboarding-pillars-grid">
-                                <div className="onboarding-pillar-card">
-                                    <div className="pillar-icon ops">
-                                        <ShoppingBag size={22} />
+                                {roleWelcome.pillars.map((pillar, pIdx) => (
+                                    <div key={pIdx} className="onboarding-pillar-card">
+                                        <div className={`pillar-icon ${pillar.iconClass}`}>
+                                            {pillar.icon}
+                                        </div>
+                                        <h4>{pillar.title}</h4>
+                                        <p>{pillar.desc}</p>
                                     </div>
-                                    <h4>{translate('portal', 'tour_welcome_pillar_ops')}</h4>
-                                    <p>{translate('portal', 'tour_welcome_pillar_ops_desc')}</p>
-                                </div>
-                                <div className="onboarding-pillar-card">
-                                    <div className="pillar-icon fin">
-                                        <Coins size={22} />
-                                    </div>
-                                    <h4>{translate('portal', 'tour_welcome_pillar_fin')}</h4>
-                                    <p>{translate('portal', 'tour_welcome_pillar_fin_desc')}</p>
-                                </div>
-                                <div className="onboarding-pillar-card">
-                                    <div className="pillar-icon help">
-                                        <BookOpen size={22} />
-                                    </div>
-                                    <h4>{translate('portal', 'tour_welcome_pillar_help')}</h4>
-                                    <p>{translate('portal', 'tour_welcome_pillar_help_desc')}</p>
-                                </div>
+                                ))}
                             </div>
                         </div>
 
@@ -427,29 +528,54 @@ export default function OnboardingTour({
                     {/* Dark spotlight mask */}
                     <div className="onboarding-spotlight-backdrop" onClick={completeTour} />
 
-                    {/* Target highlight ring */}
+                    {/* Target highlight ring with pulsing glow */}
                     {rect && (
-                        <div
-                            className="onboarding-spotlight-ring"
-                            style={{
-                                top: Math.max(6, rect.top - 8),
-                                left: Math.max(6, rect.left - 8),
-                                width: Math.min(rect.width + 16, window.innerWidth - 12),
-                                height: Math.min(rect.height + 16, window.innerHeight - 12),
-                            }}
-                        />
+                        <>
+                            <div
+                                className="onboarding-spotlight-ring"
+                                style={{
+                                    top: Math.max(6, rect.top - 8),
+                                    left: Math.max(6, rect.left - 8),
+                                    width: Math.min(rect.width + 16, window.innerWidth - 12),
+                                    height: Math.min(rect.height + 16, window.innerHeight - 12),
+                                }}
+                            />
+
+                            {/* Floating Target Beacon & Indicator Badge */}
+                            <div
+                                className="onboarding-target-beacon"
+                                style={{
+                                    top: Math.max(10, rect.top - 18),
+                                    left: Math.max(12, rect.left + 14),
+                                }}
+                            >
+                                <span className="beacon-ping" />
+                                <span className="beacon-dot" />
+                                <span className="beacon-label">
+                                    {currentStep.location ? `📍 ${currentStep.location}` : `👉 ${currentStep.title}`}
+                                </span>
+                            </div>
+                        </>
                     )}
 
                     {/* Floating Walkthrough Card */}
                     <div
-                        className="onboarding-tour-card floating-step-card"
+                        className={`onboarding-tour-card floating-step-card position-${cardPos}`}
                         style={{ top: cardTop, left: cardLeft }}
                     >
+                        {/* Directional pointer arrow connecting card to target element */}
+                        {rect && <div className={`onboarding-card-pointer pointer-${cardPos}`} />}
+
                         <div className="onboarding-card-header">
                             <div className="onboarding-card-tags">
                                 <span className="onboarding-tag audience">
                                     {audienceLabel(activeTour?.audience, translate)}
                                 </span>
+                                {currentStep.category && (
+                                    <span className="onboarding-tag category">
+                                        {currentStep.category}
+                                    </span>
+                                )}
                                 {elementMissing && (
                                     <span className="onboarding-tag missing">
                                         {translate('portal', 'tour_feature_overview')}
@@ -473,9 +599,31 @@ export default function OnboardingTour({
                         </div>
 
                         <div className="onboarding-card-content">
+                            {/* Explicit Location Breadcrumb */}
+                            {currentStep.location && (
+                                <div className="onboarding-location-breadcrumb">
+                                    <MapPin size={13} className="location-icon" />
+                                    <span>
+                                        {translate('portal', 'tour_location_label')}: <strong>{currentStep.location}</strong>
+                                    </span>
+                                </div>
+                            )}
+
                             <h3 className="onboarding-step-title">{currentStep.title}</h3>
                             <p className="onboarding-step-body">{currentStep.body}</p>
 
+                            {/* Action Guide Box */}
+                            {currentStep.action && (
+                                <div className="onboarding-step-action">
+                                    <Zap size={14} className="action-icon" />
+                                    <div>
+                                        <strong>{translate('portal', 'tour_action_label')}:</strong>{' '}
+                                        <span>{currentStep.action}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pro Tip Box */}
                             {currentStep.tip && (
                                 <div className="onboarding-step-tip">
                                     <Lightbulb size={16} className="tip-icon" />
@@ -483,6 +631,29 @@ export default function OnboardingTour({
                                         <strong>{translate('portal', 'tour_tip_label')}</strong>
                                         <p>{currentStep.tip}</p>
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Interactive Step Mini-Map (Clickable Dots) */}
+                            {stepCount > 1 && (
+                                <div className="onboarding-step-dots" role="tablist" aria-label="Step Navigation">
+                                    {steps.map((st, idx) => {
+                                        const isCurrent = idx === stepIndex;
+                                        const isCompleted = idx < stepIndex;
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={isCurrent}
+                                                className={`onboarding-step-dot ${isCurrent ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
+                                                title={translate('portal', 'tour_jump_to_step', { step: String(idx + 1), title: st.title })}
+                                                onClick={() => setStepIndex(idx)}
+                                            >
+                                                <span className="dot-circle" />
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

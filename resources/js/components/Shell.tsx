@@ -552,7 +552,9 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                 )}
 
-                {renderMothers(domainMothers)}
+                <div className="sidebar-nav-container" data-tour="sidebar-nav">
+                    {renderMothers(domainMothers)}
+                </div>
 
                 <div className="sidebar-footer">
                     <button
@@ -597,7 +599,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         <span>/</span>
                         <b>{currentSectionTitle}</b>
                     </div>
-                    <div className="header-actions">
+                    <div className="header-actions" data-tour="header-actions">
                         <ThemeToggle compact />
                         {staff && workspaceBranches?.branches?.length > 0 && (
                         <label className="branch-workspace-select" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12}}>

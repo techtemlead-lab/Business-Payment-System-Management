@@ -841,11 +841,84 @@ html[data-theme="dark"] .onboarding-manual-footer {
 }
 
 /* Spotlight Tour Popovers & Pre-requisite Helper Banners */
+html[data-theme="dark"] .onboarding-welcome-dialog {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8) !important;
+}
+
+html[data-theme="dark"] .onboarding-welcome-dialog h2 {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .onboarding-welcome-subtitle {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .onboarding-user-pill {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .onboarding-pillar-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+
+html[data-theme="dark"] .onboarding-pillar-card h4 {
+    color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .onboarding-pillar-card p {
+    color: #94a3b8 !important;
+}
+
 html[data-theme="dark"] .onboarding-tour-card {
-    background: #121a28 !important;
-    border-color: #2a3648 !important;
+    background: #0f172a !important;
+    border-color: #334155 !important;
     color: #e8eef6 !important;
-    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.7) !important;
+}
+
+html[data-theme="dark"] .onboarding-card-pointer.pointer-bottom {
+    border-bottom-color: #0f172a !important;
+}
+
+html[data-theme="dark"] .onboarding-card-pointer.pointer-top {
+    border-top-color: #0f172a !important;
+}
+
+html[data-theme="dark"] .onboarding-card-step-badge {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .onboarding-tag.category {
+    background: #064e3b !important;
+    border-color: #059669 !important;
+    color: #6ee7b7 !important;
+}
+
+html[data-theme="dark"] .onboarding-location-breadcrumb {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .onboarding-location-breadcrumb strong {
+    color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .onboarding-step-action {
+    background: #1e3a5f44 !important;
+    border-color: #1d4ed8 !important;
+    color: #93c5fd !important;
+}
+
+html[data-theme="dark"] .onboarding-step-action strong {
+    color: #bfdbfe !important;
 }
 
 html[data-theme="dark"] .onboarding-tour-card h3 {
@@ -856,16 +929,38 @@ html[data-theme="dark"] .onboarding-tour-card > p {
     color: #cbd5e1 !important;
 }
 
+html[data-theme="dark"] .onboarding-step-body {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .onboarding-step-dots {
+    border-top-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .onboarding-step-dot .dot-circle {
+    background: #475569 !important;
+}
+
+html[data-theme="dark"] .onboarding-step-dot.active .dot-circle {
+    background: linear-gradient(90deg, #10b981, #3b82f6) !important;
+}
+
 html[data-theme="dark"] .onboarding-tour-audience {
     background: #1e293b !important;
     border-color: #334155 !important;
     color: #93c5fd !important;
 }
 
-html[data-theme="dark"] .onboarding-tour-tip {
+html[data-theme="dark"] .onboarding-tour-tip,
+html[data-theme="dark"] .onboarding-step-tip {
     background: #43140733 !important;
     border-color: #9a3412 !important;
     color: #fdba74 !important;
+}
+
+html[data-theme="dark"] .onboarding-keyboard-hint {
+    border-top-color: #1e293b !important;
+    color: #64748b !important;
 }
 
 html[data-theme="dark"] .prereq-banner {
