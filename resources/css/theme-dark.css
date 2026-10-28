@@ -690,10 +690,17 @@ html[data-theme="dark"] .ref-toast {
 }
 
 html[data-theme="dark"] .ref-back-top {
-    background: #121a28 !important;
-    color: #e8eef6 !important;
-    border-color: #f34c20 !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+    background: rgba(18, 26, 40, 0.9) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255, 255, 255, 0.16) !important;
+    box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] .ref-back-top:hover {
+    background: linear-gradient(135deg, #f34c20 0%, #ea580c 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 14px 30px -4px rgba(243, 76, 32, 0.55), 0 0 0 4px rgba(243, 76, 32, 0.22) !important;
 }
 
 html[data-theme="dark"] .ref-password-field button {

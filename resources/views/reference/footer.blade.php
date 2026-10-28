@@ -203,7 +203,11 @@
     </a>
     @endauth
 </nav>
-<button class="ref-back-top" aria-label="{{ __('site.back_to_top') }}"><i class="fa-solid fa-arrow-up" aria-hidden="true"></i></button><div class="ref-toast" role="status" aria-live="polite"></div>
+<button class="ref-back-top" aria-label="{{ __('site.back_to_top') }}" type="button">
+    <svg class="ref-back-top-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+</button><div class="ref-toast" role="status" aria-live="polite"></div>
 @php
     $refSiteUi = [
         'in_stock' => __('site.in_stock'),
