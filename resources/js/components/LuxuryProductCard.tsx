@@ -29,9 +29,6 @@ export default function LuxuryProductCard({
 }: LuxuryProductCardProps) {
     const translate = useT();
 
-    // Sku and unit
-    const sku = String(product.sku || 'MNHC-PROD');
-    const unit = String(product.unit || 'pack');
     const category = String(product.category || 'Botanical');
 
     // Pricing resolution based on role
@@ -160,10 +157,6 @@ export default function LuxuryProductCard({
 
             {/* Content & Typography Body */}
             <div className="luxury-card-body">
-                <div className="luxury-sku-row">
-                    <span>{sku} · {unit}</span>
-                </div>
-
                 <h3 className="luxury-product-title">
                     {isStaffOrAdmin ? (
                         <Link href={resolvedDetailsUrl}>{product.name}</Link>
@@ -171,10 +164,6 @@ export default function LuxuryProductCard({
                         <a href={resolvedDetailsUrl}>{product.name}</a>
                     )}
                 </h3>
-
-                <p className="luxury-desc" title={String(product.description || '')}>
-                    {product.description || 'Preview catalog item for client demonstration.'}
-                </p>
 
                 {/* Pricing Block */}
                 <div className="luxury-price-block">

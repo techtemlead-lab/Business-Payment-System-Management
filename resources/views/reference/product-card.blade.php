@@ -12,8 +12,6 @@
             : \App\Support\SiteChrome::text('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
     $mrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($item['mrp'] ?? '0')));
     $displayMrp = number_format($mrp, $mrp === floor($mrp) ? 0 : 2);
-    $sku = $item['sku'] ?? 'MNHC-PROD';
-    $unit = $item['unit'] ?? 'pack';
     $isFeatured = !empty($item['featured']);
 @endphp
 <article class="ref-product-card luxury-product-card"
@@ -96,17 +94,9 @@
 
     {{-- Content & Typography Section --}}
     <div class="luxury-card-body">
-        <div class="luxury-sku-row">
-            <span>{{ $sku }} · {{ $unit }}</span>
-        </div>
-
         <h3 class="luxury-product-title">
             <a href="{{ $item['url'] }}">{{ $item['name'] }}</a>
         </h3>
-
-        <p class="luxury-desc" title="{{ $item['description'] ?? '' }}">
-            {{ $item['description'] ?? 'Preview catalog item for client demonstration.' }}
-        </p>
 
         {{-- Pricing Block --}}
         <div class="luxury-price-block">
