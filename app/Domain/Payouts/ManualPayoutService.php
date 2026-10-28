@@ -58,6 +58,17 @@ class ManualPayoutService
                 'risk_level' => $risk['risk_level'],
                 'risk_flags' => $risk['flags'],
             ]);
+            Audit::notice($actor->id, __('portal.notice_user_withdrawal_title'), __('portal.notice_user_withdrawal_body', ['amount' => Money::decimal($amount)]));
+            Audit::notifyAdminsAndStaff(
+                ['finance'],
+                __('portal.notice_admin_withdrawal_title'),
+                __('portal.notice_admin_withdrawal_body', [
+                    'name' => $actor->name,
+                    'amount' => Money::decimal($amount),
+                    'channel' => (string) $data['channel'],
+                ]),
+                $actor->id
+            );
 
             return $id;
         }, 3);

@@ -84,6 +84,17 @@ class OrderService
             $this->partnerSms($user->id, 'order.submitted', 'sms.order_submitted', [
                 'number' => $order->number,
             ]);
+            Audit::notifyAdminsAndStaff(
+                ['orders', 'finance'],
+                __('portal.notice_admin_new_order_title', ['number' => $order->number]),
+                __('portal.notice_admin_new_order_body', [
+                    'name' => $user->name,
+                    'code' => $user->dealer_code ?: '—',
+                    'amount' => Money::decimal($total),
+                    'number' => $order->number,
+                ]),
+                $submittedBy?->id
+            );
             if ($claimedWithOrder) {
                 $this->partnerNotice($user->id, 'portal.notice_payment_claimed_title', 'portal.notice_payment_claimed_body', [
                     'number' => $order->number,
@@ -95,6 +106,17 @@ class OrderService
                     'amount' => (string) $data['amount'],
                     'channel' => (string) $data['channel'],
                 ]);
+                Audit::notifyAdminsAndStaff(
+                    ['finance', 'orders'],
+                    __('portal.notice_admin_payment_claim_title', ['number' => $order->number]),
+                    __('portal.notice_admin_payment_claim_body', [
+                        'name' => $user->name,
+                        'amount' => (string) $data['amount'],
+                        'channel' => (string) $data['channel'],
+                        'number' => $order->number,
+                        'ref' => (string) $data['reference'],
+                    ]),
+                );
             }
 
             return $order->refresh();
@@ -127,6 +149,18 @@ class OrderService
                 'amount' => (string) $data['amount'],
                 'channel' => (string) $data['channel'],
             ]);
+            Audit::notifyAdminsAndStaff(
+                ['finance', 'orders'],
+                __('portal.notice_admin_payment_claim_title', ['number' => $locked->number]),
+                __('portal.notice_admin_payment_claim_body', [
+                    'name' => $actor->name,
+                    'amount' => (string) $data['amount'],
+                    'channel' => (string) $data['channel'],
+                    'number' => $locked->number,
+                    'ref' => (string) $data['reference'],
+                ]),
+                $actor->id
+            );
         }, 3);
     }
 

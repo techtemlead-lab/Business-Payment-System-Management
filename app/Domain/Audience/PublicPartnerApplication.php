@@ -50,6 +50,16 @@ final class PublicPartnerApplication
                 'division' => $data['division'],
                 'district' => $data['district'],
             ]);
+            Audit::notifyAdminsAndStaff(
+                ['accounts'],
+                __('portal.notice_admin_partner_apply_title'),
+                __('portal.notice_admin_partner_apply_body', [
+                    'name' => (string) $data['name'],
+                    'role' => $data['role'] === 'sub_dealer' ? 'সাব-ডিলার' : 'ডিলার',
+                    'phone' => (string) $data['phone'],
+                    'district' => (string) $data['district'],
+                ])
+            );
 
             return $id;
         }, 3);
