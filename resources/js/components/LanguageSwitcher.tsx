@@ -6,7 +6,10 @@ export default function LanguageSwitcher({ compact = false }: { compact?: boolea
     const translate = useT();
     const switchTo = (next: string) => {
         if (next === locale) return;
-        router.post('/locale', { locale: next }, { preserveScroll: true, preserveState: true });
+        router.post('/locale', {
+            locale: next,
+            return_url: typeof window !== 'undefined' ? window.location.href : undefined,
+        }, { preserveScroll: true, preserveState: false });
     };
 
     return (

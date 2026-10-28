@@ -64,6 +64,7 @@
                 <span class="ref-theme-toggle-label">{{ __('site.theme') }}</span>
             </button>
             <form method="post" action="/locale" class="ref-locale-switch" aria-label="{{ __('site.language') }}">@csrf
+                <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
                 <button type="submit" name="locale" value="en" class="{{ app()->getLocale() === 'en' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'en' ? 'true' : 'false' }}">EN</button>
                 <button type="submit" name="locale" value="bn" class="{{ app()->getLocale() === 'bn' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'bn' ? 'true' : 'false' }}">বাংলা</button>
             </form>
@@ -118,6 +119,14 @@
                 @if($publicPageEnabled['contact'] ?? true)<li><a href="/contact"><i class="fa-solid fa-headset"></i> {{ $chrome('contact', $siteCustomization['header_contact_title'] ?? null) }}</a></li>@endif
                 @if($publicPageEnabled['faq'] ?? true)<li><a href="/faq"><i class="fa-solid fa-circle-question"></i> {{ __('site.faq') }}</a></li>@endif
             </ul>
+        </div>
+        <div class="ref-mobile-drawer-group">
+            <div class="ref-mobile-drawer-group-title">{{ __('site.language') }}</div>
+            <form method="post" action="/locale" class="ref-locale-switch ref-drawer-locale-switch" aria-label="{{ __('site.language') }}">@csrf
+                <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
+                <button type="submit" name="locale" value="en" class="{{ app()->getLocale() === 'en' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'en' ? 'true' : 'false' }}">English (EN)</button>
+                <button type="submit" name="locale" value="bn" class="{{ app()->getLocale() === 'bn' ? 'is-active' : '' }}" aria-pressed="{{ app()->getLocale() === 'bn' ? 'true' : 'false' }}">বাংলা (BN)</button>
+            </form>
         </div>
         <div class="ref-mobile-drawer-group">
             <div class="ref-mobile-drawer-group-title">{{ __('site.theme') }}</div>

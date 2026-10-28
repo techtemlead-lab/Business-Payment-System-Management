@@ -1,7 +1,6 @@
 // Madina Enterprise Offline Service Worker
-const CACHE_NAME = 'madina-v1';
+const CACHE_NAME = 'madina-v2';
 const STATIC_ASSETS = [
-  '/',
   '/favicon.ico',
   '/reference/favicon.png?v=8',
   '/madina-header-logo.png?v=8',

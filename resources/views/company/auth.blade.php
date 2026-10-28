@@ -22,6 +22,7 @@
             <span class="theme-icon-night" aria-hidden="true">☾</span>
         </button>
         <form method="post" action="/locale" class="language-switcher compact" aria-label="{{ __('portal.language') }}">@csrf
+            <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
             <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
         </form>
