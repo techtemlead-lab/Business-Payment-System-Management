@@ -22,6 +22,8 @@ class DayNightModeTest extends TestCase
         $this->assertStringContainsString('data-theme-toggle', $html);
         $this->assertStringContainsString(__('site.night_mode'), $html);
         $this->assertStringContainsString('color-scheme', $html);
+        $this->assertStringContainsString("? stored : 'light'", $html);
+        $this->assertStringNotContainsString('prefers-color-scheme', $html);
     }
 
     public function test_portal_documents_include_theme_boot_script(): void
