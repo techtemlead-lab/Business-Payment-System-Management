@@ -155,7 +155,10 @@ class PortalModulesTest extends TestCase
         $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'help'], PortalCatalog::nav('subdealer')['account']);
         $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
-        $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
+        $this->assertSame(['accounts', 'partnerships', 'place-codes'], PortalCatalog::nav('manage')['dealer_directory']);
+        $this->assertSame(['orders', 'deliveries', 'dues'], PortalCatalog::nav('manage')['fulfillment']);
+        $this->assertSame(['catalog', 'inventory'], PortalCatalog::nav('manage')['products']);
+        $this->assertSame(['audit', 'support-admin'], PortalCatalog::nav('manage')['system']);
     }
 
     public function test_mother_module_labels_are_available_in_english_and_bangla(): void
@@ -166,6 +169,9 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'Orders & catalog')
                 ->where('translations.portal.nav_module_earnings', 'Earnings')
+                ->where('translations.portal.nav_module_fulfillment', 'Orders & fulfillment')
+                ->where('translations.portal.nav_module_system', 'System')
+                ->where('translations.portal.search_menu', 'Search menu')
                 ->where('translations.portal.download_join_poster', 'Download join poster')
                 ->where('translations.portal.new_purchase_request', 'New purchase request'));
 
@@ -175,6 +181,9 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('translations.portal.nav_module_commerce', 'অর্ডার ও ক্যাটালগ')
                 ->where('translations.portal.nav_module_earnings', 'আয়')
+                ->where('translations.portal.nav_module_fulfillment', 'অর্ডার ও ডেলিভারি')
+                ->where('translations.portal.nav_module_system', 'সিস্টেম')
+                ->where('translations.portal.search_menu', 'মেনু খুঁজুন')
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
