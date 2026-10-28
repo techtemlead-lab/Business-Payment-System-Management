@@ -244,7 +244,7 @@ final class UserManual
                 'keywords' => ['subdealer', 'salary', 'tour', 'reserve', 'allowance', '5%', '2%', 'sponsor', 'বেতন', 'ট্যুর রিজার্ভ', 'সাব-ডিলার'],
             ],
             [
-                'key' => 'withdrawals_wallets',
+                'key' => 'withdrawals',
                 'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
                 'title_key' => 'manual_ch_withdrawals_title',
                 'summary_key' => 'manual_ch_withdrawals_summary',

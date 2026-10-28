@@ -1,7 +1,7 @@
 @extends('reference.layout')
 @php
-    $portalName = $portal ?? 'dealer';
-    $social = \App\Support\SocialShareMeta::portalAuth($portalName, $mode ?? 'login');
+    // Auth screens are not share targets — skip social meta so locale UI stays free of English CMS/meta leakage.
+    $social = false;
     $title = match ($mode) {
         'otp' => __('auth_ui.otp_title'),
         'forgot' => __('auth_ui.forgot_password'),

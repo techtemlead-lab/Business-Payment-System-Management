@@ -35,7 +35,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('আমাদের কোম্পানি', false)
             ->assertSee('ডিলার খুঁজুন', false)
             ->assertSee('কোম্পানি নোটিশ', false)
-            ->assertSee('এশিয়া/ঢাকা · BDT', false)
+            ->assertSee('এশিয়া/ঢাকা · ৳', false)
             ->assertSee('প্রাকৃতিক খাদ্য সম্পূরক', false)
             ->assertSee('চ্যাট', false)
             ->assertSee('id="ref-site-ui"', false)
