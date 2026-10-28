@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { usePage } from '@inertiajs/react';
 
 type Dict = Record<string, Record<string, string>>;
@@ -16,5 +17,9 @@ export function t(dict: Dict, group: string, key: string, replace: Record<string
 
 export function useT() {
     const dict = useTranslations();
-    return (group: string, key: string, replace: Record<string, string> = {}) => t(dict, group, key, replace);
+
+    return useCallback(
+        (group: string, key: string, replace: Record<string, string> = {}) => t(dict, group, key, replace),
+        [dict],
+    );
 }

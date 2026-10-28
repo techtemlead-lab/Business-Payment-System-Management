@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useT } from '../shared/i18n/t';
 
 type PasswordStatus = {
@@ -21,11 +21,23 @@ type AccountPasswordManagerProps = {
 };
 
 function getCsrfToken(): string {
-    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (meta) {
+        return meta;
+    }
+
+    const xsrf = document.cookie.split('; ').find((row) => row.startsWith('XSRF-TOKEN='));
+    if (!xsrf) {
+        return '';
+    }
+
+    return decodeURIComponent(xsrf.split('=').slice(1).join('=') || '');
 }
 
 export default function AccountPasswordManager({ account, canManage }: AccountPasswordManagerProps) {
     const translate = useT();
+    const translateRef = useRef(translate);
+    translateRef.current = translate;
     const [status, setStatus] = useState<PasswordStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -37,35 +49,58 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
     const [customPassword, setCustomPassword] = useState('');
     const [customVisible, setCustomVisible] = useState(false);
 
-    const loadPasswordStatus = useCallback(() => {
-        if (!canManage) return;
+    const loadPasswordStatus = useCallback((signal?: AbortSignal) => {
+        if (!canManage) {
+            return;
+        }
+
         setLoading(true);
         setError('');
+
         fetch(`/commands/accounts/${account.id}/password-status`, {
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
             credentials: 'same-origin',
+            signal,
         })
             .then(async (res) => {
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
                     throw new Error(data.message || 'Failed to load password status');
                 }
+
                 return res.json();
             })
             .then((json) => {
+                if (signal?.aborted) {
+                    return;
+                }
                 setStatus(json.data || null);
             })
             .catch((err) => {
-                setError(err.message || translate('portal', 'acct_password_load_failed'));
+                if (err?.name === 'AbortError' || signal?.aborted) {
+                    return;
+                }
+                setError(err.message || translateRef.current('portal', 'acct_password_load_failed'));
             })
             .finally(() => {
-                setLoading(false);
+                if (!signal?.aborted) {
+                    setLoading(false);
+                }
             });
-    }, [account.id, canManage, translate]);
+    }, [account.id, canManage]);
 
     useEffect(() => {
-        loadPasswordStatus();
-    }, [loadPasswordStatus]);
+        if (!canManage) {
+            return;
+        }
+
+        const controller = new AbortController();
+        loadPasswordStatus(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
+    }, [canManage, loadPasswordStatus]);
 
     const copyToClipboard = async (text: string) => {
         if (!text) return;
@@ -101,13 +136,15 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
             payload.password = plainOverride.trim();
         }
 
+        const csrf = getCsrfToken();
         fetch(`/commands/accounts/${account.id}/reset-password`, {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-CSRF-TOKEN': csrf,
+                'X-XSRF-TOKEN': csrf,
             },
             credentials: 'same-origin',
             body: JSON.stringify(payload),
@@ -521,7 +558,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
 
                     <button
                         type="button"
-                        onClick={loadPasswordStatus}
+                        onClick={() => loadPasswordStatus()}
                         disabled={loading || busy}
                         style={{
                             background: 'none',
