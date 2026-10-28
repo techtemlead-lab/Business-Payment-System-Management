@@ -307,15 +307,29 @@
         </div>
     </section>
     @endif
-    @php($homepageVideo = \App\Support\ProductVideo::homepage())
+    @php
+        $homepageVideo = \App\Support\ProductVideo::homepage();
+    @endphp
     @if($homepageVideo)
     <section class="ref-product-video ref-home-video" aria-labelledby="homepage-video-title">
         <h2 id="homepage-video-title">{{ $homepageVideo['title'] }}</h2>
-        @if(!empty($homepageVideo['description']))<p>{{ $homepageVideo['description'] }}</p>@endif
-        @if($homepageVideo['media']['video_embed_url'])
+        @if(!empty($homepageVideo['description']))
+            <p>{{ $homepageVideo['description'] }}</p>
+        @endif
+        @if(!empty($homepageVideo['media']['video_embed_url']))
             <iframe src="{{ $homepageVideo['media']['video_embed_url'] }}" title="{{ $homepageVideo['product_name'] }} promotional video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
         @else
-            <video controls playsinline preload="metadata" @if($homepageVideo['media']['image_url']) poster="{{ $homepageVideo['media']['image_url'] }}" @endif><source src="{{ $homepageVideo['media']['video_url'] }}">Your browser does not support video playback.</video>
+            <video
+                controls
+                playsinline
+                preload="metadata"
+                @isset($homepageVideo['media']['image_url'])
+                    poster="{{ $homepageVideo['media']['image_url'] }}"
+                @endisset
+            >
+                <source src="{{ $homepageVideo['media']['video_url'] }}">
+                {{ __('site.product_video_unsupported') }}
+            </video>
         @endif
     </section>
     @endif
