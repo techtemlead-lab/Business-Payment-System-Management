@@ -17,6 +17,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Inventory\BranchPerformance;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
@@ -77,6 +78,8 @@ class WorkspaceController extends Controller
             'page' => 'nullable|integer|min:1',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+            'period' => 'nullable|in:today,month,custom',
+            'branch_id' => 'nullable|integer|min:1',
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -255,6 +258,15 @@ class WorkspaceController extends Controller
                 ->get(['id', 'name', 'email', 'phone', 'role'])
                 ->map(fn (User $staff) => $staff->only(['id', 'name', 'email', 'phone', 'role']))
                 ->all();
+        }
+        if ($section === 'branch-performance') {
+            $data['performance'] = app(BranchPerformance::class)->summary($u, [
+                'period' => $r->query('period'),
+                'from' => $r->query('from'),
+                'to' => $r->query('to'),
+                'branch_id' => $r->query('branch_id'),
+            ]);
+            $data['branch_options'] = CompanyBranch::query()->orderBy('name')->get()->map(fn (CompanyBranch $branch) => $branch->summary())->all();
         }
         if ($section === 'accounts') {
             $data['accounts'] = User::where('role', 'dealer')->when($r->filled('q'), function ($q) use ($r) {

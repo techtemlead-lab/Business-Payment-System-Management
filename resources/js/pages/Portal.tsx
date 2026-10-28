@@ -12,6 +12,7 @@ import NetworkTreeExplorer from '../components/NetworkTreeExplorer';
 import AreaDealersHub from '../components/AreaDealersHub';
 import PlaceCodesHub from '../components/PlaceCodesHub';
 import BranchesHub from '../components/BranchesHub';
+import BranchPerformanceHub from '../components/BranchPerformanceHub';
 import RankRoyaltyHub from '../components/RankRoyaltyHub';
 import CarBikeRewardsHub from '../components/CarBikeRewardsHub';
 import CompanyTreasuryHub from '../components/CompanyTreasuryHub';
@@ -96,6 +97,7 @@ export default function Portal({section,data:d,filters}:{section:string,data:Row
  {section==='payouts-hub'&&<div data-tour="payouts-hub"><PayoutDisbursementHub withdrawals={d.withdrawals} tdsRate={d.tds_rate??0.00}/></div>}
  {section==='network-tree'&&(staff?<NetworkTreeExplorer dealers={d.dealers||[]}/>:<section className="panel"><h2>{translate('portal','referral_network')}</h2><Table rows={d.members||[]} columns={[{key:'name',title:translate('portal','col_name')},{key:'dealer_code',title:translate('portal','col_dealer_code')},{key:'created_at',title:translate('portal','col_joined'),render:r=>date(r.created_at)}]}/></section>)}
  {section==='area-dealers'&&<AreaDealersHub assignments={d.assignments||[]} divisions={d.divisions||[]} dealers_list={d.dealers_list||[]} place_codes={d.place_codes||[]}/>}
+ {section==='branch-performance'&&<BranchPerformanceHub performance={d.performance||{period:{period:'month',from:'',to:'',label:'month',timezone:''},totals:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},branches:[],unassigned:{order_count:0,order_value:'0.00',income:'0.00',outstanding:'0.00',estimated_profit:'0.00'},orders:[]}} branch_options={d.branch_options||[]}/>}
  {section==='branches'&&<BranchesHub branches={d.branches||{data:[],current_page:1,last_page:1,total:0,links:[]}} active_branch_id={d.active_branch_id} assignable_staff={d.assignable_staff||[]} canManage={caps.includes('inventory')||caps.includes('accounts')||['super_admin','md','chairman'].includes(u.role)}/>}
  {section==='place-codes'&&<PlaceCodesHub level={d.level||'division'} level_label={d.level_label||'Division'} searchable={!!d.searchable} filters={d.filters||filters} submodules={d.submodules||[]} parent_options={d.parent_options||[]} places={d.places||{data:[],current_page:1,last_page:1,total:0,links:[]}}/>}
  {section==='ranks'&&<RankRoyaltyHub policy={d.rank_policy} ranks={d.ranks||[]} stats={d.stats||{mo_count:0,am_count:0,sm_count:0,me_count:0,dealer_count:0}}/>}

@@ -106,6 +106,7 @@ class PublicController extends Controller
             'price' => $p->mrp,
             'mrp' => $p->mrp,
             'stock_status' => $p->stockStatus(),
+            'is_stock_paused' => (bool) $p->is_stock_paused,
             'url' => PortalHost::url('public', '/products/'.$p->id),
             'image_path' => $p->media()['image_url'],
             ...$p->media(),

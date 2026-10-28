@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
 import { Badge, Modal, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -120,7 +121,10 @@ export default function BranchesHub({
 
     return (
         <div data-tour="branches-hub">
-            <div className="toolbar-end">
+            <div className="toolbar-end" style={{ gap: 8 }}>
+                <Link href="/branch-performance" className="button">
+                    {translate('portal', 'branch_performance')}
+                </Link>
                 {canManage && (
                     <button type="button" className="button dark" onClick={() => setCreateOpen(true)}>
                         <Plus size={17} />

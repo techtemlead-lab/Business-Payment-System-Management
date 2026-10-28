@@ -22,7 +22,7 @@ const icons: Record<string, LucideIcon> = {
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
-    commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, rewards: Trophy, 'capital-flow': TrendingUp,
+    commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare
@@ -39,7 +39,7 @@ const sectionKeys: Record<string, string> = {
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
     notifications: 'notifications', circulars: 'circulars', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
-    'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches', rewards: 'rewards', 'capital-flow': 'capital_flow',
+    'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches', 'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders', employees: 'employees', dashboards: 'dashboards',
@@ -258,6 +258,7 @@ export default function Shell({ section, children, action }: { section: string; 
         if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
         if (capabilities.includes('inventory')) { items.add('inventory'); items.add('branches'); }
         if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
+        if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('branch-performance');
         if (capabilities.includes('content')) {
             ['website', 'content', 'enquiries'].forEach((item) => items.add(item));
         }
@@ -341,7 +342,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports',
                 'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
             ])),
-            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'place-codes', 'video-marketing'])),
+            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing'])),
             mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries', 'service-integrations'])),
             mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
