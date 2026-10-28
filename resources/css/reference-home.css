@@ -2472,14 +2472,20 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     padding: 18px;
 }
 
-.ref-floating-tools {
+/* Use aside specificity so this is not collapsed into older .ref-floating-tools mid-page rules. */
+aside.ref-floating-tools {
     position: fixed !important;
-    right: 20px !important;
+    inset: auto 20px 24px auto !important;
     left: auto !important;
     top: auto !important;
+    right: 20px !important;
     bottom: 24px !important;
     transform: none !important;
-    z-index: 40;
+    z-index: 40 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: auto !important;
 }
 
 .ref-back-top {
@@ -2507,9 +2513,10 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
         min-height: 96px;
     }
 
-    .ref-floating-tools {
+    aside.ref-floating-tools {
         right: 14px !important;
         bottom: 80px !important;
+        inset: auto 14px 80px auto !important;
     }
 
     .ref-back-top {
@@ -2524,9 +2531,10 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
         max-width: 160px;
     }
 
-    .ref-floating-tools {
+    aside.ref-floating-tools {
         right: 12px !important;
         bottom: 76px !important;
+        inset: auto 12px 76px auto !important;
     }
 }
 
