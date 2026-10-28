@@ -1,0 +1,436 @@
+/* Shared day/night mode. Light is default; dark activates via html[data-theme="dark"]. */
+:root {
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* Portal / shared app surfaces (CSS variables + common components) */
+html[data-theme="dark"] {
+    --green: #7ddea8;
+    --green-mid: #ef7a55;
+    --green-soft: #1a2b24;
+    --cream: #0b1220;
+    --ink: #e8eef6;
+    --muted: #9aa8b8;
+    --border: #2a3648;
+    --gold: #d4b56a;
+    --white: #121a28;
+    --portal-ink: #e8eef6;
+    --portal-paper: #0f1724;
+    color: var(--ink);
+    background: #0b1220;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] .ref-home {
+    background: #0b1220;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .metric,
+html[data-theme="dark"] .table-panel,
+html[data-theme="dark"] .welcome-card,
+html[data-theme="dark"] .next-steps,
+html[data-theme="dark"] dialog[open],
+html[data-theme="dark"] .company-auth-card,
+html[data-theme="dark"] .search-input,
+html[data-theme="dark"] .icon-button,
+html[data-theme="dark"] .button:not(.dark):not(.light),
+html[data-theme="dark"] .profile-menu-panel,
+html[data-theme="dark"] .language-switcher,
+html[data-theme="dark"] .workspace-header,
+html[data-theme="dark"] .glass-header {
+    background: #121a28;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+    background: #0f1724;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] th {
+    background: #0f1724;
+    color: #9aa8b8;
+    border-color: #2a3648;
+}
+
+html[data-theme="dark"] td {
+    border-bottom-color: #243044;
+}
+
+html[data-theme="dark"] tbody tr:hover {
+    background: #162033;
+}
+
+html[data-theme="dark"] .button:hover {
+    background: #1a2538;
+}
+
+html[data-theme="dark"] .button.light {
+    background: #1a2b24;
+    color: #7ddea8;
+}
+
+html[data-theme="dark"] .badge {
+    background: #1a2538;
+    color: #9aa8b8;
+}
+
+html[data-theme="dark"] .success {
+    background: #14301f;
+    color: #9fdbb3;
+    border-color: #1f4a30;
+}
+
+html[data-theme="dark"] .error {
+    background: #3a1b1b;
+    color: #f0b4b4;
+    border-color: #5a2c2c;
+}
+
+html[data-theme="dark"] .notice {
+    background: #2c2618;
+    border-color: #4a3f24;
+    color: #e0d3a8;
+}
+
+html[data-theme="dark"] .muted,
+html[data-theme="dark"] .breadcrumb,
+html[data-theme="dark"] .page-heading p,
+html[data-theme="dark"] .workspace-footer {
+    color: #9aa8b8;
+}
+
+html[data-theme="dark"] .breadcrumb b {
+    color: #d7e0ea;
+}
+
+html[data-theme="dark"] .profile-menu-trigger,
+html[data-theme="dark"] .avatar {
+    background: #1a2538;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .profile-menu-panel a,
+html[data-theme="dark"] .profile-menu-panel button {
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .profile-menu-panel a:hover,
+html[data-theme="dark"] .profile-menu-panel button:hover {
+    background: #1a2538;
+}
+
+html[data-theme="dark"] .language-switcher button {
+    color: #9aa8b8;
+    background: transparent;
+}
+
+html[data-theme="dark"] .language-switcher button.active {
+    background: #1a2538;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--border, #dbe2d8);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink, #011627);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+html[data-theme="dark"] .theme-toggle {
+    background: #121a28;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--border, #dce1e8);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink, #011627);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.theme-toggle .theme-icon-day {
+    display: none;
+}
+
+.theme-toggle .theme-icon-night {
+    display: inline-flex;
+}
+
+html[data-theme="dark"] .theme-toggle .theme-icon-day {
+    display: inline-flex;
+}
+
+html[data-theme="dark"] .theme-toggle .theme-icon-night {
+    display: none;
+}
+
+.theme-toggle.compact {
+    padding: 7px;
+    width: 36px;
+}
+
+.theme-toggle .theme-toggle-label {
+    display: none;
+}
+
+@media (min-width: 1100px) {
+    .theme-toggle:not(.compact) .theme-toggle-label {
+        display: inline;
+    }
+}
+
+/* Public reference site */
+html[data-theme="dark"] .ref-header,
+html[data-theme="dark"] .ref-header-inner,
+html[data-theme="dark"] .ref-search,
+html[data-theme="dark"] .ref-search input,
+html[data-theme="dark"] .ref-mobile-search-overlay,
+html[data-theme="dark"] .ref-mobile-search-inner,
+html[data-theme="dark"] .ref-mobile-drawer,
+html[data-theme="dark"] .ref-auth-card,
+html[data-theme="dark"] .ref-product-card,
+html[data-theme="dark"] .ref-filter-panel,
+html[data-theme="dark"] .ref-filter-sidebar,
+html[data-theme="dark"] .ref-compare-dialog,
+html[data-theme="dark"] .ref-promotion-dialog,
+html[data-theme="dark"] .ref-page-panel,
+html[data-theme="dark"] .ref-content-card,
+html[data-theme="dark"] .ref-contact-card,
+html[data-theme="dark"] .ref-dealer-card,
+html[data-theme="dark"] .ref-faq-item,
+html[data-theme="dark"] .ref-intro,
+html[data-theme="dark"] .ref-company-intro,
+html[data-theme="dark"] .ref-company-paths > *,
+html[data-theme="dark"] .ref-section,
+html[data-theme="dark"] .ref-featured-products,
+html[data-theme="dark"] .ref-featured-categories,
+html[data-theme="dark"] .ref-dealer-network-banner,
+html[data-theme="dark"] .ref-announcement,
+html[data-theme="dark"] .ref-footer-top,
+html[data-theme="dark"] .ref-catalog-layout,
+html[data-theme="dark"] .ref-catalog-sidebar,
+html[data-theme="dark"] .ref-catalog-main,
+html[data-theme="dark"] .ref-catalog-page,
+html[data-theme="dark"] .ref-catalog-hero,
+html[data-theme="dark"] .ref-catalog-toolbar,
+html[data-theme="dark"] .ref-catalog-results,
+html[data-theme="dark"] .ref-empty,
+html[data-theme="dark"] .ref-pagination,
+html[data-theme="dark"] .ref-detail-card,
+html[data-theme="dark"] .ref-product-description,
+html[data-theme="dark"] .ref-product-photo,
+html[data-theme="dark"] .ref-product-info,
+html[data-theme="dark"] .ref-home-about,
+html[data-theme="dark"] .ref-home-video,
+html[data-theme="dark"] .ref-share-bar,
+html[data-theme="dark"] .ref-category-grid > a,
+html[data-theme="dark"] .ref-campaign-card,
+html[data-theme="dark"] .ref-inner-main > section,
+html[data-theme="dark"] .ref-inner-main > article,
+html[data-theme="dark"] .ref-directory-heading,
+html[data-theme="dark"] .ref-page-hero,
+html[data-theme="dark"] .ref-about-hero,
+html[data-theme="dark"] .ref-contact-hero {
+    background: #121a28 !important;
+    color: #e8eef6 !important;
+    border-color: #2a3648 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-company-intro h1,
+html[data-theme="dark"] .ref-page-title,
+html[data-theme="dark"] .ref-directory-heading h1,
+html[data-theme="dark"] .ref-featured-products h2,
+html[data-theme="dark"] .ref-featured-categories h2,
+html[data-theme="dark"] .ref-catalog-page h1 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-company-intro p,
+html[data-theme="dark"] .ref-company-paths p,
+html[data-theme="dark"] .ref-featured-products p,
+html[data-theme="dark"] .ref-catalog-page p,
+html[data-theme="dark"] .ref-filter-sidebar label,
+html[data-theme="dark"] .ref-filter-sidebar legend {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-filter-sidebar input,
+html[data-theme="dark"] .ref-filter-sidebar select,
+html[data-theme="dark"] .ref-catalog-page input,
+html[data-theme="dark"] .ref-catalog-page select {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-header {
+    border-bottom: 1px solid #2a3648;
+}
+
+html[data-theme="dark"] .ref-header-links > a,
+html[data-theme="dark"] .ref-header-links > a b,
+html[data-theme="dark"] .ref-header-links > a small,
+html[data-theme="dark"] .ref-mobile-menu-btn,
+html[data-theme="dark"] .ref-mobile-search-btn {
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-search {
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-search input {
+    background: #0f1724 !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-locale-switch {
+    background: #0f1724;
+    border-color: #2a3648;
+}
+
+html[data-theme="dark"] .ref-locale-switch button {
+    color: #9aa8b8;
+}
+
+html[data-theme="dark"] .ref-locale-switch button.is-active {
+    background: #1a2538;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .ref-footer,
+html[data-theme="dark"] .ref-footer-bottom {
+    background: #080e18 !important;
+    color: #c9d4e1 !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-intro,
+html[data-theme="dark"] .ref-page-hero,
+html[data-theme="dark"] .ref-about-hero,
+html[data-theme="dark"] .ref-contact-hero {
+    background: linear-gradient(180deg, #0f1a14 0%, #0b1220 100%) !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-product-card h3,
+html[data-theme="dark"] .ref-product-card .ref-product-name,
+html[data-theme="dark"] .ref-auth-card h1,
+html[data-theme="dark"] .ref-page-panel h1,
+html[data-theme="dark"] .ref-page-panel h2,
+html[data-theme="dark"] .ref-contact-card h2,
+html[data-theme="dark"] .ref-dealer-card h3 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-product-card p,
+html[data-theme="dark"] .ref-auth-subtitle,
+html[data-theme="dark"] .ref-page-panel p,
+html[data-theme="dark"] .ref-muted,
+html[data-theme="dark"] .ref-contact-card p {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-mobile-drawer-nav-list a,
+html[data-theme="dark"] .ref-mobile-drawer-group-title {
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-mobile-menu-overlay {
+    background: #02060ccc !important;
+}
+
+html[data-theme="dark"] .ref-theme-toggle {
+    border-color: #2a3648;
+    background: #0f1724;
+    color: #e8eef6;
+}
+
+.ref-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid #dce1e8;
+    border-radius: 8px;
+    background: #fff;
+    color: #011627;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.ref-theme-toggle .theme-icon-day {
+    display: none;
+}
+
+.ref-theme-toggle .theme-icon-night {
+    display: inline-flex;
+}
+
+html[data-theme="dark"] .ref-theme-toggle .theme-icon-day {
+    display: inline-flex;
+}
+
+html[data-theme="dark"] .ref-theme-toggle .theme-icon-night {
+    display: none;
+}
+
+.ref-theme-toggle-label {
+    display: none;
+}
+
+@media (min-width: 1100px) {
+    .ref-theme-toggle-label {
+        display: inline;
+    }
+}
+
+html[data-theme="dark"] .company-auth {
+    background: #0b1220;
+}
+
+html[data-theme="dark"] .company-auth-toolbar .language-switcher {
+    background: #121a28;
+}

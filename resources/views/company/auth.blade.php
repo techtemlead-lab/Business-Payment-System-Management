@@ -4,16 +4,23 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    @include('partials.theme-boot')
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#011627">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='totp'?__('auth_ui.totp_title'):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password'))) }} · {{ __('portal.brand_company_bar') }}</title>
     <link rel="stylesheet" href="/reference/instrument-sans-local.css">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css','resources/css/dashboard.css'])
+    @vite(['resources/css/app.css','resources/css/dashboard.css','resources/js/theme-boot.ts'])
 </head>
 <body class="company-auth locale-{{ app()->getLocale() }}">
 <main class="company-auth-main">
     <div class="company-auth-toolbar">
+        <button type="button" class="theme-toggle compact" data-theme-toggle data-label-day="{{ __('portal.day_mode') }}" data-label-night="{{ __('portal.night_mode') }}" aria-label="{{ __('portal.night_mode') }}" title="{{ __('portal.night_mode') }}">
+            <span class="theme-icon-day" aria-hidden="true">☀</span>
+            <span class="theme-icon-night" aria-hidden="true">☾</span>
+        </button>
         <form method="post" action="/locale" class="language-switcher compact" aria-label="{{ __('portal.language') }}">@csrf
             <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>

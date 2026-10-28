@@ -1,3 +1,4 @@
+@import './theme-dark.css';
 :root{--green:#2e3192;--green-mid:#ef4a23;--ink:#011627;--muted:#64748b;--border:#e4e7ec;font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;color:#011627;background:#f2f4f8}
 body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background:#f2f4f8}
 .app-shell{display:block;background:#f2f4f8;min-height:100vh}

@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @include('partials.theme-boot')
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#011627">
     <title>@yield('title') · {{ __('site.company_bar') }}</title>
     <meta name="robots" content="noindex">
     <link rel="icon" href="/favicon.ico">
