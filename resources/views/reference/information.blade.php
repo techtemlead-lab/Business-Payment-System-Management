@@ -664,12 +664,16 @@
 @endif
 
 @if(in_array($page, ['privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
-<article class="ref-content-card ref-about-hero">
+<article class="ref-content-card ref-about-hero ref-legal-hero">
+    <div class="ref-legal-hero-badge">
+        <i class="fa-solid {{ $page === 'privacy' ? 'fa-shield-halved' : ($page === 'terms' ? 'fa-scale-balanced' : 'fa-bullhorn') }}" aria-hidden="true"></i>
+        <span>{{ in_array($page, ['privacy', 'terms'], true) ? __('site.legal_nav') : __('site.company_notice') }}</span>
+    </div>
     <h1>{{ $content->title ?? (in_array($page, ['privacy', 'terms'], true)
         ? $chrome($page.'_hero_title', $siteCustomization[$page.'_hero_title'] ?? null)
         : ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))) }}</h1>
     @unless(filled($content->body ?? null))
-        <div class="ref-content-prose">
+        <div class="ref-content-prose ref-legal-lead">
             @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
                 {{ app()->getLocale() === 'bn' || blank($siteCustomization[$page.'_hero_lead'] ?? null) ? __('site.notice_empty') : $siteCustomization[$page.'_hero_lead'] }}
             @elseif(in_array($page, ['privacy', 'terms'], true))
@@ -679,20 +683,63 @@
             @endif
         </div>
     @endunless
+    @if(in_array($page, ['privacy', 'terms'], true))
+    <div class="ref-legal-meta-bar">
+        <span class="ref-legal-meta-item"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'কার্যকর সংস্করণ: অক্টোবর ২০২৬' : 'Effective: October 2026' }}</span>
+        <span class="ref-legal-meta-item"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'মাদিনা ন্যাচারাল হেলথ কেয়ার গভর্নেন্স' : 'Madina Governance & Compliance' }}</span>
+        <span class="ref-legal-meta-item"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'পীরগঞ্জ, রংপুর, বাংলাদেশ' : 'Pirganj, Rangpur, Bangladesh' }}</span>
+    </div>
+    @endif
 </article>
 @if(filled($content->body ?? null) || in_array($page, ['privacy', 'terms'], true))
-<section class="ref-content-card" style="margin-top:22px;">
-    <div class="ref-content-prose" style="white-space:pre-line;">{{ $content->body ?? (in_array($page, ['privacy', 'terms'], true)
-        ? $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null)
-        : ($siteCustomization[$page.'_body'] ?? '')) }}</div>
+<section class="ref-content-card ref-legal-body-card" style="margin-top:22px;">
+    @php
+        $rawBodyText = $content->body ?? (in_array($page, ['privacy', 'terms'], true)
+            ? $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null)
+            : ($siteCustomization[$page.'_body'] ?? ''));
+    @endphp
+    @if(in_array($page, ['privacy', 'terms'], true))
+        <div class="ref-legal-document">
+            @php
+                $paragraphs = preg_split('/\n{2,}/', trim($rawBodyText));
+            @endphp
+            @foreach($paragraphs as $paragraph)
+                @php
+                    $trimmed = trim($paragraph);
+                    $firstLine = strtok($trimmed, "\n");
+                    $isSectionHeader = preg_match('/^[0-9১-৯]+\.\s+/', $firstLine);
+                @endphp
+                @if($isSectionHeader)
+                    @php
+                        $lines = explode("\n", $trimmed);
+                        $header = array_shift($lines);
+                        $bodyRest = implode("\n", $lines);
+                    @endphp
+                    <div class="ref-legal-section">
+                        <h2 class="ref-legal-heading">{{ $header }}</h2>
+                        @if(filled(trim($bodyRest)))
+                            <div class="ref-content-prose ref-legal-prose" style="white-space:pre-line;">{{ $bodyRest }}</div>
+                        @endif
+                    </div>
+                @else
+                    <div class="ref-content-prose ref-legal-prose" style="white-space:pre-line;">{{ $trimmed }}</div>
+                @endif
+            @endforeach
+        </div>
+    @else
+        <div class="ref-content-prose" style="white-space:pre-line;">{{ $rawBodyText }}</div>
+    @endif
 </section>
 @endif
-<div class="ref-information-links">
+<div class="ref-information-links ref-legal-links">
     @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-primary-button">{{ $chrome('contact_head_office', $siteCustomization['about_btn_contact'] ?? null) }}</a>@endif
     @if(in_array($page, ['privacy', 'terms'], true))
         @php $altLegal = $page === 'privacy' ? 'terms' : 'privacy'; @endphp
         @if($publicPageEnabled[$altLegal] ?? true)
-        <a href="/{{ $altLegal }}">{{ $page === 'privacy' ? __('site.terms_of_use') : __('site.privacy_policy') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        <a href="/{{ $altLegal }}" class="ref-secondary-button">{{ $page === 'privacy' ? __('site.terms_of_use') : __('site.privacy_policy') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        @endif
+        @if($publicPageEnabled['faq'] ?? true)
+        <a href="/faq">{{ __('site.faq') }}</a>
         @endif
     @elseif($publicPageEnabled['partnership'] ?? true)
         <a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
