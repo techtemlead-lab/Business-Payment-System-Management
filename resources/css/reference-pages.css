@@ -466,3 +466,186 @@
         max-width: 100%;
     }
 }
+
+/* ==========================================================================
+   Inner Public Pages Motion & Micro-Interactions
+   ========================================================================== */
+
+/* Single Product Detail Page Polish */
+.ref-detail-card {
+    position: relative;
+    transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.ref-detail-card:hover {
+    box-shadow: 0 16px 36px -8px rgba(1, 22, 39, 0.08), 0 0 0 1px rgba(46, 49, 146, 0.12);
+}
+
+.ref-detail-image img {
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ref-detail-image:hover img {
+    transform: scale(1.06);
+}
+
+.ref-selected-price {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+}
+
+.ref-selected-price:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(46, 49, 146, 0.15);
+}
+
+.ref-quantity-picker button {
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
+}
+
+.ref-quantity-picker button:hover {
+    background: #f1f5f9;
+}
+
+.ref-quantity-picker button:active {
+    transform: scale(0.88);
+}
+
+.ref-product-tabs > button {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ref-product-tabs > button:hover:not([aria-selected=true]) {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+.ref-metadata > span {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.ref-metadata > span:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Contact Page Interactive Topics */
+.ref-contact-topic {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ref-contact-topic:hover {
+    background: #ffffff;
+    border-color: #ffd0c3;
+    box-shadow: 0 10px 24px -4px rgba(239, 74, 35, 0.12);
+    transform: translateY(-3px);
+}
+
+.ref-contact-topic > i {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.ref-contact-topic:hover > i {
+    transform: scale(1.14) rotate(6deg);
+    box-shadow: 0 6px 16px rgba(239, 74, 35, 0.25);
+}
+
+/* Map Card */
+.ref-map-wrapper {
+    transition: box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+}
+
+.ref-map-wrapper:hover {
+    box-shadow: 0 12px 28px -6px rgba(1, 22, 39, 0.1);
+    border-color: #cbd5e1;
+}
+
+/* Dealers Directory Cards */
+.ref-directory-grid .ref-content-card {
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.ref-directory-grid .ref-content-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px -8px rgba(1, 22, 39, 0.1), 0 0 0 1px rgba(0, 104, 55, 0.2);
+    border-color: #86efac;
+}
+
+.ref-dealer-distance {
+    animation: refPulseSoft 3s ease-in-out infinite;
+}
+
+@keyframes refPulseSoft {
+    0%, 100% { opacity: 0.95; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+}
+
+/* Auth / Login Cards */
+.ref-auth-card {
+    animation: refCardEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes refCardEnter {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ref-form input, .ref-form select, .ref-form textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.ref-form input:focus, .ref-form select:focus, .ref-form textarea:focus {
+    box-shadow: 0 0 0 3px rgba(239, 74, 35, 0.18) !important;
+    border-color: #ef4a23 !important;
+}
+
+.ref-auth-submit {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.ref-auth-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(1, 22, 39, 0.25);
+}
+
+.ref-auth-submit:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* FAQ Details/Summary Accordion */
+details.ref-content-card summary, details.ref-faq-item summary {
+    transition: color 0.2s ease;
+}
+
+details.ref-content-card summary:hover, details.ref-faq-item summary:hover {
+    color: #ef4a23;
+}
+
+/* Partnership Multi-Step Form */
+.ref-partner-apply-card {
+    transition: box-shadow 0.3s ease;
+}
+
+.ref-partner-apply-card:hover {
+    box-shadow: 0 8px 30px -4px rgba(0, 104, 55, 0.08);
+}
+
+.ref-partner-submit-btn {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
+}
+
+.ref-partner-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 104, 55, 0.3);
+}
+
+.ref-partner-submit-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+

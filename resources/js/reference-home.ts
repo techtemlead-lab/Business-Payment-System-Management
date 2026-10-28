@@ -198,3 +198,140 @@ document.addEventListener('keydown', (e) => {
         if (mobileSearchOverlay?.classList.contains('is-open')) closeMobileSearch();
     }
 });
+
+// Professional Scroll Reveal & Staggered Micro-Interactions Engine
+function initScrollReveal() {
+    if (typeof window === 'undefined') return;
+
+    const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isObserverSupported = 'IntersectionObserver' in window;
+
+    // Assign staggered index variable to grid children
+    const staggerContainers = [
+        '.ref-shortcuts',
+        '.ref-category-grid',
+        '#refProductGrid',
+        '.ref-directory-grid',
+        '.ref-contact-grid',
+        '.ref-about-sections-grid',
+    ];
+
+    staggerContainers.forEach((selector) => {
+        const container = document.querySelector<HTMLElement>(selector);
+        if (!container) return;
+        const children = container.children;
+        for (let i = 0; i < children.length; i++) {
+            const child = children[i] as HTMLElement;
+            child.style.setProperty('--reveal-index', String(i % 12));
+            if (!child.classList.contains('ref-reveal-card')) {
+                child.classList.add('ref-reveal-card');
+            }
+        }
+    });
+
+    // Main section reveal targets
+    const sectionSelectors = [
+        '.ref-company-intro',
+        '.ref-promotions',
+        '.ref-announcement',
+        '.ref-shortcuts',
+        '.ref-featured-categories',
+        '.ref-dealer-network-banner',
+        '.ref-featured-products',
+        '.ref-home-video',
+        '.ref-home-about',
+        '.ref-content-card',
+        '.ref-auth-card',
+        '.ref-partner-login-card',
+        '.ref-catalog-toolbar',
+        '.ref-filter-sidebar',
+        '.ref-detail-card',
+        '.ref-product-description',
+        '.ref-map-card',
+        '.ref-partner-apply-card',
+        '.ref-directory-heading',
+        '[data-reveal]',
+    ];
+
+    const targets = document.querySelectorAll<HTMLElement>(sectionSelectors.join(', '));
+
+    if (prefersReducedMotion || !isObserverSupported) {
+        targets.forEach((el) => {
+            el.classList.add('is-revealed');
+        });
+        document.querySelectorAll<HTMLElement>('.ref-reveal-card').forEach((el) => {
+            el.classList.add('is-revealed');
+        });
+        return;
+    }
+
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    observer.unobserve(entry.target);
+                }
+            });
+        },
+        {
+            rootMargin: '0px 0px -40px 0px',
+            threshold: 0.05,
+        }
+    );
+
+    targets.forEach((el) => {
+        if (!el.classList.contains('ref-reveal-init')) {
+            el.classList.add('ref-reveal-init');
+        }
+        observer.observe(el);
+    });
+
+    // Also observe individual product and directory cards if loaded dynamically
+    const cardObserver = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    cardObserver.unobserve(entry.target);
+                }
+            });
+        },
+        {
+            rootMargin: '0px 0px -25px 0px',
+            threshold: 0.04,
+        }
+    );
+
+    document.querySelectorAll<HTMLElement>('.ref-reveal-card').forEach((card) => {
+        cardObserver.observe(card);
+    });
+}
+
+// Interactive Smooth Accordion for FAQs
+function initFaqAccordions() {
+    document.querySelectorAll<HTMLDetailsElement>('details.ref-content-card, details.ref-faq-item').forEach((details) => {
+        const summary = details.querySelector('summary');
+        if (!summary) return;
+
+        summary.addEventListener('click', (e) => {
+            // Animate details opening/closing if browser supports WAAPI
+            if (details.open) {
+                // If closing, let CSS/transition handle smoothly
+                summary.setAttribute('aria-expanded', 'false');
+            } else {
+                summary.setAttribute('aria-expanded', 'true');
+            }
+        });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initScrollReveal();
+        initFaqAccordions();
+    });
+} else {
+    initScrollReveal();
+    initFaqAccordions();
+}

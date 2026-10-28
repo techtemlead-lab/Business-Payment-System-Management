@@ -1085,3 +1085,40 @@ dialog.portal-modal::backdrop{
   padding: 12px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc;
 }
 
+/* ==========================================================================
+   Dashboard Micro-Interactions & Card Hover Polish
+   ========================================================================== */
+.metric-card, .metric, .panel {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.metric-card:hover, .metric:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.button:not(.disabled) {
+    transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, background 0.15s ease;
+}
+
+.button:not(.disabled):active {
+    transform: scale(0.97);
+}
+
+.button.primary:not(.disabled):hover {
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
+}
+
+.table tr {
+    transition: background 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .metric-card, .metric, .panel, .button {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+

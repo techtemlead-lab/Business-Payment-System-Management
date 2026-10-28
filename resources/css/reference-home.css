@@ -1101,3 +1101,362 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 .ref-error-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{min-width:150px;justify-content:center}
 @media(max-width:640px){.ref-error-card{padding:28px 18px}.ref-error-code{font-size:40px}.ref-error-card h1{font-size:20px}}
+
+/* ==========================================================================
+   Enterprise Ambient Background & Dynamic Motion System
+   ========================================================================== */
+
+/* Fixed Ambient Background Canvas */
+.ref-ambient-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+    contain: strict;
+}
+
+.ref-ambient-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.38;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+}
+
+.ref-orb-emerald {
+    width: 620px;
+    height: 620px;
+    top: -120px;
+    left: -140px;
+    background: radial-gradient(circle, rgba(0, 104, 55, 0.28) 0%, rgba(22, 163, 74, 0.1) 45%, transparent 70%);
+    animation: refOrbFloat1 32s ease-in-out infinite alternate;
+}
+
+.ref-orb-flame {
+    width: 680px;
+    height: 680px;
+    top: 36%;
+    right: -180px;
+    background: radial-gradient(circle, rgba(243, 76, 32, 0.18) 0%, rgba(251, 146, 60, 0.06) 50%, transparent 72%);
+    animation: refOrbFloat2 38s ease-in-out infinite alternate;
+}
+
+.ref-orb-indigo {
+    width: 720px;
+    height: 720px;
+    bottom: -160px;
+    left: 15%;
+    background: radial-gradient(circle, rgba(56, 52, 146, 0.18) 0%, rgba(37, 99, 235, 0.05) 50%, transparent 70%);
+    animation: refOrbFloat3 44s ease-in-out infinite alternate;
+}
+
+.ref-ambient-grid {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(1, 22, 39, 0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at 50% 18%, black 25%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 18%, black 25%, transparent 80%);
+    opacity: 0.85;
+}
+
+/* Keyframe Orbs Floating */
+@keyframes refOrbFloat1 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(90px, 110px, 0) scale(1.14); }
+    100% { transform: translate3d(-50px, 160px, 0) scale(0.92); }
+}
+
+@keyframes refOrbFloat2 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(-110px, -80px, 0) scale(1.12); }
+    100% { transform: translate3d(-60px, 120px, 0) scale(0.94); }
+}
+
+@keyframes refOrbFloat3 {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(120px, -100px, 0) scale(1.1); }
+    100% { transform: translate3d(-80px, -60px, 0) scale(0.96); }
+}
+
+/* ==========================================================================
+   Hardware-Accelerated Scroll Reveal System
+   ========================================================================== */
+
+.ref-reveal-init {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.ref-reveal-init.is-revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Staggered Grid Item Reveals */
+.ref-reveal-card {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: calc(var(--reveal-index, 0) * 0.055s);
+    will-change: opacity, transform;
+}
+
+.ref-reveal-card.is-revealed,
+.is-revealed > .ref-reveal-card,
+.is-revealed .ref-reveal-card {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   Refined Micro-Interactions & Hover Animations
+   ========================================================================== */
+
+/* Shortcuts Cards Polish */
+.ref-shortcuts > a {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease !important;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.ref-shortcuts > a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ref-shortcuts > a:hover {
+    transform: translateY(-5px) scale(1.01) !important;
+    box-shadow: 0 16px 32px -8px rgba(1, 22, 39, 0.09), 0 0 0 1px rgba(243, 76, 32, 0.22) !important;
+    border-color: rgba(243, 76, 32, 0.35);
+}
+
+.ref-shortcuts > a:hover::before {
+    left: 140%;
+}
+
+.ref-shortcuts > a i {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.25s ease;
+}
+
+.ref-shortcuts > a:hover i {
+    transform: scale(1.15) rotate(-5deg);
+    color: #ef4444;
+}
+
+.ref-shortcuts > a img {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ref-shortcuts > a:hover img {
+    transform: scale(1.12);
+}
+
+/* Featured Categories Polish */
+.ref-category-grid > a {
+    position: relative;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.ref-category-grid > a:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 28px -6px rgba(1, 22, 39, 0.1), 0 0 0 1px rgba(0, 104, 55, 0.25) !important;
+    border-color: #86efac;
+}
+
+.ref-cat-icon-wrap {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.ref-category-grid > a:hover .ref-cat-icon-wrap {
+    transform: scale(1.12);
+    box-shadow: 0 8px 20px rgba(0, 104, 55, 0.16);
+}
+
+/* Company Intro Path Cards */
+.ref-company-paths > a {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease !important;
+}
+
+.ref-company-paths > a:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px -6px rgba(0, 104, 55, 0.15), 0 0 0 1px rgba(0, 104, 55, 0.3) !important;
+    border-color: #86efac;
+}
+
+.ref-company-paths > a > i:last-child {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ref-company-paths > a:hover > i:last-child {
+    transform: translate(3px, -3px);
+}
+
+/* Eyebrow Shimmer Sweep */
+.ref-company-eyebrow {
+    position: relative;
+    display: inline-block;
+}
+
+/* Button Micro-Interactions */
+.ref-primary-button, .ref-secondary-button {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.ref-primary-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(46, 49, 146, 0.3);
+}
+
+.ref-primary-button:active, .ref-secondary-button:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.ref-primary-button i, .ref-secondary-button i {
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ref-primary-button:hover i.fa-arrow-right {
+    transform: translateX(3px);
+}
+
+.ref-secondary-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Dealer Network Banner Animated Aurora */
+.ref-dealer-network-banner {
+    position: relative;
+    overflow: hidden;
+}
+
+.ref-dealer-banner-icon {
+    animation: refFloat 4.2s ease-in-out infinite;
+}
+
+@keyframes refFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.ref-dealer-banner-btn {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+}
+
+.ref-dealer-banner-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 24px rgba(0, 104, 55, 0.35);
+}
+
+.ref-dealer-banner-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Stock Dot Pulse */
+.ref-stock-dot {
+    position: relative;
+}
+
+.ref-stock-pill.in-stock .ref-stock-dot::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: inherit;
+    opacity: 0.6;
+    animation: refStockPulse 2.4s ease-out infinite;
+}
+
+@keyframes refStockPulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    70% { transform: scale(2.2); opacity: 0; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Announcement Bullhorn Pulse */
+.ref-announcement > i {
+    animation: refIconPing 3.5s ease-in-out infinite;
+}
+
+@keyframes refIconPing {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15) rotate(6deg); }
+}
+
+/* Carousel Active Dot Spring Pill */
+.ref-carousel-dots button {
+    transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Back-To-Top Button Pulse */
+.ref-back-top {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, opacity 0.25s ease !important;
+}
+
+.ref-back-top:hover {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 8px 24px rgba(243, 76, 32, 0.28);
+}
+
+.ref-back-top:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Floating Tools Spring */
+.ref-floating-tools > button, .ref-floating-tools > a {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.2s ease !important;
+}
+
+.ref-floating-tools > button:hover, .ref-floating-tools > a:hover {
+    transform: translateY(-3px) scale(1.04);
+}
+
+/* User reduced motion preference override */
+@media (prefers-reduced-motion: reduce) {
+    .ref-ambient-orb,
+    .ref-dealer-banner-icon,
+    .ref-announcement > i,
+    .ref-stock-pill.in-stock .ref-stock-dot::after {
+        animation: none !important;
+    }
+    
+    .ref-reveal-init,
+    .ref-reveal-card {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    
+    .ref-shortcuts > a,
+    .ref-category-grid > a,
+    .ref-product-card,
+    .ref-company-paths > a,
+    .ref-primary-button,
+    .ref-secondary-button,
+    .ref-dealer-banner-btn,
+    .ref-back-top,
+    .ref-floating-tools > button,
+    .ref-floating-tools > a {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+

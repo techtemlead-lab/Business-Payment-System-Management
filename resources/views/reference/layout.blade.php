@@ -22,6 +22,12 @@
 <noscript><link rel="stylesheet" href="/reference/fontawesome-local.css"></noscript>
 @vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])</head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
+<div class="ref-ambient-canvas" aria-hidden="true">
+    <div class="ref-ambient-orb ref-orb-emerald"></div>
+    <div class="ref-ambient-orb ref-orb-flame"></div>
+    <div class="ref-ambient-orb ref-orb-indigo"></div>
+    <div class="ref-ambient-grid"></div>
+</div>
 @include('reference.header')
 @if(config('madina.preview_mode'))
 <aside class="ref-preview-banner" role="status"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>{{ __('site.preview_banner') }}</span></aside>
