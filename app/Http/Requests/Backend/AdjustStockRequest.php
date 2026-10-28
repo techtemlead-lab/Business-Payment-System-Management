@@ -16,7 +16,9 @@ class AdjustStockRequest extends FormRequest
         return [
             'product_id' => 'required|integer|exists:products,id',
             'quantity' => 'required|integer|not_in:0|min:-100000|max:100000',
-            'reason' => 'required|string|max:1000', 'reference' => 'required|uuid',
+            'reason' => 'required|string|max:1000',
+            'reference' => 'required|uuid',
+            'branch_id' => 'nullable|integer|exists:company_branches,id',
         ];
     }
 }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Finance\Percentage;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockNotifications;
+use App\Models\BranchProductStock;
 use App\Models\Product;
 use App\Support\Audit;
 use App\Support\Money;
@@ -23,7 +25,10 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProductRegistryController extends Controller
 {
-    public function __construct(private StockNotifications $notifications) {}
+    public function __construct(
+        private StockNotifications $notifications,
+        private BranchOperations $branches,
+    ) {}
 
     public function edit(Request $r, ?Product $product = null): Response
     {
@@ -235,11 +240,24 @@ class ProductRegistryController extends Controller
                 $p->updated_at = now();
                 $p->save();
                 if (! $product && $initialStock > 0) {
+                    $hub = $this->branches->resolveWritableBranch($r->user());
+                    BranchProductStock::query()->updateOrCreate(
+                        ['branch_id' => $hub->id, 'product_id' => $p->id],
+                        [
+                            'quantity' => $initialStock,
+                            'low_stock_at' => (int) ($p->low_stock_at ?? 10),
+                        ],
+                    );
                     DB::table('stock_movements')->insert([
-                        'product_id' => $p->id, 'quantity' => $initialStock, 'kind' => 'receipt',
+                        'product_id' => $p->id,
+                        'branch_id' => $hub->id,
+                        'quantity' => $initialStock,
+                        'kind' => 'receipt',
                         'reason' => __('portal.stock_reason_initial_onboarding', ['reason' => $d['reason']]),
-                        'reference' => (string) Str::uuid(), 'actor_id' => $r->user()->id,
-                        'created_at' => now(), 'updated_at' => now(),
+                        'reference' => (string) Str::uuid(),
+                        'actor_id' => $r->user()->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
                 Audit::record($r->user()->id, $product ? 'product.updated' : 'product.created', (string) $p->id, ['fields' => array_keys($attributes), 'reason' => $d['reason']]);

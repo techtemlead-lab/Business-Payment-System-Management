@@ -54,6 +54,10 @@ class EnforceStaffActions
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
+        if ($controller === 'BranchController' && $method === 'select') {
+            // Domain layer enforces assignment / capability for the chosen hub.
+            return $next($request);
+        }
         if ($controller === 'DataImportController') {
             $ok = $actor->canAct('accounts', 'create')
                 || $actor->canAct('catalog', 'create')
@@ -130,6 +134,12 @@ class EnforceStaffActions
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
             'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
+            'BranchController' => match ($method) {
+                'index', 'deliveryPoints' => [['inventory', 'accounts'], 'view'],
+                'select' => [['inventory', 'accounts', 'orders'], 'view'],
+                'assignStaff', 'removeStaff' => [['inventory', 'accounts'], 'edit'],
+                default => [['inventory', 'accounts'], $method === 'store' ? 'create' : 'edit'],
+            },
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };

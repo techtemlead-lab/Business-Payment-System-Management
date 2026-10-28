@@ -4,8 +4,11 @@ namespace App\Http\Middleware;
 
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\TourGuide;
+use App\Domain\Support\UserManual;
 use App\Support\DashboardManagement;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
@@ -70,12 +73,20 @@ class HandleInertiaRequests extends Middleware
                 ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
                 : 0,
             'tour' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
-                ? app(\App\Domain\Support\TourGuide::class)->forPage($u, 'overview')
+                ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,
             'userManualChapters' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
-                ? app(\App\Domain\Support\UserManual::class)->chaptersFor($u)
+                ? app(UserManual::class)->chaptersFor($u)
                 : [],
             'dashboardNotice' => DashboardManagement::noticeForUser($u),
-            'dashboardControls' => DashboardManagement::get()];
+            'dashboardControls' => DashboardManagement::get(),
+            'workspaceBranches' => fn () => ($u && ($u->staff() || $u->owner()) && in_array($portal, ['manage', 'sadmin'], true))
+                ? [
+                    'active_branch_id' => $u->active_branch_id,
+                    'active_branch' => $u->activeBranch?->summary(),
+                    'branches' => app(BranchOperations::class)->branchesFor($u),
+                ]
+                : null,
+        ];
     }
 }

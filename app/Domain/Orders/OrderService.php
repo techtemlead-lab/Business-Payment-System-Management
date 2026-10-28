@@ -7,10 +7,12 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\PaymentGatewayClient;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
+use App\Models\BranchProductStock;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
@@ -24,7 +26,12 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
-    public function __construct(private readonly ProductPricing $pricing, private readonly CommissionPosting $commissions, private readonly StockNotifications $stockNotifications) {}
+    public function __construct(
+        private readonly ProductPricing $pricing,
+        private readonly CommissionPosting $commissions,
+        private readonly StockNotifications $stockNotifications,
+        private readonly BranchOperations $branches,
+    ) {}
 
     public function create(User $user, array $data, ?User $submittedBy = null): Order
     {
@@ -256,6 +263,7 @@ class OrderService
             if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_approve_first')]);
             }
+            $fulfillmentBranch = $this->branches->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
             $orderLines = $locked->lines()->whereIn('id', array_column($data['items'], 'line_id'))->get()->keyBy('id');
             abort_unless($orderLines->count() === count($data['items']), 404);
             $products = Product::whereIn('id', $orderLines->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
@@ -264,15 +272,28 @@ class OrderService
                 $line = $orderLines[$item['line_id']];
                 $product = $products[$line->product_id];
                 $quantity = $item['quantity'];
-                if ($quantity > $line->quantity - $line->dispatched || $quantity > $product->stock) {
+                $branchStock = $this->branches->ensureBranchStock($fulfillmentBranch, $product);
+                if ($quantity > $line->quantity - $line->dispatched || $quantity > $branchStock->quantity) {
                     throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_qty', ['product' => $product->name])]);
                 }
                 $previousStock = $product->stock;
-                $product->decrement('stock', $quantity);
+                $branchStock->quantity = (int) $branchStock->quantity - $quantity;
+                $branchStock->save();
+                $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
+                $product->forceFill(['stock' => $companyTotal])->save();
                 $this->stockNotifications->recordChange($product, $previousStock, $previousStock > 0 && ! $product->is_stock_paused);
                 $line->increment('dispatched', $quantity);
-                DB::table('stock_movements')->insert(['product_id' => $product->id, 'quantity' => -$quantity, 'kind' => 'dispatch',
-                    'reference' => (string) Str::uuid(), 'reason' => $locked->number, 'actor_id' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+                DB::table('stock_movements')->insert([
+                    'product_id' => $product->id,
+                    'branch_id' => $fulfillmentBranch->id,
+                    'quantity' => -$quantity,
+                    'kind' => 'dispatch',
+                    'reference' => (string) Str::uuid(),
+                    'reason' => $locked->number,
+                    'actor_id' => $actor->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
                 $shipmentLines[] = ['line_id' => $line->id, 'name' => $line->name, 'quantity' => $quantity];
             }
             $courier = (string) $data['courier'];
@@ -299,12 +320,30 @@ class OrderService
             if ($tracking === '') {
                 throw ValidationException::withMessages(['tracking' => __('portal.err_shipment_tracking')]);
             }
-            $shipmentId = DB::table('shipments')->insertGetId(['order_id' => $locked->id, 'courier' => $courier, 'tracking' => $tracking,
-                'eta' => $data['eta'] ?? null, 'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR), 'actor_id' => $actor->id,
-                'idempotency_key' => $data['idempotency_key'], 'payload_hash' => $hash, 'created_at' => now(), 'updated_at' => now()]);
+            $shipmentId = DB::table('shipments')->insertGetId([
+                'order_id' => $locked->id,
+                'branch_id' => $fulfillmentBranch->id,
+                'courier' => $courier,
+                'tracking' => $tracking,
+                'eta' => $data['eta'] ?? null,
+                'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR),
+                'actor_id' => $actor->id,
+                'idempotency_key' => $data['idempotency_key'],
+                'payload_hash' => $hash,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
-            $locked->update(['status' => $remaining ? 'partially_dispatched' : 'dispatched']);
-            $this->event($locked, $actor, 'order.dispatched', ['shipment_id' => $shipmentId, 'courier_gateway' => $gatewayMeta]);
+            $locked->update([
+                'status' => $remaining ? 'partially_dispatched' : 'dispatched',
+                'fulfillment_branch_id' => $fulfillmentBranch->id,
+            ]);
+            $this->event($locked, $actor, 'order.dispatched', [
+                'shipment_id' => $shipmentId,
+                'courier_gateway' => $gatewayMeta,
+                'branch_id' => $fulfillmentBranch->id,
+                'branch_code' => $fulfillmentBranch->code,
+            ]);
             $this->partnerNotice($locked->user_id, 'portal.notice_shipment_dispatched_title', 'portal.notice_shipment_dispatched_body', [
                 'number' => $locked->number,
                 'courier' => $courier,

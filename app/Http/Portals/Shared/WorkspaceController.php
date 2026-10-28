@@ -16,6 +16,7 @@ use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
@@ -25,8 +26,11 @@ use App\Domain\Support\TourGuide;
 use App\Domain\Support\UserManual;
 use App\Http\Controllers\Controller;
 use App\Models\AreaDealerAssignment;
+use App\Models\BranchProductStock;
+use App\Models\BranchStaffAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
+use App\Models\CompanyBranch;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\PlaceCode;
@@ -194,7 +198,63 @@ class WorkspaceController extends Controller
             }
         }
         if ($section === 'inventory') {
-            $data['movements'] = DB::table('stock_movements')->join('products', 'products.id', '=', 'product_id')->select('stock_movements.*', 'products.name')->orderByDesc('stock_movements.id')->paginate(20);
+            $branchOps = app(BranchOperations::class);
+            $data['branches'] = $branchOps->branchesFor($u);
+            $data['active_branch_id'] = $u->active_branch_id;
+            $data['active_branch'] = $u->activeBranch?->summary();
+            $data['delivery_points'] = $branchOps->deliveryPoints();
+            $activeBranchId = (int) ($u->active_branch_id ?: (CompanyBranch::query()->active()->orderBy('id')->value('id') ?? 0));
+            if ($activeBranchId > 0 && $u->allows('inventory')) {
+                $branchQuantities = BranchProductStock::query()
+                    ->where('branch_id', $activeBranchId)
+                    ->pluck('quantity', 'product_id');
+                $data['products'] = collect($data['products'] ?? [])->map(function (array $product) use ($branchQuantities) {
+                    $product['branch_stock'] = (int) ($branchQuantities[$product['id']] ?? 0);
+                    $product['company_stock'] = (int) ($product['stock'] ?? 0);
+
+                    return $product;
+                })->all();
+            }
+            $data['movements'] = DB::table('stock_movements')
+                ->join('products', 'products.id', '=', 'product_id')
+                ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
+                ->select('stock_movements.*', 'products.name', 'company_branches.code as branch_code', 'company_branches.name as branch_name')
+                ->orderByDesc('stock_movements.id')
+                ->paginate(20);
+        }
+        if ($section === 'branches') {
+            $branchOps = app(BranchOperations::class);
+            $branches = CompanyBranch::query()->orderBy('name')->paginate(20)->withQueryString();
+            $staffByBranch = BranchStaffAssignment::query()
+                ->with('user:id,name,email,phone,role')
+                ->whereIn('branch_id', $branches->getCollection()->pluck('id'))
+                ->get()
+                ->groupBy('branch_id');
+            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch) {
+                $summary = $branch->summary();
+                $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
+                    'user_id' => $row->user_id,
+                    'name' => $row->user?->name,
+                    'email' => $row->user?->email,
+                    'phone' => $row->user?->phone,
+                    'duty' => $row->duty,
+                    'is_primary' => $row->is_primary,
+                ])->values()->all();
+                $summary['stock_skus'] = (int) $branch->stocks()->where('quantity', '>', 0)->count();
+                $summary['stock_units'] = (int) $branch->stocks()->sum('quantity');
+
+                return $summary;
+            });
+            $data['active_branch_id'] = $u->active_branch_id;
+            $data['delivery_points'] = $branchOps->deliveryPoints();
+            $data['assignable_staff'] = User::query()
+                ->staffAccounts()
+                ->where('status', 'active')
+                ->orderBy('name')
+                ->limit(200)
+                ->get(['id', 'name', 'email', 'phone', 'role'])
+                ->map(fn (User $staff) => $staff->only(['id', 'name', 'email', 'phone', 'role']))
+                ->all();
         }
         if ($section === 'accounts') {
             $data['accounts'] = User::where('role', 'dealer')->when($r->filled('q'), function ($q) use ($r) {
