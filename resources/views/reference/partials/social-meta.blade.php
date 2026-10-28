@@ -1,5 +1,5 @@
 @php
-    /** @var array{title?:string,description?:string,url?:string,image?:?string,image_width?:?int,image_height?:?int,image_type?:?string,type?:string,site_name?:string} $social */
+    /** @var array{title?:string,description?:string,url?:string,image?:?string,image_width?:?int,image_height?:?int,image_type?:?string,type?:string,site_name?:string,price?:?string|float|int,currency?:?string} $social */
     $social = $social ?? [];
     $title = $social['title'] ?? __('site.meta_title_default');
     $description = $social['description'] ?? __('site.meta_description');
@@ -11,6 +11,8 @@
     $imageType = $social['image_type'] ?? null;
     $type = $social['type'] ?? 'website';
     $siteName = $social['site_name'] ?? config('app.name', 'Madina Natural Health Care');
+    $currentLocale = app()->getLocale() === 'bn' ? 'bn_BD' : 'en_US';
+    $altLocale = app()->getLocale() === 'bn' ? 'en_US' : 'bn_BD';
 @endphp
 <meta name="description" content="{{ $description }}">
 <link rel="canonical" href="{{ $url }}">
@@ -19,6 +21,8 @@
 <meta property="og:title" content="{{ $title }}">
 <meta property="og:description" content="{{ $description }}">
 <meta property="og:url" content="{{ $url }}">
+<meta property="og:locale" content="{{ $currentLocale }}">
+<meta property="og:locale:alternate" content="{{ $altLocale }}">
 @if($image)
 <meta property="og:image" content="{{ $image }}">
 <meta property="og:image:secure_url" content="{{ $image }}">
@@ -27,9 +31,14 @@
 @if($imageHeight)<meta property="og:image:height" content="{{ $imageHeight }}">@endif
 <meta property="og:image:alt" content="{{ $title }}">
 @endif
+@if($type === 'product' && !empty($social['price']))
+<meta property="product:price:amount" content="{{ $social['price'] }}">
+<meta property="product:price:currency" content="{{ $social['currency'] ?? 'BDT' }}">
+@endif
 <meta name="twitter:card" content="{{ $image ? 'summary_large_image' : 'summary' }}">
 <meta name="twitter:title" content="{{ $title }}">
 <meta name="twitter:description" content="{{ $description }}">
 @if($image)
 <meta name="twitter:image" content="{{ $image }}">
+<meta name="twitter:image:alt" content="{{ $title }}">
 @endif

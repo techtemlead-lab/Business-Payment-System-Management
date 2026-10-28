@@ -64,14 +64,17 @@ class PublicController extends Controller
             $maps = app(MapsPresentation::class)->forAddress($officeAddress);
         }
 
+        $contentPages = $this->cachedContentPages();
+        $pageContent = $contentPages[$page] ?? null;
+        $customTitle = filled($pageContent->title ?? null) ? ((string) $pageContent->title.' · '.(string) config('app.name', 'Madina Natural Health Care')) : null;
+        $customDesc = filled($pageContent->body ?? null) ? mb_substr(trim(strip_tags((string) $pageContent->body)), 0, 280) : null;
+
         $social = $page === 'home'
             ? SocialShareMeta::homepage()
-            : SocialShareMeta::page($page);
-
-        $contentPages = $this->cachedContentPages();
+            : SocialShareMeta::page($page, $customTitle, $customDesc);
 
         return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
-            'content' => $contentPages[$page] ?? null,
+            'content' => $pageContent,
             'notice' => $contentPages['notice'] ?? null,
             // Home does not render catalog category filters; skip the cached pluck there.
             'categories' => collect(),

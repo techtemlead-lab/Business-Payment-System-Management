@@ -141,16 +141,16 @@
         <div style="margin-top:20px; padding-top:16px; border-top:1px solid #e2e8f0;">
             <h3 style="font-size:14px; font-weight:700; color:#1e293b; margin-bottom:10px;">{{ $chrome('contact_social_title', $siteCustomization['contact_social_title'] ?? null) }}</h3>
             <div class="ref-socials" style="margin-top:0;">
-                @foreach($socialMap as $social => $link)
+                @foreach($socialMap as $platform => $link)
                 @php
                     $href = filled($link) && $link !== '#' ? $link : '';
-                    if ($social === 'whatsapp' && $href !== '' && ! str_starts_with($href, 'http')) {
+                    if ($platform === 'whatsapp' && $href !== '' && ! str_starts_with($href, 'http')) {
                         $cleaned = preg_replace('/[^0-9]/', '', $href);
                         $href = $cleaned ? 'https://wa.me/'.(str_starts_with($cleaned, '01') ? '88'.$cleaned : $cleaned) : '';
                     }
                 @endphp
                 @if(filled($href) && $href !== '#')
-                <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($social) }}"><img src="/reference/icons/{{ $social }}.png" alt="{{ ucfirst($social) }}"></a>
+                <a href="{{ $href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ ucfirst($platform) }}"><img src="/reference/icons/{{ $platform }}.png" alt="{{ ucfirst($platform) }}"></a>
                 @endif
                 @endforeach
             </div>

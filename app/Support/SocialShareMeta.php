@@ -62,9 +62,17 @@ final class SocialShareMeta
         $rawImage = trim((string) ($product['image_url'] ?? $product['image_path'] ?? ''));
         $usingDefault = $rawImage === '';
         $image = self::absoluteUrl($usingDefault ? self::DefaultShareImage : $rawImage, $usingDefault);
-        $imageWidth = $usingDefault ? self::DefaultShareImageWidth : null;
-        $imageHeight = $usingDefault ? self::DefaultShareImageHeight : null;
-        $imageType = $usingDefault ? self::DefaultShareImageType : null;
+        $imageWidth = $usingDefault ? self::DefaultShareImageWidth : 800;
+        $imageHeight = $usingDefault ? self::DefaultShareImageHeight : 800;
+        $ext = strtolower(pathinfo(parse_url($image, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $imageType = $usingDefault
+            ? self::DefaultShareImageType
+            : match ($ext) {
+                'png' => 'image/png',
+                'webp' => 'image/webp',
+                'gif' => 'image/gif',
+                default => 'image/jpeg',
+            };
         $partnerPayload = null;
 
         if ($partner && in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
@@ -82,14 +90,14 @@ final class SocialShareMeta
             $description = $contactLine.' '.$description;
             if ($partnerPayload['photo']) {
                 $image = $partnerPayload['photo'];
-                $imageWidth = null;
-                $imageHeight = null;
-                $imageType = null;
+                $imageWidth = 400;
+                $imageHeight = 400;
+                $imageType = 'image/jpeg';
             }
         }
 
         return [
-            'title' => $name.' · '.(string) config('app.name', 'Madina'),
+            'title' => $name.' · '.(string) config('app.name', 'Madina Natural Health Care'),
             'description' => mb_substr($description, 0, 280),
             'url' => $url,
             'image' => $image,
@@ -98,6 +106,8 @@ final class SocialShareMeta
             'image_type' => $imageType,
             'type' => 'product',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
+            'price' => isset($product['price']) ? (string) $product['price'] : (isset($product['mrp']) ? (string) $product['mrp'] : null),
+            'currency' => 'BDT',
             'partner' => $partnerPayload,
         ];
     }
@@ -118,13 +128,13 @@ final class SocialShareMeta
         ]);
 
         return [
-            'title' => __('site.share_refer_title', ['name' => $partner->name, 'company' => (string) config('app.name', 'Madina')]),
+            'title' => __('site.share_refer_title', ['name' => $partner->name, 'company' => (string) config('app.name', 'Madina Natural Health Care')]),
             'description' => mb_substr($description, 0, 280),
             'url' => PortalHost::url('public', '/join/'.$code),
             'image' => $photo,
-            'image_width' => $usingDefault ? self::DefaultShareImageWidth : null,
-            'image_height' => $usingDefault ? self::DefaultShareImageHeight : null,
-            'image_type' => $usingDefault ? self::DefaultShareImageType : null,
+            'image_width' => $usingDefault ? self::DefaultShareImageWidth : 400,
+            'image_height' => $usingDefault ? self::DefaultShareImageHeight : 400,
+            'image_type' => $usingDefault ? self::DefaultShareImageType : 'image/jpeg',
             'type' => 'profile',
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => [
@@ -151,14 +161,114 @@ final class SocialShareMeta
     {
         $home = self::homepage();
         $path = $page === 'home' || $page === '' ? '/' : '/'.ltrim($page, '/');
-        $label = $title ?: (ucfirst(str_replace('-', ' ', $page)).' · '.$home['site_name']);
+        $presets = self::pagePresets($page);
+        $label = $title ?: ($presets['title'] ?? (ucfirst(str_replace('-', ' ', $page)).' · '.$home['site_name']));
+        $desc = $description ?: ($presets['description'] ?? $home['description']);
 
         return [
             ...$home,
             'title' => $label,
-            'description' => $description ?: $home['description'],
+            'description' => $desc,
             'url' => PortalHost::url('public', $path),
             'type' => 'website',
+        ];
+    }
+
+    /**
+     * Pre-configured metadata for key informational pages.
+     *
+     * @return array{title:string,description:string}
+     */
+    public static function pagePresets(string $page): array
+    {
+        $site = (string) config('app.name', 'Madina Natural Health Care');
+        $presets = [
+            'products' => [
+                'title' => 'Products · '.$site,
+                'description' => 'Explore authentic herbal, natural health, and wellness products from Madina Natural Health Care.',
+            ],
+            'dealers' => [
+                'title' => 'Dealer Directory · '.$site,
+                'description' => 'Find authorized Madina dealers, distribution points, and contact details across Bangladesh.',
+            ],
+            'about' => [
+                'title' => 'About Us · '.$site,
+                'description' => 'Learn about Madina Natural Health Care, our mission, natural wellness philosophy, and dedication to health.',
+            ],
+            'contact' => [
+                'title' => 'Contact Us · '.$site,
+                'description' => 'Get in touch with Madina Natural Health Care for corporate enquiries, product information, or dealer support.',
+            ],
+            'partnership' => [
+                'title' => 'Partnership · '.$site,
+                'description' => 'Become a business partner with Madina Natural Health Care as an authorized dealer or sub-dealer.',
+            ],
+            'services' => [
+                'title' => 'Our Services · '.$site,
+                'description' => 'Explore professional healthcare, consultation, and supply chain services by Madina Natural Health Care.',
+            ],
+            'quality' => [
+                'title' => 'Quality Promise · '.$site,
+                'description' => 'Our 100% natural, tested, and high-quality herbal product commitment.',
+            ],
+            'faq' => [
+                'title' => 'FAQ · '.$site,
+                'description' => 'Frequently asked questions regarding Madina products, orders, delivery, and dealer network.',
+            ],
+            'privacy' => [
+                'title' => 'Privacy Policy · '.$site,
+                'description' => 'Privacy Policy and data protection terms of Madina Natural Health Care.',
+            ],
+            'terms' => [
+                'title' => 'Terms of Use · '.$site,
+                'description' => 'Terms of service and usage conditions for Madina Natural Health Care.',
+            ],
+            'notice' => [
+                'title' => 'Company Notices · '.$site,
+                'description' => 'Official notices and announcements from Madina Natural Health Care management.',
+            ],
+        ];
+
+        return $presets[$page] ?? [
+            'title' => ucfirst(str_replace('-', ' ', $page)).' · '.$site,
+            'description' => 'Madina Natural Health Care products, company information and dealer network.',
+        ];
+    }
+
+    /**
+     * Branded Open Graph metadata for portal sign-in and auth screens.
+     *
+     * @return array{title:string,description:string,url:string,image:string,image_width:int,image_height:int,image_type:string,type:string,site_name:string}
+     */
+    public static function portalAuth(string $portal, string $mode = 'login'): array
+    {
+        $site = (string) config('app.name', 'Madina Natural Health Care');
+        $portalLabel = match ($portal) {
+            'subdealer' => 'Sub-dealer Portal',
+            'sadmin' => 'Owner Portal',
+            'manage' => 'Staff Portal',
+            default => 'Dealer Portal',
+        };
+        $modeTitle = match ($mode) {
+            'otp' => 'OTP Verification',
+            'forgot' => 'Forgot Password',
+            'reset' => 'Reset Password',
+            default => 'Account Sign In',
+        };
+
+        $title = $modeTitle.' · '.$portalLabel.' · '.$site;
+        $description = 'Authorized secure login portal for '.$portalLabel.' partners and operators of '.$site.'.';
+
+        return [
+            'title' => $title,
+            'description' => $description,
+            'url' => url()->current(),
+            'image' => self::absoluteUrl(self::DefaultShareImage, true),
+            'image_width' => self::DefaultShareImageWidth,
+            'image_height' => self::DefaultShareImageHeight,
+            'image_type' => self::DefaultShareImageType,
+            'type' => 'website',
+            'site_name' => $site,
         ];
     }
 
