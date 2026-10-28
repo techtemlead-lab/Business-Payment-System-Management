@@ -3,7 +3,7 @@ import { router, usePage } from '@inertiajs/react';
 import {
     Sparkles, BookOpen, Compass, ChevronRight, ChevronLeft, X, Search,
     CheckCircle2, HelpCircle, Lightbulb, ArrowUpRight, ShoppingBag, Coins,
-    ShieldCheck, Layers, FileText, ArrowRight, RotateCcw, MapPin, Zap
+    ShieldCheck, Layers, FileText, ArrowRight, RotateCcw, MapPin, Zap, Info, AlertTriangle
 } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 
@@ -28,10 +28,17 @@ export type TourDefinition = {
 
 export type ManualChapter = {
     key: string;
+    badge?: string;
     title: string;
     summary: string;
+    purpose?: string;
+    why?: string;
     steps: string[];
+    outcomes?: string[];
+    rules?: string[];
     tips: string[];
+    warnings?: string[];
+    faqs?: Array<{ q: string; a: string }>;
     keywords?: string[];
 };
 
@@ -819,9 +826,14 @@ export default function OnboardingTour({
                                     <>
                                         <div className="reader-header">
                                             <div>
-                                                <span className="reader-eyebrow">
-                                                    {translate('portal', 'help_manual_title')} · {activeChapter.key.replaceAll('_', ' ')}
-                                                </span>
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                                                    <span className="reader-eyebrow">
+                                                        {translate('portal', 'help_manual_title')} · {activeChapter.key.replaceAll('_', ' ')}
+                                                    </span>
+                                                    {activeChapter.badge && (
+                                                        <span className="badge info small">{activeChapter.badge}</span>
+                                                    )}
+                                                </div>
                                                 <h2>{activeChapter.title}</h2>
                                                 <p className="reader-summary">{activeChapter.summary}</p>
                                             </div>
@@ -841,8 +853,28 @@ export default function OnboardingTour({
                                             )}
                                         </div>
 
+                                        {activeChapter.purpose && (
+                                            <div className="help-manual-callout help-manual-purpose" style={{ margin: '14px 0' }}>
+                                                <Info size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                <div>
+                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_purpose')}</strong>
+                                                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>{activeChapter.purpose}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeChapter.why && (
+                                            <div className="help-manual-callout help-manual-why" style={{ margin: '14px 0' }}>
+                                                <Compass size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                <div>
+                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_why')}</strong>
+                                                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>{activeChapter.why}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="reader-steps-list">
-                                            <h4>{translate('portal', 'manual_ch_getting_started_title')}</h4>
+                                            <h4>{translate('portal', 'help_manual_steps')}</h4>
                                             <div className="step-cards-grid">
                                                 {activeChapter.steps.map((stepText, sIdx) => (
                                                     <div className="manual-step-card" key={sIdx}>
@@ -852,6 +884,34 @@ export default function OnboardingTour({
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {activeChapter.outcomes && activeChapter.outcomes.length > 0 && (
+                                            <div className="help-manual-callout help-manual-outcomes" style={{ margin: '14px 0' }}>
+                                                <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                <div>
+                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_outcomes')}</strong>
+                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                        {activeChapter.outcomes.map((out, oIdx) => (
+                                                            <li key={oIdx}>{out}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeChapter.rules && activeChapter.rules.length > 0 && (
+                                            <div className="help-manual-callout help-manual-rules" style={{ margin: '14px 0' }}>
+                                                <FileText size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                <div>
+                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_rules')}</strong>
+                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                        {activeChapter.rules.map((rule, rIdx) => (
+                                                            <li key={rIdx}>{rule}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {activeChapter.tips && activeChapter.tips.length > 0 && (
                                             <div className="reader-tips-section">
@@ -865,6 +925,34 @@ export default function OnboardingTour({
                                                             ))}
                                                         </ul>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeChapter.warnings && activeChapter.warnings.length > 0 && (
+                                            <div className="help-manual-callout help-manual-warnings" style={{ margin: '14px 0' }}>
+                                                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                                <div>
+                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_warnings')}</strong>
+                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                        {activeChapter.warnings.map((warn, wIdx) => (
+                                                            <li key={wIdx}>{warn}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {activeChapter.faqs && activeChapter.faqs.length > 0 && (
+                                            <div style={{ marginTop: 16 }}>
+                                                <h4 style={{ margin: '0 0 10px', fontSize: 14 }}>{translate('portal', 'help_manual_faqs')}</h4>
+                                                <div style={{ display: 'grid', gap: 8 }}>
+                                                    {activeChapter.faqs.map((faq, fIdx) => (
+                                                        <div key={fIdx} style={{ padding: 12, border: '1px solid var(--border, #e2e8f0)', borderRadius: 10, background: 'var(--panel-bg, #f8fafc)' }}>
+                                                            <strong style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--text-primary, #0f172a)' }}>{faq.q}</strong>
+                                                            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary, #475569)', lineHeight: 1.5 }}>{faq.a}</p>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}

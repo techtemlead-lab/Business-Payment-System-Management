@@ -1140,3 +1140,146 @@ html[data-theme="dark"] .ref-partner-trust-note {
 html[data-theme="dark"] .ref-partner-trust-note i {
     color: #4ade80 !important;
 }
+
+/* =========================================================================
+   DARK THEME: Enterprise Documentation & User Manual
+   ========================================================================= */
+html[data-theme="dark"] .help-manual-brand-tag {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .help-manual-search-box {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-manual-search-box input {
+    color: #f8fafc !important;
+}
+html[data-theme="dark"] .category-pill {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .category-pill.active {
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+    color: #ffffff !important;
+}
+html[data-theme="dark"] .help-manual-toc {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-toc-header {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .help-toc-item:hover {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-toc-item.active {
+    background: rgba(79, 70, 229, 0.18) !important;
+    border-color: #4f46e5 !important;
+}
+html[data-theme="dark"] .help-toc-title {
+    color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .help-toc-snippet {
+    color: #94a3b8 !important;
+}
+html[data-theme="dark"] .help-manual-article {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-article-header {
+    border-color: #1e293b !important;
+}
+html[data-theme="dark"] .help-article-title {
+    color: #f8fafc !important;
+}
+html[data-theme="dark"] .help-article-summary {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-left-color: #6366f1 !important;
+}
+html[data-theme="dark"] .help-article-anchors {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-article-anchors a {
+    color: #818cf8 !important;
+}
+html[data-theme="dark"] .help-manual-purpose {
+    background: rgba(30, 58, 138, 0.2) !important;
+    border-color: #1e40af !important;
+}
+html[data-theme="dark"] .help-manual-purpose h4,
+html[data-theme="dark"] .help-manual-purpose p {
+    color: #bfdbfe !important;
+}
+html[data-theme="dark"] .help-manual-why {
+    background: rgba(88, 28, 135, 0.2) !important;
+    border-color: #6d28d9 !important;
+}
+html[data-theme="dark"] .help-manual-why h4,
+html[data-theme="dark"] .help-manual-why p {
+    color: #ddd6fe !important;
+}
+html[data-theme="dark"] .help-manual-outcomes {
+    background: rgba(20, 83, 45, 0.2) !important;
+    border-color: #15803d !important;
+}
+html[data-theme="dark"] .help-manual-outcomes h4,
+html[data-theme="dark"] .help-manual-outcomes ul {
+    color: #bbf7d0 !important;
+}
+html[data-theme="dark"] .help-manual-rules {
+    background: rgba(30, 41, 59, 0.5) !important;
+    border-color: #475569 !important;
+}
+html[data-theme="dark"] .help-manual-rules h4,
+html[data-theme="dark"] .help-manual-rules ul {
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .help-manual-tips-callout {
+    background: rgba(120, 53, 15, 0.2) !important;
+    border-color: #b45309 !important;
+}
+html[data-theme="dark"] .help-manual-tips-callout h4,
+html[data-theme="dark"] .help-manual-tips-callout ul {
+    color: #fde68a !important;
+}
+html[data-theme="dark"] .help-manual-warnings {
+    background: rgba(127, 29, 29, 0.2) !important;
+    border-color: #b91c1c !important;
+}
+html[data-theme="dark"] .help-manual-warnings h4,
+html[data-theme="dark"] .help-manual-warnings ul {
+    color: #fecaca !important;
+}
+html[data-theme="dark"] .help-timeline-item {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .timeline-step-text {
+    color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .help-faq-item {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+html[data-theme="dark"] .help-faq-item.open {
+    background: #0f172a !important;
+    border-color: #4f46e5 !important;
+}
+html[data-theme="dark"] .help-faq-question-btn {
+    color: #f8fafc !important;
+}
+html[data-theme="dark"] .help-faq-answer {
+    border-top-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .help-article-footer {
+    border-top-color: #1e293b !important;
+}

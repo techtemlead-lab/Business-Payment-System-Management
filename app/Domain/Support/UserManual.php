@@ -9,14 +9,17 @@ final class UserManual
     /**
      * @return list<array{
      *   key: string,
+     *   badge: ?string,
      *   title: string,
      *   summary: string,
      *   purpose: ?string,
      *   why: ?string,
      *   steps: list<string>,
      *   outcomes: list<string>,
+     *   rules: list<string>,
      *   tips: list<string>,
      *   warnings: list<string>,
+     *   faqs: list<array{q: string, a: string}>,
      *   keywords: list<string>
      * }>
      */
@@ -43,10 +46,12 @@ final class UserManual
                     $this->line($chapter['summary_key']),
                     $this->line($chapter['purpose_key'] ?? null),
                     $this->line($chapter['why_key'] ?? null),
+                    $this->line($chapter['badge_key'] ?? null),
                     implode(' ', $chapter['keywords']),
-                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['step_keys'])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['step_keys'] ?? [])),
                     implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['outcome_keys'] ?? [])),
-                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys'])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['rule_keys'] ?? [])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys'] ?? [])),
                     implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['warning_keys'] ?? [])),
                 ];
 
@@ -60,14 +65,17 @@ final class UserManual
     /**
      * @return array{
      *   key: string,
+     *   badge: ?string,
      *   title: string,
      *   summary: string,
      *   purpose: ?string,
      *   why: ?string,
      *   steps: list<string>,
      *   outcomes: list<string>,
+     *   rules: list<string>,
      *   tips: list<string>,
      *   warnings: list<string>,
+     *   faqs: list<array{q: string, a: string}>,
      *   keywords: list<string>
      * }|null
      */
@@ -87,10 +95,10 @@ final class UserManual
      */
     private function audience(User $user): array
     {
-        if ($user->owner()) {
+        if ($user->owner() || in_array($user->role, ['super_admin', 'owner', 'md', 'chairman'], true)) {
             return ['owner', 'staff', 'dealer', 'sub_dealer', 'partner'];
         }
-        if ($user->staff() || $user->usingStaffWorkspace()) {
+        if ($user->staff() || in_array($user->role, ['staff', 'employee', 'admin'], true) || $user->usingStaffWorkspace()) {
             return ['staff', 'dealer', 'sub_dealer', 'partner'];
         }
         if ($user->role === 'sub_dealer') {
@@ -104,14 +112,17 @@ final class UserManual
      * @param  array<string, mixed>  $chapter
      * @return array{
      *   key: string,
+     *   badge: ?string,
      *   title: string,
      *   summary: string,
      *   purpose: ?string,
      *   why: ?string,
      *   steps: list<string>,
      *   outcomes: list<string>,
+     *   rules: list<string>,
      *   tips: list<string>,
      *   warnings: list<string>,
+     *   faqs: list<array{q: string, a: string}>,
      *   keywords: list<string>
      * }
      */
@@ -119,15 +130,23 @@ final class UserManual
     {
         return [
             'key' => $chapter['key'],
+            'badge' => $this->optionalLine($chapter['badge_key'] ?? null),
             'title' => $this->line($chapter['title_key']),
             'summary' => $this->line($chapter['summary_key']),
             'purpose' => $this->optionalLine($chapter['purpose_key'] ?? null),
             'why' => $this->optionalLine($chapter['why_key'] ?? null),
-            'steps' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['step_keys']))),
+            'steps' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['step_keys'] ?? []))),
             'outcomes' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['outcome_keys'] ?? []))),
-            'tips' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys']))),
+            'rules' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['rule_keys'] ?? []))),
+            'tips' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys'] ?? []))),
             'warnings' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['warning_keys'] ?? []))),
-            'keywords' => $chapter['keywords'],
+            'faqs' => array_values(array_filter(array_map(function (array $faq): array {
+                return [
+                    'q' => $this->line($faq['q_key']),
+                    'a' => $this->line($faq['a_key']),
+                ];
+            }, $chapter['faq_keys'] ?? []))),
+            'keywords' => $chapter['keywords'] ?? [],
         ];
     }
 
@@ -142,53 +161,56 @@ final class UserManual
             return $manual;
         }
 
-        // Backward-compatible fallback while older portal keys remain.
-        return (string) __('portal.'.$key);
+        $portal = __('portal.'.$key);
+        if (is_string($portal) && $portal !== 'portal.'.$key) {
+            return $portal;
+        }
+
+        return '';
     }
 
     private function optionalLine(?string $key): ?string
     {
-        $value = $this->line($key);
+        $val = $this->line($key);
 
-        return $value === '' ? null : $value;
+        return $val !== '' ? $val : null;
     }
 
     /**
-     * Enterprise product manual catalog. Content lives in lang/{locale}/manual.php.
-     * Live TourGuide definitions are separate and must not be edited here.
+     * Complete, fully comprehensive 28-chapter enterprise user manual.
      *
      * @return list<array<string, mixed>>
      */
     private function chapters(): array
     {
         return [
-            $this->ch('getting_started', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['start', 'login', 'dashboard', 'overview', 'portal', 'শুরু', 'লগইন', 'ড্যাশবোর্ড']),
+            $this->ch('getting_started', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['start', 'login', 'dashboard', 'overview', 'portal', 'শুরু', 'লগইন', 'ড্যাশবোর্ড', 'অনবোর্ডিং']),
             $this->ch('navigation_workspace', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['navigation', 'sidebar', 'language', 'theme', 'day', 'night', 'module', 'নেভিগেশন', 'ভাষা', 'থিম']),
-            $this->ch('profile_security', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['profile', 'password', 'security', '2fa', 'totp', 'session', 'id_card', 'প্রোফাইল', 'পাসওয়ার্ড', 'নিরাপত্তা']),
-            $this->ch('notifications_circulars', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['notification', 'circular', 'notice', 'alert', 'নোটিশ', 'সার্কুলার']),
-            $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 12, 3, 3, 2, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস']),
-            $this->ch('deliveries_dues', ['partner', 'dealer', 'sub_dealer'], 9, 3, 2, 2, ['delivery', 'due', 'dispatch', 'courier', 'claim', 'ডেলিভারি', 'বাকি', 'চালান']),
-            $this->ch('commissions_pool', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 11, 3, 3, 2, ['commission', 'earnings', 'ledger', '40%', '60%', 'wallet', 'কমিশন', 'আয়', 'লেজার']),
-            $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'উত্তোলন', 'ওয়ালেট']),
-            $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট']),
-            $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 10, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল']),
-            $this->ch('area_dealers_places', ['dealer', 'staff', 'owner'], 8, 2, 2, 2, ['place_code', 'area_dealer', 'territory', 'division', 'district', 'প্লেস কোড', 'এরিয়া']),
-            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 9, 3, 2, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি']),
-            $this->ch('rewards_milestones', ['dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক']),
-            $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'reserve', '5%', '2%', 'বেতন', 'সাব-ডিলার']),
-            $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট']),
-            $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'dues', 'claims', 'অনুমোদন', 'ডিসপ্যাচ']),
-            $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ']),
-            $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম']),
-            $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'upazila', 'ভূগোল']),
-            $this->ch('finance_treasury', ['staff', 'owner'], 10, 3, 3, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন']),
-            $this->ch('finance_policies_simulator', ['staff', 'owner'], 9, 3, 2, 2, ['policy', 'commission', 'simulator', 'preview', 'rate', 'পলিসি', 'সিমুলেটর']),
-            $this->ch('payouts_settlements', ['staff', 'owner'], 10, 3, 3, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট']),
-            $this->ch('ledger_audit_reports', ['staff', 'owner'], 9, 3, 2, 2, ['ledger', 'audit', 'reports', 'integrity', 'লেজার', 'অডিট']),
-            $this->ch('website_customization', ['staff', 'owner'], 9, 2, 2, 1, ['website', 'cms', 'banner', 'enquiries', 'partnerships', 'ওয়েবসাইট']),
-            $this->ch('owner_benefits_fund', ['owner'], 8, 3, 2, 2, ['benefits-fund', 'owner', 'equity', 'confidential', 'ওনার ফান্ড']),
-            $this->ch('dual_dashboard', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['dual', 'switch', 'staff', 'partner', 'ড্যাশবোর্ড সুইচ']),
-            $this->ch('financial_activation_gates', ['staff', 'owner'], 8, 3, 3, 3, ['activation', 'preview', 'opening_balance', 'readiness', 'আর্থিক সক্রিয়করণ']),
+            $this->ch('profile_security', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['profile', 'password', 'security', '2fa', 'totp', 'session', 'id_card', 'প্রোফাইল', 'পাসওয়ার্ড', 'নিরাপত্তা', 'কেওয়াইসি']),
+            $this->ch('notifications_circulars', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['notification', 'circular', 'notice', 'alert', 'নোটিশ', 'সার্কুলার', 'ঘোষণা']),
+            $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 12, 3, 3, 2, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস', 'পাইকারি']),
+            $this->ch('deliveries_dues', ['partner', 'dealer', 'sub_dealer'], 9, 3, 2, 2, ['delivery', 'due', 'dispatch', 'courier', 'claim', 'ডেলিভারি', 'বাকি', 'চালান', 'কুরিয়ার']),
+            $this->ch('commissions_pool', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 11, 3, 3, 2, ['commission', 'earnings', 'ledger', '40%', '60%', 'wallet', 'কমিশন', 'আয়', 'লেজার', 'ওয়ালেট']),
+            $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'উত্তোলন', 'ওয়ালেট', 'পেআউট']),
+            $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট', 'অডিট', 'বিবরণী']),
+            $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 10, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল', 'ডাউনলাইন', 'টিম']),
+            $this->ch('area_dealers_places', ['dealer', 'staff', 'owner'], 8, 2, 2, 2, ['place_code', 'area_dealer', 'territory', 'division', 'district', 'প্লেস কোড', 'এরিয়া', 'টেরিটোরি']),
+            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 9, 3, 2, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি', 'সম্মাননা']),
+            $this->ch('rewards_milestones', ['dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক', 'গাড়ি', 'বাইক']),
+            $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'reserve', '5%', '2%', 'বেতন', 'সাব-ডিলার', 'ট্যুর']),
+            $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট', 'পারমিশন']),
+            $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'dues', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
+            $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
+            $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম', 'ব্রাঞ্চ']),
+            $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'উপজেলা']),
+            $this->ch('finance_treasury', ['staff', 'owner'], 10, 3, 3, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন', 'ক্যাশ']),
+            $this->ch('finance_policies_simulator', ['staff', 'owner'], 9, 3, 2, 2, ['policy', 'commission', 'simulator', 'preview', 'rate', 'পলিসি', 'সিমুলেটর', 'স্যান্ডবক্স']),
+            $this->ch('payouts_settlements', ['staff', 'owner'], 10, 3, 3, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট', 'নিষ্পত্তি']),
+            $this->ch('ledger_audit_reports', ['staff', 'owner'], 9, 3, 2, 2, ['ledger', 'audit', 'reports', 'integrity', 'লেজার', 'অডিট', 'আইডিপোটেন্সি']),
+            $this->ch('website_customization', ['staff', 'owner'], 9, 2, 2, 1, ['website', 'cms', 'banner', 'enquiries', 'partnerships', 'ওয়েবসাইট', 'সিএমএস', 'ব্যানার']),
+            $this->ch('owner_benefits_fund', ['owner'], 8, 3, 2, 2, ['benefits-fund', 'owner', 'equity', 'confidential', 'ওনার ফান্ড', 'লভ্যাংশ', 'এক্সিকিউটিভ']),
+            $this->ch('dual_dashboard', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['dual', 'switch', 'staff', 'partner', 'ড্যাশবোর্ড সুইচ', 'ডুয়াল']),
+            $this->ch('financial_activation_gates', ['staff', 'owner'], 8, 3, 3, 3, ['activation', 'preview', 'opening_balance', 'readiness', 'আর্থিক সক্রিয়করণ', 'গো-লাইভ']),
             $this->ch('support', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['support', 'ticket', 'help', 'manual', 'সাপোর্ট', 'টিকেট', 'হেল্প']),
         ];
     }
@@ -203,6 +225,7 @@ final class UserManual
         return [
             'key' => $key,
             'audience' => $audience,
+            'badge_key' => $key.'_badge',
             'title_key' => $key.'_title',
             'summary_key' => $key.'_summary',
             'purpose_key' => $key.'_purpose',
