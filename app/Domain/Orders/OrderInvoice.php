@@ -186,8 +186,8 @@ final class OrderInvoice
             'company' => $company,
             'order' => [
                 'number' => $order->number,
-                'date' => $created?->format('d.m.y'),
-                'created_at' => $created?->format('d M Y'),
+                'date' => $created?->format('d/m/Y'),
+                'created_at' => $created?->format('d/m/Y'),
                 'status' => $order->status,
                 'total' => Money::decimal(Money::cents((string) $order->total)),
                 'paid' => Money::decimal(Money::cents((string) $order->paid)),

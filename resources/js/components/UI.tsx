@@ -4,6 +4,9 @@ import {ArrowUpRight, X,Inbox} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
 import {businessDate} from '../business-date';
 import {useT} from '../shared/i18n/t';
+import DateInput from './DateInput';
+
+export { default as DateInput } from './DateInput';
 export type Row=Record<string,any>;
 export const money=(value:unknown)=>{
  const num=Number(value??0);
@@ -85,5 +88,5 @@ export function ActionForm({action,fields,defaults={},submit,method='post',onDon
  const {portal,staffActions}=usePage<any>().props;
  const initial:Row={...Object.fromEntries(fields.map(f=>[f.name,f.value??''])),...defaults}; const f=useForm<Row>(initial);
  if((portal==='manage'||portal==='sadmin')&&!actionAllowed(action,staffActions,method))return null;
- return <form className="action-form" onSubmit={e=>{e.preventDefault();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=><label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<select value={String(f.data[field.name])} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}><option value="">{translate('portal','select_placeholder')}</option>{field.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {f.errors[field.name]&&<span className="field-error">{String(f.errors[field.name])}</span>}</label>)}<button disabled={f.processing} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
+ return <form className="action-form" onSubmit={e=>{e.preventDefault();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=><label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.type==='date'?<DateInput value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<select value={String(f.data[field.name])} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}><option value="">{translate('portal','select_placeholder')}</option>{field.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {f.errors[field.name]&&<span className="field-error">{String(f.errors[field.name])}</span>}</label>)}<button disabled={f.processing} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
 }

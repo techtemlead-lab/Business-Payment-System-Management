@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { BarChart3, Building2, CalendarRange } from 'lucide-react';
-import { Table, money, date, Badge, type Row } from './UI';
+import { Table, money, date, Badge, type Row, DateInput } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface PeriodState {
@@ -125,10 +125,10 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                         <>
                             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
                                 <CalendarRange size={14} />
-                                <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+                                <DateInput value={from} onChange={(e) => setFrom(e.target.value)} />
                             </label>
                             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                                <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+                                <DateInput value={to} onChange={(e) => setTo(e.target.value)} />
                             </label>
                         </>
                     )}

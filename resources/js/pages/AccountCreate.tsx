@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { label, type Row } from '../components/UI';
+import { label, type Row, DateInput } from '../components/UI';
 import {
     ArrowLeft, UserPlus, ShieldAlert, MapPin, Store, Building2, BadgeCheck,
     Search, IdCard, Phone, Hash, AlertTriangle, CheckCircle2,
@@ -475,7 +475,7 @@ export default function AccountCreate({
                                     )}
                                     <label>
                                         {translate('portal','acct_dob')}
-                                        <input type="date" required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
+                                        <DateInput required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
                                         {form.errors.date_of_birth && <span className="field-error">{form.errors.date_of_birth}</span>}
                                     </label>
                                 </div>

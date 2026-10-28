@@ -3,7 +3,7 @@ import {Head, Link, useForm, usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
 import StaffAccessEditor from '../components/StaffAccessEditor';
 import {actionAllowed} from '../components/action-permissions';
-import {Badge, Empty, Modal, Pagination, Row, Table, label, money} from '../components/UI';
+import {Badge, Empty, Modal, Pagination, Row, Table, label, money, DateInput} from '../components/UI';
 import {useT} from '../shared/i18n/t';
 
 type Option = {value:string;label:string};
@@ -118,7 +118,7 @@ function Reports({salesOnly=false}:{salesOnly?:boolean}) {
     return <section className="panel"><h2>{translate('portal','ops_download_reports')}</h2><p>{translate('portal','ops_download_reports_hint')}</p><form className="action-form" action={root+'/reports'} method="get">
         <label>{translate('portal','ops_report')}<select required name="type">{(salesOnly?['orders','dues','payroll']:['orders','products','product-summary','category-summary','dues','due-adjustments','commissions','settlements','payroll','withdrawals','ledger','rewards','rank-achievements','rank-incentives','refunds']).map(t=><option key={t} value={t}>{t==='products'?translate('portal','ops_report_products'):t==='refunds'?translate('portal','ops_report_refunds'):label(t.replaceAll('-','_'))}</option>)}</select></label>
         <label>{translate('portal','ops_period')}<select value={period} onChange={e=>{const value=e.target.value;setPeriod(value);if(value!=='custom'){const start=new Date(dhaka);if(value==='week')start.setDate(start.getDate()-((start.getDay()+6)%7));if(value==='month')start.setDate(1);setFrom(iso(start));setTo(iso(dhaka));}}}><option value="day">{translate('portal','ops_period_day')}</option><option value="week">{translate('portal','ops_period_week')}</option><option value="month">{translate('portal','ops_period_month')}</option><option value="custom">{translate('portal','ops_period_custom')}</option></select></label>
-        <label>{translate('portal','date_from')}<input name="from" required type="date" value={from} onChange={e=>{setFrom(e.target.value);setPeriod('custom');}}/></label><label>{translate('portal','ops_through')}<input name="to" required type="date" min={from} value={to} onChange={e=>{setTo(e.target.value);setPeriod('custom');}}/></label>
+        <label>{translate('portal','date_from')}<DateInput name="from" required value={from} onChange={e=>{setFrom(e.target.value);setPeriod('custom');}}/></label><label>{translate('portal','ops_through')}<DateInput name="to" required min={from} value={to} onChange={e=>{setTo(e.target.value);setPeriod('custom');}}/></label>
         <label>{translate('portal','ops_format')}<select name="format"><option value="xlsx">{translate('portal','ops_format_xlsx')}</option><option value="pdf">{translate('portal','ops_format_pdf')}</option></select></label><button className="button dark">{translate('portal','ops_download_report')}</button>
     </form></section>;
 }

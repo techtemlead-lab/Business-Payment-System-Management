@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { Row, Table, Badge, money, date, label, ActionForm } from '../components/UI';
+import { Row, Table, Badge, money, date, label, ActionForm, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 function DispatchForm({ order }: { order: Row }) {
@@ -17,7 +17,7 @@ function DispatchForm({ order }: { order: Row }) {
         <div className="form-grid">
             <label>{translate('portal', 'courier')}<input required value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
             <label>{translate('portal', 'tracking_reference')}<input required value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
-            <label>{translate('portal', 'estimated_delivery')}<input type="date" value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
+            <label>{translate('portal', 'estimated_delivery')}<DateInput value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
         </div>
         {form.data.items.map((item: Row, index: number) => <label key={item.line_id}>
             {order.lines.find((line: Row) => line.id === item.line_id)?.name}

@@ -1,7 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Download, FileBarChart2 } from 'lucide-react';
-import { Badge, money, date, Table, type Row } from './UI';
+import { Badge, money, date, Table, type Row, DateInput } from './UI';
 import { useT } from '../shared/i18n/t';
 
 export default function PartnerFullReportHub({ report }: { report: Row }) {
@@ -52,11 +52,11 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     </div>
                     <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
                         {translate('portal', 'date_from')}
-                        <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+                        <DateInput value={from} onChange={(event) => setFrom(event.target.value)} />
                     </label>
                     <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
                         {translate('portal', 'date_to')}
-                        <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+                        <DateInput value={to} onChange={(event) => setTo(event.target.value)} />
                     </label>
                     <button className="button small" type="submit">{translate('portal', 'apply_dates')}</button>
                     {(filters.from || filters.to) && <button type="button" className="text-link" onClick={() => router.get(`${base}/full-report`)}>{translate('portal', 'clear')}</button>}

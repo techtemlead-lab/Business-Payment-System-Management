@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { businessDate } from '../../resources/js/business-date.ts';
+import { businessDate, toDisplayDate, toIsoDate } from '../../resources/js/business-date.ts';
 
 for (const timezone of ['America/Los_Angeles', 'Asia/Dhaka', 'UTC']) {
     test('raw database and ISO timestamps use Dhaka dates from ' + timezone, () => {
@@ -24,4 +24,22 @@ test('missing and invalid dates have a stable empty state', () => {
     assert.equal(businessDate(null), '—');
     assert.equal(businessDate(''), '—');
     assert.equal(businessDate('not-a-date'), '—');
+});
+
+test('toDisplayDate formats as DD/MM/YYYY or DD-MM-YYYY', () => {
+    assert.equal(toDisplayDate('1990-11-26'), '26/11/1990');
+    assert.equal(toDisplayDate('1990-11-26', '-'), '26-11-1990');
+    assert.equal(toDisplayDate('2026-03-05'), '05/03/2026');
+    assert.equal(toDisplayDate(''), '');
+    assert.equal(toDisplayDate(null), '');
+});
+
+test('toIsoDate converts DD/MM/YYYY and DD-MM-YYYY to YYYY-MM-DD', () => {
+    assert.equal(toIsoDate('26/11/1990'), '1990-11-26');
+    assert.equal(toIsoDate('26-11-1990'), '1990-11-26');
+    assert.equal(toIsoDate('05/03/2026'), '2026-03-05');
+    assert.equal(toIsoDate('5/3/2026'), '2026-03-05');
+    assert.equal(toIsoDate('1990-11-26'), '1990-11-26');
+    assert.equal(toIsoDate(''), '');
+    assert.equal(toIsoDate(null), '');
 });

@@ -1121,4 +1121,53 @@ dialog.portal-modal::backdrop{
     }
 }
 
+/* ==========================================================================
+   Date Input Component (Day-First DD/MM/YYYY Formatter & Picker)
+   ========================================================================== */
+.date-input-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+.date-input-wrapper input.date-input-field {
+  width: 100%;
+  padding-right: 36px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.date-input-wrapper .date-picker-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+  z-index: 2;
+}
+.date-input-wrapper .date-picker-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+.date-input-wrapper .date-native-picker {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 1;
+}
+
 
