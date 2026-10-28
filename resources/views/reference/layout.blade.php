@@ -10,6 +10,7 @@
 <link rel="icon" href="/favicon.ico">
 <link rel="icon" type="image/png" href="/reference/favicon.png?v=8">
 <link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
+<link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="/madina-header-logo.png?v=8" fetchpriority="high">
 <link rel="stylesheet" href="/reference/instrument-sans-local.css">
 @if(app()->getLocale() === 'bn')
@@ -27,4 +28,9 @@
 @endif
 @yield('content')
 @include('reference.footer')
+<script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});
+}
+</script>
 </body></html>

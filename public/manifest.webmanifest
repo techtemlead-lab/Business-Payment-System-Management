@@ -1,0 +1,25 @@
+{
+  "name": "Madina Natural Health Care",
+  "short_name": "Madina Health",
+  "description": "Authentic natural health, unani medicine and nationwide authorized dealer portal in Bangladesh.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#011627",
+  "theme_color": "#011627",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/reference/favicon.png?v=8",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/reference/favicon.png?v=8",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

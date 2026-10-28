@@ -9,9 +9,11 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
+use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\ModuleCompletionController;
+use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\WithdrawalController;
@@ -25,7 +27,12 @@ use Illuminate\Support\Facades\Route;
  * Loaded through web.php: session and CSRF protection remain enabled.
  * All money and percentage values in financial previews are decimal strings.
  */
+Route::get('/healthz', [HealthCheckController::class, 'liveness'])->name('healthz');
+Route::get('/readyz', [HealthCheckController::class, 'readiness'])->name('readyz');
+Route::get('/api/v1/openapi.json', [OpenApiController::class, 'spec'])->name('openapi');
+
 Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1'])->group(function (): void {
+    Route::get('/health', [HealthCheckController::class, 'readiness'])->name('health');
     Route::get('/me', fn (Request $request) => response()->json(['data' => [
         'user' => $request->user()->safe(),
         'capabilities' => $request->user()->capabilities(),

@@ -5,6 +5,7 @@ namespace App\Domain\Payouts;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\FraudAnomalyDetector;
 use App\Domain\Finance\PaymentAccounts;
 use App\Models\User;
 use App\Support\Audit;
@@ -50,8 +51,17 @@ class ManualPayoutService
                 'withheld_amount' => $tax['tds_amount'], 'net_amount' => $tax['net_amount'], 'created_at' => now(), 'updated_at' => now()]);
             DB::table('wallets')->where('id', $wallet->id)->update(['available' => Money::decimal(Money::cents($wallet->available) - $amount),
                 'held' => Money::decimal(Money::cents($wallet->held) + $amount), 'updated_at' => now()]);
-            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => __('portal.wd_event_funds_reserved'), 'created_at' => now()]);
-            Audit::record($actor->id, 'withdrawal.requested', $id);
+            $risk = app(FraudAnomalyDetector::class)->analyzeWithdrawal($actor, (float) $data['amount']);
+            $eventNote = __('portal.wd_event_funds_reserved');
+            if (! empty($risk['flags'])) {
+                $eventNote .= ' [Flags: '.implode(', ', $risk['flags']).']';
+            }
+            DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'requested', 'note' => $eventNote, 'created_at' => now()]);
+            Audit::record($actor->id, 'withdrawal.requested', $id, [
+                'risk_score' => $risk['score'],
+                'risk_level' => $risk['risk_level'],
+                'risk_flags' => $risk['flags'],
+            ]);
 
             return $id;
         }, 3);

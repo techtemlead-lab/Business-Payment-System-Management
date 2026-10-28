@@ -1,6 +1,6 @@
 {{-- Apply saved day/night preference before CSS paints to avoid a flash of the wrong theme. --}}
 <meta name="madina-theme-domain" content="{{ \App\Support\PortalHost::domain() }}">
-<script>
+<script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
 (function () {
     try {
         var key = 'madina-color-scheme';

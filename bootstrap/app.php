@@ -3,6 +3,7 @@
 use App\Http\Middleware\ActiveAccount;
 use App\Http\Middleware\BindSessionFingerprint;
 use App\Http\Middleware\CoordinateBackups;
+use App\Http\Middleware\CorrelationId;
 use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return $hosts;
         });
+        $middleware->prepend(CorrelationId::class);
         $middleware->web(append: [
             RestrictAdminIp::class,
             SetLocale::class,

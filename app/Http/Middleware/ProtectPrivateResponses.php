@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Support\PortalHost;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 class ProtectPrivateResponses
@@ -16,6 +17,12 @@ class ProtectPrivateResponses
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $nonce = base64_encode(random_bytes(16));
+        if (class_exists(Vite::class) && method_exists(Vite::class, 'useCspNonce')) {
+            Vite::useCspNonce($nonce);
+        }
+        $request->attributes->set('csp_nonce', $nonce);
+
         $response = $next($request);
         // L1: consistent Referrer-Policy on every response.
         $response->headers->set('Referrer-Policy', 'no-referrer');
@@ -33,7 +40,7 @@ class ProtectPrivateResponses
             "default-src 'self'{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action 'self'{$domainHosts}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com; "
-            ."script-src 'self' 'unsafe-inline'{$domainHosts}; "
+            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}; "
             ."img-src 'self' data: blob:{$domainHosts}; "
             ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}; "
