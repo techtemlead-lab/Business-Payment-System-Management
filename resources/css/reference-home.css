@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './reference-pages.css';
+@import './theme-dark.css';
 @source '../views/reference/**/*.blade.php';
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 .ref-compare-dialog{max-width:850px;width:calc(100% - 30px);padding:25px;border:0;border-radius:12px;color:#011627}.ref-compare-dialog::backdrop,.ref-promotion-dialog::backdrop{background:#0009}.ref-compare-dialog>p{font-size:13px;color:#64748b}.ref-compare-selects{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px}.ref-compare-selects label{font-size:12px;font-weight:600}.ref-compare-selects select{display:block;width:100%;padding:10px;margin-top:8px;border:1px solid #dce1e8;border-radius:6px;min-width:0;font-size:12px}.ref-compare-results{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px}.ref-compare-results>article{padding:15px;border:1px solid #e5e7eb;border-radius:7px;font-size:13px}.ref-compare-results img{width:100%;height:130px;object-fit:contain;margin-bottom:15px}.ref-compare-results strong{display:block;color:#f34c20;margin-top:12px}.ref-compare-results small{display:block;color:#23964b;margin-top:8px}.ref-promotion-dialog{border:0;background:transparent;padding:0;max-width:680px;width:calc(100% - 40px);overflow:visible;border-radius:12px}.ref-promotion-dialog>a{display:block;overflow:hidden;border-radius:12px}.ref-promotion-dialog img{width:100%;max-height:80vh;object-fit:contain;background:white;border-radius:12px}.ref-promotion-dialog>button{position:absolute;right:-12px;top:-12px;width:35px;height:35px;background:white;border-radius:50%;color:#011627;box-shadow:0 2px 10px #0003;z-index:1}@media(max-width:500px){.ref-compare-selects,.ref-compare-results{grid-template-columns:1fr}.ref-compare-results img{height:100px}}
@@ -1100,5 +1101,3 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 .ref-error-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 .ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{min-width:150px;justify-content:center}
 @media(max-width:640px){.ref-error-card{padding:28px 18px}.ref-error-code{font-size:40px}.ref-error-card h1{font-size:20px}}
-
-@import "./theme-dark.css";

@@ -434,3 +434,456 @@ html[data-theme="dark"] .company-auth {
 html[data-theme="dark"] .company-auth-toolbar .language-switcher {
     background: #121a28;
 }
+
+/* Public Product Cards, Pricing, and Stock Badges */
+html[data-theme="dark"] .ref-catalog-mrp strong {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-catalog-mrp span {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-product-cat-tag {
+    color: #86efac !important;
+}
+
+html[data-theme="dark"] .ref-product-title a {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-product-title a:hover {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-stock-pill.in-stock {
+    background: #064e3b !important;
+    border-color: #047857 !important;
+    color: #a7f3d0 !important;
+}
+
+html[data-theme="dark"] .ref-stock-pill.out-of-stock {
+    background: #450a0a !important;
+    border-color: #7f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+html[data-theme="dark"] .ref-stock-pill.low-stock {
+    background: #451a03 !important;
+    border-color: #78350f !important;
+    color: #fde68a !important;
+}
+
+/* Homepage Category Filter Tabs */
+html[data-theme="dark"] .ref-tab-btn {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #9aa8b8 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-tab-btn:hover {
+    border-color: #006837 !important;
+    color: #86efac !important;
+    background: #162033 !important;
+}
+
+html[data-theme="dark"] .ref-tab-btn.is-active {
+    background: #006837 !important;
+    border-color: #006837 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-tab-count {
+    background: #1a2538 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-tab-btn.is-active .ref-tab-count {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
+/* Category Grid & View All Button */
+html[data-theme="dark"] .ref-category-grid span.ref-cat-name {
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-category-grid > a:hover span.ref-cat-name {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-category-grid .ref-cat-icon-wrap {
+    background: #1a2538 !important;
+}
+
+html[data-theme="dark"] .ref-category-grid > a:hover .ref-cat-icon-wrap {
+    background: #064e3b !important;
+}
+
+html[data-theme="dark"] .ref-category-grid i {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-category-grid > a:hover i {
+    color: #86efac !important;
+}
+
+html[data-theme="dark"] .ref-cat-toggle-btn {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #7ddea8 !important;
+}
+
+html[data-theme="dark"] .ref-cat-toggle-btn:hover {
+    background: #162033 !important;
+    border-color: #006837 !important;
+}
+
+/* Homepage Value Proposition Shortcuts */
+html[data-theme="dark"] .ref-shortcuts > a {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+    box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ref-shortcuts h3 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-shortcuts p {
+    color: #9aa8b8 !important;
+}
+
+/* Company Path Links & Announcement Marquee */
+html[data-theme="dark"] .ref-company-paths strong {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-announcement > div {
+    color: #e8eef6 !important;
+}
+
+/* Quick View Dialog */
+html[data-theme="dark"] .ref-quickview-dialog {
+    background: #121a28 !important;
+    border: 1px solid #2a3648 !important;
+    color: #e8eef6 !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .ref-qv-image-col {
+    background: #0f1724 !important;
+    border-right-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-qv-title {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-qv-cat {
+    color: #86efac !important;
+}
+
+html[data-theme="dark"] .ref-qv-price {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-qv-desc {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-qv-close-btn {
+    background: #1a2538 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-qv-close-btn:hover {
+    background: #450a0a !important;
+    color: #fca5a5 !important;
+}
+
+/* Product Detail Page Tabs, Specs & Share */
+html[data-theme="dark"] .ref-product-tabs {
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-product-tabs > button {
+    background: #1a2538 !important;
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-product-tabs > button[aria-selected="true"] {
+    background: #006837 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-product-description table th {
+    background: #0f1724 !important;
+    color: #9aa8b8 !important;
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-product-description table td {
+    color: #e8eef6 !important;
+    border-bottom-color: #243044 !important;
+}
+
+html[data-theme="dark"] .ref-metadata > span {
+    background: #1a2538 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-metadata b {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-detail-image {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-share-bar button,
+html[data-theme="dark"] .ref-share-bar a {
+    color: #cbd5e1 !important;
+}
+
+/* Cart Dialog */
+html[data-theme="dark"] .ref-cart-dialog {
+    background: #121a28 !important;
+    border: 1px solid #2a3648 !important;
+    color: #e8eef6 !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .ref-dialog-title {
+    border-bottom-color: #2a3648 !important;
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-dialog-title button {
+    background: #1a2538 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-cart-items > div {
+    border-bottom-color: #243044 !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-cart-items button {
+    background: #1a2538 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-cart-dialog > p {
+    color: #9aa8b8 !important;
+}
+
+/* Toast, Back to Top, and Password Reveal */
+html[data-theme="dark"] .ref-toast {
+    background: #121a28 !important;
+    color: #e8eef6 !important;
+    border-left-color: #fa4f22 !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .ref-back-top {
+    background: #121a28 !important;
+    color: #e8eef6 !important;
+    border-color: #f34c20 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-theme="dark"] .ref-password-field button {
+    background: #0f1724 !important;
+    color: #9aa8b8 !important;
+    border-left: 1px solid #2a3648 !important;
+}
+
+/* FAQ Accordion & Information Layouts */
+html[data-theme="dark"] details.ref-content-card summary {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] details.ref-content-card p {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-contact-topic > i {
+    background: #1a2538 !important;
+    color: #ef4a23 !important;
+}
+
+html[data-theme="dark"] .ref-contact-topic h3 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-contact-topic p {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .ref-alert.ref-notice {
+    background: #1a2538 !important;
+    color: #e8eef6 !important;
+    border-left: 3px solid #ef4a23 !important;
+}
+
+/* Portal Onboarding User Manual & Chapter Reader */
+html[data-theme="dark"] .onboarding-manual-modal {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+    box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8) !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-header {
+    background: #0f1724 !important;
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-header h3 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-header p {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-search-bar {
+    background: #0f1724 !important;
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-search-bar input {
+    background: transparent !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-toc {
+    background: #0f1724 !important;
+    border-right-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .toc-header {
+    color: #9aa8b8 !important;
+    border-bottom-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .chapter-count-badge {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .toc-item {
+    border-bottom-color: #1e293b !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .toc-item:hover {
+    background: #162033 !important;
+}
+
+html[data-theme="dark"] .toc-item.is-active {
+    background: #064e3b33 !important;
+    border-left: 3px solid #10b981 !important;
+}
+
+html[data-theme="dark"] .toc-title {
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .toc-summary-snippet {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .toc-number {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-reader {
+    background: #121a28 !important;
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .reader-header {
+    border-bottom-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .reader-header h2 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .reader-summary {
+    color: #9aa8b8 !important;
+}
+
+html[data-theme="dark"] .manual-step-card {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .step-text {
+    color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .tips-callout {
+    background: #064e3b33 !important;
+    border-color: #047857 !important;
+    color: #a7f3d0 !important;
+}
+
+html[data-theme="dark"] .onboarding-manual-footer {
+    background: #0f1724 !important;
+    border-top-color: #2a3648 !important;
+}
+
+/* Spotlight Tour Popovers & Pre-requisite Helper Banners */
+html[data-theme="dark"] .onboarding-tour-card {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="dark"] .onboarding-tour-card h3 {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .onboarding-tour-card > p {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .onboarding-tour-audience {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #93c5fd !important;
+}
+
+html[data-theme="dark"] .onboarding-tour-tip {
+    background: #43140733 !important;
+    border-color: #9a3412 !important;
+    color: #fdba74 !important;
+}
+
+html[data-theme="dark"] .prereq-banner {
+    background: #42200633 !important;
+    border-color: #b45309 !important;
+    color: #fde68a !important;
+}
+
+html[data-theme="dark"] .prereq-banner strong {
+    color: #fde68a !important;
+}
+
+html[data-theme="dark"] .prereq-banner p {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .prereq-checklist {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+    color: #e8eef6 !important;
+}
