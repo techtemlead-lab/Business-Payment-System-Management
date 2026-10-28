@@ -104,7 +104,7 @@
                 <span class="currency">৳</span>
                 <span>{{ $displayMrp }}</span>
             </div>
-            <div class="luxury-price-label">{{ __('site.mrp') }} ({{ __('site.retail_price') ?? 'Retail price' }})</div>
+            <div class="luxury-price-label">{{ __('site.mrp') }} ({{ __('site.retail_price') }})</div>
         </div>
 
         {{-- Action Row --}}
@@ -113,9 +113,6 @@
                 <a class="luxury-btn-details" href="{{ $item['url'] }}">
                     {{ __('site.view_product_details') }}
                 </a>
-                <button type="button" class="luxury-btn-pause ref-quick-view-btn" data-quick-view="{{ $item['id'] }}" aria-label="{{ __('site.product_preview') }} {{ $item['name'] }}">
-                    <i class="fa-solid fa-eye" aria-hidden="true"></i> {{ __('site.product_preview') }}
-                </button>
             </div>
 
             <div class="luxury-action-right">

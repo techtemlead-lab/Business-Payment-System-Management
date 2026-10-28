@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import { money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
-import { ShoppingBag, Eye } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 
 export interface LuxuryProductCardProps {
     product: Row;
@@ -13,7 +13,6 @@ export interface LuxuryProductCardProps {
     onArchive?: (id: number | string, name: string) => void;
     detailsUrl?: string;
     orderUrl?: string;
-    onQuickView?: (product: Row) => void;
 }
 
 export default function LuxuryProductCard({
@@ -25,7 +24,6 @@ export default function LuxuryProductCard({
     onArchive,
     detailsUrl,
     orderUrl,
-    onQuickView,
 }: LuxuryProductCardProps) {
     const translate = useT();
 
@@ -244,16 +242,6 @@ export default function LuxuryProductCard({
                                 <a className="luxury-btn-details" href={resolvedDetailsUrl}>
                                     {translate('portal', 'details') || 'Details'}
                                 </a>
-                                {onQuickView && (
-                                    <button
-                                        type="button"
-                                        className="luxury-btn-pause"
-                                        onClick={() => onQuickView(product)}
-                                    >
-                                        <Eye size={13} />
-                                        <span>Preview</span>
-                                    </button>
-                                )}
                             </div>
 
                             <div className="luxury-action-right">

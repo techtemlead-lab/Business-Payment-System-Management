@@ -106,6 +106,7 @@ return [
     'out_of_stock' => 'স্টক অপেক্ষমাণ',
     'ordering_paused' => 'অর্ডারিং স্থগিত',
     'mrp' => 'এমআরপি',
+    'retail_price' => 'খুচরা মূল্য',
     'availability' => 'প্রাপ্যতা',
     'product_code' => 'পণ্য কোড',
     'product_code_short' => 'পণ্য কোড',

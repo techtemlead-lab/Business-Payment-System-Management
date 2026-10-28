@@ -106,6 +106,7 @@ return [
     'out_of_stock' => 'Awaiting Stock',
     'ordering_paused' => 'Ordering paused',
     'mrp' => 'MRP',
+    'retail_price' => 'Retail price',
     'availability' => 'Availability',
     'product_code' => 'Product Code',
     'product_code_short' => 'Product code',
