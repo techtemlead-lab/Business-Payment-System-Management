@@ -16,10 +16,10 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'network', 'ranks', 'withdrawals', 'full-report', 'help'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'network', 'ranks', 'withdrawals', 'full-report', 'help'],
         'nav' => [
             'home' => ['overview'],
-            'commerce' => ['orders', 'deliveries', 'dues', 'catalog'],
+            'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'network' => ['network', 'ranks'],
             'earnings' => ['earnings', 'full-report', 'withdrawals'],
             'account' => ['profile', 'security', 'notifications', 'circulars', 'help'],
@@ -30,10 +30,10 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'salary', 'withdrawals', 'full-report', 'help'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'salary', 'withdrawals', 'full-report', 'help'],
         'nav' => [
             'home' => ['overview'],
-            'commerce' => ['orders', 'deliveries', 'dues', 'catalog'],
+            'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'earnings' => ['salary', 'earnings', 'full-report', 'withdrawals'],
             'account' => ['profile', 'security', 'notifications', 'circulars', 'help'],
         ],

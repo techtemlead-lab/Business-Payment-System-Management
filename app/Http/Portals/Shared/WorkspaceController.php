@@ -144,15 +144,15 @@ class WorkspaceController extends Controller
                 ];
             }
         }
-        if (in_array($section, ['overview', 'catalog', 'inventory']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
+        if (in_array($section, ['overview', 'catalog', 'inventory', 'purchase']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
-            $productLimit = $staff ? 250 : 120;
+            $productLimit = $staff ? 250 : 200;
             $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
             $products = (clone $productQuery)->limit($productLimit)->get();
             $revealStock = ! $staff || $u->allows('inventory');
             $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
             $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {
-                $base = [...$p->only(['id', 'sku', 'name', 'category', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+                $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
                 if (! $staff) {
                     try {
                         $base['price'] = Money::decimal($pricing->unitPrice($p, $u));
@@ -169,8 +169,9 @@ class WorkspaceController extends Controller
 
                 return $base;
             });
-            if ($section === 'catalog') {
+            if (in_array($section, ['catalog', 'purchase'], true)) {
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
+                $data['sub_categories'] = SiteCustomization::getConfiguredSubCategories();
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();
                     $data['defaults'] = SiteCustomization::defaults();
@@ -193,6 +194,8 @@ class WorkspaceController extends Controller
                             'mrp' => $p->mrp,
                             ...($revealDealerPrice ? ['dealer_price' => $p->dealer_price] : []),
                             'category' => $p->category,
+                            'sub_category' => $p->sub_category,
+                            'strength' => $p->strength,
                             'featured' => (bool) $p->featured,
                             ...($revealStock ? ['stock' => (int) $p->stock] : []),
                             'image' => $p->media()['image_url'] ?? '',

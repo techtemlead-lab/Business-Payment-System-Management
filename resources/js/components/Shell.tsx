@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import {
-    LayoutDashboard, ShoppingBag, Package, Users, Truck, Wallet, GitBranch,
+    LayoutDashboard, ShoppingBag, ShoppingCart, Package, Users, Truck, Wallet, GitBranch,
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
@@ -18,7 +18,7 @@ const icons: Record<string, LucideIcon> = {
     'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
     'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
     'data-imports': FileText, 'service-integrations': Settings, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
-    overview: LayoutDashboard, orders: ShoppingBag, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
+    overview: LayoutDashboard, orders: ShoppingBag, purchase: ShoppingCart, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
@@ -34,7 +34,7 @@ const sectionKeys: Record<string, string> = {
     'data-imports': 'data_imports', 'service-integrations': 'service_integrations', 'commission-holds': 'commission_holds', 'financial-readiness': 'financial_readiness',
     'financial-reports': 'financial_reports', 'dues-adjustments': 'dues_adjustments', 'finance-settings': 'finance_settings',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
-    overview: 'overview', orders: 'orders', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
+    overview: 'overview', orders: 'orders', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
@@ -179,11 +179,11 @@ export default function Shell({ section, children, action }: { section: string; 
     const accountSections = ['profile', 'security', 'notifications', 'help'];
     const managementSections = [
         'overview', 'employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales',
-        'orders', 'deliveries', 'dues', 'sub-dealer-orders',
+        'orders', 'order', 'deliveries', 'dues', 'sub-dealer-orders',
         'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
         'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
         'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
-        'catalog', 'inventory', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'audit', 'support-admin',
+        'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'audit', 'support-admin',
     ];
 
     const readDomainPin = (): 'company' | 'dealers' | 'sub_dealers' | null => {
@@ -272,9 +272,10 @@ export default function Shell({ section, children, action }: { section: string; 
     const partnerAvailable = useMemo(() => {
         const controls = dashboardControls || {};
         if (user.role === 'dealer') {
-            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
+            const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
             if (controls.dealer_catalog_enabled === false) {
                 items.delete('catalog');
+                items.delete('purchase');
             }
             if (controls.dealer_network_tree_enabled === false) {
                 items.delete('network');
@@ -284,15 +285,17 @@ export default function Shell({ section, children, action }: { section: string; 
             }
             if (controls.dealer_orders_enabled === false) {
                 items.delete('orders');
+                items.delete('purchase');
                 items.delete('deliveries');
                 items.delete('dues');
             }
             return items;
         }
         if (user.role === 'sub_dealer') {
-            const items = new Set(['overview', 'orders', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
+            const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help']);
             if (controls.subdealer_catalog_enabled === false) {
                 items.delete('catalog');
+                items.delete('purchase');
             }
             if (controls.subdealer_salary_enabled === false) {
                 items.delete('salary');
@@ -302,6 +305,7 @@ export default function Shell({ section, children, action }: { section: string; 
             }
             if (controls.subdealer_orders_enabled === false) {
                 items.delete('orders');
+                items.delete('purchase');
                 items.delete('dues');
             }
             return items;
@@ -314,7 +318,7 @@ export default function Shell({ section, children, action }: { section: string; 
             if (user.role === 'dealer') {
                 return compactMothers([
                     mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
-                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                     mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
                     mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
@@ -323,7 +327,7 @@ export default function Shell({ section, children, action }: { section: string; 
             if (user.role === 'sub_dealer') {
                 return compactMothers([
                     mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
-                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'deliveries', 'dues', 'catalog'])),
+                    mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                     mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
                     mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
                 ]);
@@ -335,15 +339,17 @@ export default function Shell({ section, children, action }: { section: string; 
 
         const company = compactMothers([
             mother('home', 'nav_module_home', pick(staffAvailable, ['overview'])),
-            mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales'])),
+            mother('people', 'nav_module_people', pick(staffAvailable, ['employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management'])),
             mother('fulfillment', 'nav_module_fulfillment', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
-            mother('finance_ops', 'nav_module_finance_ops', pick(staffAvailable, [
-                'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
-                'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports',
-                'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
+            mother('finance', 'nav_module_finance', pick(staffAvailable, [
+                'treasury', 'payments', 'withdrawals', 'payment-accounts', 'ledger', 'dues-adjustments', 'benefits-fund',
             ])),
-            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing'])),
-            mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries', 'service-integrations'])),
+            mother('commissions_policy', 'nav_module_commissions_policy', pick(staffAvailable, [
+                'policy-schedules', 'commission-holds', 'settlements', 'rewards', 'payouts-hub', 'reserve-payouts', 'finance-settings', 'financial-readiness',
+            ])),
+            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'])),
+            mother('reports_analytics', 'nav_module_reports_analytics', pick(staffAvailable, ['reports', 'financial-reports', 'dashboards', 'data-imports'])),
+            mother('website_media', 'nav_module_website_media', pick(staffAvailable, ['website', 'content', 'video-marketing', 'enquiries', 'service-integrations'])),
             mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
 

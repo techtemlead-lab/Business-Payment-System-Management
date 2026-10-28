@@ -1435,5 +1435,67 @@ html[data-theme="dark"] .date-input-wrapper .date-picker-btn:hover {
     background: #1e293b !important;
 }
 
+/* Public Pages Button & Interactive Controls Dark Mode */
+html[data-theme="dark"] .ref-primary-button {
+    background: #006837 !important;
+    color: #ffffff !important;
+    border-color: #006837 !important;
+}
+
+html[data-theme="dark"] .ref-primary-button:hover {
+    background: #008744 !important;
+    box-shadow: 0 4px 16px rgba(0, 135, 68, 0.4) !important;
+}
+
+html[data-theme="dark"] .ref-secondary-button {
+    background: #111a28 !important;
+    color: #f1f5f9 !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-secondary-button:hover {
+    background: #1a2538 !important;
+    border-color: #008744 !important;
+    color: #34d399 !important;
+}
+
+html[data-theme="dark"] .ref-selected-price {
+    background: #0d2218 !important;
+    border-color: #059669 !important;
+}
+
+html[data-theme="dark"] .ref-selected-price strong {
+    color: #34d399 !important;
+}
+
+html[data-theme="dark"] .ref-selected-price span {
+    color: #a7f3d0 !important;
+}
+
+html[data-theme="dark"] .ref-quantity-picker {
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-quantity-picker button {
+    background: #111a28 !important;
+    color: #34d399 !important;
+}
+
+html[data-theme="dark"] .ref-quantity-picker input {
+    background: #0b1220 !important;
+    border-color: #2a3648 !important;
+    color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .ref-pagination a {
+    background: #006837 !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-pagination a:hover {
+    background: #008744 !important;
+}
+
+
 
 

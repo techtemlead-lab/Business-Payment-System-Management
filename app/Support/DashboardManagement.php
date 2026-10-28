@@ -170,6 +170,7 @@ class DashboardManagement
     {
         $feature = match ($section) {
             'catalog' => 'catalog',
+            'purchase' => 'catalog',
             'network' => 'network',
             'ranks' => 'ranks',
             'rewards' => 'rewards',
