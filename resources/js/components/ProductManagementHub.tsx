@@ -18,6 +18,7 @@ import {
 } from './SiteCustomizationEditor';
 import { Row, money } from './UI';
 import { useT } from '../shared/i18n/t';
+import LuxuryProductCard from './LuxuryProductCard';
 
 export default function ProductManagementHub({
     products,
@@ -235,118 +236,24 @@ export default function ProductManagementHub({
                     </div>
 
                     {/* Products Grid */}
-                    <div className="product-grid portal-products">
-                        {products.map(p => {
-
-                            return (
-                                <article className="product-card" key={p.id} style={{ position: 'relative' }}>
-                                    {p.featured && (
-                                        <span style={{
-                                            position: 'absolute',
-                                            top: 8,
-                                            right: 8,
-                                            background: '#dcfce7',
-                                            color: '#15803d',
-                                            padding: '2px 7px',
-                                            borderRadius: 4,
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            zIndex: 2
-                                        }}>
-                                            {translate('portal', 'featured_badge')}
-                                        </span>
-                                    )}
-
-                                    <div className={`product-art ${p.tone}`}>
-                                        {p.image_url ? (
-                                            <img className="portal-product-image" src={p.image_url} alt={p.name} />
-                                        ) : (
-                                            <div className="mini-bottle" aria-hidden="true">
-                                                <div className="mini-cap" />
-                                                <b>madina</b>
-                                                <span>{p.category}</span>
-                                                <small>{translate('portal', 'brand_natural_care')}</small>
-                                            </div>
-                                        )}
-                                        <span className="product-category">{p.category}</span>
-                                        <span className={`stock-label ${p.stock === 0 ? 'out' : ''}`}>
-                                            {!p.active
-                                                ? translate('portal', 'draft_units', { count: String(p.stock) })
-                                                : p.stock_status === 'low_stock'
-                                                    ? translate('portal', 'low_stock_units', { count: String(p.stock) })
-                                                    : p.stock > 0 && !p.is_stock_paused
-                                                        ? translate('portal', 'stock_in_units', { count: String(p.stock) })
-                                                        : translate('portal', 'stock_awaiting')}
-                                        </span>
-                                    </div>
-
-                                    <div className="product-body">
-                                        <small className="muted">{p.sku} · {p.unit}</small>
-                                        <h3>
-                                            <Link href={`/products/${p.id}`}>{p.name}</Link>
-                                        </h3>
-                                        <p>{p.description}</p>
-
-                                        <div className="product-bottom">
-                                            <div>
-                                                <b>{money(p.price ?? p.mrp)}</b>
-                                                <small className="cell-sub">{p.price ? translate('portal', 'dealer_price') : translate('portal', 'partner_price_pending')}</small>
-                                                <small className="cell-sub">{translate('portal', 'mrp_label', { amount: money(p.mrp) })}</small>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Row with 1-Click Stock Toggle */}
-                                        <div style={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            marginTop: 10,
-                                            gap: 8,
-                                            flexWrap: 'wrap'
-                                        }}>
-                                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                                <Link className="button small product-details-link" href={`/products/${p.id}`}>
-                                                    {translate('portal', 'details')}
-                                                </Link>
-                                                <button
-                                                    type="button"
-                                                    className="button small"
-                                                    disabled={!canStock} title={!p.is_stock_paused ? translate('portal', 'pause_ordering') : translate('portal', 'resume_ordering')}
-                                                    style={{
-                                                        fontSize: 11,
-                                                        padding: '4px 8px',
-                                                        background: !p.is_stock_paused ? '#fef2f2' : '#ecfdf5',
-                                                        color: !p.is_stock_paused ? '#b91c1c' : '#047857',
-                                                        borderColor: !p.is_stock_paused ? '#fecaca' : '#a7f3d0',
-                                                        fontWeight: 600,
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 4
-                                                    }}
-                                                    onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
-                                                >
-                                                    {!p.is_stock_paused ? translate('portal', 'pause_ordering') : translate('portal', 'resume_ordering')}
-                                                </button>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="text-link"
-                                                style={{ color: '#b91c1c', fontSize: 12, padding: '4px 6px', marginLeft: 'auto' }}
-                                                disabled={!canEditCatalog}
-                                                onClick={() => {
-                                                    const reason = window.prompt(`Archive "${p.name}"? Enter a reason (required):`);
-                                                    if (reason !== null && reason.trim().length >= 3) {
-                                                        router.delete(`/commands/products/${p.id}`, { data: { reason } });
-                                                    }
-                                                }}
-                                            >
-                                                Archive
-                                            </button>
-                                        </div>
-                                    </div>
-                                </article>
-                            );
-                        })}
+                    <div className="luxury-product-grid">
+                        {products.map(p => (
+                            <LuxuryProductCard
+                                key={p.id}
+                                product={p}
+                                role="admin"
+                                canStock={canStock}
+                                canEditCatalog={canEditCatalog}
+                                detailsUrl={`/products/${p.id}`}
+                                onToggleStock={(id) => router.post(`/commands/products/${id}/toggle-stock`, {}, { preserveScroll: true })}
+                                onArchive={(id, name) => {
+                                    const reason = window.prompt(`Archive "${name}"? Enter a reason (required):`);
+                                    if (reason !== null && reason.trim().length >= 3) {
+                                        router.delete(`/commands/products/${id}`, { data: { reason } });
+                                    }
+                                }}
+                            />
+                        ))}
                     </div>
 
                     {!products.length && (

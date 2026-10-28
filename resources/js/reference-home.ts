@@ -365,9 +365,10 @@ function initLanguageSwitcher() {
                 if (response.ok) {
                     const data = await response.json().catch(() => null);
                     const dest = data?.return_url || window.location.href;
-                    window.location.href = dest;
                     if (dest === window.location.href || dest === window.location.origin + window.location.pathname) {
                         window.location.reload();
+                    } else {
+                        window.location.assign(dest);
                     }
                 } else {
                     form.submit();

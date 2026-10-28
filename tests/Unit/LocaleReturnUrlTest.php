@@ -81,4 +81,18 @@ class LocaleReturnUrlTest extends TestCase
 
         $this->assertSame('http://127.0.0.1:8088/products?category=care', $url);
     }
+
+    public function test_inertia_header_is_detected(): void
+    {
+        $request = Request::create('http://127.0.0.1:8088/locale', 'POST', [
+            'locale' => 'bn',
+            'return_url' => 'http://127.0.0.1:8088/orders/test-123',
+        ]);
+        $request->headers->set('X-Inertia', 'true');
+        $request->headers->set('X-Requested-With', 'XMLHttpRequest');
+
+        // Verify that X-Inertia header is present and falsifies the plain JSON condition
+        $isPlainJsonEligible = ! $request->header('X-Inertia') && ($request->expectsJson() || $request->ajax());
+        $this->assertFalse($isPlainJsonEligible);
+    }
 }

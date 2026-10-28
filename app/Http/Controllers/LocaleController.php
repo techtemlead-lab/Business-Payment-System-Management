@@ -26,7 +26,7 @@ class LocaleController extends Controller
 
         $returnUrl = $this->returnUrl($request);
 
-        if ($request->expectsJson() || $request->ajax()) {
+        if (! $request->header('X-Inertia') && ($request->expectsJson() || $request->ajax())) {
             return response()->json([
                 'ok' => true,
                 'locale' => $data['locale'],

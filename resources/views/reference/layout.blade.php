@@ -13,6 +13,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="/madina-header-logo.png?v=8" fetchpriority="high">
 <link rel="stylesheet" href="/reference/instrument-sans-local.css">
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap">
 @if(app()->getLocale() === 'bn')
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap">
