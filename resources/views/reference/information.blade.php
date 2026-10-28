@@ -340,37 +340,251 @@
         @endif
     </div>
 </section>
-<section id="partner-apply" class="ref-content-card" style="margin-top:24px;">
-    <h2>{{ __('site.partnership_form_title') }}</h2>
-    <p>{{ __('site.partnership_form_hint') }}</p>
+<section id="partner-apply" class="ref-content-card ref-partner-apply-card">
+    <div class="ref-partner-card-header">
+        <div class="ref-partner-header-top">
+            <div class="ref-partner-icon-badge">
+                <i class="fa-solid fa-handshake-angle" aria-hidden="true"></i>
+            </div>
+            <div>
+                <span class="ref-partner-pretitle">{{ __('site.partnership_hero_title') }}</span>
+                <h2 class="ref-partner-title">{{ __('site.partnership_form_title') }}</h2>
+            </div>
+        </div>
+        <p class="ref-partner-lead">{{ __('site.partnership_form_hint') }}</p>
+
+        <div class="ref-partner-trust-pills">
+            <div class="ref-trust-pill">
+                <i class="fa-solid fa-bolt-lightning" aria-hidden="true"></i>
+                <span>{{ __('site.partner_trust_badge_review') }}</span>
+            </div>
+            <div class="ref-trust-pill">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span>{{ __('site.partner_trust_badge_confidential') }}</span>
+            </div>
+            <div class="ref-trust-pill">
+                <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                <span>{{ __('site.partner_trust_badge_support') }}</span>
+            </div>
+        </div>
+    </div>
+
     @if(session('success'))
-        <p class="ref-flash-success" role="status">{{ session('success') }}</p>
+        <div class="ref-alert ref-success ref-flash-success" role="status">
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+            <span>{{ session('success') }}</span>
+        </div>
     @endif
     @if($errors->any())
-        <ul class="ref-form-errors" role="alert">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
+        <div class="ref-alert ref-error" role="alert">
+            <div class="ref-error-header" style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:6px;">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>{{ app()->getLocale() === 'bn' ? 'অনুগ্রহ করে নিচের ত্রুটিগুলো সংশোধন করুন:' : 'Please correct the following errors:' }}</span>
+            </div>
+            <ul class="ref-form-errors" style="margin:0;padding-left:20px;">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
     @endif
-    <form method="post" action="/partnership/apply" class="ref-partner-apply-form" style="display:grid;gap:14px;margin-top:16px;">
+
+    <form method="post" action="/partnership/apply" class="ref-partner-apply-form">
         @csrf
-        <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
-        <label>{{ __('site.full_name') }}<input name="name" value="{{ old('name') }}" required maxlength="150" autocomplete="name"></label>
-        <label>{{ __('site.email') }}<input type="email" name="email" value="{{ old('email') }}" required maxlength="254" autocomplete="email"></label>
-        <label>{{ __('site.mobile') }}<input type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel"></label>
-        <label>{{ __('site.partnership_type') }}
-            <select name="role" required>
-                <option value="dealer" @selected(old('role')==='dealer')>{{ __('site.role_dealer') }}</option>
-                <option value="sub_dealer" @selected(old('role', 'sub_dealer')==='sub_dealer')>{{ __('site.role_sub_dealer') }}</option>
-            </select>
-        </label>
-        <label>{{ __('site.division') }}<input name="division" value="{{ old('division') }}" required maxlength="80" autocomplete="address-level1"></label>
-        <label>{{ __('site.district') }}<input name="district" value="{{ old('district') }}" required maxlength="80" autocomplete="address-level2"></label>
-        <label>{{ __('site.upazila_optional') }}<input name="upazila" value="{{ old('upazila') }}" maxlength="150" autocomplete="address-level3"></label>
-        <label>{{ __('site.sponsor_code_optional') }}<input name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off"></label>
-        <label>{{ __('site.message_optional') }}<textarea name="message" maxlength="2000" rows="4">{{ old('message') }}</textarea></label>
-        <button type="submit" class="ref-primary-button">{{ __('site.submit_application') }}</button>
+        <input type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="ref-honeypot" style="position:absolute;left:-9999px;height:0;width:0;opacity:0;">
+
+        {{-- Section 1: Partnership Tier Selection --}}
+        <div class="ref-form-section">
+            <div class="ref-section-header">
+                <span class="ref-section-num">1</span>
+                <div>
+                    <h3 class="ref-section-title">{{ __('site.partner_section_tier') }}</h3>
+                    <p class="ref-section-desc">{{ __('site.partnership_type') }}</p>
+                </div>
+            </div>
+
+            <fieldset class="ref-role-fieldset" style="border:0;padding:0;margin:0;">
+                <legend class="ref-sr-only">{{ __('site.partnership_type') }}</legend>
+                <div class="ref-role-selector">
+                    <label class="ref-role-card">
+                        <input type="radio" name="role" value="dealer" @checked(old('role') === 'dealer') required class="ref-role-radio">
+                        <div class="ref-role-box">
+                            <div class="ref-role-head">
+                                <div class="ref-role-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
+                                <div class="ref-role-meta">
+                                    <span class="ref-role-name">{{ __('site.role_dealer') }}</span>
+                                    <span class="ref-role-tag dealer">{{ __('site.partner_dealer_badge') }}</span>
+                                </div>
+                                <div class="ref-role-check"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                            </div>
+                            <p class="ref-role-desc">{{ __('site.partner_dealer_desc') }}</p>
+                        </div>
+                    </label>
+
+                    <label class="ref-role-card">
+                        <input type="radio" name="role" value="sub_dealer" @checked(old('role', 'sub_dealer') === 'sub_dealer') required class="ref-role-radio">
+                        <div class="ref-role-box">
+                            <div class="ref-role-head">
+                                <div class="ref-role-icon"><i class="fa-solid fa-shop" aria-hidden="true"></i></div>
+                                <div class="ref-role-meta">
+                                    <span class="ref-role-name">{{ __('site.role_sub_dealer') }}</span>
+                                    <span class="ref-role-tag sub">{{ __('site.partner_sub_dealer_badge') }}</span>
+                                </div>
+                                <div class="ref-role-check"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
+                            </div>
+                            <p class="ref-role-desc">{{ __('site.partner_sub_dealer_desc') }}</p>
+                        </div>
+                    </label>
+                </div>
+            </fieldset>
+        </div>
+
+        {{-- Section 2: Personal & Contact Information --}}
+        <div class="ref-form-section">
+            <div class="ref-section-header">
+                <span class="ref-section-num">2</span>
+                <div>
+                    <h3 class="ref-section-title">{{ __('site.partner_section_personal') }}</h3>
+                </div>
+            </div>
+
+            <div class="ref-form-grid ref-grid-2">
+                <div class="ref-field-group">
+                    <label for="partner-name" class="ref-field-label">
+                        <span>{{ __('site.full_name') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-user ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-name" type="text" name="name" value="{{ old('name') }}" required maxlength="150" autocomplete="name" placeholder="{{ __('site.full_name') }}" class="ref-input-control">
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-phone" class="ref-field-label">
+                        <span>{{ __('site.mobile') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-phone ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-phone" type="tel" name="phone" value="{{ old('phone') }}" required maxlength="30" autocomplete="tel" placeholder="01XXXXXXXXX" class="ref-input-control">
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-email" class="ref-field-label">
+                        <span>{{ __('site.email') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-envelope ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-email" type="email" name="email" value="{{ old('email') }}" required maxlength="254" autocomplete="email" placeholder="example@email.com" class="ref-input-control">
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-sponsor" class="ref-field-label">
+                        <span>{{ __('site.sponsor_code_optional') }}</span>
+                        <span class="ref-badge-optional">{{ __('site.optional') }}</span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-id-badge ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-sponsor" type="text" name="sponsor_code" value="{{ old('sponsor_code', request('sponsor_code')) }}" maxlength="40" autocomplete="off" placeholder="e.g. D-1042" class="ref-input-control">
+                    </div>
+                    <small class="ref-field-hint">{{ __('site.partner_sponsor_hint') }}</small>
+                </div>
+            </div>
+        </div>
+
+        {{-- Section 3: Proposed Business Territory --}}
+        <div class="ref-form-section">
+            <div class="ref-section-header">
+                <span class="ref-section-num">3</span>
+                <div>
+                    <h3 class="ref-section-title">{{ __('site.partner_section_location') }}</h3>
+                </div>
+            </div>
+
+            <div class="ref-form-grid ref-grid-3">
+                <div class="ref-field-group">
+                    <label for="partner-division" class="ref-field-label">
+                        <span>{{ __('site.division') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-map ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-division" type="text" name="division" list="bd-division-list" value="{{ old('division') }}" required maxlength="80" autocomplete="address-level1" placeholder="{{ __('site.division') }}" class="ref-input-control">
+                        <datalist id="bd-division-list">
+                            <option value="Dhaka">
+                            <option value="Chattogram">
+                            <option value="Rajshahi">
+                            <option value="Khulna">
+                            <option value="Barishal">
+                            <option value="Sylhet">
+                            <option value="Rangpur">
+                            <option value="Mymensingh">
+                            <option value="ঢাকা">
+                            <option value="চট্টগ্রাম">
+                            <option value="রাজশাহী">
+                            <option value="খুলনা">
+                            <option value="বরিশাল">
+                            <option value="সিলেট">
+                            <option value="রংপুর">
+                            <option value="ময়মনসিংহ">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-district" class="ref-field-label">
+                        <span>{{ __('site.district') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-city ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-district" type="text" name="district" value="{{ old('district') }}" required maxlength="80" autocomplete="address-level2" placeholder="{{ __('site.district') }}" class="ref-input-control">
+                    </div>
+                </div>
+
+                <div class="ref-field-group">
+                    <label for="partner-upazila" class="ref-field-label">
+                        <span>{{ __('site.upazila_optional') }}</span>
+                        <span class="ref-badge-optional">{{ __('site.optional') }}</span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-location-dot ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-upazila" type="text" name="upazila" value="{{ old('upazila') }}" maxlength="150" autocomplete="address-level3" placeholder="{{ __('site.upazila_optional') }}" class="ref-input-control">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Section 4: Experience / Additional Notes --}}
+        <div class="ref-form-section" style="border-bottom:0;padding-bottom:0;margin-bottom:0;">
+            <div class="ref-section-header">
+                <span class="ref-section-num">4</span>
+                <div>
+                    <h3 class="ref-section-title">{{ __('site.partner_section_notes') }}</h3>
+                </div>
+            </div>
+
+            <div class="ref-field-group">
+                <label for="partner-message" class="ref-field-label">
+                    <span>{{ __('site.message_optional') }}</span>
+                    <span class="ref-badge-optional">{{ __('site.optional') }}</span>
+                </label>
+                <div class="ref-textarea-wrap">
+                    <textarea id="partner-message" name="message" maxlength="2000" rows="4" class="ref-textarea-control" placeholder="{{ app()->getLocale() === 'bn' ? 'আপনার বর্তমান ব্যবসা, ফার্মেসি বা আউটলেটের বিবরণ এবং ভবিষ্যৎ পরিকল্পনা সম্পর্কে সংক্ষেপে লিখুন...' : 'Briefly describe your business background, current shop/pharmacy setup, or plans...' }}">{{ old('message') }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        {{-- Submit Button & Trust Guarantee Note --}}
+        <div class="ref-partner-submit-area">
+            <button type="submit" class="ref-partner-submit-btn">
+                <span>{{ __('site.submit_application') }}</span>
+                <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+            </button>
+            <div class="ref-partner-trust-note">
+                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                <span>{{ __('site.partner_security_note') }}</span>
+            </div>
+        </div>
     </form>
 </section>
 @endif

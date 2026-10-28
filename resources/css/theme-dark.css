@@ -887,3 +887,161 @@ html[data-theme="dark"] .prereq-checklist {
     border-color: #2a3648 !important;
     color: #e8eef6 !important;
 }
+
+/* Partnership Application Form Dark Mode */
+html[data-theme="dark"] .ref-partner-apply-card {
+    background: #0f1724 !important;
+    border-color: #2a3648 !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="dark"] .ref-partner-card-header {
+    border-bottom-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .ref-partner-icon-badge {
+    background: rgba(74, 222, 128, 0.15) !important;
+    color: #4ade80 !important;
+    box-shadow: 0 4px 14px rgba(74, 222, 128, 0.15) !important;
+}
+
+html[data-theme="dark"] .ref-partner-pretitle {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-partner-title {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-partner-lead {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-trust-pill {
+    background: #141f30 !important;
+    border-color: #2a3648 !important;
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-trust-pill i {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-form-section {
+    border-bottom-color: #1e293b !important;
+}
+
+html[data-theme="dark"] .ref-section-num {
+    background: #15803d !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-section-title {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-section-desc {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-role-box {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+}
+
+html[data-theme="dark"] .ref-role-card:hover .ref-role-box {
+    border-color: #3b4c64 !important;
+}
+
+html[data-theme="dark"] .ref-role-radio:checked + .ref-role-box {
+    border-color: #4ade80 !important;
+    background: rgba(74, 222, 128, 0.08) !important;
+    box-shadow: 0 6px 20px rgba(74, 222, 128, 0.12) !important;
+}
+
+html[data-theme="dark"] .ref-role-icon {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-role-radio:checked + .ref-role-box .ref-role-icon {
+    background: #15803d !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-role-name {
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-role-desc {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-role-check {
+    color: #475569 !important;
+}
+
+html[data-theme="dark"] .ref-role-radio:checked + .ref-role-box .ref-role-check {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-field-label {
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .ref-badge-optional {
+    background: #1e293b !important;
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-field-hint {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-input-control {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-input-control:focus {
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2) !important;
+}
+
+html[data-theme="dark"] .ref-input-icon {
+    color: #64748b !important;
+}
+
+html[data-theme="dark"] .ref-input-wrap:focus-within .ref-input-icon {
+    color: #4ade80 !important;
+}
+
+html[data-theme="dark"] .ref-textarea-control {
+    background: #121a28 !important;
+    border-color: #2a3648 !important;
+    color: #f3f7fb !important;
+}
+
+html[data-theme="dark"] .ref-textarea-control:focus {
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2) !important;
+}
+
+html[data-theme="dark"] .ref-partner-submit-btn {
+    background: linear-gradient(135deg, #15803d 0%, #006837 100%) !important;
+    box-shadow: 0 6px 20px rgba(21, 128, 61, 0.35) !important;
+}
+
+html[data-theme="dark"] .ref-partner-submit-btn:hover {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;
+    box-shadow: 0 8px 24px rgba(74, 222, 128, 0.3) !important;
+}
+
+html[data-theme="dark"] .ref-partner-trust-note {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-partner-trust-note i {
+    color: #4ade80 !important;
+}
