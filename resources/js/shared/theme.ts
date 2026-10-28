@@ -45,10 +45,8 @@ export function resolveColorScheme(stored: string | null = null): ColorScheme {
     if (value === 'light' || value === 'dark') {
         return value;
     }
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        return 'dark';
-    }
 
+    // Day/light is the product default; OS preference is ignored until the user toggles.
     return 'light';
 }
 
