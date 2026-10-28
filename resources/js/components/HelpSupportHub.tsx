@@ -1,6 +1,6 @@
 import { Form, router, usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
-import { BookOpen, LifeBuoy, Search, Sparkles, Compass } from 'lucide-react';
+import { BookOpen, LifeBuoy, Search, Sparkles, AlertTriangle, CheckCircle2, Info, HelpCircle } from 'lucide-react';
 import { Badge, date, Empty, Table, type Row } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { useT } from '../shared/i18n/t';
@@ -16,14 +16,20 @@ export default function HelpSupportHub({ data }: { data: Row }) {
 
     const filtered = useMemo(() => {
         const needle = query.trim().toLowerCase();
-        if (!needle) return sections;
+        if (!needle) {
+            return sections;
+        }
         return sections.filter((section) => {
             const blob = [
                 section.key,
                 section.title,
                 section.summary,
+                section.purpose,
+                section.why,
                 ...(section.steps || []),
+                ...(section.outcomes || []),
                 ...(section.tips || []),
+                ...(section.warnings || []),
                 ...(section.keywords || []),
             ].join(' ').toLowerCase();
             return blob.includes(needle);
@@ -67,14 +73,15 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                 </label>
                 <div className="help-manual-layout">
                     <aside className="help-manual-toc">
-                        {filtered.map((section) => (
+                        {filtered.map((section, index) => (
                             <button
                                 key={section.key}
                                 type="button"
                                 className={active?.key === section.key ? 'active' : ''}
                                 onClick={() => setActiveKey(section.key)}
                             >
-                                {section.title}
+                                <span className="help-manual-toc-index">{index + 1}</span>
+                                <span>{section.title}</span>
                             </button>
                         ))}
                         {!filtered.length && <p className="muted">{translate('portal', 'help_manual_no_results')}</p>}
@@ -82,13 +89,51 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                     <article className="help-manual-article">
                         {active ? (
                             <>
+                                <p className="help-manual-eyebrow">{translate('portal', 'help_manual_title')} · {active.key.replaceAll('_', ' ')}</p>
                                 <h3>{active.title}</h3>
                                 <p className="muted">{active.summary}</p>
+
+                                {active.purpose && (
+                                    <div className="help-manual-callout help-manual-purpose">
+                                        <Info size={18} />
+                                        <div>
+                                            <strong>{translate('portal', 'help_manual_purpose')}</strong>
+                                            <p>{active.purpose}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {active.why && (
+                                    <div className="help-manual-callout help-manual-why">
+                                        <HelpCircle size={18} />
+                                        <div>
+                                            <strong>{translate('portal', 'help_manual_why')}</strong>
+                                            <p>{active.why}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <h4 className="help-manual-section-title">{translate('portal', 'help_manual_steps')}</h4>
                                 <ol>
                                     {(active.steps || []).map((step: string, index: number) => (
                                         <li key={`${active.key}-${index}`}>{step}</li>
                                     ))}
                                 </ol>
+
+                                {(active.outcomes || []).length > 0 && (
+                                    <div className="help-manual-callout help-manual-outcomes">
+                                        <CheckCircle2 size={18} />
+                                        <div>
+                                            <strong>{translate('portal', 'help_manual_outcomes')}</strong>
+                                            <ul>
+                                                {(active.outcomes || []).map((item: string, index: number) => (
+                                                    <li key={`${active.key}-out-${index}`}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {(active.tips || []).length > 0 && (
                                     <div className="help-manual-tips">
                                         <strong>{translate('portal', 'help_manual_tips')}</strong>
@@ -97,6 +142,20 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                                 <li key={`${active.key}-tip-${index}`}>{tip}</li>
                                             ))}
                                         </ul>
+                                    </div>
+                                )}
+
+                                {(active.warnings || []).length > 0 && (
+                                    <div className="help-manual-callout help-manual-warnings">
+                                        <AlertTriangle size={18} />
+                                        <div>
+                                            <strong>{translate('portal', 'help_manual_warnings')}</strong>
+                                            <ul>
+                                                {(active.warnings || []).map((warning: string, index: number) => (
+                                                    <li key={`${active.key}-warn-${index}`}>{warning}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                     </div>
                                 )}
                             </>

@@ -9,11 +9,14 @@ final class UserManual
     /**
      * @return list<array{
      *   key: string,
-     *   audience: list<string>,
      *   title: string,
      *   summary: string,
+     *   purpose: ?string,
+     *   why: ?string,
      *   steps: list<string>,
+     *   outcomes: list<string>,
      *   tips: list<string>,
+     *   warnings: list<string>,
      *   keywords: list<string>
      * }>
      */
@@ -34,15 +37,20 @@ final class UserManual
 
         return collect($chapters)
             ->filter(function (array $chapter) use ($needle): bool {
-                $haystack = mb_strtolower(implode(' ', [
+                $parts = [
                     $chapter['key'],
-                    __('portal.'.$chapter['title_key']),
-                    __('portal.'.$chapter['summary_key']),
+                    $this->line($chapter['title_key']),
+                    $this->line($chapter['summary_key']),
+                    $this->line($chapter['purpose_key'] ?? null),
+                    $this->line($chapter['why_key'] ?? null),
                     implode(' ', $chapter['keywords']),
-                    implode(' ', array_map(fn (string $key): string => __('portal.'.$key), $chapter['step_keys'])),
-                ]));
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['step_keys'])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['outcome_keys'] ?? [])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys'])),
+                    implode(' ', array_map(fn (string $key): string => $this->line($key), $chapter['warning_keys'] ?? [])),
+                ];
 
-                return str_contains($haystack, $needle);
+                return str_contains(mb_strtolower(implode(' ', $parts)), $needle);
             })
             ->map(fn (array $chapter): array => $this->present($chapter))
             ->values()
@@ -50,7 +58,18 @@ final class UserManual
     }
 
     /**
-     * @return array{key: string, title: string, summary: string, steps: list<string>, tips: list<string>}|null
+     * @return array{
+     *   key: string,
+     *   title: string,
+     *   summary: string,
+     *   purpose: ?string,
+     *   why: ?string,
+     *   steps: list<string>,
+     *   outcomes: list<string>,
+     *   tips: list<string>,
+     *   warnings: list<string>,
+     *   keywords: list<string>
+     * }|null
      */
     public function chapter(string $key, User $user): ?array
     {
@@ -83,259 +102,116 @@ final class UserManual
 
     /**
      * @param  array<string, mixed>  $chapter
-     * @return array{key: string, title: string, summary: string, steps: list<string>, tips: list<string>, keywords: list<string>}
+     * @return array{
+     *   key: string,
+     *   title: string,
+     *   summary: string,
+     *   purpose: ?string,
+     *   why: ?string,
+     *   steps: list<string>,
+     *   outcomes: list<string>,
+     *   tips: list<string>,
+     *   warnings: list<string>,
+     *   keywords: list<string>
+     * }
      */
     private function present(array $chapter): array
     {
         return [
             'key' => $chapter['key'],
-            'title' => __('portal.'.$chapter['title_key']),
-            'summary' => __('portal.'.$chapter['summary_key']),
-            'steps' => array_map(fn (string $key): string => __('portal.'.$key), $chapter['step_keys']),
-            'tips' => array_map(fn (string $key): string => __('portal.'.$key), $chapter['tip_keys']),
+            'title' => $this->line($chapter['title_key']),
+            'summary' => $this->line($chapter['summary_key']),
+            'purpose' => $this->optionalLine($chapter['purpose_key'] ?? null),
+            'why' => $this->optionalLine($chapter['why_key'] ?? null),
+            'steps' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['step_keys']))),
+            'outcomes' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['outcome_keys'] ?? []))),
+            'tips' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['tip_keys']))),
+            'warnings' => array_values(array_filter(array_map(fn (string $key): string => $this->line($key), $chapter['warning_keys'] ?? []))),
             'keywords' => $chapter['keywords'],
         ];
     }
 
+    private function line(?string $key): string
+    {
+        if ($key === null || $key === '') {
+            return '';
+        }
+
+        $manual = __('manual.'.$key);
+        if (is_string($manual) && $manual !== 'manual.'.$key) {
+            return $manual;
+        }
+
+        // Backward-compatible fallback while older portal keys remain.
+        return (string) __('portal.'.$key);
+    }
+
+    private function optionalLine(?string $key): ?string
+    {
+        $value = $this->line($key);
+
+        return $value === '' ? null : $value;
+    }
+
     /**
-     * Complete, comprehensive 17-chapter user manual covering every major and minor feature.
+     * Enterprise product manual catalog. Content lives in lang/{locale}/manual.php.
+     * Live TourGuide definitions are separate and must not be edited here.
      *
      * @return list<array<string, mixed>>
      */
     private function chapters(): array
     {
         return [
-            [
-                'key' => 'getting_started',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_getting_started_title',
-                'summary_key' => 'manual_ch_getting_started_summary',
-                'step_keys' => [
-                    'manual_ch_getting_started_s1',
-                    'manual_ch_getting_started_s2',
-                    'manual_ch_getting_started_s3',
-                    'manual_ch_getting_started_s4',
-                ],
-                'tip_keys' => ['manual_ch_getting_started_t1'],
-                'keywords' => ['start', 'login', 'dashboard', 'tour', 'overview', 'navigation', 'language', 'শুরু', 'লগইন', 'ড্যাশবোর্ড', 'নেভিগেশন', 'ভাষা'],
-            ],
-            [
-                'key' => 'profile_security',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_profile_title',
-                'summary_key' => 'manual_ch_profile_summary',
-                'step_keys' => [
-                    'manual_ch_profile_s1',
-                    'manual_ch_profile_s2',
-                    'manual_ch_profile_s3',
-                    'manual_ch_profile_s4',
-                    'manual_ch_profile_s5',
-                ],
-                'tip_keys' => ['manual_ch_profile_t1', 'manual_ch_profile_t2'],
-                'keywords' => ['profile', 'password', 'security', 'phone', 'kyc', 'id_card', 'poster', 'totp', '2fa', 'session', 'privacy', 'প্রোফাইল', 'পাসওয়ার্ড', 'নিরাপত্তা', 'আইডি কার্ড'],
-            ],
-            [
-                'key' => 'catalog_orders',
-                'audience' => ['partner', 'dealer', 'sub_dealer'],
-                'title_key' => 'manual_ch_orders_title',
-                'summary_key' => 'manual_ch_orders_summary',
-                'step_keys' => [
-                    'manual_ch_orders_s1',
-                    'manual_ch_orders_s2',
-                    'manual_ch_orders_s3',
-                    'manual_ch_orders_s4',
-                    'manual_ch_orders_s5',
-                ],
-                'tip_keys' => ['manual_ch_orders_t1', 'manual_ch_orders_t2'],
-                'keywords' => ['order', 'catalog', 'purchase', 'cart', 'invoice', 'stock', 'discount', 'mrp', 'payment', 'bkash', 'nagad', 'bank', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস', 'পেমেন্ট'],
-            ],
-            [
-                'key' => 'deliveries_dues',
-                'audience' => ['partner', 'dealer', 'sub_dealer'],
-                'title_key' => 'manual_ch_deliveries_title',
-                'summary_key' => 'manual_ch_deliveries_summary',
-                'step_keys' => [
-                    'manual_ch_deliveries_s1',
-                    'manual_ch_deliveries_s2',
-                    'manual_ch_deliveries_s3',
-                    'manual_ch_deliveries_s4',
-                ],
-                'tip_keys' => ['manual_ch_deliveries_t1', 'manual_ch_deliveries_t2'],
-                'keywords' => ['delivery', 'due', 'payment', 'claim', 'dispatch', 'courier', 'invoice_pdf', 'ডেলিভারি', 'বাকি', 'চালান'],
-            ],
-            [
-                'key' => 'network_genealogy',
-                'audience' => ['dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_network_title',
-                'summary_key' => 'manual_ch_network_summary',
-                'step_keys' => [
-                    'manual_ch_network_s1',
-                    'manual_ch_network_s2',
-                    'manual_ch_network_s3',
-                    'manual_ch_network_s4',
-                ],
-                'tip_keys' => ['manual_ch_network_t1', 'manual_ch_network_t2'],
-                'keywords' => ['network', 'referral', 'tree', 'genealogy', 'downline', 'depth', 'invite', 'qr', 'export', 'নেটওয়ার্ক', 'রেফারাল', 'ডাউনলাইন'],
-            ],
-            [
-                'key' => 'area_dealers_places',
-                'audience' => ['dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_places_title',
-                'summary_key' => 'manual_ch_places_summary',
-                'step_keys' => [
-                    'manual_ch_places_s1',
-                    'manual_ch_places_s2',
-                    'manual_ch_places_s3',
-                ],
-                'tip_keys' => ['manual_ch_places_t1'],
-                'keywords' => ['place_code', 'area_dealer', 'territory', 'division', 'district', 'upazila', 'union', 'bangladesh', 'থানা', 'জেলা', 'প্লেস কোড'],
-            ],
-            [
-                'key' => 'commissions_pool',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_earnings_title',
-                'summary_key' => 'manual_ch_earnings_summary',
-                'step_keys' => [
-                    'manual_ch_earnings_s1',
-                    'manual_ch_earnings_s2',
-                    'manual_ch_earnings_s3',
-                    'manual_ch_earnings_s4',
-                ],
-                'tip_keys' => ['manual_ch_earnings_t1', 'manual_ch_earnings_t2'],
-                'keywords' => ['commission', 'earnings', 'rate', 'ledger', 'source', '40%', '60%', 'audit', 'কমিশন', 'আয়', 'লেজার'],
-            ],
-            [
-                'key' => 'ranks_royalties',
-                'audience' => ['dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_ranks_title',
-                'summary_key' => 'manual_ch_ranks_summary',
-                'step_keys' => [
-                    'manual_ch_ranks_s1',
-                    'manual_ch_ranks_s2',
-                    'manual_ch_ranks_s3',
-                ],
-                'tip_keys' => ['manual_ch_ranks_t1'],
-                'keywords' => ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'qualification', 'turnover', 'পদবী', 'র‍্যাঙ্ক', 'রয়্যালটি'],
-            ],
-            [
-                'key' => 'rewards_milestones',
-                'audience' => ['dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_rewards_title',
-                'summary_key' => 'manual_ch_rewards_summary',
-                'step_keys' => [
-                    'manual_ch_rewards_s1',
-                    'manual_ch_rewards_s2',
-                    'manual_ch_rewards_s3',
-                ],
-                'tip_keys' => ['manual_ch_rewards_t1'],
-                'keywords' => ['reward', 'bike', 'car', 'milestone', 'incentive', 'asset', 'পুরস্কার', 'বাইক', 'গাড়ি', 'মাইলফলক'],
-            ],
-            [
-                'key' => 'subdealer_salary_tour',
-                'audience' => ['sub_dealer', 'dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_salary_title',
-                'summary_key' => 'manual_ch_salary_summary',
-                'step_keys' => [
-                    'manual_ch_salary_s1',
-                    'manual_ch_salary_s2',
-                    'manual_ch_salary_s3',
-                ],
-                'tip_keys' => ['manual_ch_salary_t1'],
-                'keywords' => ['subdealer', 'salary', 'tour', 'reserve', 'allowance', '5%', '2%', 'sponsor', 'বেতন', 'ট্যুর রিজার্ভ', 'সাব-ডিলার'],
-            ],
-            [
-                'key' => 'withdrawals',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_withdrawals_title',
-                'summary_key' => 'manual_ch_withdrawals_summary',
-                'step_keys' => [
-                    'manual_ch_withdrawals_s1',
-                    'manual_ch_withdrawals_s2',
-                    'manual_ch_withdrawals_s3',
-                    'manual_ch_withdrawals_s4',
-                ],
-                'tip_keys' => ['manual_ch_withdrawals_t1', 'manual_ch_withdrawals_t2'],
-                'keywords' => ['withdrawal', 'wallet', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'threshold', 'statement', 'উত্তোলন', 'ওয়ালেট', 'পেআউট'],
-            ],
-            [
-                'key' => 'reports',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_reports_title',
-                'summary_key' => 'manual_ch_reports_summary',
-                'step_keys' => [
-                    'manual_ch_reports_s1',
-                    'manual_ch_reports_s2',
-                    'manual_ch_reports_s3',
-                ],
-                'tip_keys' => ['manual_ch_reports_t1'],
-                'keywords' => ['report', 'date', 'pdf', 'summary', 'full_report', 'excel', 'রিপোর্ট'],
-            ],
-            [
-                'key' => 'treasury_capital_flow',
-                'audience' => ['staff', 'owner'],
-                'title_key' => 'manual_ch_treasury_title',
-                'summary_key' => 'manual_ch_treasury_summary',
-                'step_keys' => [
-                    'manual_ch_treasury_s1',
-                    'manual_ch_treasury_s2',
-                    'manual_ch_treasury_s3',
-                ],
-                'tip_keys' => ['manual_ch_treasury_t1'],
-                'keywords' => ['treasury', 'capital', 'flow', '60%', 'retained', 'fund', 'split', 'payment_accounts', 'ট্রেজারি', 'মূলধন'],
-            ],
-            [
-                'key' => 'owner_benefits_fund',
-                'audience' => ['owner'],
-                'title_key' => 'manual_ch_benefits_title',
-                'summary_key' => 'manual_ch_benefits_summary',
-                'step_keys' => [
-                    'manual_ch_benefits_s1',
-                    'manual_ch_benefits_s2',
-                    'manual_ch_benefits_s3',
-                ],
-                'tip_keys' => ['manual_ch_benefits_t1'],
-                'keywords' => ['benefits', 'reserve', 'equity', 'profit', 'confidential', 'owner_only', 'ওনার ফান্ড'],
-            ],
-            [
-                'key' => 'staff_ops',
-                'audience' => ['staff', 'owner'],
-                'title_key' => 'manual_ch_staff_title',
-                'summary_key' => 'manual_ch_staff_summary',
-                'step_keys' => [
-                    'manual_ch_staff_s1',
-                    'manual_ch_staff_s2',
-                    'manual_ch_staff_s3',
-                    'manual_ch_staff_s4',
-                ],
-                'tip_keys' => ['manual_ch_staff_t1'],
-                'keywords' => ['staff', 'accounts', 'approve', 'payout', 'support-admin', 'claims', 'inventory', 'dispatch', 'স্টাফ', 'অপারেশন'],
-            ],
-            [
-                'key' => 'website_customization',
-                'audience' => ['staff', 'owner'],
-                'title_key' => 'manual_ch_website_title',
-                'summary_key' => 'manual_ch_website_summary',
-                'step_keys' => [
-                    'manual_ch_website_s1',
-                    'manual_ch_website_s2',
-                    'manual_ch_website_s3',
-                ],
-                'tip_keys' => ['manual_ch_website_t1'],
-                'keywords' => ['website', 'cms', 'customization', 'notice', 'banner', 'enquiries', 'partnerships', 'maps', 'ওয়েবসাইট', 'কনটেন্ট'],
-            ],
-            [
-                'key' => 'support',
-                'audience' => ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'],
-                'title_key' => 'manual_ch_support_title',
-                'summary_key' => 'manual_ch_support_summary',
-                'step_keys' => [
-                    'manual_ch_support_s1',
-                    'manual_ch_support_s2',
-                    'manual_ch_support_s3',
-                ],
-                'tip_keys' => ['manual_ch_support_t1'],
-                'keywords' => ['support', 'ticket', 'help', 'manual', 'dispute', 'prerequisites', 'tour', 'সাপোর্ট', 'হেল্প', 'টিকেট'],
-            ],
+            $this->ch('getting_started', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['start', 'login', 'dashboard', 'overview', 'portal', 'শুরু', 'লগইন', 'ড্যাশবোর্ড']),
+            $this->ch('navigation_workspace', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['navigation', 'sidebar', 'language', 'theme', 'day', 'night', 'module', 'নেভিগেশন', 'ভাষা', 'থিম']),
+            $this->ch('profile_security', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['profile', 'password', 'security', '2fa', 'totp', 'session', 'id_card', 'প্রোফাইল', 'পাসওয়ার্ড', 'নিরাপত্তা']),
+            $this->ch('notifications_circulars', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['notification', 'circular', 'notice', 'alert', 'নোটিশ', 'সার্কুলার']),
+            $this->ch('catalog_orders', ['partner', 'dealer', 'sub_dealer'], 12, 3, 3, 2, ['order', 'catalog', 'purchase', 'cart', 'invoice', 'mrp', 'payment', 'অর্ডার', 'ক্যাটালগ', 'ইনভয়েস']),
+            $this->ch('deliveries_dues', ['partner', 'dealer', 'sub_dealer'], 9, 3, 2, 2, ['delivery', 'due', 'dispatch', 'courier', 'claim', 'ডেলিভারি', 'বাকি', 'চালান']),
+            $this->ch('commissions_pool', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 11, 3, 3, 2, ['commission', 'earnings', 'ledger', '40%', '60%', 'wallet', 'কমিশন', 'আয়', 'লেজার']),
+            $this->ch('withdrawals', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 3, 3, 2, ['withdrawal', 'payout', 'bkash', 'nagad', 'bank', 'rocket', 'উত্তোলন', 'ওয়ালেট']),
+            $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট']),
+            $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 10, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল']),
+            $this->ch('area_dealers_places', ['dealer', 'staff', 'owner'], 8, 2, 2, 2, ['place_code', 'area_dealer', 'territory', 'division', 'district', 'প্লেস কোড', 'এরিয়া']),
+            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 9, 3, 2, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি']),
+            $this->ch('rewards_milestones', ['dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক']),
+            $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'reserve', '5%', '2%', 'বেতন', 'সাব-ডিলার']),
+            $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট']),
+            $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'dues', 'claims', 'অনুমোদন', 'ডিসপ্যাচ']),
+            $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ']),
+            $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম']),
+            $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'upazila', 'ভূগোল']),
+            $this->ch('finance_treasury', ['staff', 'owner'], 10, 3, 3, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন']),
+            $this->ch('finance_policies_simulator', ['staff', 'owner'], 9, 3, 2, 2, ['policy', 'commission', 'simulator', 'preview', 'rate', 'পলিসি', 'সিমুলেটর']),
+            $this->ch('payouts_settlements', ['staff', 'owner'], 10, 3, 3, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট']),
+            $this->ch('ledger_audit_reports', ['staff', 'owner'], 9, 3, 2, 2, ['ledger', 'audit', 'reports', 'integrity', 'লেজার', 'অডিট']),
+            $this->ch('website_customization', ['staff', 'owner'], 9, 2, 2, 1, ['website', 'cms', 'banner', 'enquiries', 'partnerships', 'ওয়েবসাইট']),
+            $this->ch('owner_benefits_fund', ['owner'], 8, 3, 2, 2, ['benefits-fund', 'owner', 'equity', 'confidential', 'ওনার ফান্ড']),
+            $this->ch('dual_dashboard', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['dual', 'switch', 'staff', 'partner', 'ড্যাশবোর্ড সুইচ']),
+            $this->ch('financial_activation_gates', ['staff', 'owner'], 8, 3, 3, 3, ['activation', 'preview', 'opening_balance', 'readiness', 'আর্থিক সক্রিয়করণ']),
+            $this->ch('support', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['support', 'ticket', 'help', 'manual', 'সাপোর্ট', 'টিকেট', 'হেল্প']),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $audience
+     * @param  list<string>  $keywords
+     * @return array<string, mixed>
+     */
+    private function ch(string $key, array $audience, int $steps, int $outcomes, int $tips, int $warnings, array $keywords): array
+    {
+        return [
+            'key' => $key,
+            'audience' => $audience,
+            'title_key' => $key.'_title',
+            'summary_key' => $key.'_summary',
+            'purpose_key' => $key.'_purpose',
+            'why_key' => $key.'_why',
+            'step_keys' => array_map(fn (int $i): string => $key.'_s'.$i, range(1, $steps)),
+            'outcome_keys' => array_map(fn (int $i): string => $key.'_o'.$i, range(1, $outcomes)),
+            'tip_keys' => array_map(fn (int $i): string => $key.'_t'.$i, range(1, $tips)),
+            'warning_keys' => array_map(fn (int $i): string => $key.'_w'.$i, range(1, $warnings)),
+            'keywords' => $keywords,
         ];
     }
 }
