@@ -5,7 +5,7 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, Compass, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -22,7 +22,7 @@ const icons: Record<string, LucideIcon> = {
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
-    commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, rewards: Trophy, 'capital-flow': TrendingUp,
+    commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare
@@ -39,7 +39,7 @@ const sectionKeys: Record<string, string> = {
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
     website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
     notifications: 'notifications', circulars: 'circulars', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
-    'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', rewards: 'rewards', 'capital-flow': 'capital_flow',
+    'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches', 'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund',
     'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders', employees: 'employees', dashboards: 'dashboards',
@@ -71,7 +71,7 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, tour, userManualChapters } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, tour, userManualChapters, workspaceBranches } = usePage<any>().props;
     const [manualOpen, setManualOpen] = useState(false);
     const unreadCount = Number(unreadNotices ?? 0);
     const translate = useT();
@@ -256,7 +256,9 @@ export default function Shell({ section, children, action }: { section: string; 
         }
         if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('benefits-fund');
         if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
-        if (capabilities.includes('inventory')) items.add('inventory');
+        if (capabilities.includes('inventory')) { items.add('inventory'); items.add('branches'); }
+        if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
+        if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('branch-performance');
         if (capabilities.includes('content')) {
             ['website', 'content', 'enquiries'].forEach((item) => items.add(item));
         }
@@ -340,7 +342,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports',
                 'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
             ])),
-            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'place-codes', 'video-marketing'])),
+            mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing'])),
             mother('website', 'nav_module_website', pick(staffAvailable, ['website', 'content', 'enquiries', 'service-integrations'])),
             mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
@@ -597,7 +599,26 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                     <div className="header-actions">
                         <ThemeToggle compact />
-                        <LanguageSwitcher compact />
+                        {staff && workspaceBranches?.branches?.length > 0 && (
+                        <label className="branch-workspace-select" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12}}>
+                            <Store size={14} />
+                            <select
+                                aria-label={translate('portal','branch_select')}
+                                value={workspaceBranches.active_branch_id ?? ''}
+                                onChange={(e) => {
+                                    const id = e.target.value;
+                                    if (!id) return;
+                                    router.post(`/commands/branches/${id}/select`, {}, { preserveScroll: true });
+                                }}
+                            >
+                                <option value="">{translate('portal','branch_pick')}</option>
+                                {workspaceBranches.branches.map((branch: any) => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </select>
+                        </label>
+                    )}
+                    <LanguageSwitcher compact />
                         <button
                             type="button"
                             className="icon-button tour-guide-launcher"

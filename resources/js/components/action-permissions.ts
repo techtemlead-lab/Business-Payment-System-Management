@@ -22,6 +22,8 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/products'))return any(['catalog','pricing','inventory'],method==='post'&&path==='/commands/products'?'create':'edit');
     if(path.startsWith('/commands/area-dealers')||path.startsWith('/commands/dashboards'))return any(['accounts'],'edit');
     if(path==='/commands/stock')return any(['inventory'],'create');
+    if(/^\/commands\/branches\/\d+\/select$/.test(path))return true;
+    if(path.startsWith('/commands/branches'))return any(['inventory','accounts'],method==='post'&&path==='/commands/branches'?'create':'edit');
     if(/\/decision$/.test(path))return any(['order_review'],'approve');
     if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');

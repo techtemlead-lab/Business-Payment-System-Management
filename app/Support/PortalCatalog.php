@@ -56,6 +56,10 @@ final class PortalCatalog
             abort_unless($user->allows('content') || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'branches') {
+            abort_unless($user->allows('inventory') || $user->allows('accounts') || $user->owner(), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'branch-performance') {
+            abort_unless($user->owner() || $user->allows('reports') || $user->allows('finance') || $user->allows('inventory'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries', 'dues'], true)) {
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'reports') {

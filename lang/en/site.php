@@ -104,6 +104,7 @@ return [
     'in_stock' => 'In Stock',
     'low_stock' => 'Low Stock',
     'out_of_stock' => 'Awaiting Stock',
+    'ordering_paused' => 'Ordering paused',
     'mrp' => 'MRP',
     'availability' => 'Availability',
     'product_code' => 'Product Code',

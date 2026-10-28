@@ -104,6 +104,7 @@ return [
     'in_stock' => 'স্টকে আছে',
     'low_stock' => 'কম স্টক',
     'out_of_stock' => 'স্টক অপেক্ষমাণ',
+    'ordering_paused' => 'অর্ডারিং স্থগিত',
     'mrp' => 'এমআরপি',
     'availability' => 'প্রাপ্যতা',
     'product_code' => 'পণ্য কোড',

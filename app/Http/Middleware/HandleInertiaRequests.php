@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\TourGuide;
@@ -78,6 +79,14 @@ class HandleInertiaRequests extends Middleware
                 ? app(UserManual::class)->chaptersFor($u)
                 : [],
             'dashboardNotice' => DashboardManagement::noticeForUser($u),
-            'dashboardControls' => DashboardManagement::get()];
+            'dashboardControls' => DashboardManagement::get(),
+            'workspaceBranches' => fn () => ($u && ($u->staff() || $u->owner()) && in_array($portal, ['manage', 'sadmin'], true))
+                ? [
+                    'active_branch_id' => $u->active_branch_id,
+                    'active_branch' => $u->activeBranch?->summary(),
+                    'branches' => app(BranchOperations::class)->branchesFor($u),
+                ]
+                : null,
+        ];
     }
 }

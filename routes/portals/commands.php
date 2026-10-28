@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PlaceCodeController;
@@ -85,4 +86,9 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/unlink-staff', [CommandController::class, 'unlinkStaffRole']);
     Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
+    Route::post('/commands/branches', [BranchController::class, 'store']);
+    Route::patch('/commands/branches/{branch}', [BranchController::class, 'update']);
+    Route::post('/commands/branches/{branch}/staff', [BranchController::class, 'assignStaff']);
+    Route::delete('/commands/branches/{branch}/staff/{user}', [BranchController::class, 'removeStaff']);
+    Route::post('/commands/branches/{branch}/select', [BranchController::class, 'select']);
 };

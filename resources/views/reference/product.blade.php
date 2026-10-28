@@ -1,11 +1,14 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
-    $inStock = ($item['stock_status'] ?? 'out_of_stock') !== 'out_of_stock';
-    $stockLabel = ! $inStock
-        ? $chrome('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
-        : (($item['stock_status'] ?? '') === 'low_stock'
-            ? __('site.low_stock')
-            : $chrome('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
+    $paused = (bool) ($item['is_stock_paused'] ?? false);
+    $inStock = ! $paused && ($item['stock_status'] ?? 'out_of_stock') !== 'out_of_stock';
+    $stockLabel = $paused
+        ? __('site.ordering_paused')
+        : (! $inStock
+            ? $chrome('out_of_stock', $siteCustomization['product_out_of_stock_label'] ?? null)
+            : (($item['stock_status'] ?? '') === 'low_stock'
+                ? __('site.low_stock')
+                : $chrome('in_stock', $siteCustomization['product_in_stock_label'] ?? null)));
 @endphp
 @extends('reference.layout')
 @section('title',$item['name'].' · Madina Natural Health Care')
