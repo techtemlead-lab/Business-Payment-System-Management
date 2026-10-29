@@ -149,15 +149,15 @@ class PortalModulesTest extends TestCase
     public function test_partner_nav_is_grouped_into_mother_modules(): void
     {
         $this->assertSame(['overview'], PortalCatalog::nav('dealer')['home']);
-        $this->assertSame(['orders', 'deliveries', 'dues', 'catalog'], PortalCatalog::nav('dealer')['commerce']);
+        $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries', 'dues'], PortalCatalog::nav('dealer')['commerce']);
         $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'help'], PortalCatalog::nav('dealer')['account']);
         $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'help'], PortalCatalog::nav('subdealer')['account']);
         $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
-        $this->assertSame(['accounts', 'partnerships', 'place-codes'], PortalCatalog::nav('manage')['dealer_directory']);
+        $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
         $this->assertSame(['orders', 'deliveries', 'dues'], PortalCatalog::nav('manage')['fulfillment']);
-        $this->assertSame(['catalog', 'inventory'], PortalCatalog::nav('manage')['products']);
+        $this->assertSame(['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'], PortalCatalog::nav('manage')['products']);
         $this->assertSame(['audit', 'support-admin'], PortalCatalog::nav('manage')['system']);
     }
 
