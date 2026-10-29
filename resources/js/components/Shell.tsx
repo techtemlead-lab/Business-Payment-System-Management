@@ -266,6 +266,9 @@ export default function Shell({ section, children, action }: { section: string; 
         if (capabilities.includes('orders') || capabilities.includes('finance')) {
             ['orders', 'deliveries', 'dues'].forEach((item) => items.add(item));
         }
+        if (capabilities.includes('orders')) {
+            items.add('sub-dealer-orders');
+        }
         return items;
     }, [capabilities, ownerPortal, user.role]);
 
@@ -360,7 +363,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ]);
 
         const subDealers = compactMothers([
-            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers'])),
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-orders'])),
             mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
             mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
             mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
