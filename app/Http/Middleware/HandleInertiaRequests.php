@@ -72,6 +72,31 @@ class HandleInertiaRequests extends Middleware
             'unreadNotices' => fn () => $u
                 ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
                 : 0,
+            'navAttention' => function () use ($u) {
+                if (! $u) {
+                    return [
+                        'notifications' => 0,
+                        'enquiries' => 0,
+                        'withdrawals' => 0,
+                        'support-admin' => 0,
+                    ];
+                }
+
+                $staffWorkspace = $u->staff() || $u->usingStaffWorkspace();
+
+                return [
+                    'notifications' => (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count(),
+                    'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts'))
+                        ? (int) DB::table('enquiries')->where('status', 'new')->count()
+                        : 0,
+                    'withdrawals' => $staffWorkspace && $u->allows('finance')
+                        ? (int) DB::table('withdrawals')->where('status', 'requested')->count()
+                        : 0,
+                    'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->owner())
+                        ? (int) DB::table('support_tickets')->whereIn('status', ['pending', 'in_progress'])->count()
+                        : 0,
+                ];
+            },
             'tour' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
                 ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PartnerNoticesAndProfileTest extends TestCase
@@ -24,6 +25,9 @@ class PartnerNoticesAndProfileTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('unreadNotices', 2)
+                ->where('navAttention.notifications', 2)
+                ->where('navAttention.enquiries', 0)
+                ->where('navAttention.withdrawals', 0)
                 ->has('data.notices.data', 2));
 
         $this->actingAs($dealer)->onPortal('dealer')
@@ -35,7 +39,52 @@ class PartnerNoticesAndProfileTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')
             ->get('/notifications')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->where('unreadNotices', 0));
+            ->assertInertia(fn ($page) => $page->where('unreadNotices', 0)->where('navAttention.notifications', 0));
+    }
+
+    public function test_staff_nav_attention_counts_enquiries_withdrawals_and_support(): void
+    {
+        $staff = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        DB::table('enquiries')->insert([
+            'name' => 'New lead',
+            'phone' => '01700000001',
+            'topic' => 'partnership',
+            'message' => 'Interested in dealership',
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('withdrawals')->insert([
+            'id' => (string) Str::uuid(),
+            'user_id' => $partner->id,
+            'amount' => 1000,
+            'channel' => 'bKash',
+            'destination' => '01700000002',
+            'idempotency_key' => 'nav-attention-wd-1',
+            'status' => 'requested',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('support_tickets')->insert([
+            'id' => (string) Str::uuid(),
+            'user_id' => $partner->id,
+            'category' => 'account',
+            'subject' => 'Need help',
+            'body' => 'Please review my account',
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($staff)->onPortal('sadmin')
+            ->get('/')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('navAttention.enquiries', 1)
+                ->where('navAttention.withdrawals', 1)
+                ->where('navAttention.support-admin', 1));
     }
 
     public function test_partner_profile_exposes_kyc_summary_without_raw_identity_fields(): void

@@ -57,18 +57,22 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
         );
     };
 
+    const ordersEnabled = partnerChromeEnabled(role, controls, 'orders');
+    const catalogEnabled = partnerChromeEnabled(role, controls, 'catalog');
+    const commerceHref = ordersEnabled ? '/orders' : (catalogEnabled ? '/catalog' : null);
+    const commerceIcon = ordersEnabled ? ShoppingBag : Store;
+
     return (
         <nav className="portal-bottom-nav" aria-label={translate('portal', 'account_navigation')}>
             <button type="button" onClick={onMenu} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
                 <Menu size={20}/>{translate('portal', 'menu')}
             </button>
-            {partnerChromeEnabled(role, controls, 'catalog') && item('/catalog', translate('portal', 'shop'), Store)}
-            {item('/', translate('portal', 'overview'), Home, 'portal-mobile-home')}
-            {partnerChromeEnabled(role, controls, 'orders') && item('/orders', translate('portal', 'orders'), ShoppingBag)}
+            {item('/', translate('portal', 'nav_module_home'), Home, 'portal-mobile-home')}
+            {commerceHref && item(commerceHref, translate('portal', 'nav_module_commerce'), commerceIcon)}
             {role === 'dealer'
-                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'network'), Network))
-                : (partnerChromeEnabled(role, controls, 'salary') && item('/salary', translate('portal', 'salary'), Banknote))}
-            {partnerChromeEnabled(role, controls, 'earnings') && item('/earnings', translate('portal', 'earnings'), Wallet)}
+                ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_module_network'), Network))
+                : (partnerChromeEnabled(role, controls, 'salary') && item('/salary', translate('portal', 'nav_module_compensation'), Banknote))}
+            {partnerChromeEnabled(role, controls, 'earnings') && item('/earnings', translate('portal', 'nav_module_earnings'), Wallet)}
         </nav>
     );
 }

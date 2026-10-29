@@ -5,14 +5,14 @@ import {
     Settings, ShieldCheck, FileText, Leaf, Bell, Menu, X, LogOut, ArrowUpRight,
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
-    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, type LucideIcon
+    Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search, type LucideIcon
 } from 'lucide-react';
 import { Flash } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
-import { useT } from '../shared/i18n/t';
+import { t, useT, useTranslations } from '../shared/i18n/t';
 
 const icons: Record<string, LucideIcon> = {
     'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
@@ -71,10 +71,18 @@ function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, tour, userManualChapters, workspaceBranches } = usePage<any>().props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = usePage<any>().props;
     const [manualOpen, setManualOpen] = useState(false);
+    const [menuQuery, setMenuQuery] = useState('');
     const unreadCount = Number(unreadNotices ?? 0);
+    const attention = {
+        notifications: Number(navAttention?.notifications ?? unreadCount ?? 0),
+        enquiries: Number(navAttention?.enquiries ?? 0),
+        withdrawals: Number(navAttention?.withdrawals ?? 0),
+        'support-admin': Number(navAttention?.['support-admin'] ?? 0),
+    } as Record<string, number>;
     const translate = useT();
+    const translations = useTranslations();
     const user = auth.user;
     const capabilities: string[] = auth.capabilities;
     const workspaceMode = String(user.workspace_mode || 'partner');
@@ -144,7 +152,7 @@ export default function Shell({ section, children, action }: { section: string; 
         const keydown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') setOpen(false);
             if (event.key === 'Tab') {
-                const items = sidebar.current?.querySelectorAll<HTMLElement>('a, button:not(:disabled)');
+                const items = sidebar.current?.querySelectorAll<HTMLElement>('a, button:not(:disabled), input');
                 if (!items?.length) return;
                 const first = items[0], last = items[items.length - 1];
                 if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -347,13 +355,17 @@ export default function Shell({ section, children, action }: { section: string; 
             mother('finance', 'nav_module_finance', pick(staffAvailable, [
                 'treasury', 'payments', 'withdrawals', 'payment-accounts', 'ledger', 'dues-adjustments', 'benefits-fund',
             ])),
-            mother('commissions_policy', 'nav_module_commissions_policy', pick(staffAvailable, [
+            mother('commissions', 'nav_module_commissions', pick(staffAvailable, [
                 'policy-schedules', 'commission-holds', 'settlements', 'rewards', 'payouts-hub', 'reserve-payouts', 'finance-settings', 'financial-readiness',
             ])),
             mother('products', 'nav_module_products', pick(staffAvailable, ['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'])),
-            mother('reports_analytics', 'nav_module_reports_analytics', pick(staffAvailable, ['reports', 'financial-reports', 'dashboards', 'data-imports'])),
-            mother('website_media', 'nav_module_website_media', pick(staffAvailable, ['website', 'content', 'video-marketing', 'enquiries', 'service-integrations'])),
-            mother('control', 'nav_module_control', pick(staffAvailable, ['audit', 'support-admin'])),
+            mother('reports', 'nav_module_reports', pick(staffAvailable, [
+                'reports', 'financial-reports', 'dashboards', 'data-imports',
+            ])),
+            mother('website', 'nav_module_website', pick(staffAvailable, [
+                'website', 'content', 'video-marketing', 'enquiries', 'service-integrations',
+            ])),
+            mother('system', 'nav_module_system', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);
 
         const dealers = compactMothers([
@@ -382,6 +394,26 @@ export default function Shell({ section, children, action }: { section: string; 
         return [...domainModules, ...account];
     }, [staff, user.role, partnerAvailable, staffAvailable, currentDomain]);
 
+    const itemBadge = (item: string): number => {
+        if (item === 'notifications') {
+            return attention.notifications;
+        }
+        if (item === 'enquiries') {
+            return attention.enquiries;
+        }
+        if (item === 'withdrawals') {
+            return attention.withdrawals;
+        }
+        if (item === 'support-admin') {
+            return attention['support-admin'];
+        }
+        return 0;
+    };
+
+    const motherBadge = (items: string[]): number => items.reduce((sum, item) => sum + itemBadge(item), 0);
+
+    const formatBadge = (count: number): string => (count > 99 ? '99+' : String(count));
+
     const activeMotherIds = useMemo(
         () => domainMothers.filter((entry) => entry.items.includes(section)).map((entry) => entry.id),
         [domainMothers, section],
@@ -389,16 +421,47 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds);
 
+    const filteredMothers = useMemo(() => {
+        const query = menuQuery.trim().toLowerCase();
+        if (!query) {
+            return domainMothers;
+        }
+
+        return compactMothers(domainMothers.map((entry) => {
+            const motherLabel = t(translations, 'portal', entry.labelKey).toLowerCase();
+            if (motherLabel.includes(query)) {
+                return entry;
+            }
+            const items = entry.items.filter((item) => {
+                const key = sectionKeys[item];
+                const label = (item === 'catalog' && staff
+                    ? t(translations, 'portal', 'product_management')
+                    : key
+                        ? t(translations, 'portal', key)
+                        : t(translations, 'portal', 'order_details')).toLowerCase();
+                return label.includes(query) || item.toLowerCase().includes(query);
+            });
+            return mother(entry.id, entry.labelKey, items);
+        }));
+    }, [domainMothers, menuQuery, staff, translations]);
+
     useEffect(() => {
         setExpandedMothers((previous) => {
             const next = new Set(previous);
             activeMotherIds.forEach((id) => next.add(id));
+            if (menuQuery.trim()) {
+                filteredMothers.forEach((entry) => next.add(entry.id));
+            }
             if (next.size === 0 && domainMothers[0]) {
                 next.add(domainMothers[0].id);
             }
-            return Array.from(next);
+            const nextList = Array.from(next);
+            if (nextList.length === previous.length && nextList.every((id) => previous.includes(id))) {
+                return previous;
+            }
+            return nextList;
         });
-    }, [activeMotherIds, domainMothers]);
+    }, [activeMotherIds, domainMothers, filteredMothers, menuQuery]);
 
     const toggleMother = (id: string) => {
         setExpandedMothers((previous) => (
@@ -410,6 +473,7 @@ export default function Shell({ section, children, action }: { section: string; 
 
     const renderLink = (item: string) => {
         const Icon = icons[item] || LayoutDashboard;
+        const badge = itemBadge(item);
         return (
             <Link
                 aria-current={section === item ? 'page' : undefined}
@@ -425,15 +489,21 @@ export default function Shell({ section, children, action }: { section: string; 
                 data-tour={item === 'help' ? 'sidebar-help' : undefined}
             >
                 <Icon size={17} />
-                {sectionLabel(item)}
+                <span className="nav-link-label">{sectionLabel(item)}</span>
+                {badge > 0 && (
+                    <span className="nav-attention-badge" aria-label={translate('portal', 'nav_attention_count', { count: String(badge) })}>
+                        {formatBadge(badge)}
+                    </span>
+                )}
                 {section === item && <i />}
             </Link>
         );
     };
 
     const renderMothers = (mothers: NavMother[]) => mothers.map((entry) => {
-        const expanded = expandedMothers.includes(entry.id);
+        const expanded = expandedMothers.includes(entry.id) || Boolean(menuQuery.trim());
         const hasActive = entry.items.includes(section);
+        const badge = motherBadge(entry.items);
         return (
             <nav
                 key={entry.id}
@@ -447,6 +517,11 @@ export default function Shell({ section, children, action }: { section: string; 
                     onClick={() => toggleMother(entry.id)}
                 >
                     <span>{translate('portal', entry.labelKey)}</span>
+                    {badge > 0 && (
+                        <span className="nav-attention-badge nav-mother-badge" aria-hidden="true">
+                            {formatBadge(badge)}
+                        </span>
+                    )}
                     <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
                 </button>
                 {expanded && (
@@ -561,8 +636,22 @@ export default function Shell({ section, children, action }: { section: string; 
                     </div>
                 )}
 
+                <label className="sidebar-menu-search">
+                    <Search size={14} aria-hidden="true" />
+                    <input
+                        type="search"
+                        value={menuQuery}
+                        onChange={(event) => setMenuQuery(event.target.value)}
+                        placeholder={translate('portal', 'search_menu')}
+                        aria-label={translate('portal', 'search_menu')}
+                        autoComplete="off"
+                    />
+                </label>
+
                 <div className="sidebar-nav-container" data-tour="sidebar-nav">
-                    {renderMothers(domainMothers)}
+                    {filteredMothers.length > 0
+                        ? renderMothers(filteredMothers)
+                        : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>}
                 </div>
 
                 <div className="sidebar-footer">
