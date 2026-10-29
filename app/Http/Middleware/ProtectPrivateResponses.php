@@ -34,17 +34,22 @@ class ProtectPrivateResponses
         // 'self' alone blocks JS/CSS and blanks dealer/subdealer/manage/sadmin SPAs.
         $domain = PortalHost::domain();
         $domainHosts = ($domain !== '' && $domain !== 'localhost') ? " {$domain} *.{$domain}" : '';
+        // Vite HMR serves CSS/JS from :5173. Without these origins, local pages render as bare HTML.
+        $viteDev = '';
+        if (Vite::isRunningHot()) {
+            $viteDev = ' http://127.0.0.1:5173 http://localhost:5173 ws://127.0.0.1:5173 ws://localhost:5173';
+        }
 
         $response->headers->set(
             'Content-Security-Policy',
             "default-src 'self'{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action 'self'{$domainHosts}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com; "
-            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}; "
-            ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}; "
-            ."img-src 'self' data: blob:{$domainHosts}; "
-            ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}; "
-            ."connect-src 'self'{$domainHosts}; media-src 'self' blob:{$domainHosts}; "
+            ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}{$viteDev}; "
+            ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
+            ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
+            ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}{$viteDev}; "
+            ."connect-src 'self'{$domainHosts}{$viteDev}; media-src 'self' blob:{$domainHosts}; "
             ."worker-src 'self' blob:{$domainHosts}; upgrade-insecure-requests"
         );
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');

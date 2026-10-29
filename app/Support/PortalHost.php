@@ -31,6 +31,10 @@ final class PortalHost
         if ($host === $domain) {
             return 'public';
         }
+        // Cloud / artisan-serve previews often hit the loopback IP instead of "localhost".
+        if ($domain === 'localhost' && ($host === '127.0.0.1' || $host === '[::1]' || $host === '::1')) {
+            return 'public';
+        }
         foreach (['dealer', 'subdealer', 'manage', 'sadmin'] as $portal) {
             if ($host === $portal.'.'.$domain) {
                 return $portal;
