@@ -136,7 +136,16 @@
 </div>
 </footer>
 <aside class="ref-floating-tools" aria-label="{{ $chrome('company_support_tools') }}">
-    <a href="{{ $siteCustomization['whatsapp_link'] ?? '/contact' }}" class="ref-chat" aria-label="{{ $chrome('customer_support_chat') }}"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><b>{{ $chrome('floating_chat_label', $siteCustomization['floating_chat_label'] ?? null) }}</b></a>
+    <a
+        href="{{ $siteCustomization['whatsapp_link'] ?? '/contact' }}"
+        class="ref-chat"
+        aria-label="{{ __('site.chat_with_representative') }}"
+        title="{{ __('site.chat_with_representative') }}"
+        data-tooltip="{{ __('site.chat_with_representative') }}"
+    >
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        <span class="ref-sr-only">{{ $chrome('floating_chat_label', $siteCustomization['floating_chat_label'] ?? null) }}</span>
+    </a>
 </aside>
 <nav class="ref-mobile-nav" aria-label="{{ __('site.mobile_navigation') }}">
     @if($publicPageEnabled['products'] ?? true)
@@ -172,7 +181,9 @@
     </a>
     @endif
     <a href="/" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
-        <span class="ref-mobile-home-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
+        <span class="ref-mobile-home-icon">
+            <img src="/madina-header-logo.png?v=9" alt="" width="40" height="40" decoding="async">
+        </span>
         <span class="ref-mobile-home-label">{{ __('site.home') }}</span>
     </a>
     @if($publicPageEnabled['about'] ?? true)

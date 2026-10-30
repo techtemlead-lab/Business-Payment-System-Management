@@ -418,6 +418,7 @@ For questions regarding these Terms of Use, operational policies or partnership 
     'announcement_text' => 'Natural food supplements, unani medicine, personal care, agriculture and wellness products are available now.',
     'floating_chat_label' => 'CHAT',
     'customer_support_chat' => 'Customer support chat',
+    'chat_with_representative' => 'Chat with a representative',
     'company_support_tools' => 'Company support',
     'product_link_copied' => 'Product link copied.',
     'product_link_copy_fallback' => 'Copy the product link from your browser address bar.',
