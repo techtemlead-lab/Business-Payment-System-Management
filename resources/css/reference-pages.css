@@ -584,7 +584,7 @@
     background: #ffffff;
     border-color: #ffd0c3;
     box-shadow: 0 10px 24px -4px rgba(239, 74, 35, 0.12);
-    transform: translateY(-3px);
+    transform: none;
 }
 
 .ref-contact-topic > i {
@@ -613,18 +613,13 @@
 }
 
 .ref-directory-grid .ref-content-card:hover {
-    transform: translateY(-4px);
+    transform: none;
     box-shadow: 0 14px 30px -8px rgba(1, 22, 39, 0.1), 0 0 0 1px rgba(0, 104, 55, 0.2);
     border-color: #86efac;
 }
 
 .ref-dealer-distance {
-    animation: refPulseSoft 3s ease-in-out infinite;
-}
-
-@keyframes refPulseSoft {
-    0%, 100% { opacity: 0.95; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.03); }
+    opacity: 1;
 }
 
 /* Auth / Login Cards */
