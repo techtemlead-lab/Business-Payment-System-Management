@@ -2498,16 +2498,16 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     padding: 18px;
 }
 
-/* Use aside specificity so this is not collapsed into older .ref-floating-tools mid-page rules. */
+/* CHAT sits near mid-viewport; back-to-top stays below it. */
 aside.ref-floating-tools {
     position: fixed !important;
-    inset: auto 20px 24px auto !important;
+    top: 46% !important;
+    right: 18px !important;
+    bottom: auto !important;
     left: auto !important;
-    top: auto !important;
-    right: 20px !important;
-    bottom: 24px !important;
-    transform: none !important;
-    z-index: 40 !important;
+    inset: 46% 18px auto auto !important;
+    transform: translateY(-50%) !important;
+    z-index: 45 !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
@@ -2516,7 +2516,9 @@ aside.ref-floating-tools {
 
 .ref-back-top {
     right: 20px;
-    bottom: 84px;
+    top: calc(46% + 42px);
+    bottom: auto;
+    z-index: 44;
 }
 
 @media (max-width: 1023px) {
@@ -2544,14 +2546,17 @@ aside.ref-floating-tools {
     }
 
     aside.ref-floating-tools {
-        right: 14px !important;
-        bottom: 108px !important;
-        inset: auto 14px 108px auto !important;
+        right: 12px !important;
+        top: 44% !important;
+        bottom: auto !important;
+        inset: 44% 12px auto auto !important;
+        transform: translateY(-50%) !important;
     }
 
     .ref-back-top {
         right: 14px;
-        bottom: 164px;
+        top: calc(44% + 40px);
+        bottom: auto;
     }
 }
 
@@ -2562,9 +2567,17 @@ aside.ref-floating-tools {
     }
 
     aside.ref-floating-tools {
-        right: 12px !important;
-        bottom: 104px !important;
-        inset: auto 12px 104px auto !important;
+        right: 10px !important;
+        top: 42% !important;
+        bottom: auto !important;
+        inset: 42% 10px auto auto !important;
+        transform: translateY(-50%) !important;
+    }
+
+    .ref-back-top {
+        right: 12px;
+        top: calc(42% + 38px);
+        bottom: auto;
     }
 }
 

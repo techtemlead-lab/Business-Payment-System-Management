@@ -61,8 +61,8 @@
 <div class="ref-information-links">
     @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
     @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }}</a>@endif
-    @if($publicPageEnabled['contact'] ?? true)<a href="/contact">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }}</a>@endif
+    @if($publicPageEnabled['contact'] ?? true)<a href="/contact" class="ref-ghost-button">{{ $chrome('about_btn_contact', $siteCustomization['about_btn_contact'] ?? null) }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
@@ -629,7 +629,7 @@
     @if($cta = \App\Support\SiteCustomization::publicHref($siteCustomization['quality_cta_link'] ?? '/products'))
     <a href="{{ $cta }}" class="ref-primary-button">{{ $chrome('quality_cta_btn', $siteCustomization['quality_cta_btn'] ?? null) }}</a>
     @endif
-    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
+    @if($publicPageEnabled['partnership'] ?? true)<a href="/partnership" class="ref-ghost-button">{{ __('site.become_a_partner') }} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>@endif
 </div>
 @endif
 
