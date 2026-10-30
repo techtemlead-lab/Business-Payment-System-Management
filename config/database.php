@@ -98,6 +98,8 @@ return [
             'search_path' => 'public',
             'timezone' => 'UTC',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // libpq connect_timeout (seconds). Keeps a down DB from hanging the whole site.
+            'connect_timeout' => env('DB_CONNECT_TIMEOUT', 5),
         ],
 
         'sqlsrv' => [

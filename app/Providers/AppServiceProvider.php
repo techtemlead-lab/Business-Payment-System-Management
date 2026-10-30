@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Database\Connectors\PostgresConnector;
 use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
@@ -31,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ProductPricing::class, CurrentProductPricing::class);
+        // Fail unreachable Postgres hosts quickly instead of blocking php artisan serve
+        // (single-threaded) until max_execution_time, which freezes every device viewport.
+        $this->app->bind('db.connector.pgsql', PostgresConnector::class);
     }
 
     /**
