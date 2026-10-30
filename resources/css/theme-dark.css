@@ -1362,6 +1362,32 @@ html[data-theme="dark"] .ref-auth-card,
 html[data-theme="dark"] .ref-partner-apply-card {
     background: #111a28 !important;
     border-color: #1e293b !important;
+    color: #e8eef6 !important;
+}
+
+/* About / information cards: headings + prose keep light-mode navy that fails on dark panels */
+html[data-theme="dark"] .ref-content-card h1,
+html[data-theme="dark"] .ref-content-card h2,
+html[data-theme="dark"] .ref-content-card h3,
+html[data-theme="dark"] .ref-about-hero h1,
+html[data-theme="dark"] .ref-about-hero h2 {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-content-prose,
+html[data-theme="dark"] .ref-content-card > p,
+html[data-theme="dark"] .ref-content-card .ref-content-prose,
+html[data-theme="dark"] .ref-about-hero .ref-content-prose {
+    color: #cbd5e1 !important;
+}
+
+html[data-theme="dark"] .ref-about-objectives,
+html[data-theme="dark"] .ref-about-objectives li {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-about-objectives li::before {
+    color: #4ade80 !important;
 }
 
 html[data-theme="dark"] .ref-contact-topic:hover {
