@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Product;
+use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -277,7 +278,7 @@ class SiteCustomization
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
             'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
-            'footer_logo_url' => '/madina-header-logo-white.png?v=8',
+            'footer_logo_url' => '/madina-header-logo-white.png?v=9',
 
             // Floating Tools & Dialogs
             'floating_compare_label' => 'COMPARE',
@@ -1166,6 +1167,28 @@ class SiteCustomization
         if (! $enabled) {
             return [];
         }
+
+        $approved = SiteFeedback::query()
+            ->where('status', 'approved')
+            ->orderByDesc('moderated_at')
+            ->orderByDesc('id')
+            ->limit(24)
+            ->get()
+            ->map(fn (SiteFeedback $row): array => [
+                'name' => $row->name,
+                'role' => $row->role,
+                'location' => $row->location,
+                'rating' => max(1, min(5, (int) $row->rating)),
+                'text' => $row->message,
+                'avatar' => '',
+                'source' => $row->source,
+            ])
+            ->all();
+
+        if ($approved !== []) {
+            return $approved;
+        }
+
         $raw = $all['testimonials'] ?? self::defaults()['testimonials'];
         if (! is_array($raw) || empty($raw)) {
             $raw = self::defaults()['testimonials'];
@@ -1183,6 +1206,7 @@ class SiteCustomization
                 'rating' => max(1, min(5, (int) ($t['rating'] ?? 5))),
                 'text' => trim((string) ($t['text'] ?? '')),
                 'avatar' => trim((string) ($t['avatar'] ?? '')),
+                'source' => 'default',
             ];
         }
 
@@ -1246,11 +1270,16 @@ class SiteCustomization
                     || str_starts_with($icon, 'http://')
                     || str_starts_with($icon, 'https://');
 
+                $resolvedIcon = ! $isImage ? ($icon ?: 'fa-tag') : 'fa-tag';
+
                 $items[] = [
                     'name' => $name,
                     'is_image' => $isImage,
                     'image' => $isImage ? $icon : '',
-                    'icon' => ! $isImage ? ($icon ?: 'fa-tag') : 'fa-tag',
+                    'icon' => $resolvedIcon,
+                    // Public homepage always renders CategoryAutoIcon when no image is uploaded.
+                    'use_auto_icon' => ! $isImage,
+                    'auto_icon' => CategoryAutoIcon::forCategory($name),
                     'link' => $link ?: ('/products?category='.urlencode($name)),
                     'badge' => $badge,
                 ];
@@ -1261,8 +1290,14 @@ class SiteCustomization
             return Product::where('active', true)->where('category', '!=', '')
                 ->orderBy('category')->distinct()->pluck('category')
                 ->map(fn (string $name): array => [
-                    'name' => $name, 'is_image' => false, 'image' => '', 'icon' => 'fa-tag',
-                    'link' => '/products?category='.urlencode($name), 'badge' => '',
+                    'name' => $name,
+                    'is_image' => false,
+                    'image' => '',
+                    'icon' => 'fa-tag',
+                    'use_auto_icon' => true,
+                    'auto_icon' => CategoryAutoIcon::forCategory($name),
+                    'link' => '/products?category='.urlencode($name),
+                    'badge' => '',
                 ])->all();
         }
 

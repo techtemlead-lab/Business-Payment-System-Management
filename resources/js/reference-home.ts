@@ -1,6 +1,8 @@
+import { bindLocaleSwitchForms } from './shared/localeSwitch';
 import { bindThemeToggles } from './shared/theme';
 
 bindThemeToggles();
+bindLocaleSwitchForms();
 
 let toastTimer:ReturnType<typeof setTimeout>;
 type SiteUi = {
@@ -168,18 +170,117 @@ const mobileSearchToggle = document.getElementById('refMobileSearchToggle');
 const mobileSearchOverlay = document.getElementById('refMobileSearchOverlay');
 const mobileSearchClose = document.getElementById('refMobileSearchClose');
 const mobileSearchInput = document.getElementById('refMobileSearchInput') as HTMLInputElement | null;
+const mobileSearchForm = document.getElementById('refMobileSearchForm') as HTMLFormElement | null;
+const mobileSearchList = document.getElementById('refMobileSearchList');
+const mobileSearchResults = document.getElementById('refMobileSearchResults');
+const mobileSearchEmpty = document.getElementById('refMobileSearchEmpty');
+const mobileSearchHint = document.getElementById('refMobileSearchHint');
+const mobileSearchShortcuts = document.getElementById('refMobileSearchShortcuts');
+const mobileSearchViewAll = document.getElementById('refMobileSearchViewAll') as HTMLAnchorElement | null;
+let mobileSearchTimer: ReturnType<typeof setTimeout> | undefined;
+let mobileSearchRequest = 0;
 
 function openMobileSearch() {
     mobileSearchOverlay?.classList.add('is-open');
     mobileSearchOverlay?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => mobileSearchInput?.focus(), 80);
+    setTimeout(() => {
+        mobileSearchInput?.focus();
+        if (mobileSearchInput?.value.trim()) {
+            runMobileProductSearch(mobileSearchInput.value);
+        }
+    }, 80);
 }
 
 function closeMobileSearch() {
     mobileSearchOverlay?.classList.remove('is-open');
     mobileSearchOverlay?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+}
+
+function setMobileSearchMode(mode: 'idle' | 'results' | 'empty') {
+    if (mobileSearchHint) mobileSearchHint.hidden = mode !== 'idle';
+    if (mobileSearchShortcuts) mobileSearchShortcuts.hidden = mode !== 'idle';
+    if (mobileSearchResults) mobileSearchResults.hidden = mode !== 'results';
+    if (mobileSearchEmpty) mobileSearchEmpty.hidden = mode !== 'empty';
+}
+
+function formatMobileSearchPrice(value: unknown): string {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '';
+    try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(amount);
+    } catch {
+        return `৳ ${amount}`;
+    }
+}
+
+async function runMobileProductSearch(rawQuery: string) {
+    const q = rawQuery.trim();
+    if (!q) {
+        if (mobileSearchList) mobileSearchList.innerHTML = '';
+        setMobileSearchMode('idle');
+        return;
+    }
+
+    const requestId = ++mobileSearchRequest;
+    try {
+        const response = await fetch(`/search/products?q=${encodeURIComponent(q)}`, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!response.ok) throw new Error('search_failed');
+        const payload = await response.json() as {
+            items?: Array<{ name: string; category?: string; mrp?: string | number; url: string }>;
+            all_url?: string;
+            count?: number;
+        };
+        if (requestId !== mobileSearchRequest) return;
+
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (mobileSearchViewAll) {
+            mobileSearchViewAll.href = payload.all_url || `/products?q=${encodeURIComponent(q)}`;
+        }
+        if (!mobileSearchList) return;
+
+        mobileSearchList.replaceChildren();
+        if (items.length === 0) {
+            setMobileSearchMode('empty');
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.className = 'ref-mobile-search-result';
+            link.href = item.url || '/products';
+            link.setAttribute('role', 'option');
+
+            const name = document.createElement('span');
+            name.className = 'ref-mobile-search-result-name';
+            name.textContent = item.name || '';
+            link.appendChild(name);
+
+            const price = formatMobileSearchPrice(item.mrp);
+            const metaText = [item.category, price].filter(Boolean).join(' · ');
+            if (metaText) {
+                const meta = document.createElement('span');
+                meta.className = 'ref-mobile-search-result-meta';
+                meta.textContent = metaText;
+                link.appendChild(meta);
+            }
+
+            li.appendChild(link);
+            fragment.appendChild(li);
+        });
+        mobileSearchList.appendChild(fragment);
+        setMobileSearchMode('results');
+    } catch {
+        if (requestId !== mobileSearchRequest) return;
+        // Fall back to full catalog search if live suggestions fail.
+        if (mobileSearchForm) mobileSearchForm.requestSubmit();
+    }
 }
 
 mobileSearchToggle?.addEventListener('click', (e) => {
@@ -190,6 +291,23 @@ mobileSearchToggle?.addEventListener('click', (e) => {
 mobileSearchClose?.addEventListener('click', (e) => {
     e.preventDefault();
     closeMobileSearch();
+});
+
+mobileSearchForm?.addEventListener('submit', (e) => {
+    const q = mobileSearchInput?.value.trim() ?? '';
+    if (!q) {
+        e.preventDefault();
+        mobileSearchInput?.focus();
+        setMobileSearchMode('idle');
+        return;
+    }
+    // Allow native navigation to /products?q=...
+});
+
+mobileSearchInput?.addEventListener('input', () => {
+    clearTimeout(mobileSearchTimer);
+    const value = mobileSearchInput.value;
+    mobileSearchTimer = setTimeout(() => runMobileProductSearch(value), 220);
 });
 
 document.addEventListener('keydown', (e) => {
@@ -229,14 +347,15 @@ function initScrollReveal() {
         }
     });
 
-    // Main section reveal targets
+    // Main section reveal targets.
+    // Keep the dealer banner out of transform-based reveal — that motion looked like a
+    // glitch under the banner while hovering/scrolling neighboring sections.
     const sectionSelectors = [
         '.ref-company-intro',
         '.ref-promotions',
         '.ref-announcement',
         '.ref-shortcuts',
         '.ref-featured-categories',
-        '.ref-dealer-network-banner',
         '.ref-featured-products',
         '.ref-home-video',
         '.ref-home-about',
@@ -326,68 +445,14 @@ function initFaqAccordions() {
     });
 }
 
-// Smooth & Reliable Interactive Language Switcher Handler
-function initLanguageSwitcher() {
-    document.querySelectorAll<HTMLFormElement>('.ref-locale-switch').forEach((form) => {
-        form.addEventListener('submit', async (e) => {
-            const submitter = (e as any).submitter as HTMLButtonElement | null;
-            const targetLocale = submitter?.value || form.querySelector<HTMLButtonElement>('button[name="locale"]:focus')?.value;
-            if (!targetLocale) return;
-
-            // If clicking already active language, do nothing
-            if (submitter?.classList.contains('is-active')) {
-                e.preventDefault();
-                return;
-            }
-
-            e.preventDefault();
-
-            // Immediate visual feedback on the button
-            form.querySelectorAll<HTMLButtonElement>('button[name="locale"]').forEach((btn) => {
-                btn.classList.toggle('is-active', btn.value === targetLocale);
-                btn.setAttribute('aria-pressed', String(btn.value === targetLocale));
-            });
-
-            try {
-                const formData = new FormData(form);
-                formData.set('locale', targetLocale);
-                formData.set('return_url', window.location.href);
-
-                const response = await fetch('/locale', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    const data = await response.json().catch(() => null);
-                    const dest = data?.return_url || window.location.href;
-                    if (dest === window.location.href || dest === window.location.origin + window.location.pathname) {
-                        window.location.reload();
-                    } else {
-                        window.location.assign(dest);
-                    }
-                } else {
-                    form.submit();
-                }
-            } catch {
-                form.submit();
-            }
-        });
-    });
-}
-
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScrollReveal();
         initFaqAccordions();
-        initLanguageSwitcher();
+        bindLocaleSwitchForms();
     });
 } else {
     initScrollReveal();
     initFaqAccordions();
-    initLanguageSwitcher();
+    bindLocaleSwitchForms();
 }

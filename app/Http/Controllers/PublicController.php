@@ -6,11 +6,14 @@ use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
+use App\Models\SiteFeedback;
 use App\Models\User;
+use App\Support\Audit;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -83,6 +86,51 @@ class PublicController extends Controller
         ])->withHeaders([
             'Cache-Control' => 'private, no-cache',
             'X-Public-Render' => 'lean',
+        ]);
+    }
+
+    public function productSearch(Request $request): JsonResponse
+    {
+        abort_unless(SiteCustomization::isPageEnabled('products'), 404);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $q = trim((string) ($validated['q'] ?? ''));
+
+        if (mb_strlen($q) < 1) {
+            return response()->json([
+                'q' => $q,
+                'items' => [],
+                'count' => 0,
+            ]);
+        }
+
+        $items = Product::query()
+            ->where('active', true)
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'ilike', '%'.$q.'%')
+                    ->orWhere('category', 'ilike', '%'.$q.'%')
+                    ->orWhere('sku', 'ilike', '%'.$q.'%');
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'category', 'mrp', 'sku'])
+            ->map(fn (Product $product): array => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category,
+                'mrp' => $product->mrp,
+                'url' => '/products/'.$product->id,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'q' => $q,
+            'items' => $items,
+            'count' => count($items),
+            'all_url' => '/products?q='.rawurlencode($q),
         ]);
     }
 
@@ -332,6 +380,54 @@ class PublicController extends Controller
     public function partnerLogin(): View
     {
         return view('reference.partner-login');
+    }
+
+    public function feedbackForm(): View
+    {
+        return view('reference.feedback', [
+            'approvedPreview' => SiteCustomization::getTestimonials(),
+        ]);
+    }
+
+    public function storeFeedback(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:150',
+            'role' => 'nullable|string|max:120',
+            'location' => 'nullable|string|max:120',
+            'rating' => 'required|integer|min:1|max:5',
+            'message' => 'required|string|min:20|max:2000',
+            'website' => 'nullable|max:0',
+        ]);
+        unset($data['website']);
+
+        $user = $request->user();
+        $source = 'public';
+        if ($user instanceof User && in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            $source = $user->role === 'sub_dealer' ? 'sub_dealer' : 'dealer';
+        }
+
+        $feedback = SiteFeedback::query()->create([
+            'name' => $data['name'],
+            'role' => filled($data['role'] ?? null) ? $data['role'] : ($user?->role === 'dealer' ? 'Authorized Dealer Partner' : ($user?->role === 'sub_dealer' ? 'Sub-Dealer Partner' : 'Verified Client')),
+            'location' => filled($data['location'] ?? null) ? $data['location'] : 'Bangladesh',
+            'rating' => (int) $data['rating'],
+            'message' => $data['message'],
+            'source' => $source,
+            'user_id' => $user?->id,
+            'status' => 'pending',
+        ]);
+
+        Audit::notifyAdminsAndStaff(
+            ['content', 'accounts'],
+            __('portal.notice_admin_feedback_title'),
+            __('portal.notice_admin_feedback_body', [
+                'name' => $feedback->name,
+                'source' => $feedback->source,
+            ])
+        );
+
+        return back()->with('success', __('site.feedback_received'));
     }
 
     public function join(string $code): View|RedirectResponse

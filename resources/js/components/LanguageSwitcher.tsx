@@ -1,23 +1,17 @@
-import { router, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { useT } from '../shared/i18n/t';
+import { submitLocaleChange } from '../shared/localeSwitch';
 
 export default function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     const { locale, locales = ['en', 'bn'] } = usePage<any>().props;
     const translate = useT();
     const switchTo = (next: string) => {
-        if (next === locale) return;
-        router.post('/locale', {
-            locale: next,
-            return_url: typeof window !== 'undefined' ? window.location.href : undefined,
-        }, {
-            preserveScroll: true,
-            preserveState: false,
-            onError: () => {
-                if (typeof window !== 'undefined') {
-                    window.location.reload();
-                }
-            },
-        });
+        if (next === locale) {
+            return;
+        }
+
+        // Full-page POST with instant overlay — avoids frozen Inertia wait then sudden swap.
+        submitLocaleChange(next, typeof window !== 'undefined' ? window.location.href : undefined);
     };
 
     return (

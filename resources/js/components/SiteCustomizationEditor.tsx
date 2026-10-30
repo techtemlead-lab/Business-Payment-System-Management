@@ -578,6 +578,47 @@ function CategoryManager({
     const translate = useT();
     const [mode, setMode] = useState<'visual' | 'text'>('visual');
     const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
+    const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+
+    const uploadCategoryImage = async (index: number, file: File | null) => {
+        if (!file) {
+            return;
+        }
+
+        setUploadingIdx(index);
+        try {
+            const body = new FormData();
+            body.append('image', file);
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || (document.querySelector('input[name="_token"]') as HTMLInputElement | null)?.value
+                || '';
+            if (token) {
+                body.append('_token', token);
+            }
+
+            const response = await fetch('/commands/customization/category-icon', {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                },
+            });
+
+            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string } | null;
+            if (!response.ok || !payload?.ok || !payload.url) {
+                throw new Error(payload?.message || translate('portal', 'sce_category_image_upload_failed'));
+            }
+
+            handleFieldChange(index, 'icon', payload.url);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : translate('portal', 'sce_category_image_upload_failed'));
+        } finally {
+            setUploadingIdx(null);
+        }
+    };
 
     const rawValue = typeof value === 'string' ? value : (defaultValue || '');
     const items = parseItems(rawValue);
@@ -1002,6 +1043,42 @@ function CategoryManager({
                                                     onChange={e => handleFieldChange(idx, 'icon', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                                                    <label
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 6,
+                                                            padding: '6px 10px',
+                                                            borderRadius: 6,
+                                                            border: '1px solid #bbf7d0',
+                                                            background: uploadingIdx === idx ? '#ecfdf5' : '#f0fdf4',
+                                                            color: '#166534',
+                                                            fontSize: 11,
+                                                            fontWeight: 700,
+                                                            cursor: uploadingIdx === idx ? 'wait' : 'pointer',
+                                                        }}
+                                                    >
+                                                        <Image size={13} />
+                                                        {uploadingIdx === idx
+                                                            ? translate('portal', 'sce_uploading_category_image')
+                                                            : translate('portal', 'sce_upload_category_image')}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/png,image/jpeg,image/webp"
+                                                            disabled={uploadingIdx === idx}
+                                                            style={{ display: 'none' }}
+                                                            onChange={e => {
+                                                                const file = e.target.files?.[0] ?? null;
+                                                                e.target.value = '';
+                                                                void uploadCategoryImage(idx, file);
+                                                            }}
+                                                        />
+                                                    </label>
+                                                    <small style={{ color: '#64748b', fontSize: 10, lineHeight: 1.4 }}>
+                                                        {translate('portal', 'sce_category_image_hint')}
+                                                    </small>
+                                                </div>
                                             </label>
 
                                             {/* Destination Link */}

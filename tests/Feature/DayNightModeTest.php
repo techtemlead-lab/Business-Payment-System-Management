@@ -24,6 +24,10 @@ class DayNightModeTest extends TestCase
         $this->assertStringContainsString('color-scheme', $html);
         $this->assertStringContainsString("? stored : 'light'", $html);
         $this->assertStringNotContainsString('prefers-color-scheme', $html);
+        $this->assertStringContainsString('ref-theme-glyph', $html);
+        $this->assertStringContainsString('ref-chat-icon', $html);
+        $this->assertStringNotContainsString('fa-solid fa-sun', $html);
+        $this->assertStringNotContainsString('fa-brands fa-whatsapp', $html);
     }
 
     public function test_portal_documents_include_theme_boot_script(): void

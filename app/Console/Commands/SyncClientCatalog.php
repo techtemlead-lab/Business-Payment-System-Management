@@ -96,7 +96,7 @@ class SyncClientCatalog extends Command
                 'contact_company_desc' => 'Madina Natural Health Care (Owner: Md Anowar Hossain). Head office: Thana Road, Pirganj 5470, Rangpur. Factory/warehouse: Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka. Hotline: 01730532966 · 01723731877 · 01727612379.',
                 'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563) supplying chemical-free herbal and nutrition products through an authorized dealer network across Bangladesh.',
                 'map_facility' => 'Madina Natural Health Care — Thana Road, Pirganj',
-                'footer_logo_url' => '/madina-header-logo-white.png?v=8',
+                'footer_logo_url' => '/madina-header-logo-white.png?v=9',
                 'social_whatsapp' => 'https://wa.me/8801730532966',
                 'whatsapp_link' => 'https://wa.me/8801730532966',
             ]);

@@ -52,7 +52,7 @@ final class PortalCatalog
         if ($section === 'benefits-fund') {
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
-        if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
+        if (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['enquiries', 'feedback'], true)) {
             abort_unless($user->allows('content') || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
