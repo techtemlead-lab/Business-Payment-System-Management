@@ -41,6 +41,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -670,6 +671,7 @@ class CommandController extends Controller
         $feedback->moderated_by = $r->user()->id;
         $feedback->moderated_at = now();
         $feedback->save();
+        Cache::forget(SiteCustomization::TestimonialsCacheKey);
 
         Audit::record($r->user()->id, 'feedback.moderated', 'frontend', [
             'feedback_id' => $feedback->id,

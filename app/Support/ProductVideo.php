@@ -3,10 +3,15 @@
 namespace App\Support;
 
 use App\Models\Product;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 final class ProductVideo
 {
+    public const HomepageCacheKey = 'public:homepage_video:v1';
+
+    private const HomepageCacheTtlSeconds = 120;
+
     /** @return array{id: string, hash: ?string}|null */
     public static function vimeo(string $url): ?array
     {
@@ -44,17 +49,29 @@ final class ProductVideo
     /** @return array<string, mixed>|null */
     public static function homepage(): ?array
     {
-        $row = DB::table('business_settings')->where('key', 'homepage_video')->first();
-        $settings = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
-        if (! ($settings['enabled'] ?? false)) {
-            return null;
-        }
-        $product = Product::where('active', true)->find($settings['product_id'] ?? null);
-        if (! $product) {
-            return null;
-        }
-        $media = $product->media();
+        $cached = Cache::remember(self::HomepageCacheKey, self::HomepageCacheTtlSeconds, function (): array {
+            $row = DB::table('business_settings')->where('key', 'homepage_video')->first();
+            $settings = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
+            if (! ($settings['enabled'] ?? false)) {
+                return ['payload' => null];
+            }
+            $product = Product::where('active', true)->find($settings['product_id'] ?? null);
+            if (! $product) {
+                return ['payload' => null];
+            }
+            $media = $product->media();
+            if (! ($media['video_url'] || $media['video_embed_url'])) {
+                return ['payload' => null];
+            }
 
-        return $media['video_url'] || $media['video_embed_url'] ? [...$settings, 'product_name' => $product->name, 'media' => $media] : null;
+            return ['payload' => [...$settings, 'product_name' => $product->name, 'media' => $media]];
+        });
+
+        return is_array($cached['payload'] ?? null) ? $cached['payload'] : null;
+    }
+
+    public static function forgetHomepageCache(): void
+    {
+        Cache::forget(self::HomepageCacheKey);
     }
 }

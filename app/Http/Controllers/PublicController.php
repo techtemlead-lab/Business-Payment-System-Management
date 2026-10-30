@@ -10,6 +10,7 @@ use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PortalHost;
+use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
@@ -38,16 +39,12 @@ class PublicController extends Controller
             return $this->catalog($request);
         }
 
-        $needsCatalog = in_array($page, ['home'], true);
+        $needsCatalog = $page === 'home';
         $needsDealers = $page === 'dealers';
         $needsMaps = in_array($page, ['contact', 'about', 'services'], true);
 
-        $products = $needsCatalog
-            ? Product::where('active', true)
-                ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q').'%'))
-                ->when($request->filled('category'), fn ($query) => $query->where('category', $request->string('category')))
-                ->orderBy('name')->paginate(4, ['id', 'name', 'sku', 'category', 'description', 'mrp', 'unit', 'tone'])->withQueryString()
-            : new LengthAwarePaginator([], 0, 12);
+        // Home renders featured products only — skip the unused paginated catalog query.
+        $products = new LengthAwarePaginator([], 0, 12);
 
         $dealers = new LengthAwarePaginator([], 0, 12);
         $districts = collect();
@@ -59,6 +56,8 @@ class PublicController extends Controller
         $featuredProducts = $needsCatalog ? $this->cachedFeaturedProducts() : [];
         $featuredCategoryTabs = $needsCatalog ? SiteCustomization::getFeaturedCategoryTabs($featuredProducts) : [];
         $featuredItems = $featuredProducts;
+        $homepageVideo = $needsCatalog ? ProductVideo::homepage() : null;
+        $testimonials = $needsCatalog ? SiteCustomization::getTestimonials() : [];
 
         $siteCustomization = SiteCustomization::all();
         $maps = null;
@@ -76,7 +75,7 @@ class PublicController extends Controller
             ? SocialShareMeta::homepage()
             : SocialShareMeta::page($page, $customTitle, $customDesc);
 
-        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs') + [
+        return view($page === 'home' ? 'reference.home' : 'reference.information', compact('page', 'products', 'dealers', 'districts', 'divisions', 'featuredItems', 'featuredProducts', 'featuredCategoryTabs', 'homepageVideo', 'testimonials') + [
             'content' => $pageContent,
             'notice' => $contentPages['notice'] ?? null,
             // Home does not render catalog category filters; skip the cached pluck there.
