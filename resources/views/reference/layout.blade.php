@@ -23,7 +23,9 @@
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/reference/fontawesome-local.css">
-@vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])</head>
+@vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])
+@include('reference.partials.page-boot')
+</head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
 <div class="ref-ambient-canvas" aria-hidden="true">
     <div class="ref-ambient-orb ref-orb-emerald"></div>

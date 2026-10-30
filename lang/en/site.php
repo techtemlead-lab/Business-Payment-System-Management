@@ -43,6 +43,7 @@ return [
     'skip_to_content' => 'Skip to content',
     'timezone_currency' => 'Dhaka, Bangladesh',
 
+    'loading_experience' => 'Loading Madina Natural Health Care',
     'error_back_home' => 'Back to homepage',
     'error_404_title' => 'Page not found',
     'error_404_heading' => 'We could not find that page',

@@ -167,7 +167,7 @@
         $trustPillars = \App\Support\SiteCustomization::getTrustPillars();
     @endphp
     @if(!empty($trustPillars))
-    <section class="ref-trust-pillars" aria-label="{{ $chrome('trust_pillars_title', $siteCustomization['trust_pillars_title'] ?? null) }}">
+    <section class="ref-trust-pillars ref-deferred-paint" aria-label="{{ $chrome('trust_pillars_title', $siteCustomization['trust_pillars_title'] ?? null) }}">
         <div class="ref-trust-pillars-inner">
             @foreach($trustPillars as $idx => $pillar)
             @php
@@ -318,7 +318,7 @@
     </section>
     @endif
     @if(!empty($homepageVideo))
-    <section class="ref-product-video ref-home-video" aria-labelledby="homepage-video-title">
+    <section class="ref-product-video ref-home-video ref-deferred-paint" aria-labelledby="homepage-video-title">
         <h2 id="homepage-video-title">{{ $homepageVideo['title'] }}</h2>
         @if(!empty($homepageVideo['description']))
             <p>{{ $homepageVideo['description'] }}</p>
@@ -346,7 +346,7 @@
         $videoGallery = \App\Support\SiteCustomization::getVideoGallery();
     @endphp
     @if(!empty($videoGallery))
-    <section class="ref-video-gallery-section" aria-labelledby="video-gallery-title">
+    <section class="ref-video-gallery-section ref-deferred-paint" aria-labelledby="video-gallery-title">
         <div class="ref-section-title">
             <h2 id="video-gallery-title">{{ $siteCustomization['video_gallery_title'] ?? __('site.video_gallery_title') }}</h2>
             <p>{{ $siteCustomization['video_gallery_subtitle'] ?? __('site.video_gallery_subtitle') }}</p>
@@ -391,7 +391,7 @@
         $testimonialsScrollable = $testimonialCount > 3;
     @endphp
     @if(!empty($testimonials))
-    <section class="ref-testimonials-section" aria-labelledby="testimonials-title">
+    <section class="ref-testimonials-section ref-deferred-paint" aria-labelledby="testimonials-title">
         <div class="ref-section-title">
             <h2 id="testimonials-title">{{ $siteCustomization['testimonials_title'] ?? __('site.testimonials_title') }}</h2>
             <p>{{ $siteCustomization['testimonials_subtitle'] ?? __('site.testimonials_subtitle') }}</p>
