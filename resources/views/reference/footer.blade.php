@@ -2,37 +2,44 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
 @endphp
 <footer class="ref-footer"><div class="ref-container ref-footer-grid">
-    <section>
+    <section class="ref-footer-support">
         <h2>{{ $chrome('footer_support', $siteCustomization['footer_support_heading'] ?? null) }}</h2>
-        <a class="ref-support-box" href="{{ $siteCustomization['footer_support_link'] ?? 'tel:+8801730532966' }}">
-            <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
-            <span><small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small><b>{{ $siteCustomization['footer_support_title'] ?? '+8801730532966' }}</b></span>
-        </a>
-        @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
-        <a class="ref-support-box" href="{{ $href }}">
-            <i class="{{ $siteCustomization['footer_directory_icon'] ?? 'fa-solid fa-location-dot' }}" aria-hidden="true"></i>
-            <span><small>{{ $chrome('find_local_partner', $siteCustomization['footer_directory_subtitle'] ?? null) }}</small><b>{{ $chrome('dealer_directory', $siteCustomization['footer_directory_title'] ?? null) }}</b></span>
-        </a>
-        @endif
-        @if(!empty($siteCustomization['footer_phone']) || !empty($siteCustomization['footer_email']) || !empty($siteCustomization['footer_address']))
-        <div class="ref-footer-contact-info" style="margin-top:16px; font-size:12px; color:#cbd5e1; display:flex; flex-direction:column; gap:8px;">
-            @if(!empty($siteCustomization['footer_phone']))
-            <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['footer_phone']) }}" style="color:#a7f3d0; display:inline-flex; align-items:center; gap:8px; text-decoration:none;">
-                <i class="fa-solid fa-headset" style="color:#10b981; font-size:14px;"></i> <span><b>{{ __('site.hotline') }}:</b> {{ $siteCustomization['footer_phone'] }}</span>
-            </a>
-            @endif
-            @if(!empty($siteCustomization['footer_email']))
-            <a href="mailto:{{ $siteCustomization['footer_email'] }}" style="color:#cbd5e1; display:inline-flex; align-items:center; gap:8px; text-decoration:none;">
-                <i class="fa-solid fa-envelope" style="color:#38bdf8; font-size:14px;"></i> <span>{{ $siteCustomization['footer_email'] }}</span>
-            </a>
-            @endif
-            @if(!empty($siteCustomization['footer_address']))
-            <span style="color:#94a3b8; display:inline-flex; align-items:center; gap:8px;">
-                <i class="fa-solid fa-map-pin" style="color:#f59e0b; font-size:14px;"></i> <span>{{ $siteCustomization['footer_address'] }}</span>
-            </span>
+        <div class="ref-footer-support-row">
+            <div class="ref-footer-support-actions">
+                <a class="ref-support-box" href="{{ $siteCustomization['footer_support_link'] ?? 'tel:+8801730532966' }}">
+                    <i class="{{ $siteCustomization['footer_support_icon'] ?? 'fa-solid fa-phone' }}" aria-hidden="true"></i>
+                    <span><small>{{ $chrome('company_support', $siteCustomization['footer_support_subtitle'] ?? null) }}</small><b>{{ $siteCustomization['footer_support_title'] ?? '+8801730532966' }}</b></span>
+                </a>
+                @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_directory_link'] ?? '/dealers'))
+                <a class="ref-support-box" href="{{ $href }}">
+                    <i class="{{ $siteCustomization['footer_directory_icon'] ?? 'fa-solid fa-location-dot' }}" aria-hidden="true"></i>
+                    <span><small>{{ $chrome('find_local_partner', $siteCustomization['footer_directory_subtitle'] ?? null) }}</small><b>{{ $chrome('dealer_directory', $siteCustomization['footer_directory_title'] ?? null) }}</b></span>
+                </a>
+                @endif
+            </div>
+            @if(!empty($siteCustomization['footer_phone']) || !empty($siteCustomization['footer_email']) || !empty($siteCustomization['footer_address']))
+            <div class="ref-footer-contact-info">
+                @if(!empty($siteCustomization['footer_phone']))
+                <a class="ref-footer-contact-link is-hotline" href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['footer_phone']) }}">
+                    <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                    <span><b>{{ __('site.hotline') }}:</b> {{ $siteCustomization['footer_phone'] }}</span>
+                </a>
+                @endif
+                @if(!empty($siteCustomization['footer_email']))
+                <a class="ref-footer-contact-link is-email" href="mailto:{{ $siteCustomization['footer_email'] }}">
+                    <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+                    <span>{{ $siteCustomization['footer_email'] }}</span>
+                </a>
+                @endif
+                @if(!empty($siteCustomization['footer_address']))
+                <span class="ref-footer-contact-link is-address">
+                    <i class="fa-solid fa-map-pin" aria-hidden="true"></i>
+                    <span>{{ $siteCustomization['footer_address'] }}</span>
+                </span>
+                @endif
+            </div>
             @endif
         </div>
-        @endif
     </section>
     <section>
         <h2>{{ $chrome('footer_about', $siteCustomization['footer_about_heading'] ?? null) }}</h2>
