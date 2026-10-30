@@ -1603,14 +1603,15 @@ details.ref-content-card summary i{transition:transform .18s ease}
 
 /* Branded HTTP error pages */
 body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#f2f4f8 0%,#e8eef5 100%)}
-.ref-error-main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 16px}
-.ref-error-card{width:100%;max-width:560px;text-align:center;padding:40px 28px;background:#fff;border-radius:14px;box-shadow:0 8px 28px #01162714}
-.ref-error-code{margin:0 0 8px;font-size:48px;font-weight:800;letter-spacing:.04em;color:#f34c20;line-height:1}
-.ref-error-card h1{margin:0 0 12px;font-size:24px;font-weight:700;color:#011627}
-.ref-error-body{margin:0 0 24px;font-size:15px;line-height:1.65;color:#475569}
+.ref-error-main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 16px;width:100%;box-sizing:border-box}
+.ref-error-card{width:100%;max-width:min(560px,100%);text-align:center;padding:40px 28px;background:#fff;border-radius:14px;box-shadow:0 8px 28px #01162714;box-sizing:border-box}
+.ref-error-code{margin:0 0 8px;font-size:clamp(36px,8vw,48px);font-weight:800;letter-spacing:.04em;color:#f34c20;line-height:1}
+.ref-error-card h1{margin:0 0 12px;font-size:clamp(20px,4.5vw,24px);font-weight:700;color:#011627;line-height:1.35;text-wrap:balance}
+.ref-error-body{margin:0 0 24px;font-size:clamp(14px,3.6vw,15px);line-height:1.65;color:#475569;text-wrap:pretty}
 .ref-error-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
-.ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{min-width:150px;justify-content:center}
-@media(max-width:640px){.ref-error-card{padding:28px 18px}.ref-error-code{font-size:40px}.ref-error-card h1{font-size:20px}}
+.ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{min-width:min(150px,100%);justify-content:center;flex:1 1 140px}
+@media(max-width:1024px){.ref-error-main{padding:36px 20px}.ref-error-card{padding:32px 22px}}
+@media(max-width:640px){.ref-error-main{padding:28px 14px}.ref-error-card{padding:28px 18px}.ref-error-actions{flex-direction:column}.ref-error-actions .ref-primary-button,.ref-error-actions .ref-secondary-button{width:100%;min-width:0}}
 
 /* ==========================================================================
    Enterprise Ambient Background & Dynamic Motion System

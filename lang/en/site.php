@@ -53,6 +53,9 @@ return [
     'error_500_title' => 'Something went wrong',
     'error_500_heading' => 'We hit an unexpected problem',
     'error_500_body' => 'Please try again in a moment. If the problem continues, contact company support with the time of the error.',
+    'error_503_title' => 'Service temporarily unavailable',
+    'error_503_heading' => 'We cannot reach the database right now',
+    'error_503_body' => 'The site is up, but the database did not accept connections in time. Confirm PostgreSQL is running and DB_HOST matches your setup (127.0.0.1 for local/cloud Postgres, db for Docker Compose), then refresh. This page works on phones and tablets the same as desktop.',
 
     'company_intro_eyebrow' => 'Company & Partner Network',
     'company_intro_title' => 'Madina Natural Health Care',
