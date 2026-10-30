@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useT } from '../shared/i18n/t';
+import type { Row } from './UI';
 
 type PasswordStatus = {
     managed_by: string;
@@ -8,15 +9,8 @@ type PasswordStatus = {
 };
 
 type AccountPasswordManagerProps = {
-    account: {
-        id: number | string;
-        name: string;
-        role: string;
-        status?: string;
-        phone?: string | null;
-        email?: string | null;
-        dealer_code?: string | null;
-    };
+    // Portal tables/editors pass loose Row maps; runtime always includes id.
+    account: Row;
     canManage: boolean;
 };
 
