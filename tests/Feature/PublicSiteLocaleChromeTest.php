@@ -57,7 +57,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('আমাদের পণ্য ক্যাটালগ', false)
             ->assertSee('ফিল্টার প্রয়োগ', false)
             ->assertSee('কম স্টক', false)
-            ->assertSee('ছবি শীঘ্রই আসছে', false);
+            ->assertSee('পণ্যের বিবরণ দেখুন', false);
 
         $this->onPortal('public')->get('/notice')
             ->assertOk()

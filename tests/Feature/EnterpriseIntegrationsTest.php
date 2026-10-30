@@ -114,6 +114,6 @@ class EnterpriseIntegrationsTest extends TestCase
         $this->get('/sw.js')
             ->assertOk()
             ->assertHeader('Content-Type', 'application/javascript')
-            ->assertSee('madina-v1');
+            ->assertSee('madina-v2');
     }
 }

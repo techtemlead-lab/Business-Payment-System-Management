@@ -1292,9 +1292,8 @@ class SiteCustomization
         }
 
         if ($items === []) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')
-                ->map(fn (string $name): array => [
+            return array_map(
+                static fn (string $name): array => [
                     'name' => $name,
                     'is_image' => false,
                     'image' => '',
@@ -1303,7 +1302,9 @@ class SiteCustomization
                     'auto_icon' => CategoryAutoIcon::forCategory($name),
                     'link' => '/products?category='.urlencode($name),
                     'badge' => '',
-                ])->all();
+                ],
+                self::catalogCategoryNames()
+            );
         }
 
         return $items;
@@ -1368,13 +1369,13 @@ class SiteCustomization
             ), 0, $limit);
         }
 
-        return Product::where('active', true)->where('category', '!=', '')
-            ->orderBy('category')->distinct()->pluck('category')
-            ->take($limit)
-            ->map(fn (string $name): array => [
+        return array_map(
+            static fn (string $name): array => [
                 'name' => $name,
                 'link' => '/products?category='.urlencode($name),
-            ])->values()->all();
+            ],
+            array_slice(self::catalogCategoryNames(), 0, $limit)
+        );
     }
 
     public static function mobileSearchCategoriesHeading(): string
@@ -1382,6 +1383,26 @@ class SiteCustomization
         $custom = trim((string) (self::all()['mobile_search_categories_heading'] ?? ''));
 
         return $custom !== '' ? $custom : (string) __('site.search_popular_categories');
+    }
+
+    /**
+     * Active catalog category names, reusing the public products cache when warm.
+     *
+     * @return list<string>
+     */
+    private static function catalogCategoryNames(): array
+    {
+        $cached = Cache::get('public:product_categories:v2');
+        if (is_array($cached)) {
+            return array_values(array_filter(array_map(
+                static fn (mixed $name): string => trim((string) $name),
+                $cached
+            )));
+        }
+
+        return Product::where('active', true)->where('category', '!=', '')
+            ->orderBy('category')->distinct()->pluck('category')
+            ->all();
     }
 
     public static function getNavCategories(): array
@@ -1392,8 +1413,7 @@ class SiteCustomization
             ? array_filter(array_map('trim', $raw))
             : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw)));
         if (empty($cats)) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')->all();
+            return self::catalogCategoryNames();
         }
 
         return array_values($cats);
