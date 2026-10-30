@@ -43,6 +43,11 @@ class SiteCustomization
             'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
+            // Mobile search overlay — Popular Categories chips (admin-managed)
+            'mobile_search_categories_enabled' => '1',
+            'mobile_search_categories_heading' => '',
+            'mobile_search_categories_items' => '',
+            'mobile_search_categories_limit' => '6',
 
             // Announcement & Ticker
             'announcement_text' => 'For product availability and dealership enquiries, please contact the company.',
@@ -1302,6 +1307,81 @@ class SiteCustomization
         }
 
         return $items;
+    }
+
+    /**
+     * Popular category chips in the mobile search overlay.
+     * Prefer the dedicated admin list; otherwise Featured Categories; otherwise active catalog categories.
+     *
+     * @return list<array{name: string, link: string}>
+     */
+    public static function getMobileSearchCategories(): array
+    {
+        $customization = self::all();
+
+        if (($customization['mobile_search_categories_enabled'] ?? '1') === '0') {
+            return [];
+        }
+
+        $limit = (int) ($customization['mobile_search_categories_limit'] ?? 6);
+        if ($limit < 1) {
+            $limit = 6;
+        }
+        if ($limit > 24) {
+            $limit = 24;
+        }
+
+        $raw = trim((string) ($customization['mobile_search_categories_items'] ?? ''));
+        if ($raw !== '') {
+            $items = [];
+            foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+                $line = trim((string) $line);
+                if ($line === '') {
+                    continue;
+                }
+                $parts = array_map('trim', explode('|', $line));
+                $name = $parts[0] ?? '';
+                if ($name === '') {
+                    continue;
+                }
+                $link = $parts[1] ?? '';
+                if ($link === '' || ! str_starts_with($link, '/')) {
+                    $link = '/products?category='.urlencode($name);
+                }
+                $items[] = [
+                    'name' => $name,
+                    'link' => $link,
+                ];
+            }
+
+            return array_slice($items, 0, $limit);
+        }
+
+        $featured = self::getFeaturedCategories();
+        if ($featured !== []) {
+            return array_slice(array_map(
+                static fn (array $cat): array => [
+                    'name' => (string) ($cat['name'] ?? ''),
+                    'link' => (string) ($cat['link'] ?? ('/products?category='.urlencode((string) ($cat['name'] ?? '')))),
+                ],
+                $featured
+            ), 0, $limit);
+        }
+
+        return Product::where('active', true)->where('category', '!=', '')
+            ->orderBy('category')->distinct()->pluck('category')
+            ->take($limit)
+            ->map(fn (string $name): array => [
+                'name' => $name,
+                'link' => '/products?category='.urlencode($name),
+            ])->values()->all();
+    }
+
+    public static function mobileSearchCategoriesHeading(): string
+    {
+        $custom = trim((string) (self::all()['mobile_search_categories_heading'] ?? ''));
+
+        return $custom !== '' ? $custom : (string) __('site.search_popular_categories');
     }
 
     public static function getNavCategories(): array

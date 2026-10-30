@@ -84,9 +84,8 @@
 
 <!-- Mobile Fullscreen Search Overlay -->
 @php
-    $mobileSearchCategories = collect(\App\Support\SiteCustomization::getFeaturedCategories())
-        ->take(6)
-        ->values();
+    $mobileSearchCategories = collect(\App\Support\SiteCustomization::getMobileSearchCategories())->values();
+    $mobileSearchCategoriesHeading = \App\Support\SiteCustomization::mobileSearchCategoriesHeading();
 @endphp
 <div id="refMobileSearchOverlay" class="ref-mobile-search-overlay" aria-hidden="true">
     <div class="ref-mobile-search-inner">
@@ -113,7 +112,7 @@
 
             @if($mobileSearchCategories->isNotEmpty())
             <div class="ref-mobile-search-shortcuts" id="refMobileSearchShortcuts">
-                <p class="ref-mobile-search-section-label">{{ __('site.search_popular_categories') }}</p>
+                <p class="ref-mobile-search-section-label">{{ $mobileSearchCategoriesHeading }}</p>
                 <div class="ref-mobile-search-chips">
                     @foreach($mobileSearchCategories as $cat)
                         <a class="ref-mobile-search-chip" href="{{ $cat['link'] }}">{{ $cat['name'] }}</a>
