@@ -1,6 +1,8 @@
+import { bindLocaleSwitchForms } from './shared/localeSwitch';
 import { bindThemeToggles } from './shared/theme';
 
 bindThemeToggles();
+bindLocaleSwitchForms();
 
 let toastTimer:ReturnType<typeof setTimeout>;
 type SiteUi = {
@@ -443,68 +445,14 @@ function initFaqAccordions() {
     });
 }
 
-// Smooth & Reliable Interactive Language Switcher Handler
-function initLanguageSwitcher() {
-    document.querySelectorAll<HTMLFormElement>('.ref-locale-switch').forEach((form) => {
-        form.addEventListener('submit', async (e) => {
-            const submitter = (e as any).submitter as HTMLButtonElement | null;
-            const targetLocale = submitter?.value || form.querySelector<HTMLButtonElement>('button[name="locale"]:focus')?.value;
-            if (!targetLocale) return;
-
-            // If clicking already active language, do nothing
-            if (submitter?.classList.contains('is-active')) {
-                e.preventDefault();
-                return;
-            }
-
-            e.preventDefault();
-
-            // Immediate visual feedback on the button
-            form.querySelectorAll<HTMLButtonElement>('button[name="locale"]').forEach((btn) => {
-                btn.classList.toggle('is-active', btn.value === targetLocale);
-                btn.setAttribute('aria-pressed', String(btn.value === targetLocale));
-            });
-
-            try {
-                const formData = new FormData(form);
-                formData.set('locale', targetLocale);
-                formData.set('return_url', window.location.href);
-
-                const response = await fetch('/locale', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    const data = await response.json().catch(() => null);
-                    const dest = data?.return_url || window.location.href;
-                    if (dest === window.location.href || dest === window.location.origin + window.location.pathname) {
-                        window.location.reload();
-                    } else {
-                        window.location.assign(dest);
-                    }
-                } else {
-                    form.submit();
-                }
-            } catch {
-                form.submit();
-            }
-        });
-    });
-}
-
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScrollReveal();
         initFaqAccordions();
-        initLanguageSwitcher();
+        bindLocaleSwitchForms();
     });
 } else {
     initScrollReveal();
     initFaqAccordions();
-    initLanguageSwitcher();
+    bindLocaleSwitchForms();
 }

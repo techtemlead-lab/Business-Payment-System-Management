@@ -1449,9 +1449,52 @@ body.locale-bn{font-family:'Noto Sans Bengali','Instrument Sans',ui-sans-serif,s
 .ref-locale-switch button{border:0;background:transparent;color:#c5d0d8;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1.2;min-height:28px}
 .ref-locale-switch button:hover{color:#fff}
 .ref-locale-switch button.is-active{background:#ef4a23;color:#fff}
+.ref-locale-switch button:disabled{opacity:.85;cursor:wait}
 .ref-drawer-locale-switch{display:flex;width:100%;border-radius:10px;padding:3px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);box-sizing:border-box}
 .ref-drawer-locale-switch button{flex:1;text-align:center;padding:9px 12px;border-radius:8px;font-size:13px;min-height:38px}
 .ref-drawer-locale-switch button.is-active{background:#006837;color:#fff}
+
+/* Instant language-switch feedback (full-page feel while locale POST reloads) */
+.madina-locale-switching{
+    position:fixed;inset:0;z-index:2147483646;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;box-sizing:border-box;
+    background:rgba(1,22,39,.72);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    animation:madinaLocaleFadeIn .16s ease-out;
+}
+.madina-locale-switching-card{
+    width:min(100%,360px);
+    background:#081621;color:#fff;
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:16px;padding:28px 24px;
+    text-align:center;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+}
+.madina-locale-switching-spinner{
+    display:inline-block;width:36px;height:36px;margin:0 auto 16px;
+    border:3px solid rgba(255,255,255,.18);border-top-color:#ef4a23;
+    border-radius:50%;
+    animation:madinaLocaleSpin .7s linear infinite;
+}
+.madina-locale-switching-title{
+    margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:.01em;line-height:1.35;
+}
+.madina-locale-switching-subtitle{
+    margin:0;font-size:13px;line-height:1.5;color:#94a3b8;
+}
+html.madina-locale-switching-active,html.madina-locale-switching-active body{
+    cursor:wait !important;
+}
+html.madina-locale-switching-active body > :not(.madina-locale-switching){
+    pointer-events:none;
+}
+@keyframes madinaLocaleFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes madinaLocaleSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){
+    .madina-locale-switching{animation:none}
+    .madina-locale-switching-spinner{animation:none;border-top-color:#ef4a23}
+}
 .ref-footer-legal{display:inline-flex;flex-wrap:wrap;gap:14px;align-items:center}
 .ref-footer-legal a{color:#91a0ad;font-weight:600}
 .ref-footer-legal a:hover{color:#fff}
