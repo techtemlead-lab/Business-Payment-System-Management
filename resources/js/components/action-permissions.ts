@@ -31,5 +31,6 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path==='/commands/policies')return any(['finance'],'create');
     if(path.startsWith('/commands/customization')||path==='/commands/content')return any(['content','catalog'],'edit');
     if(path.startsWith('/commands/enquiries'))return any(['content','catalog','accounts'],'edit');
+    if(/^\/commands\/feedback\/\d+$/.test(path))return any(['content','catalog','accounts'],'edit');
     return false;
 }

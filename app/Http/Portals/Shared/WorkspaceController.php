@@ -38,6 +38,7 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
+use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\JoinQr;
@@ -580,9 +581,49 @@ class WorkspaceController extends Controller
                     'image' => $p->media()['image_url'] ?? '',
                 ]);
         }
+        if ($section === 'feedback') {
+            $data['feedback_items'] = SiteFeedback::query()
+                ->orderByRaw("CASE status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END")
+                ->orderByDesc('created_at')
+                ->limit(100)
+                ->get()
+                ->map(fn (SiteFeedback $row): array => [
+                    'id' => $row->id,
+                    'name' => $row->name,
+                    'role' => $row->role,
+                    'location' => $row->location,
+                    'rating' => $row->rating,
+                    'message' => $row->message,
+                    'source' => $row->source,
+                    'status' => $row->status,
+                    'created_at' => optional($row->created_at)?->toIso8601String(),
+                    'moderated_at' => optional($row->moderated_at)?->toIso8601String(),
+                ])
+                ->all();
+            $data['feedback_counts'] = [
+                'total' => (int) SiteFeedback::query()->count(),
+                'pending' => (int) SiteFeedback::query()->where('status', 'pending')->count(),
+                'approved' => (int) SiteFeedback::query()->where('status', 'approved')->count(),
+                'rejected' => (int) SiteFeedback::query()->where('status', 'rejected')->count(),
+            ];
+        }
+        if ($section === 'share-feedback') {
+            $data['my_feedback'] = SiteFeedback::query()
+                ->where('user_id', $u->id)
+                ->orderByDesc('created_at')
+                ->limit(20)
+                ->get()
+                ->map(fn (SiteFeedback $row): array => [
+                    'id' => $row->id,
+                    'rating' => $row->rating,
+                    'message' => $row->message,
+                    'status' => $row->status,
+                    'created_at' => optional($row->created_at)?->toIso8601String(),
+                ])
+                ->all();
+        }
         if ($section === 'enquiries') {
-            $data['enquiries'] = DB::table('enquiries')
-                ->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
+            $data['enquiries'] = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->paginate(20);

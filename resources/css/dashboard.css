@@ -233,7 +233,18 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .language-switcher{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid #d7dde5;border-radius:999px;background:#fff;box-shadow:0 1px 2px #0116270a}
 .language-switcher button{border:0;background:transparent;color:#475569;font-size:11px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer;font-family:inherit;transition:background .18s ease,color .18s ease}
 .language-switcher button.active{background:#011627;color:#fff}
+.language-switcher button:disabled{opacity:.85;cursor:wait}
 .language-switcher.compact button{padding:5px 9px;font-size:10px}
+.madina-locale-switching{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;background:rgba(1,22,39,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:madinaLocaleFadeIn .16s ease-out}
+.madina-locale-switching-card{width:min(100%,360px);background:#081621;color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:28px 24px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.madina-locale-switching-spinner{display:inline-block;width:36px;height:36px;margin:0 auto 16px;border:3px solid rgba(255,255,255,.18);border-top-color:#ef4a23;border-radius:50%;animation:madinaLocaleSpin .7s linear infinite}
+.madina-locale-switching-title{margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:.01em;line-height:1.35}
+.madina-locale-switching-subtitle{margin:0;font-size:13px;line-height:1.5;color:#94a3b8}
+html.madina-locale-switching-active,html.madina-locale-switching-active body{cursor:wait!important}
+html.madina-locale-switching-active body>:not(.madina-locale-switching){pointer-events:none}
+@keyframes madinaLocaleFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes madinaLocaleSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.madina-locale-switching{animation:none}.madina-locale-switching-spinner{animation:none;border-top-color:#ef4a23}}
 .header-actions{display:flex;align-items:center;gap:10px}
 .domain-rail{background:rgba(255,255,255,.88);border:1px solid #e2e8f0;border-radius:14px;padding:14px 18px;margin-bottom:20px;box-shadow:0 8px 24px #01162708;backdrop-filter:blur(8px)}
 .domain-rail-top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}

@@ -36,7 +36,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('আমাদের কোম্পানি', false)
             ->assertSee('ডিলার খুঁজুন', false)
             ->assertSee('কোম্পানি নোটিশ', false)
-            ->assertSee('এশিয়া/ঢাকা · ৳', false)
+            ->assertSee('ঢাকা, বাংলাদেশ', false)
             ->assertSee('প্রাকৃতিক খাদ্য সম্পূরক', false)
             ->assertSee('চ্যাট', false)
             ->assertSee('id="ref-site-ui"', false)
@@ -57,7 +57,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('আমাদের পণ্য ক্যাটালগ', false)
             ->assertSee('ফিল্টার প্রয়োগ', false)
             ->assertSee('কম স্টক', false)
-            ->assertSee('ছবি শীঘ্রই আসছে', false);
+            ->assertSee('পণ্যের বিবরণ দেখুন', false);
 
         $this->onPortal('public')->get('/notice')
             ->assertOk()
@@ -164,7 +164,7 @@ class PublicSiteLocaleChromeTest extends TestCase
         $this->onPortal('public')->get('/')
             ->assertOk()
             ->assertSee('Company Notice', false)
-            ->assertSee('Asia/Dhaka · BDT', false);
+            ->assertSee('Dhaka, Bangladesh', false);
 
         $this->onPortal('public')->get('/products')
             ->assertOk()

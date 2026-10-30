@@ -323,16 +323,16 @@
                 ⬇️ {{ __('portal.download_invoice') }}
             </a>
             <a class="btn-outline" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode($invoiceShareBody) }}">
-                WhatsApp
+                {{ __('portal.share_invoice_whatsapp') }}
             </a>
             <a class="btn-outline" target="_blank" rel="noopener" href="https://www.facebook.com/dialog/send?link={{ rawurlencode($invoiceShareUrl) }}&app_id=0&redirect_uri={{ rawurlencode($invoiceShareUrl) }}">
-                Messenger
+                {{ __('portal.share_messenger') }}
             </a>
             <a class="btn-outline" href="mailto:?subject={{ rawurlencode($invoiceShareText) }}&body={{ rawurlencode($invoiceShareBody) }}">
-                Email
+                {{ __('portal.share_invoice_email') }}
             </a>
             <a class="btn-outline" href="sms:?&body={{ rawurlencode($invoiceShareBody) }}">
-                SMS
+                {{ __('portal.share_invoice_sms') }}
             </a>
         </div>
     </div>

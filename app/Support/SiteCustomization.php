@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Product;
+use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -42,6 +43,11 @@ class SiteCustomization
             'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
+            // Mobile search overlay — Popular Categories chips (admin-managed)
+            'mobile_search_categories_enabled' => '1',
+            'mobile_search_categories_heading' => '',
+            'mobile_search_categories_items' => '',
+            'mobile_search_categories_limit' => '6',
 
             // Announcement & Ticker
             'announcement_text' => 'For product availability and dealership enquiries, please contact the company.',
@@ -277,7 +283,7 @@ class SiteCustomization
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
             'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
-            'footer_logo_url' => '/madina-header-logo-white.png?v=8',
+            'footer_logo_url' => '/madina-header-logo-white.png?v=9',
 
             // Floating Tools & Dialogs
             'floating_compare_label' => 'COMPARE',
@@ -1166,6 +1172,28 @@ class SiteCustomization
         if (! $enabled) {
             return [];
         }
+
+        $approved = SiteFeedback::query()
+            ->where('status', 'approved')
+            ->orderByDesc('moderated_at')
+            ->orderByDesc('id')
+            ->limit(24)
+            ->get()
+            ->map(fn (SiteFeedback $row): array => [
+                'name' => $row->name,
+                'role' => $row->role,
+                'location' => $row->location,
+                'rating' => max(1, min(5, (int) $row->rating)),
+                'text' => $row->message,
+                'avatar' => '',
+                'source' => $row->source,
+            ])
+            ->all();
+
+        if ($approved !== []) {
+            return $approved;
+        }
+
         $raw = $all['testimonials'] ?? self::defaults()['testimonials'];
         if (! is_array($raw) || empty($raw)) {
             $raw = self::defaults()['testimonials'];
@@ -1183,6 +1211,7 @@ class SiteCustomization
                 'rating' => max(1, min(5, (int) ($t['rating'] ?? 5))),
                 'text' => trim((string) ($t['text'] ?? '')),
                 'avatar' => trim((string) ($t['avatar'] ?? '')),
+                'source' => 'default',
             ];
         }
 
@@ -1246,11 +1275,16 @@ class SiteCustomization
                     || str_starts_with($icon, 'http://')
                     || str_starts_with($icon, 'https://');
 
+                $resolvedIcon = ! $isImage ? ($icon ?: 'fa-tag') : 'fa-tag';
+
                 $items[] = [
                     'name' => $name,
                     'is_image' => $isImage,
                     'image' => $isImage ? $icon : '',
-                    'icon' => ! $isImage ? ($icon ?: 'fa-tag') : 'fa-tag',
+                    'icon' => $resolvedIcon,
+                    // Public homepage always renders CategoryAutoIcon when no image is uploaded.
+                    'use_auto_icon' => ! $isImage,
+                    'auto_icon' => CategoryAutoIcon::forCategory($name),
                     'link' => $link ?: ('/products?category='.urlencode($name)),
                     'badge' => $badge,
                 ];
@@ -1258,15 +1292,117 @@ class SiteCustomization
         }
 
         if ($items === []) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')
-                ->map(fn (string $name): array => [
-                    'name' => $name, 'is_image' => false, 'image' => '', 'icon' => 'fa-tag',
-                    'link' => '/products?category='.urlencode($name), 'badge' => '',
-                ])->all();
+            return array_map(
+                static fn (string $name): array => [
+                    'name' => $name,
+                    'is_image' => false,
+                    'image' => '',
+                    'icon' => 'fa-tag',
+                    'use_auto_icon' => true,
+                    'auto_icon' => CategoryAutoIcon::forCategory($name),
+                    'link' => '/products?category='.urlencode($name),
+                    'badge' => '',
+                ],
+                self::catalogCategoryNames()
+            );
         }
 
         return $items;
+    }
+
+    /**
+     * Popular category chips in the mobile search overlay.
+     * Prefer the dedicated admin list; otherwise Featured Categories; otherwise active catalog categories.
+     *
+     * @return list<array{name: string, link: string}>
+     */
+    public static function getMobileSearchCategories(): array
+    {
+        $customization = self::all();
+
+        if (($customization['mobile_search_categories_enabled'] ?? '1') === '0') {
+            return [];
+        }
+
+        $limit = (int) ($customization['mobile_search_categories_limit'] ?? 6);
+        if ($limit < 1) {
+            $limit = 6;
+        }
+        if ($limit > 24) {
+            $limit = 24;
+        }
+
+        $raw = trim((string) ($customization['mobile_search_categories_items'] ?? ''));
+        if ($raw !== '') {
+            $items = [];
+            foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+                $line = trim((string) $line);
+                if ($line === '') {
+                    continue;
+                }
+                $parts = array_map('trim', explode('|', $line));
+                $name = $parts[0] ?? '';
+                if ($name === '') {
+                    continue;
+                }
+                $link = $parts[1] ?? '';
+                if ($link === '' || ! str_starts_with($link, '/')) {
+                    $link = '/products?category='.urlencode($name);
+                }
+                $items[] = [
+                    'name' => $name,
+                    'link' => $link,
+                ];
+            }
+
+            return array_slice($items, 0, $limit);
+        }
+
+        $featured = self::getFeaturedCategories();
+        if ($featured !== []) {
+            return array_slice(array_map(
+                static fn (array $cat): array => [
+                    'name' => (string) ($cat['name'] ?? ''),
+                    'link' => (string) ($cat['link'] ?? ('/products?category='.urlencode((string) ($cat['name'] ?? '')))),
+                ],
+                $featured
+            ), 0, $limit);
+        }
+
+        return array_map(
+            static fn (string $name): array => [
+                'name' => $name,
+                'link' => '/products?category='.urlencode($name),
+            ],
+            array_slice(self::catalogCategoryNames(), 0, $limit)
+        );
+    }
+
+    public static function mobileSearchCategoriesHeading(): string
+    {
+        $custom = trim((string) (self::all()['mobile_search_categories_heading'] ?? ''));
+
+        return $custom !== '' ? $custom : (string) __('site.search_popular_categories');
+    }
+
+    /**
+     * Active catalog category names, reusing the public products cache when warm.
+     *
+     * @return list<string>
+     */
+    private static function catalogCategoryNames(): array
+    {
+        $cached = Cache::get('public:product_categories:v2');
+        if (is_array($cached)) {
+            return array_values(array_filter(array_map(
+                static fn (mixed $name): string => trim((string) $name),
+                $cached
+            )));
+        }
+
+        return Product::where('active', true)->where('category', '!=', '')
+            ->orderBy('category')->distinct()->pluck('category')
+            ->all();
     }
 
     public static function getNavCategories(): array
@@ -1277,8 +1413,7 @@ class SiteCustomization
             ? array_filter(array_map('trim', $raw))
             : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw)));
         if (empty($cats)) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')->all();
+            return self::catalogCategoryNames();
         }
 
         return array_values($cats);

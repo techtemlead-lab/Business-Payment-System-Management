@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -622,5 +623,97 @@ class SiteCustomizationTest extends TestCase
         ])->assertSessionHas('success');
 
         $this->assertEquals($expectedDefaults, SiteCustomization::getNavCategories());
+    }
+
+    public function test_featured_category_image_urls_render_on_public_home(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'featured_categories_enabled' => '1',
+                'featured_categories_items' => "Ayurvedic | /branding/madina-logo-client.png | /products?category=Ayurvedic\nOil | fa-bottle-droplet | /products?category=Oil",
+            ],
+        ])->assertSessionHas('success');
+
+        $categories = SiteCustomization::getFeaturedCategories();
+        $this->assertTrue($categories[0]['is_image']);
+        $this->assertSame('/branding/madina-logo-client.png', $categories[0]['image']);
+        $this->assertFalse($categories[1]['is_image']);
+        $this->assertSame('fa-bottle-droplet', $categories[1]['icon']);
+
+        $home = $this->get('/');
+        $home->assertOk();
+        $home->assertSee('ref-cat-icon-wrap', false);
+        $home->assertSee('/branding/madina-logo-client.png');
+        // No admin image → category-specific auto SVG (not Font Awesome).
+        $home->assertDontSee('fa-bottle-droplet', false);
+        $home->assertSee('ref-cat-auto-icon', false);
+        $home->assertSee('data-cat-icon="droplet"', false);
+    }
+
+    public function test_staff_can_upload_featured_category_icon_image(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $file = UploadedFile::fake()->image('ayurvedic-icon.png', 64, 64);
+
+        $response = $this->actingAs($editor)->postJson('/commands/customization/category-icon', [
+            'image' => $file,
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $url = $response->json('url');
+        $this->assertIsString($url);
+        $this->assertStringStartsWith('/branding/category-icons/', $url);
+        $this->assertFileExists(public_path(ltrim($url, '/')));
+
+        $dealer = User::factory()->create(['role' => 'dealer']);
+        $this->actingAs($dealer)->postJson('/commands/customization/category-icon', [
+            'image' => UploadedFile::fake()->image('blocked.png', 32, 32),
+        ])->assertForbidden();
+    }
+
+    public function test_mobile_search_popular_categories_are_admin_managed(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        Product::factory()->create(['active' => true, 'category' => 'CatalogOnlyCat', 'name' => 'Catalog Product']);
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'mobile_search_categories_enabled' => '1',
+                'mobile_search_categories_heading' => 'Shop by type',
+                'mobile_search_categories_items' => "Herbal Care\nFruit Syrup|/products?category=Fruit%20Syrup\nOil",
+                'mobile_search_categories_limit' => '6',
+            ],
+        ])->assertSessionHas('success');
+
+        $chips = SiteCustomization::getMobileSearchCategories();
+        $this->assertCount(3, $chips);
+        $this->assertSame('Herbal Care', $chips[0]['name']);
+        $this->assertSame('/products?category='.urlencode('Herbal Care'), $chips[0]['link']);
+        $this->assertSame('Fruit Syrup', $chips[1]['name']);
+        $this->assertSame('/products?category=Fruit%20Syrup', $chips[1]['link']);
+        $this->assertSame('Shop by type', SiteCustomization::mobileSearchCategoriesHeading());
+
+        $home = $this->get('/');
+        $home->assertOk();
+        $home->assertSee('id="refMobileSearchShortcuts"', false);
+        $home->assertSee('Shop by type');
+        $home->assertSee('>Herbal Care</a>', false);
+        $home->assertSee('>Fruit Syrup</a>', false);
+        $home->assertSee('>Oil</a>', false);
+        $home->assertDontSee('>CatalogOnlyCat</a>', false);
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'mobile_search_categories_enabled' => '0',
+            ],
+        ])->assertSessionHas('success');
+
+        $this->assertSame([], SiteCustomization::getMobileSearchCategories());
+        $this->get('/')->assertOk()->assertDontSee('id="refMobileSearchShortcuts"', false);
     }
 }

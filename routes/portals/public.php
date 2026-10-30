@@ -9,6 +9,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'index']);
+Route::get('/search/products', [PublicController::class, 'productSearch'])
+    ->middleware('throttle:60,1')
+    ->name('products.search');
 Route::get('/products/{product}', [PublicController::class, 'product'])->name('products.show');
 Route::get('/product/{product}', fn ($product) => redirect('/products/'.$product, 301));
 Route::get('/outlets', function () {
@@ -22,6 +25,8 @@ Route::get('/join/{code}', [PublicController::class, 'join'])
     ->middleware('throttle:60,1');
 Route::get('/{page}', [PublicController::class, 'index'])->whereIn('page', ['products', 'dealers', 'about', 'contact', 'partnership', 'services', 'quality', 'faq', 'privacy', 'terms', 'notice', 'circular-training', 'circular-price', 'circular-meeting']);
 Route::post('/enquiries', [PublicController::class, 'enquiry'])->middleware('throttle:5,1');
+Route::get('/feedback', [PublicController::class, 'feedbackForm']);
+Route::post('/feedback', [PublicController::class, 'storeFeedback'])->middleware('throttle:5,1');
 Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttle:30,1');
 Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -89,6 +89,10 @@ export interface CustomizationData {
     header_account_subtitle?: string;
     header_catalog_title?: string;
     nav_categories?: string;
+    mobile_search_categories_enabled?: string;
+    mobile_search_categories_heading?: string;
+    mobile_search_categories_items?: string;
+    mobile_search_categories_limit?: string;
 
     // Announcement
     announcement_text?: string;
@@ -578,6 +582,47 @@ function CategoryManager({
     const translate = useT();
     const [mode, setMode] = useState<'visual' | 'text'>('visual');
     const [pickerOpenIdx, setPickerOpenIdx] = useState<number | null>(null);
+    const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
+
+    const uploadCategoryImage = async (index: number, file: File | null) => {
+        if (!file) {
+            return;
+        }
+
+        setUploadingIdx(index);
+        try {
+            const body = new FormData();
+            body.append('image', file);
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || (document.querySelector('input[name="_token"]') as HTMLInputElement | null)?.value
+                || '';
+            if (token) {
+                body.append('_token', token);
+            }
+
+            const response = await fetch('/commands/customization/category-icon', {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                },
+            });
+
+            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string } | null;
+            if (!response.ok || !payload?.ok || !payload.url) {
+                throw new Error(payload?.message || translate('portal', 'sce_category_image_upload_failed'));
+            }
+
+            handleFieldChange(index, 'icon', payload.url);
+        } catch (error) {
+            alert(error instanceof Error ? error.message : translate('portal', 'sce_category_image_upload_failed'));
+        } finally {
+            setUploadingIdx(null);
+        }
+    };
 
     const rawValue = typeof value === 'string' ? value : (defaultValue || '');
     const items = parseItems(rawValue);
@@ -1002,6 +1047,42 @@ function CategoryManager({
                                                     onChange={e => handleFieldChange(idx, 'icon', e.target.value)}
                                                     style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
                                                 />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                                                    <label
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: 6,
+                                                            padding: '6px 10px',
+                                                            borderRadius: 6,
+                                                            border: '1px solid #bbf7d0',
+                                                            background: uploadingIdx === idx ? '#ecfdf5' : '#f0fdf4',
+                                                            color: '#166534',
+                                                            fontSize: 11,
+                                                            fontWeight: 700,
+                                                            cursor: uploadingIdx === idx ? 'wait' : 'pointer',
+                                                        }}
+                                                    >
+                                                        <Image size={13} />
+                                                        {uploadingIdx === idx
+                                                            ? translate('portal', 'sce_uploading_category_image')
+                                                            : translate('portal', 'sce_upload_category_image')}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/png,image/jpeg,image/webp"
+                                                            disabled={uploadingIdx === idx}
+                                                            style={{ display: 'none' }}
+                                                            onChange={e => {
+                                                                const file = e.target.files?.[0] ?? null;
+                                                                e.target.value = '';
+                                                                void uploadCategoryImage(idx, file);
+                                                            }}
+                                                        />
+                                                    </label>
+                                                    <small style={{ color: '#64748b', fontSize: 10, lineHeight: 1.4 }}>
+                                                        {translate('portal', 'sce_category_image_hint')}
+                                                    </small>
+                                                </div>
                                             </label>
 
                                             {/* Destination Link */}
@@ -3652,6 +3733,220 @@ const DEFAULT_NAV_CATEGORIES = [
     'Service',
 ];
 
+interface MobileSearchCategoriesManagerProps {
+    enabled: string;
+    heading: string;
+    items: string;
+    limit: string;
+    featuredCategoriesRaw?: string;
+    products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
+    onChange: (field: keyof CustomizationData, value: string) => void;
+}
+
+function MobileSearchCategoriesManager({
+    enabled,
+    heading,
+    items,
+    limit,
+    featuredCategoriesRaw = '',
+    products = [],
+    onChange,
+}: MobileSearchCategoriesManagerProps) {
+    const translate = useT();
+    const [newName, setNewName] = useState('');
+    const isOn = enabled !== '0';
+    const lines = (items || '').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+
+    const emitLines = (next: string[]) => onChange('mobile_search_categories_items', next.join('\n'));
+
+    const handleAdd = () => {
+        const trimmed = newName.trim();
+        if (!trimmed) return;
+        if (lines.some((l) => l.split('|')[0].trim().toLowerCase() === trimmed.toLowerCase())) {
+            alert(translate('portal', 'cms_alert_nav_dup', { name: trimmed }));
+            return;
+        }
+        emitLines([...lines, trimmed]);
+        setNewName('');
+    };
+
+    const handleRemove = (index: number) => {
+        const target = lines[index]?.split('|')[0]?.trim() || '';
+        if (!window.confirm(translate('portal', 'cms_confirm_remove_mobile_search_cat', { name: target }))) {
+            return;
+        }
+        emitLines(lines.filter((_, i) => i !== index));
+    };
+
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        const targetIdx = direction === 'up' ? index - 1 : index + 1;
+        if (targetIdx < 0 || targetIdx >= lines.length) return;
+        const next = [...lines];
+        const tmp = next[targetIdx];
+        next[targetIdx] = next[index];
+        next[index] = tmp;
+        emitLines(next);
+    };
+
+    const handleSyncFeatured = () => {
+        const names = featuredCategoriesRaw.split(/\r?\n/).map((l) => l.split('|')[0].trim()).filter(Boolean);
+        if (names.length === 0) {
+            alert(translate('portal', 'cms_alert_no_featured'));
+            return;
+        }
+        emitLines(Array.from(new Set(names)));
+    };
+
+    const handleSyncProducts = () => {
+        const cats = Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))).sort();
+        if (cats.length === 0) {
+            alert(translate('portal', 'cms_alert_no_categories'));
+            return;
+        }
+        emitLines(cats);
+    };
+
+    return (
+        <div style={{
+            gridColumn: '1 / -1',
+            marginTop: 8,
+            padding: 20,
+            borderRadius: 12,
+            border: `1.5px solid ${isOn ? '#bbf7d0' : '#e2e8f0'}`,
+            background: isOn ? '#f0fdf4' : '#f8fafc',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div>
+                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#011627' }}>
+                        {translate('portal', 'cms_mobile_search_categories_title')}
+                    </h4>
+                    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b', lineHeight: 1.5, maxWidth: 640 }}>
+                        {translate('portal', 'cms_mobile_search_categories_hint')}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => onChange('mobile_search_categories_enabled', isOn ? '0' : '1')}
+                    style={{
+                        alignSelf: 'flex-start',
+                        border: 0,
+                        borderRadius: 8,
+                        padding: '8px 14px',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        background: isOn ? '#006837' : '#64748b',
+                        color: '#fff',
+                    }}
+                >
+                    {isOn ? translate('portal', 'cms_mobile_search_categories_on') : translate('portal', 'cms_mobile_search_categories_off')}
+                </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                    {translate('portal', 'cms_mobile_search_categories_heading')}
+                    <input
+                        value={heading}
+                        onChange={(e) => onChange('mobile_search_categories_heading', e.target.value)}
+                        placeholder={translate('portal', 'cms_mobile_search_categories_heading_ph')}
+                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 500 }}
+                    />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                    {translate('portal', 'cms_mobile_search_categories_limit')}
+                    <input
+                        type="number"
+                        min={1}
+                        max={24}
+                        value={limit || '6'}
+                        onChange={(e) => onChange('mobile_search_categories_limit', e.target.value)}
+                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 500, maxWidth: 120 }}
+                    />
+                </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                <button type="button" className="button small" onClick={handleSyncFeatured}>
+                    {translate('portal', 'cms_mobile_search_sync_featured')}
+                </button>
+                <button type="button" className="button small" onClick={handleSyncProducts}>
+                    {translate('portal', 'cms_mobile_search_sync_products')}
+                </button>
+                {lines.length > 0 && (
+                    <button
+                        type="button"
+                        className="button small"
+                        onClick={() => {
+                            if (window.confirm(translate('portal', 'cms_mobile_search_clear_confirm'))) {
+                                emitLines([]);
+                            }
+                        }}
+                        style={{ color: '#b91c1c' }}
+                    >
+                        {translate('portal', 'cms_mobile_search_clear')}
+                    </button>
+                )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAdd();
+                        }
+                    }}
+                    placeholder={translate('portal', 'cms_mobile_search_add_ph')}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                />
+                <button type="button" className="button small dark" onClick={handleAdd}>
+                    <Plus size={14} /> {translate('portal', 'cms_mobile_search_add')}
+                </button>
+            </div>
+
+            {lines.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                    {translate('portal', 'cms_mobile_search_empty')}
+                </p>
+            ) : (
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+                    {lines.map((line, index) => {
+                        const name = line.split('|')[0].trim();
+                        return (
+                            <li
+                                key={`${name}-${index}`}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '10px 12px',
+                                    borderRadius: 8,
+                                    background: '#fff',
+                                    border: '1px solid #e2e8f0',
+                                }}
+                            >
+                                <strong style={{ flex: 1, fontSize: 13 }}>{name}</strong>
+                                <button type="button" className="button small" onClick={() => handleMove(index, 'up')} disabled={index === 0} aria-label="Move up">
+                                    <ArrowUp size={14} />
+                                </button>
+                                <button type="button" className="button small" onClick={() => handleMove(index, 'down')} disabled={index === lines.length - 1} aria-label="Move down">
+                                    <ArrowDown size={14} />
+                                </button>
+                                <button type="button" className="button small" onClick={() => handleRemove(index)} aria-label="Remove">
+                                    <Trash2 size={14} />
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </div>
+    );
+}
+
 interface HeaderNavCategoriesManagerProps {
     value: string;
     defaultValue: string;
@@ -4299,6 +4594,12 @@ export default function SiteCustomizationEditor({
             header_account_subtitle: customization.header_account_subtitle || '',
             header_catalog_title: customization.header_catalog_title || '',
             nav_categories: customization.nav_categories || '',
+            mobile_search_categories_enabled: customization.mobile_search_categories_enabled !== undefined
+                ? customization.mobile_search_categories_enabled
+                : (defaults.mobile_search_categories_enabled || '1'),
+            mobile_search_categories_heading: customization.mobile_search_categories_heading || '',
+            mobile_search_categories_items: customization.mobile_search_categories_items || '',
+            mobile_search_categories_limit: customization.mobile_search_categories_limit || defaults.mobile_search_categories_limit || '6',
 
             announcement_text: customization.announcement_text || '',
 
@@ -4865,6 +5166,16 @@ export default function SiteCustomizationEditor({
 
                                 <Field label="Partner Account Link Title" fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
                                 <Field label="Partner Account Link Subtitle" fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
+
+                                <MobileSearchCategoriesManager
+                                    enabled={form.data.customization.mobile_search_categories_enabled || '1'}
+                                    heading={form.data.customization.mobile_search_categories_heading || ''}
+                                    items={form.data.customization.mobile_search_categories_items || ''}
+                                    limit={form.data.customization.mobile_search_categories_limit || '6'}
+                                    featuredCategoriesRaw={form.data.customization.featured_categories_items || defaults.featured_categories_items || ''}
+                                    products={products}
+                                    onChange={updateField}
+                                />
 
                                 <HeaderNavCategoriesManager
                                     value={form.data.customization.nav_categories || ''}

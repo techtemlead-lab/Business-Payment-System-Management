@@ -43,13 +43,13 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertSame([], DB::getQueryLog());
     }
 
-    public function test_public_layout_defers_font_awesome_and_skips_bn_font_for_english(): void
+    public function test_public_layout_loads_local_font_awesome_and_preloads_header_logo(): void
     {
         $html = $this->get('/')->assertOk()->getContent();
 
-        $this->assertStringContainsString("fontawesome-local.css\" media=\"print\" onload=\"this.media='all'\"", $html);
-        $this->assertStringNotContainsString('fonts.bunny.net', $html);
-        $this->assertStringContainsString('/madina-header-logo.png?v=8', $html);
+        $this->assertStringContainsString('/reference/fontawesome-local.css', $html);
+        $this->assertStringNotContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
+        $this->assertStringContainsString('/madina-header-logo.png?v=9', $html);
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
 

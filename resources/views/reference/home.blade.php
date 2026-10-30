@@ -211,9 +211,10 @@
                     @endif
                     <div class="ref-cat-icon-wrap">
                         @if(!empty($cat['is_image']))
-                            <img src="{{ $cat['image'] }}" alt="{{ $cat['name'] }}" loading="lazy">
+                            <img src="{{ $cat['image'] }}" alt="{{ $cat['name'] }}" loading="lazy" width="28" height="28" decoding="async">
                         @else
-                            <i class="fa-solid {{ $cat['icon'] }}" aria-hidden="true"></i>
+                            {{-- Always generate a category glyph when admin did not upload an image. --}}
+                            @include('reference.partials.category-auto-icon', ['name' => $cat['name']])
                         @endif
                     </div>
                     <span class="ref-cat-name">{{ $cat['name'] }}</span>
@@ -254,7 +255,9 @@
         <div class="ref-dealer-banner-inner">
             <div class="ref-dealer-banner-info">
                 <div class="ref-dealer-banner-icon" aria-hidden="true">
-                    <i class="fa-solid fa-map-location-dot"></i>
+                    <svg class="ref-dealer-banner-glyph" viewBox="0 0 24 24" width="28" height="28" focusable="false">
+                        <path fill="currentColor" d="M12 2.5c-3.7 0-6.7 2.9-6.7 6.6 0 4.4 5.2 10.5 6.3 11.7a.6.6 0 0 0 .9 0c1.1-1.2 6.2-7.3 6.2-11.7 0-3.7-3-6.6-6.7-6.6Zm0 9.1a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/>
+                    </svg>
                 </div>
                 <div>
                     <h3>{{ $chrome('dealer_banner_title', $siteCustomization['dealer_banner_title'] ?? null) }}</h3>
@@ -387,6 +390,8 @@
     {{-- Customer & Partner Testimonials Section (Admin-controlled toggle) --}}
     @php
         $testimonials = \App\Support\SiteCustomization::getTestimonials();
+        $testimonialCount = count($testimonials);
+        $testimonialsScrollable = $testimonialCount > 3;
     @endphp
     @if(!empty($testimonials))
     <section class="ref-testimonials-section" aria-labelledby="testimonials-title">
@@ -394,32 +399,37 @@
             <h2 id="testimonials-title">{{ $siteCustomization['testimonials_title'] ?? __('site.testimonials_title') }}</h2>
             <p>{{ $siteCustomization['testimonials_subtitle'] ?? __('site.testimonials_subtitle') }}</p>
         </div>
-        <div class="ref-testimonials-grid">
-            @foreach($testimonials as $t)
-            <article class="ref-testimonial-card">
-                <div class="ref-testimonial-header">
-                    <div class="ref-testimonial-avatar">
-                        @if(!empty($t['avatar']))
-                            <img src="{{ $t['avatar'] }}" alt="{{ $t['name'] }}" loading="lazy">
-                        @else
-                            <div class="ref-avatar-initial">{{ mb_substr($t['name'], 0, 1) }}</div>
-                        @endif
+        <div class="ref-testimonials-viewport {{ $testimonialsScrollable ? 'is-scrollable' : '' }}">
+            <div class="ref-testimonials-grid {{ $testimonialsScrollable ? 'is-marquee' : '' }}" data-testimonial-count="{{ $testimonialCount }}">
+                @foreach($testimonials as $t)
+                <article class="ref-testimonial-card">
+                    <div class="ref-testimonial-header">
+                        <div class="ref-testimonial-avatar">
+                            @if(!empty($t['avatar']))
+                                <img src="{{ $t['avatar'] }}" alt="{{ $t['name'] }}" loading="lazy">
+                            @else
+                                <div class="ref-avatar-initial">{{ mb_substr($t['name'], 0, 1) }}</div>
+                            @endif
+                        </div>
+                        <div>
+                            <h3 class="ref-testimonial-author">{{ $t['name'] }}</h3>
+                            <span class="ref-testimonial-meta">{{ $t['role'] }} · {{ $t['location'] }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="ref-testimonial-author">{{ $t['name'] }}</h3>
-                        <span class="ref-testimonial-meta">{{ $t['role'] }} · {{ $t['location'] }}</span>
+                    <div class="ref-testimonial-stars" aria-label="{{ $t['rating'] }} out of 5 stars">
+                        @for($i = 1; $i <= 5; $i++)
+                            <span class="ref-star {{ $i <= $t['rating'] ? 'is-filled' : 'is-empty' }}" aria-hidden="true">★</span>
+                        @endfor
                     </div>
-                </div>
-                <div class="ref-testimonial-stars" aria-label="{{ $t['rating'] }} out of 5 stars">
-                    @for($i = 1; $i <= 5; $i++)
-                        <i class="fa-solid fa-star {{ $i <= $t['rating'] ? 'is-filled' : 'is-empty' }}" aria-hidden="true"></i>
-                    @endfor
-                </div>
-                <blockquote class="ref-testimonial-quote">
-                    “{{ $t['text'] }}”
-                </blockquote>
-            </article>
-            @endforeach
+                    <blockquote class="ref-testimonial-quote">
+                        “{{ $t['text'] }}”
+                    </blockquote>
+                </article>
+                @endforeach
+            </div>
+        </div>
+        <div class="ref-testimonials-actions">
+            <a href="/feedback" class="ref-secondary-button">{{ __('site.share_feedback_cta') }}</a>
         </div>
     </section>
     @endif
