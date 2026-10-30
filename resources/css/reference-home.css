@@ -3026,24 +3026,22 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 }
 
-/* Footer SUPPORT: action cards + contact details side by side */
+/* Footer SUPPORT: desktop keeps stacked actions + contact; side-by-side only ≤1023px */
 .ref-footer-support-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    gap: 12px 16px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
 }
 
 .ref-footer-support-actions {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
 }
 
 .ref-footer-support-actions .ref-support-box {
-    width: 100%;
-    max-width: none;
     margin: 0;
 }
 
@@ -3089,10 +3087,28 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     font-size: 14px;
 }
 
+@media (max-width: 1023px) {
+    .ref-footer-support-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 10px 14px;
+        align-items: start;
+    }
+
+    .ref-footer-support-actions {
+        gap: 6px;
+    }
+
+    .ref-footer-support-actions .ref-support-box {
+        width: 100%;
+        max-width: none;
+    }
+}
+
 @media (max-width: 420px) {
     .ref-footer-support-row {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 8px 8px;
+        gap: 8px;
     }
 }
 
