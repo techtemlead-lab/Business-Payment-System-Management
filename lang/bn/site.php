@@ -43,6 +43,7 @@ return [
     'skip_to_content' => 'মূল কন্টেন্টে যান',
     'timezone_currency' => 'ঢাকা, বাংলাদেশ',
 
+    'loading_experience' => 'মদিনা ন্যাচারাল হেলথ কেয়ার লোড হচ্ছে',
     'error_back_home' => 'হোমপেজে ফিরে যান',
     'error_404_title' => 'পৃষ্ঠা পাওয়া যায়নি',
     'error_404_heading' => 'এই পৃষ্ঠাটি খুঁজে পাওয়া যায়নি',

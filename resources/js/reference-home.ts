@@ -445,14 +445,105 @@ function initFaqAccordions() {
     });
 }
 
+function initPageProgressNavigation() {
+    const progress = document.getElementById('refPageProgress');
+    const root = document.documentElement;
+    if (!progress) {
+        return;
+    }
+
+    const setProgress = (value: number) => {
+        root.style.setProperty('--ref-boot-progress', `${Math.max(0, Math.min(100, value))}%`);
+        progress.setAttribute('aria-valuenow', String(Math.round(value)));
+    };
+
+    const start = () => {
+        root.classList.add('ref-booting');
+        progress.classList.add('is-active');
+        progress.setAttribute('aria-hidden', 'false');
+        setProgress(18);
+        window.setTimeout(() => setProgress(55), 120);
+        window.setTimeout(() => setProgress(78), 320);
+    };
+
+    document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) {
+            return;
+        }
+        const link = target.closest('a[href]');
+        if (!(link instanceof HTMLAnchorElement)) {
+            return;
+        }
+        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        if (link.hasAttribute('download') || link.target === '_blank' || link.getAttribute('href')?.startsWith('#')) {
+            return;
+        }
+        let url: URL;
+        try {
+            url = new URL(link.href, window.location.href);
+        } catch {
+            return;
+        }
+        if (url.origin !== window.location.origin) {
+            return;
+        }
+        if (url.pathname === window.location.pathname && url.search === window.location.search && url.hash) {
+            return;
+        }
+        start();
+    });
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            progress.classList.remove('is-active');
+            progress.setAttribute('aria-hidden', 'true');
+            root.classList.remove('ref-booting', 'ref-boot-visible');
+            root.classList.add('ref-boot-done');
+        }
+    });
+}
+
+function prefetchLikelyNextPages() {
+    const run = () => {
+        const paths = ['/login', '/products', '/dealers'];
+        paths.forEach((path) => {
+            if (window.location.pathname === path) {
+                return;
+            }
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.href = path;
+            link.as = 'document';
+            document.head.appendChild(link);
+        });
+    };
+
+    const idle = (window as Window & {
+        requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    }).requestIdleCallback;
+
+    if (typeof idle === 'function') {
+        idle(() => run(), { timeout: 2500 });
+    } else {
+        window.setTimeout(run, 1200);
+    }
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScrollReveal();
         initFaqAccordions();
         bindLocaleSwitchForms();
+        initPageProgressNavigation();
+        prefetchLikelyNextPages();
     });
 } else {
     initScrollReveal();
     initFaqAccordions();
     bindLocaleSwitchForms();
+    initPageProgressNavigation();
+    prefetchLikelyNextPages();
 }

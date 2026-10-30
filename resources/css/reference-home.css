@@ -1693,6 +1693,19 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 }
 
 /* ==========================================================================
+   Progressive first paint — defer below-fold layout/paint work
+   ========================================================================== */
+
+.ref-deferred-paint {
+    content-visibility: auto;
+    contain-intrinsic-size: 720px;
+}
+
+.ref-auth-main {
+    content-visibility: visible;
+}
+
+/* ==========================================================================
    Hardware-Accelerated Scroll Reveal System
    ========================================================================== */
 

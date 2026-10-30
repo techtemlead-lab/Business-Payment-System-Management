@@ -53,6 +53,21 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
 
+    public function test_public_layout_includes_progressive_first_paint_boot_shell(): void
+    {
+        $home = $this->get('/')->assertOk()->getContent();
+        $login = $this->get('/login')->assertOk()->getContent();
+
+        foreach ([$home, $login] as $html) {
+            $this->assertStringContainsString('id="refPageProgress"', $html);
+            $this->assertStringContainsString('id="refPageBoot"', $html);
+            $this->assertStringContainsString('ref-booting', $html);
+            $this->assertStringContainsString(__('site.loading_experience'), $html);
+        }
+
+        $this->assertStringContainsString('ref-deferred-paint', $home);
+    }
+
     public function test_home_and_products_recover_from_poisoned_category_cache(): void
     {
         Product::factory()->create(['active' => true, 'category' => 'Herbal Oils', 'name' => 'Neem Oil']);
