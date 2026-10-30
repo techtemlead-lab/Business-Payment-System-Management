@@ -277,7 +277,7 @@ class SiteCustomization
             'footer_link_dealer_apply_url' => '/partnership',
             'footer_about_title' => 'Madina Natural Health Care',
             'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal & Holistic Nutracare products across Bangladesh.',
-            'footer_logo_url' => '/madina-header-logo-white.png?v=8',
+            'footer_logo_url' => '/madina-header-logo-white.png?v=9',
 
             // Floating Tools & Dialogs
             'floating_compare_label' => 'COMPARE',

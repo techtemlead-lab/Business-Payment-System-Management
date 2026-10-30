@@ -33,7 +33,7 @@ return [
     'company_portal' => 'কোম্পানি পোর্টাল',
     'my_account' => 'আমার অ্যাকাউন্ট',
     'skip_to_content' => 'মূল কন্টেন্টে যান',
-    'timezone_currency' => 'এশিয়া/ঢাকা · ৳',
+    'timezone_currency' => 'ঢাকা, বাংলাদেশ',
 
     'error_back_home' => 'হোমপেজে ফিরে যান',
     'error_404_title' => 'পৃষ্ঠা পাওয়া যায়নি',

@@ -1116,7 +1116,7 @@ return [
     'report_cat_car_bike_incentive_fund' => 'কার / বাইক ইনসেনটিভ',
     'report_cat_company_marketing_fund' => 'কোম্পানি মার্কেটিং',
     'report_cat_opening_hold' => 'উদ্বোধনী কমিশন হোল্ড',
-    'footer_timezone_currency' => 'এশিয়া/ঢাকা · ৳',
+    'footer_timezone_currency' => 'ঢাকা, বাংলাদেশ',
     'empty_default_title' => 'এখনো কিছু নেই',
     'empty_default_body' => 'নতুন কার্যক্রম হলে এখানে দেখা যাবে।',
     'pagination_summary' => 'পৃষ্ঠা :page / :pages · :total রেকর্ড',

@@ -18,14 +18,15 @@
 </div>
 <header class="ref-header">
     <div class="ref-container ref-header-inner">
-        <!-- Mobile Hamburger Menu Button -->
+        <!-- Mobile Hamburger Menu Button (CSS bars so the control stays visible if icon fonts fail) -->
         <button type="button" class="ref-mobile-menu-btn" id="refMobileMenuToggle" aria-label="{{ __('site.open_mobile_nav') }}">
-            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            <span class="ref-burger" aria-hidden="true"><span></span><span></span><span></span></span>
         </button>
 
-        <!-- Logo -->
+        <!-- Logo: light mark for desktop; transparent-on-dark mark for mobile navy header -->
         <a href="/" class="ref-logo ref-madina-logo" aria-label="{{ __('site.brand_home') }}">
-            <img src="/madina-header-logo.png?v=8" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
+            <img class="ref-logo-img-light" src="/madina-header-logo.png?v=9" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
+            <img class="ref-logo-img-dark" src="/madina-header-logo-white.png?v=9" alt="{{ __('site.company_bar') }}" width="160" height="40" style="height:auto;max-height:40px;width:auto;" decoding="async">
         </a>
 
         @if($publicPageEnabled['products'] ?? true)
@@ -38,7 +39,7 @@
 
         <!-- Mobile Search Button -->
         <button type="button" class="ref-mobile-search-btn" id="refMobileSearchToggle" aria-label="{{ __('site.search_label') }}">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <span class="ref-search-glyph" aria-hidden="true"></span>
         </button>
         @endif
 
@@ -102,7 +103,7 @@
 <aside id="refMobileDrawer" class="ref-mobile-drawer" aria-hidden="true" aria-label="{{ __('site.mobile_nav_drawer') }}">
     <div class="ref-mobile-drawer-header">
         <a href="/" class="ref-mobile-drawer-logo">
-            <img src="/madina-header-logo-white.png?v=8" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async" onerror="this.src='/madina-header-logo.png?v=8'">
+            <img src="/madina-header-logo-white.png?v=9" alt="{{ __('site.company_bar') }}" class="ref-mobile-drawer-logo-img" width="160" height="40" decoding="async" onerror="this.src='/madina-header-logo.png?v=9'">
         </a>
         <button type="button" class="ref-mobile-drawer-close" id="refMobileDrawerClose" aria-label="{{ __('site.close_menu') }}">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>

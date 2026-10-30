@@ -1116,7 +1116,7 @@ return [
     'report_cat_car_bike_incentive_fund' => 'Car / bike incentive',
     'report_cat_company_marketing_fund' => 'Company marketing',
     'report_cat_opening_hold' => 'Opening commission hold',
-    'footer_timezone_currency' => 'Asia/Dhaka · BDT',
+    'footer_timezone_currency' => 'Dhaka, Bangladesh',
     'empty_default_title' => 'Nothing here yet',
     'empty_default_body' => 'New activity will appear here as it happens.',
     'pagination_summary' => 'Page :page of :pages · :total records',

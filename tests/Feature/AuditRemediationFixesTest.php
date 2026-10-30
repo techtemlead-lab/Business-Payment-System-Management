@@ -34,14 +34,15 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertStringContainsString('max-height:48px', $html);
     }
 
-    public function test_bangla_footer_uses_taka_symbol_instead_of_bdt_acronym(): void
+    public function test_bangla_footer_shows_dhaka_location_without_currency(): void
     {
-        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect('/');
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect();
         $this->onPortal('public')
             ->get('/')
             ->assertOk()
-            ->assertSee('৳', false)
-            ->assertDontSee('এশিয়া/ঢাকা · BDT', false);
+            ->assertSee('ঢাকা, বাংলাদেশ', false)
+            ->assertDontSee('এশিয়া/ঢাকা · BDT', false)
+            ->assertDontSee('এশিয়া/ঢাকা · ৳', false);
     }
 
     public function test_branded_error_pages_render_for_404_403_and_500(): void

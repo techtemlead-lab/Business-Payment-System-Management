@@ -33,7 +33,7 @@ return [
     'company_portal' => 'Company Portal',
     'my_account' => 'My Account',
     'skip_to_content' => 'Skip to content',
-    'timezone_currency' => 'Asia/Dhaka · BDT',
+    'timezone_currency' => 'Dhaka, Bangladesh',
 
     'error_back_home' => 'Back to homepage',
     'error_404_title' => 'Page not found',
