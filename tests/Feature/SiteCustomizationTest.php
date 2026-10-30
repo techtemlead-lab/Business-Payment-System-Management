@@ -674,4 +674,46 @@ class SiteCustomizationTest extends TestCase
             'image' => UploadedFile::fake()->image('blocked.png', 32, 32),
         ])->assertForbidden();
     }
+
+    public function test_mobile_search_popular_categories_are_admin_managed(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        Product::factory()->create(['active' => true, 'category' => 'CatalogOnlyCat', 'name' => 'Catalog Product']);
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'mobile_search_categories_enabled' => '1',
+                'mobile_search_categories_heading' => 'Shop by type',
+                'mobile_search_categories_items' => "Herbal Care\nFruit Syrup|/products?category=Fruit%20Syrup\nOil",
+                'mobile_search_categories_limit' => '6',
+            ],
+        ])->assertSessionHas('success');
+
+        $chips = SiteCustomization::getMobileSearchCategories();
+        $this->assertCount(3, $chips);
+        $this->assertSame('Herbal Care', $chips[0]['name']);
+        $this->assertSame('/products?category='.urlencode('Herbal Care'), $chips[0]['link']);
+        $this->assertSame('Fruit Syrup', $chips[1]['name']);
+        $this->assertSame('/products?category=Fruit%20Syrup', $chips[1]['link']);
+        $this->assertSame('Shop by type', SiteCustomization::mobileSearchCategoriesHeading());
+
+        $home = $this->get('/');
+        $home->assertOk();
+        $home->assertSee('id="refMobileSearchShortcuts"', false);
+        $home->assertSee('Shop by type');
+        $home->assertSee('>Herbal Care</a>', false);
+        $home->assertSee('>Fruit Syrup</a>', false);
+        $home->assertSee('>Oil</a>', false);
+        $home->assertDontSee('>CatalogOnlyCat</a>', false);
+
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'mobile_search_categories_enabled' => '0',
+            ],
+        ])->assertSessionHas('success');
+
+        $this->assertSame([], SiteCustomization::getMobileSearchCategories());
+        $this->get('/')->assertOk()->assertDontSee('id="refMobileSearchShortcuts"', false);
+    }
 }

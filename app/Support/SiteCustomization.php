@@ -43,6 +43,11 @@ class SiteCustomization
             'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
+            // Mobile search overlay — Popular Categories chips (admin-managed)
+            'mobile_search_categories_enabled' => '1',
+            'mobile_search_categories_heading' => '',
+            'mobile_search_categories_items' => '',
+            'mobile_search_categories_limit' => '6',
 
             // Announcement & Ticker
             'announcement_text' => 'For product availability and dealership enquiries, please contact the company.',
@@ -1287,9 +1292,8 @@ class SiteCustomization
         }
 
         if ($items === []) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')
-                ->map(fn (string $name): array => [
+            return array_map(
+                static fn (string $name): array => [
                     'name' => $name,
                     'is_image' => false,
                     'image' => '',
@@ -1298,10 +1302,107 @@ class SiteCustomization
                     'auto_icon' => CategoryAutoIcon::forCategory($name),
                     'link' => '/products?category='.urlencode($name),
                     'badge' => '',
-                ])->all();
+                ],
+                self::catalogCategoryNames()
+            );
         }
 
         return $items;
+    }
+
+    /**
+     * Popular category chips in the mobile search overlay.
+     * Prefer the dedicated admin list; otherwise Featured Categories; otherwise active catalog categories.
+     *
+     * @return list<array{name: string, link: string}>
+     */
+    public static function getMobileSearchCategories(): array
+    {
+        $customization = self::all();
+
+        if (($customization['mobile_search_categories_enabled'] ?? '1') === '0') {
+            return [];
+        }
+
+        $limit = (int) ($customization['mobile_search_categories_limit'] ?? 6);
+        if ($limit < 1) {
+            $limit = 6;
+        }
+        if ($limit > 24) {
+            $limit = 24;
+        }
+
+        $raw = trim((string) ($customization['mobile_search_categories_items'] ?? ''));
+        if ($raw !== '') {
+            $items = [];
+            foreach (preg_split('/\r\n|\r|\n/', $raw) as $line) {
+                $line = trim((string) $line);
+                if ($line === '') {
+                    continue;
+                }
+                $parts = array_map('trim', explode('|', $line));
+                $name = $parts[0] ?? '';
+                if ($name === '') {
+                    continue;
+                }
+                $link = $parts[1] ?? '';
+                if ($link === '' || ! str_starts_with($link, '/')) {
+                    $link = '/products?category='.urlencode($name);
+                }
+                $items[] = [
+                    'name' => $name,
+                    'link' => $link,
+                ];
+            }
+
+            return array_slice($items, 0, $limit);
+        }
+
+        $featured = self::getFeaturedCategories();
+        if ($featured !== []) {
+            return array_slice(array_map(
+                static fn (array $cat): array => [
+                    'name' => (string) ($cat['name'] ?? ''),
+                    'link' => (string) ($cat['link'] ?? ('/products?category='.urlencode((string) ($cat['name'] ?? '')))),
+                ],
+                $featured
+            ), 0, $limit);
+        }
+
+        return array_map(
+            static fn (string $name): array => [
+                'name' => $name,
+                'link' => '/products?category='.urlencode($name),
+            ],
+            array_slice(self::catalogCategoryNames(), 0, $limit)
+        );
+    }
+
+    public static function mobileSearchCategoriesHeading(): string
+    {
+        $custom = trim((string) (self::all()['mobile_search_categories_heading'] ?? ''));
+
+        return $custom !== '' ? $custom : (string) __('site.search_popular_categories');
+    }
+
+    /**
+     * Active catalog category names, reusing the public products cache when warm.
+     *
+     * @return list<string>
+     */
+    private static function catalogCategoryNames(): array
+    {
+        $cached = Cache::get('public:product_categories:v2');
+        if (is_array($cached)) {
+            return array_values(array_filter(array_map(
+                static fn (mixed $name): string => trim((string) $name),
+                $cached
+            )));
+        }
+
+        return Product::where('active', true)->where('category', '!=', '')
+            ->orderBy('category')->distinct()->pluck('category')
+            ->all();
     }
 
     public static function getNavCategories(): array
@@ -1312,8 +1413,7 @@ class SiteCustomization
             ? array_filter(array_map('trim', $raw))
             : array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw)));
         if (empty($cats)) {
-            return Product::where('active', true)->where('category', '!=', '')
-                ->orderBy('category')->distinct()->pluck('category')->all();
+            return self::catalogCategoryNames();
         }
 
         return array_values($cats);
