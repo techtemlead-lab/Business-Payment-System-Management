@@ -61,8 +61,12 @@
             <a href="/login"><i class="fa-solid fa-user" aria-hidden="true"></i><span><b>{{ $chrome('account', $siteCustomization['header_account_title'] ?? null) }}</b><small>{{ $chrome('account_sub', $siteCustomization['header_account_subtitle'] ?? null) }}</small></span></a>
             @endauth
             <button type="button" class="ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}">
-                <span class="theme-icon-day" aria-hidden="true"><i class="fa-solid fa-sun"></i></span>
-                <span class="theme-icon-night" aria-hidden="true"><i class="fa-solid fa-moon"></i></span>
+                <span class="theme-icon-day" aria-hidden="true">
+                    <svg class="ref-theme-glyph" viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M12 4.5a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.5a1 1 0 0 1 1-1Zm0 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.5-2.5a1 1 0 1 1 0-2H18a1 1 0 1 1 0 2h1.5ZM6 12a1 1 0 0 1-1 1H3.5a1 1 0 1 1 0-2H5a1 1 0 0 1 1 1Zm9.95 5.45a1 1 0 0 1 0 1.41l-1.06 1.06a1 1 0 1 1-1.41-1.41l1.06-1.06a1 1 0 0 1 1.41 0ZM8.52 6.08a1 1 0 0 1 0 1.41L7.46 8.55A1 1 0 0 1 6.05 7.14l1.06-1.06a1 1 0 0 1 1.41 0Zm8.49 0a1 1 0 0 1 1.41 0l1.06 1.06A1 1 0 1 1 18.07 8.55l-1.06-1.06a1 1 0 0 1 0-1.41ZM8.52 17.92a1 1 0 0 1-1.41 0L6.05 16.86A1 1 0 1 1 7.46 15.45l1.06 1.06a1 1 0 0 1 0 1.41ZM12 17a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1Z"/></svg>
+                </span>
+                <span class="theme-icon-night" aria-hidden="true">
+                    <svg class="ref-theme-glyph" viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M17.5 14.3A7.5 7.5 0 0 1 9.7 6.5a.75.75 0 0 0-.95-.95A8.5 8.5 0 1 0 18.45 15.25a.75.75 0 0 0-.95-.95Z"/></svg>
+                </span>
                 <span class="ref-theme-toggle-label">{{ __('site.theme') }}</span>
             </button>
             <form method="post" action="/locale" class="ref-locale-switch" aria-label="{{ __('site.language') }}">@csrf
@@ -134,8 +138,12 @@
         <div class="ref-mobile-drawer-group">
             <div class="ref-mobile-drawer-group-title">{{ __('site.theme') }}</div>
             <button type="button" class="ref-drawer-btn ref-drawer-btn-secondary ref-theme-toggle" data-theme-toggle data-label-day="{{ __('site.day_mode') }}" data-label-night="{{ __('site.night_mode') }}" aria-label="{{ __('site.night_mode') }}" title="{{ __('site.night_mode') }}" style="width:100%;justify-content:flex-start;">
-                <span class="theme-icon-day" aria-hidden="true"><i class="fa-solid fa-sun"></i></span>
-                <span class="theme-icon-night" aria-hidden="true"><i class="fa-solid fa-moon"></i></span>
+                <span class="theme-icon-day" aria-hidden="true">
+                    <svg class="ref-theme-glyph" viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M12 4.5a1 1 0 0 1 1 1V7a1 1 0 1 1-2 0V5.5a1 1 0 0 1 1-1Zm0 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.5-2.5a1 1 0 1 1 0-2H18a1 1 0 1 1 0 2h1.5ZM6 12a1 1 0 0 1-1 1H3.5a1 1 0 1 1 0-2H5a1 1 0 0 1 1 1Zm9.95 5.45a1 1 0 0 1 0 1.41l-1.06 1.06a1 1 0 1 1-1.41-1.41l1.06-1.06a1 1 0 0 1 1.41 0ZM8.52 6.08a1 1 0 0 1 0 1.41L7.46 8.55A1 1 0 0 1 6.05 7.14l1.06-1.06a1 1 0 0 1 1.41 0Zm8.49 0a1 1 0 0 1 1.41 0l1.06 1.06A1 1 0 1 1 18.07 8.55l-1.06-1.06a1 1 0 0 1 0-1.41ZM8.52 17.92a1 1 0 0 1-1.41 0L6.05 16.86A1 1 0 1 1 7.46 15.45l1.06 1.06a1 1 0 0 1 0 1.41ZM12 17a1 1 0 0 1 1 1v1.5a1 1 0 1 1-2 0V18a1 1 0 0 1 1-1Z"/></svg>
+                </span>
+                <span class="theme-icon-night" aria-hidden="true">
+                    <svg class="ref-theme-glyph" viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M17.5 14.3A7.5 7.5 0 0 1 9.7 6.5a.75.75 0 0 0-.95-.95A8.5 8.5 0 1 0 18.45 15.25a.75.75 0 0 0-.95-.95Z"/></svg>
+                </span>
                 <span>{{ __('site.day_night_mode') }}</span>
             </button>
         </div>

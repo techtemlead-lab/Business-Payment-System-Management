@@ -229,14 +229,15 @@ function initScrollReveal() {
         }
     });
 
-    // Main section reveal targets
+    // Main section reveal targets.
+    // Keep the dealer banner out of transform-based reveal — that motion looked like a
+    // glitch under the banner while hovering/scrolling neighboring sections.
     const sectionSelectors = [
         '.ref-company-intro',
         '.ref-promotions',
         '.ref-announcement',
         '.ref-shortcuts',
         '.ref-featured-categories',
-        '.ref-dealer-network-banner',
         '.ref-featured-products',
         '.ref-home-video',
         '.ref-home-about',

@@ -20,7 +20,7 @@ const icons: Record<string, LucideIcon> = {
     'data-imports': FileText, 'service-integrations': Settings, 'commission-holds': ShieldCheck, 'financial-readiness': BookOpen, 'financial-reports': FileText,
     overview: LayoutDashboard, orders: ShoppingBag, purchase: ShoppingCart, catalog: Package, accounts: Users, inventory: Package, deliveries: Truck, dues: Wallet,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
-    reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
+    reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, feedback: MessageSquare, 'share-feedback': MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
@@ -37,7 +37,7 @@ const sectionKeys: Record<string, string> = {
     overview: 'overview', orders: 'orders', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts', inventory: 'inventory',
     deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network', policies: 'policies',
     salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports', customization: 'website',
-    website: 'website', content: 'content', enquiries: 'enquiries', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
+    website: 'website', content: 'content', enquiries: 'enquiries', feedback: 'feedback', 'share-feedback': 'share_feedback', partnerships: 'partnerships', audit: 'audit', profile: 'profile', security: 'security',
     notifications: 'notifications', circulars: 'circulars', earnings: 'earnings', 'full-report': 'full-report', ranks: 'ranks', commissions: 'commissions',
     'network-tree': 'network_tree', 'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches', 'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
@@ -191,7 +191,7 @@ export default function Shell({ section, children, action }: { section: string; 
         'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
         'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
         'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
-        'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'audit', 'support-admin',
+        'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin',
     ];
 
     const readDomainPin = (): 'company' | 'dealers' | 'sub_dealers' | null => {
@@ -268,7 +268,7 @@ export default function Shell({ section, children, action }: { section: string; 
         if (capabilities.includes('accounts') && !items.has('branches')) items.add('branches');
         if (capabilities.some((cap) => ['reports', 'finance', 'inventory'].includes(cap)) || ['super_admin', 'md', 'chairman'].includes(user.role)) items.add('branch-performance');
         if (capabilities.includes('content')) {
-            ['website', 'content', 'enquiries'].forEach((item) => items.add(item));
+            ['website', 'content', 'enquiries', 'feedback'].forEach((item) => items.add(item));
         }
         if (capabilities.includes('audit')) items.add('audit');
         if (capabilities.includes('orders') || capabilities.includes('finance')) {
@@ -363,7 +363,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 'reports', 'financial-reports', 'dashboards', 'data-imports',
             ])),
             mother('website', 'nav_module_website', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'service-integrations',
+                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations',
             ])),
             mother('system', 'nav_module_system', pick(staffAvailable, ['audit', 'support-admin'])),
         ]);

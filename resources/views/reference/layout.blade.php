@@ -18,9 +18,10 @@
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
 <link rel="stylesheet" href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap">
 @endif
-{{-- Defer Font Awesome so first paint is not blocked by the 100KB icon stylesheet. --}}
-<link rel="stylesheet" href="/reference/fontawesome-local.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/reference/fontawesome-local.css"></noscript>
+{{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
+<link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/reference/fontawesome-local.css">
 @vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])</head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">
 <div class="ref-ambient-canvas" aria-hidden="true">

@@ -61,10 +61,13 @@ return function (string $portal): void {
     Route::post('/commands/policies', [CommandController::class, 'policy']);
     Route::post('/commands/content', [CommandController::class, 'content']);
     Route::post('/commands/customization', [CommandController::class, 'customization']);
+    Route::post('/commands/customization/category-icon', [CommandController::class, 'uploadCategoryIcon'])->middleware('throttle:30,1');
     Route::post('/commands/customization/reset', [CommandController::class, 'resetCustomization']);
     Route::post('/commands/dashboards', [CommandController::class, 'saveDashboardSettings']);
     Route::post('/commands/dashboards/reset', [CommandController::class, 'resetDashboardSettings']);
     Route::post('/commands/enquiries/{id}', [CommandController::class, 'enquiry']);
+    Route::post('/commands/feedback', [CommandController::class, 'storeSiteFeedback'])->middleware('throttle:8,1');
+    Route::post('/commands/feedback/{id}', [CommandController::class, 'moderateSiteFeedback']);
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review']);
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle']);
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);

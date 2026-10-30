@@ -403,10 +403,16 @@ html[data-theme="dark"] .ref-theme-toggle {
 
 .ref-theme-toggle .theme-icon-day {
     display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 .ref-theme-toggle .theme-icon-night {
     display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 html[data-theme="dark"] .ref-theme-toggle .theme-icon-day {
@@ -417,11 +423,19 @@ html[data-theme="dark"] .ref-theme-toggle .theme-icon-night {
     display: none;
 }
 
+.ref-theme-toggle .ref-theme-glyph {
+    display: block;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
 .ref-theme-toggle-label {
     display: none;
 }
 
-@media (min-width: 1100px) {
+/* iPad Pro 13 (~1024 CSS px) and up: show theme label with the icon. */
+@media (min-width: 980px) {
     .ref-theme-toggle-label {
         display: inline;
     }
@@ -515,6 +529,11 @@ html[data-theme="dark"] .ref-category-grid > a:hover span.ref-cat-name {
 
 html[data-theme="dark"] .ref-category-grid .ref-cat-icon-wrap {
     background: #1a2538 !important;
+}
+
+html[data-theme="dark"] .ref-cat-auto-icon {
+    background: hsl(var(--cat-hue, 142) 35% 18%) !important;
+    color: hsl(var(--cat-hue, 142) 70% 72%) !important;
 }
 
 html[data-theme="dark"] .ref-category-grid > a:hover .ref-cat-icon-wrap {

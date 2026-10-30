@@ -32,6 +32,7 @@ use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
+use App\Models\SiteFeedback;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
@@ -559,6 +560,37 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_customization_saved'));
     }
 
+    public function uploadCategoryIcon(Request $r): JsonResponse
+    {
+        abort_unless($r->user()->allows('content') || $r->user()->allows('catalog') || $r->user()->role === 'super_admin', 403);
+
+        $data = $r->validate([
+            'image' => 'required|file|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=2048,max_height=2048',
+        ]);
+
+        $file = $data['image'];
+        $extension = strtolower((string) ($file->guessExtension() ?: 'png'));
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $extension = 'png';
+        }
+
+        $directory = public_path('branding/category-icons');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $filename = Str::uuid()->toString().'.'.$extension;
+        $file->move($directory, $filename);
+
+        $url = '/branding/category-icons/'.$filename;
+        Audit::record($r->user()->id, 'customization.category_icon_uploaded', 'frontend', ['path' => $url]);
+
+        return response()->json([
+            'ok' => true,
+            'url' => $url,
+        ]);
+    }
+
     public function resetCustomization(Request $r): RedirectResponse
     {
         $this->permit($r, 'content');
@@ -588,6 +620,63 @@ class CommandController extends Controller
         Audit::record($r->user()->id, 'dashboard.reset', 'control_center');
 
         return back()->with('success', __('portal.flash_dashboard_reset'));
+    }
+
+    public function storeSiteFeedback(Request $r): RedirectResponse
+    {
+        $user = $r->user();
+        abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+
+        $data = $r->validate([
+            'location' => 'nullable|string|max:120',
+            'rating' => 'required|integer|min:1|max:5',
+            'message' => 'required|string|min:20|max:2000',
+        ]);
+
+        $feedback = SiteFeedback::query()->create([
+            'name' => $user->name,
+            'role' => $user->role === 'sub_dealer' ? 'Sub-Dealer Partner' : 'Authorized Dealer Partner',
+            'location' => filled($data['location'] ?? null) ? $data['location'] : (string) ($user->district ?? 'Bangladesh'),
+            'rating' => (int) $data['rating'],
+            'message' => $data['message'],
+            'source' => $user->role === 'sub_dealer' ? 'sub_dealer' : 'dealer',
+            'user_id' => $user->id,
+            'status' => 'pending',
+        ]);
+
+        Audit::notifyAdminsAndStaff(
+            ['content', 'accounts'],
+            __('portal.notice_admin_feedback_title'),
+            __('portal.notice_admin_feedback_body', [
+                'name' => $feedback->name,
+                'source' => $feedback->source,
+            ]),
+            $user->id
+        );
+
+        return back()->with('success', __('portal.flash_feedback_submitted'));
+    }
+
+    public function moderateSiteFeedback(Request $r, int $id): RedirectResponse
+    {
+        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts') || $r->user()->role === 'super_admin', 403);
+
+        $data = $r->validate([
+            'status' => 'required|in:pending,approved,rejected',
+        ]);
+
+        $feedback = SiteFeedback::query()->findOrFail($id);
+        $feedback->status = $data['status'];
+        $feedback->moderated_by = $r->user()->id;
+        $feedback->moderated_at = now();
+        $feedback->save();
+
+        Audit::record($r->user()->id, 'feedback.moderated', 'frontend', [
+            'feedback_id' => $feedback->id,
+            'status' => $feedback->status,
+        ]);
+
+        return back()->with('success', __('portal.flash_feedback_moderated'));
     }
 
     public function enquiry(Request $r, int $id): RedirectResponse

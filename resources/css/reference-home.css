@@ -1440,7 +1440,7 @@ details.ref-content-card summary i{transition:transform .18s ease}
 /* Header polish: company bar, search, categories, chat, partner login */
 .ref-company-bar{
   background:linear-gradient(90deg,#021a14 0%,#033322 45%,#044d2e 55%,#021a14 100%);
-  height:34px;line-height:34px;padding:0 16px;
+  height:48px;line-height:48px;padding:0 16px;
   border-bottom:1px solid rgba(255,255,255,.08);
   box-shadow:none;position:relative;overflow:hidden;
 }
@@ -1448,15 +1448,16 @@ details.ref-content-card summary i{transition:transform .18s ease}
   content:'';position:absolute;inset:0 auto auto 0;width:100%;height:1px;
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
 }
-.ref-company-bar-inner{display:flex;align-items:center;justify-content:center;gap:14px;height:100%;max-width:1320px;margin:0 auto}
+.ref-company-bar-inner{display:flex;align-items:center;justify-content:center;gap:18px;height:100%;max-width:1320px;margin:0 auto}
 .ref-bar-text{
-  font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:none;
-  color:rgba(255,255,255,.94);text-shadow:none;white-space:nowrap;
+  font-family:'Instrument Serif',Georgia,'Times New Roman',serif;
+  font-size:clamp(18px,2.1vw,24px);font-weight:700;letter-spacing:.01em;text-transform:none;
+  line-height:1.1;color:#ffffff;text-shadow:0 1px 2px rgba(0,0,0,.28);white-space:nowrap;
 }
-.ref-bar-flourish{display:inline-flex;align-items:center;gap:8px;color:#7dcea0;font-size:10px;opacity:.9}
+.ref-bar-flourish{display:inline-flex;align-items:center;gap:10px;color:#7dcea0;font-size:14px;opacity:.95}
 .ref-bar-flourish.left i{transform:scaleX(-1)}
 .ref-bar-flourish i{filter:none}
-.ref-bar-line{display:inline-block;width:40px;height:1px;border-radius:1px;background:linear-gradient(90deg,transparent,#7dcea0)}
+.ref-bar-line{display:inline-block;width:56px;height:1.5px;border-radius:1px;background:linear-gradient(90deg,transparent,#7dcea0)}
 .ref-bar-flourish.right .ref-bar-line{background:linear-gradient(90deg,#7dcea0,transparent)}
 
 .ref-search{
@@ -1517,9 +1518,9 @@ details.ref-content-card summary i{transition:transform .18s ease}
 .ref-partner-login-option>.fa-chevron-right{color:#94a3b8;font-size:12px}
 
 @media(max-width:1023px){
-  .ref-company-bar{height:24px;line-height:24px}
-  .ref-bar-text{font-size:10px;letter-spacing:.14em}
-  .ref-bar-line{width:22px}
+  .ref-company-bar{height:36px;line-height:36px}
+  .ref-bar-text{font-size:16px;letter-spacing:.01em}
+  .ref-bar-line{width:28px}
   .ref-floating-tools{right:14px;left:auto;top:auto;bottom:80px;transform:none;width:auto;flex-direction:column}
   .ref-floating-tools>button,.ref-floating-tools>a{height:46px;width:auto;min-width:46px;padding:0 12px;border-radius:999px}
 }
@@ -1722,7 +1723,54 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 }
 
 .ref-cat-icon-wrap {
+    position: relative;
+    overflow: hidden;
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.ref-cat-icon-wrap > img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    display: block;
+}
+
+.ref-cat-auto-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: hsl(var(--cat-hue, 142) 55% 32%);
+    background: hsl(var(--cat-hue, 142) 48% 92%);
+    flex-shrink: 0;
+}
+
+.ref-cat-auto-icon svg {
+    display: block;
+}
+
+.ref-category-grid > a:hover .ref-cat-auto-icon {
+    background: hsl(var(--cat-hue, 142) 52% 86%);
+    color: hsl(var(--cat-hue, 142) 60% 28%);
+}
+
+/* Auto icon sits under FA glyphs so empty boxes never appear if the icon font fails. */
+.ref-cat-icon-wrap > .ref-cat-auto-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    z-index: 0;
+}
+
+.ref-cat-icon-wrap > i {
+    position: relative;
+    z-index: 1;
+}
+
+.ref-cat-icon-wrap:not(:has(> i)):not(:has(> img)) > .ref-cat-auto-icon {
+    position: static;
 }
 
 .ref-category-grid > a:hover .ref-cat-icon-wrap {
@@ -1784,19 +1832,32 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
-/* Dealer Network Banner Animated Aurora */
-.ref-dealer-network-banner {
+/* Dealer Network Banner — keep static to avoid scroll/hover layout glitch */
+.ref-dealer-network-banner,
+.ref-dealer-network-banner.ref-reveal-init,
+.ref-dealer-network-banner.ref-reveal-init.is-revealed {
     position: relative;
     overflow: hidden;
+    transform: none !important;
+    opacity: 1 !important;
+    will-change: auto !important;
+    contain: layout paint;
 }
 
 .ref-dealer-banner-icon {
-    animation: refFloat 4.2s ease-in-out infinite;
+    animation: none !important;
+    transform: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
 }
 
-@keyframes refFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+.ref-dealer-banner-glyph {
+    display: block;
+    width: 28px;
+    height: 28px;
 }
 
 .ref-dealer-banner-btn {
@@ -1882,7 +1943,9 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     .ref-announcement > i,
     .ref-stock-pill.in-stock .ref-stock-dot::after,
     aside.ref-floating-tools > a.ref-chat:hover i,
-    aside.ref-floating-tools > a.ref-chat:focus-visible i {
+    aside.ref-floating-tools > a.ref-chat:focus-visible i,
+    aside.ref-floating-tools > a.ref-chat:hover .ref-chat-icon,
+    aside.ref-floating-tools > a.ref-chat:focus-visible .ref-chat-icon {
         animation: none !important;
     }
     
@@ -2097,11 +2160,41 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
     padding: 40px 32px;
 }
 
+.ref-testimonials-viewport {
+    margin-top: 28px;
+}
+
+.ref-testimonials-viewport.is-scrollable {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+}
+
 .ref-testimonials-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 22px;
-    margin-top: 28px;
+}
+
+.ref-testimonials-grid.is-marquee {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    gap: 18px;
+}
+
+.ref-testimonials-grid.is-marquee > .ref-testimonial-card {
+    width: min(340px, 82vw);
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+}
+
+.ref-testimonials-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
 }
 
 .ref-testimonial-card {
@@ -2160,14 +2253,34 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 .ref-testimonial-stars {
     margin-bottom: 12px;
     font-size: 13px;
+    letter-spacing: 1px;
 }
 
+.ref-testimonial-stars .ref-star.is-filled,
 .ref-testimonial-stars .is-filled {
     color: #f59e0b;
 }
 
+.ref-testimonial-stars .ref-star.is-empty,
 .ref-testimonial-stars .is-empty {
     color: #cbd5e1;
+}
+
+@media (max-width: 767px) {
+    .ref-testimonials-section {
+        padding: 28px 16px;
+        border-radius: 14px;
+        margin: 32px 0;
+    }
+
+    .ref-testimonials-grid:not(.is-marquee) {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .ref-testimonials-grid.is-marquee > .ref-testimonial-card {
+        width: min(300px, 88vw);
+    }
 }
 
 .ref-testimonial-quote {
@@ -2346,18 +2459,20 @@ body.ref-error-page{min-height:100vh;display:flex;flex-direction:column;backgrou
 }
 
 .ref-sticky-chrome .ref-company-bar {
-    height: 24px;
-    line-height: 24px;
-    padding: 0 12px;
+    height: 44px;
+    line-height: 44px;
+    padding: 0 14px;
 }
 
 .ref-sticky-chrome .ref-bar-text {
-    font-size: 10.5px;
-    letter-spacing: 0.08em;
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+    font-size: clamp(17px, 1.9vw, 22px);
+    font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 .ref-sticky-chrome .ref-bar-line {
-    width: 24px;
+    width: 44px;
 }
 
 .ref-sticky-chrome .ref-header {
@@ -2529,11 +2644,17 @@ aside.ref-floating-tools > a.ref-chat {
     gap: 0 !important;
 }
 
-aside.ref-floating-tools > a.ref-chat i {
+aside.ref-floating-tools > a.ref-chat i,
+aside.ref-floating-tools > a.ref-chat .ref-chat-icon {
     font-size: 26px !important;
+    width: 26px !important;
+    height: 26px !important;
     line-height: 1;
     display: block;
     transform-origin: center;
+    flex-shrink: 0;
+    color: #ffffff !important;
+    fill: currentColor;
 }
 
 aside.ref-floating-tools > a.ref-chat b {
@@ -2570,7 +2691,9 @@ aside.ref-floating-tools > a.ref-chat:focus-visible {
 }
 
 aside.ref-floating-tools > a.ref-chat:hover i,
-aside.ref-floating-tools > a.ref-chat:focus-visible i {
+aside.ref-floating-tools > a.ref-chat:focus-visible i,
+aside.ref-floating-tools > a.ref-chat:hover .ref-chat-icon,
+aside.ref-floating-tools > a.ref-chat:focus-visible .ref-chat-icon {
     animation: ref-chat-shake 0.55s ease;
 }
 
@@ -2704,8 +2827,11 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
         min-width: 48px !important;
     }
 
-    aside.ref-floating-tools > a.ref-chat i {
+    aside.ref-floating-tools > a.ref-chat i,
+    aside.ref-floating-tools > a.ref-chat .ref-chat-icon {
         font-size: 24px !important;
+        width: 24px !important;
+        height: 24px !important;
     }
 
     .ref-back-top {
