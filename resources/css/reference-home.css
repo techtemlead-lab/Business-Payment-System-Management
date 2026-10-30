@@ -3026,7 +3026,14 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 }
 
-/* Footer SUPPORT: desktop keeps stacked actions + contact; side-by-side only ≤1023px */
+/* Footer SUPPORT: PC/iPad stacked by default; side-by-side only on phone (≤767) */
+.ref-footer-support,
+.ref-footer-support-row,
+.ref-footer-support-actions,
+.ref-footer-contact-info {
+    min-width: 0;
+}
+
 .ref-footer-support-row {
     display: flex;
     flex-direction: column;
@@ -3057,11 +3064,15 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
 
 .ref-footer-contact-link {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     text-decoration: none;
     color: #cbd5e1;
     line-height: 1.35;
+}
+
+.ref-footer-contact-link span {
+    overflow-wrap: anywhere;
 }
 
 .ref-footer-contact-link.is-hotline {
@@ -3087,21 +3098,147 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     font-size: 14px;
 }
 
-@media (max-width: 1023px) {
+/*
+ * PC / laptop / iPad Pro 13 (~1024) and related (≥768): SUPPORT stacks
+ * one-under-one (action cards, then hotline/email/address) — matches desktop mock.
+ * Side-by-side compress stays phone-only in the ≤767 block above.
+ */
+@media (min-width: 768px) {
     .ref-footer-support-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-        gap: 10px 14px;
-        align-items: start;
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
     }
 
     .ref-footer-support-actions {
-        gap: 6px;
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 12px !important;
+        width: 100%;
     }
 
     .ref-footer-support-actions .ref-support-box {
-        width: 100%;
-        max-width: none;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        margin: 0 !important;
+        box-sizing: border-box;
+    }
+
+    .ref-footer-contact-info {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-top: 0 !important;
+        order: unset !important;
+    }
+}
+
+/* iPad Pro 13 / laptop / PC (~900+): keep stacked even if mid-width chrome shifts */
+@media (min-width: 900px) {
+    .ref-footer-support-row {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 18px !important;
+    }
+
+    .ref-footer-support-actions {
+        gap: 14px !important;
+    }
+
+    .ref-footer-support-actions .ref-support-box {
+        max-width: 320px !important;
+    }
+
+    .ref-footer-contact-info {
+        gap: 10px !important;
+    }
+}
+
+/* Tablet footer: larger type + ABOUT US in 4 columns (~744–1023, not phone) */
+@media (min-width: 640px) and (max-width: 1023px) {
+    .ref-footer-grid {
+        gap: 22px !important;
+    }
+
+    .ref-footer-grid > section {
+        min-width: 0;
+    }
+
+    .ref-footer h2 {
+        font-size: 15px !important;
+        letter-spacing: 2px;
+        margin-bottom: 12px !important;
+    }
+
+    .ref-footer h3 {
+        font-size: 15px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .ref-footer p {
+        font-size: 13px !important;
+        line-height: 1.55 !important;
+        -webkit-line-clamp: unset !important;
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .ref-footer-links {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 10px 14px !important;
+        font-size: 13.5px !important;
+        line-height: 1.4;
+    }
+
+    .ref-support-box {
+        padding: 10px 12px !important;
+        gap: 10px !important;
+    }
+
+    .ref-support-box > i {
+        font-size: 16px !important;
+        padding-right: 10px !important;
+    }
+
+    .ref-support-box b {
+        font-size: 14px !important;
+        line-height: 1.25;
+    }
+
+    .ref-support-box small {
+        font-size: 10px !important;
+        margin-bottom: 2px !important;
+    }
+
+    .ref-footer-contact-info {
+        font-size: 13px !important;
+        gap: 8px !important;
+    }
+
+    .ref-footer-contact-link {
+        gap: 8px !important;
+    }
+
+    .ref-footer-contact-link i {
+        font-size: 14px !important;
+    }
+
+    .ref-footer-bottom {
+        font-size: 12px !important;
+        gap: 10px !important;
+    }
+
+    .ref-footer-legal {
+        gap: 12px !important;
+        font-size: 12px !important;
     }
 }
 
