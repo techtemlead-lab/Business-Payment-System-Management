@@ -369,8 +369,24 @@ html[data-theme="dark"] .ref-contact-card p {
 }
 
 html[data-theme="dark"] .ref-mobile-drawer-nav-list a,
-html[data-theme="dark"] .ref-mobile-drawer-group-title {
+html[data-theme="dark"] .ref-mobile-drawer-group-title,
+html[data-theme="dark"] .ref-mobile-drawer-cat-list a {
     color: #e8eef6 !important;
+}
+
+html[data-theme="dark"] .ref-mobile-drawer-nav-list li a:hover,
+html[data-theme="dark"] .ref-mobile-drawer-nav-list li a:focus-visible,
+html[data-theme="dark"] .ref-mobile-drawer-cat-list li a:hover,
+html[data-theme="dark"] .ref-mobile-drawer-cat-list li a:focus-visible {
+    background: rgba(248, 250, 252, 0.12) !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ref-mobile-drawer-nav-list li a:hover i,
+html[data-theme="dark"] .ref-mobile-drawer-nav-list li a:focus-visible i,
+html[data-theme="dark"] .ref-mobile-drawer-cat-list li a:hover i,
+html[data-theme="dark"] .ref-mobile-drawer-cat-list li a:focus-visible i {
+    color: #fb923c !important;
 }
 
 html[data-theme="dark"] .ref-mobile-menu-overlay {
@@ -1693,5 +1709,32 @@ html[data-theme="dark"] .ref-testimonial-stars .is-empty {
     color: #334155 !important;
 }
 
+html[data-theme="dark"] .ref-feedback-input {
+    background: #0b1220 !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .ref-feedback-note,
+html[data-theme="dark"] .ref-star-rating-caption {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-star-rating-option {
+    background: #111827 !important;
+    border-color: #334155 !important;
+    color: #475569 !important;
+}
+
+html[data-theme="dark"] .ref-star-rating-option:hover,
+html[data-theme="dark"] .ref-star-rating-option:hover ~ .ref-star-rating-option,
+html[data-theme="dark"] .ref-star-rating-input:checked + .ref-star-rating-option,
+html[data-theme="dark"] .ref-star-rating-input:checked ~ .ref-star-rating-option,
+html[data-theme="dark"] .ref-star-rating-choices:hover .ref-star-rating-option:hover,
+html[data-theme="dark"] .ref-star-rating-choices:hover .ref-star-rating-option:hover ~ .ref-star-rating-option {
+    color: #fbbf24 !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border-color: rgba(251, 191, 36, 0.45) !important;
+}
 
 

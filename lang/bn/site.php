@@ -146,6 +146,7 @@ return [
     'feedback_role_ph' => 'যেমন ওয়েলনেস ক্লায়েন্ট, ডিলার পার্টনার',
     'feedback_location' => 'জেলা / শহর',
     'feedback_rating' => 'রেটিং',
+    'feedback_rating_stars' => ':count ★',
     'feedback_message' => 'আপনার মন্তব্য',
     'feedback_moderation_note' => 'জমা দেওয়া মতামত কর্মীরা পর্যালোচনা করেন। শুধু অনুমোদিত মন্তব্য হোমপেজে প্রকাশিত হয়।',
     'feedback_submit' => 'মতামত জমা দিন',

@@ -57,9 +57,10 @@
 .ref-mobile-drawer-nav-list,.ref-mobile-drawer-cat-list{list-style:none;padding:0;margin:0}
 .ref-mobile-drawer-nav-list li a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;font-size:14px;font-weight:600;color:#011627;transition:background 0.15s ease,color 0.15s ease}
 .ref-mobile-drawer-nav-list li a i{font-size:16px;width:20px;color:#f34c20;text-align:center}
-.ref-mobile-drawer-nav-list li a:hover{background:#f8fafc;color:#f34c20}
+.ref-mobile-drawer-nav-list li a:hover,.ref-mobile-drawer-nav-list li a:focus-visible{background:#f1f5f9;color:#011627}
+.ref-mobile-drawer-nav-list li a:hover i,.ref-mobile-drawer-nav-list li a:focus-visible i{color:#f34c20}
 .ref-mobile-drawer-cat-list li a{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:#334155;border-bottom:1px solid #f8fafc;transition:background 0.15s ease,color 0.15s ease}
-.ref-mobile-drawer-cat-list li a:hover{background:#fff7f5;color:#f34c20}
+.ref-mobile-drawer-cat-list li a:hover,.ref-mobile-drawer-cat-list li a:focus-visible{background:#fff7f5;color:#011627}
 .ref-mobile-drawer-cat-list li a i{font-size:11px;color:#cbd5e1;transition:transform 0.15s ease}
 .ref-mobile-drawer-cat-list li a:hover i{color:#f34c20;transform:translateX(2px)}
 .ref-drawer-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;text-align:center;margin-bottom:10px;border:0;transition:background 0.15s ease,transform 0.15s ease;box-sizing:border-box}
@@ -2968,6 +2969,151 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     .ref-footer-legal {
         gap: 8px;
         justify-content: center;
+    }
+}
+
+/* Public feedback form + interactive star rating */
+.ref-feedback-form {
+    margin-top: 22px;
+    display: grid;
+    gap: 14px;
+    max-width: 640px;
+}
+
+.ref-honeypot {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+}
+
+.ref-feedback-field {
+    display: block;
+}
+
+.ref-feedback-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: inherit;
+}
+
+.ref-feedback-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff;
+    color: #011627;
+}
+
+.ref-feedback-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.ref-feedback-meta-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.ref-feedback-error {
+    display: block;
+    margin-top: 4px;
+    color: #be123c;
+    font-size: 12px;
+}
+
+.ref-feedback-note {
+    margin: 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.ref-feedback-submit {
+    justify-self: start;
+}
+
+.ref-star-rating {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-inline-size: 0;
+}
+
+.ref-star-rating > legend.ref-feedback-label {
+    padding: 0;
+    float: left;
+    width: 100%;
+}
+
+.ref-star-rating-choices {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+    clear: both;
+}
+
+.ref-star-rating-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+}
+
+.ref-star-rating-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #cbd5e1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.ref-star-rating-glyph {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.ref-star-rating-input:focus-visible + .ref-star-rating-option {
+    outline: 2px solid #fa4f22;
+    outline-offset: 2px;
+}
+
+.ref-star-rating-option:hover,
+.ref-star-rating-option:hover ~ .ref-star-rating-option,
+.ref-star-rating-input:checked + .ref-star-rating-option,
+.ref-star-rating-input:checked ~ .ref-star-rating-option,
+.ref-star-rating-choices:hover .ref-star-rating-option:hover,
+.ref-star-rating-choices:hover .ref-star-rating-option:hover ~ .ref-star-rating-option {
+    color: #f59e0b;
+    background: #fffbeb;
+    border-color: #fcd34d;
+}
+
+.ref-star-rating-option:active {
+    transform: scale(0.94);
+}
+
+.ref-star-rating-caption {
+    margin: 8px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+@media (max-width: 640px) {
+    .ref-star-rating-option {
+        width: 44px;
+        height: 44px;
     }
 }
 

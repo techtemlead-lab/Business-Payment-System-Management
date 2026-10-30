@@ -146,6 +146,7 @@ return [
     'feedback_role_ph' => 'e.g. Wellness Client, Dealer Partner',
     'feedback_location' => 'District / city',
     'feedback_rating' => 'Rating',
+    'feedback_rating_stars' => ':count ★',
     'feedback_message' => 'Your comment',
     'feedback_moderation_note' => 'Submissions are reviewed by Madina staff. Only approved comments are published on the homepage.',
     'feedback_submit' => 'Submit feedback',

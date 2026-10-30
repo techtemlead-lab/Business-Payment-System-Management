@@ -1,5 +1,6 @@
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    $selectedRating = max(1, min(5, (int) old('rating', 5)));
 @endphp
 @extends('reference.layout')
 @section('title', __('site.feedback_page_title').' · Madina Natural Health Care')
@@ -19,40 +20,78 @@
         <h1>{{ __('site.feedback_page_title') }}</h1>
         <p class="ref-content-prose">{{ __('site.feedback_page_lead') }}</p>
 
-        <form method="post" action="/feedback" class="ref-feedback-form" style="margin-top:22px;display:grid;gap:14px;max-width:640px">
+        <form method="post" action="/feedback" class="ref-feedback-form">
             @csrf
-            <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0" aria-hidden="true">
-            <label>
-                <span style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ __('site.feedback_name') }}</span>
-                <input type="text" name="name" value="{{ old('name', auth()->user()->name ?? '') }}" required maxlength="150" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px">
-                @error('name')<small style="color:#be123c">{{ $message }}</small>@enderror
+            <input type="text" name="website" value="" tabindex="-1" autocomplete="off" class="ref-honeypot" aria-hidden="true">
+
+            <label class="ref-feedback-field">
+                <span class="ref-feedback-label">{{ __('site.feedback_name') }}</span>
+                <input type="text" name="name" value="{{ old('name', auth()->user()->name ?? '') }}" required maxlength="150" class="ref-feedback-input">
+                @error('name')<small class="ref-feedback-error">{{ $message }}</small>@enderror
             </label>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-                <label>
-                    <span style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ __('site.feedback_role') }}</span>
-                    <input type="text" name="role" value="{{ old('role') }}" maxlength="120" placeholder="{{ __('site.feedback_role_ph') }}" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px">
+
+            <div class="ref-feedback-meta-row">
+                <label class="ref-feedback-field">
+                    <span class="ref-feedback-label">{{ __('site.feedback_role') }}</span>
+                    <input type="text" name="role" value="{{ old('role') }}" maxlength="120" placeholder="{{ __('site.feedback_role_ph') }}" class="ref-feedback-input">
                 </label>
-                <label>
-                    <span style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ __('site.feedback_location') }}</span>
-                    <input type="text" name="location" value="{{ old('location') }}" maxlength="120" placeholder="Dhaka" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px">
-                </label>
-                <label>
-                    <span style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ __('site.feedback_rating') }}</span>
-                    <select name="rating" required style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px">
-                        @for($i = 5; $i >= 1; $i--)
-                            <option value="{{ $i }}" @selected((int) old('rating', 5) === $i)>{{ $i }} ★</option>
-                        @endfor
-                    </select>
+                <label class="ref-feedback-field">
+                    <span class="ref-feedback-label">{{ __('site.feedback_location') }}</span>
+                    <input type="text" name="location" value="{{ old('location') }}" maxlength="120" placeholder="Dhaka" class="ref-feedback-input">
                 </label>
             </div>
-            <label>
-                <span style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">{{ __('site.feedback_message') }}</span>
-                <textarea name="message" rows="5" required minlength="20" maxlength="2000" style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px">{{ old('message') }}</textarea>
-                @error('message')<small style="color:#be123c">{{ $message }}</small>@enderror
+
+            <fieldset class="ref-star-rating" data-selected="{{ $selectedRating }}">
+                <legend class="ref-feedback-label">{{ __('site.feedback_rating') }}</legend>
+                <div class="ref-star-rating-choices">
+                    @for($i = 5; $i >= 1; $i--)
+                        <input
+                            type="radio"
+                            class="ref-star-rating-input"
+                            name="rating"
+                            id="feedback-rating-{{ $i }}"
+                            value="{{ $i }}"
+                            @checked($selectedRating === $i)
+                            required
+                        >
+                        <label class="ref-star-rating-option" for="feedback-rating-{{ $i }}" title="{{ __('site.feedback_rating_stars', ['count' => $i]) }}">
+                            <span class="ref-sr-only">{{ __('site.feedback_rating_stars', ['count' => $i]) }}</span>
+                            <span class="ref-star-rating-glyph" aria-hidden="true">★</span>
+                        </label>
+                    @endfor
+                </div>
+                <p class="ref-star-rating-caption" data-rating-caption>{{ __('site.feedback_rating_stars', ['count' => $selectedRating]) }}</p>
+            </fieldset>
+            @error('rating')<small class="ref-feedback-error">{{ $message }}</small>@enderror
+
+            <label class="ref-feedback-field">
+                <span class="ref-feedback-label">{{ __('site.feedback_message') }}</span>
+                <textarea name="message" rows="5" required minlength="20" maxlength="2000" class="ref-feedback-input ref-feedback-textarea">{{ old('message') }}</textarea>
+                @error('message')<small class="ref-feedback-error">{{ $message }}</small>@enderror
             </label>
-            <p style="margin:0;font-size:12px;color:#64748b">{{ __('site.feedback_moderation_note') }}</p>
-            <button type="submit" class="ref-primary-button" style="justify-self:start">{{ __('site.feedback_submit') }}</button>
+
+            <p class="ref-feedback-note">{{ __('site.feedback_moderation_note') }}</p>
+            <button type="submit" class="ref-primary-button ref-feedback-submit">{{ __('site.feedback_submit') }}</button>
         </form>
     </article>
 </main>
+<script>
+(function () {
+    var root = document.querySelector('.ref-star-rating');
+    if (!root) return;
+    var caption = root.querySelector('[data-rating-caption]');
+    var labels = {
+        @for($i = 1; $i <= 5; $i++)
+            {{ $i }}: @json(__('site.feedback_rating_stars', ['count' => $i]))@if($i < 5),@endif
+        @endfor
+    };
+    root.querySelectorAll('.ref-star-rating-input').forEach(function (input) {
+        input.addEventListener('change', function () {
+            var value = Number(input.value) || 5;
+            root.setAttribute('data-selected', String(value));
+            if (caption) caption.textContent = labels[value] || String(value);
+        });
+    });
+})();
+</script>
 @endsection

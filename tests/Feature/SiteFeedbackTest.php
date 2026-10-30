@@ -27,13 +27,19 @@ class SiteFeedbackTest extends TestCase
 
     public function test_public_can_submit_feedback_and_staff_can_approve_for_homepage(): void
     {
-        $this->get('/feedback')->assertOk()->assertSee(__('site.feedback_page_title'));
+        $this->get('/feedback')
+            ->assertOk()
+            ->assertSee(__('site.feedback_page_title'))
+            ->assertSee('ref-star-rating', false)
+            ->assertSee('type="radio"', false)
+            ->assertSee('feedback-rating-5', false)
+            ->assertDontSee('<select name="rating"', false);
 
         $this->post('/feedback', [
             'name' => 'Public Guest',
             'role' => 'Wellness Client',
             'location' => 'Dhaka',
-            'rating' => 5,
+            'rating' => 4,
             'message' => 'Madina products helped my family stay healthy every season.',
         ])->assertRedirect()->assertSessionHas('success');
 
@@ -41,6 +47,7 @@ class SiteFeedbackTest extends TestCase
             'name' => 'Public Guest',
             'status' => 'pending',
             'source' => 'public',
+            'rating' => 4,
         ]);
 
         $editor = User::factory()->create(['role' => 'editor']);
@@ -61,9 +68,7 @@ class SiteFeedbackTest extends TestCase
         $home->assertOk();
         $home->assertSee('Public Guest');
         $home->assertSee('Madina products helped my family stay healthy every season.');
-        $home->assertSee('ref-dealer-banner-glyph', false);
-        $home->assertSee('ref-chat-icon', false);
-        $home->assertSee('ref-cat-auto-icon', false);
+        $home->assertSee('ref-star is-filled', false);
     }
 
     public function test_dealer_can_submit_feedback_from_partner_command(): void
