@@ -88,4 +88,32 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertCount(0, $categoryQueries);
         $this->assertSame(['Tonics'], Cache::get('public:product_categories:v2'));
     }
+
+    public function test_homepage_skips_unused_product_pagination_and_reuses_public_caches(): void
+    {
+        Product::factory()->create(['active' => true, 'category' => 'Oils', 'name' => 'Mustard Oil', 'featured' => true]);
+
+        Cache::flush();
+        SiteCustomization::forgetCache();
+
+        $this->get('/')->assertOk()->assertSee('Mustard Oil', false);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get('/')->assertOk();
+
+        $queries = collect(DB::getQueryLog())->pluck('query')->map(fn (string $sql): string => strtolower($sql));
+        $this->assertFalse(
+            $queries->contains(fn (string $sql): bool => str_contains($sql, 'from "products"') && str_contains($sql, 'count(*)')),
+            'Homepage should not run a products COUNT pagination query.',
+        );
+        $this->assertFalse(
+            $queries->contains(fn (string $sql): bool => str_contains($sql, 'from "site_feedback"')),
+            'Warm homepage should reuse cached testimonials.',
+        );
+        $this->assertFalse(
+            $queries->contains(fn (string $sql): bool => str_contains($sql, 'homepage_video')),
+            'Warm homepage should reuse cached homepage video settings.',
+        );
+    }
 }

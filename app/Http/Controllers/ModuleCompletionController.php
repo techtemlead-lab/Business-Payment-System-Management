@@ -9,6 +9,7 @@ use App\Domain\Staff\StaffPermissions;
 use App\Models\Order;
 use App\Models\Product;
 use App\Support\Audit;
+use App\Support\ProductVideo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -83,6 +84,7 @@ class ModuleCompletionController extends Controller
             DB::table('business_settings')->updateOrInsert(['key' => 'homepage_video'], ['value' => json_encode($value, JSON_THROW_ON_ERROR),
                 'version' => (int) $data['version'] + 1, 'updated_by' => $actor->id, 'created_at' => $before?->created_at ?? now(), 'updated_at' => now()]);
             Audit::record($actor->id, 'homepage.video_saved', 'homepage_video', ['before' => $before ? json_decode($before->value, true, 512, JSON_THROW_ON_ERROR) : null, 'after' => $value, 'reason' => $data['reason']]);
+            ProductVideo::forgetHomepageCache();
         }, 3);
 
         return $this->done($request);

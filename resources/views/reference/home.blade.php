@@ -317,10 +317,7 @@
         </div>
     </section>
     @endif
-    @php
-        $homepageVideo = \App\Support\ProductVideo::homepage();
-    @endphp
-    @if($homepageVideo)
+    @if(!empty($homepageVideo))
     <section class="ref-product-video ref-home-video" aria-labelledby="homepage-video-title">
         <h2 id="homepage-video-title">{{ $homepageVideo['title'] }}</h2>
         @if(!empty($homepageVideo['description']))
@@ -389,7 +386,7 @@
 
     {{-- Customer & Partner Testimonials Section (Admin-controlled toggle) --}}
     @php
-        $testimonials = \App\Support\SiteCustomization::getTestimonials();
+        $testimonials = $testimonials ?? [];
         $testimonialCount = count($testimonials);
         $testimonialsScrollable = $testimonialCount > 3;
     @endphp

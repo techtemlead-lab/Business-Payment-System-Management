@@ -15,7 +15,11 @@ class SiteCustomization
 
     private const CacheKey = 'site_customization:v1';
 
+    public const TestimonialsCacheKey = 'public:testimonials:v1';
+
     private const CacheTtlSeconds = 300;
+
+    private const TestimonialsCacheTtlSeconds = 120;
 
     /** @var array<string, mixed>|null */
     private static ?array $requestMemo = null;
@@ -531,6 +535,8 @@ class SiteCustomization
         Cache::forget('public:product_categories:v2');
         Cache::forget('public:featured_products:v1');
         Cache::forget('public:featured_products:v2');
+        Cache::forget(self::TestimonialsCacheKey);
+        ProductVideo::forgetHomepageCache();
     }
 
     public static function all(): array
@@ -1166,6 +1172,14 @@ class SiteCustomization
     }
 
     public static function getTestimonials(): array
+    {
+        return Cache::remember(self::TestimonialsCacheKey, self::TestimonialsCacheTtlSeconds, function (): array {
+            return self::buildTestimonials();
+        });
+    }
+
+    /** @return list<array<string, mixed>> */
+    private static function buildTestimonials(): array
     {
         $all = self::all();
         $enabled = filter_var($all['testimonials_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
