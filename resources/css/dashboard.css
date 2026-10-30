@@ -1115,7 +1115,7 @@ dialog.portal-modal::backdrop{
 }
 
 .metric-card:hover, .metric:hover {
-    transform: translateY(-3px);
+    transform: none;
     box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(16, 185, 129, 0.2);
 }
 
@@ -1217,7 +1217,8 @@ dialog.portal-modal::backdrop{
 }
 
 .luxury-product-card:hover {
-  transform: translateY(-5px);
+  /* Shadow/border only — translateY on the hovered card causes bottom-edge hover flicker. */
+  transform: none;
   border-color: rgba(155, 182, 146, 0.95);
   box-shadow: 0 22px 42px -12px rgba(18, 38, 24, 0.16), 0 8px 18px -4px rgba(18, 38, 24, 0.08);
 }
