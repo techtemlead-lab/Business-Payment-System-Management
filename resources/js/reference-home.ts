@@ -168,18 +168,117 @@ const mobileSearchToggle = document.getElementById('refMobileSearchToggle');
 const mobileSearchOverlay = document.getElementById('refMobileSearchOverlay');
 const mobileSearchClose = document.getElementById('refMobileSearchClose');
 const mobileSearchInput = document.getElementById('refMobileSearchInput') as HTMLInputElement | null;
+const mobileSearchForm = document.getElementById('refMobileSearchForm') as HTMLFormElement | null;
+const mobileSearchList = document.getElementById('refMobileSearchList');
+const mobileSearchResults = document.getElementById('refMobileSearchResults');
+const mobileSearchEmpty = document.getElementById('refMobileSearchEmpty');
+const mobileSearchHint = document.getElementById('refMobileSearchHint');
+const mobileSearchShortcuts = document.getElementById('refMobileSearchShortcuts');
+const mobileSearchViewAll = document.getElementById('refMobileSearchViewAll') as HTMLAnchorElement | null;
+let mobileSearchTimer: ReturnType<typeof setTimeout> | undefined;
+let mobileSearchRequest = 0;
 
 function openMobileSearch() {
     mobileSearchOverlay?.classList.add('is-open');
     mobileSearchOverlay?.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => mobileSearchInput?.focus(), 80);
+    setTimeout(() => {
+        mobileSearchInput?.focus();
+        if (mobileSearchInput?.value.trim()) {
+            runMobileProductSearch(mobileSearchInput.value);
+        }
+    }, 80);
 }
 
 function closeMobileSearch() {
     mobileSearchOverlay?.classList.remove('is-open');
     mobileSearchOverlay?.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+}
+
+function setMobileSearchMode(mode: 'idle' | 'results' | 'empty') {
+    if (mobileSearchHint) mobileSearchHint.hidden = mode !== 'idle';
+    if (mobileSearchShortcuts) mobileSearchShortcuts.hidden = mode !== 'idle';
+    if (mobileSearchResults) mobileSearchResults.hidden = mode !== 'results';
+    if (mobileSearchEmpty) mobileSearchEmpty.hidden = mode !== 'empty';
+}
+
+function formatMobileSearchPrice(value: unknown): string {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '';
+    try {
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(amount);
+    } catch {
+        return `৳ ${amount}`;
+    }
+}
+
+async function runMobileProductSearch(rawQuery: string) {
+    const q = rawQuery.trim();
+    if (!q) {
+        if (mobileSearchList) mobileSearchList.innerHTML = '';
+        setMobileSearchMode('idle');
+        return;
+    }
+
+    const requestId = ++mobileSearchRequest;
+    try {
+        const response = await fetch(`/search/products?q=${encodeURIComponent(q)}`, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        });
+        if (!response.ok) throw new Error('search_failed');
+        const payload = await response.json() as {
+            items?: Array<{ name: string; category?: string; mrp?: string | number; url: string }>;
+            all_url?: string;
+            count?: number;
+        };
+        if (requestId !== mobileSearchRequest) return;
+
+        const items = Array.isArray(payload.items) ? payload.items : [];
+        if (mobileSearchViewAll) {
+            mobileSearchViewAll.href = payload.all_url || `/products?q=${encodeURIComponent(q)}`;
+        }
+        if (!mobileSearchList) return;
+
+        mobileSearchList.replaceChildren();
+        if (items.length === 0) {
+            setMobileSearchMode('empty');
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        items.forEach((item) => {
+            const li = document.createElement('li');
+            const link = document.createElement('a');
+            link.className = 'ref-mobile-search-result';
+            link.href = item.url || '/products';
+            link.setAttribute('role', 'option');
+
+            const name = document.createElement('span');
+            name.className = 'ref-mobile-search-result-name';
+            name.textContent = item.name || '';
+            link.appendChild(name);
+
+            const price = formatMobileSearchPrice(item.mrp);
+            const metaText = [item.category, price].filter(Boolean).join(' · ');
+            if (metaText) {
+                const meta = document.createElement('span');
+                meta.className = 'ref-mobile-search-result-meta';
+                meta.textContent = metaText;
+                link.appendChild(meta);
+            }
+
+            li.appendChild(link);
+            fragment.appendChild(li);
+        });
+        mobileSearchList.appendChild(fragment);
+        setMobileSearchMode('results');
+    } catch {
+        if (requestId !== mobileSearchRequest) return;
+        // Fall back to full catalog search if live suggestions fail.
+        if (mobileSearchForm) mobileSearchForm.requestSubmit();
+    }
 }
 
 mobileSearchToggle?.addEventListener('click', (e) => {
@@ -190,6 +289,23 @@ mobileSearchToggle?.addEventListener('click', (e) => {
 mobileSearchClose?.addEventListener('click', (e) => {
     e.preventDefault();
     closeMobileSearch();
+});
+
+mobileSearchForm?.addEventListener('submit', (e) => {
+    const q = mobileSearchInput?.value.trim() ?? '';
+    if (!q) {
+        e.preventDefault();
+        mobileSearchInput?.focus();
+        setMobileSearchMode('idle');
+        return;
+    }
+    // Allow native navigation to /products?q=...
+});
+
+mobileSearchInput?.addEventListener('input', () => {
+    clearTimeout(mobileSearchTimer);
+    const value = mobileSearchInput.value;
+    mobileSearchTimer = setTimeout(() => runMobileProductSearch(value), 220);
 });
 
 document.addEventListener('keydown', (e) => {

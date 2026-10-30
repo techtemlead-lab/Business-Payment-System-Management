@@ -83,22 +83,56 @@
 </div>
 
 <!-- Mobile Fullscreen Search Overlay -->
+@php
+    $mobileSearchCategories = collect(\App\Support\SiteCustomization::getFeaturedCategories())
+        ->take(6)
+        ->values();
+@endphp
 <div id="refMobileSearchOverlay" class="ref-mobile-search-overlay" aria-hidden="true">
     <div class="ref-mobile-search-inner">
         <div class="ref-mobile-search-top">
             <span class="ref-mobile-search-title">{{ __('site.search_label') }}</span>
             <button type="button" class="ref-mobile-search-close" id="refMobileSearchClose" aria-label="{{ __('site.close_search') }}">
-                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                <span class="ref-mobile-search-close-glyph" aria-hidden="true"></span>
             </button>
         </div>
-        <form method="get" action="/products" class="ref-mobile-search-form" autocomplete="off">
+        <form method="get" action="/products" class="ref-mobile-search-form" autocomplete="off" id="refMobileSearchForm">
             <div class="ref-mobile-search-input-wrap">
-                <input type="text" name="q" placeholder="{{ $chrome('search_placeholder', $siteCustomization['search_placeholder'] ?? null) }}" autocomplete="off" class="ref-mobile-search-input" id="refMobileSearchInput">
-                <button type="submit" class="ref-mobile-search-submit" aria-label="{{ __('site.search_label') }}">
-                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span class="ref-mobile-search-leading" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" focusable="false"><path fill="currentColor" d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l3.8 3.7-1.4 1.4-3.7-3.8A7.5 7.5 0 1 1 10.5 3Zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z"/></svg>
+                </span>
+                <input type="search" name="q" value="{{ request('q') }}" placeholder="{{ $chrome('search_placeholder', $siteCustomization['search_placeholder'] ?? null) }}" autocomplete="off" enterkeyhint="search" class="ref-mobile-search-input" id="refMobileSearchInput" aria-controls="refMobileSearchResults" aria-autocomplete="list">
+                <button type="submit" class="ref-mobile-search-submit" aria-label="{{ __('site.search_submit') }}">
+                    <span>{{ __('site.search_go') }}</span>
                 </button>
             </div>
         </form>
+
+        <div class="ref-mobile-search-body">
+            <div class="ref-mobile-search-hint" id="refMobileSearchHint">{{ __('site.search_mobile_hint') }}</div>
+
+            @if($mobileSearchCategories->isNotEmpty())
+            <div class="ref-mobile-search-shortcuts" id="refMobileSearchShortcuts">
+                <p class="ref-mobile-search-section-label">{{ __('site.search_popular_categories') }}</p>
+                <div class="ref-mobile-search-chips">
+                    @foreach($mobileSearchCategories as $cat)
+                        <a class="ref-mobile-search-chip" href="{{ $cat['link'] }}">{{ $cat['name'] }}</a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            <div class="ref-mobile-search-results" id="refMobileSearchResults" hidden>
+                <p class="ref-mobile-search-section-label" id="refMobileSearchResultsLabel">{{ __('site.search_results') }}</p>
+                <ul class="ref-mobile-search-list" id="refMobileSearchList" role="listbox" aria-labelledby="refMobileSearchResultsLabel"></ul>
+                <a class="ref-mobile-search-view-all" id="refMobileSearchViewAll" href="/products">{{ __('site.search_view_all') }}</a>
+            </div>
+
+            <div class="ref-mobile-search-empty" id="refMobileSearchEmpty" hidden>
+                <p>{{ __('site.search_no_matches') }}</p>
+                <a href="/products" class="ref-mobile-search-browse">{{ __('site.search_browse_all') }}</a>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -13,6 +13,7 @@ use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -85,6 +86,51 @@ class PublicController extends Controller
         ])->withHeaders([
             'Cache-Control' => 'private, no-cache',
             'X-Public-Render' => 'lean',
+        ]);
+    }
+
+    public function productSearch(Request $request): JsonResponse
+    {
+        abort_unless(SiteCustomization::isPageEnabled('products'), 404);
+
+        $validated = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+        $q = trim((string) ($validated['q'] ?? ''));
+
+        if (mb_strlen($q) < 1) {
+            return response()->json([
+                'q' => $q,
+                'items' => [],
+                'count' => 0,
+            ]);
+        }
+
+        $items = Product::query()
+            ->where('active', true)
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'ilike', '%'.$q.'%')
+                    ->orWhere('category', 'ilike', '%'.$q.'%')
+                    ->orWhere('sku', 'ilike', '%'.$q.'%');
+            })
+            ->orderBy('name')
+            ->limit(8)
+            ->get(['id', 'name', 'category', 'mrp', 'sku'])
+            ->map(fn (Product $product): array => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category,
+                'mrp' => $product->mrp,
+                'url' => '/products/'.$product->id,
+            ])
+            ->values()
+            ->all();
+
+        return response()->json([
+            'q' => $q,
+            'items' => $items,
+            'count' => count($items),
+            'all_url' => '/products?q='.rawurlencode($q),
         ]);
     }
 
