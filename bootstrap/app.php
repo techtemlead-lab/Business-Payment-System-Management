@@ -10,6 +10,7 @@ use App\Http\Middleware\PortalArea;
 use App\Http\Middleware\ProtectPrivateResponses;
 use App\Http\Middleware\RestrictAdminIp;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\UseSharedPreviewPortal;
 use App\Support\DatabaseConnectionFailure;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
@@ -26,12 +27,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustHosts(at: function () {
             $hosts = ['^(.+\.)?'.preg_quote(PortalHost::domain(), '/').'$'];
-            if (PortalHost::domain() === 'localhost') {
+            if (PortalHost::allowsSharedPreview()) {
                 $hosts[] = '^127\.0\.0\.1$';
+                $hosts[] = '^localhost$';
+                $hosts[] = '^\[::1\]$';
             }
 
             return $hosts;
         });
+        $middleware->encryptCookies(except: [PortalHost::PreviewCookie]);
+        $middleware->prepend(UseSharedPreviewPortal::class);
         $middleware->prepend(CorrelationId::class);
         $middleware->web(append: [
             RestrictAdminIp::class,

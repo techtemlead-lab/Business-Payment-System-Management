@@ -74,6 +74,9 @@
             @endif
         </form>
         <div class="ref-auth-bottom">
+            @if(\App\Support\PortalHost::sharedPreviewRoot())
+                <a href="/portals">{{ __('site.portal_directory') }}</a>
+            @endif
             @if($mode === 'login')
                 {{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_help_text', 'auth_ui.dealer_help') }}
                 <a href="{{ \App\Support\PortalHost::url('public', '/contact') }}">{{ \App\Support\SiteCustomization::localizedCopy($siteCustomization ?? [], 'auth_dealer_contact_text', 'auth_ui.contact_company') }}</a>

@@ -76,7 +76,7 @@ class LocaleController extends Controller
 
         // Rebuild on the active request root so subdomain portals keep host/port.
         // Root redirects omit a trailing slash so they match Laravel's url('/') / assertRedirect('/').
-        $origin = rtrim($request->getSchemeAndHttpHost(), '/');
+        $origin = PortalHost::sharedPreviewRoot($request) ?? rtrim($request->getSchemeAndHttpHost(), '/');
         if ($path === '/' && $query === '') {
             return $origin;
         }
