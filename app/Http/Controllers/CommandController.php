@@ -501,9 +501,16 @@ class CommandController extends Controller
 
     public function stock(AdjustStockRequest $r, StockService $service): RedirectResponse
     {
-        $service->adjust($r->user(), $r->validated());
+        $payload = $r->validated();
+        $service->adjust($r->user(), $payload);
+        $kind = $payload['kind'] ?? null;
+        $flash = match ($kind) {
+            'product_in' => __('portal.flash_stock_in_recorded'),
+            'product_out' => __('portal.flash_stock_out_recorded'),
+            default => __('portal.flash_stock_recorded'),
+        };
 
-        return back()->with('success', __('portal.flash_stock_recorded'));
+        return back()->with('success', $flash);
     }
 
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse

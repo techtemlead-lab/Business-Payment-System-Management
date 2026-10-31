@@ -51,6 +51,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -210,6 +211,11 @@ class WorkspaceController extends Controller
             $data['active_branch_id'] = $u->active_branch_id;
             $data['active_branch'] = $u->activeBranch?->summary();
             $data['delivery_points'] = $branchOps->deliveryPoints();
+            $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
+            $data['stock_reason_codes'] = [
+                'product_in' => BranchOperations::ProductInReasonCodes,
+                'product_out' => BranchOperations::ProductOutReasonCodes,
+            ];
             $activeBranchId = (int) ($u->active_branch_id ?: (CompanyBranch::query()->active()->orderBy('id')->value('id') ?? 0));
             if ($activeBranchId > 0 && $u->allows('inventory')) {
                 $branchQuantities = BranchProductStock::query()
