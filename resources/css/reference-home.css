@@ -114,7 +114,13 @@
 .ref-mobile-nav>a:hover,.ref-mobile-nav>button:hover,.ref-mobile-nav>a:active,.ref-mobile-nav>button:active{color:#ffffff}
 .ref-mobile-nav i{font-size:18px}
 .ref-mobile-nav>.ref-mobile-home{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:8px;color:#ffffff}
-.ref-mobile-home-icon{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;border:2px solid #f2f4f8;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:20px;color:#011627;box-shadow:0 6px 16px rgba(1,22,39,0.22);overflow:hidden;padding:2px}.ref-mobile-home-icon img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.ref-mobile-home-icon{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;border:0;background:transparent;display:flex;align-items:center;justify-content:center;font-size:20px;color:#011627;box-shadow:0 6px 16px rgba(1,22,39,0.22),0 0 0 3px rgba(243,76,32,0.22),0 0 18px rgba(243,76,32,0.42);overflow:visible;padding:3px;isolation:isolate}
+.ref-mobile-home-icon::before{content:'';position:absolute;inset:0;border-radius:50%;z-index:0;pointer-events:none;background:conic-gradient(from 0deg,#f34c20 0deg,#f59e0b 70deg,#eab308 140deg,#22c55e 210deg,#0ea5e9 280deg,#f34c20 360deg);animation:ref-mobile-home-ring-spin 4.5s linear infinite;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.35)}
+.ref-mobile-home-icon img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;background:#ffffff;box-shadow:inset 0 0 0 1px rgba(1,22,39,0.06)}
+html[data-theme="dark"] .ref-mobile-home-icon{box-shadow:0 8px 18px rgba(0,0,0,0.45),0 0 0 3px rgba(74,222,128,0.28),0 0 20px rgba(74,222,128,0.5)}
+html[data-theme="dark"] .ref-mobile-home-icon::before{background:conic-gradient(from 0deg,#4ade80 0deg,#22d3ee 80deg,#38bdf8 150deg,#a78bfa 220deg,#34d399 300deg,#4ade80 360deg);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18)}
+html[data-theme="dark"] .ref-mobile-home-icon img{background:#0b1220;box-shadow:inset 0 0 0 1px rgba(74,222,128,0.2)}
+@keyframes ref-mobile-home-ring-spin{to{transform:rotate(360deg)}}
 .ref-mobile-home:active .ref-mobile-home-icon{transform:translateX(-50%) scale(0.95)}
 .ref-mobile-home-label{font-size:10px;font-weight:700;color:#ffffff}
 .ref-home{padding-bottom:64px}
@@ -2822,12 +2828,21 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
         width: 48px;
         height: 48px;
         top: -18px;
-        border-width: 2px;
-        border-color: #f2f4f8;
-        background: #ffffff;
-        box-shadow: 0 6px 16px rgba(1, 22, 39, 0.22);
-        overflow: hidden;
-        padding: 2px;
+        border: 0;
+        background: transparent;
+        overflow: visible;
+        padding: 3px;
+        box-shadow:
+            0 6px 16px rgba(1, 22, 39, 0.22),
+            0 0 0 3px rgba(243, 76, 32, 0.22),
+            0 0 18px rgba(243, 76, 32, 0.42);
+    }
+
+    html[data-theme="dark"] .ref-mobile-home-icon {
+        box-shadow:
+            0 8px 18px rgba(0, 0, 0, 0.45),
+            0 0 0 3px rgba(74, 222, 128, 0.28),
+            0 0 20px rgba(74, 222, 128, 0.5);
     }
 
     .ref-mobile-home-icon img {
@@ -2836,6 +2851,7 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
         object-fit: cover;
         border-radius: 50%;
         display: block;
+        background: #ffffff;
     }
 
     .ref-mobile-home-icon i {
