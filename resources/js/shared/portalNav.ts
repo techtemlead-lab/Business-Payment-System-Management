@@ -290,6 +290,84 @@ export function resolveStaffDomain(section: string, readPin: () => StaffDomain |
     return readPin() ?? 'company';
 }
 
+export type StaffDomainGroup = {
+    id: StaffDomain;
+    labelKey: string;
+    mothers: NavMother[];
+};
+
+function staffNavigation(staffAvailable: Set<string>): {
+    company: NavMother[];
+    dealers: NavMother[];
+    subDealers: NavMother[];
+    account: NavMother | null;
+} {
+    return {
+        company: compactMothers([
+            mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
+            mother('catalog', 'nav_module_catalog', pick(staffAvailable, ['catalog-products', 'catalog-taxonomy'])),
+            mother('stock', 'nav_module_stock', pick(staffAvailable, [
+                'stock', 'product-in', 'product-out', 'branches', 'branch-performance', 'place-codes',
+            ])),
+            mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
+            mother('finance', 'nav_module_finance', pick(staffAvailable, [
+                'treasury', 'payments', 'withdrawals', 'payment-accounts', 'ledger', 'dues-adjustments', 'benefits-fund',
+                'policy-schedules', 'commission-holds', 'settlements', 'rewards', 'payouts-hub', 'reserve-payouts',
+                'finance-settings', 'financial-readiness',
+            ])),
+            mother('people', 'nav_module_people', pick(staffAvailable, [
+                'employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management',
+            ])),
+            mother('reports', 'nav_module_reports', pick(staffAvailable, [
+                'reports', 'financial-reports', 'dashboards', 'data-imports',
+            ])),
+            mother('settings', 'nav_module_settings', pick(staffAvailable, [
+                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin',
+            ])),
+            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
+        ]),
+        dealers: compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
+            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
+            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
+        ]),
+        subDealers: compactMothers([
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-orders'])),
+            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
+            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
+            mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
+        ]),
+        account: mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
+    };
+}
+
+export function buildStaffDomainGroups(input: {
+    staffAvailable: Set<string>;
+    ownerPortal: boolean;
+}): StaffDomainGroup[] {
+    const navigation = staffNavigation(input.staffAvailable);
+
+    const groups: StaffDomainGroup[] = [
+        {
+            id: 'company',
+            labelKey: input.ownerPortal ? 'nav_management_section' : 'nav_company_section',
+            mothers: navigation.company,
+        },
+        {
+            id: 'dealers',
+            labelKey: 'nav_dealer_section',
+            mothers: navigation.dealers,
+        },
+        {
+            id: 'sub_dealers',
+            labelKey: 'nav_subdealer_section',
+            mothers: navigation.subDealers,
+        },
+    ];
+
+    return groups.filter((group) => group.mothers.length > 0);
+}
+
 export function buildDomainMothers(input: {
     staff: boolean;
     role: string;
@@ -322,53 +400,14 @@ export function buildDomainMothers(input: {
         ]);
     }
 
-    const company = compactMothers([
-        mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
-        mother('catalog', 'nav_module_catalog', pick(staffAvailable, ['catalog-products', 'catalog-taxonomy'])),
-        mother('stock', 'nav_module_stock', pick(staffAvailable, [
-            'stock', 'product-in', 'product-out', 'branches', 'branch-performance', 'place-codes',
-        ])),
-        mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
-        mother('finance', 'nav_module_finance', pick(staffAvailable, [
-            'treasury', 'payments', 'withdrawals', 'payment-accounts', 'ledger', 'dues-adjustments', 'benefits-fund',
-            'policy-schedules', 'commission-holds', 'settlements', 'rewards', 'payouts-hub', 'reserve-payouts',
-            'finance-settings', 'financial-readiness',
-        ])),
-        mother('people', 'nav_module_people', pick(staffAvailable, [
-            'employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management',
-        ])),
-        mother('reports', 'nav_module_reports', pick(staffAvailable, [
-            'reports', 'financial-reports', 'dashboards', 'data-imports',
-        ])),
-        mother('settings', 'nav_module_settings', pick(staffAvailable, [
-            'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin',
-        ])),
-    ]);
-
-    const dealers = compactMothers([
-        mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
-        mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
-        mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
-    ]);
-
-    const subDealers = compactMothers([
-        mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-orders'])),
-        mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
-        mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
-        mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
-    ]);
-
-    const account = compactMothers([
-        mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
-    ]);
-
+    const navigation = staffNavigation(staffAvailable);
     const domainModules = currentDomain === 'dealers'
-        ? dealers
+        ? navigation.dealers
         : currentDomain === 'sub_dealers'
-            ? subDealers
-            : company;
+            ? navigation.subDealers
+            : navigation.company;
 
-    return [...domainModules, ...account];
+    return compactMothers([...domainModules, navigation.account]);
 }
 
 export function labelKeyForNavItem(item: string, staff: boolean): string {

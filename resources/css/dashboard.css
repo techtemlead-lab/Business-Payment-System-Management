@@ -57,6 +57,40 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .portal-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
 .app-shell .sidebar-logo{width:100%;height:85px;margin-bottom:20px;background:transparent;border-radius:0;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible}
 .app-shell .sidebar-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
+.app-shell .sidebar.sidebar-premium{padding:10px 10px 8px}
+.app-shell .sidebar.sidebar-premium .sidebar-logo{height:58px;margin:0 0 8px}
+.app-shell .sidebar.sidebar-premium .sidebar-logo img{max-height:54px}
+.app-shell .sidebar.sidebar-premium .workspace-label{margin:0 0 6px;padding:6px 8px;font-size:12px;line-height:1.2}
+.app-shell label.sidebar-menu-search{flex-direction:row;align-items:center;gap:6px;height:32px;min-height:32px;margin:0 0 8px;padding:0 10px;border-radius:8px}
+.app-shell label.sidebar-menu-search svg{flex-shrink:0}
+.app-shell label.sidebar-menu-search input{width:auto;flex:1;min-width:0;height:30px;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#fff;font-size:12px}
+.app-shell .sidebar.sidebar-premium .sidebar-domain-switch{gap:3px;margin:0;padding:0;border:0}
+.app-shell .sidebar.sidebar-premium .sidebar-domain{display:flex;flex-direction:column;gap:1px}
+.app-shell .sidebar.sidebar-premium .sidebar-domain-tab{width:100%;min-height:32px;padding:5px 8px;gap:8px;font-size:12.5px;font-weight:650;letter-spacing:0;text-transform:none;cursor:pointer;font-family:inherit;text-align:left}
+.app-shell .sidebar.sidebar-premium .sidebar-domain-tab:hover{transform:none}
+.app-shell .sidebar.sidebar-premium .sidebar-domain-tab .domain-tab-copy{flex:1;min-width:0}
+.app-shell .sidebar.sidebar-premium .sidebar-domain-tab .nav-chevron{margin-left:auto;flex-shrink:0;transition:transform .16s ease}
+.app-shell .sidebar.sidebar-premium .sidebar-domain.is-open>.sidebar-domain-tab .nav-chevron{transform:rotate(180deg)}
+.app-shell .sidebar-domain-pocket{display:flex;flex-direction:column;gap:1px;margin:1px 2px 4px 10px;padding:1px 0 2px 8px;border-left:1px solid rgba(248,241,231,.28)}
+.app-shell .sidebar.sidebar-premium .nav-section{margin:0;padding:0;border:0}
+.app-shell .nav-section-toggle{width:100%;display:flex;align-items:center;gap:6px;min-height:28px;padding:3px 6px;border:0;border-radius:6px;background:transparent;color:#f3ead6;font:inherit;font-size:12px;font-weight:600;line-height:1.15;text-align:left;cursor:pointer}
+.app-shell .nav-section-toggle>span{flex:1;min-width:0}
+.app-shell .nav-section-toggle .nav-section-badge{margin-left:0}
+.app-shell .nav-section-toggle:hover{background:#ffffff14}
+.app-shell .nav-section-toggle .nav-chevron{margin-left:auto;flex-shrink:0;transition:transform .16s ease}
+.app-shell .nav-section.is-open>.nav-section-toggle{background:rgba(248,241,231,.1)}
+.app-shell .nav-section.is-open>.nav-section-toggle .nav-chevron{transform:rotate(180deg)}
+.app-shell .nav-section.has-active>.nav-section-toggle{color:#fff}
+.app-shell .sidebar.sidebar-premium .nav-section-body{margin:0 0 1px 12px;padding:0 0 1px 6px;border-left:1px solid rgba(248,241,231,.22);gap:0}
+.app-shell .sidebar.sidebar-premium .nav-section-single .nav-section-body{margin:0;padding:0;border:0}
+.app-shell .sidebar-domain-pocket a,.app-shell .nav-section-body>a{padding:3px 6px;min-height:26px;margin:0;font-size:12px;line-height:1.15;gap:6px}
+.app-shell label.sidebar-menu-search input::placeholder{color:#c9d0ea}
+.app-shell label.sidebar-menu-search input:focus{outline:none}
+.app-shell label.sidebar-menu-search:focus-within{outline:2px solid #c9a227;outline-offset:1px}
+.app-shell .sidebar.sidebar-premium .sidebar-nav-container{padding-right:0}
+.app-shell .sidebar.sidebar-premium>.icon-button{margin-bottom:4px}
+.app-shell .sidebar.sidebar-premium .sidebar-guide-button{margin:6px 0 0;padding:6px 8px;border-radius:8px;font-size:12px;min-height:32px}
+@media(prefers-reduced-motion:reduce){.app-shell .nav-chevron{transition:none}}
 .portal-container{max-width:1320px;margin:auto;padding:0 16px;width:100%}
 .portal-company-bar{background:#081621;border:1px solid #36434e;color:white;text-align:center;font-size:12px;font-weight:700;line-height:26px;height:28px}
 .portal-site-header{background:#011627;color:white;padding:16px 0}
