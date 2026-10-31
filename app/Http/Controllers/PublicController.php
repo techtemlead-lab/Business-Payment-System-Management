@@ -69,7 +69,13 @@ class PublicController extends Controller
             }
             $latitude = $this->nullableMapCoordinate($siteCustomization['map_latitude'] ?? null);
             $longitude = $this->nullableMapCoordinate($siteCustomization['map_longitude'] ?? null);
-            $maps = app(MapsPresentation::class)->forAddress($officeAddress, $latitude, $longitude);
+            $mapLabel = trim((string) ($siteCustomization['map_facility'] ?? ''));
+            $maps = app(MapsPresentation::class)->forAddress(
+                $officeAddress,
+                $latitude,
+                $longitude,
+                $mapLabel !== '' ? $mapLabel : null,
+            );
         }
 
         $contentPages = $this->cachedContentPages();

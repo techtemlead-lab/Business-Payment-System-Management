@@ -222,9 +222,10 @@ class SiteCustomization
             'contact_topic3_title' => 'Head Office',
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
-            // Default pin for Pirganj head office (admin can override in Website CMS).
-            'map_latitude' => '25.7701',
-            'map_longitude' => '88.8240',
+            // Default pin: Pirganj Upazila, Rangpur District (admin can override in Website CMS).
+            // Do not use the old 25.7701,88.8240 example — that resolved to Dinajpur, not Pirganj.
+            'map_latitude' => '25.416572',
+            'map_longitude' => '89.307493',
             'contact_form_title' => 'Send an Enquiry',
             'map_title' => 'Office & Healthcare Center Location',
             'map_subtitle' => 'Visit Madina Natural Health Care at our licensed Pirganj head office or navigate with map directions.',

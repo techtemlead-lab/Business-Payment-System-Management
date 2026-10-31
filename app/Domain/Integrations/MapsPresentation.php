@@ -9,31 +9,35 @@ final class MapsPresentation
     /**
      * Build public map embed + directions links for the head-office location.
      *
-     * Directions always open Google Maps. The query comes from CMS
-     * `office_address` (and optional coordinates) — never a hardcoded URL.
+     * Directions always open Google Maps. The destination comes from CMS
+     * coordinates when set (accurate pin), otherwise `office_address`.
+     * Address-only geocoding is unreliable for "Thana Road, Pirganj…".
      *
      * @return array{provider: string, enabled: bool, embed_url: ?string, directions_url: string, script_url: ?string}
      */
-    public function forAddress(string $address, ?float $latitude = null, ?float $longitude = null): array
+    public function forAddress(string $address, ?float $latitude = null, ?float $longitude = null, ?string $label = null): array
     {
         $maps = $this->settings->mapsPublicConfig();
         $address = trim($address);
+        $label = trim((string) $label);
         $hasCoordinates = $latitude !== null
             && $longitude !== null
             && $latitude >= -90.0 && $latitude <= 90.0
             && $longitude >= -180.0 && $longitude <= 180.0;
 
-        $destination = $hasCoordinates
-            ? $this->formatCoordinates($latitude, $longitude)
-            : $address;
-
-        if ($destination === '') {
-            $destination = 'Bangladesh';
+        if ($hasCoordinates) {
+            $destination = $this->formatCoordinates($latitude, $longitude);
+            $pinLabel = $label !== '' ? $label : $address;
+            $embedDestination = $pinLabel !== ''
+                ? $destination.' ('.$pinLabel.')'
+                : $destination;
+        } else {
+            $destination = $address !== '' ? $address : 'Pirganj Upazila, Rangpur District, Bangladesh';
+            $embedDestination = $destination;
         }
 
-        $query = rawurlencode($destination);
-        $directions = 'https://www.google.com/maps/dir/?api=1&destination='.$query;
-        $embed = 'https://maps.google.com/maps?q='.$query.'&z=16&output=embed';
+        $directions = 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($destination);
+        $embed = 'https://maps.google.com/maps?q='.rawurlencode($embedDestination).'&z=16&output=embed';
 
         if ($maps['enabled'] && filled($maps['map_embed_url'])) {
             return [
