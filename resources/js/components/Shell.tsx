@@ -688,15 +688,20 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Store size={14} aria-hidden="true" />
                             <select
                                 aria-label={translate('portal', 'branch_select')}
-                                value={workspaceBranches.active_branch_id != null ? String(workspaceBranches.active_branch_id) : ''}
+                                value={workspaceBranches.view === 'all' ? 'all' : (workspaceBranches.active_branch_id != null ? String(workspaceBranches.active_branch_id) : '')}
                                 onChange={(e) => {
                                     const id = e.target.value;
                                     if (!id) {
                                         return;
                                     }
+                                    if (id === 'all') {
+                                        router.post('/commands/branches/view-all', {}, { preserveScroll: true });
+                                        return;
+                                    }
                                     router.post(`/commands/branches/${id}/select`, {}, { preserveScroll: true });
                                 }}
                             >
+                                <option value="all">{translate('portal', 'branch_view_all')}</option>
                                 {workspaceBranches.branches.map((branch: any) => (
                                     <option key={branch.id} value={String(branch.id)}>{branch.name}</option>
                                 ))}

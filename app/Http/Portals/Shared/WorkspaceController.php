@@ -115,7 +115,11 @@ class WorkspaceController extends Controller
             }
             // Overview only needs line quantities for the items column — keep the payload slim.
             $lineRelation = $section === 'overview' ? 'lines:id,order_id,quantity' : 'lines';
-            $data['orders'] = $q->with(['user:id,name,dealer_code,role', $lineRelation])
+            $orderWith = ['user:id,name,dealer_code,role', $lineRelation];
+            if ($staff && Schema::hasColumn('orders', 'fulfillment_branch_id')) {
+                $orderWith[] = 'fulfillmentBranch:id,name,code';
+            }
+            $data['orders'] = $q->with($orderWith)
                 ->latest()
                 ->paginate(12)
                 ->withQueryString();
@@ -247,8 +251,17 @@ class WorkspaceController extends Controller
                 'product_in' => BranchOperations::ProductInReasonCodes,
                 'product_out' => BranchOperations::ProductOutReasonCodes,
             ];
+            $viewingAllBranches = $r->session()->get(BranchOperations::SessionView) === 'all';
+            $data['branch_view'] = $viewingAllBranches ? 'all' : 'branch';
             $activeBranchId = (int) ($preferredBranch?->id ?? 0);
-            if ($activeBranchId > 0 && $u->allows('inventory')) {
+            if ($viewingAllBranches && $u->allows('inventory')) {
+                $data['products'] = $branchOps->expandStockAcrossBranches($data['products'] ?? []);
+                $data['active_branch'] = [
+                    'id' => null,
+                    'code' => 'ALL',
+                    'name' => __('portal.branch_view_all'),
+                ];
+            } elseif ($activeBranchId > 0 && $u->allows('inventory')) {
                 $branchQuantities = BranchProductStock::query()
                     ->where('branch_id', $activeBranchId)
                     ->pluck('quantity', 'product_id');
@@ -274,12 +287,19 @@ class WorkspaceController extends Controller
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString();
+            $branchIds = $branches->getCollection()->pluck('id');
             $staffByBranch = BranchStaffAssignment::query()
                 ->with('user:id,name,email,phone,role')
-                ->whereIn('branch_id', $branches->getCollection()->pluck('id'))
+                ->whereIn('branch_id', $branchIds)
                 ->get()
                 ->groupBy('branch_id');
-            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch) {
+            $stockValues = DB::table('branch_product_stocks')
+                ->join('products', 'products.id', '=', 'branch_product_stocks.product_id')
+                ->whereIn('branch_product_stocks.branch_id', $branchIds)
+                ->groupBy('branch_product_stocks.branch_id')
+                ->selectRaw('branch_product_stocks.branch_id as branch_id, SUM(branch_product_stocks.quantity * products.mrp) as stock_value')
+                ->pluck('stock_value', 'branch_id');
+            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $stockValues) {
                 $summary = $branch->summary();
                 $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
                     'user_id' => $row->user_id,
@@ -291,6 +311,10 @@ class WorkspaceController extends Controller
                 ])->values()->all();
                 $summary['stock_skus'] = (int) ($branch->stock_skus ?? 0);
                 $summary['stock_units'] = (int) ($branch->stock_units ?? 0);
+                $summary['stock_value'] = number_format((float) ($stockValues[$branch->id] ?? 0), 2, '.', '');
+                $manager = collect($summary['staff'])->first(fn (array $member): bool => (bool) $member['is_primary'])
+                    ?? ($summary['staff'][0] ?? null);
+                $summary['manager_name'] = is_array($manager) ? ($manager['name'] ?? null) : null;
 
                 return $summary;
             });
@@ -357,8 +381,12 @@ class WorkspaceController extends Controller
             if ($r->filled('status')) {
                 $query->where('status', $r->string('status'));
             }
-            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at'])
-                ->through(fn (User $employee) => [...$employee->toArray(), 'effective_permissions' => $employee->capabilities()]);
+            $data['employees'] = $query->with('activeBranch:id,name,code')->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at', 'active_branch_id'])
+                ->through(fn (User $employee) => [
+                    ...$employee->toArray(),
+                    'effective_permissions' => $employee->capabilities(),
+                    'branch_name' => $employee->activeBranch?->name,
+                ]);
             $staffQuery = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
             $data['employee_stats'] = [
                 'total' => (clone $staffQuery)->count(),

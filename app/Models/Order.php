@@ -35,4 +35,9 @@ class Order extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function fulfillmentBranch()
+    {
+        return $this->belongsTo(CompanyBranch::class, 'fulfillment_branch_id');
+    }
 }
