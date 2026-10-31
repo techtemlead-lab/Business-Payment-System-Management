@@ -94,7 +94,14 @@ class CatalogProductCmsSchemaTest extends TestCase
 
     public function test_catalog_migration_backfills_foreign_keys_from_legacy_product_strings(): void
     {
-        $this->artisan('migrate:rollback', ['--step' => 1, '--force' => true])->assertSuccessful();
+        // Later place-code migrations sit above the catalog FK migration; roll back
+        // through that target so legacy string columns exist again for backfill.
+        $target = '2026_10_31_004240_add_catalog_foreign_keys_and_expires_on_to_products_table';
+        $steps = collect(glob(database_path('migrations/*.php')))
+            ->map(fn (string $path): string => pathinfo($path, PATHINFO_FILENAME))
+            ->filter(fn (string $name): bool => $name >= $target)
+            ->count();
+        $this->artisan('migrate:rollback', ['--step' => $steps, '--force' => true])->assertSuccessful();
 
         $this->assertFalse(Schema::hasColumn('products', 'product_subcategory_id'));
         $this->assertFalse(Schema::hasColumn('products', 'expires_on'));
