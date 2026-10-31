@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -16,7 +15,7 @@ class PartnerAdminPasswordTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
         config(['madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
     }
 

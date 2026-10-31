@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\PlaceCode;
 use Database\Seeders\BangladeshPlaceCodeSeeder;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,7 +13,7 @@ class BangladeshPlaceCodeSeederTest extends TestCase
 
     public function test_full_bangladesh_geography_is_seeded_without_missing_tiers(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
+        // Opt-in full registry — do not rely on PlaceCodeSeeder placeholders.
         $this->seed(BangladeshPlaceCodeSeeder::class);
 
         $this->assertSame(1, PlaceCode::query()->where('level', 'management')->count());

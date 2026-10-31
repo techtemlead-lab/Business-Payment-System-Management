@@ -49,6 +49,50 @@ class PlaceCode extends Model
         'sort_order' => 'integer',
     ];
 
+    public const PlaceholderLabel = '—';
+
+    /**
+     * True for empty / hyphen placeholders awaiting admin fill-in.
+     */
+    public static function isPlaceholderLabel(?string $value): bool
+    {
+        $raw = trim((string) $value);
+
+        return $raw === '' || $raw === '-' || $raw === self::PlaceholderLabel || $raw === '–';
+    }
+
+    /**
+     * Display null/empty/hyphen place values as an em dash.
+     */
+    public static function displayLabel(?string $value): string
+    {
+        return self::isPlaceholderLabel($value) ? self::PlaceholderLabel : (string) $value;
+    }
+
+    /**
+     * A place is ready for dealer/area assignment only when it has a real branded code and name.
+     */
+    public function isReadyForAssignment(): bool
+    {
+        if (! $this->is_active) {
+            return false;
+        }
+
+        if ($this->code === null || self::isPlaceholderLabel($this->code)) {
+            return false;
+        }
+
+        if (self::normalizeCode($this->code) === null) {
+            return false;
+        }
+
+        if (self::isPlaceholderLabel($this->name)) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Normalize a place / management code to the branded form MNHC-{digits}.
      * Accepts bare digits (100) or already-prefixed values (MNHC-100).
@@ -56,7 +100,7 @@ class PlaceCode extends Model
     public static function normalizeCode(?string $code): ?string
     {
         $raw = strtoupper(trim((string) $code));
-        if ($raw === '') {
+        if ($raw === '' || self::isPlaceholderLabel($raw)) {
             return null;
         }
 
@@ -120,9 +164,17 @@ class PlaceCode extends Model
     protected static function booted(): void
     {
         static::saving(function (PlaceCode $place): void {
-            $normalized = self::normalizeCode($place->code);
-            if ($normalized !== null) {
-                $place->code = $normalized;
+            if ($place->code === null || self::isPlaceholderLabel($place->code)) {
+                $place->code = null;
+            } else {
+                $normalized = self::normalizeCode($place->code);
+                if ($normalized !== null) {
+                    $place->code = $normalized;
+                }
+            }
+
+            if (self::isPlaceholderLabel($place->name)) {
+                $place->name = self::PlaceholderLabel;
             }
         });
     }

@@ -6,8 +6,8 @@ import { useT } from '../shared/i18n/t';
 
 interface PlaceRow extends Row {
     id: number;
-    code: string;
-    name: string;
+    code: string | null;
+    name: string | null;
     level: string;
     parent_id?: number | null;
     parent_code?: string | null;
@@ -18,6 +18,7 @@ interface PlaceRow extends Row {
     base_options?: { id: number; code: string; name: string; level: string }[];
     sort_order?: number;
     is_active?: boolean;
+    is_placeholder?: boolean;
 }
 
 interface Submodule {
@@ -57,6 +58,20 @@ const levelIcons: Record<string, React.ReactNode> = {
     union: <Hash size={16} />,
 };
 
+const displayPlace = (value?: string | null): string => {
+    if (!value || value === '-' || value === '—' || value === '–') {
+        return '—';
+    }
+
+    return value;
+};
+
+const formValue = (value?: string | null): string => {
+    const shown = displayPlace(value);
+
+    return shown === '—' ? '' : shown;
+};
+
 export default function PlaceCodesHub({
     level,
     level_label,
@@ -74,7 +89,7 @@ export default function PlaceCodesHub({
 
     const createForm = useForm({
         level,
-        code: level === 'management' ? 'MNHC-100' : 'MNHC-',
+        code: '',
         name: '',
         parent_id: parent_options[0] ? String(parent_options[0].id) : '',
         sort_order: 0,
@@ -98,12 +113,24 @@ export default function PlaceCodesHub({
     const openEdit = (row: PlaceRow) => {
         setEditRow(row);
         editForm.setData({
-            code: row.code,
-            name: row.name,
+            code: formValue(row.code),
+            name: formValue(row.name),
             parent_id: row.parent_id ? String(row.parent_id) : '',
             base_place_id: row.base_place_id ? String(row.base_place_id) : '',
             sort_order: row.sort_order ?? 0,
             is_active: !!row.is_active,
+        });
+    };
+
+    const removePlace = (row: PlaceRow) => {
+        const label = displayPlace(row.name);
+        const reason = window.prompt(translate('portal', 'pc_remove_prompt', { name: label }));
+        if (reason === null || reason.trim().length < 3) {
+            return;
+        }
+        router.delete(`/commands/place-codes/${row.id}`, {
+            data: { reason: reason.trim() },
+            preserveScroll: true,
         });
     };
 
@@ -120,7 +147,7 @@ export default function PlaceCodesHub({
                 createForm.reset();
                 createForm.setData({
                     level,
-                    code: level === 'management' ? 'MNHC-100' : 'MNHC-',
+                    code: '',
                     name: '',
                     parent_id: parent_options[0] ? String(parent_options[0].id) : '',
                     sort_order: 0,
@@ -198,17 +225,17 @@ export default function PlaceCodesHub({
                 <Table
                     rows={places.data}
                     columns={[
-                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{r.code}</b> },
-                        { key: 'name', title: translate('portal', 'pc_col_name') },
+                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{displayPlace(r.code)}</b> },
+                        { key: 'name', title: translate('portal', 'pc_col_name'), render: (r) => displayPlace(r.name) },
                         {
                             key: 'parent_name',
                             title: translate('portal', 'pc_col_parent'),
-                            render: (r) => (r.parent_code ? `${r.parent_name} (${r.parent_code})` : '—'),
+                            render: (r) => (r.parent_id ? `${displayPlace(r.parent_name)} (${displayPlace(r.parent_code)})` : '—'),
                         },
                         {
                             key: 'base_place_name',
                             title: translate('portal', 'pc_col_base'),
-                            render: (r) => (r.base_place_code ? `${r.base_place_name} (${r.base_place_code})` : <span className="muted">—</span>),
+                            render: (r) => (r.base_place_code ? `${displayPlace(r.base_place_name)} (${displayPlace(r.base_place_code)})` : <span className="muted">—</span>),
                         },
                         {
                             key: 'is_active',
@@ -219,9 +246,14 @@ export default function PlaceCodesHub({
                             key: 'action',
                             title: '',
                             render: (r) => (
-                                <button type="button" className="text-link" onClick={() => openEdit(r as PlaceRow)}>
-                                    {translate('portal', 'pc_edit')}
-                                </button>
+                                <span style={{ display: 'inline-flex', gap: 10 }}>
+                                    <button type="button" className="text-link" onClick={() => openEdit(r as PlaceRow)}>
+                                        {translate('portal', 'pc_edit')}
+                                    </button>
+                                    <button type="button" className="text-link" onClick={() => removePlace(r as PlaceRow)}>
+                                        {translate('portal', 'pc_remove')}
+                                    </button>
+                                </span>
                             ),
                         },
                     ]}
@@ -235,12 +267,12 @@ export default function PlaceCodesHub({
                     <form onSubmit={submitCreate} className="action-form">
                         <label>
                             {translate('portal', 'pc_fld_code')}
-                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} required placeholder={translate('portal', 'pc_ph_code')} />
+                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} placeholder={translate('portal', 'pc_ph_code')} />
                             {createForm.errors.code && <span className="field-error">{createForm.errors.code}</span>}
                         </label>
                         <label>
                             {translate('portal', 'pc_fld_name')}
-                            <input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required placeholder={translate('portal', 'pc_ph_name')} />
+                            <input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} placeholder={translate('portal', 'pc_ph_name')} />
                             {createForm.errors.name && <span className="field-error">{createForm.errors.name}</span>}
                         </label>
                         {parent_options.length > 0 && (
@@ -248,7 +280,7 @@ export default function PlaceCodesHub({
                                 {translate('portal', 'pc_fld_parent')}
                                 <select value={createForm.data.parent_id} onChange={(e) => createForm.setData('parent_id', e.target.value)} required>
                                     {parent_options.map((option) => (
-                                        <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
+                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
                                     ))}
                                 </select>
                                 {createForm.errors.parent_id && <span className="field-error">{createForm.errors.parent_id}</span>}
@@ -262,16 +294,16 @@ export default function PlaceCodesHub({
             )}
 
             {editRow && (
-                <Modal title={translate('portal', 'pc_edit_title', { name: editRow.name })} onClose={() => setEditRow(null)}>
+                <Modal title={translate('portal', 'pc_edit_title', { name: displayPlace(editRow.name) })} onClose={() => setEditRow(null)}>
                     <form onSubmit={submitEdit} className="action-form">
                         <label>
                             {translate('portal', 'pc_fld_code')}
-                            <input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} required />
+                            <input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} placeholder={translate('portal', 'pc_ph_code')} />
                             {editForm.errors.code && <span className="field-error">{editForm.errors.code}</span>}
                         </label>
                         <label>
                             {translate('portal', 'pc_fld_name')}
-                            <input value={editForm.data.name} onChange={(e) => editForm.setData('name', e.target.value)} required />
+                            <input value={editForm.data.name} onChange={(e) => editForm.setData('name', e.target.value)} placeholder={translate('portal', 'pc_ph_name')} />
                             {editForm.errors.name && <span className="field-error">{editForm.errors.name}</span>}
                         </label>
                         {parent_options.length > 0 && (
@@ -279,7 +311,7 @@ export default function PlaceCodesHub({
                                 {translate('portal', 'pc_fld_parent')}
                                 <select value={editForm.data.parent_id} onChange={(e) => editForm.setData('parent_id', e.target.value)}>
                                     {parent_options.map((option) => (
-                                        <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
+                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
                                     ))}
                                 </select>
                             </label>
@@ -290,7 +322,7 @@ export default function PlaceCodesHub({
                                 <select value={editForm.data.base_place_id} onChange={(e) => editForm.setData('base_place_id', e.target.value)}>
                                     <option value="">—</option>
                                     {editRow.base_options?.map((option) => (
-                                        <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
+                                        <option key={option.id} value={option.id}>{displayPlace(option.name)} ({displayPlace(option.code)})</option>
                                     ))}
                                 </select>
                                 {editForm.errors.base_place_id && <span className="field-error">{editForm.errors.base_place_id}</span>}

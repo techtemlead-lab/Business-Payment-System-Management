@@ -101,6 +101,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/unlink-staff', [CommandController::class, 'unlinkStaffRole']);
     Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
+    Route::delete('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy']);
     Route::post('/commands/branches', [BranchController::class, 'store']);
     Route::patch('/commands/branches/{branch}', [BranchController::class, 'update']);
     Route::post('/commands/branches/{branch}/staff', [BranchController::class, 'assignStaff']);

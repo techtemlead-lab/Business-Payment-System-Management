@@ -85,6 +85,7 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::get('/place-codes', [PlaceCodeController::class, 'index'])->name('place-codes.index');
     Route::post('/place-codes', [PlaceCodeController::class, 'store'])->name('place-codes.store');
     Route::patch('/place-codes/{placeCode}', [PlaceCodeController::class, 'update'])->name('place-codes.update');
+    Route::delete('/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy'])->name('place-codes.destroy');
     Route::get('/place-codes/children', [PlaceCodeController::class, 'children'])->name('place-codes.children');
     Route::post('/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->name('identity.bdris');
     Route::get('/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->name('identity.place-preview');

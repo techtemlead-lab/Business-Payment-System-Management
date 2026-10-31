@@ -718,19 +718,23 @@ class WorkspaceController extends Controller
             $data['divisions'] = PlaceCode::query()
                 ->where('level', PlaceCode::LevelDivision)
                 ->where('is_active', true)
+                ->whereNotNull('code')
                 ->orderBy('sort_order')
                 ->orderBy('code')
+                ->get(['id', 'code', 'name', 'level', 'is_active'])
+                ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
                 ->pluck('name')
+                ->values()
                 ->all();
-            if ($data['divisions'] === []) {
-                $data['divisions'] = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
-            }
             $data['place_codes'] = PlaceCode::query()
                 ->whereIn('level', PlaceCode::AssignmentLevels)
                 ->where('is_active', true)
+                ->whereNotNull('code')
                 ->orderBy('sort_order')
                 ->orderBy('code')
-                ->get(['id', 'code', 'name', 'level', 'parent_id']);
+                ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
+                ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
+                ->values();
             $data['dealers_list'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district', 'division']);
         }
         if ($section === 'place-codes') {
@@ -978,9 +982,12 @@ class WorkspaceController extends Controller
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
+            ->whereNotNull('code')
             ->orderBy('sort_order')
             ->orderBy('code')
-            ->get(['id', 'code', 'name', 'level', 'parent_id']);
+            ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
+            ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
+            ->values();
 
         return Inertia::render('AccountCreate', [
             'intent' => $intent,

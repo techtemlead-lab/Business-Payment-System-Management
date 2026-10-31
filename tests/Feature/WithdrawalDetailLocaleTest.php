@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Domain\Payouts\ManualPayoutService;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,7 +16,7 @@ class WithdrawalDetailLocaleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
         config(['madina.financial_activation' => false]);
     }
 

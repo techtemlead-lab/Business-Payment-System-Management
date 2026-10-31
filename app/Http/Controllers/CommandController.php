@@ -1069,6 +1069,9 @@ class CommandController extends Controller
             if (! $place) {
                 throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
             }
+            if (! $place->isReadyForAssignment()) {
+                throw ValidationException::withMessages(['place_code_id' => __('portal.err_pc_placeholder_assignment')]);
+            }
             $path = $place->loadMissing('parent.parent.parent')->pathNames();
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
                 if ($field === $d['level']) {
@@ -1084,7 +1087,7 @@ class CommandController extends Controller
                 }
             }
             foreach ($path as $field => $value) {
-                if (trim((string) $value) === '') {
+                if (trim((string) $value) === '' || PlaceCode::isPlaceholderLabel($value)) {
                     throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
                 }
                 $d[$field] = $value;

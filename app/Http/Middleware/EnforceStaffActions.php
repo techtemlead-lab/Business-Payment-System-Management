@@ -134,7 +134,11 @@ class EnforceStaffActions
             },
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
-            'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
+            'PlaceCodeController' => [['accounts'], match ($method) {
+                'store' => 'create',
+                'destroy' => 'edit',
+                default => 'edit',
+            }],
             'BranchController' => match ($method) {
                 'index', 'deliveryPoints' => [['inventory', 'accounts'], 'view'],
                 'select' => [['inventory', 'accounts', 'orders'], 'view'],

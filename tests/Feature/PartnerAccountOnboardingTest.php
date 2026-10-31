@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -19,7 +18,7 @@ class PartnerAccountOnboardingTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
         config(['madina.sms.driver' => 'array', 'madina.sms.sent' => []]);
     }
 

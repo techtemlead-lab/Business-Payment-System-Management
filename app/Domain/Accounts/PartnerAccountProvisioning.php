@@ -77,6 +77,9 @@ final class PartnerAccountProvisioning
         if (! $place) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
         }
+        if (! $place->isReadyForAssignment()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_pc_placeholder_assignment')]);
+        }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_level')]);
         }
@@ -264,6 +267,9 @@ final class PartnerAccountProvisioning
         if (! $place) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
         }
+        if (! $place->isReadyForAssignment()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_pc_placeholder_assignment')]);
+        }
         if ($partner->role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_level')]);
         }
@@ -380,6 +386,9 @@ final class PartnerAccountProvisioning
         $place = PlaceCode::findByCode($code);
         if (! $place) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_unknown')]);
+        }
+        if (! $place->isReadyForAssignment()) {
+            throw ValidationException::withMessages(['place_code' => __('portal.err_pc_placeholder_assignment')]);
         }
         if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
             throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_preview')]);

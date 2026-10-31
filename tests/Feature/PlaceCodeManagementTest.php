@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\PlaceCode;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -17,7 +16,7 @@ class PlaceCodeManagementTest extends TestCase
     {
         parent::setUp();
         $this->withoutVite();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
     }
 
     public function test_owner_can_open_code_management_submodules_and_search_districts(): void
