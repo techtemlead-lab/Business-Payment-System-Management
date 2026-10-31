@@ -613,6 +613,71 @@ Questions about these terms, partnership rules or platform operations:
         return $value;
     }
 
+    /**
+     * FAQ items for the public /faq page. Uses Website CMS entries when staff
+     * customized them; Bangla falls back to translated defaults until then.
+     *
+     * @param  array<string, mixed>|null  $customization
+     * @return list<array{question: string, answer: string}>
+     */
+    public static function faqItemsForDisplay(?array $customization = null): array
+    {
+        $all = $customization ?? self::all();
+        $defaults = self::defaults()['faq_items'];
+        $items = $all['faq_items'] ?? [];
+        if (! is_array($items) || $items === []) {
+            $items = $defaults;
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $question = trim((string) ($item['question'] ?? ''));
+            $answer = trim((string) ($item['answer'] ?? ''));
+            if ($question === '' && $answer === '') {
+                continue;
+            }
+            $normalized[] = ['question' => $question, 'answer' => $answer];
+        }
+        if ($normalized === []) {
+            $normalized = array_map(
+                static fn (array $item): array => [
+                    'question' => trim((string) ($item['question'] ?? '')),
+                    'answer' => trim((string) ($item['answer'] ?? '')),
+                ],
+                $defaults,
+            );
+        }
+
+        $matchesDefault = count($normalized) === count($defaults);
+        if ($matchesDefault) {
+            foreach ($normalized as $idx => $item) {
+                $defaultItem = $defaults[$idx] ?? ['question' => '', 'answer' => ''];
+                if ($item['question'] !== trim((string) ($defaultItem['question'] ?? ''))
+                    || $item['answer'] !== trim((string) ($defaultItem['answer'] ?? ''))) {
+                    $matchesDefault = false;
+                    break;
+                }
+            }
+        }
+
+        if (app()->getLocale() === 'bn' && $matchesDefault) {
+            $localized = [];
+            foreach (range(1, count($defaults)) as $i) {
+                $localized[] = [
+                    'question' => (string) __('site.faq_item'.$i.'_question'),
+                    'answer' => (string) __('site.faq_item'.$i.'_answer'),
+                ];
+            }
+
+            return $localized;
+        }
+
+        return $normalized;
+    }
+
     public static function forgetCache(): void
     {
         self::$requestMemo = null;
