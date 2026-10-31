@@ -347,7 +347,7 @@ export function buildStaffDomainGroups(input: {
 }): StaffDomainGroup[] {
     const navigation = staffNavigation(input.staffAvailable);
 
-    return [
+    const groups: StaffDomainGroup[] = [
         {
             id: 'company',
             labelKey: input.ownerPortal ? 'nav_management_section' : 'nav_company_section',
@@ -363,7 +363,9 @@ export function buildStaffDomainGroups(input: {
             labelKey: 'nav_subdealer_section',
             mothers: navigation.subDealers,
         },
-    ].filter((group) => group.mothers.length > 0);
+    ];
+
+    return groups.filter((group) => group.mothers.length > 0);
 }
 
 export function buildDomainMothers(input: {
