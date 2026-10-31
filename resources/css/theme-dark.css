@@ -278,7 +278,8 @@ html[data-theme="dark"] .ref-page-title,
 html[data-theme="dark"] .ref-directory-heading h1,
 html[data-theme="dark"] .ref-featured-products h2,
 html[data-theme="dark"] .ref-featured-categories h2,
-html[data-theme="dark"] .ref-catalog-page h1 {
+html[data-theme="dark"] .ref-catalog-page h1,
+html[data-theme="dark"] .ref-empty h2 {
     color: #f3f7fb !important;
 }
 
@@ -287,7 +288,9 @@ html[data-theme="dark"] .ref-company-paths p,
 html[data-theme="dark"] .ref-featured-products p,
 html[data-theme="dark"] .ref-catalog-page p,
 html[data-theme="dark"] .ref-filter-sidebar label,
-html[data-theme="dark"] .ref-filter-sidebar legend {
+html[data-theme="dark"] .ref-filter-sidebar legend,
+html[data-theme="dark"] .ref-empty p,
+html[data-theme="dark"] .ref-empty > i {
     color: #9aa8b8 !important;
 }
 
