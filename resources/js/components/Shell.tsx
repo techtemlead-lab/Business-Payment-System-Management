@@ -300,6 +300,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 className={active ? 'selected' : ''}
                 href={sectionHref(base, item)}
                 key={item}
+                prefetch
                 onClick={() => {
                     if (staff) {
                         writeDomainPin(currentDomain);
