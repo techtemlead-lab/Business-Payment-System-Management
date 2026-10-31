@@ -510,7 +510,7 @@ class CommandController extends Controller
             default => __('portal.flash_stock_recorded'),
         };
 
-        return back()->with('success', $flash);
+        return redirect('/inventory')->with('success', $flash);
     }
 
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse

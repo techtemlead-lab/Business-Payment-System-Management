@@ -477,6 +477,7 @@ return [
     'stock_reason_code_unofficial_out' => 'অননুমোদিত আউট',
     'stock_reason_code_expired' => 'মেয়াদোত্তীর্ণ স্টক',
     'stock_reason_code_transfer_out' => 'ট্রান্সফার আউট',
+    'err_stock_expiry_past' => 'মেয়াদোত্তীর্ণের তারিখ অতীতের হতে পারে না।',
     'err_stock_reason_required' => 'স্টকের কারণ লিখুন।',
     'err_stock_reason_code' => 'এই :kind মুভমেন্টের জন্য বৈধ কারণ কোড বেছে নিন।',
     'flash_stock_in_recorded' => 'পণ্য ইন রেকর্ড হয়েছে।',

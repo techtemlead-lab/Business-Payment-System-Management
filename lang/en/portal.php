@@ -477,6 +477,7 @@ return [
     'stock_reason_code_unofficial_out' => 'Unofficial out',
     'stock_reason_code_expired' => 'Expired stock',
     'stock_reason_code_transfer_out' => 'Transfer out',
+    'err_stock_expiry_past' => 'Expiry date cannot be in the past.',
     'err_stock_reason_required' => 'Enter a stock reason.',
     'err_stock_reason_code' => 'Choose a valid reason code for this :kind movement.',
     'flash_stock_in_recorded' => 'Product In recorded.',
