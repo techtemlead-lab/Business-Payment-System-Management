@@ -83,6 +83,13 @@ function PolicyEditor({onDone}:{onDone:()=>void}){const translate=useT();const f
 export default function Portal({section,data:d,filters}:{section:string,data:Row,filters:Row}){
  const translate=useT();const {auth,financeActive,staffActions,withdrawalMinimum,staffRoles,portalBase:base,portal,securityControls,flash,collectionAccounts:sharedCollectionAccounts=[]}=usePage<any>().props;const u=auth.user;const caps:string[]=auth.capabilities;const staff=portal==='manage'||portal==='sadmin';const[modal,setModal]=useState<string|null>(null);const[selected,setSelected]=useState<Row>({});const security=securityControls||{};const otp=security.partner_login_otp||{};const totp=security.totp||{};
  const open=(name:string,row:Row={})=>{setSelected(row);setModal(name)}; const close=()=>setModal(null);
+ useEffect(()=>{
+  if(section!=='inventory'||typeof window==='undefined')return;
+  const actionParam=new URLSearchParams(window.location.search).get('action');
+  if(actionParam==='stock_in'||actionParam==='stock_out'){
+   open(actionParam);
+  }
+ },[section]);
  const stats=d.stats??{}; const action=section==='overview'?<Link className="button dark" href={staff?(base+(caps.includes('orders')||caps.includes('finance')?'/orders':caps.includes('content')?'/content':'/profile')):(base+'/purchase')}>{staff?(caps.includes('orders')||caps.includes('finance')?translate('portal','manage_orders'):caps.includes('content')?translate('portal','manage_website'):translate('portal','view_profile')):translate('portal','new_purchase_request')}<ArrowUpRight size={17}/></Link>:(!staff&&(section==='orders'||section==='deliveries'||section==='catalog'))?<Link className="button dark" href={`${base}/purchase`}><Plus size={17}/>{translate('portal','new_purchase_request')}</Link>:section==='accounts'&&(staffActions?.accounts?.create??true)?<Link className="button dark" href="/accounts/create?intent=dealer"><Plus size={17}/>{translate('portal','acct_heading')}</Link>:undefined;
  const ordersEmpty=section==='dues'?{title:translate('portal','empty_dues_title'),body:translate('portal','empty_dues_body')}:section==='deliveries'?{title:translate('portal','empty_deliveries_title'),body:translate('portal','empty_deliveries_body')}:{title:translate('portal','empty_orders_title'),body:translate('portal','empty_orders_body')};
  return <Shell section={section} action={action}><Head title={label(section,translate)}/>

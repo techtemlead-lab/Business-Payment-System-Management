@@ -19,15 +19,23 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .nav-mother-toggle .nav-chevron{margin-left:auto;opacity:.75;transition:transform .18s ease;flex-shrink:0}
 .app-shell .nav-mother.is-open>.nav-mother-toggle .nav-chevron{transform:rotate(180deg)}
 .app-shell .nav-mother-body{display:flex;flex-direction:column;padding:2px 0 6px 4px;border-left:1px solid #ffffff22;margin:0 0 4px 10px}
-.app-shell .nav-group a,.app-shell .nav-mother-body>a{color:white;padding:9px 10px;font-size:12px;border-radius:6px;margin:2px 0;display:flex;align-items:center;gap:10px;position:relative}
-.app-shell .nav-group a:hover,.app-shell .nav-mother-body>a:hover{background:#ffffff1a}
-.app-shell .nav-group a.selected,.app-shell .nav-mother-body>a.selected{background:white;color:#2e3192}
-.app-shell .nav-group a.selected i,.app-shell .nav-mother-body>a.selected i{background:#ef4a23;position:absolute;right:10px;width:4px;height:4px;border-radius:50%}
+.app-shell .nav-section{margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid #ffffff12}
+.app-shell .nav-section:last-child{border-bottom:0;margin-bottom:4px;padding-bottom:0}
+.app-shell .nav-section-label{display:flex;align-items:center;gap:8px;padding:2px 10px 8px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9aa3d8}
+.app-shell .nav-section.has-active>.nav-section-label{color:#e8ebff}
+.app-shell .nav-section-badge{margin-left:auto}
+.app-shell .nav-section-body{display:flex;flex-direction:column;gap:1px}
+.app-shell .nav-group a,.app-shell .nav-mother-body>a,.app-shell .nav-section-body>a{color:white;padding:9px 10px;font-size:12.5px;font-weight:500;border-radius:8px;margin:1px 0;display:flex;align-items:center;gap:10px;position:relative;letter-spacing:.01em}
+.app-shell .nav-group a:hover,.app-shell .nav-mother-body>a:hover,.app-shell .nav-section-body>a:hover{background:#ffffff1a}
+.app-shell .nav-group a.selected,.app-shell .nav-mother-body>a.selected,.app-shell .nav-section-body>a.selected{background:white;color:#2e3192;font-weight:650}
+.app-shell .nav-group a.selected i,.app-shell .nav-mother-body>a.selected i,.app-shell .nav-section-body>a.selected i{background:#ef4a23;position:absolute;right:10px;width:4px;height:4px;border-radius:50%}
 .app-shell .nav-link-label{flex:1;min-width:0}
 .app-shell .nav-attention-badge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#ef4a23;color:#fff;font-size:10px;font-weight:700;line-height:18px;text-align:center;flex-shrink:0}
-.app-shell .nav-group a.selected .nav-attention-badge,.app-shell .nav-mother-body>a.selected .nav-attention-badge{background:#ef4a23;color:#fff}
+.app-shell .nav-group a.selected .nav-attention-badge,.app-shell .nav-mother-body>a.selected .nav-attention-badge,.app-shell .nav-section-body>a.selected .nav-attention-badge{background:#ef4a23;color:#fff}
 .app-shell .nav-mother-badge{margin-left:auto}
 .app-shell .nav-mother-toggle .nav-mother-badge+.nav-chevron{margin-left:0}
+.app-shell .sidebar.sidebar-premium{padding:18px 14px}
+.app-shell .sidebar.sidebar-premium .sidebar-nav-container{padding-right:2px}
 .app-shell .sidebar-menu-search{display:flex;align-items:center;gap:8px;margin:0 2px 12px;padding:8px 10px;border-radius:8px;background:#ffffff12;border:1px solid #ffffff18;color:#d8defd}
 .app-shell .sidebar-menu-search input{flex:1;min-width:0;border:0;background:transparent;color:#fff;font:inherit;font-size:12px;outline:none}
 .app-shell .sidebar-menu-search input::placeholder{color:#a8b0d8}
@@ -204,9 +212,10 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .owner-shell .workspace{margin-left:256px}
 .owner-shell .workspace-header{background:rgba(255,253,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e8e2d6;max-width:none;height:78px;padding:0 28px}
 .owner-shell .workspace-main{max-width:1600px;padding:28px}
-.owner-shell .nav-group a.selected,.owner-shell .nav-mother-body>a.selected{background:#f8f1e7;color:#0b1f33}
-.owner-shell .nav-group a.selected i,.owner-shell .nav-mother-body>a.selected i{background:#c9a227}
-.owner-shell .sidebar-domain-label{color:#d4c39a}
+.owner-shell .nav-group a.selected,.owner-shell .nav-mother-body>a.selected,.owner-shell .nav-section-body>a.selected{background:#f8f1e7;color:#0b1f33}
+.owner-shell .nav-group a.selected i,.owner-shell .nav-mother-body>a.selected i,.owner-shell .nav-section-body>a.selected i{background:#c9a227}
+.owner-shell .sidebar-domain-label,.owner-shell .nav-section-label{color:#d4c39a}
+.owner-shell .nav-section.has-active>.nav-section-label{color:#f3ead6}
 .owner-shell .nav-mother-toggle{color:#f3ead6}
 .owner-shell .nav-mother.has-active>.nav-mother-toggle{background:#ffffff14}
 .owner-shell .button.dark{background:#0b1f33;border-color:#0b1f33}
@@ -216,8 +225,8 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
 .dealer-shell .page-heading .eyebrow{color:#2e3192}
 .subdealer-shell .page-heading .eyebrow{color:#1f4d3a}
 .subdealer-shell .sidebar{background:linear-gradient(180deg,#1f4d3a 0%,#275c46 100%)}
-.subdealer-shell .nav-group a.selected,.subdealer-shell .nav-mother-body>a.selected{color:#1f4d3a}
-.subdealer-shell .sidebar-domain-label{color:#b7e0c8}
+.subdealer-shell .nav-group a.selected,.subdealer-shell .nav-mother-body>a.selected,.subdealer-shell .nav-section-body>a.selected{color:#1f4d3a}
+.subdealer-shell .sidebar-domain-label,.subdealer-shell .nav-section-label{color:#b7e0c8}
 .subdealer-shell .button.dark{background:#1f4d3a;border-color:#1f4d3a}
 .subdealer-shell .text-link{color:#1f4d3a}
 .dealer-shell .sidebar{background:linear-gradient(180deg,#2e3192 0%,#252878 100%)}
@@ -287,7 +296,8 @@ html.madina-locale-switching-active body>:not(.madina-locale-switching){pointer-
   .app-shell.company-shell .workspace-menu-button,
   .app-shell.dealer-shell .workspace-menu-button,
   .app-shell.subdealer-shell .workspace-menu-button{display:flex}
-  .app-shell .sidebar-domain-switch{display:none}
+  /* Keep staff domain tabs visible in the mobile drawer (bottom nav still offers quick switch). */
+  .app-shell .sidebar-domain-switch{display:flex}
   .domain-rail{display:none}
 }
 
