@@ -113,9 +113,8 @@ class PublicWebsiteTest extends TestCase
         $res = $this->get('/contact');
         $res->assertOk();
         $res->assertSee('Office &amp; Healthcare Center Location', false);
-        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=', false);
-        $res->assertSee(rawurlencode('Thana Road, Pirganj 5470, Rangpur, Bangladesh'), false);
-        $res->assertSee('maps.google.com/maps?q=', false);
+        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=25.7701%2C88.824', false);
+        $res->assertSee('maps.google.com/maps?q=25.7701%2C88.824', false);
         $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
         $res->assertDontSee('openstreetmap.org', false);
         $res->assertDontSee('23.914')->assertDontSee('contact@madinanatural.com');
