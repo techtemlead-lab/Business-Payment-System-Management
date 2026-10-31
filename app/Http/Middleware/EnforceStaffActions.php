@@ -141,6 +141,20 @@ class EnforceStaffActions
                 'assignStaff', 'removeStaff' => [['inventory', 'accounts'], 'edit'],
                 default => [['inventory', 'accounts'], $method === 'store' ? 'create' : 'edit'],
             },
+            'ProductCategoryController' => match ($method) {
+                'index' => [['catalog', 'pricing', 'inventory'], 'view'],
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
+            },
+            'ProductSubcategoryController' => match ($method) {
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
+            },
+            'ProductUnitController' => match ($method) {
+                'index' => [['catalog', 'pricing', 'inventory'], 'view'],
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
+            },
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,
         };

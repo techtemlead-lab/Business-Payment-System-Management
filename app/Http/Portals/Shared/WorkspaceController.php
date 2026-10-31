@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Accounts\PartnerWalletStatement;
+use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -173,10 +174,15 @@ class WorkspaceController extends Controller
                 return $base;
             });
             if (in_array($section, ['catalog', 'purchase'], true)) {
+                $taxonomy = app(CatalogTaxonomy::class);
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
                 $data['sub_categories'] = SiteCustomization::getConfiguredSubCategories();
-                $data['catalog_categories'] = CatalogCms::categoryOptions();
-                $data['catalog_units'] = CatalogCms::unitOptions();
+                $data['catalog_categories'] = $staff
+                    ? $taxonomy->categoriesForEditors(activeOnly: false)
+                    : CatalogCms::categoryOptions();
+                $data['catalog_units'] = $staff
+                    ? $taxonomy->unitsForEditors(activeOnly: false)
+                    : CatalogCms::unitOptions();
                 $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();

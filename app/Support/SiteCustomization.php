@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Catalog\CatalogTaxonomy;
 use App\Models\Product;
 use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
@@ -1400,12 +1401,19 @@ class SiteCustomization
     }
 
     /**
-     * Active catalog category names, reusing the public products cache when warm.
+     * Active catalog category names from CMS tables (source of truth).
+     * Falls back to the public products cache / product strings only when CMS has no rows
+     * (migrate-friendly fallback for public nav chips).
      *
      * @return list<string>
      */
     private static function catalogCategoryNames(): array
     {
+        $cms = app(CatalogTaxonomy::class)->activeCategoryNames();
+        if ($cms !== []) {
+            return $cms;
+        }
+
         $cached = Cache::get('public:product_categories:v2');
         if (is_array($cached)) {
             return array_values(array_filter(array_map(
@@ -1433,29 +1441,38 @@ class SiteCustomization
         return array_values($cats);
     }
 
+    /**
+     * Category names for product editors and filters.
+     * CMS `product_categories` is the source of truth; empty CMS yields an empty list
+     * (no hardcoded defaults).
+     *
+     * @return list<string>
+     */
     public static function getConfiguredCategoryNames(): array
     {
+        $cms = app(CatalogTaxonomy::class)->activeCategoryNames();
+        if ($cms === []) {
+            return [];
+        }
+
         $featured = array_column(self::getFeaturedCategories(), 'name');
         $nav = self::getNavCategories();
-        $existing = Product::orderBy('category')->distinct()->pluck('category')->toArray();
-        $all = array_values(array_unique(array_filter(array_merge($featured, $nav, $existing))));
+        $all = array_values(array_unique(array_filter(array_merge($cms, $featured, $nav))));
         natcasesort($all);
 
         return array_values($all);
     }
 
+    /**
+     * Subcategory names for product editors.
+     * CMS `product_subcategories` is the source of truth. Hardcoded dosage-form defaults
+     * are no longer used. Empty CMS yields an empty list.
+     *
+     * @return list<string>
+     */
     public static function getConfiguredSubCategories(?string $category = null): array
     {
-        $defaults = ['Tablet', 'Capsule', 'Syrup', 'Drop', 'Ointment', 'Oil', 'Powder', 'Cream', 'Tonic', 'Gel'];
-        $query = Product::query()->whereNotNull('sub_category')->where('sub_category', '!=', '');
-        if ($category) {
-            $query->where('category', $category);
-        }
-        $existing = $query->distinct()->pluck('sub_category')->toArray();
-        $all = array_values(array_unique(array_filter(array_merge($defaults, $existing))));
-        natcasesort($all);
-
-        return array_values($all);
+        return app(CatalogTaxonomy::class)->activeSubcategoryNames($category);
     }
 
     public static function getFeaturedProducts(): array

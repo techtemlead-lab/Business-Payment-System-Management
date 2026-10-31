@@ -16,6 +16,9 @@ use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
+use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductSubcategoryController;
+use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
 use App\Http\Middleware\EnsureStaffPortalHost;
@@ -40,6 +43,14 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
         'capabilities' => $request->user()->capabilities(),
     ]]))->name('me');
     Route::get('/catalog', [CatalogController::class, 'index'])->name('catalog.index');
+    Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+    Route::post('/product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+    Route::patch('/product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+    Route::post('/product-subcategories', [ProductSubcategoryController::class, 'store'])->name('product-subcategories.store');
+    Route::patch('/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'update'])->name('product-subcategories.update');
+    Route::get('/product-units', [ProductUnitController::class, 'index'])->name('product-units.index');
+    Route::post('/product-units', [ProductUnitController::class, 'store'])->name('product-units.store');
+    Route::patch('/product-units/{productUnit}', [ProductUnitController::class, 'update'])->name('product-units.update');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
