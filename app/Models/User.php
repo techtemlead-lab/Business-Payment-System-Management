@@ -142,7 +142,9 @@ class User extends Authenticatable implements HasLocalePreference
         return [
             ...$this->only(['id', 'name', 'email', 'phone', 'role', 'dealer_code', 'district', 'division', 'status', 'linked_staff_role', 'active_branch_id']),
             'shop_name' => is_string($profile['shop_name'] ?? null) ? $profile['shop_name'] : null,
-            'photo_url' => is_string($profile['photo_url'] ?? null) ? $profile['photo_url'] : null,
+            'photo_url' => is_string($profile['photo_url'] ?? null)
+                ? $profile['photo_url']
+                : (is_string($profile['avatar_url'] ?? null) ? $profile['avatar_url'] : null),
             'has_linked_staff' => $this->hasLinkedStaffAccess(),
             'workspace_mode' => $this->usingStaffWorkspace() ? 'staff' : 'partner',
             'permissions' => $this->capabilities(),
