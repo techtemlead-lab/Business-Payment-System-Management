@@ -34,6 +34,7 @@ export interface EmployeeHubProps {
 }
 
 export default function EmployeesHub({ employees, availablePermissions, stats, filters }: EmployeeHubProps) {
+    const showBranch = usePage<any>().props.workspaceBranches?.view === 'all';
     const translate = useT();
     const {auth} = usePage<any>().props;
     const canManageStaff = auth.user.role === 'super_admin';
@@ -253,6 +254,11 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             title: translate('portal', 'col_status'),
                             render: r => <Badge status={r.status} />
                         },
+                        ...(showBranch ? [{
+                            key: 'branch',
+                            title: translate('portal', 'col_branch'),
+                            render: (r: Row) => r.branch_name || '—',
+                        }] : []),
                         {
                             key: 'permissions',
                             title: translate('portal', 'emp_col_capabilities'),

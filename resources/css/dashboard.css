@@ -515,6 +515,9 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
 .app-shell .stock-register .button.small{min-height:22px;height:22px;padding:0 7px;font-size:11px;line-height:20px}
 .app-shell .stock-register .stock-pause{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .app-shell .stock-register .stock-resume{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+.app-shell .branches-register td,.app-shell .branches-register th{white-space:normal}
+.app-shell .branches-register .inline-actions{flex-wrap:wrap}
+.app-shell .branches-register .branch-delete{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .account-actions.dense-actions{gap:10px;margin-bottom:18px}
 .account-actions.dense-actions .account-action-card{padding:14px 12px;min-height:84px;gap:10px}
 .account-actions.dense-actions .account-action-card h2{font-size:13px;margin:0 0 4px}

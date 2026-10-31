@@ -22,6 +22,8 @@ type StockProduct = {
     stock?: number;
     branch_stock?: number;
     company_stock?: number;
+    branch_name?: string | null;
+    row_key?: string;
     low_stock_at?: number;
     is_stock_paused?: boolean;
 };
@@ -77,11 +79,13 @@ export default function StockOnHand({
     branchName,
     branchCount,
     canToggle,
+    showBranch = false,
 }: {
     products: StockProduct[];
     branchName: string;
     branchCount: number;
     canToggle: boolean;
+    showBranch?: boolean;
 }) {
     const translate = useT();
     const [query, setQuery] = useState('');
@@ -206,6 +210,7 @@ export default function StockOnHand({
                         <thead>
                             <tr>
                                 <th>{translate('portal', 'col_product')}</th>
+                                {showBranch && <th>{translate('portal', 'col_branch')}</th>}
                                 <th>{translate('portal', 'col_sku')}</th>
                                 <th>{translate('portal', 'col_category')}</th>
                                 <th>{translate('portal', 'col_subcategory')}</th>
@@ -226,8 +231,9 @@ export default function StockOnHand({
                                 const paused = Boolean(product.is_stock_paused);
 
                                 return (
-                                    <tr key={product.id}>
+                                    <tr key={product.row_key ?? product.id}>
                                         <td>{displayName(product)}</td>
+                                        {showBranch && <td>{product.branch_name || '—'}</td>}
                                         <td>{product.sku}</td>
                                         <td>{product.category || '—'}</td>
                                         <td>{product.sub_category || '—'}</td>

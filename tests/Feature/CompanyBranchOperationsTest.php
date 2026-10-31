@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class CompanyBranchOperationsTest extends TestCase
@@ -201,5 +202,86 @@ class CompanyBranchOperationsTest extends TestCase
 
         $this->assertDatabaseHas('company_branches', ['code' => 'SYL-01', 'name' => 'Sylhet Hub']);
         $this->assertSame(0, BranchStaffAssignment::query()->whereHas('branch', fn ($q) => $q->where('code', 'SYL-01'))->count());
+    }
+
+    public function test_empty_branch_can_be_deleted_and_head_office_cannot(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $headOffice = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $empty = CompanyBranch::factory()->create(['code' => 'TMP-01', 'name' => 'Temporary Hub']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->from('/branches')
+            ->delete('/commands/branches/'.$headOffice->id)
+            ->assertRedirect('/branches')
+            ->assertSessionHasErrors('branch');
+        $this->assertModelExists($headOffice);
+
+        $this->from('/branches')
+            ->delete('/commands/branches/'.$empty->id)
+            ->assertRedirect('/branches')
+            ->assertSessionHas('success');
+        $this->assertModelMissing($empty);
+    }
+
+    public function test_branch_with_stock_history_cannot_be_deleted(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $branch = CompanyBranch::factory()->create(['code' => 'CTG-01', 'name' => 'Chattogram Hub']);
+        $product = Product::factory()->create(['stock' => 0]);
+        app(StockService::class)->adjust($owner, [
+            'product_id' => $product->id,
+            'quantity' => 3,
+            'reason' => 'Opening branch stock',
+            'reference' => (string) Str::uuid(),
+            'branch_id' => $branch->id,
+            'kind' => BranchOperations::KindProductIn,
+        ]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->from('/branches')
+            ->delete('/commands/branches/'.$branch->id)
+            ->assertRedirect('/branches')
+            ->assertSessionHasErrors('branch');
+        $this->assertModelExists($branch);
+    }
+
+    public function test_all_branches_view_lists_stock_with_a_branch_name(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create();
+        $headOffice = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $other = CompanyBranch::factory()->create(['code' => 'RAJ-01', 'name' => 'Rajshahi Hub']);
+        $product = Product::factory()->create([
+            'name' => 'Napa',
+            'sku' => 'NAPA-ALL',
+            'strength' => '100',
+            'stock' => 10,
+        ]);
+        BranchProductStock::query()->create([
+            'branch_id' => $headOffice->id,
+            'product_id' => $product->id,
+            'quantity' => 4,
+        ]);
+        BranchProductStock::query()->create([
+            'branch_id' => $other->id,
+            'product_id' => $product->id,
+            'quantity' => 6,
+        ]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->from('/inventory')
+            ->post('/commands/branches/view-all')
+            ->assertRedirect('/inventory')
+            ->assertSessionHas('success');
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/inventory')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('workspaceBranches.view', 'all')
+                ->where('data.branch_view', 'all')
+                ->where('data.active_branch.name', 'All branches')
+                ->where('data.products', function (mixed $products): bool {
+                    $rows = collect($products)->where('sku', 'NAPA-ALL');
+
+                    return $rows->count() === 2
+                        && $rows->pluck('branch_name')->sort()->values()->all() === ['Head Office · Pirganj', 'Rajshahi Hub'];
+                }));
     }
 }
