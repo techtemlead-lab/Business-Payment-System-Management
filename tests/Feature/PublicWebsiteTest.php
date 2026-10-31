@@ -113,10 +113,32 @@ class PublicWebsiteTest extends TestCase
         $res = $this->get('/contact');
         $res->assertOk();
         $res->assertSee('Office &amp; Healthcare Center Location', false);
-        $res->assertSee('openstreetmap.org/search?query=', false);
+        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=', false);
+        $res->assertSee(rawurlencode('Thana Road, Pirganj 5470, Rangpur, Bangladesh'), false);
+        $res->assertSee('maps.google.com/maps?q=', false);
         $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
+        $res->assertDontSee('openstreetmap.org', false);
         $res->assertDontSee('23.914')->assertDontSee('contact@madinanatural.com');
         $res->assertSee('Open Map Directions');
+    }
+
+    public function test_contact_map_directions_follow_cms_office_address_and_optional_coordinates(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'office_address' => 'Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka',
+                'map_latitude' => '23.914100',
+                'map_longitude' => '90.260200',
+            ],
+        ])->assertSessionHas('success');
+
+        $res = $this->get('/contact');
+        $res->assertOk();
+        $res->assertSee('Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka');
+        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=23.9141%2C90.2602', false);
+        $res->assertDontSee('openstreetmap.org', false);
+        $res->assertDontSee(rawurlencode('Thana Road, Pirganj 5470, Rangpur, Bangladesh'), false);
     }
 
     public function test_about_page_renders_structured_history_mission_vision_objectives(): void

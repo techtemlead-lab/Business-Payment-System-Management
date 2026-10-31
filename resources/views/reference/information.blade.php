@@ -219,7 +219,7 @@
             <strong>{{ $chrome('map_facility', $siteCustomization['map_facility'] ?? null) }}</strong>
             <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('office_address', $siteCustomization['office_address'] ?? null) }}</p>
         </div>
-        <a href="{{ $maps['directions_url'] ?? ('https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address'] ?? __('site.office_address'))) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+        <a href="{{ $maps['directions_url'] ?? ('https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($siteCustomization['office_address'] ?? __('site.office_address'))) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
             <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $chrome('map_directions_text', $siteCustomization['map_directions_text'] ?? null) }}
         </a>
     </div>

@@ -62,8 +62,14 @@ class PublicController extends Controller
         $siteCustomization = SiteCustomization::all();
         $maps = null;
         if ($needsMaps) {
-            $officeAddress = (string) ($siteCustomization['office_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh');
-            $maps = app(MapsPresentation::class)->forAddress($officeAddress);
+            $defaults = SiteCustomization::defaults();
+            $officeAddress = trim((string) ($siteCustomization['office_address'] ?? ''));
+            if ($officeAddress === '') {
+                $officeAddress = (string) ($defaults['office_address'] ?? '');
+            }
+            $latitude = $this->nullableMapCoordinate($siteCustomization['map_latitude'] ?? null);
+            $longitude = $this->nullableMapCoordinate($siteCustomization['map_longitude'] ?? null);
+            $maps = app(MapsPresentation::class)->forAddress($officeAddress, $latitude, $longitude);
         }
 
         $contentPages = $this->cachedContentPages();
@@ -506,5 +512,17 @@ class PublicController extends Controller
         $applications->submit($data);
 
         return redirect('/partnership')->with('success', __('portal.flash_partnership_received'));
+    }
+
+    private function nullableMapCoordinate(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        return (float) $value;
     }
 }
