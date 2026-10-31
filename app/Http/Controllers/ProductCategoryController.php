@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Http\Requests\Catalog\DestroyProductCategoryRequest;
 use App\Http\Requests\Catalog\StoreProductCategoryRequest;
 use App\Http\Requests\Catalog\UpdateProductCategoryRequest;
 use App\Models\ProductCategory;
@@ -42,6 +43,24 @@ class ProductCategoryController extends Controller
         }
 
         return back()->with('success', __('portal.flash_catalog_category_updated', ['name' => $category->name]));
+    }
+
+    public function destroy(DestroyProductCategoryRequest $request, ProductCategory $productCategory, CatalogTaxonomy $taxonomy): RedirectResponse|JsonResponse
+    {
+        $data = $request->validated();
+        $name = $productCategory->name;
+        $taxonomy->deleteCategory(
+            $productCategory,
+            $data['reason'],
+            $request->user()->id,
+            (bool) ($data['force'] ?? false),
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => ['deleted' => true, 'name' => $name]]);
+        }
+
+        return back()->with('success', __('portal.flash_catalog_category_deleted', ['name' => $name]));
     }
 
     private function permitRead(Request $request): void

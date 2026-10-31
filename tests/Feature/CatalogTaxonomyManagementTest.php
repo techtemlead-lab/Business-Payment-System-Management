@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
 use App\Models\ProductUnit;
@@ -203,5 +204,151 @@ class CatalogTaxonomyManagementTest extends TestCase
         $this->assertSame(['CMS Sub'], SiteCustomization::getConfiguredSubCategories());
         $this->assertSame(['CMS Sub'], SiteCustomization::getConfiguredSubCategories('CMS Source'));
         $this->assertSame([], SiteCustomization::getConfiguredSubCategories('Missing'));
+    }
+
+    public function test_staff_can_delete_unused_category_subcategory_and_unit(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $category = ProductCategory::factory()->create(['name' => 'Removable', 'slug' => 'removable']);
+        $subcategory = ProductSubcategory::factory()->create([
+            'product_category_id' => $category->id,
+            'name' => 'Removable Sub',
+            'slug' => 'removable-sub',
+        ]);
+        $unit = ProductUnit::factory()->create(['name' => 'Removable Unit', 'code' => 'removable-unit']);
+        $emptyCategory = ProductCategory::factory()->create(['name' => 'Empty Cat', 'slug' => 'empty-cat']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-subcategories/'.$subcategory->id, [
+            'reason' => 'Cleanup unused subcategory',
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('product_subcategories', ['id' => $subcategory->id]);
+        $this->assertDatabaseHas('audit_events', [
+            'actor_id' => $admin->id,
+            'action' => 'product_subcategory.deleted',
+            'subject' => (string) $subcategory->id,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+            'reason' => 'Cleanup unused category',
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('product_categories', ['id' => $category->id]);
+        $this->assertDatabaseHas('audit_events', [
+            'actor_id' => $admin->id,
+            'action' => 'product_category.deleted',
+            'subject' => (string) $category->id,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-units/'.$unit->id, [
+            'reason' => 'Cleanup unused unit',
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('product_units', ['id' => $unit->id]);
+        $this->assertDatabaseHas('audit_events', [
+            'actor_id' => $admin->id,
+            'action' => 'product_unit.deleted',
+            'subject' => (string) $unit->id,
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$emptyCategory->id, [
+            'reason' => 'Cleanup empty category',
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('product_categories', ['id' => $emptyCategory->id]);
+    }
+
+    public function test_category_delete_requires_force_when_empty_subcategories_exist(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $category = ProductCategory::factory()->create(['name' => 'Parent', 'slug' => 'parent-force']);
+        $subcategory = ProductSubcategory::factory()->create([
+            'product_category_id' => $category->id,
+            'name' => 'Child',
+            'slug' => 'child-force',
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+            'reason' => 'Trying without force',
+        ])->assertSessionHasErrors('category');
+        $this->assertDatabaseHas('product_categories', ['id' => $category->id]);
+        $this->assertDatabaseHas('product_subcategories', ['id' => $subcategory->id]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+            'reason' => 'Force remove empty children',
+            'force' => true,
+        ])->assertRedirect();
+        $this->assertDatabaseMissing('product_categories', ['id' => $category->id]);
+        $this->assertDatabaseMissing('product_subcategories', ['id' => $subcategory->id]);
+        $this->assertDatabaseHas('audit_events', [
+            'actor_id' => $admin->id,
+            'action' => 'product_subcategory.deleted',
+            'subject' => (string) $subcategory->id,
+        ]);
+    }
+
+    public function test_taxonomy_delete_is_blocked_when_products_reference_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $category = ProductCategory::factory()->create(['name' => 'In Use Cat', 'slug' => 'in-use-cat']);
+        $subcategory = ProductSubcategory::factory()->create([
+            'product_category_id' => $category->id,
+            'name' => 'In Use Sub',
+            'slug' => 'in-use-sub',
+        ]);
+        $unit = ProductUnit::factory()->create(['name' => 'In Use Unit', 'code' => 'in-use-unit']);
+        Product::factory()->withCatalog($subcategory, $unit)->create();
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-subcategories/'.$subcategory->id, [
+            'reason' => 'Should be blocked for subcategory',
+        ])->assertSessionHasErrors('subcategory');
+        $this->assertDatabaseHas('product_subcategories', ['id' => $subcategory->id]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-units/'.$unit->id, [
+            'reason' => 'Should be blocked for unit',
+        ])->assertSessionHasErrors('unit');
+        $this->assertDatabaseHas('product_units', ['id' => $unit->id]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+            'reason' => 'Should be blocked for category',
+            'force' => true,
+        ])->assertSessionHasErrors('category');
+        $this->assertDatabaseHas('product_categories', ['id' => $category->id]);
+        $this->assertDatabaseHas('product_subcategories', ['id' => $subcategory->id]);
+    }
+
+    public function test_taxonomy_delete_requires_reason_and_catalog_capability(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $support = User::factory()->create(['role' => 'support']);
+        $category = ProductCategory::factory()->create(['name' => 'Guard Cat', 'slug' => 'guard-cat']);
+        $unit = ProductUnit::factory()->create(['name' => 'Guard Unit', 'code' => 'guard-unit']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/product-categories/'.$category->id, [
+            'reason' => 'no',
+        ])->assertSessionHasErrors('reason');
+
+        $this->actingAs($support)->onPortal('manage')->delete('/commands/product-units/'.$unit->id, [
+            'reason' => 'Support cannot delete units',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('product_categories', ['id' => $category->id]);
+        $this->assertDatabaseHas('product_units', ['id' => $unit->id]);
+    }
+
+    public function test_backend_api_can_delete_unused_taxonomy(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $category = ProductCategory::factory()->create(['name' => 'API Delete Cat', 'slug' => 'api-delete-cat']);
+        $unit = ProductUnit::factory()->create(['name' => 'API Delete Unit', 'code' => 'api-delete-unit']);
+
+        $this->actingAs($admin)->deleteJson('/api/v1/product-units/'.$unit->id, [
+            'reason' => 'API unit cleanup',
+        ])->assertOk()
+            ->assertJsonPath('data.deleted', true);
+
+        $this->actingAs($admin)->deleteJson('/api/v1/product-categories/'.$category->id, [
+            'reason' => 'API category cleanup',
+        ])->assertOk()
+            ->assertJsonPath('data.deleted', true);
+
+        $this->assertDatabaseMissing('product_units', ['id' => $unit->id]);
+        $this->assertDatabaseMissing('product_categories', ['id' => $category->id]);
     }
 }

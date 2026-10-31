@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { FolderTree, Layers, Plus, Ruler } from 'lucide-react';
 import { Badge, Modal, Table, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -200,6 +200,43 @@ export default function CatalogTaxonomyHub({
         });
     };
 
+    const removeCategory = (row: CategoryRow) => {
+        const childCount = row.subcategories?.length || 0;
+        const promptLabel = childCount > 0
+            ? translate('portal', 'cms_remove_category_force_prompt', { name: row.name, count: String(childCount) })
+            : translate('portal', 'cms_remove_category_prompt', { name: row.name });
+        const reason = window.prompt(promptLabel);
+        if (reason === null || reason.trim().length < 5) {
+            return;
+        }
+        router.delete(`/commands/product-categories/${row.id}`, {
+            data: { reason: reason.trim(), force: childCount > 0 },
+            preserveScroll: true,
+        });
+    };
+
+    const removeSubcategory = (row: SubcategoryRow) => {
+        const reason = window.prompt(translate('portal', 'cms_remove_subcategory_prompt', { name: row.name }));
+        if (reason === null || reason.trim().length < 5) {
+            return;
+        }
+        router.delete(`/commands/product-subcategories/${row.id}`, {
+            data: { reason: reason.trim() },
+            preserveScroll: true,
+        });
+    };
+
+    const removeUnit = (row: UnitRow) => {
+        const reason = window.prompt(translate('portal', 'cms_remove_unit_prompt', { name: row.name }));
+        if (reason === null || reason.trim().length < 5) {
+            return;
+        }
+        router.delete(`/commands/product-units/${row.id}`, {
+            data: { reason: reason.trim() },
+            preserveScroll: true,
+        });
+    };
+
     return (
         <div data-tour="catalog-taxonomy-hub" style={{ display: 'grid', gap: 20 }}>
             <section className="panel" style={{ borderLeft: '4px solid #006837' }}>
@@ -271,6 +308,7 @@ export default function CatalogTaxonomyHub({
                                 <div className="inline-actions">
                                     <button type="button" className="text-link" onClick={() => openEditCategory(r)}>{translate('portal', 'cms_edit')}</button>
                                     <button type="button" className="text-link" onClick={() => openCreateSub(r.id)}>{translate('portal', 'cms_add_sub')}</button>
+                                    <button type="button" className="text-link" onClick={() => removeCategory(r)}>{translate('portal', 'cms_remove')}</button>
                                 </div>
                             ) : null,
                         },
@@ -317,7 +355,10 @@ export default function CatalogTaxonomyHub({
                             key: 'action',
                             title: '',
                             render: (r: any) => canManage ? (
-                                <button type="button" className="text-link" onClick={() => openEditSub(r)}>{translate('portal', 'cms_edit')}</button>
+                                <div className="inline-actions">
+                                    <button type="button" className="text-link" onClick={() => openEditSub(r)}>{translate('portal', 'cms_edit')}</button>
+                                    <button type="button" className="text-link" onClick={() => removeSubcategory(r)}>{translate('portal', 'cms_remove')}</button>
+                                </div>
                             ) : null,
                         },
                     ]}
@@ -359,7 +400,10 @@ export default function CatalogTaxonomyHub({
                             key: 'action',
                             title: '',
                             render: (r: UnitRow) => canManage ? (
-                                <button type="button" className="text-link" onClick={() => openEditUnit(r)}>{translate('portal', 'cms_edit')}</button>
+                                <div className="inline-actions">
+                                    <button type="button" className="text-link" onClick={() => openEditUnit(r)}>{translate('portal', 'cms_edit')}</button>
+                                    <button type="button" className="text-link" onClick={() => removeUnit(r)}>{translate('portal', 'cms_remove')}</button>
+                                </div>
                             ) : null,
                         },
                     ]}

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Catalog;
 
+use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductSubcategory;
 use App\Models\ProductUnit;
@@ -208,6 +209,117 @@ final class CatalogTaxonomy
 
             return $unit->fresh();
         }, 3);
+    }
+
+    /**
+     * Remove a category. Refuses when any product still references its subcategories.
+     * Refuses when child subcategories exist unless $force is true (then empty children are deleted too).
+     */
+    public function deleteCategory(ProductCategory $category, string $reason, ?int $actorId = null, bool $force = false): void
+    {
+        $reason = $this->requireDeletionReason($reason);
+
+        DB::transaction(function () use ($category, $reason, $actorId, $force): void {
+            $locked = ProductCategory::query()->whereKey($category->id)->lockForUpdate()->firstOrFail();
+            $subcategories = ProductSubcategory::query()
+                ->where('product_category_id', $locked->id)
+                ->lockForUpdate()
+                ->get();
+
+            $subcategoryIds = $subcategories->pluck('id')->all();
+            if ($subcategoryIds !== [] && Product::query()->whereIn('product_subcategory_id', $subcategoryIds)->exists()) {
+                throw ValidationException::withMessages([
+                    'category' => __('portal.err_catalog_category_has_products'),
+                ]);
+            }
+
+            if ($subcategories->isNotEmpty() && ! $force) {
+                throw ValidationException::withMessages([
+                    'category' => __('portal.err_catalog_category_has_subcategories'),
+                ]);
+            }
+
+            foreach ($subcategories as $subcategory) {
+                $subcategory->delete();
+                Audit::record($actorId, 'product_subcategory.deleted', (string) $subcategory->id, [
+                    'name' => $subcategory->name,
+                    'slug' => $subcategory->slug,
+                    'product_category_id' => $locked->id,
+                    'reason' => $reason,
+                    'via' => 'category.force_delete',
+                ]);
+            }
+
+            $locked->delete();
+            Audit::record($actorId, 'product_category.deleted', (string) $locked->id, [
+                'name' => $locked->name,
+                'slug' => $locked->slug,
+                'reason' => $reason,
+                'force' => $force,
+                'deleted_subcategory_count' => $subcategories->count(),
+            ]);
+        }, 3);
+    }
+
+    /**
+     * Remove a subcategory. Refuses when products still reference it.
+     */
+    public function deleteSubcategory(ProductSubcategory $subcategory, string $reason, ?int $actorId = null): void
+    {
+        $reason = $this->requireDeletionReason($reason);
+
+        DB::transaction(function () use ($subcategory, $reason, $actorId): void {
+            $locked = ProductSubcategory::query()->whereKey($subcategory->id)->lockForUpdate()->firstOrFail();
+            if (Product::query()->where('product_subcategory_id', $locked->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'subcategory' => __('portal.err_catalog_subcategory_in_use'),
+                ]);
+            }
+
+            $locked->delete();
+            Audit::record($actorId, 'product_subcategory.deleted', (string) $locked->id, [
+                'name' => $locked->name,
+                'slug' => $locked->slug,
+                'product_category_id' => $locked->product_category_id,
+                'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
+    /**
+     * Remove a unit. Refuses when products still reference it.
+     */
+    public function deleteUnit(ProductUnit $unit, string $reason, ?int $actorId = null): void
+    {
+        $reason = $this->requireDeletionReason($reason);
+
+        DB::transaction(function () use ($unit, $reason, $actorId): void {
+            $locked = ProductUnit::query()->whereKey($unit->id)->lockForUpdate()->firstOrFail();
+            if (Product::query()->where('product_unit_id', $locked->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'unit' => __('portal.err_catalog_unit_in_use'),
+                ]);
+            }
+
+            $locked->delete();
+            Audit::record($actorId, 'product_unit.deleted', (string) $locked->id, [
+                'name' => $locked->name,
+                'code' => $locked->code,
+                'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
+    private function requireDeletionReason(string $reason): string
+    {
+        $trimmed = trim($reason);
+        if (mb_strlen($trimmed) < 5) {
+            throw ValidationException::withMessages([
+                'reason' => __('portal.err_catalog_reason_required'),
+            ]);
+        }
+
+        return $trimmed;
     }
 
     /**

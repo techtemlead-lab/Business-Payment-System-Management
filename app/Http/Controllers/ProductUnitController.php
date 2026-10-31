@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Http\Requests\Catalog\DestroyProductUnitRequest;
 use App\Http\Requests\Catalog\StoreProductUnitRequest;
 use App\Http\Requests\Catalog\UpdateProductUnitRequest;
 use App\Models\ProductUnit;
@@ -42,6 +43,18 @@ class ProductUnitController extends Controller
         }
 
         return back()->with('success', __('portal.flash_catalog_unit_updated', ['name' => $unit->name]));
+    }
+
+    public function destroy(DestroyProductUnitRequest $request, ProductUnit $productUnit, CatalogTaxonomy $taxonomy): RedirectResponse|JsonResponse
+    {
+        $name = $productUnit->name;
+        $taxonomy->deleteUnit($productUnit, $request->validated('reason'), $request->user()->id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['data' => ['deleted' => true, 'name' => $name]]);
+        }
+
+        return back()->with('success', __('portal.flash_catalog_unit_deleted', ['name' => $name]));
     }
 
     private function permitRead(Request $request): void

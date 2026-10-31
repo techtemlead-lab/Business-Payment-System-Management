@@ -46,11 +46,14 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
     Route::post('/product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
     Route::patch('/product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+    Route::delete('/product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
     Route::post('/product-subcategories', [ProductSubcategoryController::class, 'store'])->name('product-subcategories.store');
     Route::patch('/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'update'])->name('product-subcategories.update');
+    Route::delete('/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'destroy'])->name('product-subcategories.destroy');
     Route::get('/product-units', [ProductUnitController::class, 'index'])->name('product-units.index');
     Route::post('/product-units', [ProductUnitController::class, 'store'])->name('product-units.store');
     Route::patch('/product-units/{productUnit}', [ProductUnitController::class, 'update'])->name('product-units.update');
+    Route::delete('/product-units/{productUnit}', [ProductUnitController::class, 'destroy'])->name('product-units.destroy');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');

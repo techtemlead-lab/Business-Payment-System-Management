@@ -62,10 +62,13 @@ return function (string $portal): void {
     Route::post('/commands/products/{product}/toggle-stock', [ProductRegistryController::class, 'toggleStock']);
     Route::post('/commands/product-categories', [ProductCategoryController::class, 'store']);
     Route::patch('/commands/product-categories/{productCategory}', [ProductCategoryController::class, 'update']);
+    Route::delete('/commands/product-categories/{productCategory}', [ProductCategoryController::class, 'destroy']);
     Route::post('/commands/product-subcategories', [ProductSubcategoryController::class, 'store']);
     Route::patch('/commands/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'update']);
+    Route::delete('/commands/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'destroy']);
     Route::post('/commands/product-units', [ProductUnitController::class, 'store']);
     Route::patch('/commands/product-units/{productUnit}', [ProductUnitController::class, 'update']);
+    Route::delete('/commands/product-units/{productUnit}', [ProductUnitController::class, 'destroy']);
     Route::post('/commands/stock', [CommandController::class, 'stock']);
     Route::post('/commands/policies', [CommandController::class, 'policy']);
     Route::post('/commands/content', [CommandController::class, 'content']);
