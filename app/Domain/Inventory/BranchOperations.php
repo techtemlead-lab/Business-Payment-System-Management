@@ -8,6 +8,7 @@ use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -329,10 +330,35 @@ final class BranchOperations
         return $actor->owner() || $actor->allows('accounts') || $actor->allows('inventory');
     }
 
+    public function preferredBranch(User $actor): ?CompanyBranch
+    {
+        $branches = $this->visibleBranches($actor);
+        if ($actor->active_branch_id) {
+            $saved = $branches->firstWhere('id', (int) $actor->active_branch_id);
+            if ($saved instanceof CompanyBranch) {
+                return $saved;
+            }
+        }
+
+        return $branches->first(fn (CompanyBranch $branch): bool => $branch->code === 'HO-PIRGANJ')
+            ?? $branches->first(fn (CompanyBranch $branch): bool => str_starts_with(mb_strtolower($branch->name), 'head office'))
+            ?? $branches->first();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
     public function branchesFor(User $actor): array
+    {
+        return $this->visibleBranches($actor)
+            ->map(fn (CompanyBranch $branch) => $branch->summary())
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, CompanyBranch>
+     */
+    private function visibleBranches(User $actor): Collection
     {
         $query = CompanyBranch::query()->orderBy('name');
         if (! $this->canManageAllBranches($actor) && ! $actor->owner()) {
@@ -340,7 +366,7 @@ final class BranchOperations
             $query->whereIn('id', $ids);
         }
 
-        return $query->get()->map(fn (CompanyBranch $branch) => $branch->summary())->all();
+        return $query->get();
     }
 
     /**
