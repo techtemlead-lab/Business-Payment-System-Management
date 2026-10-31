@@ -11,7 +11,18 @@
         </div>
         <h1>{{ __('site.partner_login_title') }}</h1>
         <p class="ref-auth-subtitle">{{ __('site.partner_login_subtitle') }}</p>
+        @if(\App\Support\PortalHost::sharedPreviewRoot())
+            <p class="ref-auth-subtitle">{{ __('site.preview_portal_note') }}</p>
+        @endif
         <div class="ref-partner-login-options" role="list">
+            <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('sadmin', '/login') }}">
+                <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
+                <span class="ref-partner-login-copy">
+                    <b>{{ __('site.owner_login') }}</b>
+                    <small>{{ __('site.owner_login_help') }}</small>
+                </span>
+                <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </a>
             <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
                 <span class="ref-partner-login-copy">

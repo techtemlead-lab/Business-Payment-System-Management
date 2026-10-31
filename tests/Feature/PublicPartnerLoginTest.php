@@ -15,13 +15,16 @@ class PublicPartnerLoginTest extends TestCase
         $this->onPortal('public')->get('/login')
             ->assertOk()
             ->assertSee('Partner Login')
+            ->assertSee('Owner Login')
             ->assertSee('Dealer Login')
             ->assertSee('Sub-dealer Login')
             ->assertSee('Staff Login')
+            ->assertSee(PortalHost::url('sadmin', '/login'), false)
             ->assertSee(PortalHost::url('dealer', '/login'), false)
             ->assertSee(PortalHost::url('subdealer', '/login'), false)
             ->assertSee(PortalHost::url('manage', '/login'), false)
-            ->assertDontSee('Account Login');
+            ->assertDontSee('Account Login')
+            ->assertDontSee('There is no separate supplier sign-in');
     }
 
     public function test_partner_login_alias_redirects_to_public_login_chooser(): void

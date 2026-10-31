@@ -39,18 +39,27 @@ class ProtectPrivateResponses
         if (Vite::isRunningHot()) {
             $viteDev = ' http://127.0.0.1:5173 http://localhost:5173 ws://127.0.0.1:5173 ws://localhost:5173';
         }
+        // upgrade-insecure-requests turns form-action 'self' into HTTPS. Artisan serve
+        // on the loopback preview cannot answer TLS, so keep that origin on HTTP.
+        $previewRoot = $request->attributes->get('shared_preview_root');
+        $insecurePreview = is_string($previewRoot) && str_starts_with($previewRoot, 'http://');
+        $previewSource = $insecurePreview ? ' '.$previewRoot : '';
+        $upgrade = $insecurePreview ? '' : '; upgrade-insecure-requests';
+        // Chrome rejects form posts to this HTTP loopback origin when form-action lists
+        // 'self' or the explicit origin. The preview is local HTTP only.
+        $formAction = $insecurePreview ? '*' : "'self'{$domainHosts}";
 
         $response->headers->set(
             'Content-Security-Policy',
-            "default-src 'self'{$domainHosts}; base-uri 'self'; object-src 'none'; "
-            ."frame-ancestors 'self'{$domainHosts}; form-action 'self'{$domainHosts}; "
+            "default-src 'self'{$previewSource}{$domainHosts}; base-uri 'self'; object-src 'none'; "
+            ."frame-ancestors 'self'{$domainHosts}; form-action {$formAction}; "
             ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com; "
             ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
             ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}{$viteDev}; "
-            ."connect-src 'self'{$domainHosts}{$viteDev}; media-src 'self' blob:{$domainHosts}; "
-            ."worker-src 'self' blob:{$domainHosts}; upgrade-insecure-requests"
+            ."connect-src 'self'{$previewSource}{$domainHosts}{$viteDev}; media-src 'self' blob:{$domainHosts}; "
+            ."worker-src 'self' blob:{$domainHosts}{$upgrade}"
         );
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
         // M4: HSTS with includeSubDomains on production HTTPS.

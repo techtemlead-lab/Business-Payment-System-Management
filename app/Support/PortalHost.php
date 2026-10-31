@@ -10,6 +10,14 @@ final class PortalHost
     /** @var list<string> */
     public const Portals = ['public', 'dealer', 'subdealer', 'manage', 'sadmin'];
 
+    /**
+     * Unencrypted so the pre-routing preview middleware can read it.
+     */
+    public const PreviewCookie = 'madina_preview_portal';
+
+    /** @var list<string> */
+    public const StaffPortals = ['dealer', 'subdealer', 'manage', 'sadmin'];
+
     public static function domain(): string
     {
         $domain = (string) config('madina.app_domain');
@@ -46,16 +54,125 @@ final class PortalHost
 
     public static function url(string $portal, string $path = '/'): string
     {
+        $suffix = $path === '' || $path === '/' ? '/' : (str_starts_with($path, '/') ? $path : '/'.$path);
+        $request = self::optionalRequest();
+        $root = $request instanceof Request ? self::sharedPreviewRoot($request) : null;
+        if (is_string($root) && $request instanceof Request) {
+            if ($portal === self::activePreviewPortal($request)) {
+                return $root.$suffix;
+            }
+
+            return $root.'/preview-portal/'.$portal.'?next='.rawurlencode($suffix);
+        }
+
         $parts = parse_url((string) config('app.url')) ?: [];
         $scheme = $parts['scheme'] ?? 'http';
         $port = isset($parts['port']) ? ':'.$parts['port'] : '';
-        $suffix = $path === '' || $path === '/' ? '/' : (str_starts_with($path, '/') ? $path : '/'.$path);
 
         return $scheme.'://'.self::host($portal).$port.$suffix;
     }
 
+    /**
+     * Local and test builds can be opened on one loopback origin. Real portal
+     * hostnames, including dealer.localhost, stay on their own host.
+     */
+    public static function allowsSharedPreview(): bool
+    {
+        return self::domain() === 'localhost' || app()->environment('local', 'testing');
+    }
+
+    public static function isSharedPreviewHost(?Request $request = null): bool
+    {
+        if (! self::allowsSharedPreview()) {
+            return false;
+        }
+        $request = $request ?? self::optionalRequest();
+        if (! $request instanceof Request) {
+            return false;
+        }
+
+        return in_array(strtolower($request->getHost()), ['localhost', '127.0.0.1', '::1', '[::1]'], true);
+    }
+
+    public static function browserUrl(?Request $request = null): string
+    {
+        $request = $request ?? self::optionalRequest();
+        if (! $request instanceof Request) {
+            return self::url('public', '/');
+        }
+        $root = self::sharedPreviewRoot($request);
+        $uri = $request->getRequestUri();
+        if ($uri === '') {
+            $uri = '/';
+        }
+        if (is_string($root)) {
+            return $root.(str_starts_with($uri, '/') ? $uri : '/'.$uri);
+        }
+
+        return $request->fullUrl();
+    }
+
+    public static function sharedPreviewRoot(?Request $request = null): ?string
+    {
+        $request = $request ?? self::optionalRequest();
+        if (! $request instanceof Request) {
+            return null;
+        }
+        $stored = $request->attributes->get('shared_preview_root');
+        if (is_string($stored) && $stored !== '') {
+            return rtrim($stored, '/');
+        }
+        if (! self::isSharedPreviewHost($request)) {
+            return null;
+        }
+
+        return rtrim($request->getSchemeAndHttpHost(), '/');
+    }
+
+    public static function activePreviewPortal(?Request $request = null): string
+    {
+        $request = $request ?? self::optionalRequest();
+        if (! $request instanceof Request) {
+            return 'public';
+        }
+        $selected = $request->attributes->get('shared_preview_portal');
+        if (is_string($selected) && in_array($selected, self::StaffPortals, true)) {
+            return $selected;
+        }
+        if (self::isSharedPreviewHost($request)) {
+            $cookie = $request->cookies->get(self::PreviewCookie);
+            if (is_string($cookie) && in_array($cookie, self::StaffPortals, true)) {
+                return $cookie;
+            }
+
+            return 'public';
+        }
+        $current = self::current($request);
+
+        return is_string($current) ? $current : 'public';
+    }
+
+    private static function optionalRequest(): ?Request
+    {
+        if (! app()->bound('request')) {
+            return null;
+        }
+        $request = request();
+
+        return $request instanceof Request ? $request : null;
+    }
+
     public static function origin(string $portal): string
     {
+        $request = self::optionalRequest();
+        $root = $request instanceof Request ? self::sharedPreviewRoot($request) : null;
+        if (is_string($root) && $request instanceof Request && $portal !== self::activePreviewPortal($request)) {
+            return $root.'/preview-portal/'.$portal;
+        }
+        if (is_string($root)) {
+            return $root;
+        }
+
         return rtrim(self::url($portal, '/'), '/');
     }
 

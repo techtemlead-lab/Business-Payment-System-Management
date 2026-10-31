@@ -23,7 +23,7 @@
             <span class="theme-icon-night" aria-hidden="true">☾</span>
         </button>
         <form method="post" action="/locale" class="language-switcher compact" aria-label="{{ __('portal.language') }}">@csrf
-            <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
+            <input type="hidden" name="return_url" value="{{ \App\Support\PortalHost::browserUrl() }}">
             <input type="hidden" name="locale" value="{{ app()->getLocale() === 'bn' ? 'en' : 'bn' }}">
             <button type="submit" class="active">{{ app()->getLocale() === 'bn' ? __('portal.english') : __('portal.bangla') }}</button>
         </form>
@@ -57,6 +57,9 @@
             · <a href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">{{ __('auth_ui.dealer_sign_in') }}</a>
             · <a href="{{ \App\Support\PortalHost::url('subdealer', '/login') }}">{{ __('auth_ui.subdealer_sign_in') }}</a>
         </div>
+        @endif
+        @if(\App\Support\PortalHost::sharedPreviewRoot())
+        <div class="company-auth-help"><a href="/portals">{{ __('site.portal_directory') }}</a></div>
         @endif
         @endif
     </section>
