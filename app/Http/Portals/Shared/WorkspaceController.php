@@ -40,6 +40,7 @@ use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\SiteFeedback;
 use App\Models\User;
+use App\Support\CatalogCms;
 use App\Support\DashboardManagement;
 use App\Support\JoinQr;
 use App\Support\Money;
@@ -174,6 +175,9 @@ class WorkspaceController extends Controller
             if (in_array($section, ['catalog', 'purchase'], true)) {
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
                 $data['sub_categories'] = SiteCustomization::getConfiguredSubCategories();
+                $data['catalog_categories'] = CatalogCms::categoryOptions();
+                $data['catalog_units'] = CatalogCms::unitOptions();
+                $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();
                     $data['defaults'] = SiteCustomization::defaults();
