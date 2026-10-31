@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Finance\Percentage;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
@@ -20,6 +21,7 @@ final class CommissionPosting
         private CommissionWallet $wallets,
         private CommissionQualification $qualification,
         private PlaceGeographyResolver $geographyResolver,
+        private ManagementReferral $managementReferral,
     ) {}
 
     /** @return array<string, mixed> */
@@ -45,6 +47,13 @@ final class CommissionPosting
         $existing = $order->commission_policy_snapshot;
         $snapshot['capture_event'] = $event;
         $snapshot['geography'] = $this->geographyResolver->forBuyer($buyer);
+        $referral = $this->managementReferral->settings();
+        $snapshot['management_referral'] = [
+            'fund_from_generation' => $this->managementReferral->fundFromGeneration($buyer),
+            'place_code' => $referral['place_code'],
+            'place_code_id' => $referral['place_code_id'],
+            'fund' => ManagementReferral::FundRetainedBy,
+        ];
         $snapshot['uplines'] = [];
         $seen = [$buyer->id];
         $next = $buyer->sponsor_id;
@@ -60,6 +69,11 @@ final class CommissionPosting
         if ($event === 'approval' && $existing) {
             $snapshot['geography'] = $existing['geography'];
             $snapshot['uplines'] = $existing['uplines'];
+            if (array_key_exists('management_referral', $existing)) {
+                $snapshot['management_referral'] = $existing['management_referral'];
+            } else {
+                unset($snapshot['management_referral']);
+            }
         }
         $snapshot['referral_replacements'] = $this->replacements($snapshot['uplines'], $buyer, $replacements, $actor, $event);
         $geography = $snapshot['geography'];
@@ -239,9 +253,23 @@ final class CommissionPosting
         foreach ($snapshot['referral_replacements'] ?? [] as $generation => $replacement) {
             $uplines[(int) $generation - 1] = $replacement['user_id'];
         }
+        $fundFrom = $snapshot['management_referral']['fund_from_generation'] ?? null;
+        $managementMeta = [
+            'management_fund' => true,
+            'retained_by' => ManagementReferral::FundRetainedBy,
+            'place_code' => $snapshot['management_referral']['place_code'] ?? null,
+            'place_code_id' => $snapshot['management_referral']['place_code_id'] ?? null,
+            'account_type' => $type,
+        ];
+        $toManagementFund = fn (int $generation): bool => is_int($fundFrom) && $generation >= $fundFrom;
         $directId = $uplines[0] ?? null;
         if ($directId) {
             $add('direct_referral', 'direct_referral', $directId, $recipient($directId));
+        } elseif ($toManagementFund(1)) {
+            $add('direct_referral', 'direct_referral', null, 'pending', null, null, [
+                ...$managementMeta,
+                'generation' => 1,
+            ]);
         } else {
             $add('direct_referral_breakage', 'direct_referral', null, 'unassigned_reserve', null, null, [
                 'unassigned' => true,
@@ -254,6 +282,11 @@ final class CommissionPosting
             $id = $uplines[$depth - 1] ?? null;
             if ($id) {
                 $add('d2d_gen'.$depth, 'd2d_multitier', $id, $recipient($id), $rate);
+            } elseif ($toManagementFund($depth)) {
+                $add('d2d_gen'.$depth, 'd2d_multitier', null, 'pending', $rate, null, [
+                    ...$managementMeta,
+                    'generation' => $depth,
+                ]);
             } else {
                 $add('d2d_gen'.$depth.'_breakage', 'd2d_multitier', null, 'unassigned_reserve', $rate, null, [
                     'unassigned' => true,
@@ -306,7 +339,7 @@ final class CommissionPosting
                 ]);
         }
         $add('area_management', 'area_dealer_pool', null, 'pending', (string) $rules['area_dealer_pool']['parameters']['management_share_pct'], $areaRemaining,
-            ['account_type' => $type, 'retained_by' => 'company_management_area_share']);
+            ['account_type' => $type, 'retained_by' => ManagementReferral::FundRetainedBy, 'management_fund' => true]);
         foreach (['dealer_monthly_salary' => 'dealer_monthly_salary_pool', 'rank_royalty' => 'rank_royalty_pool',
             'rank_incentive' => 'rank_incentive_pool', 'company_marketing' => 'company_marketing_fund', 'car_bike_incentive' => 'car_bike_incentive_fund'] as $key => $category) {
             $add($category, $key);

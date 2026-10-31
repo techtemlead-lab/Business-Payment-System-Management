@@ -11,6 +11,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Finance\PolicyDraftService;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
@@ -242,6 +243,9 @@ class CommandController extends Controller
 
             return $u;
         });
+        if ($isPartner && $u->sponsor_id === null) {
+            app(ManagementReferral::class)->stamp($u);
+        }
         Password::sendResetLink(['email' => $u->email]);
         $redirectUrl = ($d['role'] ?? '') === 'employee' ? '/employees' : '/accounts';
         $accountTypeLabel = ($d['role'] ?? '') === 'employee'
@@ -330,6 +334,9 @@ class CommandController extends Controller
             $locked->forceFill($d)->save();
             if ($isPartner && $placeCode !== '') {
                 $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
+            }
+            if ($isPartner && array_key_exists('sponsor_id', $d)) {
+                app(ManagementReferral::class)->stamp($locked->fresh());
             }
             if (($d['status'] ?? '') === 'suspended') {
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();

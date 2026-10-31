@@ -51,8 +51,10 @@ class IdentityLookupController extends Controller
         if ($own !== '' && User::query()->whereRaw('UPPER(refer_code) = ?', [$own])->exists()) {
             $warnings[] = __('portal.acct_val_refer_taken');
         }
+        $management = ($reference !== '' && $provisioning->referenceIsManagement($reference))
+            || ($reference === '' && $provisioning->blankReferenceUsesManagement());
         $sponsor = null;
-        if ($reference !== '') {
+        if ($reference !== '' && ! $management) {
             $sponsor = User::query()
                 ->whereRaw('UPPER(refer_code) = ?', [$reference])
                 ->where('role', 'dealer')
@@ -66,7 +68,7 @@ class IdentityLookupController extends Controller
         return response()->json([
             'data' => [
                 'warnings' => $warnings,
-                'consumers' => $provisioning->commissionConsumers($sponsor),
+                'consumers' => $provisioning->commissionConsumers($sponsor, $management),
                 'place_options_hint' => PlaceCode::query()->where('is_active', true)->count(),
             ],
         ]);

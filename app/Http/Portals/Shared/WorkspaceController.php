@@ -15,6 +15,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\PaymentAccounts;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
@@ -758,6 +759,11 @@ class WorkspaceController extends Controller
                 $level,
                 is_string($query) ? $query : null,
             ));
+            $referral = app(ManagementReferral::class)->settings();
+            $data['management_referral'] = [
+                ...$referral,
+                'can_manage' => $u->owner(),
+            ];
         }
         if ($section === 'ranks') {
             $data['ranks'] = DealerRank::with('user:id,name,dealer_code,phone,district,division,sponsor_id')
@@ -809,7 +815,7 @@ class WorkspaceController extends Controller
                 ->sum('amount');
             $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
             $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
-            $management = CommissionAllocation::where('category', 'area_management')->where('status', '!=', 'reversed')->sum('amount');
+            $management = app(ManagementReferral::class)->fundAmount();
             $unassigned = CommissionAllocation::where('status', 'unassigned_reserve')->sum('amount');
             $data['flow'] = [
                 'gross_cash_inflow' => (float) $cash,
@@ -1007,6 +1013,7 @@ class WorkspaceController extends Controller
             'place_divisions' => $divisions,
             'default_identity_type' => 'birth_certificate',
             'bdris_enabled' => app(BdrisLookup::class)->enabled(),
+            'management_referral' => app(ManagementReferral::class)->settings(),
         ]);
     }
 

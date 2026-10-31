@@ -100,6 +100,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/link-staff', [CommandController::class, 'linkStaffRole']);
     Route::post('/commands/accounts/{user}/unlink-staff', [CommandController::class, 'unlinkStaffRole']);
     Route::post('/commands/place-codes', [PlaceCodeController::class, 'store']);
+    Route::post('/commands/place-codes/management-referral', [PlaceCodeController::class, 'updateManagementReferral']);
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
     Route::delete('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy']);
     Route::post('/commands/branches', [BranchController::class, 'store']);
