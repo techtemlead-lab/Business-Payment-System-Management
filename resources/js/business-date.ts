@@ -50,6 +50,21 @@ export function toIsoDate(value?: string | null): string {
     return trimmed;
 }
 
+export function businessTodayIso(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(new Date());
+}
+
+export function isPastBusinessDate(value?: string | null): boolean {
+    const text = (value ?? '').trim();
+
+    return /^\d{4}-\d{2}-\d{2}$/.test(text) && text < businessTodayIso();
+}
+
 export function businessDate(value?: string | null): string {
     if (!value) {
         return '—';

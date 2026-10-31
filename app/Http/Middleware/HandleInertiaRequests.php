@@ -97,13 +97,20 @@ class HandleInertiaRequests extends Middleware
                 ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,
             'dashboardNotice' => fn () => DashboardManagement::noticeForUser($u),
-            'workspaceBranches' => fn () => ($u && ($u->staff() || $u->owner()) && in_array($portal, ['manage', 'sadmin'], true))
-                ? [
-                    'active_branch_id' => $u->active_branch_id,
-                    'active_branch' => $u->activeBranch?->summary(),
-                    'branches' => app(BranchOperations::class)->branchesFor($u),
-                ]
-                : null,
+            'workspaceBranches' => function () use ($u, $portal) {
+                if (! $u || (! $u->staff() && ! $u->owner()) || ! in_array($portal, ['manage', 'sadmin'], true)) {
+                    return null;
+                }
+
+                $operations = app(BranchOperations::class);
+                $preferred = $operations->preferredBranch($u);
+
+                return [
+                    'active_branch_id' => $preferred?->id,
+                    'active_branch' => $preferred?->summary(),
+                    'branches' => $operations->branchesFor($u),
+                ];
+            },
         ];
     }
 

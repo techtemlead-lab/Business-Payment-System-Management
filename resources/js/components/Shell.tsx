@@ -688,7 +688,7 @@ export default function Shell({ section, children, action }: { section: string; 
                             <Store size={14} aria-hidden="true" />
                             <select
                                 aria-label={translate('portal', 'branch_select')}
-                                value={workspaceBranches.active_branch_id ?? ''}
+                                value={workspaceBranches.active_branch_id != null ? String(workspaceBranches.active_branch_id) : ''}
                                 onChange={(e) => {
                                     const id = e.target.value;
                                     if (!id) {
@@ -697,9 +697,8 @@ export default function Shell({ section, children, action }: { section: string; 
                                     router.post(`/commands/branches/${id}/select`, {}, { preserveScroll: true });
                                 }}
                             >
-                                <option value="">{translate('portal', 'branch_pick')}</option>
                                 {workspaceBranches.branches.map((branch: any) => (
-                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                    <option key={branch.id} value={String(branch.id)}>{branch.name}</option>
                                 ))}
                             </select>
                         </label>

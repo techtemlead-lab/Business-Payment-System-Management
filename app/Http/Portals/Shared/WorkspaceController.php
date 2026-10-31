@@ -165,7 +165,7 @@ class WorkspaceController extends Controller
             $products = (clone $productQuery)->limit($productLimit)->get();
             $revealStock = ! $staff || $u->allows('inventory');
             $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
-            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {
+            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff, $section) {
                 $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
                 if (! $staff) {
                     try {
@@ -179,6 +179,16 @@ class WorkspaceController extends Controller
                 if ($revealStock) {
                     $base['stock'] = $p->stock;
                     $base['low_stock_at'] = $p->low_stock_at;
+                }
+                if ($section === 'inventory') {
+                    $base['register_name'] = $p->registerName();
+                    $base['expires_on'] = Schema::hasColumn('products', 'expires_on') ? $p->expires_on?->toDateString() : null;
+                    if ($revealDealerPrice) {
+                        $base['dealer_price'] = $p->dealer_price;
+                        $base['sub_dealer_price'] = $p->sub_dealer_price;
+                        $base['dealer_discount_pct'] = $p->discountPercentFromRetail($p->dealer_price);
+                        $base['sub_dealer_discount_pct'] = $p->discountPercentFromRetail($p->sub_dealer_price);
+                    }
                 }
 
                 return $base;
@@ -227,16 +237,17 @@ class WorkspaceController extends Controller
         }
         if ($section === 'inventory') {
             $branchOps = app(BranchOperations::class);
+            $preferredBranch = $branchOps->preferredBranch($u);
             $data['branches'] = $branchOps->branchesFor($u);
-            $data['active_branch_id'] = $u->active_branch_id;
-            $data['active_branch'] = $u->activeBranch?->summary();
+            $data['active_branch_id'] = $preferredBranch?->id;
+            $data['active_branch'] = $preferredBranch?->summary();
             $data['delivery_points'] = $branchOps->deliveryPoints();
             $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
             $data['stock_reason_codes'] = [
                 'product_in' => BranchOperations::ProductInReasonCodes,
                 'product_out' => BranchOperations::ProductOutReasonCodes,
             ];
-            $activeBranchId = (int) ($u->active_branch_id ?: (CompanyBranch::query()->active()->orderBy('id')->value('id') ?? 0));
+            $activeBranchId = (int) ($preferredBranch?->id ?? 0);
             if ($activeBranchId > 0 && $u->allows('inventory')) {
                 $branchQuantities = BranchProductStock::query()
                     ->where('branch_id', $activeBranchId)
