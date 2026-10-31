@@ -12,6 +12,9 @@ return [
     'backup_password' => env('MADINA_BACKUP_PASSWORD'),
     'backup_disk' => env('MADINA_BACKUP_DISK', 'backups'),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+    // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
+    // blocks on port-forwarded Cloud Agent browsers and blanks public pages.
+    'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
     // Comma/space-separated IPs or CIDRs for manage/sadmin. Empty = unrestricted (preview-safe).
     'admin_ip_allowlist' => env('MADINA_ADMIN_IP_ALLOWLIST', ''),
     // Staff/owner TOTP after optional post-login enrollment. Forced off while MADINA_PREVIEW_MODE=true.
