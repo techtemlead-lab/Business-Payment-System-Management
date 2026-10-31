@@ -186,11 +186,9 @@ export default function PlaceCodesHub({
                             {translate('portal', 'pc_hint')}
                         </p>
                     </div>
-                    {(level !== 'management' || places.data.length === 0) && (
-                        <button type="button" className="button dark" onClick={() => setCreateOpen(true)}>
-                            <Plus size={16} /> {translate('portal', 'pc_add', { level: levelName })}
-                        </button>
-                    )}
+                    <button type="button" className="button dark" onClick={() => setCreateOpen(true)}>
+                        <Plus size={16} /> {translate('portal', 'pc_add', { level: levelName })}
+                    </button>
                 </div>
             </section>
 

@@ -19,72 +19,94 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
         $this->withoutVite();
     }
 
-    public function test_place_code_seeder_creates_blank_management_and_division_slots(): void
+    public function test_default_place_code_seeder_leaves_catalog_empty(): void
     {
         $this->seed(PlaceCodeSeeder::class);
 
-        $this->assertSame(1, PlaceCode::query()->where('level', PlaceCode::LevelManagement)->count());
-        $this->assertSame(8, PlaceCode::query()->where('level', PlaceCode::LevelDivision)->count());
+        $this->assertSame(0, PlaceCode::query()->count());
+
+        $owner = User::factory()->create(['role' => 'super_admin']);
+        $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=management')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.places.data', [])
+                ->where('data.places.total', 0));
+    }
+
+    public function test_admin_can_create_management_and_division_from_empty_catalog(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
+            'level' => PlaceCode::LevelManagement,
+            'code' => '100',
+            'name' => 'Management',
+            'parent_id' => null,
+            'sort_order' => 0,
+        ])->assertRedirect();
+
+        $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->firstOrFail();
+        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('Management', $management->name);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
+            'level' => PlaceCode::LevelDivision,
+            'code' => '101',
+            'name' => 'Dhaka',
+            'parent_id' => $management->id,
+            'sort_order' => 1,
+        ])->assertRedirect();
+
+        $division = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $this->assertSame($management->id, $division->parent_id);
+        $this->assertTrue($division->isReadyForAssignment());
+    }
+
+    public function test_admin_can_create_placeholder_then_fill_real_code(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/place-codes', [
+            'level' => PlaceCode::LevelManagement,
+            'code' => '—',
+            'name' => '—',
+            'parent_id' => null,
+        ])->assertRedirect();
 
         $management = PlaceCode::query()->where('level', PlaceCode::LevelManagement)->firstOrFail();
         $this->assertNull($management->code);
         $this->assertSame('—', $management->name);
+        $this->assertFalse($management->isReadyForAssignment());
 
-        $divisions = PlaceCode::query()
-            ->where('level', PlaceCode::LevelDivision)
-            ->orderBy('sort_order')
-            ->get();
-        $this->assertSame(range(1, 8), $divisions->pluck('sort_order')->all());
-        foreach ($divisions as $division) {
-            $this->assertNull($division->code);
-            $this->assertSame('—', $division->name);
-            $this->assertSame($management->id, $division->parent_id);
-        }
-
-        $owner = User::factory()->create(['role' => 'super_admin']);
-        $this->actingAs($owner)->onPortal('sadmin')->get('/place-codes?level=division')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('data.places.data.0.code', '—')
-                ->where('data.places.data.0.name', '—')
-                ->where('data.places.data.0.is_placeholder', true));
-    }
-
-    public function test_admin_can_fill_blank_division_slot_with_real_code(): void
-    {
-        $this->seed(PlaceCodeSeeder::class);
-        $admin = User::factory()->create(['role' => 'super_admin']);
-        $slot = PlaceCode::query()
-            ->where('level', PlaceCode::LevelDivision)
-            ->where('sort_order', 1)
-            ->firstOrFail();
-
-        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/place-codes/'.$slot->id, [
-            'code' => '101',
-            'name' => 'Dhaka',
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/place-codes/'.$management->id, [
+            'code' => '100',
+            'name' => 'Management',
         ])->assertRedirect();
 
-        $slot->refresh();
-        $this->assertSame('MNHC-101', $slot->code);
-        $this->assertSame('Dhaka', $slot->name);
-        $this->assertTrue($slot->isReadyForAssignment());
+        $management->refresh();
+        $this->assertSame('MNHC-100', $management->code);
+        $this->assertSame('Management', $management->name);
+        $this->assertTrue($management->isReadyForAssignment());
     }
 
     public function test_admin_can_delete_place_without_children(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
         $admin = User::factory()->create(['role' => 'super_admin']);
-        $slot = PlaceCode::query()
-            ->where('level', PlaceCode::LevelDivision)
-            ->where('sort_order', 8)
-            ->firstOrFail();
+        $management = PlaceCode::query()->create([
+            'level' => PlaceCode::LevelManagement,
+            'code' => null,
+            'name' => '—',
+            'parent_id' => null,
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
 
-        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/place-codes/'.$slot->id, [
-            'reason' => 'Unused division slot removed by owner',
+        $this->actingAs($admin)->onPortal('sadmin')->delete('/commands/place-codes/'.$management->id, [
+            'reason' => 'Unused management row removed by owner',
         ])->assertRedirect();
 
-        $this->assertDatabaseMissing('place_codes', ['id' => $slot->id]);
-        $this->assertSame(7, PlaceCode::query()->where('level', PlaceCode::LevelDivision)->count());
+        $this->assertDatabaseMissing('place_codes', ['id' => $management->id]);
+        $this->assertSame(0, PlaceCode::query()->count());
     }
 
     public function test_admin_cannot_delete_place_with_children(): void
@@ -106,14 +128,19 @@ class PlaceCodePlaceholderAndDeleteTest extends TestCase
 
     public function test_placeholder_place_cannot_be_used_for_area_assignment(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
         $admin = User::factory()->create(['role' => 'super_admin']);
         $dealer = User::factory()->dealer()->create(['status' => 'active']);
-        $slot = PlaceCode::query()
-            ->where('level', PlaceCode::LevelDivision)
-            ->where('sort_order', 1)
-            ->firstOrFail();
+        $slot = PlaceCode::query()->create([
+            'level' => PlaceCode::LevelDivision,
+            'code' => null,
+            'name' => '—',
+            'parent_id' => null,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
 
+        // Division normally needs a management parent for assignment trees; this
+        // asserts placeholder readiness is rejected before hierarchy checks.
         $this->actingAs($admin)->onPortal('sadmin')->from('/area-dealers')
             ->post('/commands/area-dealers', [
                 'user_id' => $dealer->id,

@@ -6,7 +6,6 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\PortalHost;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
@@ -106,24 +105,19 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Seed blank hierarchy slots, then fill the classic MNHC-100..108 labels
-     * used by partner/commission feature tests that need assignable geography.
+     * Test-only geography fixture (not used by production seeders).
+     * Production place codes start empty; admins create them in the panel.
      */
     protected function seedClassicPlaceCodes(): void
     {
-        $this->seed(PlaceCodeSeeder::class);
-
-        $management = PlaceCode::query()
-            ->where('level', PlaceCode::LevelManagement)
-            ->whereNull('parent_id')
-            ->orderBy('id')
-            ->firstOrFail();
-        $management->forceFill([
+        $management = PlaceCode::query()->create([
+            'level' => PlaceCode::LevelManagement,
             'code' => 'MNHC-100',
             'name' => 'Management',
+            'parent_id' => null,
             'sort_order' => 0,
             'is_active' => true,
-        ])->save();
+        ]);
 
         $divisions = [
             1 => ['code' => 'MNHC-101', 'name' => 'Dhaka'],
@@ -136,35 +130,15 @@ abstract class TestCase extends BaseTestCase
             8 => ['code' => 'MNHC-108', 'name' => 'Mymensingh'],
         ];
 
-        $slots = PlaceCode::query()
-            ->where('level', PlaceCode::LevelDivision)
-            ->where('parent_id', $management->id)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
-            ->values();
-
         foreach ($divisions as $sortOrder => $meta) {
-            $slot = $slots->firstWhere('sort_order', $sortOrder) ?? $slots->get($sortOrder - 1);
-            if ($slot === null) {
-                PlaceCode::query()->create([
-                    'level' => PlaceCode::LevelDivision,
-                    'code' => $meta['code'],
-                    'name' => $meta['name'],
-                    'parent_id' => $management->id,
-                    'sort_order' => $sortOrder,
-                    'is_active' => true,
-                ]);
-
-                continue;
-            }
-
-            $slot->forceFill([
+            PlaceCode::query()->create([
+                'level' => PlaceCode::LevelDivision,
                 'code' => $meta['code'],
                 'name' => $meta['name'],
+                'parent_id' => $management->id,
                 'sort_order' => $sortOrder,
                 'is_active' => true,
-            ])->save();
+            ]);
         }
     }
 
