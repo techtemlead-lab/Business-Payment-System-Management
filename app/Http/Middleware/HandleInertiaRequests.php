@@ -16,6 +16,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -27,6 +28,7 @@ class HandleInertiaRequests extends Middleware
         $u = $request->user();
         $capabilities = $u?->capabilities() ?? [];
         $portal = PortalHost::current($request) ?? 'public';
+        $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
 
         $payments = app(PaymentAccounts::class);
 
@@ -45,17 +47,10 @@ class HandleInertiaRequests extends Middleware
                 : [],
             'portalBase' => '',
             'portal' => $portal,
-            'portalCatalog' => in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true)
-                ? PortalCatalog::inertiaPayload($portal)
-                : null,
             'publicBase' => PortalHost::origin('public'),
             'publicPageEnabled' => fn () => SiteCustomization::enabledPagesMap(),
             'locale' => app()->getLocale(),
             'locales' => config('madina.locales', ['en', 'bn']),
-            'translations' => fn () => [
-                'portal' => Lang::get('portal'),
-                'auth' => Lang::get('auth_ui'),
-            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'totp_setup' => fn () => $request->session()->get('totp_setup'),
@@ -69,9 +64,6 @@ class HandleInertiaRequests extends Middleware
             'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
                 ? app(StaffPermissions::class)->matrix($u)
                 : [],
-            'unreadNotices' => fn () => $u
-                ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
-                : 0,
             'navAttention' => function () use ($u) {
                 if (! $u) {
                     return [
@@ -97,14 +89,14 @@ class HandleInertiaRequests extends Middleware
                         : 0,
                 ];
             },
-            'tour' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
+            // Kept for Shell fallbacks; value mirrors navAttention.notifications without a second query path when both resolve.
+            'unreadNotices' => fn () => $u
+                ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
+                : 0,
+            'tour' => fn () => ($u && $portalShell)
                 ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,
-            'userManualChapters' => fn () => ($u && in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true))
-                ? app(UserManual::class)->chaptersFor($u)
-                : [],
-            'dashboardNotice' => DashboardManagement::noticeForUser($u),
-            'dashboardControls' => DashboardManagement::get(),
+            'dashboardNotice' => fn () => DashboardManagement::noticeForUser($u),
             'workspaceBranches' => fn () => ($u && ($u->staff() || $u->owner()) && in_array($portal, ['manage', 'sadmin'], true))
                 ? [
                     'active_branch_id' => $u->active_branch_id,
@@ -112,6 +104,34 @@ class HandleInertiaRequests extends Middleware
                     'branches' => app(BranchOperations::class)->branchesFor($u),
                 ]
                 : null,
+        ];
+    }
+
+    /**
+     * Large / stable shared props remembered by the client across portal navigations.
+     * Locale-scoped translation packs (~300KB) are the main portal latency win.
+     *
+     * @return array<string, mixed>
+     */
+    public function shareOnce(Request $request): array
+    {
+        $u = $request->user();
+        $portal = PortalHost::current($request) ?? 'public';
+        $locale = app()->getLocale();
+        $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
+
+        return [
+            'translations' => Inertia::once(fn () => [
+                'portal' => Lang::get('portal'),
+                'auth' => Lang::get('auth_ui'),
+            ])->as('i18n:'.$locale),
+            'portalCatalog' => Inertia::once(fn () => $portalShell
+                ? PortalCatalog::inertiaPayload($portal)
+                : null)->as('portalCatalog:'.$portal),
+            'dashboardControls' => Inertia::once(fn () => DashboardManagement::get())->as('dashboardControls'),
+            'userManualChapters' => Inertia::once(fn () => ($u && $portalShell)
+                ? app(UserManual::class)->chaptersFor($u)
+                : [])->as('userManual:'.($u?->id ?? 'guest').':'.$locale),
         ];
     }
 }

@@ -113,7 +113,12 @@ class WorkspaceController extends Controller
             if ($section === 'dues') {
                 $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->whereRaw('paid < total-due_credit');
             }
-            $data['orders'] = $q->with(['user:id,name,dealer_code,role', 'lines'])->latest()->paginate(12)->withQueryString();
+            // Overview only needs line quantities for the items column — keep the payload slim.
+            $lineRelation = $section === 'overview' ? 'lines:id,order_id,quantity' : 'lines';
+            $data['orders'] = $q->with(['user:id,name,dealer_code,role', $lineRelation])
+                ->latest()
+                ->paginate(12)
+                ->withQueryString();
         }
         if ($section === 'overview') {
             $approved = (clone $orders)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered']);
@@ -148,7 +153,8 @@ class WorkspaceController extends Controller
                 ];
             }
         }
-        if (in_array($section, ['overview', 'catalog', 'inventory', 'purchase']) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
+        // Overview never renders the product grid — skip the heavy catalog hydrate there.
+        if (in_array($section, ['catalog', 'inventory', 'purchase'], true) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
             $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
             $productLimit = $staff ? 250 : 200;
             $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
@@ -247,7 +253,12 @@ class WorkspaceController extends Controller
         }
         if ($section === 'branches') {
             $branchOps = app(BranchOperations::class);
-            $branches = CompanyBranch::query()->orderBy('name')->paginate(20)->withQueryString();
+            $branches = CompanyBranch::query()
+                ->withCount(['stocks as stock_skus' => fn ($stocks) => $stocks->where('quantity', '>', 0)])
+                ->withSum('stocks as stock_units', 'quantity')
+                ->orderBy('name')
+                ->paginate(20)
+                ->withQueryString();
             $staffByBranch = BranchStaffAssignment::query()
                 ->with('user:id,name,email,phone,role')
                 ->whereIn('branch_id', $branches->getCollection()->pluck('id'))
@@ -263,8 +274,8 @@ class WorkspaceController extends Controller
                     'duty' => $row->duty,
                     'is_primary' => $row->is_primary,
                 ])->values()->all();
-                $summary['stock_skus'] = (int) $branch->stocks()->where('quantity', '>', 0)->count();
-                $summary['stock_units'] = (int) $branch->stocks()->sum('quantity');
+                $summary['stock_skus'] = (int) ($branch->stock_skus ?? 0);
+                $summary['stock_units'] = (int) ($branch->stock_units ?? 0);
 
                 return $summary;
             });

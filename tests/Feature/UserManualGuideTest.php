@@ -105,7 +105,7 @@ class UserManualGuideTest extends TestCase
         $this->assertSame('overview', $overview['pending'][0]['key']);
         $this->assertGreaterThanOrEqual(5, count($overview['pending'][0]['steps']));
         $this->assertNotEmpty($overview['all_tours']);
-        $this->assertNotEmpty($overview['chapters']);
+        $this->assertSame([], $overview['chapters']);
 
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
@@ -113,7 +113,8 @@ class UserManualGuideTest extends TestCase
                 ->where('data.tour.is_first_login', true)
                 ->has('data.tour.pending', 1)
                 ->has('data.tour.all_tours')
-                ->has('data.tour.chapters'));
+                ->where('data.tour.chapters', [])
+                ->has('userManualChapters'));
 
         // Once completed, pending is cleared and is_first_login becomes false
         $tours->complete($dealer, 'overview');
