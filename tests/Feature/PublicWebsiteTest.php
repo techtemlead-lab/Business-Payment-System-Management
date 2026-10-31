@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -58,8 +59,16 @@ class PublicWebsiteTest extends TestCase
 
     public function test_cms_text_is_escaped_and_login_uses_staff_created_accounts(): void
     {
-        DB::table('content_pages')->insert(['slug' => 'about', 'title' => 'Company information', 'body' => '<script>alert("cms")</script>', 'published' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $this->get('/about')->assertOk()->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert("cms")</script>', false);
+        SiteCustomization::save([
+            'about_hero_title' => '<script>alert("cms")</script>',
+            'about_hero_lead' => 'Lead with <script>alert("lead")</script> markup.',
+        ]);
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('&lt;script&gt;alert(&quot;cms&quot;)&lt;/script&gt;', false)
+            ->assertDontSee('<script>alert("cms")</script>', false)
+            ->assertSee('&lt;script&gt;alert(&quot;lead&quot;)&lt;/script&gt;', false)
+            ->assertDontSee('<script>alert("lead")</script>', false);
         $this->get('/login')->assertOk()->assertSee('Account Login')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
         $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345']);
         $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/');

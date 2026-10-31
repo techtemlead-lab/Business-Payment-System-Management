@@ -2,12 +2,12 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
     $pageTitles = [
         'dealers' => $chrome('dealer_directory', $siteCustomization['directory_title'] ?? null),
-        'about' => $chrome('about', $siteCustomization['about_hero_title'] ?? null),
+        'about' => $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null),
         'contact' => $chrome('contact_us', $siteCustomization['contact_title'] ?? null),
         'partnership' => $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null),
-        'services' => $chrome('our_services', $siteCustomization['services_hero_title'] ?? null),
-        'quality' => $chrome('quality_promise', $siteCustomization['quality_hero_title'] ?? null),
-        'faq' => $chrome('faq', $siteCustomization['faq_hero_title'] ?? null),
+        'services' => $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null),
+        'quality' => $chrome('quality_hero_title', $siteCustomization['quality_hero_title'] ?? null),
+        'faq' => $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null),
         'privacy' => $chrome('privacy_policy', $siteCustomization['privacy_hero_title'] ?? null),
         'terms' => $chrome('terms_of_use', $siteCustomization['terms_hero_title'] ?? null),
         'notice' => $chrome('company_notice'),

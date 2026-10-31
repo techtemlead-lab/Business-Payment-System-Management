@@ -9,7 +9,8 @@ final class SiteChrome
      *
      * English uses staff CMS overrides when present.
      * Bangla keeps translated defaults while the CMS still holds the English
-     * factory string, but intentional CMS edits (any locale) win in every language.
+     * language-file default or the Website CMS factory string. Intentional CMS
+     * edits (any locale) win in every language.
      */
     public static function text(string $key, ?string $custom = null): string
     {
@@ -27,7 +28,8 @@ final class SiteChrome
 
         if (app()->getLocale() === 'bn') {
             $englishDefault = (string) trans('site.'.$key, [], 'en');
-            if ($custom === $englishDefault) {
+            $factoryDefault = trim((string) (SiteCustomization::defaults()[$key] ?? ''));
+            if ($custom === $englishDefault || ($factoryDefault !== '' && $custom === $factoryDefault)) {
                 return $translated;
             }
         }
