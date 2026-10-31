@@ -18,6 +18,7 @@ import {
     type NavMother,
     type StaffDomain,
     buildDomainMothers,
+    buildStaffDomainGroups,
     buildPartnerAvailable,
     buildStaffAvailable,
     compactMothers,
@@ -215,6 +216,22 @@ export default function Shell({ section, children, action }: { section: string; 
         [staff, user.role, partnerAvailable, staffAvailable, currentDomain],
     );
 
+    const staffDomains = useMemo(
+        () => (staff ? buildStaffDomainGroups({ staffAvailable, ownerPortal }) : []),
+        [ownerPortal, staff, staffAvailable],
+    );
+
+    const activeSectionKey = useMemo(() => {
+        for (const domain of staffDomains) {
+            for (const entry of domain.mothers) {
+                if (entry.items.some((item) => isNavItemActive(item, section, locationSearch))) {
+                    return `${domain.id}:${entry.id}`;
+                }
+            }
+        }
+        return null;
+    }, [locationSearch, section, staffDomains]);
+
     const itemBadge = (item: string): number => {
         const sectionKey = resolveNavLink(item).section;
         if (sectionKey === 'notifications' || item === 'notifications') {
@@ -241,7 +258,9 @@ export default function Shell({ section, children, action }: { section: string; 
         [domainMothers, section, locationSearch],
     );
 
-    const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds);
+    const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds.slice(0, 1));
+    const [openDomain, setOpenDomain] = useState<StaffDomain | null>(currentDomain);
+    const [openSectionKey, setOpenSectionKey] = useState<string | null>(activeSectionKey);
 
     const filteredMothers = useMemo(() => {
         const query = menuQuery.trim().toLowerCase();
@@ -262,31 +281,57 @@ export default function Shell({ section, children, action }: { section: string; 
         }));
     }, [domainMothers, menuQuery, staff, translations]);
 
+    const searchingMenu = menuQuery.trim().length > 0;
+
+    const visibleStaffDomains = useMemo(() => {
+        const query = menuQuery.trim().toLowerCase();
+        if (!query) {
+            return staffDomains;
+        }
+
+        return staffDomains.flatMap((domain) => {
+            const domainHit = t(translations, 'portal', domain.labelKey).toLowerCase().includes(query);
+            const mothers = domain.mothers.flatMap((entry) => {
+                const sectionHit = t(translations, 'portal', entry.labelKey).toLowerCase().includes(query);
+                if (domainHit || sectionHit) {
+                    return [entry];
+                }
+                const items = entry.items.filter((item) => {
+                    const label = t(translations, 'portal', labelKeyForNavItem(item, true)).toLowerCase();
+                    return label.includes(query) || item.toLowerCase().includes(query);
+                });
+                return items.length > 0 ? [{ ...entry, items }] : [];
+            });
+
+            return mothers.length > 0 ? [{ ...domain, mothers }] : [];
+        });
+    }, [menuQuery, staffDomains, translations]);
+
     useEffect(() => {
         if (staff) {
             return;
         }
-        setExpandedMothers((previous) => {
-            const next = new Set(previous);
-            activeMotherIds.forEach((id) => next.add(id));
-            if (menuQuery.trim()) {
-                filteredMothers.forEach((entry) => next.add(entry.id));
-            }
-            if (next.size === 0 && domainMothers[0]) {
-                next.add(domainMothers[0].id);
-            }
-            const nextList = Array.from(next);
-            if (nextList.length === previous.length && nextList.every((id) => previous.includes(id))) {
-                return previous;
-            }
-            return nextList;
-        });
+        if (menuQuery.trim()) {
+            setExpandedMothers(filteredMothers.map((entry) => entry.id));
+            return;
+        }
+        const activeId = activeMotherIds[0] ?? domainMothers[0]?.id ?? null;
+        setExpandedMothers(activeId ? [activeId] : []);
     }, [activeMotherIds, domainMothers, filteredMothers, menuQuery, staff]);
 
+    useEffect(() => {
+        if (!staff || menuQuery.trim()) {
+            return;
+        }
+        const domain = activeSectionKey?.split(':')[0];
+        if (domain === 'company' || domain === 'dealers' || domain === 'sub_dealers') {
+            setOpenDomain(domain);
+        }
+        setOpenSectionKey(activeSectionKey);
+    }, [activeSectionKey, menuQuery, staff]);
+
     const toggleMother = (id: string) => {
-        setExpandedMothers((previous) => (
-            previous.includes(id) ? previous.filter((entry) => entry !== id) : [...previous, id]
-        ));
+        setExpandedMothers((previous) => (previous.length === 1 && previous[0] === id ? [] : [id]));
     };
 
     const renderLink = (item: string) => {
@@ -322,30 +367,85 @@ export default function Shell({ section, children, action }: { section: string; 
         );
     };
 
-    const renderStaffSections = (mothers: NavMother[]) => mothers.map((entry) => {
+    const toggleDomain = (id: StaffDomain) => {
+        if (searchingMenu) {
+            return;
+        }
+        setOpenDomain((current) => {
+            if (current === id) {
+                setOpenSectionKey(null);
+                return null;
+            }
+            setOpenSectionKey(null);
+            return id;
+        });
+    };
+
+    const toggleSection = (key: string) => {
+        if (searchingMenu) {
+            return;
+        }
+        setOpenSectionKey((current) => (current === key ? null : key));
+    };
+
+    const renderStaffSection = (domainId: StaffDomain, entry: NavMother) => {
+        const key = `${domainId}:${entry.id}`;
         const hasActive = entry.items.some((item) => isNavItemActive(item, section, locationSearch));
         const badge = motherBadge(entry.items);
+        const Icon = icons[entry.items[0]] || LayoutDashboard;
+        const label = translate('portal', entry.labelKey);
+
+        if (entry.items.length === 1 && !searchingMenu) {
+            return (
+                <div
+                    key={key}
+                    className={`nav-section nav-section-single ${hasActive ? 'has-active' : ''}`}
+                    data-nav-section={entry.id}
+                    onClick={() => {
+                        setOpenDomain(domainId);
+                        setOpenSectionKey(key);
+                    }}
+                >
+                    <div className="nav-section-body">
+                        {renderLink(entry.items[0])}
+                    </div>
+                </div>
+            );
+        }
+
+        const expanded = searchingMenu || openSectionKey === key;
+
         return (
-            <nav
-                key={entry.id}
-                className={`nav-group nav-section ${hasActive ? 'has-active' : ''}`}
-                aria-label={translate('portal', entry.labelKey)}
-                data-nav-section={entry.id}
-            >
-                <div className="nav-section-label">
-                    <span>{translate('portal', entry.labelKey)}</span>
+            <div key={key} className={`nav-section ${expanded ? 'is-open' : ''} ${hasActive ? 'has-active' : ''}`} data-nav-section={entry.id}>
+                <button
+                    type="button"
+                    className="nav-section-toggle"
+                    aria-expanded={expanded}
+                    onClick={() => toggleSection(key)}
+                >
+                    <Icon size={15} />
+                    <span>{label}</span>
                     {badge > 0 && (
                         <span className="nav-attention-badge nav-section-badge" aria-hidden="true">
                             {formatBadge(badge)}
                         </span>
                     )}
-                </div>
-                <div className="nav-section-body">
-                    {entry.items.map(renderLink)}
-                </div>
-            </nav>
+                    <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
+                </button>
+                {expanded && (
+                    <div className="nav-section-body">
+                        {entry.items.map(renderLink)}
+                    </div>
+                )}
+            </div>
         );
-    });
+    };
+
+    const domainIcon: Record<StaffDomain, LucideIcon> = {
+        company: Briefcase,
+        dealers: Users,
+        sub_dealers: Store,
+    };
 
     const renderPartnerMothers = (mothers: NavMother[]) => mothers.map((entry) => {
         const expanded = expandedMothers.includes(entry.id) || Boolean(menuQuery.trim());
@@ -489,22 +589,6 @@ export default function Shell({ section, children, action }: { section: string; 
                     {hubLabel}
                 </div>
 
-                {staff && (
-                    <nav className="sidebar-domain-switch" data-tour="sidebar-domains" aria-label={translate('portal', 'domain_switch')}>
-                        {domainTabs}
-                    </nav>
-                )}
-
-                {staff && (
-                    <div className="sidebar-domain-label">
-                        {currentDomain === 'company'
-                            ? (ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section'))
-                            : currentDomain === 'dealers'
-                                ? translate('portal', 'nav_dealer_section')
-                                : translate('portal', 'nav_subdealer_section')}
-                    </div>
-                )}
-
                 <label className="sidebar-menu-search">
                     <Search size={14} aria-hidden="true" />
                     <input
@@ -518,9 +602,42 @@ export default function Shell({ section, children, action }: { section: string; 
                 </label>
 
                 <div className="sidebar-nav-container" data-tour="sidebar-nav">
-                    {filteredMothers.length > 0
-                        ? (staff ? renderStaffSections(filteredMothers) : renderPartnerMothers(filteredMothers))
-                        : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>}
+                    {staff ? (
+                        visibleStaffDomains.length > 0 ? (
+                            <div className="sidebar-domain-switch" data-tour="sidebar-domains">
+                                {visibleStaffDomains.map((domain) => {
+                                    const DomainIcon = domainIcon[domain.id];
+                                    const expanded = searchingMenu || openDomain === domain.id;
+                                    const domainActive = domain.mothers.some((entry) => entry.items.some((item) => isNavItemActive(item, section, locationSearch)));
+                                    return (
+                                        <section key={domain.id} className={`sidebar-domain ${expanded ? 'is-open' : ''} ${domainActive ? 'has-active' : ''}`}>
+                                            <button
+                                                type="button"
+                                                className={`sidebar-domain-tab ${expanded ? 'active' : ''}`}
+                                                aria-expanded={expanded}
+                                                onClick={() => toggleDomain(domain.id)}
+                                            >
+                                                <DomainIcon size={15} />
+                                                <span className="domain-tab-copy">
+                                                    <span className="domain-tab-full">{translate('portal', domain.labelKey)}</span>
+                                                </span>
+                                                <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
+                                            </button>
+                                            {expanded && (
+                                                <div className="sidebar-domain-pocket">
+                                                    {domain.mothers.map((entry) => renderStaffSection(domain.id, entry))}
+                                                </div>
+                                            )}
+                                        </section>
+                                    );
+                                })}
+                            </div>
+                        ) : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>
+                    ) : (
+                        filteredMothers.length > 0
+                            ? renderPartnerMothers(filteredMothers)
+                            : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>
+                    )}
                 </div>
 
                 <div className="sidebar-footer">
