@@ -134,12 +134,30 @@ class EnforceStaffActions
             },
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
-            'PlaceCodeController' => [['accounts'], $method === 'store' ? 'create' : 'edit'],
+            'PlaceCodeController' => [['accounts'], match ($method) {
+                'store' => 'create',
+                'destroy' => 'edit',
+                default => 'edit',
+            }],
             'BranchController' => match ($method) {
                 'index', 'deliveryPoints' => [['inventory', 'accounts'], 'view'],
                 'select' => [['inventory', 'accounts', 'orders'], 'view'],
                 'assignStaff', 'removeStaff' => [['inventory', 'accounts'], 'edit'],
                 default => [['inventory', 'accounts'], $method === 'store' ? 'create' : 'edit'],
+            },
+            'ProductCategoryController' => match ($method) {
+                'index' => [['catalog', 'pricing', 'inventory'], 'view'],
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
+            },
+            'ProductSubcategoryController' => match ($method) {
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
+            },
+            'ProductUnitController' => match ($method) {
+                'index' => [['catalog', 'pricing', 'inventory'], 'view'],
+                'store' => [['catalog'], 'create'],
+                default => [['catalog'], 'edit'],
             },
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
             default => null,

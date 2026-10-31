@@ -16,6 +16,9 @@ use App\Http\Controllers\ModuleCompletionController;
 use App\Http\Controllers\OpenApiController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PlaceCodeController;
+use App\Http\Controllers\ProductCategoryController;
+use App\Http\Controllers\ProductSubcategoryController;
+use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Middleware\BackendJson;
 use App\Http\Middleware\EnsureStaffPortalHost;
@@ -40,6 +43,17 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
         'capabilities' => $request->user()->capabilities(),
     ]]))->name('me');
     Route::get('/catalog', [CatalogController::class, 'index'])->name('catalog.index');
+    Route::get('/product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+    Route::post('/product-categories', [ProductCategoryController::class, 'store'])->name('product-categories.store');
+    Route::patch('/product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->name('product-categories.update');
+    Route::delete('/product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->name('product-categories.destroy');
+    Route::post('/product-subcategories', [ProductSubcategoryController::class, 'store'])->name('product-subcategories.store');
+    Route::patch('/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'update'])->name('product-subcategories.update');
+    Route::delete('/product-subcategories/{productSubcategory}', [ProductSubcategoryController::class, 'destroy'])->name('product-subcategories.destroy');
+    Route::get('/product-units', [ProductUnitController::class, 'index'])->name('product-units.index');
+    Route::post('/product-units', [ProductUnitController::class, 'store'])->name('product-units.store');
+    Route::patch('/product-units/{productUnit}', [ProductUnitController::class, 'update'])->name('product-units.update');
+    Route::delete('/product-units/{productUnit}', [ProductUnitController::class, 'destroy'])->name('product-units.destroy');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
@@ -71,6 +85,7 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::get('/place-codes', [PlaceCodeController::class, 'index'])->name('place-codes.index');
     Route::post('/place-codes', [PlaceCodeController::class, 'store'])->name('place-codes.store');
     Route::patch('/place-codes/{placeCode}', [PlaceCodeController::class, 'update'])->name('place-codes.update');
+    Route::delete('/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy'])->name('place-codes.destroy');
     Route::get('/place-codes/children', [PlaceCodeController::class, 'children'])->name('place-codes.children');
     Route::post('/identity/bdris-lookup', [IdentityLookupController::class, 'bdris'])->name('identity.bdris');
     Route::get('/identity/place-preview', [IdentityLookupController::class, 'placePreview'])->name('identity.place-preview');

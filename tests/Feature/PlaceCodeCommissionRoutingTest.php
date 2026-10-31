@@ -9,7 +9,6 @@ use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -24,7 +23,7 @@ class PlaceCodeCommissionRoutingTest extends TestCase
         $this->withoutVite();
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
     }
 
     public function test_assignment_uses_place_code_and_unassigned_district_code_retains_commission(): void

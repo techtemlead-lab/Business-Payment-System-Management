@@ -501,9 +501,16 @@ class CommandController extends Controller
 
     public function stock(AdjustStockRequest $r, StockService $service): RedirectResponse
     {
-        $service->adjust($r->user(), $r->validated());
+        $payload = $r->validated();
+        $service->adjust($r->user(), $payload);
+        $kind = $payload['kind'] ?? null;
+        $flash = match ($kind) {
+            'product_in' => __('portal.flash_stock_in_recorded'),
+            'product_out' => __('portal.flash_stock_out_recorded'),
+            default => __('portal.flash_stock_recorded'),
+        };
 
-        return back()->with('success', __('portal.flash_stock_recorded'));
+        return back()->with('success', $flash);
     }
 
     public function policy(Request $r, PolicyDraftService $service): RedirectResponse
@@ -1062,6 +1069,9 @@ class CommandController extends Controller
             if (! $place) {
                 throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
             }
+            if (! $place->isReadyForAssignment()) {
+                throw ValidationException::withMessages(['place_code_id' => __('portal.err_pc_placeholder_assignment')]);
+            }
             $path = $place->loadMissing('parent.parent.parent')->pathNames();
             foreach (['division', 'district', 'upazila', 'union'] as $field) {
                 if ($field === $d['level']) {
@@ -1077,7 +1087,7 @@ class CommandController extends Controller
                 }
             }
             foreach ($path as $field => $value) {
-                if (trim((string) $value) === '') {
+                if (trim((string) $value) === '' || PlaceCode::isPlaceholderLabel($value)) {
                     throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
                 }
                 $d[$field] = $value;

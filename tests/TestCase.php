@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Domain\Finance\FinancialReadiness;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
@@ -101,6 +102,44 @@ abstract class TestCase extends BaseTestCase
         $this->portalHostOnce = PortalHost::host($portal);
 
         return $this;
+    }
+
+    /**
+     * Test-only geography fixture (not used by production seeders).
+     * Production place codes start empty; admins create them in the panel.
+     */
+    protected function seedClassicPlaceCodes(): void
+    {
+        $management = PlaceCode::query()->create([
+            'level' => PlaceCode::LevelManagement,
+            'code' => 'MNHC-100',
+            'name' => 'Management',
+            'parent_id' => null,
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+
+        $divisions = [
+            1 => ['code' => 'MNHC-101', 'name' => 'Dhaka'],
+            2 => ['code' => 'MNHC-102', 'name' => 'Rangpur'],
+            3 => ['code' => 'MNHC-103', 'name' => 'Chattogram'],
+            4 => ['code' => 'MNHC-104', 'name' => 'Rajshahi'],
+            5 => ['code' => 'MNHC-105', 'name' => 'Khulna'],
+            6 => ['code' => 'MNHC-106', 'name' => 'Barishal'],
+            7 => ['code' => 'MNHC-107', 'name' => 'Sylhet'],
+            8 => ['code' => 'MNHC-108', 'name' => 'Mymensingh'],
+        ];
+
+        foreach ($divisions as $sortOrder => $meta) {
+            PlaceCode::query()->create([
+                'level' => PlaceCode::LevelDivision,
+                'code' => $meta['code'],
+                'name' => $meta['name'],
+                'parent_id' => $management->id,
+                'sort_order' => $sortOrder,
+                'is_active' => true,
+            ]);
+        }
     }
 
     private function originForHost(string $host): string

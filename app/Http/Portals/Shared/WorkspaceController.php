@@ -8,6 +8,7 @@ use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Accounts\PartnerWalletStatement;
+use App\Domain\Catalog\CatalogTaxonomy;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
@@ -40,6 +41,7 @@ use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
 use App\Models\SiteFeedback;
 use App\Models\User;
+use App\Support\CatalogCms;
 use App\Support\DashboardManagement;
 use App\Support\JoinQr;
 use App\Support\Money;
@@ -51,6 +53,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -171,8 +174,16 @@ class WorkspaceController extends Controller
                 return $base;
             });
             if (in_array($section, ['catalog', 'purchase'], true)) {
+                $taxonomy = app(CatalogTaxonomy::class);
                 $data['categories'] = SiteCustomization::getConfiguredCategoryNames();
                 $data['sub_categories'] = SiteCustomization::getConfiguredSubCategories();
+                $data['catalog_categories'] = $staff
+                    ? $taxonomy->categoriesForEditors(activeOnly: false)
+                    : CatalogCms::categoryOptions();
+                $data['catalog_units'] = $staff
+                    ? $taxonomy->unitsForEditors(activeOnly: false)
+                    : CatalogCms::unitOptions();
+                $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
                 if ($staff) {
                     $data['customization'] = SiteCustomization::raw();
                     $data['defaults'] = SiteCustomization::defaults();
@@ -210,6 +221,11 @@ class WorkspaceController extends Controller
             $data['active_branch_id'] = $u->active_branch_id;
             $data['active_branch'] = $u->activeBranch?->summary();
             $data['delivery_points'] = $branchOps->deliveryPoints();
+            $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
+            $data['stock_reason_codes'] = [
+                'product_in' => BranchOperations::ProductInReasonCodes,
+                'product_out' => BranchOperations::ProductOutReasonCodes,
+            ];
             $activeBranchId = (int) ($u->active_branch_id ?: (CompanyBranch::query()->active()->orderBy('id')->value('id') ?? 0));
             if ($activeBranchId > 0 && $u->allows('inventory')) {
                 $branchQuantities = BranchProductStock::query()
@@ -702,19 +718,23 @@ class WorkspaceController extends Controller
             $data['divisions'] = PlaceCode::query()
                 ->where('level', PlaceCode::LevelDivision)
                 ->where('is_active', true)
+                ->whereNotNull('code')
                 ->orderBy('sort_order')
                 ->orderBy('code')
+                ->get(['id', 'code', 'name', 'level', 'is_active'])
+                ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
                 ->pluck('name')
+                ->values()
                 ->all();
-            if ($data['divisions'] === []) {
-                $data['divisions'] = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
-            }
             $data['place_codes'] = PlaceCode::query()
                 ->whereIn('level', PlaceCode::AssignmentLevels)
                 ->where('is_active', true)
+                ->whereNotNull('code')
                 ->orderBy('sort_order')
                 ->orderBy('code')
-                ->get(['id', 'code', 'name', 'level', 'parent_id']);
+                ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
+                ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
+                ->values();
             $data['dealers_list'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district', 'division']);
         }
         if ($section === 'place-codes') {
@@ -962,9 +982,12 @@ class WorkspaceController extends Controller
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
+            ->whereNotNull('code')
             ->orderBy('sort_order')
             ->orderBy('code')
-            ->get(['id', 'code', 'name', 'level', 'parent_id']);
+            ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
+            ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
+            ->values();
 
         return Inertia::render('AccountCreate', [
             'intent' => $intent,

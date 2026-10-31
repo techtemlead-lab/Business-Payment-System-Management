@@ -6,6 +6,7 @@ use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
@@ -26,7 +27,27 @@ class Product extends Model
 
     protected function casts(): array
     {
-        return ['active' => 'boolean', 'is_stock_paused' => 'boolean', 'registry_version' => 'integer', 'featured' => 'boolean', 'mrp' => 'decimal:2', 'dealer_price' => 'decimal:2', 'sub_dealer_price' => 'decimal:2', 'cost_price' => 'decimal:2'];
+        return [
+            'active' => 'boolean',
+            'is_stock_paused' => 'boolean',
+            'registry_version' => 'integer',
+            'featured' => 'boolean',
+            'mrp' => 'decimal:2',
+            'dealer_price' => 'decimal:2',
+            'sub_dealer_price' => 'decimal:2',
+            'cost_price' => 'decimal:2',
+            'expires_on' => 'date',
+        ];
+    }
+
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(ProductSubcategory::class, 'product_subcategory_id');
+    }
+
+    public function productUnit(): BelongsTo
+    {
+        return $this->belongsTo(ProductUnit::class, 'product_unit_id');
     }
 
     public function stockStatus(): string

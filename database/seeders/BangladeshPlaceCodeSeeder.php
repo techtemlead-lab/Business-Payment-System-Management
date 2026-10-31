@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Imports the full Bangladesh administrative place registry:
+ * Optional opt-in import of the full Bangladesh administrative place registry:
  * management, 8 divisions, 64 districts, all upazilas, unions, pourashavas,
  * and major city corporations.
+ *
+ * Not called by DatabaseSeeder. Prefer an empty place_codes table, or clear
+ * unused PlaceCodeSeeder placeholder slots first, then run:
+ * `php artisan db:seed --class=BangladeshPlaceCodeSeeder`
  */
 class BangladeshPlaceCodeSeeder extends Seeder
 {
@@ -29,7 +33,7 @@ class BangladeshPlaceCodeSeeder extends Seeder
         }
 
         DB::transaction(function () use ($places, $payload): void {
-            $idByCode = PlaceCode::query()->pluck('id', 'code')->all();
+            $idByCode = PlaceCode::query()->whereNotNull('code')->pluck('id', 'code')->all();
 
             foreach (array_chunk($places, 250) as $chunk) {
                 foreach ($chunk as $place) {

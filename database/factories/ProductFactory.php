@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Product;
+use App\Models\ProductSubcategory;
+use App\Models\ProductUnit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -28,5 +30,21 @@ class ProductFactory extends Factory
             'unit' => 'pack',
             'active' => true,
         ];
+    }
+
+    public function withCatalog(?ProductSubcategory $subcategory = null, ?ProductUnit $unit = null): static
+    {
+        return $this->state(function () use ($subcategory, $unit): array {
+            $subcategory ??= ProductSubcategory::factory()->create();
+            $unit ??= ProductUnit::factory()->create(['name' => 'Pack', 'code' => 'pack-'.fake()->unique()->numerify('###')]);
+
+            return [
+                'category' => $subcategory->category->name,
+                'sub_category' => $subcategory->name,
+                'unit' => $unit->name,
+                'product_subcategory_id' => $subcategory->id,
+                'product_unit_id' => $unit->id,
+            ];
+        });
     }
 }

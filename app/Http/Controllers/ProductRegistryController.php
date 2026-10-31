@@ -7,7 +7,10 @@ use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockNotifications;
 use App\Models\BranchProductStock;
 use App\Models\Product;
+use App\Models\ProductSubcategory;
+use App\Models\ProductUnit;
 use App\Support\Audit;
+use App\Support\CatalogCms;
 use App\Support\Money;
 use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
@@ -15,6 +18,7 @@ use App\Support\YouTubeVideo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -37,7 +41,10 @@ class ProductRegistryController extends Controller
         if (! $product) {
             abort_unless($r->user()->allows('catalog') && $r->user()->allows('pricing'), 403);
         }
-        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
+        if ($product) {
+            $product->loadMissing(['subcategory.category', 'productUnit']);
+        }
+        $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source', 'product_subcategory_id', 'product_unit_id']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
         if ($data && ($r->user()->allows('pricing') || $r->user()->allows('orders') || $r->user()->allows('finance'))) {
             $data['dealer_price'] = $product->dealer_price;
             $data['sub_dealer_price'] = $product->sub_dealer_price;
@@ -52,12 +59,19 @@ class ProductRegistryController extends Controller
         if ($data) {
             $data['vimeo_url'] = $product->video_vimeo_id ? 'https://vimeo.com/'.$product->video_vimeo_id.($product->video_vimeo_hash ? '/'.$product->video_vimeo_hash : '') : '';
             $data['external_video_url'] = $product->video_external_url ?? '';
+            $data['product_category_id'] = $product->subcategory?->product_category_id;
+            $data['expires_on'] = Schema::hasColumn('products', 'expires_on')
+                ? optional($product->expires_on)?->toDateString()
+                : null;
         }
 
         return Inertia::render('ProductEditor', [
             'product' => $data,
+            'catalog_categories' => CatalogCms::categoryOptions($product),
+            'catalog_units' => CatalogCms::unitOptions($product),
             'categories' => SiteCustomization::getConfiguredCategoryNames(),
             'sub_categories' => SiteCustomization::getConfiguredSubCategories(),
+            'supports_product_expiry' => Schema::hasColumn('products', 'expires_on'),
         ]);
     }
 
@@ -133,16 +147,25 @@ class ProductRegistryController extends Controller
         $isOwner = $r->user()->owner();
         $maxDealerPct = $isOwner ? 70 : 50;
         $maxSubDealerPct = $isOwner ? 70 : 40;
-        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? $required.'|string|max:100' : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? $required.'|string|max:30' : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
+        $hasCmsSubcategory = $catalog && $r->filled('product_subcategory_id');
+        $hasCmsUnit = $catalog && $r->filled('product_unit_id');
+        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
             'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
             'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxDealerPct.'|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/' : 'prohibited',
             'sub_dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxSubDealerPct.'|decimal:0,2' : 'prohibited',
+            'product_category_id' => $catalog ? 'sometimes|nullable|integer' : 'prohibited',
+            'product_subcategory_id' => $catalog ? 'sometimes|nullable|integer' : 'prohibited',
+            'product_unit_id' => $catalog ? 'sometimes|nullable|integer' : 'prohibited',
+            'expires_on' => $catalog && Schema::hasColumn('products', 'expires_on') ? 'sometimes|nullable|date' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
             'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
         $d = $r->validate($rules);
         if (! $r->user()->allows('cost_read')) {
             unset($d['cost_price']);
+        }
+        if ($catalog) {
+            $d = $this->resolveCatalogForeignKeys($d, $product);
         }
         $mrp = $d['mrp'] ?? $product?->mrp;
         $dealer = array_key_exists('dealer_price', $d) && $d['dealer_price'] !== null && $d['dealer_price'] !== '' ? $d['dealer_price'] : $product?->dealer_price;
@@ -239,7 +262,11 @@ class ProductRegistryController extends Controller
                 if ($product && (string) $p->registry_version !== (string) $d['version']) {
                     throw ValidationException::withMessages(['version' => __('portal.err_prod_stale')]);
                 }
-                $attributes = collect($d)->only(['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at'])->all();
+                $attributeKeys = ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at', 'product_subcategory_id', 'product_unit_id'];
+                if (Schema::hasColumn('products', 'expires_on')) {
+                    $attributeKeys[] = 'expires_on';
+                }
+                $attributes = collect($d)->only($attributeKeys)->all();
                 if (! $product && $initialStock > 0) {
                     $attributes['stock'] = $initialStock;
                 }
@@ -334,5 +361,64 @@ class ProductRegistryController extends Controller
         $canReadArchived = $user?->staff() && collect(['catalog', 'inventory', 'pricing', 'cost_read', 'orders', 'finance'])
             ->contains(fn (string $capability): bool => $user->allows($capability));
         abort_unless($p->active || $canReadArchived, 404);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function resolveCatalogForeignKeys(array $data, ?Product $product): array
+    {
+        if (array_key_exists('product_subcategory_id', $data) && $data['product_subcategory_id'] !== null && $data['product_subcategory_id'] !== '') {
+            $subcategory = ProductSubcategory::query()->with('category')->find($data['product_subcategory_id']);
+            if (! $subcategory) {
+                throw ValidationException::withMessages([
+                    'product_subcategory_id' => __('portal.err_prod_subcategory_invalid'),
+                ]);
+            }
+
+            $keepingCurrent = $product && (int) $product->product_subcategory_id === (int) $subcategory->id;
+            if ((! $subcategory->is_active || ! $subcategory->category?->is_active) && ! $keepingCurrent) {
+                throw ValidationException::withMessages([
+                    'product_subcategory_id' => __('portal.err_prod_subcategory_inactive'),
+                ]);
+            }
+
+            if (array_key_exists('product_category_id', $data) && $data['product_category_id'] !== null && $data['product_category_id'] !== ''
+                && (int) $data['product_category_id'] !== (int) $subcategory->product_category_id) {
+                throw ValidationException::withMessages([
+                    'product_subcategory_id' => __('portal.err_prod_subcategory_mismatch'),
+                    'product_category_id' => __('portal.err_prod_subcategory_mismatch'),
+                ]);
+            }
+
+            $data['product_category_id'] = $subcategory->product_category_id;
+            $data['category'] = $subcategory->category?->name ?? $data['category'] ?? '';
+            $data['sub_category'] = $subcategory->name;
+            $data['product_subcategory_id'] = $subcategory->id;
+        }
+
+        if (array_key_exists('product_unit_id', $data) && $data['product_unit_id'] !== null && $data['product_unit_id'] !== '') {
+            $unit = ProductUnit::query()->find($data['product_unit_id']);
+            if (! $unit) {
+                throw ValidationException::withMessages([
+                    'product_unit_id' => __('portal.err_prod_unit_invalid'),
+                ]);
+            }
+
+            $keepingCurrent = $product && (int) $product->product_unit_id === (int) $unit->id;
+            if (! $unit->is_active && ! $keepingCurrent) {
+                throw ValidationException::withMessages([
+                    'product_unit_id' => __('portal.err_prod_unit_inactive'),
+                ]);
+            }
+
+            $data['unit'] = $unit->name;
+            $data['product_unit_id'] = $unit->id;
+        }
+
+        unset($data['product_category_id']);
+
+        return $data;
     }
 }

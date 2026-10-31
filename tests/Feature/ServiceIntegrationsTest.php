@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -17,7 +16,7 @@ class ServiceIntegrationsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
         config(['madina.financial_activation' => false, 'madina.bdris.enabled' => false]);
     }
 

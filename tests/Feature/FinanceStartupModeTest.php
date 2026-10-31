@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Domain\Integrations\IntegrationSettings;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,7 +14,7 @@ class FinanceStartupModeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
         config(['madina.financial_activation' => false]);
     }
 

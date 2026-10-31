@@ -85,9 +85,13 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('কোম্পানির ইতিহাস', false)
             ->assertSee('আমাদের মিশন', false)
             ->assertSee('প্রামাণিক ওয়েলনেস', false)
+            ->assertSee('ডিলার ও সাব-ডিলার নেটওয়ার্ক', false)
+            ->assertSee('স্টাফ-যাচাইকৃত ডিলার ও সাব-ডিলার নেটওয়ার্ক', false)
+            ->assertSee('পাবলিক স্ব-নিবন্ধন নেই', false)
             ->assertDontSee('About Madina Natural Health Care', false)
             ->assertDontSee('Company History', false)
-            ->assertDontSee('Our Mission', false);
+            ->assertDontSee('Our Mission', false)
+            ->assertDontSee('Dealer & Sub-dealer Network', false);
 
         $this->onPortal('public')->get('/dealers')
             ->assertOk()
@@ -149,13 +153,24 @@ class PublicSiteLocaleChromeTest extends TestCase
         $this->onPortal('public')->get('/privacy')
             ->assertOk()
             ->assertSee('গোপনীয়তা নীতি', false)
+            ->assertSee('১. আমরা কারা', false)
+            ->assertSee('৪. পেমেন্ট ও ট্রানজ্যাকশন আইডি (TrxID)', false)
             ->assertSee('ব্যক্তিগত তথ্য বিক্রি করি না', false)
+            ->assertSee('কার্যকর সংস্করণ: অক্টোবর ২০২৬', false)
+            ->assertSee('মাদিনা ন্যাচারাল হেলথ কেয়ার · পরিচালন নীতি', false)
+            ->assertSee('পীরগঞ্জ, রংপুর, বাংলাদেশ', false)
+            ->assertDontSee('1. Who We Are', false)
+            ->assertDontSee('Effective: October 2026', false)
             ->assertDontSee('How Madina Natural Health Care handles information', false);
 
         $this->onPortal('public')->get('/terms')
             ->assertOk()
             ->assertSee('ব্যবহারের শর্তাবলী', false)
+            ->assertSee('১. এই শর্তাবলিতে সম্মতি', false)
+            ->assertSee('৪. অর্ডার, পেমেন্ট ও TrxID দাবি', false)
             ->assertSee('অনুমোদিত কোম্পানি চ্যানেল', false)
+            ->assertSee('কার্যকর সংস্করণ: অক্টোবর ২০২৬', false)
+            ->assertDontSee('1. Agreement to These Terms', false)
             ->assertDontSee('Please read these terms before using', false);
     }
 

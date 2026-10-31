@@ -15,38 +15,55 @@ class PlaceCodeController extends Controller
         $this->permit($request);
         $data = $request->validate([
             'level' => 'required|in:'.implode(',', PlaceCode::Levels),
-            'code' => 'required|string|max:32',
-            'name' => 'required|string|max:128',
+            'code' => 'nullable|string|max:32',
+            'name' => 'nullable|string|max:128',
             'parent_id' => 'nullable|integer|exists:place_codes,id',
             'base_place_id' => 'nullable|integer|exists:place_codes,id',
             'sort_order' => 'nullable|integer|min:0|max:999999',
             'is_active' => 'nullable|boolean',
         ]);
         $place = $catalog->create($data['level'], $data, $request->user()->id);
+        $label = PlaceCode::displayLabel($place->code);
         if ($request->expectsJson()) {
             return response()->json(['data' => $place], 201);
         }
 
-        return back()->with('success', __('portal.flash_place_code_saved', ['code' => $place->code]));
+        return back()->with('success', __('portal.flash_place_code_saved', ['code' => $label]));
     }
 
     public function update(Request $request, PlaceCode $placeCode, PlaceCodeCatalog $catalog): RedirectResponse|JsonResponse
     {
         $this->permit($request);
         $data = $request->validate([
-            'code' => 'sometimes|required|string|max:32',
-            'name' => 'sometimes|required|string|max:128',
+            'code' => 'sometimes|nullable|string|max:32',
+            'name' => 'sometimes|nullable|string|max:128',
             'parent_id' => 'nullable|integer|exists:place_codes,id',
             'base_place_id' => 'nullable|integer|exists:place_codes,id',
             'sort_order' => 'nullable|integer|min:0|max:999999',
             'is_active' => 'nullable|boolean',
         ]);
         $place = $catalog->update($placeCode, $data, $request->user()->id);
+        $label = PlaceCode::displayLabel($place->code);
         if ($request->expectsJson()) {
             return response()->json(['data' => $place]);
         }
 
-        return back()->with('success', __('portal.flash_place_code_updated', ['code' => $place->code]));
+        return back()->with('success', __('portal.flash_place_code_updated', ['code' => $label]));
+    }
+
+    public function destroy(Request $request, PlaceCode $placeCode, PlaceCodeCatalog $catalog): RedirectResponse|JsonResponse
+    {
+        $this->permit($request);
+        $data = $request->validate([
+            'reason' => 'required|string|min:3|max:1000',
+        ]);
+        $label = PlaceCode::displayLabel($placeCode->code);
+        $catalog->delete($placeCode, $data['reason'], $request->user()->id);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => ['deleted' => true]]);
+        }
+
+        return back()->with('success', __('portal.flash_place_code_deleted', ['code' => $label]));
     }
 
     public function index(Request $request, PlaceCodeCatalog $catalog): JsonResponse
@@ -71,17 +88,28 @@ class PlaceCodeController extends Controller
         $query = PlaceCode::query()
             ->where('level', $data['level'])
             ->where('is_active', true)
+            ->whereNotNull('code')
             ->when(isset($data['parent_id']), fn ($builder) => $builder->where('parent_id', $data['parent_id']))
             ->when(($data['q'] ?? '') !== '', function ($builder) use ($data): void {
                 $term = '%'.mb_strtolower(trim($data['q'])).'%';
                 $builder->where(function ($inner) use ($term): void {
-                    $inner->whereRaw('LOWER(code) LIKE ?', [$term])->orWhereRaw('LOWER(name) LIKE ?', [$term]);
+                    $inner->whereRaw('LOWER(COALESCE(code, \'\')) LIKE ?', [$term])
+                        ->orWhereRaw('LOWER(name) LIKE ?', [$term]);
                 });
             })
             ->orderBy('sort_order')
             ->orderBy('code')
             ->limit(100)
-            ->get(['id', 'code', 'name', 'level', 'parent_id']);
+            ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
+            ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
+            ->values()
+            ->map(fn (PlaceCode $place): array => [
+                'id' => $place->id,
+                'code' => PlaceCode::displayLabel($place->code),
+                'name' => PlaceCode::displayLabel($place->name),
+                'level' => $place->level,
+                'parent_id' => $place->parent_id,
+            ]);
 
         return response()->json(['data' => $query]);
     }

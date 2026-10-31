@@ -19,11 +19,14 @@ import {
 import { Row, money } from './UI';
 import { useT } from '../shared/i18n/t';
 import LuxuryProductCard from './LuxuryProductCard';
+import CatalogTaxonomyHub from './CatalogTaxonomyHub';
 
 export default function ProductManagementHub({
     products,
     allProducts = [],
     categories = [],
+    catalogCategories = [],
+    catalogUnits = [],
     customization = {},
     defaults = {},
     filters = {},
@@ -34,6 +37,8 @@ export default function ProductManagementHub({
     products: Row[];
     allProducts: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     categories?: string[];
+    catalogCategories?: any[];
+    catalogUnits?: any[];
     customization?: CustomizationData;
     defaults?: CustomizationData;
     filters?: Row;
@@ -46,17 +51,17 @@ export default function ProductManagementHub({
     const canStock=auth.capabilities.includes('inventory')&&(staffActions?.inventory?.edit??true);
     const canEditCatalog=auth.capabilities.includes('catalog')&&(staffActions?.catalog?.edit??true);
     const canEditMarketing=canEditCatalog||(auth.capabilities.includes('content')&&(staffActions?.content?.edit??true));
-    const validTabs: ('products' | 'featured')[] = ['products', 'featured'];
-    const getInitialTab = (): 'products' | 'featured' => {
+    const validTabs: ('products' | 'featured' | 'taxonomy')[] = ['products', 'featured', 'taxonomy'];
+    const getInitialTab = (): 'products' | 'featured' | 'taxonomy' => {
         if (typeof window !== 'undefined') {
             const urlTab = new URLSearchParams(window.location.search).get('tab');
             if (urlTab && validTabs.includes(urlTab as any)) {
-                return urlTab as 'products' | 'featured';
+                return urlTab as 'products' | 'featured' | 'taxonomy';
             }
         }
-        return validTabs.includes(initialTab as any) ? (initialTab as 'products' | 'featured') : 'products';
+        return validTabs.includes(initialTab as any) ? (initialTab as 'products' | 'featured' | 'taxonomy') : 'products';
     };
-    const [activeTab, setActiveTab] = useState<'products' | 'featured'>(getInitialTab);
+    const [activeTab, setActiveTab] = useState<'products' | 'featured' | 'taxonomy'>(getInitialTab);
     const [searchQuery, setSearchQuery] = useState(filters?.q || '');
 
     // Form for Featured Products Showcase
@@ -82,7 +87,7 @@ export default function ProductManagementHub({
         });
     };
 
-    const handleTabChange = (t: 'products' | 'featured') => {
+    const handleTabChange = (t: 'products' | 'featured' | 'taxonomy') => {
         setActiveTab(t);
         const url = new URL(window.location.href);
         if (t === 'products') {
@@ -160,6 +165,28 @@ export default function ProductManagementHub({
                     >
                         <Sparkles size={16} />
                         <span>{translate('portal', 'featured_showcase')}</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleTabChange('taxonomy')}
+                        style={{
+                            padding: '9px 16px',
+                            borderRadius: 7,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            border: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            background: activeTab === 'taxonomy' ? '#006837' : 'transparent',
+                            color: activeTab === 'taxonomy' ? '#ffffff' : '#475569',
+                            transition: 'all 0.15s ease'
+                        }}
+                    >
+                        <Layers size={16} />
+                        <span>{translate('portal', 'cms_taxonomy_tab')}</span>
                     </button>
                 </div>
 
@@ -372,6 +399,14 @@ export default function ProductManagementHub({
                         </button>
                     </div>
                 </form>
+            )}
+
+            {activeTab === 'taxonomy' && (
+                <CatalogTaxonomyHub
+                    categories={catalogCategories}
+                    units={catalogUnits}
+                    canManage={canEditCatalog || canCreate}
+                />
             )}
         </div>
     );

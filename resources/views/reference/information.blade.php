@@ -58,6 +58,12 @@
     </section>
 </div>
 
+<section class="ref-content-card ref-about-network">
+    <div class="ref-about-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></div>
+    <h2>{{ $chrome('about_network_title', $siteCustomization['about_network_title'] ?? null) }}</h2>
+    <p>{{ $chrome('about_network', $siteCustomization['about_network'] ?? null) }}</p>
+</section>
+
 <div class="ref-information-links">
     @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
     @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
@@ -685,9 +691,9 @@
     @endunless
     @if(in_array($page, ['privacy', 'terms'], true))
     <div class="ref-legal-meta-bar">
-        <span class="ref-legal-meta-item"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'কার্যকর সংস্করণ: অক্টোবর ২০২৬' : 'Effective: October 2026' }}</span>
-        <span class="ref-legal-meta-item"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'মাদিনা ন্যাচারাল হেলথ কেয়ার গভর্নেন্স' : 'Madina Governance & Compliance' }}</span>
-        <span class="ref-legal-meta-item"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'পীরগঞ্জ, রংপুর, বাংলাদেশ' : 'Pirganj, Rangpur, Bangladesh' }}</span>
+        <span class="ref-legal-meta-item"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i> {{ $chrome('legal_meta_effective', $siteCustomization['legal_meta_effective'] ?? null) }}</span>
+        <span class="ref-legal-meta-item"><i class="fa-solid fa-building-shield" aria-hidden="true"></i> {{ $chrome('legal_meta_governance', $siteCustomization['legal_meta_governance'] ?? null) }}</span>
+        <span class="ref-legal-meta-item"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('legal_meta_location', $siteCustomization['legal_meta_location'] ?? null) }}</span>
     </div>
     @endif
 </article>

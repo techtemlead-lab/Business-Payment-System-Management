@@ -9,10 +9,36 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 final class BranchOperations
 {
+    public const KindProductIn = 'product_in';
+
+    public const KindProductOut = 'product_out';
+
+    /** @var list<string> */
+    public const ProductInReasonCodes = [
+        'supplier_receipt',
+        'return',
+        'opening',
+        'transfer_in',
+        'correction',
+        'other',
+    ];
+
+    /** @var list<string> */
+    public const ProductOutReasonCodes = [
+        'damage',
+        'write_off',
+        'unofficial_out',
+        'expired',
+        'transfer_out',
+        'correction',
+        'other',
+    ];
+
     public function __construct(private StockNotifications $notifications) {}
 
     /**
@@ -149,7 +175,19 @@ final class BranchOperations
     /**
      * Adjust stock at a branch and keep products.stock as the company-wide rollup.
      *
-     * @param  array{product_id:int,quantity:int,reason:string,reference:string,branch_id?:int}  $data
+     * Explicit kinds `product_in` / `product_out` take a positive quantity and map the sign.
+     * Legacy callers may omit kind and pass a signed quantity (receipt / adjustment).
+     *
+     * @param  array{
+     *   product_id:int,
+     *   quantity:int,
+     *   reason:string,
+     *   reference:string,
+     *   branch_id?:int,
+     *   kind?:string,
+     *   reason_code?:string,
+     *   expires_on?:string|null
+     * }  $data
      */
     public function adjustStock(User $actor, array $data): Product
     {
@@ -164,7 +202,7 @@ final class BranchOperations
             $product = Product::query()->whereKey($data['product_id'])->lockForUpdate()->firstOrFail();
             $stock = $this->ensureBranchStock($branch, $product);
 
-            $quantity = (int) $data['quantity'];
+            [$quantity, $kind, $reason] = $this->resolveMovementDirection($data);
             $next = (int) $stock->quantity + $quantity;
             if ($quantity === 0 || abs($quantity) > 100000 || $next < 0 || $next > 2147483647) {
                 throw ValidationException::withMessages(['quantity' => __('portal.err_stock_nonnegative')]);
@@ -175,22 +213,32 @@ final class BranchOperations
             $stock->save();
 
             $companyTotal = (int) BranchProductStock::query()->where('product_id', $product->id)->sum('quantity');
-            $product->forceFill(['stock' => $companyTotal])->save();
+            $productUpdates = ['stock' => $companyTotal];
+            if (
+                $kind === self::KindProductIn
+                && array_key_exists('expires_on', $data)
+                && $data['expires_on']
+                && Schema::hasColumn('products', 'expires_on')
+            ) {
+                $productUpdates['expires_on'] = $data['expires_on'];
+            }
+            $product->forceFill($productUpdates)->save();
 
             DB::table('stock_movements')->insert([
                 'product_id' => $product->id,
                 'branch_id' => $branch->id,
                 'quantity' => $quantity,
-                'reason' => $data['reason'],
+                'reason' => $reason,
                 'reference' => $data['reference'],
-                'kind' => $quantity > 0 ? 'receipt' : 'adjustment',
+                'kind' => $kind,
                 'actor_id' => $actor->id,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'stock.adjusted', (string) $product->id, [
                 'quantity' => $quantity,
-                'reason' => $data['reason'],
+                'kind' => $kind,
+                'reason' => $reason,
                 'branch_id' => $branch->id,
                 'branch_code' => $branch->code,
             ]);
@@ -198,6 +246,60 @@ final class BranchOperations
 
             return $product->refresh();
         });
+    }
+
+    /**
+     * @param  array{quantity:int,reason:string,kind?:string,reason_code?:string}  $data
+     * @return array{0:int,1:string,2:string}
+     */
+    private function resolveMovementDirection(array $data): array
+    {
+        $kind = isset($data['kind']) ? trim((string) $data['kind']) : '';
+        $absolute = abs((int) $data['quantity']);
+        $reasonCode = isset($data['reason_code']) ? trim((string) $data['reason_code']) : '';
+        $reason = trim((string) $data['reason']);
+
+        if ($kind === self::KindProductIn) {
+            $this->assertReasonCode($reasonCode !== '' ? $reasonCode : $reason, self::ProductInReasonCodes, self::KindProductIn);
+
+            return [$absolute, self::KindProductIn, $this->composeReason($reasonCode, $reason)];
+        }
+
+        if ($kind === self::KindProductOut) {
+            $this->assertReasonCode($reasonCode !== '' ? $reasonCode : $reason, self::ProductOutReasonCodes, self::KindProductOut);
+
+            return [-$absolute, self::KindProductOut, $this->composeReason($reasonCode, $reason)];
+        }
+
+        $signed = (int) $data['quantity'];
+
+        return [$signed, $signed > 0 ? 'receipt' : 'adjustment', $reason];
+    }
+
+    /**
+     * @param  list<string>  $allowed
+     */
+    private function assertReasonCode(string $candidate, array $allowed, string $kind): void
+    {
+        if ($candidate === '') {
+            throw ValidationException::withMessages(['reason' => __('portal.err_stock_reason_required')]);
+        }
+
+        // Free-text reasons remain valid; structured codes must match the kind allow-list.
+        if (! str_contains($candidate, ' ') && ! in_array($candidate, $allowed, true) && preg_match('/^[a-z][a-z0-9_]*$/', $candidate) === 1) {
+            throw ValidationException::withMessages([
+                'reason_code' => __('portal.err_stock_reason_code', ['kind' => $kind]),
+            ]);
+        }
+    }
+
+    private function composeReason(string $reasonCode, string $reason): string
+    {
+        if ($reasonCode !== '' && $reason !== '' && $reason !== $reasonCode) {
+            return $reasonCode.': '.$reason;
+        }
+
+        return $reasonCode !== '' ? $reasonCode : $reason;
     }
 
     public function resolveWritableBranch(User $actor, ?int $branchId = null): CompanyBranch

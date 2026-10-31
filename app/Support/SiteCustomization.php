@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Catalog\CatalogTaxonomy;
 use App\Models\Product;
 use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
@@ -183,22 +184,24 @@ class SiteCustomization
 
             // About Us Page (/about)
             'about_hero_title' => 'About Madina Natural Health Care',
-            'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563, Pirganj Municipality) supplying chemical-free herbal and Holistic Nutracare nutrition products through an authorized dealer network across Bangladesh.',
+            'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563, Pirganj Municipality) headquartered on Thana Road, Pirganj 5470, Rangpur. We supply chemical-free herbal and Holistic Nutracare nutrition products through an authorized dealer and sub-dealer network serving communities across Bangladesh.',
             'about_history_title' => 'Company History',
-            'about_history' => 'Madina Natural Health Care (Owner: Md Anowar Hossain) is a licensed distributor based on Thana Road, Pirganj, Rangpur. We market Holistic Nutracare nutrition and herbal products made from natural raw materials with modern process standards, connecting the company with authorized dealers and sub-dealers nationwide.',
+            'about_history' => 'Madina Natural Health Care was established under the ownership of Md Anowar Hossain as a licensed natural health distributor based in Pirganj, Rangpur. From a focused local operation we built a structured channel for Holistic Nutracare nutrition and herbal products manufactured from natural raw materials under modern process standards. Today the company links head office, authorized dealers and sub-dealers so authentic wellness products reach pharmacies, partner outlets and households nationwide, with warehouse support from Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka.',
             'about_mission_title' => 'Our Mission',
-            'about_mission' => 'To protect public health by ensuring adulterant-free food and popularizing the correct use of herbal products, while empowering local entrepreneurship through a transparent, staff-verified dealer network.',
+            'about_mission' => 'To protect public health by ensuring adulterant-free food and promoting the correct use of herbal products, while building a transparent, staff-verified dealer and sub-dealer network that equips local entrepreneurs with reliable inventory, fair commercial terms and accountable order and payment processes.',
             'about_vision_title' => 'Our Vision',
-            'about_vision' => 'To deliver chemical-free natural herbal and food products to every home in Bangladesh, fostering healthier families and resilient partner livelihoods in every district.',
+            'about_vision' => 'To place chemical-free natural herbal and food products in every home in Bangladesh, and to be recognized as a dependable mother company for dealers, sub-dealers and community health partners who grow sustainable livelihoods through authentic wellness distribution.',
             'about_objectives_title' => 'Core Objectives',
             'about_obj1_title' => 'Authentic Wellness',
-            'about_obj1_desc' => 'Supply safe, verified unani and dietary supplements with clear quality standards.',
+            'about_obj1_desc' => 'Supply safe, verified unani medicines and dietary supplements with clear quality standards and product documentation for every SKU in the catalog.',
             'about_obj2_title' => 'Empowered Partners',
-            'about_obj2_desc' => 'Support authorized dealers and sub-dealers with fair terms, structured training and dedicated portals.',
+            'about_obj2_desc' => 'Support authorized dealers and sub-dealers with fair territory terms, structured product training, dedicated partner portals and company-backed commercial guidance.',
             'about_obj3_title' => 'Accessible Care',
-            'about_obj3_desc' => 'Connect rural and urban communities with nearby partner outlets and physiotherapy assistance.',
+            'about_obj3_desc' => 'Connect rural and urban communities with nearby partner outlets and complementary physiotherapy and natural health guidance where company services operate.',
             'about_obj4_title' => 'Transparent Operations',
-            'about_obj4_desc' => 'Maintain staff-audited orders, manual payment verifications and clear distribution records.',
+            'about_obj4_desc' => 'Maintain staff-audited product requests, manual payment verification, delivery records and distribution accountability from head office through the partner network.',
+            'about_network_title' => 'Dealer & Sub-dealer Network',
+            'about_network' => 'Madina operates as the mother company for a staff-governed distribution network. Dealer and sub-dealer accounts are created only after company review—there is no public self-registration. Authorized partners place product requests through dedicated portals, submit manual payment evidence for verification, and serve end customers under approved commercial terms. This model keeps inventory, pricing discipline and customer trust aligned from Pirganj head office to local outlets across Bangladesh.',
             'about_btn_products' => 'Explore Products',
             'about_btn_dealers' => 'Find a Dealer',
             'about_btn_contact' => 'Contact Head Office',
@@ -386,14 +389,95 @@ class SiteCustomization
             ],
 
             // Privacy (/privacy)
-            'privacy_hero_title' => 'Privacy Policy & Data Protection',
-            'privacy_hero_lead' => 'How Madina Natural Health Care protects information shared through our public website, partner network and digital operations.',
-            'privacy_body' => "1. Scope & Commitment\nMadina Natural Health Care is committed to protecting the privacy, confidentiality and integrity of personal and business information. This policy governs how we collect, process, store and protect information collected through our public website, dealer portals, mobile interfaces and communication channels in compliance with applicable laws and Bangladesh Personal Data Protection Ordinance (PDPO) guidelines.\n\n2. Information We Collect\nWe collect only the information necessary to fulfill our business and operational objectives:\n• Public Enquiries: Name, contact phone number, email address, district/division and message content when submitting customer care, product or partnership inquiries.\n• Dealer & Partner Onboarding: Full legal name, business/pharmacy trade name, national identity (NID) or birth registration number, contact phone numbers, email address, physical shop/trade license address, geo-location coordinates and payment credentials.\n• Financial & Operational Transactions: Orders placed, payment claim references, bKash/Nagad/Rocket/bank transaction receipts, credit ledgers, commission records and delivery confirmations.\n• Technical & Audit Logs: Timestamps, IP addresses, browser user-agents and security audit trails recorded strictly for authentication integrity and fraud prevention.\n\n3. Lawful Purpose & Processing\nWe process collected data exclusively for legitimate operational purposes:\n• Verifying, approving and maintaining authorized dealer and sub-dealer accounts.\n• Processing product orders, warehouse picking, dispatching and courier delivery coordination.\n• Reconciling manual payment claims, managing partner ledgers, commissions and authorized withdrawal payouts.\n• Providing customer care, product safety advisories, promotional notices and official corporate circulars.\n• Maintaining tamper-evident audit logs and statutory financial accounting records.\n\n4. Data Sharing & Third Parties\nWe do not sell personal information under any circumstance. We never rent, monetize or trade partner or customer data. Data is shared strictly on a confidential need-to-know basis with:\n• Logistics & Courier Partners: Recipient name, delivery address and contact phone for physical order fulfillment.\n• Authorized Payment Channels: Transaction references and amounts for financial verification with banks and mobile financial services (MFS).\n• Regulatory Authorities: When required by law, court order or legal governmental directives.\nAccess inside company systems is strictly governed by role-based access controls (RBAC) and audited.\n\n5. Data Security & Storage\nWe employ enterprise-grade technical and organizational safeguards:\n• Transport Layer Security (TLS 1.3) encryption for all web and API data transmissions.\n• Bcrypt password hashing and optional Time-based One-Time Password (TOTP) two-factor authentication for partner accounts.\n• Role-based permission segregation ensuring field staff, accountants and managers access only requisite records.\n• Continuous fraud anomaly detection and automated audit logging for sensitive actions.\n\n6. Data Retention & Privacy Export Rights\nPartner account records and financial ledgers are retained in accordance with statutory accounting requirements and company retention schedules (configured retention period for closed records).\nPartners may exercise their Subject Access Rights at any time by downloading a complete JSON copy of their profile and operational metadata via the 'Download My Data' feature in their secure portal settings. Identity credentials (NID) are omitted from exported files to prevent credential leakage.\n\n7. Cookies & Tracking\nOur website uses essential session cookies, security tokens (CSRF) and user interface preference cookies (such as theme and language selection). We do not deploy third-party advertising trackers or behavioral profiling pixels.\n\n8. Policy Updates & Contact\nWe may update this Privacy Policy to reflect operational or regulatory changes. The latest version will always be posted with an updated effective date.\nFor any privacy questions, data access requests or security concerns, contact our Head Office:\n• Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh\n• Customer Care Hotline: +8801730532966 / 01723731877\n• Official Email: holisticnutracare@gmail.com",
+            'privacy_hero_title' => 'Privacy Policy',
+            'privacy_hero_lead' => 'How Madina Natural Health Care handles information from our public website, partner network accounts and payment operations — plain operational rules until counsel updates the CMS text.',
+            'privacy_body' => '1. Who We Are
+Madina Natural Health Care operates this public website and the related partner workspaces used by authorized dealers and sub-dealers across Bangladesh. This Privacy Policy explains, in practical terms, what information we collect, why we use it, and how you can contact us. It is an operational company policy and can be updated in the Website CMS; it is not a substitute for formal legal advice.
+
+2. Information We Collect
+We collect information needed to run the website, answer enquiries and operate the partner network:
+• Public contact forms: name, phone, email, district/division and message content.
+• Partner onboarding and accounts: legal name, trade/shop name, identity documents where required for verification, phone, email, shop address, territory details and payment collection details staff record for the account.
+• Orders and payments: product lines, quantities, delivery details, ledger notes, and payment claim references including mobile financial service or bank TrxID values submitted for reconciliation.
+• Technical logs: timestamps, IP address and basic browser details used for sign-in security, abuse prevention and audit trails.
+
+3. Partner Network & Accounts
+Dealer and sub-dealer accounts are created and maintained by company staff after review — there is no public self-registration with a shared password. Account holders are responsible for keeping login credentials private. Staff access inside company systems is limited by role so people only see records needed for their work.
+
+4. Payments & Transaction IDs (TrxID)
+When partners submit manual payment claims (for example bKash, Nagad, Rocket or bank transfer), we store the claimed amount, collection account details and the TrxID or reference number so accounts staff can verify the payment against company records. False, duplicate or altered TrxID claims may lead to claim rejection, account review or further action under company operating rules.
+
+5. How We Use Information
+We use collected information to:
+• Respond to customer care, product and partnership enquiries.
+• Verify, approve and support authorized dealer and sub-dealer accounts.
+• Process product requests, warehouse handling and delivery coordination.
+• Reconcile payment claims, maintain partner ledgers and process approved payouts where company policy allows.
+• Send operational notices such as circulars, catalog updates or service messages.
+• Keep audit records needed for security and internal financial control.
+
+6. Sharing & Third Parties
+We do not sell personal information. We do not rent or trade partner or customer lists. Limited details may be shared only when needed to complete operations — for example courier name/address/phone for delivery, payment references with banks or mobile financial services for verification, or information required by lawful authority requests. Internal access follows role-based permissions.
+
+7. Security Practices
+We protect accounts and records with industry-standard measures appropriate to this platform, including encrypted website connections, hashed passwords, optional two-factor authentication for partner logins, role-based access and activity logging for sensitive actions. No online system can promise perfect security; partners should protect their own devices and credentials.
+
+8. Retention & Your Access
+Account, order and payment records are kept while the relationship is active and for as long as company retention settings and ordinary business or accounting needs require. Authorized partners can download a JSON copy of their profile data from portal security settings (identity document numbers are omitted from that export). For other privacy questions, use the Contact page or the head-office details below.
+
+9. Cookies & Preferences
+We use essential session and security cookies, plus preference cookies such as language and theme. We do not run third-party advertising trackers on the public site.
+
+10. Updates & Contact
+We may revise this policy when operations or regulations change. The effective label on this page is updated when a new version is published in the CMS. For privacy questions or data requests, contact Madina Natural Health Care:
+• Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
+• Customer care: +8801730532966 / 01723731877
+• Email: holisticnutracare@gmail.com
+• Or use the public Contact form',
 
             // Terms (/terms)
-            'terms_hero_title' => 'Terms of Use & Operating Standards',
-            'terms_hero_lead' => 'The legally binding terms and operating principles governing access to the Madina Natural Health Care platform, catalog and partner services.',
-            'terms_body' => "1. Acceptance of Terms\nBy accessing or using the Madina Natural Health Care public website, product catalogs, dealer directory or authorized partner portals, you agree to be bound by these Terms of Use and all operating policies referenced herein. If you do not agree to these terms, please discontinue using this website and related services immediately.\n\n2. Permitted Use & Public Catalog\nThis website provides authenticated company information, natural wellness product showcases, educational resources and an authorized dealer directory. While product information, suggested retail prices (MRP) and specifications are presented for public guidance, all commercial purchases, dealer discounts and wholesale orders are conducted strictly through authorized company channels and verified dealer accounts.\n\n3. Partner Account Governance & Review\nDealer and sub-dealer accounts cannot be registered automatically. All partner accounts are created only by company staff after thorough territory review, documentation verification and administrative approval:\n• Account Credentials: Login access (via phone, email or dealer code) is personal and confidential. Partners are strictly responsible for maintaining credential secrecy and using strong passwords or two-factor authentication (TOTP).\n• Integrity & Representation: Partners may not misrepresent their territory tier, impersonate corporate officers or use unauthorized brand variations.\n• Account Suspension: The company reserves the right to suspend or terminate portal access for violation of operational policies, fraudulent claims or abusive conduct.\n\n4. Commerce, Orders & Payment Claims\nAll commercial ordering across the platform adheres to our structured multi-step verification model:\n• Requests & Order Lines: Orders submitted through dealer portals constitute commercial requests subject to inventory availability and company approval.\n• Payment Claims: Manual payment claims (bKash, Nagad, Rocket, Bank transfers) must reflect genuine transactions with authentic transaction IDs and collection account matching. Submitting false, duplicate or collusive payment claims constitutes financial fraud and triggers immediate account termination and legal remedies.\n• Credit & Ledger: Institutional credit terms and wallet payouts require explicit company approval and adhere strictly to published policy drafts.\n\n5. Intellectual Property & Brand Protection\nAll trademarks, product branding (including Holistic Nutracare distribution marks), logos, graphics, text, photography and website design elements are the exclusive intellectual property of Madina Natural Health Care or its licensors. Unauthorized reproduction, scraping, alteration or commercial reuse without prior written authorization is strictly prohibited.\n\n6. Medical & Wellness Disclaimer\nProducts featured across our catalog include unani medicines, nutritional supplements, dietary aids and herbal wellness items. Information provided on this site is for educational and informational purposes only and does not constitute medical advice, clinical diagnosis or prescription. Consumers should consult qualified medical practitioners or visit our Natural Health Care and Physiotherapy Center for personalized therapeutic guidance.\n\n7. Platform Availability & Disclaimers\nWe endeavor to ensure uninterrupted availability of our web services, catalogs and dealer systems. However, services are provided on an 'as is' and 'as available' basis. The company does not warrant that website features will be entirely error-free or uninterrupted during scheduled maintenance, network updates or telecommunication outages.\n\n8. Governing Law & Dispute Resolution\nThese Terms of Use are governed by and construed in accordance with the laws of the People's Republic of Bangladesh. Any dispute arising out of or relating to website usage, dealership agreements or platform operations shall be resolved through good-faith negotiation, failing which jurisdiction shall lie exclusively with the competent courts in Rangpur, Bangladesh.\n\n9. Contact & Inquiries\nFor questions regarding these Terms of Use, operational policies or partnership agreements, please contact:\n• Head Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh\n• Customer Care & Support: +8801730532966 / 01723731877\n• Official Email: holisticnutracare@gmail.com",
+            'terms_hero_title' => 'Terms of Use',
+            'terms_hero_lead' => 'Operating rules for using the Madina Natural Health Care website, catalog and partner services — including accounts, orders and TrxID payment claims.',
+            'terms_body' => '1. Agreement to These Terms
+By using the Madina Natural Health Care public website, product catalog, dealer directory or authorized partner workspaces, you agree to follow these Terms of Use and related company operating rules. If you do not agree, please stop using the site and related services. Staff may replace this CMS text with counsel-approved wording before go-live without changing how the page is published.
+
+2. Company Website & Catalog
+This website shares company information, wellness product details, educational content and an authorized dealer directory. Catalog information and MRP figures are for public guidance. Retail purchases and wholesale supply run through authorized company channels and verified dealer or sub-dealer accounts — not through an open public checkout on this site.
+
+3. Partner Network Accounts
+Dealer and sub-dealer accounts are created only by company staff after documentation and territory review:
+• Login access (phone, email or dealer code) is personal. Protect passwords and enable two-factor authentication when offered.
+• Do not misrepresent your territory, tier or company affiliation.
+• The company may suspend or close portal access for policy breaches, fraudulent claims or abusive conduct.
+
+4. Orders, Payments & TrxID Claims
+Partner commerce follows company review workflows:
+• Portal order lines are commercial requests subject to stock and staff approval.
+• Manual payment claims must match real transfers. Submit accurate TrxID / transaction references and the correct company collection account. False, duplicate or collusive TrxID claims are treated as serious misconduct and may result in claim rejection, account termination and referral for further remedies.
+• Credit terms and wallet payouts require explicit company approval under published policy.
+
+5. Product & Wellness Information
+Catalog items may include unani medicines, nutrition supplements and herbal wellness products. Website content is informational and educational. It is not personal medical advice, diagnosis or a prescription. Seek qualified professional care when you need clinical guidance.
+
+6. Intellectual Property
+Trademarks, product names, logos, text, photography and site design belong to Madina Natural Health Care or its licensors (including Holistic Nutracare distribution marks where applicable). Do not copy, scrape or reuse them commercially without written permission.
+
+7. Availability
+We aim to keep the website and partner tools available, but services are provided as available. Maintenance windows, network issues or third-party outages may interrupt access without advance notice in every case.
+
+8. Governing Law
+These terms are governed by the laws of Bangladesh. Disputes about website use or partner operations should first be raised with the company for good-faith resolution; otherwise competent courts in Rangpur, Bangladesh have jurisdiction.
+
+9. Contact
+Questions about these terms, partnership rules or platform operations:
+• Head office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
+• Customer care: +8801730532966 / 01723731877
+• Email: holisticnutracare@gmail.com
+• Or use the public Contact form',
+
+            'legal_meta_effective' => 'Effective: October 2026',
+            'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
+            'legal_meta_location' => 'Pirganj, Rangpur, Bangladesh',
 
             // Footer legal links
             'footer_link_services' => 'Our Services',
@@ -1400,12 +1484,19 @@ class SiteCustomization
     }
 
     /**
-     * Active catalog category names, reusing the public products cache when warm.
+     * Active catalog category names from CMS tables (source of truth).
+     * Falls back to the public products cache / product strings only when CMS has no rows
+     * (migrate-friendly fallback for public nav chips).
      *
      * @return list<string>
      */
     private static function catalogCategoryNames(): array
     {
+        $cms = app(CatalogTaxonomy::class)->activeCategoryNames();
+        if ($cms !== []) {
+            return $cms;
+        }
+
         $cached = Cache::get('public:product_categories:v2');
         if (is_array($cached)) {
             return array_values(array_filter(array_map(
@@ -1433,29 +1524,38 @@ class SiteCustomization
         return array_values($cats);
     }
 
+    /**
+     * Category names for product editors and filters.
+     * CMS `product_categories` is the source of truth; empty CMS yields an empty list
+     * (no hardcoded defaults).
+     *
+     * @return list<string>
+     */
     public static function getConfiguredCategoryNames(): array
     {
+        $cms = app(CatalogTaxonomy::class)->activeCategoryNames();
+        if ($cms === []) {
+            return [];
+        }
+
         $featured = array_column(self::getFeaturedCategories(), 'name');
         $nav = self::getNavCategories();
-        $existing = Product::orderBy('category')->distinct()->pluck('category')->toArray();
-        $all = array_values(array_unique(array_filter(array_merge($featured, $nav, $existing))));
+        $all = array_values(array_unique(array_filter(array_merge($cms, $featured, $nav))));
         natcasesort($all);
 
         return array_values($all);
     }
 
+    /**
+     * Subcategory names for product editors.
+     * CMS `product_subcategories` is the source of truth. Hardcoded dosage-form defaults
+     * are no longer used. Empty CMS yields an empty list.
+     *
+     * @return list<string>
+     */
     public static function getConfiguredSubCategories(?string $category = null): array
     {
-        $defaults = ['Tablet', 'Capsule', 'Syrup', 'Drop', 'Ointment', 'Oil', 'Powder', 'Cream', 'Tonic', 'Gel'];
-        $query = Product::query()->whereNotNull('sub_category')->where('sub_category', '!=', '');
-        if ($category) {
-            $query->where('category', $category);
-        }
-        $existing = $query->distinct()->pluck('sub_category')->toArray();
-        $all = array_values(array_unique(array_filter(array_merge($defaults, $existing))));
-        natcasesort($all);
-
-        return array_values($all);
+        return app(CatalogTaxonomy::class)->activeSubcategoryNames($category);
     }
 
     public static function getFeaturedProducts(): array

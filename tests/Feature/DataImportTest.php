@@ -14,7 +14,6 @@ use App\Models\AreaDealerAssignment;
 use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\User;
-use Database\Seeders\PlaceCodeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +36,7 @@ class DataImportTest extends TestCase
         parent::setUp();
         $this->withoutVite();
         config(['madina.financial_activation' => false]);
-        $this->seed(PlaceCodeSeeder::class);
+        $this->seedClassicPlaceCodes();
     }
 
     public function test_guests_partners_and_view_only_finance_cannot_import(): void

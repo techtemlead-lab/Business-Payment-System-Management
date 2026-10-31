@@ -223,6 +223,8 @@ export interface CustomizationData {
     about_obj3_desc?: string;
     about_obj4_title?: string;
     about_obj4_desc?: string;
+    about_network_title?: string;
+    about_network?: string;
     about_btn_products?: string;
     about_btn_dealers?: string;
     about_btn_contact?: string;
@@ -282,6 +284,9 @@ export interface CustomizationData {
     terms_hero_title?: string;
     terms_hero_lead?: string;
     terms_body?: string;
+    legal_meta_effective?: string;
+    legal_meta_governance?: string;
+    legal_meta_location?: string;
 
     footer_link_services?: string;
     footer_link_services_url?: string;
@@ -4813,6 +4818,8 @@ export default function SiteCustomizationEditor({
             about_obj3_desc: customization.about_obj3_desc || '',
             about_obj4_title: customization.about_obj4_title || '',
             about_obj4_desc: customization.about_obj4_desc || '',
+            about_network_title: customization.about_network_title || '',
+            about_network: customization.about_network || '',
             about_btn_products: customization.about_btn_products || '',
             about_btn_dealers: customization.about_btn_dealers || '',
             about_btn_contact: customization.about_btn_contact || '',
@@ -4874,6 +4881,9 @@ export default function SiteCustomizationEditor({
             terms_hero_title: customization.terms_hero_title || '',
             terms_hero_lead: customization.terms_hero_lead || '',
             terms_body: customization.terms_body || '',
+            legal_meta_effective: customization.legal_meta_effective || '',
+            legal_meta_governance: customization.legal_meta_governance || '',
+            legal_meta_location: customization.legal_meta_location || '',
 
             footer_link_services: customization.footer_link_services || '',
             footer_link_services_url: customization.footer_link_services_url || '',
@@ -5612,23 +5622,25 @@ export default function SiteCustomizationEditor({
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>About Us Page (/about)</h3>
                             <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
                                 <Field label="About Page Hero Title" fieldKey="about_hero_title" value={form.data.customization.about_hero_title} placeholder={defaults.about_hero_title} onChange={updateField} />
-                                <Field label="About Page Hero Lead" fieldKey="about_hero_lead" value={form.data.customization.about_hero_lead} placeholder={defaults.about_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label="About Page Hero Lead" fieldKey="about_hero_lead" value={form.data.customization.about_hero_lead} placeholder={defaults.about_hero_lead} onChange={updateField} multiline rows={3} span2 />
                                 <Field label="Company History Title" fieldKey="about_history_title" value={form.data.customization.about_history_title} placeholder={defaults.about_history_title} onChange={updateField} />
-                                <Field label="Company History Text" fieldKey="about_history" value={form.data.customization.about_history} placeholder={defaults.about_history} onChange={updateField} multiline rows={3} span2 />
+                                <Field label="Company History Text" fieldKey="about_history" value={form.data.customization.about_history} placeholder={defaults.about_history} onChange={updateField} multiline rows={4} span2 />
                                 <Field label="Mission Title" fieldKey="about_mission_title" value={form.data.customization.about_mission_title} placeholder={defaults.about_mission_title} onChange={updateField} />
-                                <Field label="Mission Statement" fieldKey="about_mission" value={form.data.customization.about_mission} placeholder={defaults.about_mission} onChange={updateField} multiline rows={2} />
+                                <Field label="Mission Statement" fieldKey="about_mission" value={form.data.customization.about_mission} placeholder={defaults.about_mission} onChange={updateField} multiline rows={3} />
                                 <Field label="Vision Title" fieldKey="about_vision_title" value={form.data.customization.about_vision_title} placeholder={defaults.about_vision_title} onChange={updateField} />
-                                <Field label="Vision Statement" fieldKey="about_vision" value={form.data.customization.about_vision} placeholder={defaults.about_vision} onChange={updateField} multiline rows={2} />
-                                
+                                <Field label="Vision Statement" fieldKey="about_vision" value={form.data.customization.about_vision} placeholder={defaults.about_vision} onChange={updateField} multiline rows={3} />
+
                                 <Field label="Core Objectives Title" fieldKey="about_objectives_title" value={form.data.customization.about_objectives_title} placeholder={defaults.about_objectives_title} onChange={updateField} span2 />
                                 <Field label="Objective 1 Title" fieldKey="about_obj1_title" value={form.data.customization.about_obj1_title} placeholder={defaults.about_obj1_title} onChange={updateField} />
-                                <Field label="Objective 1 Description" fieldKey="about_obj1_desc" value={form.data.customization.about_obj1_desc} placeholder={defaults.about_obj1_desc} onChange={updateField} />
+                                <Field label="Objective 1 Description" fieldKey="about_obj1_desc" value={form.data.customization.about_obj1_desc} placeholder={defaults.about_obj1_desc} onChange={updateField} multiline rows={2} />
                                 <Field label="Objective 2 Title" fieldKey="about_obj2_title" value={form.data.customization.about_obj2_title} placeholder={defaults.about_obj2_title} onChange={updateField} />
-                                <Field label="Objective 2 Description" fieldKey="about_obj2_desc" value={form.data.customization.about_obj2_desc} placeholder={defaults.about_obj2_desc} onChange={updateField} />
+                                <Field label="Objective 2 Description" fieldKey="about_obj2_desc" value={form.data.customization.about_obj2_desc} placeholder={defaults.about_obj2_desc} onChange={updateField} multiline rows={2} />
                                 <Field label="Objective 3 Title" fieldKey="about_obj3_title" value={form.data.customization.about_obj3_title} placeholder={defaults.about_obj3_title} onChange={updateField} />
-                                <Field label="Objective 3 Description" fieldKey="about_obj3_desc" value={form.data.customization.about_obj3_desc} placeholder={defaults.about_obj3_desc} onChange={updateField} />
+                                <Field label="Objective 3 Description" fieldKey="about_obj3_desc" value={form.data.customization.about_obj3_desc} placeholder={defaults.about_obj3_desc} onChange={updateField} multiline rows={2} />
                                 <Field label="Objective 4 Title" fieldKey="about_obj4_title" value={form.data.customization.about_obj4_title} placeholder={defaults.about_obj4_title} onChange={updateField} />
-                                <Field label="Objective 4 Description" fieldKey="about_obj4_desc" value={form.data.customization.about_obj4_desc} placeholder={defaults.about_obj4_desc} onChange={updateField} />
+                                <Field label="Objective 4 Description" fieldKey="about_obj4_desc" value={form.data.customization.about_obj4_desc} placeholder={defaults.about_obj4_desc} onChange={updateField} multiline rows={2} />
+                                <Field label="Network Section Title" fieldKey="about_network_title" value={form.data.customization.about_network_title} placeholder={defaults.about_network_title} onChange={updateField} />
+                                <Field label="Network Section Text" fieldKey="about_network" value={form.data.customization.about_network} placeholder={defaults.about_network} onChange={updateField} multiline rows={4} span2 />
 
                                 <Field label="Button 1 (Explore Products)" fieldKey="about_btn_products" value={form.data.customization.about_btn_products} placeholder={defaults.about_btn_products} onChange={updateField} />
                                 <Field label="Button 2 (Find a Dealer)" fieldKey="about_btn_dealers" value={form.data.customization.about_btn_dealers} placeholder={defaults.about_btn_dealers} onChange={updateField} />
@@ -5795,6 +5807,9 @@ export default function SiteCustomizationEditor({
                                 <Field label="Terms Title" fieldKey="terms_hero_title" value={form.data.customization.terms_hero_title} placeholder={defaults.terms_hero_title} onChange={updateField} />
                                 <Field label="Terms Lead" fieldKey="terms_hero_lead" value={form.data.customization.terms_hero_lead} placeholder={defaults.terms_hero_lead} onChange={updateField} multiline rows={2} />
                                 <Field label="Terms Body" fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
+                                <Field label="Legal Meta · Effective" fieldKey="legal_meta_effective" value={form.data.customization.legal_meta_effective} placeholder={defaults.legal_meta_effective} onChange={updateField} />
+                                <Field label="Legal Meta · Governance" fieldKey="legal_meta_governance" value={form.data.customization.legal_meta_governance} placeholder={defaults.legal_meta_governance} onChange={updateField} />
+                                <Field label="Legal Meta · Location" fieldKey="legal_meta_location" value={form.data.customization.legal_meta_location} placeholder={defaults.legal_meta_location} onChange={updateField} />
                             </div>
                         </div>
                     )}

@@ -12,7 +12,16 @@ final class StockService
     public function __construct(private BranchOperations $branches) {}
 
     /**
-     * @param  array{product_id: int, quantity: int, reason: string, reference: string, branch_id?: int}  $data
+     * @param  array{
+     *   product_id: int,
+     *   quantity: int,
+     *   reason: string,
+     *   reference: string,
+     *   branch_id?: int,
+     *   kind?: string,
+     *   reason_code?: string,
+     *   expires_on?: string|null
+     * }  $data
      */
     public function adjust(User $actor, array $data): Product
     {
