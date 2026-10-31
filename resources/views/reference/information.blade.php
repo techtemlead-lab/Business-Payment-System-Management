@@ -2,12 +2,12 @@
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
     $pageTitles = [
         'dealers' => $chrome('dealer_directory', $siteCustomization['directory_title'] ?? null),
-        'about' => $chrome('about', $siteCustomization['about_hero_title'] ?? null),
+        'about' => $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null),
         'contact' => $chrome('contact_us', $siteCustomization['contact_title'] ?? null),
         'partnership' => $chrome('partnership_hero_title', $siteCustomization['partnership_hero_title'] ?? null),
-        'services' => $chrome('our_services', $siteCustomization['services_hero_title'] ?? null),
-        'quality' => $chrome('quality_promise', $siteCustomization['quality_hero_title'] ?? null),
-        'faq' => $chrome('faq', $siteCustomization['faq_hero_title'] ?? null),
+        'services' => $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null),
+        'quality' => $chrome('quality_hero_title', $siteCustomization['quality_hero_title'] ?? null),
+        'faq' => $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null),
         'privacy' => $chrome('privacy_policy', $siteCustomization['privacy_hero_title'] ?? null),
         'terms' => $chrome('terms_of_use', $siteCustomization['terms_hero_title'] ?? null),
         'notice' => $chrome('company_notice'),
@@ -24,8 +24,8 @@
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
 @if($page==='about')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null) }}</div>
+    <h1>{{ $chrome('about_hero_title', $siteCustomization['about_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null) }}</div>
 </article>
 
 <div class="ref-about-sections-grid">
@@ -219,7 +219,7 @@
             <strong>{{ $chrome('map_facility', $siteCustomization['map_facility'] ?? null) }}</strong>
             <p><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('office_address', $siteCustomization['office_address'] ?? null) }}</p>
         </div>
-        <a href="{{ $maps['directions_url'] ?? ('https://www.openstreetmap.org/search?query=' . rawurlencode($siteCustomization['office_address'] ?? __('site.office_address'))) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
+        <a href="{{ $maps['directions_url'] ?? ('https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($siteCustomization['office_address'] ?? __('site.office_address'))) }}" target="_blank" rel="noopener noreferrer" class="ref-primary-button">
             <i class="fa-solid fa-diamond-turn-right" aria-hidden="true"></i> {{ $chrome('map_directions_text', $siteCustomization['map_directions_text'] ?? null) }}
         </a>
     </div>
@@ -597,8 +597,8 @@
 
 @if($page==='services')
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? $chrome('services_hero_lead', $siteCustomization['services_hero_lead'] ?? null) }}</div>
+    <h1>{{ $chrome('services_hero_title', $siteCustomization['services_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $chrome('services_hero_lead', $siteCustomization['services_hero_lead'] ?? null) }}</div>
 </article>
 <div class="ref-about-sections-grid">
     @foreach([1,2,3] as $i)
@@ -641,16 +641,11 @@
 
 @if($page==='faq')
 @php
-    $faqItems = app()->getLocale() === 'bn'
-        ? collect(range(1, 5))->map(fn (int $i): array => [
-            'question' => (string) __('site.faq_item'.$i.'_question'),
-            'answer' => (string) __('site.faq_item'.$i.'_answer'),
-        ])->all()
-        : ($siteCustomization['faq_items'] ?? []);
+    $faqItems = \App\Support\SiteCustomization::faqItemsForDisplay($siteCustomization);
 @endphp
 <article class="ref-content-card ref-about-hero">
-    <h1>{{ $content->title ?? $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null) }}</h1>
-    <div class="ref-content-prose">{{ $content->body ?? $chrome('faq_hero_lead', $siteCustomization['faq_hero_lead'] ?? null) }}</div>
+    <h1>{{ $chrome('faq_hero_title', $siteCustomization['faq_hero_title'] ?? null) }}</h1>
+    <div class="ref-content-prose">{{ $chrome('faq_hero_lead', $siteCustomization['faq_hero_lead'] ?? null) }}</div>
 </article>
 <div style="display:flex;flex-direction:column;gap:14px;margin-top:22px;">
     @foreach($faqItems as $item)
@@ -675,10 +670,10 @@
         <i class="fa-solid {{ $page === 'privacy' ? 'fa-shield-halved' : ($page === 'terms' ? 'fa-scale-balanced' : 'fa-bullhorn') }}" aria-hidden="true"></i>
         <span>{{ in_array($page, ['privacy', 'terms'], true) ? __('site.legal_nav') : __('site.company_notice') }}</span>
     </div>
-    <h1>{{ $content->title ?? (in_array($page, ['privacy', 'terms'], true)
+    <h1>{{ in_array($page, ['privacy', 'terms'], true)
         ? $chrome($page.'_hero_title', $siteCustomization[$page.'_hero_title'] ?? null)
-        : ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))) }}</h1>
-    @unless(filled($content->body ?? null))
+        : ($content->title ?? ($siteCustomization[$page.'_hero_title'] ?? ($pageTitles[$page] ?? ucfirst($page)))) }}</h1>
+    @unless(in_array($page, ['privacy', 'terms'], true) ? false : filled($content->body ?? null))
         <div class="ref-content-prose ref-legal-lead">
             @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
                 {{ app()->getLocale() === 'bn' || blank($siteCustomization[$page.'_hero_lead'] ?? null) ? __('site.notice_empty') : $siteCustomization[$page.'_hero_lead'] }}
@@ -697,12 +692,12 @@
     </div>
     @endif
 </article>
-@if(filled($content->body ?? null) || in_array($page, ['privacy', 'terms'], true))
+@if(in_array($page, ['privacy', 'terms'], true) || filled($content->body ?? null))
 <section class="ref-content-card ref-legal-body-card" style="margin-top:22px;">
     @php
-        $rawBodyText = $content->body ?? (in_array($page, ['privacy', 'terms'], true)
+        $rawBodyText = in_array($page, ['privacy', 'terms'], true)
             ? $chrome($page.'_body', $siteCustomization[$page.'_body'] ?? null)
-            : ($siteCustomization[$page.'_body'] ?? ''));
+            : ($content->body ?? ($siteCustomization[$page.'_body'] ?? ''));
     @endphp
     @if(in_array($page, ['privacy', 'terms'], true))
         <div class="ref-legal-document">

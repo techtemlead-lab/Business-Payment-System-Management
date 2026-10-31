@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -58,8 +59,16 @@ class PublicWebsiteTest extends TestCase
 
     public function test_cms_text_is_escaped_and_login_uses_staff_created_accounts(): void
     {
-        DB::table('content_pages')->insert(['slug' => 'about', 'title' => 'Company information', 'body' => '<script>alert("cms")</script>', 'published' => true, 'created_at' => now(), 'updated_at' => now()]);
-        $this->get('/about')->assertOk()->assertSee('&lt;script&gt;', false)->assertDontSee('<script>alert("cms")</script>', false);
+        SiteCustomization::save([
+            'about_hero_title' => '<script>alert("cms")</script>',
+            'about_hero_lead' => 'Lead with <script>alert("lead")</script> markup.',
+        ]);
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('&lt;script&gt;alert(&quot;cms&quot;)&lt;/script&gt;', false)
+            ->assertDontSee('<script>alert("cms")</script>', false)
+            ->assertSee('&lt;script&gt;alert(&quot;lead&quot;)&lt;/script&gt;', false)
+            ->assertDontSee('<script>alert("lead")</script>', false);
         $this->get('/login')->assertOk()->assertSee('Account Login')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
         $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345']);
         $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/');
@@ -113,10 +122,31 @@ class PublicWebsiteTest extends TestCase
         $res = $this->get('/contact');
         $res->assertOk();
         $res->assertSee('Office &amp; Healthcare Center Location', false);
-        $res->assertSee('openstreetmap.org/search?query=', false);
+        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=25.416572%2C89.307493', false);
+        $res->assertSee('maps.google.com/maps?q=25.416572%2C89.307493', false);
         $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
+        $res->assertDontSee('openstreetmap.org', false);
         $res->assertDontSee('23.914')->assertDontSee('contact@madinanatural.com');
         $res->assertSee('Open Map Directions');
+    }
+
+    public function test_contact_map_directions_follow_cms_office_address_and_optional_coordinates(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $this->actingAs($editor)->post('/commands/customization', [
+            'customization' => [
+                'office_address' => 'Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka',
+                'map_latitude' => '23.914100',
+                'map_longitude' => '90.260200',
+            ],
+        ])->assertSessionHas('success');
+
+        $res = $this->get('/contact');
+        $res->assertOk();
+        $res->assertSee('Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka');
+        $res->assertSee('https://www.google.com/maps/dir/?api=1&amp;destination=23.9141%2C90.2602', false);
+        $res->assertDontSee('openstreetmap.org', false);
+        $res->assertDontSee(rawurlencode('Thana Road, Pirganj 5470, Rangpur, Bangladesh'), false);
     }
 
     public function test_about_page_renders_structured_history_mission_vision_objectives(): void

@@ -5,20 +5,35 @@ namespace App\Support;
 final class SiteChrome
 {
     /**
-     * Resolve public marketing chrome copy. Bangla always prefers lang keys so
-     * English CMS defaults do not block localization; English keeps staff overrides.
+     * Resolve public marketing chrome copy.
+     *
+     * English uses staff CMS overrides when present.
+     * Bangla keeps translated defaults while the CMS still holds the English
+     * language-file default or the Website CMS factory string. Intentional CMS
+     * edits (any locale) win in every language.
      */
     public static function text(string $key, ?string $custom = null): string
     {
-        if (app()->getLocale() === 'bn') {
-            return (string) __('site.'.$key);
+        $translated = (string) __('site.'.$key);
+        $custom = $custom !== null ? trim((string) $custom) : '';
+
+        if ($custom === '') {
+            return $translated;
         }
 
         $legacyCompanyBar = ['MADINA NATURAL HEALTH CARE', 'Madina Natural Health Care'];
-        if ($key === 'company_bar' && filled($custom) && in_array((string) $custom, $legacyCompanyBar, true)) {
+        if ($key === 'company_bar' && in_array($custom, $legacyCompanyBar, true)) {
             return (string) __('site.company_bar');
         }
 
-        return filled($custom) ? (string) $custom : (string) __('site.'.$key);
+        if (app()->getLocale() === 'bn') {
+            $englishDefault = (string) trans('site.'.$key, [], 'en');
+            $factoryDefault = trim((string) (SiteCustomization::defaults()[$key] ?? ''));
+            if ($custom === $englishDefault || ($factoryDefault !== '' && $custom === $factoryDefault)) {
+                return $translated;
+            }
+        }
+
+        return $custom;
     }
 }

@@ -222,6 +222,10 @@ class SiteCustomization
             'contact_topic3_title' => 'Head Office',
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
+            // Default pin: Pirganj Upazila, Rangpur District (admin can override in Website CMS).
+            // Do not use the old 25.7701,88.8240 example — that resolved to Dinajpur, not Pirganj.
+            'map_latitude' => '25.416572',
+            'map_longitude' => '89.307493',
             'contact_form_title' => 'Send an Enquiry',
             'map_title' => 'Office & Healthcare Center Location',
             'map_subtitle' => 'Visit Madina Natural Health Care at our licensed Pirganj head office or navigate with map directions.',
@@ -607,6 +611,71 @@ Questions about these terms, partnership rules or platform operations:
         }
 
         return $value;
+    }
+
+    /**
+     * FAQ items for the public /faq page. Uses Website CMS entries when staff
+     * customized them; Bangla falls back to translated defaults until then.
+     *
+     * @param  array<string, mixed>|null  $customization
+     * @return list<array{question: string, answer: string}>
+     */
+    public static function faqItemsForDisplay(?array $customization = null): array
+    {
+        $all = $customization ?? self::all();
+        $defaults = self::defaults()['faq_items'];
+        $items = $all['faq_items'] ?? [];
+        if (! is_array($items) || $items === []) {
+            $items = $defaults;
+        }
+
+        $normalized = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $question = trim((string) ($item['question'] ?? ''));
+            $answer = trim((string) ($item['answer'] ?? ''));
+            if ($question === '' && $answer === '') {
+                continue;
+            }
+            $normalized[] = ['question' => $question, 'answer' => $answer];
+        }
+        if ($normalized === []) {
+            $normalized = array_map(
+                static fn (array $item): array => [
+                    'question' => trim((string) ($item['question'] ?? '')),
+                    'answer' => trim((string) ($item['answer'] ?? '')),
+                ],
+                $defaults,
+            );
+        }
+
+        $matchesDefault = count($normalized) === count($defaults);
+        if ($matchesDefault) {
+            foreach ($normalized as $idx => $item) {
+                $defaultItem = $defaults[$idx] ?? ['question' => '', 'answer' => ''];
+                if ($item['question'] !== trim((string) ($defaultItem['question'] ?? ''))
+                    || $item['answer'] !== trim((string) ($defaultItem['answer'] ?? ''))) {
+                    $matchesDefault = false;
+                    break;
+                }
+            }
+        }
+
+        if (app()->getLocale() === 'bn' && $matchesDefault) {
+            $localized = [];
+            foreach (range(1, count($defaults)) as $i) {
+                $localized[] = [
+                    'question' => (string) __('site.faq_item'.$i.'_question'),
+                    'answer' => (string) __('site.faq_item'.$i.'_answer'),
+                ];
+            }
+
+            return $localized;
+        }
+
+        return $normalized;
     }
 
     public static function forgetCache(): void

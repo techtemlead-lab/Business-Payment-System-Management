@@ -328,6 +328,8 @@ export interface CustomizationData {
     contact_topic2_desc?: string;
     contact_topic3_title?: string;
     office_address?: string;
+    map_latitude?: string;
+    map_longitude?: string;
     contact_form_title?: string;
     map_title?: string;
     map_subtitle?: string;
@@ -4919,6 +4921,8 @@ export default function SiteCustomizationEditor({
             contact_topic2_desc: customization.contact_topic2_desc || '',
             contact_topic3_title: customization.contact_topic3_title || '',
             office_address: customization.office_address || '',
+            map_latitude: customization.map_latitude || '',
+            map_longitude: customization.map_longitude || '',
             contact_form_title: customization.contact_form_title || '',
             map_title: customization.map_title || '',
             map_subtitle: customization.map_subtitle || '',
@@ -5665,7 +5669,9 @@ export default function SiteCustomizationEditor({
                                 <Field label="Inquiry Topic 2 Title" fieldKey="contact_topic2_title" value={form.data.customization.contact_topic2_title} placeholder={defaults.contact_topic2_title} onChange={updateField} />
                                 <Field label="Inquiry Topic 2 Description" fieldKey="contact_topic2_desc" value={form.data.customization.contact_topic2_desc} placeholder={defaults.contact_topic2_desc} onChange={updateField} />
                                 <Field label="Head Office Card Title" fieldKey="contact_topic3_title" value={form.data.customization.contact_topic3_title} placeholder={defaults.contact_topic3_title} onChange={updateField} />
-                                <Field label="Head Office Physical Address" fieldKey="office_address" value={form.data.customization.office_address} placeholder={defaults.office_address} onChange={updateField} />
+                                <Field label="Head Office Physical Address" fieldKey="office_address" value={form.data.customization.office_address} placeholder={defaults.office_address} onChange={updateField} span2 />
+                                <Field label="Map Latitude (optional)" fieldKey="map_latitude" value={form.data.customization.map_latitude} placeholder={defaults.map_latitude || 'e.g. 25.7701'} onChange={updateField} />
+                                <Field label="Map Longitude (optional)" fieldKey="map_longitude" value={form.data.customization.map_longitude} placeholder={defaults.map_longitude || 'e.g. 88.8240'} onChange={updateField} />
                                 <Field label="Contact Form Header" fieldKey="contact_form_title" value={form.data.customization.contact_form_title} placeholder={defaults.contact_form_title} onChange={updateField} />
                                 
                                 <Field label="Map Location Title" fieldKey="map_title" value={form.data.customization.map_title} placeholder={defaults.map_title} onChange={updateField} />

@@ -174,6 +174,75 @@ class SiteCustomizationTest extends TestCase
         $this->get('/')->assertSee('Become a Partner');
     }
 
+    public function test_owner_can_replace_about_contact_services_faq_privacy_and_terms_content(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($owner)->post('/commands/customization', [
+            'customization' => [
+                'about_hero_title' => 'CMS About Hero Override',
+                'about_history' => 'CMS About History Override Paragraph',
+                'about_mission' => 'CMS Mission Override',
+                'contact_title' => 'CMS Contact Heading Override',
+                'contact_company_desc' => 'CMS Contact Intro Override',
+                'contact_phone' => '+8801999888777',
+                'services_hero_title' => 'CMS Services Hero Override',
+                'services_card1_title' => 'CMS Service Card One',
+                'services_card1_desc' => 'CMS Service Card One Body',
+                'faq_hero_title' => 'CMS FAQ Hero Override',
+                'faq_items' => [
+                    ['question' => 'CMS FAQ Question Alpha?', 'answer' => 'CMS FAQ Answer Alpha.'],
+                    ['question' => 'CMS FAQ Question Beta?', 'answer' => 'CMS FAQ Answer Beta.'],
+                ],
+                'privacy_hero_title' => 'CMS Privacy Title Override',
+                'privacy_body' => "1. CMS Privacy Section\nCustom privacy body from Website CMS.",
+                'terms_hero_title' => 'CMS Terms Title Override',
+                'terms_body' => "1. CMS Terms Section\nCustom terms body from Website CMS.",
+            ],
+        ])->assertSessionHas('success');
+
+        $this->get('/about')
+            ->assertOk()
+            ->assertSee('CMS About Hero Override')
+            ->assertSee('CMS About History Override Paragraph')
+            ->assertSee('CMS Mission Override');
+        $this->get('/contact')
+            ->assertOk()
+            ->assertSee('CMS Contact Heading Override')
+            ->assertSee('CMS Contact Intro Override')
+            ->assertSee('+8801999888777');
+        $this->get('/services')
+            ->assertOk()
+            ->assertSee('CMS Services Hero Override')
+            ->assertSee('CMS Service Card One')
+            ->assertSee('CMS Service Card One Body');
+        $this->get('/faq')
+            ->assertOk()
+            ->assertSee('CMS FAQ Hero Override')
+            ->assertSee('CMS FAQ Question Alpha?')
+            ->assertSee('CMS FAQ Answer Alpha.')
+            ->assertSee('CMS FAQ Question Beta?')
+            ->assertDontSee('Where can I buy Madina products?');
+        $this->get('/privacy')
+            ->assertOk()
+            ->assertSee('CMS Privacy Title Override')
+            ->assertSee('CMS Privacy Section')
+            ->assertSee('Custom privacy body from Website CMS.');
+        $this->get('/terms')
+            ->assertOk()
+            ->assertSee('CMS Terms Title Override')
+            ->assertSee('CMS Terms Section')
+            ->assertSee('Custom terms body from Website CMS.');
+
+        $this->post('/locale', ['locale' => 'bn'])->assertRedirect();
+        $this->get('/about')->assertSee('CMS About History Override Paragraph');
+        $this->get('/faq')
+            ->assertSee('CMS FAQ Question Alpha?')
+            ->assertDontSee(__('site.faq_item1_question', [], 'bn'));
+        $this->get('/privacy')->assertSee('Custom privacy body from Website CMS.');
+        $this->post('/locale', ['locale' => 'en'])->assertRedirect();
+    }
+
     public function test_disabled_public_pages_are_blocked_and_hidden_everywhere(): void
     {
         $editor = User::factory()->create(['role' => 'editor']);
