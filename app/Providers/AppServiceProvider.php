@@ -59,6 +59,11 @@ class AppServiceProvider extends ServiceProvider
         // subdomains. Absolute ASSET_URL hosts break CSS/JS when the browse host differs.
         Vite::createAssetPathsUsing(fn (string $path, ?bool $secure = null): string => '/'.ltrim($path, '/'));
 
+        // Ignore public/hot so @vite keeps serving /build assets (Cloud Agent / CSP-safe).
+        if (config('madina.force_built_assets')) {
+            Vite::useHotFile(storage_path('framework/vite-hot-disabled'));
+        }
+
         Event::listen(DiagnosingHealth::class, function (): void {
             DB::select('SELECT 1');
         });
