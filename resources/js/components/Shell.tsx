@@ -394,7 +394,10 @@ export default function Shell({ section, children, action }: { section: string; 
                 aria-current={currentDomain === 'company' ? 'page' : undefined}
             >
                 <Briefcase size={14} />
-                {ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section')}
+                <span className="domain-tab-copy">
+                    <span className="domain-tab-full">{ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section')}</span>
+                    <span className="domain-tab-short">{ownerPortal ? translate('portal', 'nav_owner') : translate('portal', 'nav_company')}</span>
+                </span>
             </Link>
             {canDealerDomain && (
                 <Link
@@ -407,7 +410,10 @@ export default function Shell({ section, children, action }: { section: string; 
                     aria-current={currentDomain === 'dealers' ? 'page' : undefined}
                 >
                     <Users size={14} />
-                    {translate('portal', 'nav_dealer_section')}
+                    <span className="domain-tab-copy">
+                        <span className="domain-tab-full">{translate('portal', 'nav_dealer_section')}</span>
+                        <span className="domain-tab-short">{translate('portal', 'nav_dealers')}</span>
+                    </span>
                 </Link>
             )}
             {canDealerDomain && (
@@ -421,7 +427,10 @@ export default function Shell({ section, children, action }: { section: string; 
                     aria-current={currentDomain === 'sub_dealers' ? 'page' : undefined}
                 >
                     <Store size={14} />
-                    {translate('portal', 'nav_subdealer_section')}
+                    <span className="domain-tab-copy">
+                        <span className="domain-tab-full">{translate('portal', 'nav_subdealer_section')}</span>
+                        <span className="domain-tab-short">{translate('portal', 'nav_sub_dealers')}</span>
+                    </span>
                 </Link>
             )}
         </>
@@ -557,28 +566,30 @@ export default function Shell({ section, children, action }: { section: string; 
                         <span>/</span>
                         <b>{currentSectionTitle}</b>
                     </div>
-                    <div className="header-actions" data-tour="header-actions">
-                        <ThemeToggle compact />
-                        {staff && workspaceBranches?.branches?.length > 0 && (
-                        <label className="branch-workspace-select" style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:12}}>
-                            <Store size={14} />
+                    {staff && workspaceBranches?.branches?.length > 0 && (
+                        <label className="branch-workspace-select">
+                            <Store size={14} aria-hidden="true" />
                             <select
-                                aria-label={translate('portal','branch_select')}
+                                aria-label={translate('portal', 'branch_select')}
                                 value={workspaceBranches.active_branch_id ?? ''}
                                 onChange={(e) => {
                                     const id = e.target.value;
-                                    if (!id) return;
+                                    if (!id) {
+                                        return;
+                                    }
                                     router.post(`/commands/branches/${id}/select`, {}, { preserveScroll: true });
                                 }}
                             >
-                                <option value="">{translate('portal','branch_pick')}</option>
+                                <option value="">{translate('portal', 'branch_pick')}</option>
                                 {workspaceBranches.branches.map((branch: any) => (
                                     <option key={branch.id} value={branch.id}>{branch.name}</option>
                                 ))}
                             </select>
                         </label>
                     )}
-                    <LanguageSwitcher compact />
+                    <div className="header-actions" data-tour="header-actions">
+                        <ThemeToggle compact />
+                        <LanguageSwitcher compact />
                         <button
                             type="button"
                             className="icon-button tour-guide-launcher"
@@ -625,6 +636,9 @@ export default function Shell({ section, children, action }: { section: string; 
                             </button>
                             {profileOpen && (
                                 <div className="profile-menu-panel" role="menu">
+                                    <div className="profile-menu-theme">
+                                        <ThemeToggle />
+                                    </div>
                                     <Link href={base + '/profile'} role="menuitem" onClick={() => setProfileOpen(false)}>
                                         <UserRound size={16} />
                                         {translate('portal', 'view_profile')}
