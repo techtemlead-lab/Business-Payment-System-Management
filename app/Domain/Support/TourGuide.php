@@ -66,13 +66,14 @@ final class TourGuide
             ];
         }
 
+        // Manual chapters ship once via shared `userManualChapters` — keep tour payloads lean.
         return [
             'completed' => $completed,
             'pending' => $pending,
             'blocked_by' => $blockedBy,
             'is_first_login' => $isFirstLogin,
             'all_tours' => $allTours,
-            'chapters' => app(UserManual::class)->chaptersFor($user),
+            'chapters' => [],
         ];
     }
 
