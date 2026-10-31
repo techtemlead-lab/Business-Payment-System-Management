@@ -151,6 +151,9 @@ class SiteCustomizationTest extends TestCase
                 'faq_hero_title' => 'Partner & Customer FAQ Desk',
                 'privacy_hero_title' => 'Madina Privacy Notice',
                 'terms_hero_title' => 'Madina Website Terms',
+                'legal_meta_effective' => 'Effective: CMS Review Draft',
+                'legal_meta_governance' => 'Custom Governance Badge',
+                'legal_meta_location' => 'Custom Legal Location Line',
             ],
         ])->assertSessionHas('success');
 
@@ -158,8 +161,16 @@ class SiteCustomizationTest extends TestCase
         $this->get('/services')->assertSee('Madina Care Services Hub');
         $this->get('/quality')->assertSee('Verified Madina Quality');
         $this->get('/faq')->assertSee('Partner & Customer FAQ Desk');
-        $this->get('/privacy')->assertSee('Madina Privacy Notice');
-        $this->get('/terms')->assertSee('Madina Website Terms');
+        $this->get('/privacy')
+            ->assertSee('Madina Privacy Notice')
+            ->assertSee('Effective: CMS Review Draft')
+            ->assertSee('Custom Governance Badge')
+            ->assertSee('Custom Legal Location Line')
+            ->assertDontSee('Madina Governance & Compliance');
+        $this->get('/terms')
+            ->assertSee('Madina Website Terms')
+            ->assertSee('Effective: CMS Review Draft')
+            ->assertSee('Custom Governance Badge');
         $this->get('/')->assertSee('Become a Partner');
     }
 

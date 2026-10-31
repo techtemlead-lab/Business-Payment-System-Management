@@ -139,6 +139,30 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('product documentation for every SKU');
     }
 
+    public function test_privacy_and_terms_pages_render_section_headings_and_cms_legal_meta(): void
+    {
+        $privacy = $this->get('/privacy');
+        $privacy->assertOk();
+        $privacy->assertSee('Privacy Policy');
+        $privacy->assertSee('1. Who We Are');
+        $privacy->assertSee('3. Partner Network &amp; Accounts', false);
+        $privacy->assertSee('4. Payments &amp; Transaction IDs (TrxID)', false);
+        $privacy->assertSee('10. Updates &amp; Contact', false);
+        $privacy->assertSee('Effective: October 2026');
+        $privacy->assertSee('Madina Natural Health Care · Operational policy', false);
+        $privacy->assertSee('Pirganj, Rangpur, Bangladesh');
+        $privacy->assertDontSee('কার্যকর সংস্করণ: অক্টোবর ২০২৬', false);
+
+        $terms = $this->get('/terms');
+        $terms->assertOk();
+        $terms->assertSee('Terms of Use');
+        $terms->assertSee('1. Agreement to These Terms');
+        $terms->assertSee('3. Partner Network Accounts');
+        $terms->assertSee('4. Orders, Payments &amp; TrxID Claims', false);
+        $terms->assertSee('9. Contact');
+        $terms->assertSee('Effective: October 2026');
+        $terms->assertSee('Madina Natural Health Care · Operational policy', false);
+    }
 
     public function test_home_page_presents_the_company_and_dealer_network_without_a_public_store(): void
     {

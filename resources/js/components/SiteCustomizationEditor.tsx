@@ -284,6 +284,9 @@ export interface CustomizationData {
     terms_hero_title?: string;
     terms_hero_lead?: string;
     terms_body?: string;
+    legal_meta_effective?: string;
+    legal_meta_governance?: string;
+    legal_meta_location?: string;
 
     footer_link_services?: string;
     footer_link_services_url?: string;
@@ -4878,6 +4881,9 @@ export default function SiteCustomizationEditor({
             terms_hero_title: customization.terms_hero_title || '',
             terms_hero_lead: customization.terms_hero_lead || '',
             terms_body: customization.terms_body || '',
+            legal_meta_effective: customization.legal_meta_effective || '',
+            legal_meta_governance: customization.legal_meta_governance || '',
+            legal_meta_location: customization.legal_meta_location || '',
 
             footer_link_services: customization.footer_link_services || '',
             footer_link_services_url: customization.footer_link_services_url || '',
@@ -5801,6 +5807,9 @@ export default function SiteCustomizationEditor({
                                 <Field label="Terms Title" fieldKey="terms_hero_title" value={form.data.customization.terms_hero_title} placeholder={defaults.terms_hero_title} onChange={updateField} />
                                 <Field label="Terms Lead" fieldKey="terms_hero_lead" value={form.data.customization.terms_hero_lead} placeholder={defaults.terms_hero_lead} onChange={updateField} multiline rows={2} />
                                 <Field label="Terms Body" fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
+                                <Field label="Legal Meta · Effective" fieldKey="legal_meta_effective" value={form.data.customization.legal_meta_effective} placeholder={defaults.legal_meta_effective} onChange={updateField} />
+                                <Field label="Legal Meta · Governance" fieldKey="legal_meta_governance" value={form.data.customization.legal_meta_governance} placeholder={defaults.legal_meta_governance} onChange={updateField} />
+                                <Field label="Legal Meta · Location" fieldKey="legal_meta_location" value={form.data.customization.legal_meta_location} placeholder={defaults.legal_meta_location} onChange={updateField} />
                             </div>
                         </div>
                     )}

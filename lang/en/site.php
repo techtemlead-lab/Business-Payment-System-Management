@@ -168,90 +168,92 @@ return [
     'product_information' => 'Product information',
     'view_product_details' => 'View Product Details',
     'view_full_details' => 'View Full Details',
-    'privacy_hero_title' => 'Privacy Policy & Data Protection',
-    'privacy_hero_lead' => 'How Madina Natural Health Care protects information shared through our public website, partner network and digital operations.',
-    'privacy_body' => "1. Scope & Commitment
-Madina Natural Health Care is committed to protecting the privacy, confidentiality and integrity of personal and business information. This policy governs how we collect, process, store and protect information collected through our public website, dealer portals, mobile interfaces and communication channels in compliance with applicable laws and Bangladesh Personal Data Protection Ordinance (PDPO) guidelines.
+    'privacy_hero_title' => 'Privacy Policy',
+    'privacy_hero_lead' => 'How Madina Natural Health Care handles information from our public website, partner network accounts and payment operations — plain operational rules until counsel updates the CMS text.',
+    'privacy_body' => '1. Who We Are
+Madina Natural Health Care operates this public website and the related partner workspaces used by authorized dealers and sub-dealers across Bangladesh. This Privacy Policy explains, in practical terms, what information we collect, why we use it, and how you can contact us. It is an operational company policy and can be updated in the Website CMS; it is not a substitute for formal legal advice.
 
 2. Information We Collect
-We collect only the information necessary to fulfill our business and operational objectives:
-• Public Enquiries: Name, contact phone number, email address, district/division and message content when submitting customer care, product or partnership inquiries.
-• Dealer & Partner Onboarding: Full legal name, business/pharmacy trade name, national identity (NID) or birth registration number, contact phone numbers, email address, physical shop/trade license address, geo-location coordinates and payment credentials.
-• Financial & Operational Transactions: Orders placed, payment claim references, bKash/Nagad/Rocket/bank transaction receipts, credit ledgers, commission records and delivery confirmations.
-• Technical & Audit Logs: Timestamps, IP addresses, browser user-agents and security audit trails recorded strictly for authentication integrity and fraud prevention.
+We collect information needed to run the website, answer enquiries and operate the partner network:
+• Public contact forms: name, phone, email, district/division and message content.
+• Partner onboarding and accounts: legal name, trade/shop name, identity documents where required for verification, phone, email, shop address, territory details and payment collection details staff record for the account.
+• Orders and payments: product lines, quantities, delivery details, ledger notes, and payment claim references including mobile financial service or bank TrxID values submitted for reconciliation.
+• Technical logs: timestamps, IP address and basic browser details used for sign-in security, abuse prevention and audit trails.
 
-3. Lawful Purpose & Processing
-We process collected data exclusively for legitimate operational purposes:
-• Verifying, approving and maintaining authorized dealer and sub-dealer accounts.
-• Processing product orders, warehouse picking, dispatching and courier delivery coordination.
-• Reconciling manual payment claims, managing partner ledgers, commissions and authorized withdrawal payouts.
-• Providing customer care, product safety advisories, promotional notices and official corporate circulars.
-• Maintaining tamper-evident audit logs and statutory financial accounting records.
+3. Partner Network & Accounts
+Dealer and sub-dealer accounts are created and maintained by company staff after review — there is no public self-registration with a shared password. Account holders are responsible for keeping login credentials private. Staff access inside company systems is limited by role so people only see records needed for their work.
 
-4. Data Sharing & Third Parties
-We do not sell personal information under any circumstance. We never rent, monetize or trade partner or customer data. Data is shared strictly on a confidential need-to-know basis with:
-• Logistics & Courier Partners: Recipient name, delivery address and contact phone for physical order fulfillment.
-• Authorized Payment Channels: Transaction references and amounts for financial verification with banks and mobile financial services (MFS).
-• Regulatory Authorities: When required by law, court order or legal governmental directives.
-Access inside company systems is strictly governed by role-based access controls (RBAC) and audited.
+4. Payments & Transaction IDs (TrxID)
+When partners submit manual payment claims (for example bKash, Nagad, Rocket or bank transfer), we store the claimed amount, collection account details and the TrxID or reference number so accounts staff can verify the payment against company records. False, duplicate or altered TrxID claims may lead to claim rejection, account review or further action under company operating rules.
 
-5. Data Security & Storage
-We employ enterprise-grade technical and organizational safeguards:
-• Transport Layer Security (TLS 1.3) encryption for all web and API data transmissions.
-• Bcrypt password hashing and optional Time-based One-Time Password (TOTP) two-factor authentication for partner accounts.
-• Role-based permission segregation ensuring field staff, accountants and managers access only requisite records.
-• Continuous fraud anomaly detection and automated audit logging for sensitive actions.
+5. How We Use Information
+We use collected information to:
+• Respond to customer care, product and partnership enquiries.
+• Verify, approve and support authorized dealer and sub-dealer accounts.
+• Process product requests, warehouse handling and delivery coordination.
+• Reconcile payment claims, maintain partner ledgers and process approved payouts where company policy allows.
+• Send operational notices such as circulars, catalog updates or service messages.
+• Keep audit records needed for security and internal financial control.
 
-6. Data Retention & Privacy Export Rights
-Partner account records and financial ledgers are retained in accordance with statutory accounting requirements and company retention schedules (configured retention period for closed records).
-Partners may exercise their Subject Access Rights at any time by downloading a complete JSON copy of their profile and operational metadata via the 'Download My Data' feature in their secure portal settings. Identity credentials (NID) are omitted from exported files to prevent credential leakage.
+6. Sharing & Third Parties
+We do not sell personal information. We do not rent or trade partner or customer lists. Limited details may be shared only when needed to complete operations — for example courier name/address/phone for delivery, payment references with banks or mobile financial services for verification, or information required by lawful authority requests. Internal access follows role-based permissions.
 
-7. Cookies & Tracking
-Our website uses essential session cookies, security tokens (CSRF) and user interface preference cookies (such as theme and language selection). We do not deploy third-party advertising trackers or behavioral profiling pixels.
+7. Security Practices
+We protect accounts and records with industry-standard measures appropriate to this platform, including encrypted website connections, hashed passwords, optional two-factor authentication for partner logins, role-based access and activity logging for sensitive actions. No online system can promise perfect security; partners should protect their own devices and credentials.
 
-8. Policy Updates & Contact
-We may update this Privacy Policy to reflect operational or regulatory changes. The latest version will always be posted with an updated effective date.
-For any privacy questions, data access requests or security concerns, contact our Head Office:
+8. Retention & Your Access
+Account, order and payment records are kept while the relationship is active and for as long as company retention settings and ordinary business or accounting needs require. Authorized partners can download a JSON copy of their profile data from portal security settings (identity document numbers are omitted from that export). For other privacy questions, use the Contact page or the head-office details below.
+
+9. Cookies & Preferences
+We use essential session and security cookies, plus preference cookies such as language and theme. We do not run third-party advertising trackers on the public site.
+
+10. Updates & Contact
+We may revise this policy when operations or regulations change. The effective label on this page is updated when a new version is published in the CMS. For privacy questions or data requests, contact Madina Natural Health Care:
 • Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer Care Hotline: +8801730532966 / 01723731877
-• Official Email: holisticnutracare@gmail.com",
-    'terms_hero_title' => 'Terms of Use & Operating Standards',
-    'terms_hero_lead' => 'The legally binding terms and operating principles governing access to the Madina Natural Health Care platform, catalog and partner services.',
-    'terms_body' => "1. Acceptance of Terms
-By accessing or using the Madina Natural Health Care public website, product catalogs, dealer directory or authorized partner portals, you agree to be bound by these Terms of Use and all operating policies referenced herein. If you do not agree to these terms, please discontinue using this website and related services immediately.
+• Customer care: +8801730532966 / 01723731877
+• Email: holisticnutracare@gmail.com
+• Or use the public Contact form',
+    'terms_hero_title' => 'Terms of Use',
+    'terms_hero_lead' => 'Operating rules for using the Madina Natural Health Care website, catalog and partner services — including accounts, orders and TrxID payment claims.',
+    'terms_body' => '1. Agreement to These Terms
+By using the Madina Natural Health Care public website, product catalog, dealer directory or authorized partner workspaces, you agree to follow these Terms of Use and related company operating rules. If you do not agree, please stop using the site and related services. Staff may replace this CMS text with counsel-approved wording before go-live without changing how the page is published.
 
-2. Permitted Use & Public Catalog
-This website provides authenticated company information, natural wellness product showcases, educational resources and an authorized dealer directory. While product information, suggested retail prices (MRP) and specifications are presented for public guidance, all commercial purchases, dealer discounts and wholesale orders are conducted strictly through authorized company channels and verified dealer accounts.
+2. Company Website & Catalog
+This website shares company information, wellness product details, educational content and an authorized dealer directory. Catalog information and MRP figures are for public guidance. Retail purchases and wholesale supply run through authorized company channels and verified dealer or sub-dealer accounts — not through an open public checkout on this site.
 
-3. Partner Account Governance & Review
-Dealer and sub-dealer accounts cannot be registered automatically. All partner accounts are created only by company staff after thorough territory review, documentation verification and administrative approval:
-• Account Credentials: Login access (via phone, email or dealer code) is personal and confidential. Partners are strictly responsible for maintaining credential secrecy and using strong passwords or two-factor authentication (TOTP).
-• Integrity & Representation: Partners may not misrepresent their territory tier, impersonate corporate officers or use unauthorized brand variations.
-• Account Suspension: The company reserves the right to suspend or terminate portal access for violation of operational policies, fraudulent claims or abusive conduct.
+3. Partner Network Accounts
+Dealer and sub-dealer accounts are created only by company staff after documentation and territory review:
+• Login access (phone, email or dealer code) is personal. Protect passwords and enable two-factor authentication when offered.
+• Do not misrepresent your territory, tier or company affiliation.
+• The company may suspend or close portal access for policy breaches, fraudulent claims or abusive conduct.
 
-4. Commerce, Orders & Payment Claims
-All commercial ordering across the platform adheres to our structured multi-step verification model:
-• Requests & Order Lines: Orders submitted through dealer portals constitute commercial requests subject to inventory availability and company approval.
-• Payment Claims: Manual payment claims (bKash, Nagad, Rocket, Bank transfers) must reflect genuine transactions with authentic transaction IDs and collection account matching. Submitting false, duplicate or collusive payment claims constitutes financial fraud and triggers immediate account termination and legal remedies.
-• Credit & Ledger: Institutional credit terms and wallet payouts require explicit company approval and adhere strictly to published policy drafts.
+4. Orders, Payments & TrxID Claims
+Partner commerce follows company review workflows:
+• Portal order lines are commercial requests subject to stock and staff approval.
+• Manual payment claims must match real transfers. Submit accurate TrxID / transaction references and the correct company collection account. False, duplicate or collusive TrxID claims are treated as serious misconduct and may result in claim rejection, account termination and referral for further remedies.
+• Credit terms and wallet payouts require explicit company approval under published policy.
 
-5. Intellectual Property & Brand Protection
-All trademarks, product branding (including Holistic Nutracare distribution marks), logos, graphics, text, photography and website design elements are the exclusive intellectual property of Madina Natural Health Care or its licensors. Unauthorized reproduction, scraping, alteration or commercial reuse without prior written authorization is strictly prohibited.
+5. Product & Wellness Information
+Catalog items may include unani medicines, nutrition supplements and herbal wellness products. Website content is informational and educational. It is not personal medical advice, diagnosis or a prescription. Seek qualified professional care when you need clinical guidance.
 
-6. Medical & Wellness Disclaimer
-Products featured across our catalog include unani medicines, nutritional supplements, dietary aids and herbal wellness items. Information provided on this site is for educational and informational purposes only and does not constitute medical advice, clinical diagnosis or prescription. Consumers should consult qualified medical practitioners or visit our Natural Health Care and Physiotherapy Center for personalized therapeutic guidance.
+6. Intellectual Property
+Trademarks, product names, logos, text, photography and site design belong to Madina Natural Health Care or its licensors (including Holistic Nutracare distribution marks where applicable). Do not copy, scrape or reuse them commercially without written permission.
 
-7. Platform Availability & Disclaimers
-We endeavor to ensure uninterrupted availability of our web services, catalogs and dealer systems. However, services are provided on an 'as is' and 'as available' basis. The company does not warrant that website features will be entirely error-free or uninterrupted during scheduled maintenance, network updates or telecommunication outages.
+7. Availability
+We aim to keep the website and partner tools available, but services are provided as available. Maintenance windows, network issues or third-party outages may interrupt access without advance notice in every case.
 
-8. Governing Law & Dispute Resolution
-These Terms of Use are governed by and construed in accordance with the laws of the People's Republic of Bangladesh. Any dispute arising out of or relating to website usage, dealership agreements or platform operations shall be resolved through good-faith negotiation, failing which jurisdiction shall lie exclusively with the competent courts in Rangpur, Bangladesh.
+8. Governing Law
+These terms are governed by the laws of Bangladesh. Disputes about website use or partner operations should first be raised with the company for good-faith resolution; otherwise competent courts in Rangpur, Bangladesh have jurisdiction.
 
-9. Contact & Inquiries
-For questions regarding these Terms of Use, operational policies or partnership agreements, please contact:
-• Head Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer Care & Support: +8801730532966 / 01723731877
-• Official Email: holisticnutracare@gmail.com",
+9. Contact
+Questions about these terms, partnership rules or platform operations:
+• Head office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
+• Customer care: +8801730532966 / 01723731877
+• Email: holisticnutracare@gmail.com
+• Or use the public Contact form',
+    'legal_meta_effective' => 'Effective: October 2026',
+    'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
+    'legal_meta_location' => 'Pirganj, Rangpur, Bangladesh',
 
     'footer_support' => 'SUPPORT',
     'footer_about' => 'ABOUT US',
