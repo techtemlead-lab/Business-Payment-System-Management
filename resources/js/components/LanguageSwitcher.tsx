@@ -22,9 +22,11 @@ export default function LanguageSwitcher({ compact = false }: { compact?: boolea
                     type="button"
                     className={code === locale ? 'active' : ''}
                     aria-pressed={code === locale}
+                    aria-label={code === 'bn' ? translate('portal', 'bangla') : translate('portal', 'english')}
                     onClick={() => switchTo(code)}
                 >
-                    {code === 'bn' ? translate('portal', 'bangla') : translate('portal', 'english')}
+                    <span className="language-full">{code === 'bn' ? translate('portal', 'bangla') : translate('portal', 'english')}</span>
+                    <span className="language-short" aria-hidden="true">{code === 'bn' ? 'বাং' : 'EN'}</span>
                 </button>
             ))}
         </div>

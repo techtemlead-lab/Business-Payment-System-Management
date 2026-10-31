@@ -134,6 +134,7 @@ class WorkspaceController extends Controller
             if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
                 $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
             } elseif ($staff) {
+                $staffProfile = is_array($u->profile) ? $u->profile : [];
                 $data['admin_home'] = [
                     'profile' => [
                         'name' => $u->name,
@@ -142,6 +143,9 @@ class WorkspaceController extends Controller
                         'email' => $u->email,
                         'initial' => mb_strtoupper(mb_substr($u->name, 0, 1)),
                         'status' => $u->status,
+                        'photo_url' => is_string($staffProfile['photo_url'] ?? null)
+                            ? $staffProfile['photo_url']
+                            : (is_string($staffProfile['avatar_url'] ?? null) ? $staffProfile['avatar_url'] : null),
                     ],
                     'snapshot' => [
                         'orders_today' => (clone $orders)->where('created_at', '>=', CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc())->count(),

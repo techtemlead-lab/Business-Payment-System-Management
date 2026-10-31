@@ -5,6 +5,7 @@ import {
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
     Phone, MessageCircle,
 } from 'lucide-react';
+import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 
@@ -145,11 +146,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
         <div className="partner-home">
             <section className="partner-home-grid">
                 <aside className="partner-home-profile" data-tour="home-profile">
-                    <div className="partner-home-avatar" aria-hidden="true">
-                        {profile.photo_url
-                            ? <img src={profile.photo_url} alt="" />
-                            : <span>{profile.initial || '?'}</span>}
-                    </div>
+                    <ProfilePhoto src={profile.photo_url} initial={profile.initial || '?'} />
                     <h2>{profile.name}</h2>
                     {profile.shop_name && <p className="partner-home-shop">{profile.shop_name}</p>}
                     <small>{profile.dealer_code || '—'} · {String(profile.role || '').replaceAll('_', ' ')}</small>
@@ -307,7 +304,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
         <div className="admin-home">
             <section className="admin-home-hero" data-tour="home-metrics">
                 <aside className="partner-home-profile compact">
-                    <div className="partner-home-avatar" aria-hidden="true"><span>{profile.initial || u.name?.[0]}</span></div>
+                    <ProfilePhoto src={profile.photo_url || u.photo_url} initial={profile.initial || u.name?.[0] || '?'} upload />
                     <h2>{profile.name || u.name}</h2>
                     <small>{labelRole(profile.role || u.role)}</small>
                     <Badge status={profile.status || u.status} />
@@ -398,7 +395,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
         <>
             <section className="account-profile-card">
                 <div className="account-profile-info">
-                    <div className="account-avatar" aria-hidden="true">{u.name[0]}</div>
+                    <ProfilePhoto src={u.photo_url} initial={u.name?.[0] || '?'} variant="account" upload={staff} />
                     <div>
                         <p>{translate('portal','dash_hello')}</p>
                         <h2>{u.name}</h2>
