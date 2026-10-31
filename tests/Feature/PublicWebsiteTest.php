@@ -129,7 +129,16 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('Core Objectives');
         $res->assertSee('Authentic Wellness:');
         $res->assertSee('Empowered Partners:');
+        $res->assertSee('Trade License 2026-00563');
+        $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
+        $res->assertSee('staff-verified dealer and sub-dealer network');
+        $res->assertSee('dependable mother company for dealers');
+        $res->assertSee('Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka');
+        $res->assertSee('Dealer &amp; Sub-dealer Network', false);
+        $res->assertSee('no public self-registration');
+        $res->assertSee('product documentation for every SKU');
     }
+
 
     public function test_home_page_presents_the_company_and_dealer_network_without_a_public_store(): void
     {

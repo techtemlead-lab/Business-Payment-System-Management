@@ -85,9 +85,13 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertSee('কোম্পানির ইতিহাস', false)
             ->assertSee('আমাদের মিশন', false)
             ->assertSee('প্রামাণিক ওয়েলনেস', false)
+            ->assertSee('ডিলার ও সাব-ডিলার নেটওয়ার্ক', false)
+            ->assertSee('স্টাফ-যাচাইকৃত ডিলার ও সাব-ডিলার নেটওয়ার্ক', false)
+            ->assertSee('পাবলিক স্ব-নিবন্ধন নেই', false)
             ->assertDontSee('About Madina Natural Health Care', false)
             ->assertDontSee('Company History', false)
-            ->assertDontSee('Our Mission', false);
+            ->assertDontSee('Our Mission', false)
+            ->assertDontSee('Dealer & Sub-dealer Network', false);
 
         $this->onPortal('public')->get('/dealers')
             ->assertOk()

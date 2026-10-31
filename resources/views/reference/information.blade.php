@@ -58,6 +58,12 @@
     </section>
 </div>
 
+<section class="ref-content-card ref-about-network">
+    <div class="ref-about-icon"><i class="fa-solid fa-sitemap" aria-hidden="true"></i></div>
+    <h2>{{ $chrome('about_network_title', $siteCustomization['about_network_title'] ?? null) }}</h2>
+    <p>{{ $chrome('about_network', $siteCustomization['about_network'] ?? null) }}</p>
+</section>
+
 <div class="ref-information-links">
     @if($publicPageEnabled['products'] ?? true)<a href="/products" class="ref-primary-button">{{ $chrome('about_btn_products', $siteCustomization['about_btn_products'] ?? null) }}</a>@endif
     @if($publicPageEnabled['dealers'] ?? true)<a href="/dealers" class="ref-secondary-button"><i class="fa-solid fa-location-dot" aria-hidden="true"></i> {{ $chrome('about_btn_dealers', $siteCustomization['about_btn_dealers'] ?? null) }}</a>@endif
