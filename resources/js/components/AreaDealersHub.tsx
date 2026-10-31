@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { router, useForm } from '@inertiajs/react';
-import { MapPin, Plus, Trash2, Search, Filter, Building2, Compass } from 'lucide-react';
-import { money, date } from './UI';
+import { Link } from '@inertiajs/react';
+import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
+import { money } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
@@ -63,56 +63,11 @@ const levelMeta: Record<string, { labelKey: string; bg: string; text: string; de
     union: { labelKey: 'area_lvl_union', bg: '#fffbeb', text: '#b45309', defaultQuota: 10000 },
 };
 
-export default function AreaDealersHub({ assignments, divisions, dealers_list, place_codes = [] }: AreaDealersHubProps) {
+export default function AreaDealersHub({ assignments, divisions }: AreaDealersHubProps) {
     const translate = useT();
     const [selectedDivision, setSelectedDivision] = useState<string>('all');
     const [selectedLevel, setSelectedLevel] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-
-    const { data, setData, post, processing, errors, reset } = useForm({
-        user_id: dealers_list[0]?.id ? String(dealers_list[0].id) : '',
-        level: 'district' as 'division' | 'district' | 'upazila' | 'union',
-        place_code_id: '',
-        zone_name: '',
-        division: divisions[0] || 'Dhaka',
-        district: '',
-        upazila: '',
-        union: '',
-        monthly_quota: 40000,
-    });
-
-    const placesForLevel = useMemo(
-        () => place_codes.filter((place) => place.level === data.level),
-        [place_codes, data.level],
-    );
-
-    const handleLevelChange = (level: 'division' | 'district' | 'upazila' | 'union') => {
-        const first = place_codes.find((place) => place.level === level);
-        setData(prev => ({
-            ...prev,
-            level,
-            place_code_id: first ? String(first.id) : '',
-            monthly_quota: levelMeta[level]?.defaultQuota || 20000
-        }));
-    };
-
-    const handleCreateAssignment = (e: React.FormEvent) => {
-        e.preventDefault();
-        post('/commands/area-dealers', {
-            preserveScroll: true,
-            onSuccess: () => {
-                setIsAssignModalOpen(false);
-                reset();
-            }
-        });
-    };
-
-    const handleDeleteAssignment = (id: number, zone: string) => {
-        if (window.confirm(translate('portal', 'area_confirm_remove', { zone }))) {
-            router.delete(`/commands/area-dealers/${id}`, { preserveScroll: true });
-        }
-    };
 
     const filteredAssignments = useMemo(() => {
         return assignments.filter(a => {
@@ -144,6 +99,9 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#334155', maxWidth: 760 }}>
+                {translate('portal', 'area_intro')}
+            </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 12, fontWeight: 600 }}>
@@ -296,25 +254,22 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => setIsAssignModalOpen(true)}
+                <Link
+                    href="/accounts/create?intent=dealer"
                     style={{
                         padding: '8px 16px',
                         background: '#006837',
                         color: '#ffffff',
-                        border: 'none',
                         borderRadius: 6,
                         fontWeight: 700,
                         fontSize: 13,
-                        cursor: 'pointer',
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6
                     }}
                 >
-                    <Plus size={16} /> {translate('portal', 'area_assign')}
-                </button>
+                    {translate('portal', 'area_add_dealer')}
+                </Link>
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
@@ -327,7 +282,6 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                             <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_location')}</th>
                             <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_quota')}</th>
                             <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_status')}</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal', 'area_col_actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -343,7 +297,7 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                     {translate('portal', 'area_code', { code: a.place_code.code })}
                                                 </div>
                                             )}
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_assigned', { date: date(a.created_at) })}</div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>{a.place_code ? translate('portal', 'area_holds_code') : translate('portal', 'area_no_place')}</div>
                                         </td>
                                         <td style={{ padding: '12px 16px' }}>
                                             {a.user ? (
@@ -358,20 +312,23 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                             )}
                                         </td>
                                         <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                padding: '2px 8px',
-                                                borderRadius: 4,
-                                                background: levelConfig.bg,
-                                                color: levelConfig.text
-                                            }}>
-                                                {levelLabel(a.level)}
-                                            </span>
+                                            {a.place_code ? (
+                                                <span style={{
+                                                    fontSize: 11,
+                                                    fontWeight: 700,
+                                                    padding: '2px 8px',
+                                                    borderRadius: 4,
+                                                    background: levelConfig.bg,
+                                                    color: levelConfig.text
+                                                }}>
+                                                    {levelLabel(a.level)}
+                                                </span>
+                                            ) : '—'}
                                         </td>
                                         <td style={{ padding: '12px 16px', color: '#475569' }}>
                                             <div>{a.division || '—'}</div>
                                             {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_district', { name: a.district })}</div>}
+                                            {a.upazila && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_upazila', { name: a.upazila })}</div>}
                                         </td>
                                         <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
                                             {money(a.monthly_quota)}
@@ -385,32 +342,15 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                                                 background: a.is_active ? '#dcfce7' : '#fee2e2',
                                                 color: a.is_active ? '#15803d' : '#b91c1c'
                                             }}>
-                                                {a.is_active ? translate('portal', 'area_active') : translate('portal', 'area_inactive')}
+                                                {a.place_code ? translate('portal', 'area_active') : translate('portal', 'area_no_place')}
                                             </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeleteAssignment(a.id, a.zone_name)}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    color: '#ef4444',
-                                                    cursor: 'pointer',
-                                                    padding: 6,
-                                                    borderRadius: 4
-                                                }}
-                                                title={translate('portal', 'area_remove_title')}
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
                                         </td>
                                     </tr>
                                 );
                             })
                         ) : (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
+                                <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
                                     {translate('portal', 'area_empty')}
                                 </td>
                             </tr>
@@ -418,189 +358,6 @@ export default function AreaDealersHub({ assignments, divisions, dealers_list, p
                     </tbody>
                 </table>
             </div>
-
-            {isAssignModalOpen && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 9999,
-                    padding: 16
-                }}>
-                    <div style={{
-                        background: '#ffffff',
-                        borderRadius: 12,
-                        maxWidth: 500,
-                        width: '100%',
-                        padding: 24,
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                            <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                                {translate('portal', 'area_modal_title')}
-                            </h3>
-                            <button
-                                type="button"
-                                onClick={() => setIsAssignModalOpen(false)}
-                                style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer' }}
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateAssignment} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'area_fld_dealer')}
-                                </label>
-                                <select
-                                    value={data.user_id}
-                                    onChange={e => setData('user_id', e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    required
-                                >
-                                    {dealers_list.map(d => (
-                                        <option key={d.id} value={d.id}>
-                                            {d.name} ({d.dealer_code}) - {d.district || d.division || translate('portal', 'area_unspecified')}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.user_id && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.user_id}</div>}
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'area_fld_tier')}
-                                </label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                                    {(['division', 'district', 'upazila', 'union'] as const).map(lvl => (
-                                        <button
-                                            key={lvl}
-                                            type="button"
-                                            onClick={() => handleLevelChange(lvl)}
-                                            style={{
-                                                padding: '8px 10px',
-                                                borderRadius: 6,
-                                                border: `1.5px solid ${data.level === lvl ? '#006837' : '#cbd5e1'}`,
-                                                background: data.level === lvl ? '#ecfdf5' : '#ffffff',
-                                                color: data.level === lvl ? '#006837' : '#475569',
-                                                fontSize: 12,
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                textAlign: 'left'
-                                            }}
-                                        >
-                                            <div>{levelLabel(lvl)}</div>
-                                            <div style={{ fontSize: 10, color: '#64748b' }}>{translate('portal', 'area_quota_label', { amount: money(levelMeta[lvl].defaultQuota) })}</div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'area_fld_place')}
-                                </label>
-                                <select
-                                    value={data.place_code_id}
-                                    onChange={e => {
-                                        const selected = placesForLevel.find((place) => String(place.id) === e.target.value);
-                                        setData(prev => ({
-                                            ...prev,
-                                            place_code_id: e.target.value,
-                                            zone_name: selected ? `${selected.name} (${selected.code})` : prev.zone_name,
-                                        }));
-                                    }}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    required={placesForLevel.length > 0}
-                                >
-                                    <option value="">{translate('portal', 'area_select_place')}</option>
-                                    {placesForLevel.map((place) => (
-                                        <option key={place.id} value={place.id}>
-                                            {place.code} — {place.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {errors.place_code_id && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.place_code_id}</div>}
-                                {placesForLevel.length === 0 && (
-                                    <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>
-                                        {translate('portal', 'area_no_codes', { level: data.level })}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'area_fld_zone')}
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder={translate('portal', 'area_zone_ph')}
-                                    value={data.zone_name}
-                                    onChange={e => setData('zone_name', e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                />
-                                {errors.zone_name && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 2 }}>{errors.zone_name}</div>}
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'area_fld_monthly')}
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="1000"
-                                    value={data.monthly_quota}
-                                    onChange={e => setData('monthly_quota', Number(e.target.value))}
-                                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
-                                    required
-                                />
-                            </div>
-
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsAssignModalOpen(false)}
-                                    style={{
-                                        padding: '8px 14px',
-                                        background: '#f1f5f9',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: 6,
-                                        fontSize: 13,
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {translate('portal', 'area_cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={processing}
-                                    style={{
-                                        padding: '8px 18px',
-                                        background: '#006837',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        borderRadius: 6,
-                                        fontSize: 13,
-                                        fontWeight: 700,
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    {processing ? translate('portal', 'area_saving') : translate('portal', 'area_save')}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
