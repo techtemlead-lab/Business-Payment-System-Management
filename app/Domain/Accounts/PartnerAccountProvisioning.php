@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
@@ -23,6 +24,7 @@ final class PartnerAccountProvisioning
         private PlaceGeographyResolver $geography,
         private AccountCreatedSms $sms,
         private CommissionPolicy $policies,
+        private ManagementReferral $managementReferral,
     ) {}
 
     /**
@@ -52,7 +54,18 @@ final class PartnerAccountProvisioning
         }
 
         $sponsor = null;
-        if ($referenceCode !== '') {
+        $managementReferral = false;
+        $managementSettings = $this->managementReferral->settings();
+        if ($referenceCode === '') {
+            if ($managementSettings['enabled'] && $managementSettings['auto_blank_reference']) {
+                if ($managementSettings['place_code'] === null) {
+                    throw ValidationException::withMessages(['reference_code' => __('portal.acct_val_management_refer_missing')]);
+                }
+                $managementReferral = true;
+            }
+        } elseif ($this->managementReferral->matchesReference($referenceCode)) {
+            $managementReferral = true;
+        } else {
             $sponsor = User::query()
                 ->where(function ($query) use ($referenceCode): void {
                     $query->whereRaw('UPPER(refer_code) = ?', [$referenceCode])
@@ -114,6 +127,9 @@ final class PartnerAccountProvisioning
                 'reference_code' => __('portal.acct_val_reference_same_as_refer'),
             ]);
         }
+        if ($this->managementReferral->matchesReference($referCode)) {
+            throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_is_management')]);
+        }
         if (User::query()->whereRaw('UPPER(refer_code) = ?', [$referCode])->exists()) {
             throw ValidationException::withMessages(['refer_code' => __('portal.acct_val_refer_taken')]);
         }
@@ -144,6 +160,11 @@ final class PartnerAccountProvisioning
             'extra_contact' => trim((string) ($input['extra_contact'] ?? '')),
             'union_place_code' => $role === 'sub_dealer' ? $place->code : null,
         ];
+        if ($managementReferral) {
+            $profile['referred_by'] = ManagementReferral::ProfileFlag;
+            $profile['management_refer_code'] = $managementSettings['place_code'];
+            $profile['management_place_code_id'] = $managementSettings['place_code_id'];
+        }
 
         if ($identityType === 'nid' && trim((string) ($input['nid'] ?? '')) === '') {
             throw ValidationException::withMessages(['nid' => __('portal.acct_val_nid_required')]);
@@ -166,7 +187,7 @@ final class PartnerAccountProvisioning
             }
         }
 
-        $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword): User {
+        $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings): User {
             CommissionWallet::lock();
             $user = (new User)->forceFill([
                 'role' => $role,
@@ -219,7 +240,8 @@ final class PartnerAccountProvisioning
                 'dealer_code' => $dealerCode,
                 'place_code' => $place->code,
                 'refer_code' => $referCode,
-                'reference_code' => $sponsor?->refer_code,
+                'reference_code' => $managementReferral ? $managementSettings['place_code'] : $sponsor?->refer_code,
+                'referred_by_management' => $managementReferral,
                 'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
             ]);
 
@@ -232,7 +254,7 @@ final class PartnerAccountProvisioning
         return [
             'user' => $user,
             'place_label' => $this->placeLabel($place),
-            'commission_consumers' => $this->commissionConsumers($sponsor),
+            'commission_consumers' => $this->commissionConsumers($sponsor, $managementReferral),
         ];
     }
 
@@ -428,31 +450,78 @@ final class PartnerAccountProvisioning
     }
 
     /** @return array<string, mixed> */
-    public function commissionConsumers(?User $sponsor): array
+    public function commissionConsumers(?User $sponsor, bool $managementReferral = false): array
     {
+        if ($managementReferral) {
+            $slot = $this->managementSlot();
+
+            return [
+                'direct_referral' => [...$slot, 'rate' => '10%'],
+                'd2d_gen2' => [...$slot, 'rate' => '2%'],
+                'd2d_gen3' => [...$slot, 'rate' => '1%'],
+                'management_fund' => true,
+                'unassigned' => [],
+            ];
+        }
         if (! $sponsor) {
             return [
                 'direct_referral' => null,
                 'd2d_gen2' => null,
                 'd2d_gen3' => null,
+                'management_fund' => false,
                 'unassigned' => ['direct_referral' => '10%', 'd2d_gen2' => '2%', 'd2d_gen3' => '1%'],
             ];
         }
         $gen2 = $sponsor->sponsor_id ? User::query()->find($sponsor->sponsor_id) : null;
         $gen3 = $gen2?->sponsor_id ? User::query()->find($gen2->sponsor_id) : null;
+        $management = $this->managementSlot();
+        $gen2Management = ! $gen2 && $this->managementReferral->countsAsManagement($sponsor);
+        $gen3Management = $gen2
+            ? (! $gen3 && $this->managementReferral->countsAsManagement($gen2))
+            : $gen2Management;
         $unassigned = [];
-        if (! $gen2) {
+        if (! $gen2 && ! $gen2Management) {
             $unassigned['d2d_gen2'] = '2%';
         }
-        if (! $gen3) {
+        if (! $gen3 && ! $gen3Management) {
             $unassigned['d2d_gen3'] = '1%';
         }
 
         return [
             'direct_referral' => ['id' => $sponsor->id, 'name' => $sponsor->name, 'refer_code' => $sponsor->refer_code, 'rate' => '10%'],
-            'd2d_gen2' => $gen2 ? ['id' => $gen2->id, 'name' => $gen2->name, 'refer_code' => $gen2->refer_code, 'rate' => '2%'] : null,
-            'd2d_gen3' => $gen3 ? ['id' => $gen3->id, 'name' => $gen3->name, 'refer_code' => $gen3->refer_code, 'rate' => '1%'] : null,
+            'd2d_gen2' => $gen2
+                ? ['id' => $gen2->id, 'name' => $gen2->name, 'refer_code' => $gen2->refer_code, 'rate' => '2%']
+                : ($gen2Management ? [...$management, 'rate' => '2%'] : null),
+            'd2d_gen3' => $gen3
+                ? ['id' => $gen3->id, 'name' => $gen3->name, 'refer_code' => $gen3->refer_code, 'rate' => '1%']
+                : ($gen3Management ? [...$management, 'rate' => '1%'] : null),
+            'management_fund' => $gen2Management || $gen3Management,
             'unassigned' => $unassigned,
+        ];
+    }
+
+    public function blankReferenceUsesManagement(): bool
+    {
+        $settings = $this->managementReferral->settings();
+
+        return $settings['enabled'] && $settings['auto_blank_reference'] && $settings['place_code'] !== null;
+    }
+
+    public function referenceIsManagement(string $code): bool
+    {
+        return $this->managementReferral->matchesReference($code);
+    }
+
+    /** @return array{id: null, name: string, refer_code: ?string, fund: string} */
+    private function managementSlot(): array
+    {
+        $settings = $this->managementReferral->settings();
+
+        return [
+            'id' => null,
+            'name' => __('portal.acct_management_referrer'),
+            'refer_code' => $settings['place_code'],
+            'fund' => 'management',
         ];
     }
 

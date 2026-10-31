@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\PlaceCode;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,31 @@ class PlaceCodeController extends Controller
         }
 
         return back()->with('success', __('portal.flash_place_code_deleted', ['code' => $label]));
+    }
+
+    public function updateManagementReferral(Request $request, ManagementReferral $referral): RedirectResponse|JsonResponse
+    {
+        abort_unless($request->user()?->owner(), 403);
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+            'auto_blank_reference' => 'required|boolean',
+            'route_referral_slices' => 'required|boolean',
+            'place_code_id' => 'nullable|integer|exists:place_codes,id',
+            'version' => 'required|integer|min:0',
+        ]);
+        $placeId = $data['place_code_id'] ?? null;
+        $referral->save($request->user(), [
+            'enabled' => $request->boolean('enabled'),
+            'auto_blank_reference' => $request->boolean('auto_blank_reference'),
+            'route_referral_slices' => $request->boolean('route_referral_slices'),
+            'place_code_id' => $placeId !== null ? (int) $placeId : null,
+            'version' => (int) $data['version'],
+        ]);
+        if ($request->expectsJson()) {
+            return response()->json(['data' => $referral->settings()]);
+        }
+
+        return back()->with('success', __('portal.flash_management_referral_saved'));
     }
 
     public function index(Request $request, PlaceCodeCatalog $catalog): JsonResponse

@@ -84,6 +84,7 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::post('/finance/settlements', [CommissionController::class, 'settle'])->name('finance.settlements');
     Route::get('/place-codes', [PlaceCodeController::class, 'index'])->name('place-codes.index');
     Route::post('/place-codes', [PlaceCodeController::class, 'store'])->name('place-codes.store');
+    Route::post('/place-codes/management-referral', [PlaceCodeController::class, 'updateManagementReferral'])->name('place-codes.management-referral');
     Route::patch('/place-codes/{placeCode}', [PlaceCodeController::class, 'update'])->name('place-codes.update');
     Route::delete('/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy'])->name('place-codes.destroy');
     Route::get('/place-codes/children', [PlaceCodeController::class, 'children'])->name('place-codes.children');

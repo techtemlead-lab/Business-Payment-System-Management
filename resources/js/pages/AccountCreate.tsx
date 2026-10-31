@@ -10,7 +10,7 @@ import { useT } from '../shared/i18n/t';
 
 type PlaceOption = { id: number; code: string; name: string; level: string; parent_id: number | null };
 type CommissionPlace = { level: string; code: string | null; name: string | null; rate?: string | null; pool?: string | null };
-type Consumer = { id: number; name: string; refer_code: string | null; rate: string } | null;
+type Consumer = { id: number | null; name: string; refer_code: string | null; rate: string; fund?: string } | null;
 
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'staff_admin', 'payroll',
@@ -37,6 +37,7 @@ export default function AccountCreate({
     place_divisions = [],
     default_identity_type = 'birth_certificate',
     bdris_enabled = false,
+    management_referral = null,
 }: {
     intent?: 'dealer' | 'sub_dealer' | 'staff';
     roles: string[];
@@ -44,6 +45,7 @@ export default function AccountCreate({
     place_divisions?: PlaceOption[];
     default_identity_type?: 'birth_certificate' | 'nid';
     bdris_enabled?: boolean;
+    management_referral?: { place_code: string | null; enabled: boolean; auto_blank_reference: boolean } | null;
 }) {
     const translate = useT();
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
@@ -638,6 +640,9 @@ export default function AccountCreate({
                                     <label>
                                         {translate('portal','acct_your_reference')}
                                         <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_reference_placeholder')} />
+                                        {management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code && (
+                                            <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_reference_blank_hint',{code:management_referral.place_code})}</span>
+                                        )}
                                         {form.errors.reference_code && <span className="field-error">{form.errors.reference_code}</span>}
                                     </label>
                                     <label>
@@ -667,9 +672,9 @@ export default function AccountCreate({
                                 {consumers && (
                                     <div style={{ marginTop: 12, fontSize: 13 }}>
                                         <b>{translate('portal','acct_commission_consumers')}</b>
-                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name} (${consumers.direct_referral.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
-                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name} (${consumers.d2d_gen2.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
-                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name} (${consumers.d2d_gen3.refer_code})` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
+                                        <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name}${consumers.direct_referral.refer_code ? ` (${consumers.direct_referral.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
+                                        <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name}${consumers.d2d_gen2.refer_code ? ` (${consumers.d2d_gen2.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
+                                        <div>{translate('portal','acct_d2d_gen3')}: {consumers.d2d_gen3 ? `${consumers.d2d_gen3.name}${consumers.d2d_gen3.refer_code ? ` (${consumers.d2d_gen3.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
                                     </div>
                                 )}
                             </section>

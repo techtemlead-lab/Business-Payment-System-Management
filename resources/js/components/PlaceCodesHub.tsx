@@ -34,6 +34,19 @@ interface ParentOption {
     level: string;
 }
 
+interface ManagementReferralSettings {
+    enabled: boolean;
+    auto_blank_reference: boolean;
+    route_referral_slices: boolean;
+    version: number;
+    place_code_id: number | null;
+    place_code: string | null;
+    place_name: string | null;
+    fund: string;
+    can_manage: boolean;
+    options: { id: number; code: string; name: string }[];
+}
+
 interface PlaceCodesHubProps {
     level: string;
     level_label: string;
@@ -41,6 +54,7 @@ interface PlaceCodesHubProps {
     filters: { q?: string; level?: string };
     submodules: Submodule[];
     parent_options: ParentOption[];
+    management_referral?: ManagementReferralSettings | null;
     places: {
         data: PlaceRow[];
         current_page: number;
@@ -72,6 +86,86 @@ const formValue = (value?: string | null): string => {
     return shown === '—' ? '' : shown;
 };
 
+function ManagementReferralPanel({ settings }: { settings: ManagementReferralSettings }) {
+    const translate = useT();
+    const form = useForm({
+        enabled: !!settings.enabled,
+        auto_blank_reference: !!settings.auto_blank_reference,
+        route_referral_slices: !!settings.route_referral_slices,
+        place_code_id: settings.place_code_id ? String(settings.place_code_id) : '',
+        version: settings.version ?? 0,
+    });
+    const flag = (on: boolean) => translate('portal', on ? 'pc_mgmt_on' : 'pc_mgmt_off');
+
+    const save = (e: React.FormEvent) => {
+        e.preventDefault();
+        form.transform((data) => ({
+            enabled: data.enabled ? 1 : 0,
+            auto_blank_reference: data.auto_blank_reference ? 1 : 0,
+            route_referral_slices: data.route_referral_slices ? 1 : 0,
+            place_code_id: data.place_code_id === '' ? null : Number(data.place_code_id),
+            version: data.version,
+        }));
+        form.post('/commands/place-codes/management-referral', { preserveScroll: true });
+    };
+
+    return (
+        <section className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #b45309' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                <div>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#b45309', textTransform: 'uppercase' }}>
+                        <Landmark size={15} /> {translate('portal', 'pc_mgmt_title')}
+                    </div>
+                    <p className="muted" style={{ margin: '8px 0 0', maxWidth: 720 }}>{translate('portal', 'pc_mgmt_body')}</p>
+                </div>
+                <div style={{ minWidth: 180 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{translate('portal', 'pc_mgmt_code')}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{settings.place_code || '—'}</div>
+                    <div className="muted" style={{ fontSize: 13 }}>{settings.place_name || translate('portal', 'pc_mgmt_missing')}</div>
+                </div>
+            </div>
+            {settings.can_manage ? (
+                <form onSubmit={save} style={{ marginTop: 16, display: 'grid', gap: 10 }}>
+                    {settings.options.length > 0 && (
+                        <label>
+                            {translate('portal', 'pc_mgmt_place')}
+                            <select value={form.data.place_code_id} onChange={(e) => form.setData('place_code_id', e.target.value)}>
+                                {settings.options.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.name} ({option.code})</option>
+                                ))}
+                            </select>
+                            {form.errors.place_code_id && <span className="field-error">{form.errors.place_code_id}</span>}
+                        </label>
+                    )}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={form.data.enabled} onChange={(e) => form.setData('enabled', e.target.checked)} />
+                        {translate('portal', 'pc_mgmt_enabled')}
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={form.data.auto_blank_reference} onChange={(e) => form.setData('auto_blank_reference', e.target.checked)} />
+                        {translate('portal', 'pc_mgmt_auto')}
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={form.data.route_referral_slices} onChange={(e) => form.setData('route_referral_slices', e.target.checked)} />
+                        {translate('portal', 'pc_mgmt_route')}
+                    </label>
+                    {form.errors.version && <span className="field-error">{form.errors.version}</span>}
+                    <div>
+                        <button type="submit" className="button dark" disabled={form.processing}>{translate('portal', 'pc_mgmt_save')}</button>
+                    </div>
+                </form>
+            ) : (
+                <div style={{ marginTop: 14, display: 'grid', gap: 4, fontSize: 14 }}>
+                    <div>{translate('portal', 'pc_mgmt_enabled')}: <b>{flag(settings.enabled)}</b></div>
+                    <div>{translate('portal', 'pc_mgmt_auto')}: <b>{flag(settings.auto_blank_reference)}</b></div>
+                    <div>{translate('portal', 'pc_mgmt_route')}: <b>{flag(settings.route_referral_slices)}</b></div>
+                    <p className="muted" style={{ margin: '6px 0 0' }}>{translate('portal', 'pc_mgmt_readonly')}</p>
+                </div>
+            )}
+        </section>
+    );
+}
+
 export default function PlaceCodesHub({
     level,
     level_label,
@@ -79,6 +173,7 @@ export default function PlaceCodesHub({
     filters,
     submodules,
     parent_options,
+    management_referral = null,
     places,
 }: PlaceCodesHubProps) {
     const translate = useT();
@@ -175,6 +270,9 @@ export default function PlaceCodesHub({
 
     return (
         <div className="place-codes-hub">
+            {management_referral && (
+                <ManagementReferralPanel key={management_referral.version} settings={management_referral} />
+            )}
             <section className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #0f766e' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>

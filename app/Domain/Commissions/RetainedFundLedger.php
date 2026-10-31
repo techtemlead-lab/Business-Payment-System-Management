@@ -2,6 +2,7 @@
 
 namespace App\Domain\Commissions;
 
+use App\Domain\Geography\ManagementReferral;
 use App\Models\CommissionAllocation;
 use App\Support\Money;
 use Illuminate\Support\Collection;
@@ -56,7 +57,8 @@ final class RetainedFundLedger
                     ->orWhere('category', self::BenefitsCategory)
                     ->orWhereIn('category', CommissionSettlement::settlementReserveCategories())
                     ->orWhere('category', 'like', '%_override_reserve')
-                    ->orWhere('category', 'like', '%_breakage');
+                    ->orWhere('category', 'like', '%_breakage')
+                    ->orWhere('metadata->retained_by', ManagementReferral::FundRetainedBy);
             })
             ->latest('id')
             ->limit($limit * 3)
@@ -64,7 +66,9 @@ final class RetainedFundLedger
 
         foreach ($allocations as $allocation) {
             $row = $this->allocationRow($allocation);
-            if ($allocation->status === 'unassigned_reserve' || str_starts_with((string) $allocation->category, 'area_')) {
+            if ($this->inManagementFund($allocation)) {
+                $groups['management_area'][] = $row;
+            } elseif ($allocation->status === 'unassigned_reserve' || str_starts_with((string) $allocation->category, 'area_')) {
                 if ($allocation->status === 'unassigned_reserve') {
                     $groups['unassigned_geographic'][] = $row;
                 } elseif ($allocation->category === 'area_management') {
@@ -277,6 +281,11 @@ final class RetainedFundLedger
         if ($allocation->category === 'area_management') {
             return __('portal.retained_reason_area_management');
         }
+        if (($metadata['retained_by'] ?? null) === ManagementReferral::FundRetainedBy) {
+            return __('portal.retained_reason_management_referral', [
+                'generation' => (string) ($metadata['generation'] ?? ''),
+            ]);
+        }
         if (str_contains((string) $allocation->category, 'breakage')) {
             return __('portal.retained_reason_breakage');
         }
@@ -304,12 +313,20 @@ final class RetainedFundLedger
         return (string) ($metadata['source'] ?? __('portal.retained_reason_generic'));
     }
 
+    private function inManagementFund(CommissionAllocation $allocation): bool
+    {
+        $metadata = is_array($allocation->metadata) ? $allocation->metadata : [];
+
+        return $allocation->category === 'area_management'
+            || ($metadata['retained_by'] ?? null) === ManagementReferral::FundRetainedBy;
+    }
+
     private function fundLabel(CommissionAllocation $allocation): string
     {
         return match (true) {
             $allocation->category === self::BenefitsCategory => __('portal.retained_fund_benefits'),
+            $this->inManagementFund($allocation) => __('portal.retained_fund_area_management'),
             $allocation->status === 'unassigned_reserve' => __('portal.retained_fund_unassigned'),
-            $allocation->category === 'area_management' => __('portal.retained_fund_area_management'),
             $allocation->category === 'company_marketing_fund' => __('portal.retained_fund_marketing'),
             $allocation->category === 'car_bike_incentive_fund' => __('portal.retained_fund_vehicle'),
             $allocation->category === CommissionSettlement::DealerSalaryReserve => __('portal.retained_fund_dealer_salary'),
