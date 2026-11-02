@@ -518,6 +518,9 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
 .app-shell .branches-register td,.app-shell .branches-register th{white-space:normal}
 .app-shell .branches-register .inline-actions{flex-wrap:wrap}
 .app-shell .branches-register .branch-delete{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
+.app-shell .table-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.app-shell .table-tools input[type=search]{width:min(280px,100%);height:32px;min-height:32px;padding:4px 10px;font-size:12px}
+.app-shell .table-tools select{width:auto;min-width:140px;height:32px;min-height:32px;padding:0 8px;font-size:12px}
 .account-actions.dense-actions{gap:10px;margin-bottom:18px}
 .account-actions.dense-actions .account-action-card{padding:14px 12px;min-height:84px;gap:10px}
 .account-actions.dense-actions .account-action-card h2{font-size:13px;margin:0 0 4px}

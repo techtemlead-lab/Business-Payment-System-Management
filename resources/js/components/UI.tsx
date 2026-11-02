@@ -1,4 +1,4 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X,Inbox} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
@@ -52,7 +52,29 @@ export function Empty({title,body}:{title?:string,body?:string}) {
  return <div className="empty"><Inbox size={30}/><h3>{title??translate('portal','empty_default_title')}</h3><p>{body??translate('portal','empty_default_body')}</p></div>;
 }
 export function Flash(){const {flash,errors}=usePage<any>().props;return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
-export function Table<T extends Row = any>({rows,columns,empty,emptyBody}:{rows:T[],columns:{key:string,title:string,render?:(row:any)=>React.ReactNode}[],empty?:string,emptyBody?:string}){return rows.length?<div className="table-wrap"><table><thead><tr>{columns.map(c=><th key={c.key}>{c.title}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={(r as any).id??i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String((r as any)[c.key]??'—')}</td>)}</tr>)}</tbody></table></div>:<Empty title={empty} body={emptyBody}/>}
+function rowSearchText(value:unknown,depth=0):string{
+ if(value==null||depth>2)return '';
+ if(typeof value==='string'||typeof value==='number')return String(value);
+ if(Array.isArray(value))return value.map(item=>rowSearchText(item,depth+1)).join(' ');
+ if(typeof value==='object')return Object.values(value as Record<string,unknown>).map(item=>rowSearchText(item,depth+1)).join(' ');
+ return '';
+}
+export function Table<T extends Row = any>({rows,columns,empty,emptyBody,tools=true}:{rows:T[],columns:{key:string,title:string,render?:(row:any)=>React.ReactNode}[],empty?:string,emptyBody?:string,tools?:boolean}){
+ const translate=useT();
+ const [query,setQuery]=useState('');
+ const [status,setStatus]=useState('');
+ const statuses=useMemo(()=>[...new Set(rows.map(row=>typeof (row as Row).status==='string'?(row as Row).status as string:'').filter(Boolean))],[rows]);
+ const visible=useMemo(()=>{
+  const needle=query.trim().toLowerCase();
+  return rows.filter(row=>{
+   if(status&&String((row as Row).status??'')!==status)return false;
+   if(!needle)return true;
+   return rowSearchText(row).toLowerCase().includes(needle);
+  });
+ },[query,rows,status]);
+ const body=visible.length?visible.map((r,i)=><tr key={(r as any).id??i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String((r as any)[c.key]??'—')}</td>)}</tr>):<tr><td colSpan={columns.length}><Empty title={rows.length?translate('portal','table_no_matches'):empty} body={rows.length?translate('portal','table_no_matches_hint'):emptyBody}/></td></tr>;
+ return <div className="table-block">{tools&&<div className="table-tools"><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={translate('portal','table_search')} aria-label={translate('portal','table_search')}/>{statuses.length>1&&<select aria-label={translate('portal','table_status')} value={status} onChange={e=>setStatus(e.target.value)}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}</div>}<div className="table-wrap"><table><thead><tr>{columns.map(c=><th key={c.key}>{c.title}</th>)}</tr></thead><tbody>{body}</tbody></table></div></div>;
+}
 export function Pagination({page}:{page?:Row}){
  const translate=useT();
  return page&&page.last_page>1?<div className="pagination"><span>{translate('portal','pagination_summary',{page:String(page.current_page),pages:String(page.last_page),total:String(page.total)})}</span><div>{page.prev_page_url&&<Link href={page.prev_page_url}>{translate('portal','pagination_previous')}</Link>}{page.next_page_url&&<Link href={page.next_page_url}>{translate('portal','pagination_next')}</Link>}</div></div>:null;

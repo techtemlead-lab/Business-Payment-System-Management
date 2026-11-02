@@ -115,7 +115,7 @@ class WorkspaceController extends Controller
             }
             // Overview only needs line quantities for the items column — keep the payload slim.
             $lineRelation = $section === 'overview' ? 'lines:id,order_id,quantity' : 'lines';
-            $orderWith = ['user:id,name,dealer_code,role', $lineRelation];
+            $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
             if ($staff && Schema::hasColumn('orders', 'fulfillment_branch_id')) {
                 $orderWith[] = 'fulfillmentBranch:id,name,code';
             }
@@ -265,9 +265,11 @@ class WorkspaceController extends Controller
                 $branchQuantities = BranchProductStock::query()
                     ->where('branch_id', $activeBranchId)
                     ->pluck('quantity', 'product_id');
-                $data['products'] = collect($data['products'] ?? [])->map(function (array $product) use ($branchQuantities) {
+                $branchName = $preferredBranch?->name;
+                $data['products'] = collect($data['products'] ?? [])->map(function (array $product) use ($branchQuantities, $branchName) {
                     $product['branch_stock'] = (int) ($branchQuantities[$product['id']] ?? 0);
                     $product['company_stock'] = (int) ($product['stock'] ?? 0);
+                    $product['branch_name'] = $branchName;
 
                     return $product;
                 })->all();
@@ -275,7 +277,8 @@ class WorkspaceController extends Controller
             $data['movements'] = DB::table('stock_movements')
                 ->join('products', 'products.id', '=', 'product_id')
                 ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
-                ->select('stock_movements.*', 'products.name', 'company_branches.code as branch_code', 'company_branches.name as branch_name')
+                ->leftJoin('users', 'users.id', '=', 'stock_movements.actor_id')
+                ->select('stock_movements.*', 'products.name', 'products.sku', 'company_branches.code as branch_code', 'company_branches.name as branch_name', 'users.name as actor_name')
                 ->orderByDesc('stock_movements.id')
                 ->paginate(20);
         }
@@ -440,7 +443,7 @@ class WorkspaceController extends Controller
         }
         if ($section === 'payments') {
             $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')
-                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name')
+                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name', 'users.phone')
                 ->orderByDesc('payment_claims.id')->paginate(20);
         }
         if ($section === 'policies') {
@@ -585,7 +588,13 @@ class WorkspaceController extends Controller
                 ->get(['id', 'slug', 'title', 'body', 'updated_at']);
         }
         if ($section === 'ledger') {
-            $data['entries'] = DB::table('journal_entries')->latest()->paginate(20);
+            $data['entries'] = DB::table('journal_entries')
+                ->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id')
+                ->select('journal_entries.id', 'journal_entries.event_key', 'journal_entries.description', 'journal_entries.created_at', 'users.name as actor_name')
+                ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(debit), 0)'), 'debit')
+                ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(credit), 0)'), 'credit')
+                ->orderByDesc('journal_entries.created_at')
+                ->paginate(20);
         }
         if ($section === 'audit') {
             $data['events'] = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id')->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')->orderByDesc('audit_events.id')->paginate(25);

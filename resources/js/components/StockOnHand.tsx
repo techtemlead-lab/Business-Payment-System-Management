@@ -14,6 +14,7 @@ type StockProduct = {
     unit?: string | null;
     strength?: string | null;
     mrp?: string | number | null;
+    cost_price?: string | number | null;
     dealer_price?: string | number | null;
     dealer_discount_pct?: string | null;
     sub_dealer_price?: string | number | null;
@@ -94,6 +95,7 @@ export default function StockOnHand({
     const [unit, setUnit] = useState('');
     const [sort, setSort] = useState<SortKey>('name');
 
+    const showCost = products.some((product) => product.cost_price != null && product.cost_price !== '');
     const categories = useMemo(() => uniqueValues(products, 'category'), [products]);
     const units = useMemo(() => uniqueValues(products, 'unit'), [products]);
     const subCategories = useMemo(() => {
@@ -216,10 +218,13 @@ export default function StockOnHand({
                                 <th>{translate('portal', 'col_subcategory')}</th>
                                 <th>{translate('portal', 'col_unit')}</th>
                                 <th>{translate('portal', 'col_mrp')}</th>
+                                {showCost && <th>{translate('portal', 'col_cost')}</th>}
                                 <th>{translate('portal', 'col_dealer_commission')}</th>
                                 <th>{translate('portal', 'col_subdealer_commission')}</th>
                                 <th>{translate('portal', 'col_expiry')}</th>
                                 <th>{translate('portal', 'available_units')}</th>
+                                <th>{translate('portal', 'branch_stock_value')}</th>
+                                <th>{translate('portal', 'col_reorder')}</th>
                                 <th>{translate('portal', 'low_stock_threshold')}</th>
                                 <th>{translate('portal', 'one_click_stock')}</th>
                             </tr>
@@ -239,6 +244,7 @@ export default function StockOnHand({
                                         <td>{product.sub_category || '—'}</td>
                                         <td>{product.unit || '—'}</td>
                                         <td>{product.mrp != null && product.mrp !== '' ? money(product.mrp) : '—'}</td>
+                                        {showCost && <td>{product.cost_price != null && product.cost_price !== '' ? money(product.cost_price) : '—'}</td>}
                                         <td><RateCell percent={product.dealer_discount_pct} price={product.dealer_price} /></td>
                                         <td><RateCell percent={product.sub_dealer_discount_pct} price={product.sub_dealer_price} /></td>
                                         <td>{product.expires_on ? date(product.expires_on) : '—'}</td>
@@ -250,6 +256,8 @@ export default function StockOnHand({
                                                 ) : null}
                                             </b>
                                         </td>
+                                        <td>{money(onHand * Number(product.mrp || 0))}</td>
+                                        <td>{onHand <= 0 ? translate('portal', 'stock_level_out') : onHand <= low ? translate('portal', 'stock_level_low') : translate('portal', 'stock_level_ok')}</td>
                                         <td>{product.low_stock_at ?? '—'}</td>
                                         <td>
                                             <button
