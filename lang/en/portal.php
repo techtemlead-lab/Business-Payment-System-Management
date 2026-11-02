@@ -390,6 +390,7 @@ return [
     'orders_note_dues' => 'Unpaid money is shown here. Undelivered quantities are tracked separately in Deliveries.',
     'orders_note_deliveries' => 'Open an order to view shipments, remaining quantities and courier tracking.',
     'orders_note_orders' => 'Open any order for its payment and delivery history.',
+    'tour_orders_invoice_body' => 'Open an order to see its invoice, payment, and delivery history.',
     'excel_pdf_reports' => 'Excel / PDF reports',
     'export_csv' => 'Export CSV',
     'manage_orders' => 'Manage orders',
