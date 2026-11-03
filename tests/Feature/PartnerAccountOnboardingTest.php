@@ -6,6 +6,7 @@ use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -375,6 +376,61 @@ class PartnerAccountOnboardingTest extends TestCase
             'user_id' => $dealer->id,
             'title' => __('portal.notice_geography_updated_title', [], $dealer->preferredLocale()),
         ]);
+    }
+
+    public function test_dealer_can_move_back_to_a_place_code_after_leaving_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $from = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $to = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
+
+        $this->actingAs($admin)->onPortal('sadmin')->post('/commands/accounts', [
+            'role' => 'dealer',
+            'identity_type' => 'nid',
+            'nid' => '1985123456711',
+            'date_of_birth' => '1985-05-01',
+            'name' => 'Returning Dealer',
+            'name_bn' => 'ফিরে আসা',
+            'father_name' => 'Father',
+            'mother_name' => 'Mother',
+            'place_code' => $from->code,
+            'refer_code' => 'REF-RETURN',
+            'phone' => '01710000031',
+            'email' => 'returning@example.com',
+            'reason' => 'Create before the dealer moves to another territory',
+        ])->assertRedirect('/accounts');
+
+        $dealer = User::query()->where('email', 'returning@example.com')->firstOrFail();
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'name' => 'Returning Dealer',
+            'place_code' => $to->code,
+            'reason' => 'Move the dealer off the original place code',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $vacated = AreaDealerAssignment::query()
+            ->where('user_id', $dealer->id)
+            ->where('place_code_id', $from->id)
+            ->firstOrFail();
+        $this->assertFalse($vacated->is_active);
+        $this->assertNull($vacated->territory_key);
+
+        DB::table('area_dealer_assignments')->where('id', $vacated->id)->update([
+            'territory_key' => hash('sha256', $from->level.'|code:'.$from->code),
+        ]);
+
+        $this->actingAs($admin)->onPortal('sadmin')->patch('/commands/accounts/'.$dealer->id, [
+            'name' => 'Returning Dealer',
+            'place_code' => $from->code,
+            'reason' => 'Move the dealer back to the original place code',
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame($from->code, $dealer->fresh()->profile['place_code']);
+        $this->assertTrue(AreaDealerAssignment::query()
+            ->where('user_id', $dealer->id)
+            ->where('place_code_id', $from->id)
+            ->where('is_active', true)
+            ->exists());
+        $this->assertNull($vacated->fresh()->territory_key);
     }
 
     public function test_account_update_rejects_rebinding_dealer_onto_taken_place_code(): void
