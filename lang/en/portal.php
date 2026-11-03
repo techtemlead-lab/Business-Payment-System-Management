@@ -3416,6 +3416,8 @@ return [
     'pcm_save' => 'Save',
     'pcm_select' => 'Select',
     'pcm_name_ph' => 'Name',
+    'pcm_create_ph' => 'Type a new name',
+    'pcm_create_now' => 'Create',
     'pcm_created_reason' => 'Product added',
     'pcm_dealer_price_hint' => 'Auto-calculated from discount, or type custom cash price',
     'pcm_cash_price' => 'Actual Dealer Cash Price (Cash Inflow)',

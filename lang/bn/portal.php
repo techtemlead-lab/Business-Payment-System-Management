@@ -3416,6 +3416,8 @@ return [
     'pcm_save' => 'সংরক্ষণ',
     'pcm_select' => 'বেছে নিন',
     'pcm_name_ph' => 'নাম',
+    'pcm_create_ph' => 'নতুন নাম লিখুন',
+    'pcm_create_now' => 'তৈরি করুন',
     'pcm_created_reason' => 'পণ্য যুক্ত হয়েছে',
     'pcm_dealer_price_hint' => 'ডিসকাউন্ট থেকে অটো-হিসাব, অথবা কাস্টম ক্যাশ মূল্য লিখুন',
     'pcm_cash_price' => 'প্রকৃত ডিলার ক্যাশ মূল্য (ক্যাশ ইনফ্লো)',

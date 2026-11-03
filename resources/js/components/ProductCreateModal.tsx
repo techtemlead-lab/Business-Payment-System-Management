@@ -93,9 +93,8 @@ export default function ProductCreateModal({
     const [featured, setFeatured] = useState('0');
     const [initialStock, setInitialStock] = useState('0');
     const [lowStockAt, setLowStockAt] = useState('10');
-    const [adding, setAdding] = useState<AddTarget | null>(null);
-    const [draftName, setDraftName] = useState('');
-    const [savingTaxonomy, setSavingTaxonomy] = useState(false);
+    const [drafts, setDrafts] = useState<Record<AddTarget, string>>({ category: '', subcategory: '', unit: '' });
+    const [savingTarget, setSavingTarget] = useState<AddTarget | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -123,8 +122,7 @@ export default function ProductCreateModal({
         setFeatured('0');
         setInitialStock('0');
         setLowStockAt('10');
-        setAdding(null);
-        setDraftName('');
+        setDrafts({ category: '', subcategory: '', unit: '' });
         setErrorMsg(null);
     }, [isOpen, categories, units]);
 
@@ -160,22 +158,22 @@ export default function ProductCreateModal({
         setSubDealerPrice(priceFromPercent(value, subDealerPct));
     };
 
-    const saveTaxonomy = async () => {
-        const label = draftName.trim();
-        if (!label || !adding) {
+    const saveTaxonomy = async (target: AddTarget) => {
+        const label = drafts[target].trim();
+        if (!label || (target === 'subcategory' && !categoryId)) {
             return;
         }
-        setSavingTaxonomy(true);
+        setSavingTarget(target);
         setErrorMsg(null);
         try {
-            if (adding === 'category') {
+            if (target === 'category') {
                 const payload = await postJson('/commands/product-categories', { name: label, is_active: true });
                 const created = payload.data as CatalogCategory;
                 setCatalog((current) => [...current, { ...created, subcategories: created.subcategories ?? [] }]);
                 setCategoryId(String(created.id));
                 setSubcategoryId('');
             }
-            if (adding === 'subcategory') {
+            if (target === 'subcategory') {
                 const payload = await postJson('/commands/product-subcategories', {
                     product_category_id: Number(categoryId),
                     name: label,
@@ -189,18 +187,17 @@ export default function ProductCreateModal({
                 )));
                 setSubcategoryId(String(created.id));
             }
-            if (adding === 'unit') {
+            if (target === 'unit') {
                 const payload = await postJson('/commands/product-units', { name: label, is_active: true });
                 const created = payload.data as CatalogUnit;
                 setUnitList((current) => [...current, created]);
                 setUnitId(String(created.id));
             }
-            setAdding(null);
-            setDraftName('');
+            setDrafts((current) => ({ ...current, [target]: '' }));
         } catch (error) {
             setErrorMsg(error instanceof Error ? error.message : translate('portal', 'pcm_err_taxonomy'));
         } finally {
-            setSavingTaxonomy(false);
+            setSavingTarget(null);
         }
     };
 
@@ -287,12 +284,6 @@ export default function ProductCreateModal({
         return null;
     }
 
-    const startAdd = (target: AddTarget) => {
-        setAdding(target);
-        setDraftName('');
-        setErrorMsg(null);
-    };
-
     const choice = (
         target: AddTarget,
         label: string,
@@ -303,38 +294,27 @@ export default function ProductCreateModal({
     ) => (
         <label className="pcm-field">
             <span>{label}</span>
-            {adding === target ? (
-                <span className="pcm-add-row">
-                    <input
-                        value={draftName}
-                        autoFocus
-                        placeholder={translate('portal', 'pcm_name_ph')}
-                        onChange={(event) => setDraftName(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                                event.preventDefault();
-                                void saveTaxonomy();
-                            }
-                        }}
-                    />
-                    <button type="button" className="pcm-text" disabled={savingTaxonomy || !draftName.trim()} onClick={() => void saveTaxonomy()}>
-                        {translate('portal', 'pcm_save')}
-                    </button>
-                    <button type="button" className="pcm-text" onClick={() => setAdding(null)}>
-                        {translate('portal', 'pcm_cancel')}
-                    </button>
-                </span>
-            ) : (
-                <span className="pcm-choice">
-                    <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
-                        <option value="">{translate('portal', 'pcm_select')}</option>
-                        {options.map((option) => <option key={option.id} value={String(option.id)}>{option.name}</option>)}
-                    </select>
-                    <button type="button" className="pcm-text" disabled={disabled} onClick={() => startAdd(target)}>
-                        {translate('portal', 'pcm_add')}
-                    </button>
-                </span>
-            )}
+            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+                <option value="">{translate('portal', 'pcm_select')}</option>
+                {options.map((option) => <option key={option.id} value={String(option.id)}>{option.name}</option>)}
+            </select>
+            <span className="pcm-create">
+                <input
+                    value={drafts[target]}
+                    disabled={disabled}
+                    placeholder={translate('portal', 'pcm_create_ph')}
+                    onChange={(event) => setDrafts((current) => ({ ...current, [target]: event.target.value }))}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            void saveTaxonomy(target);
+                        }
+                    }}
+                />
+                <button type="button" className="pcm-create-btn" disabled={disabled || savingTarget === target || !drafts[target].trim()} onClick={() => void saveTaxonomy(target)}>
+                    {translate('portal', 'pcm_create_now')}
+                </button>
+            </span>
         </label>
     );
 
@@ -409,39 +389,43 @@ export default function ProductCreateModal({
 
                     <section>
                         <h3>{translate('portal', 'pcm_section_pricing')}</h3>
-                        <div className="pcm-grid">
-                            <label className="pcm-field">
+                        <div className="pcm-price">
+                            <label className="pcm-field pcm-price-mrp">
                                 <span>{translate('portal', 'pcm_mrp')}</span>
                                 <input type="number" min="0.01" step="0.01" required value={mrp} onChange={(event) => changeMrp(event.target.value)} />
                             </label>
-                            <label className="pcm-field">
-                                <span>{translate('portal', 'pcm_dealer_discount')}</span>
-                                <input type="number" min="0" max={maxDealerPct} step="0.1" value={dealerPct} onChange={(event) => {
-                                    setDealerPct(event.target.value);
-                                    setDealerPrice(priceFromPercent(mrp, event.target.value));
-                                }} />
-                            </label>
-                            <label className="pcm-field">
-                                <span>{translate('portal', 'pcm_dealer_price')}</span>
-                                <input type="number" min="0.01" step="0.01" required value={dealerPrice} onChange={(event) => {
-                                    setDealerPrice(event.target.value);
-                                    setDealerPct(percentFromPrice(mrp, event.target.value));
-                                }} />
-                            </label>
-                            <label className="pcm-field">
-                                <span>{translate('portal', 'pcm_subdealer_discount')}</span>
-                                <input type="number" min="0" max={maxSubDealerPct} step="0.1" value={subDealerPct} onChange={(event) => {
-                                    setSubDealerPct(event.target.value);
-                                    setSubDealerPrice(priceFromPercent(mrp, event.target.value));
-                                }} />
-                            </label>
-                            <label className="pcm-field">
-                                <span>{translate('portal', 'pcm_subdealer_price')}</span>
-                                <input type="number" min="0.01" step="0.01" required value={subDealerPrice} onChange={(event) => {
-                                    setSubDealerPrice(event.target.value);
-                                    setSubDealerPct(percentFromPrice(mrp, event.target.value));
-                                }} />
-                            </label>
+                            <div className="pcm-price-line">
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_dealer_discount')}</span>
+                                    <input type="number" min="0" max={maxDealerPct} step="0.1" value={dealerPct} onChange={(event) => {
+                                        setDealerPct(event.target.value);
+                                        setDealerPrice(priceFromPercent(mrp, event.target.value));
+                                    }} />
+                                </label>
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_dealer_price')}</span>
+                                    <input type="number" min="0.01" step="0.01" required value={dealerPrice} onChange={(event) => {
+                                        setDealerPrice(event.target.value);
+                                        setDealerPct(percentFromPrice(mrp, event.target.value));
+                                    }} />
+                                </label>
+                            </div>
+                            <div className="pcm-price-line">
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_subdealer_discount')}</span>
+                                    <input type="number" min="0" max={maxSubDealerPct} step="0.1" value={subDealerPct} onChange={(event) => {
+                                        setSubDealerPct(event.target.value);
+                                        setSubDealerPrice(priceFromPercent(mrp, event.target.value));
+                                    }} />
+                                </label>
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_subdealer_price')}</span>
+                                    <input type="number" min="0.01" step="0.01" required value={subDealerPrice} onChange={(event) => {
+                                        setSubDealerPrice(event.target.value);
+                                        setSubDealerPct(percentFromPrice(mrp, event.target.value));
+                                    }} />
+                                </label>
+                            </div>
                         </div>
                     </section>
 
