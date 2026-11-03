@@ -156,6 +156,8 @@ class PortalModulesTest extends TestCase
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'], PortalCatalog::nav('subdealer')['account']);
         $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
         $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
+        $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('manage')['subdealer_directory']);
+        $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('sadmin')['subdealer_directory']);
         $this->assertSame(['orders', 'deliveries', 'dues'], PortalCatalog::nav('manage')['fulfillment']);
         $this->assertSame(['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'], PortalCatalog::nav('manage')['products']);
         $this->assertSame(['audit', 'support-admin'], PortalCatalog::nav('manage')['system']);

@@ -37,7 +37,7 @@ export const OPERATIONS_SECTIONS = new Set([
 ]);
 
 export const DEALER_ONLY_SECTIONS = ['accounts', 'partnerships', 'area-dealers'];
-export const SUB_DEALER_ONLY_SECTIONS = ['sub-dealers', 'salary'];
+export const SUB_DEALER_ONLY_SECTIONS = ['sub-dealers', 'sub-dealer-applications', 'salary'];
 export const SHARED_PARTNER_SECTIONS = ['commissions', 'policies', 'simulator', 'network-tree', 'ranks'];
 export const ACCOUNT_SECTIONS = ['profile', 'security', 'notifications', 'help'];
 export const MANAGEMENT_SECTIONS = [
@@ -71,6 +71,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
+    'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin',
 };
 
@@ -198,7 +199,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (role === 'super_admin') items.add('access-management');
     if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
     if (capabilities.includes('accounts')) {
-        ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
+        ['dashboards', 'employees', 'place-codes', 'accounts', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'sub-dealers', 'enquiries'].forEach((item) => items.add(item));
     }
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
@@ -216,9 +217,6 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('audit')) items.add('audit');
     if (capabilities.includes('orders') || capabilities.includes('finance')) {
         ['orders', 'deliveries', 'dues'].forEach((item) => items.add(item));
-    }
-    if (capabilities.includes('orders')) {
-        items.add('sub-dealer-orders');
     }
     return items;
 }
@@ -332,7 +330,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
         ]),
         subDealers: compactMothers([
-            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-orders'])),
+            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-applications'])),
             mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
             mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
             mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),

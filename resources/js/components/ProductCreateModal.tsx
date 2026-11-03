@@ -1,136 +1,272 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { router } from '@inertiajs/react';
-import { X, Upload, Sparkles, AlertCircle, Percent, Package } from 'lucide-react';
+import { X, Upload, AlertCircle } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+
+type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
+type CatalogCategory = { id: number; name: string; is_active?: boolean; subcategories?: CatalogSubcategory[] };
+type CatalogUnit = { id: number; name: string; code?: string; is_active?: boolean };
 
 interface ProductCreateModalProps {
     isOpen: boolean;
     onClose: () => void;
-    categories: string[];
+    categories?: CatalogCategory[];
+    units?: CatalogUnit[];
+    maxDealerPct?: number;
+    maxSubDealerPct?: number;
 }
 
-export default function ProductCreateModal({ isOpen, onClose, categories }: ProductCreateModalProps) {
-    const translate = useT();
+type AddTarget = 'category' | 'subcategory' | 'unit';
 
+function csrfToken(): string {
+    const row = document.cookie.split('; ').find((item) => item.startsWith('XSRF-TOKEN='));
+    return decodeURIComponent(row?.split('=').slice(1).join('=') || '');
+}
+
+async function postJson(url: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': csrfToken(),
+        },
+        body: JSON.stringify(body),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const errors = payload && typeof payload === 'object' && 'errors' in payload
+            ? Object.values((payload as { errors: Record<string, string[]> }).errors).flat()
+            : [];
+        throw new Error(errors.join(' ') || (payload as { message?: string }).message || 'Request failed');
+    }
+    return payload as Record<string, unknown>;
+}
+
+function priceFromPercent(mrp: string, percent: string): string {
+    const retail = parseFloat(mrp);
+    const rate = parseFloat(percent);
+    if (Number.isNaN(retail) || retail <= 0 || Number.isNaN(rate) || rate < 0 || rate > 100) {
+        return '';
+    }
+    return (retail * (1 - rate / 100)).toFixed(2);
+}
+
+function percentFromPrice(mrp: string, price: string): string {
+    const retail = parseFloat(mrp);
+    const amount = parseFloat(price);
+    if (Number.isNaN(retail) || retail <= 0 || Number.isNaN(amount) || amount < 0 || amount > retail) {
+        return '';
+    }
+    return (((retail - amount) / retail) * 100).toFixed(1);
+}
+
+export default function ProductCreateModal({
+    isOpen,
+    onClose,
+    categories = [],
+    units = [],
+    maxDealerPct = 50,
+    maxSubDealerPct = 40,
+}: ProductCreateModalProps) {
+    const translate = useT();
+    const [catalog, setCatalog] = useState<CatalogCategory[]>(categories);
+    const [unitList, setUnitList] = useState<CatalogUnit[]>(units);
     const [name, setName] = useState('');
-    const [sku, setSku] = useState(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`);
-    const [category, setCategory] = useState(categories[0] || 'Unani & Herbal Medicine');
-    const [customCategory, setCustomCategory] = useState('');
-    const [isCustomCategory, setIsCustomCategory] = useState(false);
-    const [unit, setUnit] = useState('pack');
+    const [sku, setSku] = useState('');
+    const [categoryId, setCategoryId] = useState('');
+    const [subcategoryId, setSubcategoryId] = useState('');
+    const [unitId, setUnitId] = useState('');
+    const [strength, setStrength] = useState('');
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-    // Pricing & Discount Engine
-    const [mrp, setMrp] = useState('1000');
-    const [discountPct, setDiscountPct] = useState('50');
-    const [dealerPrice, setDealerPrice] = useState('500.00');
-
-    // Publication & Inventory
+    const [mrp, setMrp] = useState('');
+    const [dealerPct, setDealerPct] = useState('');
+    const [dealerPrice, setDealerPrice] = useState('');
+    const [subDealerPct, setSubDealerPct] = useState('');
+    const [subDealerPrice, setSubDealerPrice] = useState('');
     const [active, setActive] = useState('1');
     const [featured, setFeatured] = useState('0');
     const [initialStock, setInitialStock] = useState('0');
     const [lowStockAt, setLowStockAt] = useState('10');
-    const [reason, setReason] = useState(() => translate('portal', 'pcm_default_reason'));
-
-    // UI state
+    const [drafts, setDrafts] = useState<Record<AddTarget, string>>({ category: '', subcategory: '', unit: '' });
+    const [savingTarget, setSavingTarget] = useState<AddTarget | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // Dynamic two-way calculations
-    const handleMrpChange = (newMrp: string) => {
-        setMrp(newMrp);
-        const numM = parseFloat(newMrp);
-        const numD = parseFloat(discountPct);
-        if (!isNaN(numM) && numM > 0 && !isNaN(numD) && numD >= 0 && numD <= 100) {
-            setDealerPrice((numM * (1 - numD / 100)).toFixed(2));
+    useEffect(() => {
+        if (!isOpen) {
+            return;
         }
-    };
-
-    const handleDiscountChange = (newDisc: string) => {
-        setDiscountPct(newDisc);
-        const numM = parseFloat(mrp);
-        const numD = parseFloat(newDisc);
-        if (!isNaN(numM) && numM > 0 && !isNaN(numD) && numD >= 0 && numD <= 100) {
-            setDealerPrice((numM * (1 - numD / 100)).toFixed(2));
-        }
-    };
-
-    const handleDealerPriceChange = (newDealer: string) => {
-        setDealerPrice(newDealer);
-        const numM = parseFloat(mrp);
-        const numP = parseFloat(newDealer);
-        if (!isNaN(numM) && numM > 0 && !isNaN(numP) && numP >= 0 && numP <= numM) {
-            setDiscountPct((((numM - numP) / numM) * 100).toFixed(1));
-        }
-    };
-
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0] ?? null;
-        setImageFile(file);
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setImagePreview(url);
-        } else {
-            setImagePreview(null);
-        }
-    };
-
-    const numMrp = parseFloat(mrp) || 0;
-    const numDealer = parseFloat(dealerPrice) || 0;
-    const numSavings = Math.max(0, numMrp - numDealer);
-    const calculatedPct = numMrp > 0 ? ((numSavings / numMrp) * 100).toFixed(1) : '0';
-    const cashSharePct = numMrp > 0 ? Math.min(100, Math.max(0, (numDealer / numMrp) * 100)) : 100;
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+        setCatalog(categories);
+        setUnitList(units);
+        setName('');
+        setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`);
+        setCategoryId('');
+        setSubcategoryId('');
+        setUnitId('');
+        setStrength('');
+        setDescription('');
+        setImageFile(null);
+        setImagePreview(null);
+        setMrp('');
+        setDealerPct('');
+        setDealerPrice('');
+        setSubDealerPct('');
+        setSubDealerPrice('');
+        setActive('1');
+        setFeatured('0');
+        setInitialStock('0');
+        setLowStockAt('10');
+        setDrafts({ category: '', subcategory: '', unit: '' });
         setErrorMsg(null);
+    }, [isOpen, categories, units]);
 
+    useEffect(() => {
+        if (!isOpen || typeof document === 'undefined') {
+            return;
+        }
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [isOpen, onClose]);
+
+    const activeCategories = useMemo(
+        () => catalog.filter((category) => category.is_active !== false),
+        [catalog],
+    );
+    const selectedCategory = activeCategories.find((category) => String(category.id) === categoryId);
+    const subcategories = (selectedCategory?.subcategories ?? []).filter((item) => item.is_active !== false);
+    const activeUnits = unitList.filter((unit) => unit.is_active !== false);
+
+    const changeMrp = (value: string) => {
+        setMrp(value);
+        setDealerPrice(priceFromPercent(value, dealerPct));
+        setSubDealerPrice(priceFromPercent(value, subDealerPct));
+    };
+
+    const saveTaxonomy = async (target: AddTarget) => {
+        const label = drafts[target].trim();
+        if (!label || (target === 'subcategory' && !categoryId)) {
+            return;
+        }
+        setSavingTarget(target);
+        setErrorMsg(null);
+        try {
+            if (target === 'category') {
+                const payload = await postJson('/commands/product-categories', { name: label, is_active: true });
+                const created = payload.data as CatalogCategory;
+                setCatalog((current) => [...current, { ...created, subcategories: created.subcategories ?? [] }]);
+                setCategoryId(String(created.id));
+                setSubcategoryId('');
+            }
+            if (target === 'subcategory') {
+                const payload = await postJson('/commands/product-subcategories', {
+                    product_category_id: Number(categoryId),
+                    name: label,
+                    is_active: true,
+                });
+                const created = payload.data as CatalogSubcategory;
+                setCatalog((current) => current.map((category) => (
+                    String(category.id) === categoryId
+                        ? { ...category, subcategories: [...(category.subcategories ?? []), created] }
+                        : category
+                )));
+                setSubcategoryId(String(created.id));
+            }
+            if (target === 'unit') {
+                const payload = await postJson('/commands/product-units', { name: label, is_active: true });
+                const created = payload.data as CatalogUnit;
+                setUnitList((current) => [...current, created]);
+                setUnitId(String(created.id));
+            }
+            setDrafts((current) => ({ ...current, [target]: '' }));
+        } catch (error) {
+            setErrorMsg(error instanceof Error ? error.message : translate('portal', 'pcm_err_taxonomy'));
+        } finally {
+            setSavingTarget(null);
+        }
+    };
+
+    const handleSubmit = (event: React.FormEvent) => {
+        event.preventDefault();
+        setErrorMsg(null);
+        const retail = parseFloat(mrp);
+        const dealer = parseFloat(dealerPrice);
+        const subDealer = parseFloat(subDealerPrice);
+        const dealerRate = parseFloat(dealerPct);
+        const subRate = parseFloat(subDealerPct);
         if (!name.trim()) {
             setErrorMsg(translate('portal', 'pcm_err_title'));
             return;
         }
-
-        const effectiveCategory = isCustomCategory ? customCategory.trim() : category.trim();
-        if (!effectiveCategory) {
+        if (!categoryId || !selectedCategory) {
             setErrorMsg(translate('portal', 'pcm_err_category'));
             return;
         }
-
-        if (numMrp <= 0) {
+        if (!subcategoryId) {
+            setErrorMsg(translate('portal', 'pcm_err_subcategory'));
+            return;
+        }
+        if (!unitId) {
+            setErrorMsg(translate('portal', 'pcm_err_unit'));
+            return;
+        }
+        if (Number.isNaN(retail) || retail <= 0) {
             setErrorMsg(translate('portal', 'pcm_err_mrp'));
             return;
         }
-
-        if (numDealer <= 0 || numDealer > numMrp) {
+        if (Number.isNaN(dealer) || dealer <= 0 || dealer > retail || (!Number.isNaN(dealerRate) && dealerRate > maxDealerPct)) {
             setErrorMsg(translate('portal', 'pcm_err_dealer'));
             return;
         }
+        if (Number.isNaN(subDealer) || subDealer <= 0 || subDealer > retail || (!Number.isNaN(subRate) && subRate > maxSubDealerPct)) {
+            setErrorMsg(translate('portal', 'pcm_err_subdealer'));
+            return;
+        }
 
-        setSubmitting(true);
-
+        const subcategory = subcategories.find((item) => String(item.id) === subcategoryId);
+        const unit = activeUnits.find((item) => String(item.id) === unitId);
         const formData = new FormData();
         formData.append('name', name.trim());
         formData.append('sku', sku.trim());
-        formData.append('category', effectiveCategory);
-        formData.append('unit', unit.trim());
+        formData.append('category', selectedCategory.name);
+        formData.append('sub_category', subcategory?.name ?? '');
+        formData.append('product_category_id', categoryId);
+        formData.append('product_subcategory_id', subcategoryId);
+        formData.append('unit', unit?.name ?? '');
+        formData.append('product_unit_id', unitId);
+        formData.append('strength', strength.trim());
         formData.append('description', description.trim());
-        formData.append('mrp', mrp);
-        formData.append('dealer_price', dealerPrice);
-        formData.append('dealer_discount_pct', discountPct);
+        formData.append('mrp', retail.toFixed(2));
+        formData.append('dealer_price', dealer.toFixed(2));
+        formData.append('dealer_discount_pct', dealerPct || '0');
+        formData.append('sub_dealer_price', subDealer.toFixed(2));
+        formData.append('sub_dealer_discount_pct', subDealerPct || '0');
         formData.append('active', active);
         formData.append('featured', featured);
-        formData.append('initial_stock', initialStock);
-        formData.append('low_stock_at', lowStockAt);
-        formData.append('reason', reason.trim());
+        formData.append('initial_stock', initialStock || '0');
+        formData.append('low_stock_at', lowStockAt || '0');
+        formData.append('reason', translate('portal', 'pcm_created_reason'));
         formData.append('redirect_to', 'catalog');
-
         if (imageFile) {
             formData.append('image', imageFile);
         }
 
+        setSubmitting(true);
         router.post('/commands/products', formData, {
             forceFormData: true,
             onSuccess: () => {
@@ -144,534 +280,191 @@ export default function ProductCreateModal({ isOpen, onClose, categories }: Prod
         });
     };
 
-    useEffect(() => {
-        if (!isOpen || typeof document === 'undefined') {
-            return;
-        }
-
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                onClose();
-            }
-        };
-        document.addEventListener('keydown', onKeyDown);
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            document.removeEventListener('keydown', onKeyDown);
-        };
-    }, [isOpen, onClose]);
-
     if (!isOpen || typeof document === 'undefined') {
         return null;
     }
 
+    const choice = (
+        target: AddTarget,
+        label: string,
+        value: string,
+        options: { id: number; name: string }[],
+        onChange: (value: string) => void,
+        disabled = false,
+    ) => (
+        <label className="pcm-field">
+            <span>{label}</span>
+            <select value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+                <option value="">{translate('portal', 'pcm_select')}</option>
+                {options.map((option) => <option key={option.id} value={String(option.id)}>{option.name}</option>)}
+            </select>
+            <span className="pcm-create">
+                <input
+                    value={drafts[target]}
+                    disabled={disabled}
+                    placeholder={translate('portal', 'pcm_create_ph')}
+                    onChange={(event) => setDrafts((current) => ({ ...current, [target]: event.target.value }))}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                            event.preventDefault();
+                            void saveTaxonomy(target);
+                        }
+                    }}
+                />
+                <button type="button" className="pcm-create-btn" disabled={disabled || savingTarget === target || !drafts[target].trim()} onClick={() => void saveTaxonomy(target)}>
+                    {translate('portal', 'pcm_create_now')}
+                </button>
+            </span>
+        </label>
+    );
+
     return createPortal(
-        <div
-            className="pcm-modal-overlay"
-            role="presentation"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
-            }}
-            style={{
-                position: 'fixed',
-                inset: 0,
-                zIndex: 10000,
-                background: 'rgba(1, 22, 39, 0.72)',
-                backdropFilter: 'blur(5px)',
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'center',
-                padding: 'max(16px, 4vh) 16px',
-                overflowY: 'auto',
-                overscrollBehavior: 'contain',
-            }}
-        >
-            <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="pcm-modal-title"
-                style={{
-                    background: '#ffffff',
-                    borderRadius: 14,
-                    width: '100%',
-                    maxWidth: 680,
-                    maxHeight: 'min(92vh, 920px)',
-                    margin: '0 auto',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
-                    overflow: 'hidden',
-                    position: 'relative',
-                }}
-            >
-                {/* Header */}
-                <div style={{
-                    padding: '18px 24px',
-                    borderBottom: '1px solid #e2e8f0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    background: '#f8fafc'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 8, background: '#ecfdf5', color: '#006837', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Package size={20} />
-                        </div>
-                        <div>
-                            <h2 id="pcm-modal-title" style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                                {translate('portal', 'pcm_title')}
-                            </h2>
-                            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
-                                {translate('portal', 'pcm_subtitle')}
-                            </p>
-                        </div>
+        <div className="pcm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+            <div className="pcm-dialog" role="dialog" aria-modal="true" aria-labelledby="pcm-modal-title">
+                <header className="pcm-header">
+                    <div>
+                        <h2 id="pcm-modal-title">{translate('portal', 'pcm_title')}</h2>
+                        <p>{translate('portal', 'pcm_subtitle')}</p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        style={{
-                            background: '#f1f5f9',
-                            border: 'none',
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#64748b',
-                            cursor: 'pointer'
-                        }}
-                    >
+                    <button type="button" className="pcm-close" onClick={onClose} aria-label={translate('portal', 'close_dialog')}>
                         <X size={18} />
                     </button>
-                </div>
-
-                {/* Form Body */}
-                <form onSubmit={handleSubmit} style={{ overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20, flex: '1 1 auto', minHeight: 0, WebkitOverflowScrolling: 'touch' }}>
+                </header>
+                <form className="pcm-form" onSubmit={handleSubmit}>
                     {errorMsg && (
-                        <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="pcm-error" role="alert">
                             <AlertCircle size={16} />
                             <span>{errorMsg}</span>
                         </div>
                     )}
 
-                    {/* Section 1: Basic Information */}
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-                            {translate('portal', 'pcm_section_details')}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_title_label')}
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={name}
-                                    placeholder={translate('portal', 'pcm_title_ph')}
-                                    onChange={e => setName(e.target.value)}
-                                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
-                                />
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                        {translate('portal', 'pcm_category')}
-                                    </label>
-                                    {!isCustomCategory ? (
-                                        <select
-                                            value={category}
-                                            onChange={e => {
-                                                if (e.target.value === '__new__') {
-                                                    setIsCustomCategory(true);
-                                                } else {
-                                                    setCategory(e.target.value);
-                                                }
-                                            }}
-                                            style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13, background: '#fff' }}
-                                        >
-                                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                            <option value="__new__">{translate('portal', 'pcm_new_category')}</option>
-                                        </select>
-                                    ) : (
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder={translate('portal', 'pcm_custom_category_ph')}
-                                                value={customCategory}
-                                                onChange={e => setCustomCategory(e.target.value)}
-                                                style={{ flex: 1, padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCustomCategory(false)}
-                                                style={{ fontSize: 11, padding: '0 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer' }}
-                                            >
-                                                {translate('portal', 'pcm_list')}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <label style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{translate('portal', 'pcm_sku')}</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`)}
-                                            style={{ fontSize: 11, color: '#006837', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            {translate('portal', 'pcm_auto')}
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={sku}
-                                        onChange={e => setSku(e.target.value)}
-                                        style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Image Upload & Thumbnail Preview */}
-                            <div>
-                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_image')}
-                                </label>
-                                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-                                    <div style={{
-                                        width: 80,
-                                        height: 80,
-                                        borderRadius: 8,
-                                        border: '1.5px dashed #cbd5e1',
-                                        background: '#f8fafc',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        flexShrink: 0
-                                    }}>
-                                        {imagePreview ? (
-                                            <img src={imagePreview} alt={translate('portal', 'pcm_preview')} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                        ) : (
-                                            <Upload size={22} color="#94a3b8" />
-                                        )}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/webp"
-                                            onChange={handleImageChange}
-                                            style={{ fontSize: 12 }}
-                                        />
-                                        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#94a3b8' }}>
-                                            {translate('portal', 'pcm_image_hint')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_description')}
-                                </label>
-                                <textarea
-                                    rows={3}
-                                    placeholder={translate('portal', 'pcm_description_ph')}
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13 }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 2: Pricing & Dealer Discount Engine */}
-                    <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 }}>
-                            <Percent size={16} /> {translate('portal', 'pcm_section_pricing')}
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_mrp')}
-                                </label>
-                                <div style={{ position: 'relative' }}>
-                                    <span style={{ position: 'absolute', left: 10, top: 10, fontSize: 13, color: '#64748b', fontWeight: 600 }}>৳</span>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        step="0.01"
-                                        required
-                                        value={mrp}
-                                        placeholder="1000"
-                                        onChange={e => handleMrpChange(e.target.value)}
-                                        style={{ width: '100%', padding: '9px 12px 9px 28px', border: '1.5px solid #cbd5e1', borderRadius: 7, fontSize: 14, fontWeight: 700, color: '#0f172a' }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_dealer_discount')}
-                                </label>
-                                <div style={{ position: 'relative' }}>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="100"
-                                        step="0.5"
-                                        value={discountPct}
-                                        placeholder="50"
-                                        onChange={e => handleDiscountChange(e.target.value)}
-                                        style={{ width: '100%', padding: '9px 28px 9px 12px', border: '1.5px solid #cbd5e1', borderRadius: 7, fontSize: 14, fontWeight: 700, color: '#006837' }}
-                                    />
-                                    <span style={{ position: 'absolute', right: 10, top: 10, fontSize: 13, color: '#64748b', fontWeight: 700 }}>%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Quick Preset Pills */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
-                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'pcm_quick_presets')}</span>
-                            {['30', '40', '50', '60'].map(pct => (
-                                <button
-                                    key={pct}
-                                    type="button"
-                                    onClick={() => handleDiscountChange(pct)}
-                                    style={{
-                                        padding: '3px 10px',
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        borderRadius: 14,
-                                        border: `1px solid ${discountPct === pct ? '#006837' : '#cbd5e1'}`,
-                                        background: discountPct === pct ? '#006837' : '#ffffff',
-                                        color: discountPct === pct ? '#ffffff' : '#334155',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                >
-                                    {pct}%
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Direct Editable Dealer Cash Price Input */}
-                        <div style={{ marginBottom: 16 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#047857' }}>
-                                    {translate('portal', 'pcm_dealer_price')}
-                                </label>
-                                <span style={{ fontSize: 11, color: '#64748b' }}>
-                                    {translate('portal', 'pcm_dealer_price_hint')}
+                    <section>
+                        <h3>{translate('portal', 'pcm_section_details')}</h3>
+                        <div className="pcm-grid">
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('portal', 'pcm_title_label')}</span>
+                                <input required value={name} placeholder={translate('portal', 'pcm_title_ph')} onChange={(event) => setName(event.target.value)} />
+                            </label>
+                            <label className="pcm-field">
+                                <span className="pcm-label-row">
+                                    {translate('portal', 'pcm_sku')}
+                                    <button type="button" className="pcm-text" onClick={() => setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`)}>
+                                        {translate('portal', 'pcm_auto')}
+                                    </button>
                                 </span>
-                            </div>
-                            <div style={{ position: 'relative' }}>
-                                <span style={{ position: 'absolute', left: 10, top: 10, fontSize: 13, color: '#047857', fontWeight: 700 }}>৳</span>
-                                <input
-                                    type="number"
-                                    min="0.01"
-                                    step="0.01"
-                                    required
-                                    value={dealerPrice}
-                                    placeholder="500.00"
-                                    onChange={e => handleDealerPriceChange(e.target.value)}
-                                    style={{ width: '100%', padding: '9px 12px 9px 28px', border: '1.5px solid #a7f3d0', borderRadius: 7, fontSize: 14, fontWeight: 800, color: '#047857', background: '#f0fdf4' }}
-                                />
-                            </div>
+                                <input required value={sku} onChange={(event) => setSku(event.target.value)} />
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('portal', 'pcm_strength')}</span>
+                                <input value={strength} placeholder={translate('portal', 'pcm_strength_ph')} onChange={(event) => setStrength(event.target.value)} />
+                            </label>
+                            {choice('category', translate('portal', 'pcm_category'), categoryId, activeCategories, (value) => {
+                                setCategoryId(value);
+                                setSubcategoryId('');
+                            })}
+                            {choice('subcategory', translate('portal', 'pcm_subcategory'), subcategoryId, subcategories, setSubcategoryId, !categoryId)}
+                            {choice('unit', translate('portal', 'pcm_unit'), unitId, activeUnits, setUnitId)}
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('portal', 'pcm_image')}</span>
+                                <span className="pcm-image">
+                                    <span className="pcm-thumb">
+                                        {imagePreview ? <img src={imagePreview} alt={translate('portal', 'pcm_preview')} /> : <Upload size={18} />}
+                                    </span>
+                                    <span>
+                                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
+                                            const file = event.target.files?.[0] ?? null;
+                                            setImageFile(file);
+                                            setImagePreview(file ? URL.createObjectURL(file) : null);
+                                        }} />
+                                        <small>{translate('portal', 'pcm_image_hint')}</small>
+                                    </span>
+                                </span>
+                            </label>
+                            <label className="pcm-field pcm-span">
+                                <span>{translate('portal', 'pcm_description')}</span>
+                                <textarea rows={3} value={description} placeholder={translate('portal', 'pcm_description_ph')} onChange={(event) => setDescription(event.target.value)} />
+                            </label>
                         </div>
+                    </section>
 
-                        {/* Highlighted Financial Calculation Card */}
-                        <div style={{
-                            background: '#ffffff',
-                            border: '1.5px solid #a7f3d0',
-                            borderRadius: 10,
-                            padding: '14px 16px',
-                            boxShadow: '0 2px 6px rgba(0, 104, 55, 0.06)'
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
-                                <div>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#047857', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                        {translate('portal', 'pcm_cash_price')}
-                                    </div>
-                                    <div style={{ fontSize: 22, fontWeight: 800, color: '#006837' }}>
-                                        ৳ {numDealer.toFixed(2)}
-                                    </div>
-                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                        {translate('portal', 'pcm_cash_price_hint')}
-                                    </div>
-                                </div>
-
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#b45309', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                        {translate('portal', 'pcm_margin')}
-                                    </div>
-                                    <div style={{ fontSize: 20, fontWeight: 800, color: '#d97706' }}>
-                                        ৳ {numSavings.toFixed(2)}
-                                    </div>
-                                    <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginTop: 2 }}>
-                                        {translate('portal', 'pcm_deduction', { pct: calculatedPct })}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Visual Progress Bar (Cash vs Margin) */}
-                            <div style={{ width: '100%', height: 8, background: '#fef3c7', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-                                <div style={{ width: `${cashSharePct}%`, background: '#006837', transition: 'width 0.2s ease' }} title={translate('portal', 'pcm_system_cash', { pct: cashSharePct.toFixed(0) })} />
-                                <div style={{ width: `${100 - cashSharePct}%`, background: '#f59e0b', transition: 'width 0.2s ease' }} title={translate('portal', 'pcm_dealer_margin', { pct: (100 - cashSharePct).toFixed(0) })} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#64748b', marginTop: 4, fontWeight: 600 }}>
-                                <span>🟢 {translate('portal', 'pcm_system_cash', { pct: cashSharePct.toFixed(0) })}</span>
-                                <span>🟡 {translate('portal', 'pcm_dealer_margin', { pct: (100 - cashSharePct).toFixed(0) })}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Section 3: Publishing & Initial Stock */}
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#006837', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-                            {translate('portal', 'pcm_section_publish')}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_publication')}
+                    <section>
+                        <h3>{translate('portal', 'pcm_section_pricing')}</h3>
+                        <div className="pcm-price">
+                            <label className="pcm-field pcm-price-mrp">
+                                <span>{translate('portal', 'pcm_mrp')}</span>
+                                <input type="number" min="0.01" step="0.01" required value={mrp} onChange={(event) => changeMrp(event.target.value)} />
+                            </label>
+                            <div className="pcm-price-line">
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_dealer_discount')}</span>
+                                    <input type="number" min="0" max={maxDealerPct} step="0.1" value={dealerPct} onChange={(event) => {
+                                        setDealerPct(event.target.value);
+                                        setDealerPrice(priceFromPercent(mrp, event.target.value));
+                                    }} />
                                 </label>
-                                <select
-                                    value={active}
-                                    onChange={e => setActive(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
-                                >
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_dealer_price')}</span>
+                                    <input type="number" min="0.01" step="0.01" required value={dealerPrice} onChange={(event) => {
+                                        setDealerPrice(event.target.value);
+                                        setDealerPct(percentFromPrice(mrp, event.target.value));
+                                    }} />
+                                </label>
+                            </div>
+                            <div className="pcm-price-line">
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_subdealer_discount')}</span>
+                                    <input type="number" min="0" max={maxSubDealerPct} step="0.1" value={subDealerPct} onChange={(event) => {
+                                        setSubDealerPct(event.target.value);
+                                        setSubDealerPrice(priceFromPercent(mrp, event.target.value));
+                                    }} />
+                                </label>
+                                <label className="pcm-field">
+                                    <span>{translate('portal', 'pcm_subdealer_price')}</span>
+                                    <input type="number" min="0.01" step="0.01" required value={subDealerPrice} onChange={(event) => {
+                                        setSubDealerPrice(event.target.value);
+                                        setSubDealerPct(percentFromPrice(mrp, event.target.value));
+                                    }} />
+                                </label>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>{translate('portal', 'pcm_section_publish')}</h3>
+                        <div className="pcm-grid">
+                            <label className="pcm-field">
+                                <span>{translate('portal', 'pcm_publication')}</span>
+                                <select value={active} onChange={(event) => setActive(event.target.value)}>
                                     <option value="1">{translate('portal', 'pcm_published')}</option>
                                     <option value="0">{translate('portal', 'pcm_draft')}</option>
                                 </select>
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_placement')}
-                                </label>
-                                <select
-                                    value={featured}
-                                    onChange={e => setFeatured(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
-                                >
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('portal', 'pcm_placement')}</span>
+                                <select value={featured} onChange={(event) => setFeatured(event.target.value)}>
                                     <option value="0">{translate('portal', 'pcm_standard')}</option>
                                     <option value="1">{translate('portal', 'pcm_featured')}</option>
                                 </select>
-                            </div>
-
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{translate('portal', 'pcm_initial_stock')}</label>
-                                    {parseInt(initialStock, 10) > 0 ? (
-                                        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '1px 5px', borderRadius: 4 }}>
-                                            {translate('portal', 'pcm_in_stock')}
-                                        </span>
-                                    ) : (
-                                        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 5px', borderRadius: 4 }}>
-                                            {translate('portal', 'pcm_out_of_stock')}
-                                        </span>
-                                    )}
-                                </div>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={initialStock}
-                                    placeholder={translate('portal', 'pcm_stock_ph')}
-                                    onChange={e => setInitialStock(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
-                                />
-                            </div>
-
-                            <div>
-                                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    {translate('portal', 'pcm_low_stock')}
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={lowStockAt}
-                                    onChange={e => setLowStockAt(e.target.value)}
-                                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12.5 }}
-                                />
-                            </div>
-                        </div>
-
-                        <div style={{ marginTop: 12 }}>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                {translate('portal', 'pcm_audit_note')}
                             </label>
-                            <input
-                                type="text"
-                                required
-                                value={reason}
-                                onChange={e => setReason(e.target.value)}
-                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 12 }}
-                            />
+                            <label className="pcm-field">
+                                <span>{translate('portal', 'pcm_initial_stock')}</span>
+                                <input type="number" min="0" value={initialStock} onChange={(event) => setInitialStock(event.target.value)} />
+                            </label>
+                            <label className="pcm-field">
+                                <span>{translate('portal', 'pcm_low_stock')}</span>
+                                <input type="number" min="0" value={lowStockAt} onChange={(event) => setLowStockAt(event.target.value)} />
+                            </label>
                         </div>
-                    </div>
+                    </section>
 
-                    {/* Footer Actions */}
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: 12,
-                        paddingTop: 12,
-                        borderTop: '1px solid #e2e8f0',
-                        marginTop: 4
-                    }}>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={submitting}
-                            style={{
-                                padding: '9px 18px',
-                                borderRadius: 7,
-                                border: '1px solid #cbd5e1',
-                                background: '#fff',
-                                color: '#475569',
-                                fontSize: 13,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
-                        >
+                    <footer className="pcm-footer">
+                        <button type="button" className="pcm-secondary" onClick={onClose} disabled={submitting}>
                             {translate('portal', 'pcm_cancel')}
                         </button>
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            style={{
-                                padding: '9px 22px',
-                                borderRadius: 7,
-                                border: 'none',
-                                background: submitting ? '#94a3b8' : '#006837',
-                                color: '#fff',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: submitting ? 'not-allowed' : 'pointer',
-                                boxShadow: '0 2px 6px rgba(0, 104, 55, 0.25)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6
-                            }}
-                        >
-                            <Sparkles size={16} />
+                        <button type="submit" className="pcm-primary" disabled={submitting}>
                             {submitting ? translate('portal', 'pcm_creating') : translate('portal', 'pcm_create')}
                         </button>
-                    </div>
+                    </footer>
                 </form>
             </div>
         </div>,

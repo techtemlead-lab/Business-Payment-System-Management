@@ -43,7 +43,7 @@ const icons: Record<string, LucideIcon> = {
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
-    treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag,
+    treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare,
 };
 
@@ -68,13 +68,6 @@ export default function Shell({ section, children, action }: { section: string; 
     const ownerPortal = portal === 'sadmin';
     const base = portalBase || '';
     const shellClass = portal === 'sadmin' ? 'owner-shell' : (portal === 'manage' || workspaceMode === 'staff') ? 'company-shell' : portal === 'subdealer' ? 'subdealer-shell' : 'dealer-shell';
-    const portalLabel = ownerPortal
-        ? translate('portal', 'owner_portal')
-        : staff
-            ? translate('portal', 'company_portal')
-            : portal === 'subdealer'
-                ? translate('portal', 'subdealer_portal')
-                : translate('portal', 'dealer_portal');
     const dashboardTitle = ownerPortal
         ? translate('portal', 'owner_dashboard')
         : staff
@@ -813,7 +806,6 @@ export default function Shell({ section, children, action }: { section: string; 
                 <main id="workspace-main" className="workspace-main">
                     <div className="page-heading portal-fade-in">
                         <div>
-                            <div className="eyebrow">{translate('portal', 'brand_eyebrow', { portal: portalLabel })}</div>
                             <h1>{currentSectionTitle}</h1>
                             <p>{currentSectionHint}</p>
                         </div>

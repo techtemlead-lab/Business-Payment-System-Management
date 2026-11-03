@@ -28,6 +28,42 @@ class CatalogProductCapTest extends TestCase
                 ->where('data.all_catalog_products.0.name', 'Cap Beta'));
     }
 
+    public function test_staff_catalog_filters_by_category_price_and_stock(): void
+    {
+        Product::factory()->create([
+            'name' => 'Cheap Tablet',
+            'category' => 'Tablet',
+            'sub_category' => 'Pain',
+            'unit' => 'Box',
+            'mrp' => '50.00',
+            'active' => true,
+            'stock' => 5,
+        ]);
+        Product::factory()->create([
+            'name' => 'Costly Syrup',
+            'category' => 'Syrup',
+            'sub_category' => 'Cough',
+            'unit' => 'Bottle',
+            'mrp' => '500.00',
+            'active' => true,
+            'stock' => 0,
+        ]);
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog?category=Tablet&max_mrp=100')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.products', 1)
+                ->where('data.products.0.name', 'Cheap Tablet')
+                ->where('filters.category', 'Tablet'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog?availability=out_of_stock')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.products', 1)
+                ->where('data.products.0.name', 'Costly Syrup'));
+    }
+
     public function test_staff_website_product_picker_is_capped(): void
     {
         Product::factory()->count(3)->create(['active' => true]);

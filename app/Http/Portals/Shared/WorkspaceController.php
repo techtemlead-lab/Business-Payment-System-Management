@@ -50,6 +50,7 @@ use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,12 @@ class WorkspaceController extends Controller
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'period' => 'nullable|in:today,month,custom',
             'branch_id' => 'nullable|integer|min:1',
+            'category' => 'nullable|string|max:100',
+            'sub_category' => 'nullable|string|max:100',
+            'unit' => 'nullable|string|max:30',
+            'min_mrp' => 'nullable|numeric|min:0',
+            'max_mrp' => 'nullable|numeric|min:0',
+            'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -164,7 +171,19 @@ class WorkspaceController extends Controller
         }
         // Overview never renders the product grid — skip the heavy catalog hydrate there.
         if (in_array($section, ['catalog', 'inventory', 'purchase'], true) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
-            $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
+            $productQuery = Product::query()
+                ->when(! $staff, fn ($q) => $q->where('active', true))
+                ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                ->when($section === 'catalog' && $r->filled('category'), fn ($q) => $q->where('category', $r->string('category')))
+                ->when($section === 'catalog' && $r->filled('sub_category'), fn ($q) => $q->where('sub_category', $r->string('sub_category')))
+                ->when($section === 'catalog' && $r->filled('unit'), fn ($q) => $q->where('unit', $r->string('unit')))
+                ->when($section === 'catalog' && $r->filled('min_mrp'), fn ($q) => $q->where('mrp', '>=', $r->input('min_mrp')))
+                ->when($section === 'catalog' && $r->filled('max_mrp'), fn ($q) => $q->where('mrp', '<=', $r->input('max_mrp')))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'published', fn ($q) => $q->where('active', true))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'in_stock', fn ($q) => $q->where('stock', '>', 0)->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->where('stock', '<=', 0)->orWhere('is_stock_paused', true)))
+                ->orderBy('name');
             $productLimit = $staff ? 250 : 200;
             $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
             $products = (clone $productQuery)->limit($productLimit)->get();
@@ -365,12 +384,6 @@ class WorkspaceController extends Controller
                 });
             })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
-            $data['subdealer_stats'] = [
-                'total' => User::where('role', 'sub_dealer')->count(),
-                'active' => User::where('role', 'sub_dealer')->where('status', 'active')->count(),
-                'orders_count' => Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->count(),
-                'orders_volume' => (float) Order::whereHas('user', fn ($q) => $q->where('role', 'sub_dealer'))->whereIn('status', ['submitted', 'approved', 'dispatched', 'partially_dispatched', 'delivered'])->sum('total'),
-            ];
         }
         if ($section === 'employees') {
             $query = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
@@ -714,41 +727,8 @@ class WorkspaceController extends Controller
                 'closed' => (int) DB::table('enquiries')->where('status', 'closed')->count(),
             ];
         }
-        if ($section === 'partnerships') {
-            $data['applications'] = DB::table('dealer_applications')
-                ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
-                ->orderByDesc('created_at')
-                ->paginate(20)
-                ->through(function ($row) {
-                    $payload = json_decode((string) ($row->data ?? '{}'), true);
-                    if (! is_array($payload)) {
-                        $payload = [];
-                    }
-
-                    return [
-                        'id' => $row->id,
-                        'email' => $row->email,
-                        'name' => $payload['name'] ?? '—',
-                        'phone' => $payload['phone'] ?? null,
-                        'role' => $payload['role'] ?? null,
-                        'division' => $payload['division'] ?? null,
-                        'district' => $payload['district'] ?? null,
-                        'upazila' => $payload['upazila'] ?? null,
-                        'message' => $payload['message'] ?? null,
-                        'status' => $row->status,
-                        'source' => $row->source ?? 'staff',
-                        'submitted_by' => $row->submitted_by,
-                        'user_id' => $row->user_id,
-                        'reason' => $row->reason,
-                        'created_at' => $row->created_at,
-                    ];
-                });
-            $data['application_counts'] = [
-                'total' => (int) DB::table('dealer_applications')->count(),
-                'pending' => (int) DB::table('dealer_applications')->where('status', 'pending')->count(),
-                'approved' => (int) DB::table('dealer_applications')->where('status', 'approved')->count(),
-                'rejected' => (int) DB::table('dealer_applications')->where('status', 'rejected')->count(),
-            ];
+        if (in_array($section, ['partnerships', 'sub-dealer-applications'], true)) {
+            $data = array_merge($data, $this->partnerApplications($section === 'sub-dealer-applications' ? 'sub_dealer' : 'dealer'));
         }
         if ($section === 'notifications') {
             $data['notices'] = DB::table('account_notices')->where('user_id', $u->id)->latest()->paginate(20);
@@ -1025,7 +1005,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -1285,5 +1265,59 @@ class WorkspaceController extends Controller
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
             'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])]);
+    }
+
+    /**
+     * @return array{applications: LengthAwarePaginator<int, array<string, mixed>>, application_counts: array{total: int, pending: int, approved: int, rejected: int}}
+     */
+    private function partnerApplications(string $role): array
+    {
+        $applications = DB::table('dealer_applications')
+            ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
+            ->whereRaw("coalesce(data->>'role', 'dealer') = ?", [$role])
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(function (object $row): array {
+                $payload = json_decode((string) ($row->data ?? '{}'), true);
+                if (! is_array($payload)) {
+                    $payload = [];
+                }
+
+                return [
+                    'id' => $row->id,
+                    'email' => $row->email,
+                    'name' => $payload['name'] ?? '—',
+                    'phone' => $payload['phone'] ?? null,
+                    'role' => $payload['role'] ?? 'dealer',
+                    'division' => $payload['division'] ?? null,
+                    'district' => $payload['district'] ?? null,
+                    'upazila' => $payload['upazila'] ?? null,
+                    'message' => $payload['message'] ?? null,
+                    'status' => $row->status,
+                    'source' => $row->source ?? 'staff',
+                    'submitted_by' => $row->submitted_by,
+                    'user_id' => $row->user_id,
+                    'reason' => $row->reason,
+                    'created_at' => $row->created_at,
+                ];
+            });
+        $counts = DB::table('dealer_applications')
+            ->selectRaw('count(*) as total')
+            ->selectRaw("count(*) filter (where status = 'pending') as pending")
+            ->selectRaw("count(*) filter (where status = 'approved') as approved")
+            ->selectRaw("count(*) filter (where status = 'rejected') as rejected")
+            ->whereRaw("coalesce(data->>'role', 'dealer') = ?", [$role])
+            ->first();
+
+        return [
+            'applications' => $applications,
+            'application_counts' => [
+                'total' => (int) ($counts->total ?? 0),
+                'pending' => (int) ($counts->pending ?? 0),
+                'approved' => (int) ($counts->approved ?? 0),
+                'rejected' => (int) ($counts->rejected ?? 0),
+            ],
+        ];
     }
 }
