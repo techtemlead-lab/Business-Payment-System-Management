@@ -85,6 +85,12 @@ class WorkspaceController extends Controller
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'period' => 'nullable|in:today,month,custom',
             'branch_id' => 'nullable|integer|min:1',
+            'category' => 'nullable|string|max:100',
+            'sub_category' => 'nullable|string|max:100',
+            'unit' => 'nullable|string|max:30',
+            'min_mrp' => 'nullable|numeric|min:0',
+            'max_mrp' => 'nullable|numeric|min:0',
+            'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -164,7 +170,19 @@ class WorkspaceController extends Controller
         }
         // Overview never renders the product grid — skip the heavy catalog hydrate there.
         if (in_array($section, ['catalog', 'inventory', 'purchase'], true) && (! $staff || $u->allows('catalog') || $u->allows('pricing') || $u->allows('inventory') || $u->allows('orders') || $u->allows('finance'))) {
-            $productQuery = Product::query()->when(! $staff, fn ($q) => $q->where('active', true))->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))->orderBy('name');
+            $productQuery = Product::query()
+                ->when(! $staff, fn ($q) => $q->where('active', true))
+                ->when($r->filled('q'), fn ($q) => $q->where(fn ($match) => $match->where('name', 'ilike', '%'.$r->string('q').'%')->orWhere('sku', 'ilike', '%'.$r->string('q').'%')->orWhere('category', 'ilike', '%'.$r->string('q').'%')))
+                ->when($section === 'catalog' && $r->filled('category'), fn ($q) => $q->where('category', $r->string('category')))
+                ->when($section === 'catalog' && $r->filled('sub_category'), fn ($q) => $q->where('sub_category', $r->string('sub_category')))
+                ->when($section === 'catalog' && $r->filled('unit'), fn ($q) => $q->where('unit', $r->string('unit')))
+                ->when($section === 'catalog' && $r->filled('min_mrp'), fn ($q) => $q->where('mrp', '>=', $r->input('min_mrp')))
+                ->when($section === 'catalog' && $r->filled('max_mrp'), fn ($q) => $q->where('mrp', '<=', $r->input('max_mrp')))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'published', fn ($q) => $q->where('active', true))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'in_stock', fn ($q) => $q->where('stock', '>', 0)->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
+                ->when($section === 'catalog' && $r->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->where('stock', '<=', 0)->orWhere('is_stock_paused', true)))
+                ->orderBy('name');
             $productLimit = $staff ? 250 : 200;
             $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
             $products = (clone $productQuery)->limit($productLimit)->get();
@@ -981,7 +999,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability'])]);
     }
 
     public function createAccount(Request $r): Response

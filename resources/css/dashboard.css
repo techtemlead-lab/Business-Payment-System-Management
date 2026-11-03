@@ -1902,6 +1902,10 @@ dialog.portal-modal::backdrop{
 .pcm-secondary{border:1px solid #cbd5e1;background:#fff;color:#334155}
 .pcm-primary{border:0;background:#0f172a;color:#fff}
 .pcm-primary:disabled,.pcm-secondary:disabled{opacity:.6;cursor:not-allowed}
+.catalog-toolbar{display:flex;flex-direction:column;gap:8px;flex:1;min-width:min(100%,280px)}
+.catalog-toolbar-search,.catalog-toolbar-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.catalog-toolbar-search .search-input{flex:1;min-width:180px}
+.catalog-toolbar-filters select,.catalog-toolbar-filters input{width:auto;min-width:120px;height:36px;min-height:36px;padding:4px 8px;font-size:12px}
 @media (max-width:720px){.pcm-grid{grid-template-columns:1fr}}
 
 

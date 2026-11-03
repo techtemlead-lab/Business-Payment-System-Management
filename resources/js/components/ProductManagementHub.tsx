@@ -63,6 +63,12 @@ export default function ProductManagementHub({
     };
     const [activeTab, setActiveTab] = useState<'products' | 'featured' | 'taxonomy'>(getInitialTab);
     const [searchQuery, setSearchQuery] = useState(filters?.q || '');
+    const [category, setCategory] = useState(String(filters?.category || ''));
+    const [subCategory, setSubCategory] = useState(String(filters?.sub_category || ''));
+    const [unit, setUnit] = useState(String(filters?.unit || ''));
+    const [minMrp, setMinMrp] = useState(String(filters?.min_mrp || ''));
+    const [maxMrp, setMaxMrp] = useState(String(filters?.max_mrp || ''));
+    const [availability, setAvailability] = useState(String(filters?.availability || ''));
 
     // Form for Featured Products Showcase
     const featuredForm = useForm({
@@ -98,9 +104,31 @@ export default function ProductManagementHub({
         window.history.replaceState({}, '', url.toString());
     };
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.get('/catalog', { q: searchQuery, tab: activeTab !== 'products' ? activeTab : undefined }, { preserveState: true });
+    const categoryOptions = catalogCategories
+        .map((item: { name?: string }) => item.name)
+        .filter((name): name is string => Boolean(name));
+    const selectedCatalogCategory = catalogCategories.find((item: { name?: string }) => item.name === category);
+    const subCategoryOptions = (selectedCatalogCategory?.subcategories ?? [])
+        .map((item: { name?: string }) => item.name)
+        .filter((name): name is string => Boolean(name));
+    const unitOptions = catalogUnits
+        .map((item: { name?: string }) => item.name)
+        .filter((name): name is string => Boolean(name));
+    const filtersActive = Boolean(searchQuery || category || subCategory || unit || minMrp || maxMrp || availability);
+
+    const applyCatalogFilters = (event?: React.FormEvent, next: Record<string, string> = {}) => {
+        event?.preventDefault();
+        const query = {
+            q: next.q ?? searchQuery,
+            category: next.category ?? category,
+            sub_category: next.sub_category ?? subCategory,
+            unit: next.unit ?? unit,
+            min_mrp: next.min_mrp ?? minMrp,
+            max_mrp: next.max_mrp ?? maxMrp,
+            availability: next.availability ?? availability,
+            tab: activeTab !== 'products' ? activeTab : '',
+        };
+        router.get('/catalog', Object.fromEntries(Object.entries(query).filter(([, value]) => value !== '')), { preserveState: true });
     };
 
 
@@ -226,22 +254,43 @@ export default function ProductManagementHub({
                         flexWrap: 'wrap',
                         gap: 12
                     }}>
-                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: 8, flex: 1, maxWidth: 440 }}>
-                            <div className="search-input" style={{ flex: 1 }}>
-                                <Search size={17} />
-                                <input
-                                    aria-label={translate('portal', 'search_records')}
-                                    placeholder={translate('portal', 'search_products_catalog')}
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                />
+                        <form className="catalog-toolbar" onSubmit={applyCatalogFilters}>
+                            <div className="catalog-toolbar-search">
+                                <div className="search-input">
+                                    <Search size={17} />
+                                    <input
+                                        aria-label={translate('portal', 'search_records')}
+                                        placeholder={translate('portal', 'search_products_catalog')}
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <button className="button small">{translate('portal', 'search')}</button>
                             </div>
-                            <button className="button small">{translate('portal', 'search')}</button>
-                            {filters?.q && (
-                                <Link href="/catalog" className="text-link" style={{ alignSelf: 'center' }}>
-                                    {translate('portal', 'clear')}
-                                </Link>
-                            )}
+                            <div className="catalog-toolbar-filters">
+                                <select aria-label={translate('portal', 'col_category')} value={category} onChange={e => { setCategory(e.target.value); setSubCategory(''); applyCatalogFilters(undefined, { category: e.target.value, sub_category: '' }); }}>
+                                    <option value="">{translate('portal', 'col_category')}</option>
+                                    {categoryOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                                </select>
+                                <select aria-label={translate('portal', 'col_subcategory')} value={subCategory} disabled={!category} onChange={e => { setSubCategory(e.target.value); applyCatalogFilters(undefined, { sub_category: e.target.value }); }}>
+                                    <option value="">{translate('portal', 'col_subcategory')}</option>
+                                    {subCategoryOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                                </select>
+                                <select aria-label={translate('portal', 'col_unit')} value={unit} onChange={e => { setUnit(e.target.value); applyCatalogFilters(undefined, { unit: e.target.value }); }}>
+                                    <option value="">{translate('portal', 'col_unit')}</option>
+                                    {unitOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                                </select>
+                                <input aria-label={translate('portal', 'catalog_filter_min_price')} type="number" min="0" step="0.01" placeholder={translate('portal', 'catalog_filter_min_price')} value={minMrp} onChange={e => setMinMrp(e.target.value)} />
+                                <input aria-label={translate('portal', 'catalog_filter_max_price')} type="number" min="0" step="0.01" placeholder={translate('portal', 'catalog_filter_max_price')} value={maxMrp} onChange={e => setMaxMrp(e.target.value)} />
+                                <select aria-label={translate('portal', 'catalog_filter_availability')} value={availability} onChange={e => { setAvailability(e.target.value); applyCatalogFilters(undefined, { availability: e.target.value }); }}>
+                                    <option value="">{translate('portal', 'catalog_filter_availability')}</option>
+                                    <option value="published">{translate('portal', 'catalog_filter_published')}</option>
+                                    <option value="draft">{translate('portal', 'catalog_filter_draft')}</option>
+                                    <option value="in_stock">{translate('portal', 'catalog_filter_in_stock')}</option>
+                                    <option value="out_of_stock">{translate('portal', 'catalog_filter_out_of_stock')}</option>
+                                </select>
+                                {filtersActive && <Link href="/catalog" className="text-link">{translate('portal', 'clear')}</Link>}
+                            </div>
                         </form>
 
                         {canCreate && (
