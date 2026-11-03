@@ -342,7 +342,7 @@ final class PartnerAccountProvisioning
                 AreaDealerAssignment::query()
                     ->where('user_id', $locked->id)
                     ->where('is_active', true)
-                    ->update(['is_active' => false, 'updated_at' => now()]);
+                    ->update(['is_active' => false, 'territory_key' => null, 'updated_at' => now()]);
                 AreaDealerAssignment::create([
                     'user_id' => $locked->id,
                     'level' => $place->level,
