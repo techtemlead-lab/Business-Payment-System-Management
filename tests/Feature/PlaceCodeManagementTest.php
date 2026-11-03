@@ -106,6 +106,26 @@ class PlaceCodeManagementTest extends TestCase
         $this->assertSame($union->id, $upazila->fresh()->base_place_id);
     }
 
+    public function test_duplicate_place_code_names_the_place_that_already_uses_it(): void
+    {
+        $admin = User::factory()->create(['role' => 'super_admin']);
+        $management = PlaceCode::query()->where('code', 'MNHC-100')->firstOrFail();
+
+        $this->actingAs($admin)->onPortal('sadmin')->from('/place-codes?level=management')
+            ->patch('/commands/place-codes/'.$management->id, [
+                'code' => 'MNHC-101',
+                'name' => 'Management',
+                'parent_id' => null,
+                'is_active' => true,
+            ])
+            ->assertRedirect('/place-codes?level=management')
+            ->assertSessionHasErrors([
+                'code' => 'MNHC-101 is already used by Dhaka (Division). Choose a different code.',
+            ]);
+
+        $this->assertSame('MNHC-100', $management->fresh()->code);
+    }
+
     public function test_place_codes_api_lists_module_payload_for_backend_clients(): void
     {
         $admin = User::factory()->create(['role' => 'super_admin']);

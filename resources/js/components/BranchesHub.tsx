@@ -238,26 +238,24 @@ export default function BranchesHub({
                                     )}
                                     {canManage && (
                                         <>
+                                            <button
+                                                type="button"
+                                                className="button small branch-delete"
+                                                onClick={() => {
+                                                    if (!window.confirm(translate('portal', 'branch_delete_confirm', { name: r.name }))) {
+                                                        return;
+                                                    }
+                                                    router.delete(`/commands/branches/${r.id}`, { preserveScroll: true });
+                                                }}
+                                            >
+                                                {translate('portal', 'branch_delete')}
+                                            </button>
                                             <button type="button" className="button small" onClick={() => openEdit(r)}>
                                                 {translate('portal', 'branch_edit')}
                                             </button>
                                             <button type="button" className="button small" onClick={() => { setAssignRow(r); assignForm.setData({ user_id: assignable_staff[0] ? String(assignable_staff[0].id) : '', duty: 'storekeeper', is_primary: true }); }}>
                                                 {translate('portal', 'branch_assign_staff')}
                                             </button>
-                                            {r.code !== 'HO-PIRGANJ' && (
-                                                <button
-                                                    type="button"
-                                                    className="button small branch-delete"
-                                                    onClick={() => {
-                                                        if (!window.confirm(translate('portal', 'branch_delete_confirm', { name: r.name }))) {
-                                                            return;
-                                                        }
-                                                        router.delete(`/commands/branches/${r.id}`, { preserveScroll: true });
-                                                    }}
-                                                >
-                                                    {translate('portal', 'branch_delete')}
-                                                </button>
-                                            )}
                                         </>
                                     )}
                                 </div>

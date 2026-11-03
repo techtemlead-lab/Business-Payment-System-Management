@@ -58,6 +58,7 @@ interface PlaceCodesHubProps {
     places: {
         data: PlaceRow[];
         current_page: number;
+        per_page?: number;
         last_page: number;
         total: number;
         links: unknown[];
@@ -80,10 +81,44 @@ const displayPlace = (value?: string | null): string => {
     return value;
 };
 
+function PlaceCodeInput({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+    const suffix = value.trim().toUpperCase().replace(/^MNHC-?/, '');
+
+    return (
+        <span className="pc-code-prefix">
+            <span>MNHC-</span>
+            <input
+                value={suffix}
+                inputMode="numeric"
+                placeholder={placeholder}
+                onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            />
+        </span>
+    );
+}
+
 const formValue = (value?: string | null): string => {
     const shown = displayPlace(value);
 
     return shown === '—' ? '' : shown;
+};
+
+const formErrorText = (errors: Record<string, unknown>): string => {
+    const lines: string[] = [];
+    const visit = (value: unknown) => {
+        if (typeof value === 'string') {
+            if (value.trim() !== '') {
+                lines.push(value);
+            }
+            return;
+        }
+        if (Array.isArray(value)) {
+            value.forEach(visit);
+        }
+    };
+    Object.values(errors).forEach(visit);
+
+    return lines.join(' ');
 };
 
 function ManagementReferralPanel({ settings }: { settings: ManagementReferralSettings }) {
@@ -110,7 +145,7 @@ function ManagementReferralPanel({ settings }: { settings: ManagementReferralSet
     };
 
     return (
-        <section className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #b45309' }}>
+        <section className="panel" style={{ marginTop: 16, marginBottom: 16, borderLeft: '4px solid #b45309' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#b45309', textTransform: 'uppercase' }}>
@@ -180,6 +215,7 @@ export default function PlaceCodesHub({
     const [search, setSearch] = useState(filters.q || '');
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<PlaceRow | null>(null);
+    const [editNotice, setEditNotice] = useState<{ ok: boolean; text: string } | null>(null);
     const levelName = level_label.toLowerCase();
 
     const createForm = useForm({
@@ -206,6 +242,7 @@ export default function PlaceCodesHub({
     };
 
     const openEdit = (row: PlaceRow) => {
+        setEditNotice(null);
         setEditRow(row);
         editForm.setData({
             code: formValue(row.code),
@@ -262,17 +299,35 @@ export default function PlaceCodesHub({
             parent_id: data.parent_id === '' ? null : Number(data.parent_id),
             base_place_id: data.base_place_id === '' ? null : Number(data.base_place_id),
         }));
+        setEditNotice(null);
+        let rejected = false;
+        const refreshPage = () => {
+            window.location.assign(window.location.pathname + window.location.search);
+        };
         editForm.patch(`/commands/place-codes/${editRow.id}`, {
             preserveScroll: true,
-            onSuccess: () => setEditRow(null),
+            preserveState: false,
+            onSuccess: () => {
+                setEditRow(null);
+                refreshPage();
+            },
+            onError: (errors) => {
+                rejected = true;
+                setEditNotice({
+                    ok: false,
+                    text: formErrorText(errors as Record<string, unknown>) || translate('portal', 'pc_save_failed'),
+                });
+            },
+            onFinish: () => {
+                if (!rejected) {
+                    refreshPage();
+                }
+            },
         });
     };
 
     return (
         <div className="place-codes-hub">
-            {management_referral && (
-                <ManagementReferralPanel key={management_referral.version} settings={management_referral} />
-            )}
             <section className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #0f766e' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
@@ -319,10 +374,13 @@ export default function PlaceCodesHub({
 
             <section className="panel">
                 <Table
-                    rows={places.data}
+                    rows={places.data.map((row, index) => ({
+                        ...row,
+                        list_no: ((places.current_page ?? 1) - 1) * (places.per_page ?? places.data.length) + index + 1,
+                    }))}
                     columns={[
-                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{displayPlace(r.code)}</b> },
-                        { key: 'name', title: translate('portal', 'pc_col_name'), render: (r) => displayPlace(r.name) },
+                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{displayPlace(r.code) === '—' ? 'MNHC-' : displayPlace(r.code)}</b> },
+                        { key: 'name', title: translate('portal', 'pc_col_name'), render: (r) => `${r.list_no}. ${displayPlace(r.name)}` },
                         {
                             key: 'parent_name',
                             title: translate('portal', 'pc_col_parent'),
@@ -358,12 +416,16 @@ export default function PlaceCodesHub({
                 <Pagination page={places} />
             </section>
 
+            {level === 'management' && management_referral && (
+                <ManagementReferralPanel key={management_referral.version} settings={management_referral} />
+            )}
+
             {createOpen && (
                 <Modal title={translate('portal', 'pc_create_title', { level: levelName })} onClose={() => setCreateOpen(false)}>
                     <form onSubmit={submitCreate} className="action-form">
                         <label>
                             {translate('portal', 'pc_fld_code')}
-                            <input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value.toUpperCase())} placeholder={translate('portal', 'pc_ph_code')} />
+                            <PlaceCodeInput value={createForm.data.code} onChange={(code) => createForm.setData('code', code)} placeholder={translate('portal', 'pc_ph_code')} />
                             {createForm.errors.code && <span className="field-error">{createForm.errors.code}</span>}
                         </label>
                         <label>
@@ -390,11 +452,16 @@ export default function PlaceCodesHub({
             )}
 
             {editRow && (
-                <Modal title={translate('portal', 'pc_edit_title', { name: displayPlace(editRow.name) })} onClose={() => setEditRow(null)}>
+                <Modal title={translate('portal', 'pc_edit_title', { name: displayPlace(editRow.name) })} onClose={() => { setEditNotice(null); setEditRow(null); }}>
                     <form onSubmit={submitEdit} className="action-form">
+                        {(editNotice || formErrorText(editForm.errors as Record<string, unknown>)) && (
+                            <div className={editNotice?.ok ? 'success' : 'error'} role={editNotice?.ok ? 'status' : 'alert'}>
+                                {formErrorText(editForm.errors as Record<string, unknown>) || editNotice?.text}
+                            </div>
+                        )}
                         <label>
                             {translate('portal', 'pc_fld_code')}
-                            <input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} placeholder={translate('portal', 'pc_ph_code')} />
+                            <PlaceCodeInput value={editForm.data.code} onChange={(code) => editForm.setData('code', code)} placeholder={translate('portal', 'pc_ph_code')} />
                             {editForm.errors.code && <span className="field-error">{editForm.errors.code}</span>}
                         </label>
                         <label>

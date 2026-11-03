@@ -208,12 +208,16 @@ final class PlaceCodeCatalog
 
         if ($code !== null) {
             $legacy = substr($code, strlen(PlaceCode::BrandPrefix) + 1);
-            $duplicate = PlaceCode::query()
+            $taken = PlaceCode::query()
                 ->whereIn('code', [$code, $legacy])
                 ->when($existing, fn ($q) => $q->where('id', '!=', $existing->id))
-                ->exists();
-            if ($duplicate) {
-                throw ValidationException::withMessages(['code' => __('portal.err_pc_code_taken')]);
+                ->first();
+            if ($taken) {
+                throw ValidationException::withMessages(['code' => __('portal.err_pc_code_taken', [
+                    'code' => PlaceCode::displayLabel($taken->code),
+                    'name' => PlaceCode::displayLabel($taken->name),
+                    'level' => self::localizedLevelLabel($taken->level),
+                ])]);
             }
         }
 

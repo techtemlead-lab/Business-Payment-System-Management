@@ -2,14 +2,14 @@
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 :root{--green:#2e3192;--green-mid:#ef4a23;--ink:#011627;--muted:#64748b;--border:#e4e7ec;font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;color:#011627;background:#f2f4f8}
 body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background:#f2f4f8}
-.app-shell{display:block;background:#f2f4f8;min-height:100vh}
+.app-shell{--sidebar-width:224px;display:block;background:#f2f4f8;min-height:100vh}
 .app-shell .workspace{margin-left:0;min-width:0}
-.app-shell .sidebar{width:256px;background:#2e3192;border:0;color:white;padding:22px 16px;z-index:70}
+.app-shell .sidebar{width:var(--sidebar-width);background:#2e3192;border:0;color:white;padding:22px 16px;z-index:70}
 .app-shell .sidebar-overlay{z-index:65;background:#01162788}
 .dealer-shell .sidebar,.subdealer-shell .sidebar{transform:none;transition:transform .22s ease}
 .app-shell .sidebar.open{transform:translateX(0)}
 .company-shell .sidebar{background:#011627;transform:none}
-.company-shell .workspace,.dealer-shell .workspace,.subdealer-shell .workspace{margin-left:256px}
+.company-shell .workspace,.dealer-shell .workspace,.subdealer-shell .workspace{margin-left:var(--sidebar-width)}
 .app-shell .nav-group{margin-bottom:6px}
 .app-shell .nav-group>span{color:#d0d4fb;font-size:10px;letter-spacing:.08em;padding-left:12px}
 .app-shell .sidebar-domain-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9aa3d8;padding:4px 12px 10px;opacity:.9}
@@ -55,10 +55,16 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .subdealer-shell .sidebar-domain-tab.active{color:#1f4d3a}
 .portal-logo{width:auto;min-width:80px;max-width:240px;height:80px;display:flex;align-items:center;justify-content:flex-start;border-radius:0;background:transparent;padding:0;box-shadow:none;flex-shrink:0;overflow:visible}
 .portal-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
-.app-shell .sidebar-logo{width:100%;height:85px;margin-bottom:20px;background:transparent;border-radius:0;box-shadow:none;padding:0;display:flex;align-items:center;justify-content:center;overflow:visible}
-.app-shell .sidebar-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
+.app-shell .sidebar-logo{width:100%;height:85px;margin-bottom:20px;background:transparent;border-radius:0;box-shadow:none;padding:0 2px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow:visible}
+.app-shell .sidebar-logo img{height:100%;max-height:78px;width:auto;max-width:54px;object-fit:contain;flex-shrink:0}
+.app-shell .sidebar-logo-mark{margin-left:auto;font-size:40px;font-weight:800;letter-spacing:.04em;line-height:1;flex-shrink:0;color:#f8f1e7;animation:sidebar-logo-mark-shift 7s ease-in-out infinite}
+@keyframes sidebar-logo-mark-shift{0%,100%{color:#f8f1e7}40%{color:#e7c56a}70%{color:#f4f7ff}}
+@media(prefers-reduced-motion:reduce){.app-shell .sidebar-logo-mark{animation:none;color:#f8f1e7}}
+.app-shell .pc-code-prefix{display:flex;align-items:stretch;width:100%;border:1px solid #dbe2d8;border-radius:8px;background:#fff;overflow:hidden}
+.app-shell .pc-code-prefix>span{display:flex;align-items:center;padding:0 12px;font-weight:700;color:#0b1f33;background:#f8fafc;border-right:1px solid #e4e7ec;letter-spacing:.02em}
+.app-shell .pc-code-prefix input{flex:1;width:auto;min-width:0;border:0;border-radius:0;box-shadow:none;background:transparent}
 .app-shell .sidebar.sidebar-premium{padding:10px 10px 8px}
-.app-shell .sidebar.sidebar-premium .sidebar-logo{height:58px;margin:0 0 8px}
+.app-shell .sidebar.sidebar-premium .sidebar-logo{height:64px;margin:0 0 8px}
 .app-shell .sidebar.sidebar-premium .sidebar-logo img{max-height:54px}
 .app-shell .sidebar.sidebar-premium .workspace-label{margin:0 0 6px;padding:6px 8px;font-size:12px;line-height:1.2}
 .app-shell label.sidebar-menu-search{flex-direction:row;align-items:center;gap:6px;height:32px;min-height:32px;margin:0 0 8px;padding:0 10px;border-radius:8px}
@@ -153,6 +159,7 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .button.dark:hover{background:#252878}
 .app-shell .icon-button{border-color:#dce1e8;transition:background .18s ease,border-color .18s ease,transform .14s ease,box-shadow .18s ease}
 .app-shell .icon-button:hover{background:#f8fafc;border-color:#c7d2fe}
+.app-shell .workspace-menu-button:hover{background:#252878;border-color:#1c1f66;color:#fff;box-shadow:0 4px 12px #2e319238}
 .app-shell .icon-button:active{transform:scale(.96)}
 .app-shell .text-link{color:#2e3192}
 .app-shell tbody tr{transition:background .15s ease}
@@ -244,7 +251,7 @@ body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto 
   radial-gradient(900px 360px at 100% 0%,#f7efd8 0%,transparent 55%),
   linear-gradient(180deg,#fffdf8 0%,#f7f4ee 100%)}
 .owner-shell .sidebar{background:linear-gradient(180deg,#0b1f33 0%,#13293d 100%);transform:none}
-.owner-shell .workspace{margin-left:256px}
+.owner-shell .workspace{margin-left:var(--sidebar-width)}
 .owner-shell .workspace-header{background:rgba(255,253,248,.92);backdrop-filter:blur(10px);border-bottom:1px solid #e8e2d6;max-width:none;height:78px;padding:0 28px}
 .owner-shell .workspace-main{max-width:1600px;padding:28px}
 .owner-shell .nav-group a.selected,.owner-shell .nav-mother-body>a.selected,.owner-shell .nav-section-body>a.selected{background:#f8f1e7;color:#0b1f33}
@@ -516,7 +523,10 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
 .app-shell .stock-register .stock-pause{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .app-shell .stock-register .stock-resume{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
 .app-shell .branches-register td,.app-shell .branches-register th{white-space:normal}
-.app-shell .branches-register .inline-actions{flex-wrap:wrap}
+.app-shell .branches-register .table-wrap{overflow-x:auto}
+.app-shell .branches-register th:last-child,.app-shell .branches-register td:last-child{position:sticky;right:0;z-index:2;width:132px;min-width:132px;max-width:132px;background:#fff;box-shadow:-8px 0 12px rgba(1,22,39,.06);vertical-align:top}
+.app-shell .branches-register th:last-child{z-index:3;background:#f8fafc}
+.app-shell .branches-register .inline-actions{flex-direction:column;align-items:stretch;gap:6px}
 .app-shell .branches-register .branch-delete{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .app-shell .table-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
 .app-shell .table-tools input[type=search]{width:min(280px,100%);height:32px;min-height:32px;padding:4px 10px;font-size:12px}
@@ -680,6 +690,14 @@ dialog.portal-modal::backdrop{
 .help-manual-card h3 { margin: 0 0 6px; font-size: 15px; }
 .help-manual-card p { margin: 0; color: #475569; font-size: 13px; line-height: 1.45; }
 .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-right: 8px; }
+.app-shell .branch-perf-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.app-shell .branch-perf-filters .preset-chips{margin:0;align-items:center}
+.app-shell .branch-perf-filters label{display:inline-flex;flex-direction:row;align-items:center;gap:6px;margin:0;min-height:36px;font-size:12px;font-weight:600}
+.app-shell .branch-perf-filters .button.small,
+.app-shell .branch-perf-filters select,
+.app-shell .branch-perf-filters input{height:36px;min-height:36px;margin:0;box-sizing:border-box}
+.app-shell .branch-perf-filters .button.small{display:inline-flex;align-items:center;justify-content:center;padding:0 14px;line-height:1}
+.app-shell .branch-perf-filters select{width:auto;min-width:180px;padding:0 28px 0 10px}
 .metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
 @media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 .optional-media-fieldset { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
@@ -1911,6 +1929,7 @@ dialog.portal-modal::backdrop{
 .catalog-toolbar-search,.catalog-toolbar-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .catalog-toolbar-search .search-input{flex:1;min-width:180px}
 .catalog-toolbar-filters select,.catalog-toolbar-filters input{width:auto;min-width:120px;height:36px;min-height:36px;padding:4px 8px;font-size:12px}
+.catalog-toolbar-filters select.catalog-sort{min-width:168px}
 @media (max-width:720px){.pcm-grid,.pcm-price-line{grid-template-columns:1fr}.pcm-price-mrp{max-width:none}}
 
 

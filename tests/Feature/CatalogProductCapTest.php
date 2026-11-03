@@ -64,6 +64,29 @@ class CatalogProductCapTest extends TestCase
                 ->where('data.products.0.name', 'Costly Syrup'));
     }
 
+    public function test_staff_catalog_sorts_by_price_and_rejects_an_unknown_sort(): void
+    {
+        Product::factory()->create(['name' => 'Apple Tonic', 'mrp' => '90.00', 'active' => true, 'stock' => 2]);
+        Product::factory()->create(['name' => 'Zebra Balm', 'mrp' => '10.00', 'active' => true, 'stock' => 8]);
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.products.0.name', 'Apple Tonic')
+                ->where('data.products.1.name', 'Zebra Balm'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog?sort=price_asc')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.products.0.name', 'Zebra Balm')
+                ->where('data.products.1.name', 'Apple Tonic')
+                ->where('filters.sort', 'price_asc'));
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/catalog?sort=unknown')
+            ->assertSessionHasErrors('sort');
+    }
+
     public function test_staff_website_product_picker_is_capped(): void
     {
         Product::factory()->count(3)->create(['active' => true]);

@@ -95,12 +95,11 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                 </div>
 
                 <form
-                    className="filter-bar"
+                    className="filter-bar branch-perf-filters"
                     onSubmit={(e) => {
                         e.preventDefault();
                         apply();
                     }}
-                    style={{ flexWrap: 'wrap', gap: 10 }}
                 >
                     <div className="preset-chips" data-tour="branch-perf-period">
                         {[
@@ -123,16 +122,16 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                     </div>
                     {period === 'custom' && (
                         <>
-                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <label>
                                 <CalendarRange size={14} />
                                 <DateInput value={from} onChange={(e) => setFrom(e.target.value)} />
                             </label>
-                            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                            <label>
                                 <DateInput value={to} onChange={(e) => setTo(e.target.value)} />
                             </label>
                         </>
                     )}
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                    <label>
                         <Building2 size={14} />
                         <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
                             <option value="">{translate('portal', 'branch_perf_all_branches')}</option>

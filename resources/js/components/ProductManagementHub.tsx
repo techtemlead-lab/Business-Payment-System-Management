@@ -69,6 +69,7 @@ export default function ProductManagementHub({
     const [minMrp, setMinMrp] = useState(String(filters?.min_mrp || ''));
     const [maxMrp, setMaxMrp] = useState(String(filters?.max_mrp || ''));
     const [availability, setAvailability] = useState(String(filters?.availability || ''));
+    const [sort, setSort] = useState(String(filters?.sort || 'name_asc'));
 
     // Form for Featured Products Showcase
     const featuredForm = useForm({
@@ -114,10 +115,11 @@ export default function ProductManagementHub({
     const unitOptions = catalogUnits
         .map((item: { name?: string }) => item.name)
         .filter((name): name is string => Boolean(name));
-    const filtersActive = Boolean(searchQuery || category || subCategory || unit || minMrp || maxMrp || availability);
+    const filtersActive = Boolean(searchQuery || category || subCategory || unit || minMrp || maxMrp || availability || (sort && sort !== 'name_asc'));
 
     const applyCatalogFilters = (event?: React.FormEvent, next: Record<string, string> = {}) => {
         event?.preventDefault();
+        const selectedSort = next.sort ?? sort;
         const query = {
             q: next.q ?? searchQuery,
             category: next.category ?? category,
@@ -126,6 +128,7 @@ export default function ProductManagementHub({
             min_mrp: next.min_mrp ?? minMrp,
             max_mrp: next.max_mrp ?? maxMrp,
             availability: next.availability ?? availability,
+            sort: selectedSort === 'name_asc' ? '' : selectedSort,
             tab: activeTab !== 'products' ? activeTab : '',
         };
         router.get('/catalog', Object.fromEntries(Object.entries(query).filter(([, value]) => value !== '')), { preserveState: true });
@@ -268,6 +271,15 @@ export default function ProductManagementHub({
                                 <button className="button small">{translate('portal', 'search')}</button>
                             </div>
                             <div className="catalog-toolbar-filters">
+                                <select className="catalog-sort" aria-label={translate('portal', 'catalog_sort_by')} value={sort} onChange={e => { setSort(e.target.value); applyCatalogFilters(undefined, { sort: e.target.value }); }}>
+                                    <option value="name_asc">{translate('portal', 'catalog_sort_name_asc')}</option>
+                                    <option value="name_desc">{translate('portal', 'catalog_sort_name_desc')}</option>
+                                    <option value="price_asc">{translate('portal', 'catalog_sort_price_asc')}</option>
+                                    <option value="price_desc">{translate('portal', 'catalog_sort_price_desc')}</option>
+                                    <option value="newest">{translate('portal', 'catalog_sort_newest')}</option>
+                                    <option value="stock_asc">{translate('portal', 'catalog_sort_stock_asc')}</option>
+                                    <option value="stock_desc">{translate('portal', 'catalog_sort_stock_desc')}</option>
+                                </select>
                                 <select aria-label={translate('portal', 'col_category')} value={category} onChange={e => { setCategory(e.target.value); setSubCategory(''); applyCatalogFilters(undefined, { category: e.target.value, sub_category: '' }); }}>
                                     <option value="">{translate('portal', 'col_category')}</option>
                                     {categoryOptions.map(name => <option key={name} value={name}>{name}</option>)}

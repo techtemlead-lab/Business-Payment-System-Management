@@ -92,6 +92,7 @@ class WorkspaceController extends Controller
             'min_mrp' => 'nullable|numeric|min:0',
             'max_mrp' => 'nullable|numeric|min:0',
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
+            'sort' => 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -183,7 +184,20 @@ class WorkspaceController extends Controller
                 ->when($section === 'catalog' && $r->string('availability')->toString() === 'draft', fn ($q) => $q->where('active', false))
                 ->when($section === 'catalog' && $r->string('availability')->toString() === 'in_stock', fn ($q) => $q->where('stock', '>', 0)->where(fn ($stock) => $stock->where('is_stock_paused', false)->orWhereNull('is_stock_paused')))
                 ->when($section === 'catalog' && $r->string('availability')->toString() === 'out_of_stock', fn ($q) => $q->where(fn ($stock) => $stock->where('stock', '<=', 0)->orWhere('is_stock_paused', true)))
-                ->orderBy('name');
+                ->when(
+                    $section === 'catalog' && in_array($r->string('sort')->toString(), ['name_desc', 'price_asc', 'price_desc', 'newest', 'stock_asc', 'stock_desc'], true),
+                    function ($q) use ($r) {
+                        match ($r->string('sort')->toString()) {
+                            'name_desc' => $q->orderByDesc('name'),
+                            'price_asc' => $q->orderBy('mrp')->orderBy('name'),
+                            'price_desc' => $q->orderByDesc('mrp')->orderBy('name'),
+                            'newest' => $q->orderByDesc('created_at')->orderByDesc('id'),
+                            'stock_asc' => $q->orderBy('stock')->orderBy('name'),
+                            'stock_desc' => $q->orderByDesc('stock')->orderBy('name'),
+                        };
+                    },
+                    fn ($q) => $q->orderBy('name'),
+                );
             $productLimit = $staff ? 250 : 200;
             $data['products_truncated'] = (clone $productQuery)->count() > $productLimit;
             $products = (clone $productQuery)->limit($productLimit)->get();
@@ -1005,7 +1019,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort'])]);
     }
 
     public function createAccount(Request $r): Response
