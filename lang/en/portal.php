@@ -142,6 +142,7 @@ return [
     'content' => 'Website content',
     'enquiries' => 'Enquiries',
     'partnerships' => 'Partnership applications',
+    'sub-dealer-applications' => 'Partnership applications',
     'audit' => 'Activity log',
     'profile' => 'My profile',
     'security' => 'Account security',

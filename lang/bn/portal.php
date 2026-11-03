@@ -142,6 +142,7 @@ return [
     'content' => 'ওয়েবসাইট কন্টেন্ট',
     'enquiries' => 'জিজ্ঞাসা',
     'partnerships' => 'পার্টনারশিপ আবেদন',
+    'sub-dealer-applications' => 'পার্টনারশিপ আবেদন',
     'audit' => 'কার্যক্রম লগ',
     'profile' => 'আমার প্রোফাইল',
     'security' => 'অ্যাকাউন্ট নিরাপত্তা',

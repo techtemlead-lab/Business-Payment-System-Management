@@ -78,6 +78,55 @@ class AdminPartnershipsTest extends TestCase
         ]);
     }
 
+    public function test_dealer_and_sub_dealer_applications_stay_in_their_own_lists(): void
+    {
+        app(PublicPartnerApplication::class)->submit([
+            'name' => 'Dealer Applicant',
+            'email' => 'dealer.only@example.test',
+            'phone' => '01710000021',
+            'role' => 'dealer',
+            'division' => 'Rangpur',
+            'district' => 'Rangpur',
+        ]);
+        app(PublicPartnerApplication::class)->submit([
+            'name' => 'Sub-dealer Applicant',
+            'email' => 'subdealer.only@example.test',
+            'phone' => '01710000022',
+            'role' => 'sub_dealer',
+            'division' => 'Rangpur',
+            'district' => 'Pirganj',
+        ]);
+
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $this->actingAs($admin)->onPortal('sadmin')->get('/partnerships')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.application_counts.total', 1)
+                ->where('data.applications.data.0.email', 'dealer.only@example.test')
+                ->where('data.applications.data.0.role', 'dealer'));
+        $this->actingAs($admin)->onPortal('sadmin')->get('/sub-dealer-applications')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('section', 'sub-dealer-applications')
+                ->where('data.application_counts.total', 1)
+                ->where('data.applications.data.0.email', 'subdealer.only@example.test')
+                ->where('data.applications.data.0.role', 'sub_dealer'));
+    }
+
+    public function test_sub_dealer_list_uses_the_same_account_table_as_dealers(): void
+    {
+        User::factory()->subDealer()->create(['name' => 'Sadar Pharmacy', 'status' => 'active']);
+        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        $this->actingAs($admin)->onPortal('sadmin')->get('/sub-dealers')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('section', 'sub-dealers')
+                ->missing('data.subdealer_stats')
+                ->where('data.accounts.data.0.name', 'Sadar Pharmacy')
+                ->where('data.accounts.data.0.role', 'sub_dealer'));
+    }
+
     public function test_partnership_page_uses_customizable_cta_link(): void
     {
         $this->assertSame('#partner-apply', SiteCustomization::defaults()['partnership_cta_link']);
