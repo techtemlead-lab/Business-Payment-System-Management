@@ -45,8 +45,18 @@ class AdjustStockRequest extends FormRequest
                 Rule::excludeIf($kind !== BranchOperations::KindProductIn),
                 'nullable',
                 'date',
-                'after_or_equal:today',
+                'after_or_equal:'.now('Asia/Dhaka')->toDateString(),
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'expires_on.after_or_equal' => __('portal.err_stock_expiry_past'),
         ];
     }
 

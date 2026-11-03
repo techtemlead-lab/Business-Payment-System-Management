@@ -116,7 +116,11 @@ class WorkspaceController extends Controller
             }
             // Overview only needs line quantities for the items column — keep the payload slim.
             $lineRelation = $section === 'overview' ? 'lines:id,order_id,quantity' : 'lines';
-            $data['orders'] = $q->with(['user:id,name,dealer_code,role', $lineRelation])
+            $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
+            if ($staff && Schema::hasColumn('orders', 'fulfillment_branch_id')) {
+                $orderWith[] = 'fulfillmentBranch:id,name,code';
+            }
+            $data['orders'] = $q->with($orderWith)
                 ->latest()
                 ->paginate(12)
                 ->withQueryString();
@@ -135,6 +139,7 @@ class WorkspaceController extends Controller
             if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
                 $data['partner_home'] = app(PartnerDashboardHome::class)->for($u);
             } elseif ($staff) {
+                $staffProfile = is_array($u->profile) ? $u->profile : [];
                 $data['admin_home'] = [
                     'profile' => [
                         'name' => $u->name,
@@ -143,6 +148,9 @@ class WorkspaceController extends Controller
                         'email' => $u->email,
                         'initial' => mb_strtoupper(mb_substr($u->name, 0, 1)),
                         'status' => $u->status,
+                        'photo_url' => is_string($staffProfile['photo_url'] ?? null)
+                            ? $staffProfile['photo_url']
+                            : (is_string($staffProfile['avatar_url'] ?? null) ? $staffProfile['avatar_url'] : null),
                     ],
                     'snapshot' => [
                         'orders_today' => (clone $orders)->where('created_at', '>=', CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc())->count(),
@@ -162,7 +170,7 @@ class WorkspaceController extends Controller
             $products = (clone $productQuery)->limit($productLimit)->get();
             $revealStock = ! $staff || $u->allows('inventory');
             $revealDealerPrice = ! $staff || $u->allows('pricing') || $u->allows('orders') || $u->allows('finance');
-            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff) {
+            $data['products'] = $products->map(function ($p) use ($u, $pricing, $revealStock, $revealDealerPrice, $staff, $section) {
                 $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($u->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
                 if (! $staff) {
                     try {
@@ -176,6 +184,16 @@ class WorkspaceController extends Controller
                 if ($revealStock) {
                     $base['stock'] = $p->stock;
                     $base['low_stock_at'] = $p->low_stock_at;
+                }
+                if ($section === 'inventory') {
+                    $base['register_name'] = $p->registerName();
+                    $base['expires_on'] = Schema::hasColumn('products', 'expires_on') ? $p->expires_on?->toDateString() : null;
+                    if ($revealDealerPrice) {
+                        $base['dealer_price'] = $p->dealer_price;
+                        $base['sub_dealer_price'] = $p->sub_dealer_price;
+                        $base['dealer_discount_pct'] = $p->discountPercentFromRetail($p->dealer_price);
+                        $base['sub_dealer_discount_pct'] = $p->discountPercentFromRetail($p->sub_dealer_price);
+                    }
                 }
 
                 return $base;
@@ -224,23 +242,35 @@ class WorkspaceController extends Controller
         }
         if ($section === 'inventory') {
             $branchOps = app(BranchOperations::class);
+            $preferredBranch = $branchOps->preferredBranch($u);
             $data['branches'] = $branchOps->branchesFor($u);
-            $data['active_branch_id'] = $u->active_branch_id;
-            $data['active_branch'] = $u->activeBranch?->summary();
+            $data['active_branch_id'] = $preferredBranch?->id;
+            $data['active_branch'] = $preferredBranch?->summary();
             $data['delivery_points'] = $branchOps->deliveryPoints();
             $data['supports_product_expiry'] = Schema::hasColumn('products', 'expires_on');
             $data['stock_reason_codes'] = [
                 'product_in' => BranchOperations::ProductInReasonCodes,
                 'product_out' => BranchOperations::ProductOutReasonCodes,
             ];
-            $activeBranchId = (int) ($u->active_branch_id ?: (CompanyBranch::query()->active()->orderBy('id')->value('id') ?? 0));
-            if ($activeBranchId > 0 && $u->allows('inventory')) {
+            $viewingAllBranches = $r->session()->get(BranchOperations::SessionView) === 'all';
+            $data['branch_view'] = $viewingAllBranches ? 'all' : 'branch';
+            $activeBranchId = (int) ($preferredBranch?->id ?? 0);
+            if ($viewingAllBranches && $u->allows('inventory')) {
+                $data['products'] = $branchOps->expandStockAcrossBranches($data['products'] ?? []);
+                $data['active_branch'] = [
+                    'id' => null,
+                    'code' => 'ALL',
+                    'name' => __('portal.branch_view_all'),
+                ];
+            } elseif ($activeBranchId > 0 && $u->allows('inventory')) {
                 $branchQuantities = BranchProductStock::query()
                     ->where('branch_id', $activeBranchId)
                     ->pluck('quantity', 'product_id');
-                $data['products'] = collect($data['products'] ?? [])->map(function (array $product) use ($branchQuantities) {
+                $branchName = $preferredBranch?->name;
+                $data['products'] = collect($data['products'] ?? [])->map(function (array $product) use ($branchQuantities, $branchName) {
                     $product['branch_stock'] = (int) ($branchQuantities[$product['id']] ?? 0);
                     $product['company_stock'] = (int) ($product['stock'] ?? 0);
+                    $product['branch_name'] = $branchName;
 
                     return $product;
                 })->all();
@@ -248,7 +278,8 @@ class WorkspaceController extends Controller
             $data['movements'] = DB::table('stock_movements')
                 ->join('products', 'products.id', '=', 'product_id')
                 ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
-                ->select('stock_movements.*', 'products.name', 'company_branches.code as branch_code', 'company_branches.name as branch_name')
+                ->leftJoin('users', 'users.id', '=', 'stock_movements.actor_id')
+                ->select('stock_movements.*', 'products.name', 'products.sku', 'company_branches.code as branch_code', 'company_branches.name as branch_name', 'users.name as actor_name')
                 ->orderByDesc('stock_movements.id')
                 ->paginate(20);
         }
@@ -260,12 +291,19 @@ class WorkspaceController extends Controller
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString();
+            $branchIds = $branches->getCollection()->pluck('id');
             $staffByBranch = BranchStaffAssignment::query()
                 ->with('user:id,name,email,phone,role')
-                ->whereIn('branch_id', $branches->getCollection()->pluck('id'))
+                ->whereIn('branch_id', $branchIds)
                 ->get()
                 ->groupBy('branch_id');
-            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch) {
+            $stockValues = DB::table('branch_product_stocks')
+                ->join('products', 'products.id', '=', 'branch_product_stocks.product_id')
+                ->whereIn('branch_product_stocks.branch_id', $branchIds)
+                ->groupBy('branch_product_stocks.branch_id')
+                ->selectRaw('branch_product_stocks.branch_id as branch_id, SUM(branch_product_stocks.quantity * products.mrp) as stock_value')
+                ->pluck('stock_value', 'branch_id');
+            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $stockValues) {
                 $summary = $branch->summary();
                 $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
                     'user_id' => $row->user_id,
@@ -277,6 +315,10 @@ class WorkspaceController extends Controller
                 ])->values()->all();
                 $summary['stock_skus'] = (int) ($branch->stock_skus ?? 0);
                 $summary['stock_units'] = (int) ($branch->stock_units ?? 0);
+                $summary['stock_value'] = number_format((float) ($stockValues[$branch->id] ?? 0), 2, '.', '');
+                $manager = collect($summary['staff'])->first(fn (array $member): bool => (bool) $member['is_primary'])
+                    ?? ($summary['staff'][0] ?? null);
+                $summary['manager_name'] = is_array($manager) ? ($manager['name'] ?? null) : null;
 
                 return $summary;
             });
@@ -343,8 +385,12 @@ class WorkspaceController extends Controller
             if ($r->filled('status')) {
                 $query->where('status', $r->string('status'));
             }
-            $data['employees'] = $query->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at'])
-                ->through(fn (User $employee) => [...$employee->toArray(), 'effective_permissions' => $employee->capabilities()]);
+            $data['employees'] = $query->with('activeBranch:id,name,code')->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'status', 'profile', 'created_at', 'active_branch_id'])
+                ->through(fn (User $employee) => [
+                    ...$employee->toArray(),
+                    'effective_permissions' => $employee->capabilities(),
+                    'branch_name' => $employee->activeBranch?->name,
+                ]);
             $staffQuery = User::where(fn ($q) => $q->whereIn('role', ['employee', 'sr'])->orWhere('role', 'like', 'custom\\_%'));
             $data['employee_stats'] = [
                 'total' => (clone $staffQuery)->count(),
@@ -398,7 +444,7 @@ class WorkspaceController extends Controller
         }
         if ($section === 'payments') {
             $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')
-                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name')
+                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name', 'users.phone')
                 ->orderByDesc('payment_claims.id')->paginate(20);
         }
         if ($section === 'policies') {
@@ -543,7 +589,13 @@ class WorkspaceController extends Controller
                 ->get(['id', 'slug', 'title', 'body', 'updated_at']);
         }
         if ($section === 'ledger') {
-            $data['entries'] = DB::table('journal_entries')->latest()->paginate(20);
+            $data['entries'] = DB::table('journal_entries')
+                ->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id')
+                ->select('journal_entries.id', 'journal_entries.event_key', 'journal_entries.description', 'journal_entries.created_at', 'users.name as actor_name')
+                ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(debit), 0)'), 'debit')
+                ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(credit), 0)'), 'credit')
+                ->orderByDesc('journal_entries.created_at')
+                ->paginate(20);
         }
         if ($section === 'audit') {
             $data['events'] = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id')->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')->orderByDesc('audit_events.id')->paginate(25);
@@ -723,10 +775,7 @@ class WorkspaceController extends Controller
             );
         }
         if ($section === 'area-dealers') {
-            $data['assignments'] = AreaDealerAssignment::where('is_active', true)
-                ->with(['user:id,name,dealer_code,phone,district,division', 'placeCode:id,code,name,level'])
-                ->orderBy('id')
-                ->get();
+            $data['assignments'] = $this->dealerPlaceSeats();
             $data['divisions'] = PlaceCode::query()
                 ->where('level', PlaceCode::LevelDivision)
                 ->where('is_active', true)
@@ -747,7 +796,7 @@ class WorkspaceController extends Controller
                 ->get(['id', 'code', 'name', 'level', 'parent_id', 'is_active'])
                 ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
                 ->values();
-            $data['dealers_list'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district', 'division']);
+            $data['dealers_list'] = [];
         }
         if ($section === 'place-codes') {
             $level = (string) $r->query('level', PlaceCode::LevelDivision);
@@ -1072,6 +1121,82 @@ class WorkspaceController extends Controller
             'Content-Type' => 'image/svg+xml; charset=UTF-8',
             'Cache-Control' => 'private, max-age=300',
         ]);
+    }
+
+    /**
+     * Each dealer is the area dealer of the place code on their account.
+     * One place code has one dealer. Staff and branch managers are not seats.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function dealerPlaceSeats(): array
+    {
+        $dealers = User::query()
+            ->where('role', 'dealer')
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
+        $codes = $dealers
+            ->map(fn (User $dealer): string => trim((string) (is_array($dealer->profile) ? ($dealer->profile['place_code'] ?? '') : '')))
+            ->filter(fn (string $code): bool => $code !== '')
+            ->unique()
+            ->values();
+        $places = PlaceCode::query()
+            ->whereIn('code', $codes)
+            ->get()
+            ->keyBy(fn (PlaceCode $place): string => strtoupper($place->code));
+        $quotas = AreaDealerAssignment::query()
+            ->where('is_active', true)
+            ->whereIn('user_id', $dealers->pluck('id'))
+            ->get()
+            ->keyBy('user_id');
+
+        return $dealers->map(function (User $dealer) use ($places, $quotas): array {
+            $profile = is_array($dealer->profile) ? $dealer->profile : [];
+            $code = trim((string) ($profile['place_code'] ?? ''));
+            $place = $code !== '' ? $places->get(strtoupper($code)) : null;
+            $level = $place?->level && in_array($place->level, PlaceCode::AssignmentLevels, true)
+                ? $place->level
+                : null;
+            $assignment = $quotas->get($dealer->id);
+            $quota = $assignment && $place && (int) $assignment->place_code_id === (int) $place->id
+                ? $assignment->monthly_quota
+                : match ($level) {
+                    'division' => '50000.00',
+                    'district' => '40000.00',
+                    'upazila' => '20000.00',
+                    'union' => '10000.00',
+                    default => '0.00',
+                };
+
+            return [
+                'id' => $dealer->id,
+                'user_id' => $dealer->id,
+                'level' => $level ?? '',
+                'zone_name' => $place?->name ?? ($code !== '' ? $code : $dealer->name),
+                'division' => $dealer->division,
+                'district' => $dealer->district,
+                'upazila' => $profile['upazila'] ?? null,
+                'union' => $profile['union'] ?? null,
+                'monthly_quota' => $quota,
+                'is_active' => $code !== '' && $place instanceof PlaceCode,
+                'created_at' => $dealer->created_at,
+                'place_code' => $code !== '' ? [
+                    'id' => $place?->id ?? 0,
+                    'code' => $place?->code ?? $code,
+                    'name' => $place?->name ?? $code,
+                    'level' => $place?->level ?? 'district',
+                ] : null,
+                'user' => [
+                    'id' => $dealer->id,
+                    'name' => $dealer->name,
+                    'dealer_code' => $dealer->dealer_code,
+                    'phone' => $dealer->phone,
+                    'district' => $dealer->district,
+                    'division' => $dealer->division,
+                ],
+            ];
+        })->values()->all();
     }
 
     private function optionalDate(mixed $value): ?string

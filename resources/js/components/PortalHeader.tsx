@@ -61,6 +61,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
     const catalogEnabled = partnerChromeEnabled(role, controls, 'catalog');
     const commerceHref = ordersEnabled ? '/orders' : (catalogEnabled ? '/catalog' : null);
     const commerceIcon = ordersEnabled ? ShoppingBag : Store;
+    const commerceLabel = ordersEnabled ? translate('portal', 'orders') : translate('portal', 'shop');
 
     return (
         <nav className="portal-bottom-nav" aria-label={translate('portal', 'account_navigation')}>
@@ -68,7 +69,7 @@ export function DealerBottomNav({onMenu}:{onMenu:()=>void}){
                 <Menu size={20}/>{translate('portal', 'menu')}
             </button>
             {item('/', translate('portal', 'nav_module_home'), Home, 'portal-mobile-home')}
-            {commerceHref && item(commerceHref, translate('portal', 'nav_module_commerce'), commerceIcon)}
+            {commerceHref && item(commerceHref, commerceLabel, commerceIcon)}
             {role === 'dealer'
                 ? (partnerChromeEnabled(role, controls, 'network') && item('/network', translate('portal', 'nav_module_network'), Network))
                 : (partnerChromeEnabled(role, controls, 'salary') && item('/salary', translate('portal', 'nav_module_compensation'), Banknote))}

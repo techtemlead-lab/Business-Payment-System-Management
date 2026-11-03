@@ -122,7 +122,12 @@ class PartnerDashboardHomeTest extends TestCase
 
     public function test_admin_overview_receives_mixed_admin_home(): void
     {
-        $admin = User::factory()->create(['role' => 'super_admin', 'status' => 'active', 'phone' => '01911112222']);
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'status' => 'active',
+            'phone' => '01911112222',
+            'profile' => ['photo_url' => '/storage/staff-photos/9/owner.jpg'],
+        ]);
 
         $this->actingAs($admin)->onPortal('sadmin')
             ->get('/')
@@ -131,6 +136,7 @@ class PartnerDashboardHomeTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->has('data.admin_home.profile')
                 ->where('data.admin_home.profile.phone', '01911112222')
+                ->where('data.admin_home.profile.photo_url', '/storage/staff-photos/9/owner.jpg')
                 ->has('data.admin_home.snapshot'));
     }
 }

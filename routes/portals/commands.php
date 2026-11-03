@@ -31,6 +31,7 @@ return function (string $portal): void {
     Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
     Route::post('/commands/partner-support', [CommandController::class, 'partnerSupport'])->middleware('throttle:5,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
+    Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
 
     Route::post('/commands/orders', [CommandController::class, 'order']);
@@ -104,6 +105,8 @@ return function (string $portal): void {
     Route::patch('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'update']);
     Route::delete('/commands/place-codes/{placeCode}', [PlaceCodeController::class, 'destroy']);
     Route::post('/commands/branches', [BranchController::class, 'store']);
+    Route::post('/commands/branches/view-all', [BranchController::class, 'viewAll']);
+    Route::delete('/commands/branches/{branch}', [BranchController::class, 'destroy']);
     Route::patch('/commands/branches/{branch}', [BranchController::class, 'update']);
     Route::post('/commands/branches/{branch}/staff', [BranchController::class, 'assignStaff']);
     Route::delete('/commands/branches/{branch}/staff/{user}', [BranchController::class, 'removeStaff']);

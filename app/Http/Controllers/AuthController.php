@@ -10,12 +10,15 @@ use App\Support\Audit;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -302,6 +305,91 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return back()->with('success', __('portal.flash_owner_profile_updated'));
+    }
+
+    public function profilePhoto(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->mayReplaceWorkspacePhoto($user), 403);
+
+        $data = $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120', 'dimensions:max_width=4096,max_height=4096'],
+        ]);
+        /** @var UploadedFile $file */
+        $file = $data['photo'];
+        $extension = strtolower((string) ($file->guessExtension() ?: 'jpg'));
+        if (! in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $extension = 'jpg';
+        }
+
+        $relative = $file->storeAs('staff-photos/'.$user->id, (string) Str::uuid().'.'.$extension, 'public');
+        abort_unless(is_string($relative), 500);
+        $url = $this->publicPhotoPath($relative);
+        $profile = is_array($user->profile) ? $user->profile : [];
+        $previous = $profile['photo_url'] ?? null;
+        $profile['photo_url'] = $url;
+        $profile['avatar_url'] = $url;
+        $user->forceFill(['profile' => $profile])->save();
+        $this->forgetPreviousStaffPhoto($user, $previous);
+        Audit::record($user->id, 'profile.photo_updated', (string) $user->id);
+
+        return $this->previewAwareBack($request)->with('success', __('portal.flash_profile_photo_updated'));
+    }
+
+    private function publicPhotoPath(string $relative): string
+    {
+        $absolute = Storage::disk('public')->url($relative);
+        $path = parse_url($absolute, PHP_URL_PATH);
+
+        return is_string($path) && str_starts_with($path, '/')
+            ? $path
+            : '/storage/'.ltrim($relative, '/');
+    }
+
+    private function previewAwareBack(Request $request): RedirectResponse
+    {
+        $root = PortalHost::sharedPreviewRoot($request);
+        if (! is_string($root) || $root === '') {
+            return back();
+        }
+
+        $previous = url()->previous();
+        $path = parse_url($previous, PHP_URL_PATH);
+        if (! is_string($path) || $path === '' || str_starts_with($path, '/commands/')) {
+            $path = '/';
+        }
+        $query = parse_url(is_string($previous) ? $previous : '', PHP_URL_QUERY);
+
+        return redirect($root.$path.($query ? '?'.$query : ''));
+    }
+
+    private function mayReplaceWorkspacePhoto(User $user): bool
+    {
+        if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+            return $user->usingStaffWorkspace();
+        }
+
+        return $user->owner() || $user->staff();
+    }
+
+    private function forgetPreviousStaffPhoto(User $user, mixed $previous): void
+    {
+        if (! is_string($previous) || $previous === '') {
+            return;
+        }
+
+        $path = parse_url($previous, PHP_URL_PATH);
+        $prefix = '/storage/staff-photos/'.$user->id.'/';
+        if (! is_string($path) || ! str_starts_with($path, $prefix)) {
+            return;
+        }
+
+        $relative = ltrim(substr($path, strlen('/storage/')), '/');
+        if (! str_starts_with($relative, 'staff-photos/'.$user->id.'/')) {
+            return;
+        }
+
+        Storage::disk('public')->delete($relative);
     }
 
     public function password(Request $r): Response

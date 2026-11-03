@@ -97,7 +97,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'area-dealers')
-                ->where('translations.portal.area_kpi_total', 'মোট টেরিটরি অ্যাসাইনমেন্ট')
+                ->where('translations.portal.area_kpi_total', 'ডিলার')
                 ->where('translations.portal.area_modal_title', 'এরিয়া / টেরিটরি ডিলার অ্যাসাইন')
                 ->where('translations.portal.area_save', 'টেরিটরি অ্যাসাইনমেন্ট সংরক্ষণ'));
     }

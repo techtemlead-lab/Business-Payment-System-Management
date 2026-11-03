@@ -8,6 +8,7 @@ use App\Models\CompanyBranch;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,8 @@ final class BranchOperations
     public const KindProductIn = 'product_in';
 
     public const KindProductOut = 'product_out';
+
+    public const SessionView = 'branch_view';
 
     /** @var list<string> */
     public const ProductInReasonCodes = [
@@ -151,6 +154,78 @@ final class BranchOperations
             }
             Audit::record($actor->id, 'branch.staff_removed', (string) $branch->id, ['user_id' => $staff->id]);
         });
+    }
+
+    public function deleteBranch(User $actor, CompanyBranch $branch): void
+    {
+        abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
+        if ($branch->code === 'HO-PIRGANJ') {
+            throw ValidationException::withMessages(['branch' => __('portal.err_branch_head_office')]);
+        }
+
+        $hasStock = BranchProductStock::query()
+            ->where('branch_id', $branch->id)
+            ->where('quantity', '>', 0)
+            ->exists();
+        $hasMovements = DB::table('stock_movements')->where('branch_id', $branch->id)->exists();
+        $hasOrders = DB::table('orders')->where('fulfillment_branch_id', $branch->id)->exists();
+        $hasShipments = Schema::hasTable('shipments')
+            && Schema::hasColumn('shipments', 'branch_id')
+            && DB::table('shipments')->where('branch_id', $branch->id)->exists();
+        if ($hasStock || $hasMovements || $hasOrders || $hasShipments) {
+            throw ValidationException::withMessages(['branch' => __('portal.err_branch_delete_history')]);
+        }
+
+        DB::transaction(function () use ($actor, $branch): void {
+            Audit::record($actor->id, 'branch.deleted', (string) $branch->id, [
+                'code' => $branch->code,
+                'name' => $branch->name,
+            ]);
+            User::query()->where('active_branch_id', $branch->id)->update(['active_branch_id' => null]);
+            $branch->delete();
+        });
+    }
+
+    /**
+     * @param  iterable<int, array<string, mixed>>  $products
+     * @return list<array<string, mixed>>
+     */
+    public function expandStockAcrossBranches(iterable $products): array
+    {
+        $products = collect($products)->map(fn (mixed $product): array => (array) $product)->all();
+        $ids = array_values(array_filter(array_map(fn (array $product): int => (int) ($product['id'] ?? 0), $products)));
+        $lines = BranchProductStock::query()
+            ->with('branch:id,name,code')
+            ->whereIn('product_id', $ids)
+            ->orderBy('branch_id')
+            ->get()
+            ->groupBy('product_id');
+        $rows = [];
+        foreach ($products as $product) {
+            $company = (int) ($product['stock'] ?? 0);
+            $group = $lines->get($product['id'], collect());
+            if ($group->isEmpty()) {
+                $product['branch_stock'] = 0;
+                $product['company_stock'] = $company;
+                $product['branch_name'] = null;
+                $product['row_key'] = (string) $product['id'];
+                $rows[] = $product;
+
+                continue;
+            }
+            foreach ($group as $line) {
+                $copy = $product;
+                $copy['branch_id'] = $line->branch_id;
+                $copy['branch_name'] = $line->branch?->name;
+                $copy['branch_code'] = $line->branch?->code;
+                $copy['branch_stock'] = (int) $line->quantity;
+                $copy['company_stock'] = $company;
+                $copy['row_key'] = $product['id'].'-'.$line->branch_id;
+                $rows[] = $copy;
+            }
+        }
+
+        return $rows;
     }
 
     public function selectActiveBranch(User $actor, CompanyBranch $branch): User
@@ -329,10 +404,35 @@ final class BranchOperations
         return $actor->owner() || $actor->allows('accounts') || $actor->allows('inventory');
     }
 
+    public function preferredBranch(User $actor): ?CompanyBranch
+    {
+        $branches = $this->visibleBranches($actor);
+        if ($actor->active_branch_id) {
+            $saved = $branches->firstWhere('id', (int) $actor->active_branch_id);
+            if ($saved instanceof CompanyBranch) {
+                return $saved;
+            }
+        }
+
+        return $branches->first(fn (CompanyBranch $branch): bool => $branch->code === 'HO-PIRGANJ')
+            ?? $branches->first(fn (CompanyBranch $branch): bool => str_starts_with(mb_strtolower($branch->name), 'head office'))
+            ?? $branches->first();
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
     public function branchesFor(User $actor): array
+    {
+        return $this->visibleBranches($actor)
+            ->map(fn (CompanyBranch $branch) => $branch->summary())
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, CompanyBranch>
+     */
+    private function visibleBranches(User $actor): Collection
     {
         $query = CompanyBranch::query()->orderBy('name');
         if (! $this->canManageAllBranches($actor) && ! $actor->owner()) {
@@ -340,7 +440,7 @@ final class BranchOperations
             $query->whereIn('id', $ids);
         }
 
-        return $query->get()->map(fn (CompanyBranch $branch) => $branch->summary())->all();
+        return $query->get();
     }
 
     /**

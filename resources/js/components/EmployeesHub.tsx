@@ -254,6 +254,16 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             render: r => <Badge status={r.status} />
                         },
                         {
+                            key: 'role',
+                            title: translate('portal', 'col_role'),
+                            render: (r: Row) => r.role || '—',
+                        },
+                        {
+                            key: 'branch',
+                            title: translate('portal', 'col_branch'),
+                            render: (r: Row) => r.branch_name || '—',
+                        },
+                        {
                             key: 'permissions',
                             title: translate('portal', 'emp_col_capabilities'),
                             render: r => {

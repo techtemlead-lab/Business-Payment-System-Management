@@ -80,6 +80,7 @@ class BranchController extends Controller
     public function select(Request $request, CompanyBranch $branch, BranchOperations $operations): RedirectResponse|JsonResponse
     {
         $actor = $operations->selectActiveBranch($request->user(), $branch);
+        $request->session()->forget(BranchOperations::SessionView);
         if ($request->expectsJson()) {
             return response()->json(['data' => [
                 'active_branch_id' => $actor->active_branch_id,
@@ -88,6 +89,21 @@ class BranchController extends Controller
         }
 
         return back()->with('success', __('portal.flash_branch_selected', ['name' => $branch->name]));
+    }
+
+    public function viewAll(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->staff() || $request->user()?->owner(), 403);
+        $request->session()->put(BranchOperations::SessionView, 'all');
+
+        return back()->with('success', __('portal.flash_branch_view_all'));
+    }
+
+    public function destroy(Request $request, CompanyBranch $branch, BranchOperations $operations): RedirectResponse
+    {
+        $operations->deleteBranch($request->user(), $branch);
+
+        return back()->with('success', __('portal.flash_branch_deleted', ['name' => $branch->name]));
     }
 
     public function deliveryPoints(BranchOperations $operations): JsonResponse

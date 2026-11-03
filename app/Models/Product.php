@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\Money;
 use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use InvalidArgumentException;
 
 class Product extends Model
 {
@@ -54,6 +56,39 @@ class Product extends Model
     {
         return $this->is_stock_paused || $this->stock <= 0 ? 'out_of_stock'
             : ($this->stock <= $this->low_stock_at ? 'low_stock' : 'in_stock');
+    }
+
+    public function registerName(): string
+    {
+        $name = trim((string) $this->name);
+        $strength = trim((string) ($this->strength ?? ''));
+        if ($strength === '' || str_contains(mb_strtolower($name), mb_strtolower($strength))) {
+            return $name;
+        }
+
+        return $name.'-'.$strength;
+    }
+
+    public function discountPercentFromRetail(mixed $channelPrice): ?string
+    {
+        if ($channelPrice === null || $channelPrice === '' || $this->mrp === null || $this->mrp === '') {
+            return null;
+        }
+
+        try {
+            $retail = Money::cents((string) $this->mrp);
+            $net = Money::cents((string) $channelPrice);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+
+        if ($retail <= 0 || $net < 0 || $net > $retail) {
+            return null;
+        }
+
+        $points = intdiv(($retail - $net) * 10000 + intdiv($retail, 2), $retail);
+
+        return intdiv($points, 100).'.'.str_pad((string) ($points % 100), 2, '0', STR_PAD_LEFT);
     }
 
     public function media(): array

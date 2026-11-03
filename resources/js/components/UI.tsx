@@ -1,8 +1,8 @@
-import React,{useEffect,useRef} from 'react';
+import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
 import {ArrowUpRight, X,Inbox} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
-import {businessDate} from '../business-date';
+import {businessDate, businessTodayIso, isPastBusinessDate} from '../business-date';
 import {useT} from '../shared/i18n/t';
 import DateInput from './DateInput';
 
@@ -52,7 +52,29 @@ export function Empty({title,body}:{title?:string,body?:string}) {
  return <div className="empty"><Inbox size={30}/><h3>{title??translate('portal','empty_default_title')}</h3><p>{body??translate('portal','empty_default_body')}</p></div>;
 }
 export function Flash(){const {flash,errors}=usePage<any>().props;return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
-export function Table<T extends Row = any>({rows,columns,empty,emptyBody}:{rows:T[],columns:{key:string,title:string,render?:(row:any)=>React.ReactNode}[],empty?:string,emptyBody?:string}){return rows.length?<div className="table-wrap"><table><thead><tr>{columns.map(c=><th key={c.key}>{c.title}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={(r as any).id??i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String((r as any)[c.key]??'—')}</td>)}</tr>)}</tbody></table></div>:<Empty title={empty} body={emptyBody}/>}
+function rowSearchText(value:unknown,depth=0):string{
+ if(value==null||depth>2)return '';
+ if(typeof value==='string'||typeof value==='number')return String(value);
+ if(Array.isArray(value))return value.map(item=>rowSearchText(item,depth+1)).join(' ');
+ if(typeof value==='object')return Object.values(value as Record<string,unknown>).map(item=>rowSearchText(item,depth+1)).join(' ');
+ return '';
+}
+export function Table<T extends Row = any>({rows,columns,empty,emptyBody,tools=true}:{rows:T[],columns:{key:string,title:string,render?:(row:any)=>React.ReactNode}[],empty?:string,emptyBody?:string,tools?:boolean}){
+ const translate=useT();
+ const [query,setQuery]=useState('');
+ const [status,setStatus]=useState('');
+ const statuses=useMemo(()=>[...new Set(rows.map(row=>typeof (row as Row).status==='string'?(row as Row).status as string:'').filter(Boolean))],[rows]);
+ const visible=useMemo(()=>{
+  const needle=query.trim().toLowerCase();
+  return rows.filter(row=>{
+   if(status&&String((row as Row).status??'')!==status)return false;
+   if(!needle)return true;
+   return rowSearchText(row).toLowerCase().includes(needle);
+  });
+ },[query,rows,status]);
+ const body=visible.length?visible.map((r,i)=><tr key={(r as any).id??i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String((r as any)[c.key]??'—')}</td>)}</tr>):<tr><td colSpan={columns.length}><Empty title={rows.length?translate('portal','table_no_matches'):empty} body={rows.length?translate('portal','table_no_matches_hint'):emptyBody}/></td></tr>;
+ return <div className="table-block">{tools&&<div className="table-tools"><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={translate('portal','table_search')} aria-label={translate('portal','table_search')}/>{statuses.length>1&&<select aria-label={translate('portal','table_status')} value={status} onChange={e=>setStatus(e.target.value)}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}</div>}<div className="table-wrap"><table><thead><tr>{columns.map(c=><th key={c.key}>{c.title}</th>)}</tr></thead><tbody>{body}</tbody></table></div></div>;
+}
 export function Pagination({page}:{page?:Row}){
  const translate=useT();
  return page&&page.last_page>1?<div className="pagination"><span>{translate('portal','pagination_summary',{page:String(page.current_page),pages:String(page.last_page),total:String(page.total)})}</span><div>{page.prev_page_url&&<Link href={page.prev_page_url}>{translate('portal','pagination_previous')}</Link>}{page.next_page_url&&<Link href={page.next_page_url}>{translate('portal','pagination_next')}</Link>}</div></div>:null;
@@ -82,11 +104,12 @@ export function Modal({title,onClose,children}:{title:string,onClose:()=>void,ch
   </dialog>
  );
 }
-export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],required?:boolean,value?:any};
+export type Field={name:string,label:string,type?:string,options?:{value:string,label:string}[],required?:boolean,value?:any,warnPast?:boolean};
 export function ActionForm({action,fields,defaults={},submit,method='post',onDone}:{action:string,fields:Field[],defaults?:Row,submit?:string,method?:'post'|'patch',onDone?:()=>void}){
  const translate=useT();
  const {portal,staffActions}=usePage<any>().props;
  const initial:Row={...Object.fromEntries(fields.map(f=>[f.name,f.value??''])),...defaults}; const f=useForm<Row>(initial);
  if((portal==='manage'||portal==='sadmin')&&!actionAllowed(action,staffActions,method))return null;
- return <form className="action-form" onSubmit={e=>{e.preventDefault();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=><label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.type==='date'?<DateInput value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<select value={String(f.data[field.name])} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}><option value="">{translate('portal','select_placeholder')}</option>{field.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {f.errors[field.name]&&<span className="field-error">{String(f.errors[field.name])}</span>}</label>)}<button disabled={f.processing} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
+ const pastField=fields.find(field=>field.warnPast&&isPastBusinessDate(String(f.data[field.name]??'')));
+ return <form className="action-form" onSubmit={e=>{e.preventDefault();if(pastField){f.setError(pastField.name,translate('portal','err_stock_expiry_past'));return;}f.clearErrors();f.submit(method,action,{preserveScroll:true,onSuccess:()=>onDone?.()})}}>{fields.map(field=>{const past=field.warnPast&&isPastBusinessDate(String(f.data[field.name]??''));const message=past?translate('portal','err_stock_expiry_past'):(f.errors[field.name]?String(f.errors[field.name]):'');return <label key={field.name}>{field.label}{field.type==='textarea'?<textarea rows={4} value={f.data[field.name]} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>:field.type==='date'?<DateInput value={f.data[field.name]} required={field.required} min={field.warnPast?businessTodayIso():undefined} onChange={e=>f.setData(field.name,e.target.value)}/>:field.options?<select value={String(f.data[field.name])} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}><option value="">{translate('portal','select_placeholder')}</option>{field.options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select>:<input type={field.type??'text'} value={f.data[field.name]} step={field.type==='number'?'any':undefined} required={field.required} onChange={e=>f.setData(field.name,e.target.value)}/>} {message&&<span className="field-error" role="alert">{message}</span>}</label>})}<button disabled={f.processing||Boolean(pastField)} className="button dark">{f.processing?translate('portal','saving'):(submit??translate('portal','save_changes'))}<ArrowUpRight size={17}/></button></form>
 }

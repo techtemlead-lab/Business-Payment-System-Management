@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
-import { Badge, Modal, Table, Pagination, type Row } from './UI';
+import { Badge, Modal, Table, Pagination, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface BranchStaff {
@@ -28,6 +28,8 @@ interface BranchRow extends Row {
     is_stock_hub: boolean;
     stock_skus?: number;
     stock_units?: number;
+    stock_value?: string | number | null;
+    manager_name?: string | null;
     staff?: BranchStaff[];
 }
 
@@ -133,7 +135,8 @@ export default function BranchesHub({
                 )}
             </div>
 
-            <section className="panel">
+            <p className="muted" style={{ margin: '0 0 10px' }}>{translate('portal', 'branch_view_all_hint')}</p>
+            <section className="panel branches-register">
                 <div className="panel-heading">
                     <div>
                         <h2>{translate('portal', 'branches_title')}</h2>
@@ -191,6 +194,26 @@ export default function BranchesHub({
                             ),
                         },
                         {
+                            key: 'phone',
+                            title: translate('portal', 'ops_fld_phone'),
+                            render: (r: BranchRow) => r.phone || '—',
+                        },
+                        {
+                            key: 'status',
+                            title: translate('portal', 'col_status'),
+                            render: (r: BranchRow) => <Badge status={r.is_active ? 'active' : 'suspended'} />,
+                        },
+                        {
+                            key: 'manager',
+                            title: translate('portal', 'branch_manager'),
+                            render: (r: BranchRow) => r.manager_name || '—',
+                        },
+                        {
+                            key: 'value',
+                            title: translate('portal', 'branch_stock_value'),
+                            render: (r: BranchRow) => money(r.stock_value ?? 0),
+                        },
+                        {
                             key: 'staff',
                             title: translate('portal', 'branch_staff'),
                             render: (r: BranchRow) => (
@@ -221,6 +244,20 @@ export default function BranchesHub({
                                             <button type="button" className="button small" onClick={() => { setAssignRow(r); assignForm.setData({ user_id: assignable_staff[0] ? String(assignable_staff[0].id) : '', duty: 'storekeeper', is_primary: true }); }}>
                                                 {translate('portal', 'branch_assign_staff')}
                                             </button>
+                                            {r.code !== 'HO-PIRGANJ' && (
+                                                <button
+                                                    type="button"
+                                                    className="button small branch-delete"
+                                                    onClick={() => {
+                                                        if (!window.confirm(translate('portal', 'branch_delete_confirm', { name: r.name }))) {
+                                                            return;
+                                                        }
+                                                        router.delete(`/commands/branches/${r.id}`, { preserveScroll: true });
+                                                    }}
+                                                >
+                                                    {translate('portal', 'branch_delete')}
+                                                </button>
+                                            )}
                                         </>
                                     )}
                                 </div>
