@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -157,5 +158,68 @@ class OwnerContactTest extends TestCase
                 ->has('data.orders.data', 1)
                 ->where('data.orders.data.0.number', 'ORD-SUB-1')
                 ->where('data.orders.data.0.user.role', 'sub_dealer'));
+    }
+
+    public function test_management_orders_can_filter_by_date_status_and_partner_name(): void
+    {
+        $this->withoutVite();
+        $this->travelTo(CarbonImmutable::parse('2026-11-03 15:00:00', 'Asia/Dhaka'));
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create(['name' => 'Rangpur Dealer', 'phone' => '01711111111']);
+        $subDealer = User::factory()->subDealer()->create(['name' => 'Dhaka Sub']);
+        Order::create([
+            'user_id' => $dealer->id,
+            'number' => 'ORD-TODAY',
+            'status' => 'submitted',
+            'total' => '100.00',
+            'idempotency_key' => 'today-order-key',
+            'payload_hash' => hash('sha256', 'today'),
+        ]);
+        Order::create([
+            'user_id' => $subDealer->id,
+            'number' => 'ORD-OLDER',
+            'status' => 'approved',
+            'total' => '200.00',
+            'idempotency_key' => 'older-order-key',
+            'payload_hash' => hash('sha256', 'older'),
+        ]);
+        DB::table('orders')->where('number', 'ORD-TODAY')->update([
+            'created_at' => CarbonImmutable::parse('2026-11-03 09:00:00', 'Asia/Dhaka')->utc(),
+        ]);
+        DB::table('orders')->where('number', 'ORD-OLDER')->update([
+            'created_at' => CarbonImmutable::parse('2026-10-15 09:00:00', 'Asia/Dhaka')->utc(),
+        ]);
+
+        $this->actingAs($owner)->get('/company/orders?period=today')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-TODAY')
+                ->where('filters.period', 'today'));
+        $this->actingAs($owner)->get('/company/orders?period=week')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-TODAY'));
+        $this->actingAs($owner)->get('/company/orders?period=month')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-TODAY'));
+        $this->actingAs($owner)->get('/company/orders?period=day&from=2026-10-15')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-OLDER')
+                ->where('filters.from', '2026-10-15'));
+        $this->actingAs($owner)->get('/company/orders?period=custom&from=2026-10-01&to=2026-10-31')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-OLDER'));
+        $this->actingAs($owner)->get('/company/orders?status=approved')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-OLDER'));
+        $this->actingAs($owner)->get('/company/orders?q=Rangpur')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 1)
+                ->where('data.orders.data.0.number', 'ORD-TODAY'));
+        $this->from('/company/orders')->get('/company/orders?period=year')->assertSessionHasErrors('period');
     }
 }

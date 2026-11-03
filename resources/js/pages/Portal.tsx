@@ -57,7 +57,55 @@ const accountFields=(translate:TranslateFn):Field[]=>[{name:'name',label:transla
 function parseJson<T>(value:unknown,fallback:T):T{if(typeof value!=='string'){return(value as T)??fallback;}try{return JSON.parse(value) as T;}catch{return fallback;}}
 function orderDue(row:Row):number{const due=Number(row.total||0)-Number(row.paid||0)-Number(row.due_credit||0);return due>0?due:0;}
 function OrderTable({page,empty,emptyBody}:{page:Row,empty?:string,emptyBody?:string}){const translate=useT();const {portalBase:base,portal}=usePage<any>().props;const staff=portal==='manage'||portal==='sadmin';return <><Table rows={page?.data??[]} columns={[{key:'number',title:translate('portal','col_order'),render:r=><Link className="record-link" href={`${base}/orders/${r.id}`}>{r.number}</Link>},{key:'created_at',title:translate('portal','col_date'),render:r=>date(r.created_at)},{key:'user',title:translate('portal','col_partner'),render:r=><>{r.user?.name??'—'}<small className="cell-sub">{[r.user?.dealer_code,staff&&r.user?.role?label(r.user.role,translate):null].filter(Boolean).join(' · ')}</small></>},{key:'phone',title:translate('portal','ops_fld_phone'),render:r=>r.user?.phone||'—'},{key:'area',title:translate('portal','col_area'),render:r=>[r.user?.district,r.user?.division].filter(Boolean).join(', ')||'—'},{key:'branch',title:translate('portal','col_branch'),render:r=>r.fulfillment_branch?.name||'—'},{key:'lines',title:translate('portal','col_items'),render:r=>(r.lines??[]).reduce((n:number,l:Row)=>n+Number(l.quantity||0),0)},{key:'total',title:translate('portal','col_order_value'),render:r=><b>{money(r.total)}</b>},{key:'paid',title:translate('portal','col_paid'),render:r=>money(r.paid)},{key:'due',title:translate('portal','col_due'),render:r=>money(orderDue(r))},{key:'status',title:translate('portal','col_status'),render:r=><Badge status={r.status}/>},{key:'action',title:'',render:r=><Link aria-label={`${translate('portal','view')} ${r.number}`} href={`${base}/orders/${r.id}`} className="icon-button"><ArrowUpRight size={17}/></Link>}]} empty={empty} emptyBody={emptyBody}/><Pagination page={page}/></>}
-function Filter({section,filters}:{section:string,filters:Row}){const translate=useT();const {portalBase:base,portal}=usePage<any>().props;const staff=portal==='manage'||portal==='sadmin';const[q,setQ]=useState(filters.q??'');const buyerRole=String(filters.buyer_role||'');const apply=(next:Row)=>{router.get(`${base}/${section}`,Object.fromEntries(Object.entries({q:next.q??q,buyer_role:next.buyer_role??buyerRole}).filter(([,value])=>value)),{preserveState:true})};return <form className="filter-bar" onSubmit={e=>{e.preventDefault();apply({q,buyer_role:buyerRole})}}><div className="search-input"><Search size={17}/><input aria-label={translate('portal','search_records')} placeholder={translate('portal','search_by_name_or_reference')} value={q} onChange={e=>setQ(e.target.value)}/></div>{staff&&section==='orders'&&<div className="preset-chips" data-tour="orders-buyer-role">{[{value:'',label:translate('portal','orders_filter_all')},{value:'dealer',label:translate('portal','orders_filter_dealers')},{value:'sub_dealer',label:translate('portal','orders_filter_sub_dealers')}].map(option=><button type="button" key={option.value||'all'} className={`button small ${buyerRole===option.value?'dark':''}`} onClick={()=>apply({q,buyer_role:option.value})}>{option.label}</button>)}</div>}<button className="button small">{translate('portal','search')}</button>{(filters.q||filters.buyer_role)&&<Link href={`${base}/${section}`} className="text-link">{translate('portal','clear')}</Link>}</form>}
+const orderStatuses=['submitted','held','approved','partially_dispatched','dispatched','delivered','cancelled'];
+function Filter({section,filters}:{section:string,filters:Row}){
+ const translate=useT();
+ const {portalBase:base,portal}=usePage<any>().props;
+ const staff=portal==='manage'||portal==='sadmin';
+ const listsOrders=['orders','deliveries','dues','reports'].includes(section);
+ const [q,setQ]=useState(filters.q??'');
+ const [from,setFrom]=useState(String(filters.from||''));
+ const [to,setTo]=useState(String(filters.to||''));
+ const buyerRole=String(filters.buyer_role||'');
+ const period=String(filters.period||'');
+ const status=String(filters.status||'');
+ useEffect(()=>{setQ(filters.q??'');setFrom(String(filters.from||''));setTo(String(filters.to||''));},[filters.q,filters.from,filters.to]);
+ const apply=(next:Row)=>{
+  const selectedPeriod=String(next.period??period);
+  const selectedFrom=String(next.from??from);
+  const selectedTo=selectedPeriod==='day'?selectedFrom:String(next.to??to);
+  const query={
+   q:next.q??q,
+   buyer_role:next.buyer_role??buyerRole,
+   status:next.status??status,
+   period:selectedPeriod,
+   from:selectedPeriod==='day'||selectedPeriod==='custom'?selectedFrom:'',
+   to:selectedPeriod==='custom'?selectedTo:'',
+  };
+  router.get(`${base}/${section}`,Object.fromEntries(Object.entries(query).filter(([,value])=>value)),{preserveState:true,preserveScroll:true});
+ };
+ const periods=[
+  {value:'',label:translate('portal','orders_period_all')},
+  {value:'today',label:translate('portal','orders_period_today')},
+  {value:'week',label:translate('portal','orders_period_week')},
+  {value:'month',label:translate('portal','orders_period_month')},
+  {value:'day',label:translate('portal','orders_period_day')},
+  {value:'custom',label:translate('portal','orders_period_custom')},
+ ];
+ const filtered=Boolean(filters.q||filters.buyer_role||filters.status||filters.period||filters.from||filters.to);
+ return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q,buyer_role:buyerRole})}}>
+  <div className="order-search">
+   <div className="search-input"><Search size={16}/><input aria-label={translate('portal','search_records')} placeholder={translate('portal','search_by_name_or_reference')} value={q} onChange={e=>setQ(e.target.value)}/></div>
+   <button className="button small dark" type="submit">{translate('portal','search')}</button>
+  </div>
+  {staff&&section==='orders'&&<div className="preset-chips" data-tour="orders-buyer-role">{[{value:'',label:translate('portal','orders_filter_all')},{value:'dealer',label:translate('portal','orders_filter_dealers')},{value:'sub_dealer',label:translate('portal','orders_filter_sub_dealers')}].map(option=><button type="button" key={option.value||'all'} className={`button small ${buyerRole===option.value?'dark':''}`} onClick={()=>apply({buyer_role:option.value})}>{option.label}</button>)}</div>}
+  {listsOrders&&<div className="preset-chips" data-tour="orders-period">{periods.map(option=><button type="button" key={option.value||'all-dates'} className={`button small ${period===option.value?'dark':''}`} onClick={()=>apply({period:option.value})}>{option.label}</button>)}</div>}
+  {listsOrders&&period==='day'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_day')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'day',from:e.target.value});}}/></div>}
+  {listsOrders&&period==='custom'&&<div className="order-dates"><DateInput aria-label={translate('portal','orders_period_custom')} value={from} onChange={e=>{setFrom(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)&&/^\d{4}-\d{2}-\d{2}$/.test(to))apply({period:'custom',from:e.target.value,to});}}/><DateInput aria-label={translate('portal','orders_period_custom')} value={to} onChange={e=>{setTo(e.target.value);if(/^\d{4}-\d{2}-\d{2}$/.test(from)&&/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))apply({period:'custom',from,to:e.target.value});}}/></div>}
+  {listsOrders&&<select aria-label={translate('portal','orders_filter_status')} value={status} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','orders_filter_status')}</option>{orderStatuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
+  {filtered&&<Link href={`${base}/${section}`} className="text-link" preserveState={false}>{translate('portal','clear')}</Link>}
+ </form>;
+}
 function PartnerNetwork({members}:{members:Row[]}) {
  const translate=useT();
  const [view,setView]=useState<'tree'|'direct'|'all'>('tree');

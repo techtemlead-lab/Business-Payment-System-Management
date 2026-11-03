@@ -77,6 +77,9 @@ class WorkspaceController extends Controller
             $section = 'treasury';
         }
         PortalCatalog::assertSection($u, $catalogPortal, $section);
+        $periodRule = $section === 'branch-performance'
+            ? 'nullable|in:today,month,custom'
+            : 'nullable|in:today,week,month,day,custom';
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
@@ -84,7 +87,7 @@ class WorkspaceController extends Controller
             'page' => 'nullable|integer|min:1',
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
-            'period' => 'nullable|in:today,month,custom',
+            'period' => $periodRule,
             'branch_id' => 'nullable|integer|min:1',
             'category' => 'nullable|string|max:100',
             'sub_category' => 'nullable|string|max:100',
@@ -107,10 +110,27 @@ class WorkspaceController extends Controller
         if (in_array($section, ['overview', 'orders', 'deliveries', 'dues', 'reports'])) {
             $q = clone $orders;
             if ($r->filled('q')) {
-                $q->where('number', 'like', '%'.$r->string('q').'%');
+                $term = '%'.$r->string('q')->toString().'%';
+                $q->where(function ($orders) use ($term): void {
+                    $orders->where('number', 'like', $term)
+                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', $term)
+                            ->orWhere('dealer_code', 'like', $term)
+                            ->orWhere('phone', 'like', $term));
+                });
             }
             if ($r->filled('status')) {
                 $q->where('status', $r->string('status'));
+            }
+            if (in_array($section, ['orders', 'deliveries', 'dues', 'reports'], true)) {
+                $range = $this->orderCreatedRange(
+                    $r->string('period')->toString(),
+                    $r->filled('from') ? $r->string('from')->toString() : null,
+                    $r->filled('to') ? $r->string('to')->toString() : null,
+                );
+                if ($range !== null) {
+                    $q->where('created_at', '>=', $range['from'])
+                        ->where('created_at', '<=', $range['until']);
+                }
             }
             if ($staff && $r->filled('buyer_role')) {
                 $buyerRole = $r->string('buyer_role')->toString();
@@ -1019,7 +1039,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -1333,5 +1353,41 @@ class WorkspaceController extends Controller
                 'rejected' => (int) ($counts->rejected ?? 0),
             ],
         ];
+    }
+
+    /**
+     * Business-timezone window for the order list. An empty period means every date.
+     *
+     * @return array{from: CarbonImmutable, until: CarbonImmutable}|null
+     */
+    private function orderCreatedRange(string $period, ?string $from, ?string $to): ?array
+    {
+        if ($period === '') {
+            return null;
+        }
+
+        $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
+        $now = CarbonImmutable::now($timezone);
+
+        if ($period === 'today') {
+            $start = $now->startOfDay();
+            $end = $now->endOfDay();
+        } elseif ($period === 'week') {
+            $start = $now->startOfWeek();
+            $end = $now->endOfWeek();
+        } elseif ($period === 'month') {
+            $start = $now->startOfMonth();
+            $end = $now->endOfMonth();
+        } elseif ($period === 'day' && is_string($from) && $from !== '') {
+            $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
+            $end = $start->endOfDay();
+        } elseif ($period === 'custom' && is_string($from) && $from !== '' && is_string($to) && $to !== '') {
+            $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
+            $end = CarbonImmutable::parse($to, $timezone)->endOfDay();
+        } else {
+            return null;
+        }
+
+        return ['from' => $start->utc(), 'until' => $end->utc()];
     }
 }

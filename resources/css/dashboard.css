@@ -522,10 +522,11 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
 .app-shell .stock-register .button.small{min-height:22px;height:22px;padding:0 7px;font-size:11px;line-height:20px}
 .app-shell .stock-register .stock-pause{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .app-shell .stock-register .stock-resume{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
-.app-shell .branches-register td,.app-shell .branches-register th{white-space:normal}
 .app-shell .branches-register .table-wrap{overflow-x:auto}
-.app-shell .branches-register th:last-child,.app-shell .branches-register td:last-child{position:sticky;right:0;z-index:2;width:132px;min-width:132px;max-width:132px;background:#fff;box-shadow:-8px 0 12px rgba(1,22,39,.06);vertical-align:top}
-.app-shell .branches-register th:last-child{z-index:3;background:#f8fafc}
+.app-shell .branches-register table{width:max-content;min-width:100%}
+.app-shell .branches-register th:nth-child(2),.app-shell .branches-register td:nth-child(2){min-width:220px}
+.app-shell .branches-register th:nth-child(4),.app-shell .branches-register td:nth-child(4),.app-shell .branches-register th:nth-child(5),.app-shell .branches-register td:nth-child(5),.app-shell .branches-register th:nth-child(8),.app-shell .branches-register td:nth-child(8){min-width:128px}
+.app-shell .branches-register th:last-child,.app-shell .branches-register td:last-child{position:static;width:auto;min-width:148px;max-width:none;background:transparent;box-shadow:none;vertical-align:top}
 .app-shell .branches-register .inline-actions{flex-direction:column;align-items:stretch;gap:6px}
 .app-shell .branches-register .branch-delete{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .app-shell .table-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
@@ -698,6 +699,19 @@ dialog.portal-modal::backdrop{
 .app-shell .branch-perf-filters input{height:36px;min-height:36px;margin:0;box-sizing:border-box}
 .app-shell .branch-perf-filters .button.small{display:inline-flex;align-items:center;justify-content:center;padding:0 14px;line-height:1}
 .app-shell .branch-perf-filters select{width:auto;min-width:180px;padding:0 28px 0 10px}
+.app-shell .table-panel>form.filter-bar.order-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px}
+.app-shell .order-filters .order-search{display:flex;align-items:center;gap:8px;flex:1 1 320px;min-width:min(100%,280px)}
+.app-shell .order-filters .order-search .search-input{flex:1;max-width:none;height:34px;min-height:34px;margin:0}
+.app-shell .order-filters .order-search .search-input input{height:32px;min-height:0;padding:0 8px 0 0}
+.app-shell .order-filters .preset-chips{margin:0}
+.app-shell .order-filters .button.small,
+.app-shell .order-filters select,
+.app-shell .order-filters .date-input-wrapper,
+.app-shell .order-filters .date-input-field{height:34px;min-height:34px;margin:0;box-sizing:border-box}
+.app-shell .order-filters .button.small{display:inline-flex;align-items:center;justify-content:center;padding:0 14px;line-height:1}
+.app-shell .order-filters select{width:auto;min-width:148px;padding:0 28px 0 10px}
+.app-shell .order-filters .order-dates{display:inline-flex;align-items:center;gap:8px}
+.app-shell .order-filters .date-input-wrapper{width:148px}
 .metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
 @media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 .optional-media-fieldset { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
