@@ -397,27 +397,35 @@ class WorkspaceController extends Controller
             $data['branch_options'] = CompanyBranch::query()->orderBy('name')->get()->map(fn (CompanyBranch $branch) => $branch->summary())->all();
         }
         if ($section === 'accounts') {
-            $data['accounts'] = User::where('role', 'dealer')->when($r->filled('q'), function ($q) use ($r) {
-                $term = '%'.$r->string('q').'%';
-                $q->where(function ($sub) use ($term) {
-                    $sub->where('name', 'like', $term)
-                        ->orWhere('dealer_code', 'like', $term)
-                        ->orWhere('email', 'like', $term)
-                        ->orWhere('phone', 'like', $term);
-                });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            $data['accounts'] = User::where('role', 'dealer')
+                ->with('sponsor:id,name,dealer_code')
+                ->when($r->filled('status'), fn ($q) => $q->where('status', $r->string('status')))
+                ->when($r->filled('q'), function ($q) use ($r) {
+                    $term = '%'.$r->string('q').'%';
+                    $q->where(function ($sub) use ($term) {
+                        $sub->where('name', 'like', $term)
+                            ->orWhere('dealer_code', 'like', $term)
+                            ->orWhere('email', 'like', $term)
+                            ->orWhere('phone', 'like', $term)
+                            ->orWhere('profile->shop_name', 'like', $term);
+                    });
+                })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'sub-dealers') {
-            $data['accounts'] = User::where('role', 'sub_dealer')->when($r->filled('q'), function ($q) use ($r) {
-                $term = '%'.$r->string('q').'%';
-                $q->where(function ($sub) use ($term) {
-                    $sub->where('name', 'like', $term)
-                        ->orWhere('dealer_code', 'like', $term)
-                        ->orWhere('email', 'like', $term)
-                        ->orWhere('phone', 'like', $term);
-                });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            $data['accounts'] = User::where('role', 'sub_dealer')
+                ->with('sponsor:id,name,dealer_code')
+                ->when($r->filled('status'), fn ($q) => $q->where('status', $r->string('status')))
+                ->when($r->filled('q'), function ($q) use ($r) {
+                    $term = '%'.$r->string('q').'%';
+                    $q->where(function ($sub) use ($term) {
+                        $sub->where('name', 'like', $term)
+                            ->orWhere('dealer_code', 'like', $term)
+                            ->orWhere('email', 'like', $term)
+                            ->orWhere('phone', 'like', $term)
+                            ->orWhere('profile->shop_name', 'like', $term);
+                    });
+                })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
         }
         if ($section === 'employees') {
