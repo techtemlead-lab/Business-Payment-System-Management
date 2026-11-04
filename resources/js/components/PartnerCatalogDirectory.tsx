@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Package, Search, ShoppingBag, ArrowRight, CheckCircle2, AlertTriangle, LayoutGrid, List } from 'lucide-react';
-import { money, type Row } from './UI';
+import { money, Table, type TableColumn, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import LuxuryProductCard from './LuxuryProductCard';
 
@@ -220,127 +220,148 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                 )
             ) : (
                 /* Product Directory Table */
-                <section className="panel" style={{ padding: 0, overflow: 'hidden', borderRadius: 10, border: '1px solid #e2e8f0', background: '#ffffff' }}>
-                    {filteredProducts.length > 0 ? (
-                        <div className="table-responsive">
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                                <thead>
-                                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                        <th style={{ padding: '12px 14px', width: '5%' }}>#</th>
-                                        <th style={{ padding: '12px 14px', width: '30%' }}>পণ্যের বিবরণ ও মাত্রা (Specification)</th>
-                                        <th style={{ padding: '12px 14px', width: '16%' }}>ক্যাটাগরি ও সাব-ক্যাটাগরি</th>
-                                        <th style={{ padding: '12px 14px', width: '10%' }}>একক (Pack)</th>
-                                        <th style={{ padding: '12px 14px', width: '11%', textAlign: 'right' }}>MRP (BDT)</th>
-                                        <th style={{ padding: '12px 14px', width: '12%', textAlign: 'right' }}>ক্রয় মূল্য (BDT)</th>
-                                        <th style={{ padding: '12px 14px', width: '10%', textAlign: 'center' }}>স্টক স্থিতি</th>
-                                        <th style={{ padding: '12px 14px', width: '6%', textAlign: 'center' }}>অ্যাকশন</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredProducts.map((p, index) => {
-                                        const mrpVal = Number(p.mrp || 0);
-                                        const priceVal = Number(p.price || p.mrp || 0);
-                                        const hasDiscount = mrpVal > 0 && priceVal > 0 && priceVal < mrpVal;
-                                        const discountPct = hasDiscount ? Math.round(((mrpVal - priceVal) / mrpVal) * 100) : 0;
-                                        const inStock = p.stock > 0 && !p.is_stock_paused;
-
-                                        return (
-                                            <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? '#ffffff' : '#fafafa' }}>
-                                                <td style={{ padding: '12px 14px', color: '#64748b', fontWeight: 600 }}>{index + 1}</td>
-                                                <td style={{ padding: '12px 14px' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                        {p.image_url ? (
-                                                            <img
-                                                                src={p.image_url}
-                                                                alt={p.name}
-                                                                style={{ width: 38, height: 38, borderRadius: 6, objectFit: 'contain', background: '#f8fafc', border: '1px solid #e2e8f0', flexShrink: 0 }}
-                                                            />
-                                                        ) : (
-                                                            <div style={{ width: 38, height: 38, borderRadius: 6, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#006837', fontWeight: 800, fontSize: 11, flexShrink: 0 }}>
-                                                                MH
-                                                            </div>
-                                                        )}
-                                                        <div>
-                                                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
-                                                                <a href={`${publicBase}/products/${p.id}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
-                                                                    {p.name}
-                                                                </a>
-                                                                {p.strength && (
-                                                                    <span style={{ marginLeft: 6, background: '#e0f2fe', color: '#0369a1', fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>
-                                                                        {p.strength}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                                                SKU: <code>{p.sku}</code>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '12px 14px' }}>
-                                                    <div style={{ fontWeight: 600, color: '#334155' }}>{p.category}</div>
-                                                    {p.sub_category && (
-                                                        <div style={{ fontSize: 11, color: '#64748b' }}>{p.sub_category}</div>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', color: '#475569', fontWeight: 500 }}>
-                                                    {p.unit || 'Pack'}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', textAlign: 'right', color: '#64748b' }}>
-                                                    {money(mrpVal)}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                                                    <div style={{ fontWeight: 800, color: '#065f46', fontSize: 14 }}>
-                                                        {money(priceVal)}
-                                                    </div>
-                                                    {hasDiscount && (
-                                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '1px 5px', borderRadius: 3 }}>
-                                                            {discountPct}% ছাড়
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                                                    <span style={{
-                                                        fontSize: 11,
-                                                        fontWeight: 700,
-                                                        padding: '3px 8px',
-                                                        borderRadius: 12,
-                                                        background: inStock ? '#dcfce7' : '#fee2e2',
-                                                        color: inStock ? '#15803d' : '#b91c1c'
-                                                    }}>
-                                                        {inStock ? `${p.stock} Units` : 'Stock Awaiting'}
+                <section className="panel" style={{ padding: 16, overflow: 'hidden', borderRadius: 10, border: '1px solid #e2e8f0', background: '#ffffff' }}>
+                    <Table
+                        columns={[
+                            {
+                                key: 'name',
+                                title: 'পণ্যের বিবরণ ও মাত্রা (Specification)',
+                                sortable: true,
+                                sortValue: (p: Row) => p.name || '',
+                                render: (p: Row) => (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        {p.image_url ? (
+                                            <img
+                                                src={p.image_url}
+                                                alt={p.name}
+                                                style={{ width: 38, height: 38, borderRadius: 6, objectFit: 'contain', background: '#f8fafc', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                                            />
+                                        ) : (
+                                            <div style={{ width: 38, height: 38, borderRadius: 6, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#006837', fontWeight: 800, fontSize: 11, flexShrink: 0 }}>
+                                                MH
+                                            </div>
+                                        )}
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
+                                                <a href={`${publicBase}/products/${p.id}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>
+                                                    {p.name}
+                                                </a>
+                                                {p.strength && (
+                                                    <span style={{ marginLeft: 6, background: '#e0f2fe', color: '#0369a1', fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 4 }}>
+                                                        {p.strength}
                                                     </span>
-                                                </td>
-                                                <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                                                    <Link
-                                                        href={`${base}/purchase?product_id=${p.id}`}
-                                                        className="button small"
-                                                        style={{
-                                                            padding: '4px 10px',
-                                                            fontSize: 11,
-                                                            fontWeight: 700,
-                                                            background: '#006837',
-                                                            color: '#ffffff',
-                                                            border: 'none',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                    >
-                                                        {translate('portal', 'b2b_order_item_btn')}
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
-                            <Package size={36} style={{ opacity: 0.4, marginBottom: 8 }} />
-                            <p style={{ margin: '0 0 6px', fontWeight: 700, fontSize: 15 }}>কোনো পণ্য পাওয়া যায়নি</p>
-                            <small>অনুসন্ধান পরিবর্তন করে পুনরায় চেষ্টা করুন।</small>
-                        </div>
-                    )}
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                                SKU: <code>{p.sku}</code>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: 'category',
+                                title: 'ক্যাটাগরি ও সাব-ক্যাটাগরি',
+                                sortable: true,
+                                sortValue: (p: Row) => p.category || '',
+                                render: (p: Row) => (
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: '#334155' }}>{p.category}</div>
+                                        {p.sub_category && (
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>{p.sub_category}</div>
+                                        )}
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: 'unit',
+                                title: 'একক (Pack)',
+                                sortable: true,
+                                sortValue: (p: Row) => p.unit || '',
+                                render: (p: Row) => <span>{p.unit || 'Pack'}</span>,
+                            },
+                            {
+                                key: 'mrp',
+                                title: 'MRP (BDT)',
+                                sortable: true,
+                                align: 'right',
+                                sortValue: (p: Row) => Number(p.mrp || 0),
+                                render: (p: Row) => <span style={{ color: '#64748b' }}>{money(Number(p.mrp || 0))}</span>,
+                            },
+                            {
+                                key: 'price',
+                                title: 'ক্রয় মূল্য (BDT)',
+                                sortable: true,
+                                align: 'right',
+                                sortValue: (p: Row) => Number(p.price || p.mrp || 0),
+                                render: (p: Row) => {
+                                    const mrpVal = Number(p.mrp || 0);
+                                    const priceVal = Number(p.price || p.mrp || 0);
+                                    const hasDiscount = mrpVal > 0 && priceVal > 0 && priceVal < mrpVal;
+                                    const discountPct = hasDiscount ? Math.round(((mrpVal - priceVal) / mrpVal) * 100) : 0;
+                                    return (
+                                        <div>
+                                            <div style={{ fontWeight: 800, color: '#065f46', fontSize: 14 }}>
+                                                {money(priceVal)}
+                                            </div>
+                                            {hasDiscount && (
+                                                <span style={{ fontSize: 10, fontWeight: 700, color: '#047857', background: '#ecfdf5', padding: '1px 5px', borderRadius: 3 }}>
+                                                    {discountPct}% ছাড়
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                },
+                            },
+                            {
+                                key: 'stock',
+                                title: 'স্টক স্থিতি',
+                                sortable: true,
+                                align: 'center',
+                                sortValue: (p: Row) => Number(p.stock || 0),
+                                render: (p: Row) => {
+                                    const inStock = p.stock > 0 && !p.is_stock_paused;
+                                    return (
+                                        <span style={{
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            padding: '3px 8px',
+                                            borderRadius: 12,
+                                            background: inStock ? '#dcfce7' : '#fee2e2',
+                                            color: inStock ? '#15803d' : '#b91c1c'
+                                        }}>
+                                            {inStock ? `${p.stock} Units` : 'Stock Awaiting'}
+                                        </span>
+                                    );
+                                },
+                            },
+                            {
+                                key: 'action',
+                                title: 'অ্যাকশন',
+                                align: 'center',
+                                render: (p: Row) => (
+                                    <Link
+                                        href={`${base}/purchase?product_id=${p.id}`}
+                                        className="button small"
+                                        style={{
+                                            padding: '4px 10px',
+                                            fontSize: 11,
+                                            fontWeight: 700,
+                                            background: '#006837',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        {translate('portal', 'b2b_order_item_btn')}
+                                    </Link>
+                                ),
+                            },
+                        ]}
+                        data={filteredProducts}
+                        pageSize={15}
+                        emptyMessage="কোনো পণ্য পাওয়া যায়নি"
+                    />
                 </section>
             )}
         </div>

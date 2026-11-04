@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
-import { money } from './UI';
+import { money, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
@@ -273,90 +273,107 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
             </div>
 
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_zone')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_dealer')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_tier')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_location')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_quota')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'area_col_status')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredAssignments.length > 0 ? (
-                            filteredAssignments.map(a => {
+                <Table
+                    tools={false}
+                    rows={filteredAssignments}
+                    empty={translate('portal', 'area_empty')}
+                    columns={[
+                        {
+                            key: 'zone_name',
+                            title: translate('portal', 'area_col_zone'),
+                            sortable: true,
+                            render: (a: AreaAssignment) => (
+                                <div>
+                                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.zone_name}</div>
+                                    {a.place_code?.code && (
+                                        <div style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, marginTop: 2 }}>
+                                            {translate('portal', 'area_code', { code: a.place_code.code })}
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: 11, color: '#64748b' }}>{a.place_code ? translate('portal', 'area_holds_code') : translate('portal', 'area_no_place')}</div>
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'dealer',
+                            title: translate('portal', 'area_col_dealer'),
+                            sortable: true,
+                            sortValue: (a: AreaAssignment) => a.user?.name || '',
+                            render: (a: AreaAssignment) => a.user ? (
+                                <div>
+                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.user.name}</div>
+                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                        {a.user.dealer_code} {a.user.phone ? `• ${a.user.phone}` : ''}
+                                    </div>
+                                </div>
+                            ) : (
+                                <span style={{ color: '#94a3b8' }}>{translate('portal', 'area_unassigned')}</span>
+                            ),
+                        },
+                        {
+                            key: 'level',
+                            title: translate('portal', 'area_col_tier'),
+                            sortable: true,
+                            render: (a: AreaAssignment) => {
                                 const levelConfig = levelMeta[a.level] || levelMeta.district;
-                                return (
-                                    <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.zone_name}</div>
-                                            {a.place_code?.code && (
-                                                <div style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, marginTop: 2 }}>
-                                                    {translate('portal', 'area_code', { code: a.place_code.code })}
-                                                </div>
-                                            )}
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>{a.place_code ? translate('portal', 'area_holds_code') : translate('portal', 'area_no_place')}</div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {a.user ? (
-                                                <div>
-                                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.user.name}</div>
-                                                    <div style={{ fontSize: 11, color: '#64748b' }}>
-                                                        {a.user.dealer_code} {a.user.phone ? `• ${a.user.phone}` : ''}
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span style={{ color: '#94a3b8' }}>{translate('portal', 'area_unassigned')}</span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {a.place_code ? (
-                                                <span style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    padding: '2px 8px',
-                                                    borderRadius: 4,
-                                                    background: levelConfig.bg,
-                                                    color: levelConfig.text
-                                                }}>
-                                                    {levelLabel(a.level)}
-                                                </span>
-                                            ) : '—'}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#475569' }}>
-                                            <div>{a.division || '—'}</div>
-                                            {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_district', { name: a.district })}</div>}
-                                            {a.upazila && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_upazila', { name: a.upazila })}</div>}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
-                                            {money(a.monthly_quota)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 6px',
-                                                borderRadius: 4,
-                                                background: a.is_active ? '#dcfce7' : '#fee2e2',
-                                                color: a.is_active ? '#15803d' : '#b91c1c'
-                                            }}>
-                                                {a.place_code ? translate('portal', 'area_active') : translate('portal', 'area_no_place')}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    {translate('portal', 'area_empty')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                return a.place_code ? (
+                                    <span style={{
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        padding: '2px 8px',
+                                        borderRadius: 4,
+                                        background: levelConfig.bg,
+                                        color: levelConfig.text
+                                    }}>
+                                        {levelLabel(a.level)}
+                                    </span>
+                                ) : '—';
+                            },
+                        },
+                        {
+                            key: 'location',
+                            title: translate('portal', 'area_col_location'),
+                            sortable: true,
+                            sortValue: (a: AreaAssignment) => [a.division, a.district, a.upazila].filter(Boolean).join(' '),
+                            render: (a: AreaAssignment) => (
+                                <div>
+                                    <div>{a.division || '—'}</div>
+                                    {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_district', { name: a.district })}</div>}
+                                    {a.upazila && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_upazila', { name: a.upazila })}</div>}
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'monthly_quota',
+                            title: translate('portal', 'area_col_quota'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: (a: AreaAssignment) => Number(a.monthly_quota) || 0,
+                            render: (a: AreaAssignment) => (
+                                <b style={{ color: '#006837' }}>
+                                    {money(a.monthly_quota)}
+                                </b>
+                            ),
+                        },
+                        {
+                            key: 'is_active',
+                            title: translate('portal', 'area_col_status'),
+                            sortable: true,
+                            render: (a: AreaAssignment) => (
+                                <span style={{
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                    padding: '2px 6px',
+                                    borderRadius: 4,
+                                    background: a.is_active ? '#dcfce7' : '#fee2e2',
+                                    color: a.is_active ? '#15803d' : '#b91c1c'
+                                }}>
+                                    {a.place_code ? translate('portal', 'area_active') : translate('portal', 'area_no_place')}
+                                </span>
+                            ),
+                        },
+                    ]}
+                />
             </div>
         </div>
     );

@@ -95,46 +95,70 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         <p>{translate('portal', 'report_order_payment_records_hint')}</p>
                     </div>
                 </div>
-                <div className="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>{translate('portal', 'report_col_order')}</th>
-                                <th>{translate('portal', 'enquiry_status')}</th>
-                                <th>{translate('portal', 'report_col_ordered')}</th>
-                                <th>{translate('portal', 'report_col_paid')}</th>
-                                <th>{translate('portal', 'report_col_due')}</th>
-                                <th>{translate('portal', 'report_col_payments')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.length === 0 && (
-                                <tr><td colSpan={6} className="muted">{translate('portal', 'report_no_orders')}</td></tr>
-                            )}
-                            {orders.map((order) => (
-                                <tr key={order.id}>
-                                    <td>
-                                        <b>{order.number}</b>
-                                        <small className="cell-sub">{date(order.created_at)}</small>
-                                    </td>
-                                    <td><Badge status={order.status} /></td>
-                                    <td>{money(order.total)}</td>
-                                    <td>{money(order.paid)}</td>
-                                    <td>{money(order.due)}</td>
-                                    <td>
-                                        {(order.payments ?? []).length === 0 && <span className="muted">—</span>}
-                                        {(order.payments ?? []).map((payment: Row, index: number) => (
-                                            <div key={`${order.id}-${index}`} style={{ fontSize: 11, marginBottom: 4 }}>
-                                                <b>{payment.channel}</b> {money(payment.amount)} · {payment.status}
-                                                {payment.reference ? <small className="cell-sub">{payment.reference}</small> : null}
-                                            </div>
-                                        ))}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <Table
+                    rows={orders}
+                    columns={[
+                        {
+                            key: 'number',
+                            title: translate('portal', 'report_col_order'),
+                            sortable: true,
+                            sortValue: (r: Row) => r.number || '',
+                            render: (order) => (
+                                <>
+                                    <b>{order.number}</b>
+                                    <small className="cell-sub">{date(order.created_at)}</small>
+                                </>
+                            ),
+                        },
+                        {
+                            key: 'status',
+                            title: translate('portal', 'enquiry_status'),
+                            sortable: true,
+                            sortValue: (r: Row) => r.status || '',
+                            render: (order) => <Badge status={order.status} />,
+                        },
+                        {
+                            key: 'total',
+                            title: translate('portal', 'report_col_ordered'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (r: Row) => Number(r.total) || 0,
+                            render: (order) => money(order.total),
+                        },
+                        {
+                            key: 'paid',
+                            title: translate('portal', 'report_col_paid'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (r: Row) => Number(r.paid) || 0,
+                            render: (order) => money(order.paid),
+                        },
+                        {
+                            key: 'due',
+                            title: translate('portal', 'report_col_due'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (r: Row) => Number(r.due) || 0,
+                            render: (order) => money(order.due),
+                        },
+                        {
+                            key: 'payments',
+                            title: translate('portal', 'report_col_payments'),
+                            render: (order) => (
+                                <>
+                                    {(order.payments ?? []).length === 0 && <span className="muted">—</span>}
+                                    {(order.payments ?? []).map((payment: Row, index: number) => (
+                                        <div key={`${order.id}-${index}`} style={{ fontSize: 11, marginBottom: 4 }}>
+                                            <b>{payment.channel}</b> {money(payment.amount)} · {payment.status}
+                                            {payment.reference ? <small className="cell-sub">{payment.reference}</small> : null}
+                                        </div>
+                                    ))}
+                                </>
+                            ),
+                        },
+                    ]}
+                    empty={translate('portal', 'report_no_orders')}
+                />
             </section>
 
             <section className="panel table-panel dense-panel">

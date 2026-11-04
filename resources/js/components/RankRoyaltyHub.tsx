@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Award, ShieldCheck, TrendingUp, Users, Search, Filter, CheckCircle2, Clock, DollarSign, ChevronRight, Eye } from 'lucide-react';
-import { money, date } from './UI';
+import { money, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface RankHistoryEntry {
@@ -94,20 +94,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
             royaltyShare: translate('portal','rank_royalty_dyn',{pct:String(q.me_share_pct??1)}),
         },
     ];
-    const [searchQuery, setSearchQuery] = useState('');
-    const [rankFilter, setRankFilter] = useState('all');
     const [auditingPartner, setAuditingPartner] = useState<RankRecord | null>(null);
-
-    const filteredRanks = useMemo(() => {
-        return ranks.filter(r => {
-            const matchesQuery = !searchQuery ||
-                (r.name && r.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (r.dealer_code && r.dealer_code.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (r.phone && r.phone.includes(searchQuery));
-            const matchesRank = rankFilter === 'all' || r.current_rank === rankFilter;
-            return matchesQuery && matchesRank;
-        });
-    }, [ranks, searchQuery, rankFilter]);
 
     const personalHistory = ranks.length === 1
         ? (ranks[0].qualification_history?.length
@@ -253,160 +240,156 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 </div>
             </div>
 
-            {/* Filter Bar */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '12px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 12
-            }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', width: 280 }}>
-                        <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }} />
-                        <input
-                            type="text"
-                            placeholder={translate('portal','rank_search_placeholder')}
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '8px 12px 8px 34px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Filter size={15} style={{ color: '#64748b' }} />
-                        <select
-                            value={rankFilter}
-                            onChange={e => setRankFilter(e.target.value)}
-                            style={{
-                                padding: '8px 12px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6,
-                                background: '#ffffff',
-                                color: '#334155'
-                            }}
-                        >
-                            <option value="all">{translate('portal','rank_all_ranks',{count:String(ranks.length)})}</option>
-                            <option value="mo">{translate('portal','net_rank_mo')}</option>
-                            <option value="am">{translate('portal','net_rank_am')}</option>
-                            <option value="sm">{translate('portal','net_rank_sm')}</option>
-                            <option value="me">{translate('portal','net_rank_me')}</option>
-                            <option value="dealer">{translate('portal','acct_role_dealer')}</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
             {/* Roster Table */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','col_partner')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','net_code')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','rank_col_current')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','net_lifetime_purchases')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','rank_col_monthly')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','rank_col_achieved')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal','rank_col_incentive')}</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal','rank_col_audit')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredRanks.length > 0 ? (
-                            filteredRanks.map(r => {
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+                <Table
+                    columns={[
+                        {
+                            key: 'name',
+                            title: translate('portal', 'col_partner'),
+                            sortable: true,
+                            sortValue: (r: RankRecord) => r.name || '',
+                            render: (r: RankRecord) => (
+                                <div>
+                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{r.name || translate('portal', 'rank_unnamed')}</div>
+                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                        {r.phone || translate('portal', 'net_no_phone')} {r.district ? `• ${r.district}` : ''}
+                                    </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'dealer_code',
+                            title: translate('portal', 'net_code'),
+                            sortable: true,
+                            sortValue: (r: RankRecord) => r.dealer_code || '',
+                            render: (r: RankRecord) => <span style={{ fontWeight: 600 }}>{r.dealer_code || '—'}</span>,
+                        },
+                        {
+                            key: 'current_rank',
+                            title: translate('portal', 'rank_col_current'),
+                            sortable: true,
+                            sortValue: (r: RankRecord) => r.current_rank,
+                            render: (r: RankRecord) => {
                                 const rankCfg = rankHierarchy.find(x => x.key === r.current_rank) || rankHierarchy[0];
                                 return (
-                                    <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{r.name || translate('portal','rank_unnamed')}</div>
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>
-                                                {r.phone || translate('portal','net_no_phone')} {r.district ? `• ${r.district}` : ''}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{r.dealer_code || '—'}</td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 4,
-                                                background: rankCfg.badge.bg,
-                                                color: rankCfg.badge.text,
-                                                border: `1px solid ${rankCfg.badge.border}`
-                                            }}>
-                                                {rankCfg.badge.label}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
-                                            {money(r.lifetime_purchase_total)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#475569' }}>
-                                            {money(r.monthly_purchase_total)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#64748b', fontSize: 12 }}>
-                                            {r.achieved_at ? date(r.achieved_at) : '—'}
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            {r.current_rank !== 'dealer' ? (
-                                                <span style={{
-                                                    fontSize: 10,
-                                                    fontWeight: 700,
-                                                    padding: '2px 6px',
-                                                    borderRadius: 4,
-                                                    background: r.one_time_incentive_paid ? '#dcfce7' : '#fffbeb',
-                                                    color: r.one_time_incentive_paid ? '#15803d' : '#b45309',
-                                                    border: `1px solid ${r.one_time_incentive_paid ? '#a7f3d0' : '#fde68a'}`
-                                                }}>
-                                                    {r.one_time_incentive_paid ? translate('portal','rank_paid') : translate('portal','rank_pending')}
-                                                </span>
-                                            ) : (
-                                                <span style={{ color: '#94a3b8' }}>—</span>
-                                            )}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => setAuditingPartner(r)}
-                                                style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 600,
-                                                    padding: '4px 8px',
-                                                    background: '#f8fafc',
-                                                    border: '1px solid #cbd5e1',
-                                                    borderRadius: 4,
-                                                    cursor: 'pointer',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: 4
-                                                }}
-                                            >
-                                                <Eye size={12} /> {translate('portal','rank_inspect')}
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    <span style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: '2px 7px',
+                                        borderRadius: 4,
+                                        background: rankCfg.badge.bg,
+                                        color: rankCfg.badge.text,
+                                        border: `1px solid ${rankCfg.badge.border}`
+                                    }}>
+                                        {rankCfg.badge.label}
+                                    </span>
                                 );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={8} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    {translate('portal','rank_empty')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            },
+                        },
+                        {
+                            key: 'lifetime_purchase_total',
+                            title: translate('portal', 'net_lifetime_purchases'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (r: RankRecord) => Number(r.lifetime_purchase_total) || 0,
+                            render: (r: RankRecord) => (
+                                <span style={{ fontWeight: 700, color: '#006837' }}>
+                                    {money(r.lifetime_purchase_total)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'monthly_purchase_total',
+                            title: translate('portal', 'rank_col_monthly'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (r: RankRecord) => Number(r.monthly_purchase_total) || 0,
+                            render: (r: RankRecord) => (
+                                <span style={{ color: '#475569' }}>
+                                    {money(r.monthly_purchase_total)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'achieved_at',
+                            title: translate('portal', 'rank_col_achieved'),
+                            sortable: true,
+                            sortValue: (r: RankRecord) => r.achieved_at || '',
+                            render: (r: RankRecord) => (
+                                <span style={{ color: '#64748b', fontSize: 12 }}>
+                                    {r.achieved_at ? date(r.achieved_at) : '—'}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'one_time_incentive_paid',
+                            title: translate('portal', 'rank_col_incentive'),
+                            sortable: true,
+                            sortValue: (r: RankRecord) => r.one_time_incentive_paid ? 1 : 0,
+                            render: (r: RankRecord) => {
+                                if (r.current_rank === 'dealer') {
+                                    return <span style={{ color: '#94a3b8' }}>—</span>;
+                                }
+                                return (
+                                    <span style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: '2px 6px',
+                                        borderRadius: 4,
+                                        background: r.one_time_incentive_paid ? '#dcfce7' : '#fffbeb',
+                                        color: r.one_time_incentive_paid ? '#15803d' : '#b45309',
+                                        border: `1px solid ${r.one_time_incentive_paid ? '#a7f3d0' : '#fde68a'}`
+                                    }}>
+                                        {r.one_time_incentive_paid ? translate('portal', 'rank_paid') : translate('portal', 'rank_pending')}
+                                    </span>
+                                );
+                            },
+                        },
+                        {
+                            key: 'actions',
+                            title: translate('portal', 'rank_col_audit'),
+                            align: 'right',
+                            render: (r: RankRecord) => (
+                                <button
+                                    type="button"
+                                    onClick={() => setAuditingPartner(r)}
+                                    style={{
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        padding: '4px 8px',
+                                        background: '#f8fafc',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: 4,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4
+                                    }}
+                                >
+                                    <Eye size={12} /> {translate('portal', 'rank_inspect')}
+                                </button>
+                            ),
+                        },
+                    ]}
+                    data={ranks}
+                    searchPlaceholder={translate('portal', 'rank_search_placeholder')}
+                    filters={[
+                        {
+                            key: 'current_rank',
+                            label: translate('portal', 'rank_col_current'),
+                            options: [
+                                { value: 'mo', label: translate('portal', 'net_rank_mo') },
+                                { value: 'am', label: translate('portal', 'net_rank_am') },
+                                { value: 'sm', label: translate('portal', 'net_rank_sm') },
+                                { value: 'me', label: translate('portal', 'net_rank_me') },
+                                { value: 'dealer', label: translate('portal', 'acct_role_dealer') },
+                            ],
+                        },
+                    ]}
+                    pageSize={15}
+                    emptyMessage={translate('portal', 'rank_empty')}
+                />
             </div>
 
             {/* Audit Modal for Selected Partner */}

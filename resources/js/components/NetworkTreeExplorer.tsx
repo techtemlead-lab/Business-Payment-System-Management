@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
-import { money, date } from './UI';
+import { money, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface DealerNode {
@@ -481,107 +481,132 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     </div>
                 ) : (
                     /* Table View */
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','acct_role_dealer')}</th>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_code')}</th>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_rank')}</th>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_sponsor')}</th>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_lifetime_purchases')}</th>
-                                    <th style={{ padding: '12px 16px' }}>{translate('portal','net_directs')}</th>
-                                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal','net_actions')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredDealers.length === 0 && (
-                                    <tr>
-                                        <td colSpan={7} style={{ padding: '28px 16px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                            {translate('portal','net_no_match')}
-                                        </td>
-                                    </tr>
-                                )}
-                                {filteredDealers.map(d => {
-                                    const badge = rankBadgeStyles[d.rank] || rankBadgeStyles.dealer;
-                                    const directCount = (childrenMap[d.id] || []).length;
-                                    return (
-                                        <tr
-                                            key={d.id}
+                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+                        <Table
+                            columns={[
+                                {
+                                    key: 'dealer',
+                                    title: translate('portal', 'acct_role_dealer'),
+                                    sortable: true,
+                                    sortValue: (d: DealerNode) => d.name,
+                                    render: (d: DealerNode) => (
+                                        <div>
+                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{d.name}</div>
+                                            <div style={{ fontSize: 11, color: '#64748b' }}>{d.phone || translate('portal', 'net_no_phone')}</div>
+                                        </div>
+                                    ),
+                                },
+                                {
+                                    key: 'dealer_code',
+                                    title: translate('portal', 'net_code'),
+                                    sortable: true,
+                                    sortValue: (d: DealerNode) => d.dealer_code || '',
+                                    render: (d: DealerNode) => <span style={{ fontWeight: 600 }}>{d.dealer_code || '—'}</span>,
+                                },
+                                {
+                                    key: 'rank',
+                                    title: translate('portal', 'net_rank'),
+                                    sortable: true,
+                                    sortValue: (d: DealerNode) => d.rank || '',
+                                    render: (d: DealerNode) => {
+                                        const badge = rankBadgeStyles[d.rank] || rankBadgeStyles.dealer;
+                                        return (
+                                            <span style={{
+                                                fontSize: 10,
+                                                fontWeight: 700,
+                                                padding: '2px 6px',
+                                                borderRadius: 4,
+                                                background: badge.bg,
+                                                color: badge.text,
+                                                border: `1px solid ${badge.border}`
+                                            }}>
+                                                {translate('portal', badge.labelKey)}
+                                            </span>
+                                        );
+                                    },
+                                },
+                                {
+                                    key: 'sponsor',
+                                    title: translate('portal', 'net_sponsor'),
+                                    sortable: true,
+                                    sortValue: (d: DealerNode) => d.sponsor_name || '',
+                                    render: (d: DealerNode) => d.sponsor_name ? (
+                                        <span>{d.sponsor_name}</span>
+                                    ) : (
+                                        <span style={{ color: '#94a3b8' }}>{translate('portal', 'net_company_direct')}</span>
+                                    ),
+                                },
+                                {
+                                    key: 'lifetime_purchases',
+                                    title: translate('portal', 'net_lifetime_purchases'),
+                                    sortable: true,
+                                    align: 'right',
+                                    sortValue: (d: DealerNode) => Number(d.lifetime_purchases) || 0,
+                                    render: (d: DealerNode) => (
+                                        <span style={{ fontWeight: 700, color: '#006837' }}>
+                                            {money(d.lifetime_purchases)}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: 'directs',
+                                    title: translate('portal', 'net_directs'),
+                                    sortable: true,
+                                    align: 'center',
+                                    sortValue: (d: DealerNode) => (childrenMap[d.id] || []).length,
+                                    render: (d: DealerNode) => {
+                                        const directCount = (childrenMap[d.id] || []).length;
+                                        return (
+                                            <span style={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                padding: '2px 7px',
+                                                borderRadius: 10,
+                                                background: directCount > 0 ? '#e0f2fe' : '#f1f5f9',
+                                                color: directCount > 0 ? '#0369a1' : '#94a3b8'
+                                            }}>
+                                                {directCount}
+                                            </span>
+                                        );
+                                    },
+                                },
+                                {
+                                    key: 'actions',
+                                    title: translate('portal', 'net_actions'),
+                                    align: 'right',
+                                    render: (d: DealerNode) => (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setFocusedRootId(d.id);
+                                                setViewMode('tree');
+                                            }}
                                             style={{
-                                                borderBottom: '1px solid #f1f5f9',
-                                                background: selectedDealerId === d.id ? '#f0fdf4' : 'transparent',
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                padding: '4px 8px',
+                                                background: '#ecfdf5',
+                                                color: '#047857',
+                                                border: '1px solid #a7f3d0',
+                                                borderRadius: 4,
                                                 cursor: 'pointer'
                                             }}
-                                            onClick={() => setSelectedDealerId(d.id)}
                                         >
-                                            <td style={{ padding: '12px 16px' }}>
-                                                <div style={{ fontWeight: 600, color: '#0f172a' }}>{d.name}</div>
-                                                <div style={{ fontSize: 11, color: '#64748b' }}>{d.phone || translate('portal','net_no_phone')}</div>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>{d.dealer_code || '—'}</td>
-                                            <td style={{ padding: '12px 16px' }}>
-                                                <span style={{
-                                                    fontSize: 10,
-                                                    fontWeight: 700,
-                                                    padding: '2px 6px',
-                                                    borderRadius: 4,
-                                                    background: badge.bg,
-                                                    color: badge.text,
-                                                    border: `1px solid ${badge.border}`
-                                                }}>
-                                                    {translate('portal', badge.labelKey)}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', color: '#475569' }}>
-                                                {d.sponsor_name ? (
-                                                    <span>{d.sponsor_name}</span>
-                                                ) : (
-                                                    <span style={{ color: '#94a3b8' }}>{translate('portal','net_company_direct')}</span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '12px 16px', fontWeight: 700, color: '#006837' }}>
-                                                {money(d.lifetime_purchases)}
-                                            </td>
-                                            <td style={{ padding: '12px 16px' }}>
-                                                <span style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    padding: '2px 7px',
-                                                    borderRadius: 10,
-                                                    background: directCount > 0 ? '#e0f2fe' : '#f1f5f9',
-                                                    color: directCount > 0 ? '#0369a1' : '#94a3b8'
-                                                }}>
-                                                    {directCount}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setFocusedRootId(d.id);
-                                                        setViewMode('tree');
-                                                    }}
-                                                    style={{
-                                                        fontSize: 11,
-                                                        fontWeight: 600,
-                                                        padding: '4px 8px',
-                                                        background: '#ecfdf5',
-                                                        color: '#047857',
-                                                        border: '1px solid #a7f3d0',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer'
-                                                    }}
-                                                >
-                                                    {translate('portal','net_view_tree_btn')} ↗
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                            {translate('portal', 'net_view_tree_btn')} ↗
+                                        </button>
+                                    ),
+                                },
+                            ]}
+                            data={filteredDealers}
+                            onRowClick={(d: DealerNode) => setSelectedDealerId(d.id)}
+                            rowStyle={(d: DealerNode) => ({
+                                background: selectedDealerId === d.id ? '#f0fdf4' : 'transparent',
+                                cursor: 'pointer',
+                            })}
+                            pageSize={15}
+                            emptyMessage={translate('portal', 'net_no_match')}
+                        />
                     </div>
                 )}
 
