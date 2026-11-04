@@ -79,10 +79,11 @@ class WorkspaceController extends Controller
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = $section === 'branch-performance'
             ? 'nullable|in:today,month,custom'
-            : 'nullable|in:today,week,month,day,custom';
+            : 'nullable|in:today,week,month,year,day,custom';
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
+            'channel' => 'nullable|string|max:20',
             'buyer_role' => 'nullable|in:dealer,sub_dealer',
             'page' => 'nullable|integer|min:1',
             'from' => 'nullable|date_format:Y-m-d',
@@ -490,9 +491,63 @@ class WorkspaceController extends Controller
             $data['recent_employees'] = User::where('role', 'employee')->latest()->limit(6)->get(['id', 'name', 'email', 'status', 'profile', 'created_at']);
         }
         if ($section === 'payments') {
-            $data['claims'] = DB::table('payment_claims')->join('orders', 'orders.id', '=', 'order_id')->join('users', 'users.id', '=', 'orders.user_id')
-                ->select('payment_claims.id', 'payment_claims.order_id', 'payment_claims.channel', 'payment_claims.reference', 'payment_claims.amount', 'payment_claims.status', 'payment_claims.reason', 'payment_claims.created_at', 'orders.number', 'users.name', 'users.phone')
-                ->orderByDesc('payment_claims.id')->paginate(20);
+            $claims = DB::table('payment_claims')
+                ->join('orders', 'orders.id', '=', 'payment_claims.order_id')
+                ->join('users', 'users.id', '=', 'orders.user_id')
+                ->leftJoin('company_branches', 'company_branches.id', '=', 'orders.fulfillment_branch_id')
+                ->select(
+                    'payment_claims.id',
+                    'payment_claims.order_id',
+                    'payment_claims.channel',
+                    'payment_claims.reference',
+                    'payment_claims.amount',
+                    'payment_claims.status',
+                    'payment_claims.reason',
+                    'payment_claims.created_at',
+                    'orders.number',
+                    'orders.total',
+                    'orders.paid',
+                    'orders.due_credit',
+                    'orders.status as order_status',
+                    'users.name',
+                    'users.phone',
+                    'users.dealer_code',
+                    'users.role',
+                    'users.district',
+                    'users.division',
+                    'company_branches.name as branch_name',
+                );
+            if ($r->filled('q')) {
+                $term = '%'.$r->string('q')->toString().'%';
+                $claims->where(function ($query) use ($term): void {
+                    $query->where('orders.number', 'like', $term)
+                        ->orWhere('users.name', 'like', $term)
+                        ->orWhere('users.phone', 'like', $term)
+                        ->orWhere('users.dealer_code', 'like', $term)
+                        ->orWhere('payment_claims.reference', 'like', $term);
+                });
+            }
+            if ($r->filled('buyer_role')) {
+                $claims->where('users.role', $r->string('buyer_role')->toString());
+            }
+            $claimStatus = $r->string('status')->toString();
+            if (in_array($claimStatus, ['pending', 'verified', 'rejected'], true)) {
+                $claims->where('payment_claims.status', $claimStatus);
+            }
+            $channel = $r->string('channel')->toString();
+            if (in_array($channel, ['Bank', 'bKash', 'Nagad', 'Rocket'], true)) {
+                $claims->where('payment_claims.channel', $channel);
+            }
+            $range = $this->orderCreatedRange(
+                $r->string('period')->toString(),
+                $r->filled('from') ? $r->string('from')->toString() : null,
+                $r->filled('to') ? $r->string('to')->toString() : null,
+            );
+            if ($range !== null) {
+                $claims->where('payment_claims.created_at', '>=', $range['from'])
+                    ->where('payment_claims.created_at', '<=', $range['until']);
+            }
+            $data['claims'] = $claims->orderByDesc('payment_claims.id')->paginate(20)->withQueryString();
         }
         if ($section === 'policies') {
             $data['policies'] = DB::table('policy_drafts')->orderByDesc('id')->get();
@@ -871,8 +926,23 @@ class WorkspaceController extends Controller
             $data['rule_params'] = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
         }
         if ($section === 'capital-flow' || $section === 'treasury') {
-            $receipts = DB::table('receipts')->join('orders', 'orders.id', '=', 'receipts.order_id')->join('users', 'users.id', '=', 'orders.user_id');
-            $cash = (clone $receipts)->sum('receipts.amount');
+            $collected = DB::table('orders')
+                ->join('users', 'users.id', '=', 'orders.user_id')
+                ->leftJoinSub(
+                    DB::table('receipts')->selectRaw('order_id, SUM(amount) AS collected')->groupBy('order_id'),
+                    'receipt_totals',
+                    'receipt_totals.order_id',
+                    '=',
+                    'orders.id',
+                )
+                ->whereIn('users.role', ['dealer', 'sub_dealer'])
+                ->where('orders.is_opening_balance', false)
+                ->groupBy('users.role')
+                ->selectRaw('users.role AS role, COALESCE(SUM(GREATEST(orders.paid, COALESCE(receipt_totals.collected, 0))), 0) AS amount')
+                ->pluck('amount', 'role');
+            $dealerCash = (float) ($collected['dealer'] ?? 0);
+            $subDealerCash = (float) ($collected['sub_dealer'] ?? 0);
+            $cash = $dealerCash + $subDealerCash;
             $allocated = CommissionAllocation::where('status', '!=', 'reversed')
                 ->where('category', '!=', 'company_commission_benefits_fund')
                 ->sum('amount');
@@ -881,9 +951,9 @@ class WorkspaceController extends Controller
             $management = app(ManagementReferral::class)->fundAmount();
             $unassigned = CommissionAllocation::where('status', 'unassigned_reserve')->sum('amount');
             $data['flow'] = [
-                'gross_cash_inflow' => (float) $cash,
-                'dealer_cash_inflow' => (float) (clone $receipts)->where('users.role', 'dealer')->sum('receipts.amount'),
-                'sub_dealer_cash_inflow' => (float) (clone $receipts)->where('users.role', 'sub_dealer')->sum('receipts.amount'),
+                'gross_cash_inflow' => $cash,
+                'dealer_cash_inflow' => $dealerCash,
+                'sub_dealer_cash_inflow' => $subDealerCash,
                 'channel_breakdown' => DB::table('receipts')->selectRaw('channel, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('channel')->get(),
                 'company_share_60' => round((float) $company, 2),
                 'management_reserve_2' => (float) $management,
@@ -1039,7 +1109,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to'])]);
     }
 
     public function createAccount(Request $r): Response
@@ -1378,6 +1448,9 @@ class WorkspaceController extends Controller
         } elseif ($period === 'month') {
             $start = $now->startOfMonth();
             $end = $now->endOfMonth();
+        } elseif ($period === 'year') {
+            $start = $now->startOfYear();
+            $end = $now->endOfYear();
         } elseif ($period === 'day' && is_string($from) && $from !== '') {
             $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
             $end = $start->endOfDay();

@@ -700,18 +700,36 @@ dialog.portal-modal::backdrop{
 .app-shell .branch-perf-filters .button.small{display:inline-flex;align-items:center;justify-content:center;padding:0 14px;line-height:1}
 .app-shell .branch-perf-filters select{width:auto;min-width:180px;padding:0 28px 0 10px}
 .app-shell .table-panel>form.filter-bar.order-filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px}
-.app-shell .order-filters .order-search{display:flex;align-items:center;gap:8px;flex:1 1 320px;min-width:min(100%,280px)}
-.app-shell .order-filters .order-search .search-input{flex:1;max-width:none;height:34px;min-height:34px;margin:0}
+.app-shell .order-filters .order-search{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.app-shell .order-filters .order-search .search-input{flex:0 0 148px;width:148px;max-width:148px;height:34px;min-height:34px;margin:0}
 .app-shell .order-filters .order-search .search-input input{height:32px;min-height:0;padding:0 8px 0 0}
-.app-shell .order-filters .preset-chips{margin:0}
 .app-shell .order-filters .button.small,
 .app-shell .order-filters select,
 .app-shell .order-filters .date-input-wrapper,
 .app-shell .order-filters .date-input-field{height:34px;min-height:34px;margin:0;box-sizing:border-box}
 .app-shell .order-filters .button.small{display:inline-flex;align-items:center;justify-content:center;padding:0 14px;line-height:1}
-.app-shell .order-filters select{width:auto;min-width:148px;padding:0 28px 0 10px}
+.app-shell .order-filters select{width:auto;min-width:0;padding:0 28px 0 10px}
+.app-shell .order-filters select.order-partner-select{width:168px}
+.app-shell .order-filters select.order-period-select{width:148px}
+.app-shell .order-filters .order-filter-actions{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
 .app-shell .order-filters .order-dates{display:inline-flex;align-items:center;gap:8px}
 .app-shell .order-filters .date-input-wrapper{width:148px}
+.app-shell .table-panel,
+.app-shell .table-block,
+.app-shell .table-wrap{min-width:0;max-width:100%}
+.app-shell .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.app-shell .table-wrap table{width:max-content;min-width:100%}
+@media(max-width:720px){
+  .app-shell .table-panel>form.filter-bar.order-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));justify-content:center;align-items:center;gap:8px;padding:12px}
+  .app-shell .order-filters .order-search{grid-column:1 / -1;width:100%;justify-content:center}
+  .app-shell .order-filters .order-search .search-input{flex:1 1 auto;width:auto;max-width:none}
+  .app-shell .order-filters select,
+  .app-shell .order-filters select.order-partner-select,
+  .app-shell .order-filters select.order-period-select,
+  .app-shell .order-filters select.order-status-select{width:100%;min-width:0;padding:0 18px 0 8px;font-size:12px}
+  .app-shell .order-filters .order-dates{grid-column:1 / -1;width:100%;justify-content:center}
+  .app-shell .order-filters .order-filter-actions{grid-column:1 / -1;width:100%;margin-left:0;justify-content:center}
+}
 .metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
 @media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 .optional-media-fieldset { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; display: grid; gap: 8px; }

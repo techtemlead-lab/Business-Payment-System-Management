@@ -53,6 +53,9 @@ class RetainedFundDetailsTest extends TestCase
                 ->where('data.retained_fund_details.company_share_batches.0.division', 'Rangpur')
                 ->where('data.retained_fund_details.unassigned_geographic.0.district', 'Pirganj')
                 ->where('data.retained_fund_details.unassigned_geographic.0.amount', '2.40')
+                ->where('data.flow.gross_cash_inflow', 120)
+                ->where('data.flow.dealer_cash_inflow', 120)
+                ->where('data.flow.sub_dealer_cash_inflow', 0)
                 ->missing('data.retained_fund_details.company_share_batches.0.batch_unallocated')
                 ->missing('data.retained_fund_details.benefits_fund.0'));
 
@@ -124,7 +127,9 @@ class RetainedFundDetailsTest extends TestCase
                 ->where('data.retained_fund_details.unassigned_geographic.0.buyer_role', 'sub_dealer')
                 ->where('data.retained_fund_details.unassigned_geographic.0.amount', '2.80')
                 ->where('data.retained_fund_details.benefits_fund.0.amount', '10.00')
-                ->where('data.retained_fund_details.benefits_fund.0.buyer_role', 'sub_dealer'));
+                ->where('data.retained_fund_details.benefits_fund.0.buyer_role', 'sub_dealer')
+                ->where('data.flow.gross_cash_inflow', 140)
+                ->where('data.flow.sub_dealer_cash_inflow', 140));
 
         $this->actingAs($owner)->onPortal('sadmin')->get('/benefits-fund')
             ->assertOk()

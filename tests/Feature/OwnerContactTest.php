@@ -183,11 +183,23 @@ class OwnerContactTest extends TestCase
             'idempotency_key' => 'older-order-key',
             'payload_hash' => hash('sha256', 'older'),
         ]);
+        $previous = User::factory()->dealer()->create(['name' => 'Previous Dealer']);
+        Order::create([
+            'user_id' => $previous->id,
+            'number' => 'ORD-LAST-YEAR',
+            'status' => 'submitted',
+            'total' => '300.00',
+            'idempotency_key' => 'last-year-order-key',
+            'payload_hash' => hash('sha256', 'last-year'),
+        ]);
         DB::table('orders')->where('number', 'ORD-TODAY')->update([
             'created_at' => CarbonImmutable::parse('2026-11-03 09:00:00', 'Asia/Dhaka')->utc(),
         ]);
         DB::table('orders')->where('number', 'ORD-OLDER')->update([
             'created_at' => CarbonImmutable::parse('2026-10-15 09:00:00', 'Asia/Dhaka')->utc(),
+        ]);
+        DB::table('orders')->where('number', 'ORD-LAST-YEAR')->update([
+            'created_at' => CarbonImmutable::parse('2025-06-01 09:00:00', 'Asia/Dhaka')->utc(),
         ]);
 
         $this->actingAs($owner)->get('/company/orders?period=today')->assertOk()
@@ -220,6 +232,9 @@ class OwnerContactTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.orders.data', 1)
                 ->where('data.orders.data.0.number', 'ORD-TODAY'));
-        $this->from('/company/orders')->get('/company/orders?period=year')->assertSessionHasErrors('period');
+        $this->actingAs($owner)->get('/company/orders?period=year')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('data.orders.data', 2)
+                ->where('filters.period', 'year'));
     }
 }
