@@ -1240,15 +1240,18 @@ class WorkspaceController extends Controller
                 ? $place->level
                 : null;
             $assignment = $quotas->get($dealer->id);
-            $quota = $assignment && $place && (int) $assignment->place_code_id === (int) $place->id
-                ? $assignment->monthly_quota
-                : match ($level) {
-                    'division' => '50000.00',
-                    'district' => '40000.00',
-                    'upazila' => '20000.00',
-                    'union' => '10000.00',
-                    default => '0.00',
-                };
+            if ($level === null && $assignment && in_array((string) $assignment->level, PlaceCode::AssignmentLevels, true)) {
+                $level = (string) $assignment->level;
+            }
+            if ($level === null && filled($dealer->district)) {
+                $level = 'district';
+            }
+            $storedQuota = $assignment && $place && (int) $assignment->place_code_id === (int) $place->id
+                ? (string) $assignment->monthly_quota
+                : null;
+            $quota = $storedQuota !== null && Money::cents($storedQuota) > 0
+                ? $storedQuota
+                : $this->standardAreaQuota($level);
 
             return [
                 'id' => $dealer->id,
@@ -1278,6 +1281,17 @@ class WorkspaceController extends Controller
                 ],
             ];
         })->values()->all();
+    }
+
+    private function standardAreaQuota(?string $level): string
+    {
+        return match ($level) {
+            'division' => '50000.00',
+            'district' => '40000.00',
+            'upazila' => '20000.00',
+            'union' => '10000.00',
+            default => '0.00',
+        };
     }
 
     private function optionalDate(mixed $value): ?string

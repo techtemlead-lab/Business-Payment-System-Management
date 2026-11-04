@@ -71,12 +71,15 @@ class AreaDealerDirectoryTest extends TestCase
                     return is_array($districtSeat)
                         && ($districtSeat['user']['name'] ?? null) === 'Rangpur District Dealer'
                         && ($districtSeat['level'] ?? null) === 'district'
+                        && ($districtSeat['monthly_quota'] ?? null) === '40000.00'
                         && is_array($sadarSeat)
                         && ($sadarSeat['user']['name'] ?? null) === 'Rangpur Sadar Dealer'
                         && ($sadarSeat['level'] ?? null) === 'upazila'
+                        && ($sadarSeat['monthly_quota'] ?? null) === '20000.00'
                         && is_array($unseated)
                         && array_key_exists('place_code', $unseated)
-                        && $unseated['place_code'] === null;
+                        && $unseated['place_code'] === null
+                        && ($unseated['monthly_quota'] ?? null) === '40000.00';
                 }));
     }
 }
