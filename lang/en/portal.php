@@ -5226,4 +5226,6 @@ return [
     'sce_fld_legal_meta_effective' => 'Policy page note: start date',
     'sce_fld_legal_meta_governance' => 'Policy page note: company / policy type',
     'sce_fld_legal_meta_location' => 'Policy page note: place',
+    'pe_auto_sku' => 'Suggest SKU',
+    'pay_order_value_paid' => 'Order value :value · paid :paid',
 ];

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { router } from '@inertiajs/react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { suggestSku } from '../shared/sku';
 
 type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
 type CatalogCategory = { id: number; name: string; is_active?: boolean; subcategories?: CatalogSubcategory[] };
@@ -105,7 +106,7 @@ export default function ProductCreateModal({
         setCatalog(categories);
         setUnitList(units);
         setName('');
-        setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`);
+        setSku(suggestSku());
         setCategoryId('');
         setSubcategoryId('');
         setUnitId('');
@@ -348,7 +349,7 @@ export default function ProductCreateModal({
                             <label className="pcm-field">
                                 <span className="pcm-label-row">
                                     {translate('portal', 'pcm_sku')}
-                                    <button type="button" className="pcm-text" onClick={() => setSku(`MNHC-${Math.floor(1000 + Math.random() * 9000)}`)}>
+                                    <button type="button" className="pcm-text" onClick={() => setSku(suggestSku())}>
                                         {translate('portal', 'pcm_auto')}
                                     </button>
                                 </span>

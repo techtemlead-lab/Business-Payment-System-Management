@@ -218,7 +218,14 @@ export default function StockOnHand({
                         title: translate('portal', 'col_product'),
                         sortable: true,
                         sortValue: (p: ProductStockRow) => displayName(p),
-                        render: (p: ProductStockRow) => displayName(p),
+                        render: (p: ProductStockRow) => (
+                            <>
+                                {displayName(p)}
+                                <small className="cell-sub">
+                                    {[p.sku, [p.category, p.sub_category].filter(Boolean).join(' › '), p.unit].filter(Boolean).join(' · ')}
+                                </small>
+                            </>
+                        ),
                     },
                     ...(showBranch ? [{
                         key: 'branch',
@@ -227,34 +234,6 @@ export default function StockOnHand({
                         sortValue: (p: ProductStockRow) => p.branch_name || '',
                         render: (p: ProductStockRow) => p.branch_name || '—',
                     }] : []),
-                    {
-                        key: 'sku',
-                        title: translate('portal', 'col_sku'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.sku,
-                        render: (p: ProductStockRow) => p.sku,
-                    },
-                    {
-                        key: 'category',
-                        title: translate('portal', 'col_category'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.category || '',
-                        render: (p: ProductStockRow) => p.category || '—',
-                    },
-                    {
-                        key: 'sub_category',
-                        title: translate('portal', 'col_subcategory'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.sub_category || '',
-                        render: (p: ProductStockRow) => p.sub_category || '—',
-                    },
-                    {
-                        key: 'unit',
-                        title: translate('portal', 'col_unit'),
-                        sortable: true,
-                        sortValue: (p: ProductStockRow) => p.unit || '',
-                        render: (p: ProductStockRow) => p.unit || '—',
-                    },
                     {
                         key: 'mrp',
                         title: translate('portal', 'col_mrp'),

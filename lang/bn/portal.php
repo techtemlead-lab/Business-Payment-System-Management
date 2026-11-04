@@ -5226,4 +5226,6 @@ return [
     'sce_fld_legal_meta_effective' => 'নীতিমালা পেজের নোট: কবে থেকে চালু',
     'sce_fld_legal_meta_governance' => 'নীতিমালা পেজের নোট: কোম্পানি / নীতির ধরন',
     'sce_fld_legal_meta_location' => 'নীতিমালা পেজের নোট: ঠিকানা',
+    'pe_auto_sku' => 'এসকেইউ বানিয়ে দিন',
+    'pay_order_value_paid' => 'অর্ডার মূল্য :value · পরিশোধ :paid',
 ];
