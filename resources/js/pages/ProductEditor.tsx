@@ -1,7 +1,7 @@
 import {useState, useEffect, useMemo} from 'react';
 import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
-import {type Row} from '../components/UI';
+import {money, type Row} from '../components/UI';
 import {useT} from '../shared/i18n/t';
 import {isPastBusinessDate} from '../business-date';
 
@@ -223,12 +223,12 @@ export default function ProductEditor({
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
      <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #d1fae5'}}>
       <div style={{fontSize:11,color:'#065f46'}}>{translate('portal','pe_dealer_price')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#065f46'}}>৳ {dealerPriceNum>0?dealerPriceNum.toFixed(2):'0.00'}</div>
+      <div style={{fontSize:15,fontWeight:800,color:'#065f46'}}>{money(dealerPriceNum>0?dealerPriceNum:0)}</div>
       <div style={{fontSize:10,color:'#047857'}}>{translate('portal','pe_collected')}</div>
      </div>
      <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #fef3c7'}}>
       <div style={{fontSize:11,color:'#92400e'}}>{translate('portal','pe_deducted')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#b45309'}}>৳ {savingsNum>0?savingsNum.toFixed(2):'0.00'}</div>
+      <div style={{fontSize:15,fontWeight:800,color:'#b45309'}}>{money(savingsNum>0?savingsNum:0)}</div>
       <div style={{fontSize:10,color:'#b45309'}}>{translate('portal','pe_margin')}</div>
      </div>
     </div>
@@ -260,12 +260,12 @@ export default function ProductEditor({
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
      <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #bfdbfe'}}>
       <div style={{fontSize:11,color:'#1e40af'}}>{translate('portal','pe_sub_dealer_price')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#1e40af'}}>৳ {subDealerPriceNum>0?subDealerPriceNum.toFixed(2):'0.00'}</div>
+      <div style={{fontSize:15,fontWeight:800,color:'#1e40af'}}>{money(subDealerPriceNum>0?subDealerPriceNum:0)}</div>
       <div style={{fontSize:10,color:'#2563eb'}}>{translate('portal','pe_collected')}</div>
      </div>
      <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #fed7aa'}}>
       <div style={{fontSize:11,color:'#9a3412'}}>{translate('portal','pe_deducted')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#c2410c'}}>৳ {subSavingsNum>0?subSavingsNum.toFixed(2):'0.00'}</div>
+      <div style={{fontSize:15,fontWeight:800,color:'#c2410c'}}>{money(subSavingsNum>0?subSavingsNum:0)}</div>
       <div style={{fontSize:10,color:'#c2410c'}}>{translate('portal','pe_sub_dealer_margin')}</div>
      </div>
     </div>

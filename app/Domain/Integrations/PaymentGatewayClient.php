@@ -30,18 +30,52 @@ final class PaymentGatewayClient
         $config = $this->settings->provider('payments', $provider);
 
         try {
-            return match ($provider) {
+            $result = match ($provider) {
                 'bkash' => $this->bkashLookup($config, $reference, $expectedAmount),
                 'nagad' => $this->nagadLookup($config, $reference, $expectedAmount),
                 'sslcommerz' => $this->sslLookup($config, $reference, $expectedAmount),
                 'rocket' => $this->rocketLookup($config, $reference, $expectedAmount),
                 default => ['checked' => false, 'matched' => false, 'provider' => $provider, 'message' => __('portal.si_pay_unsupported'), 'amount' => null, 'raw' => null],
             };
+
+            return $this->requireMatchingAmount($result, $expectedAmount);
         } catch (\Throwable $exception) {
             Log::warning('payment.gateway_lookup_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
 
             return ['checked' => true, 'matched' => false, 'provider' => $provider, 'message' => __('portal.si_pay_lookup_failed', ['error' => $exception->getMessage()]), 'amount' => null, 'raw' => null];
         }
+    }
+
+    /**
+     * A completed transaction only counts when the provider-reported amount
+     * equals the claimed amount; otherwise one small real payment could be
+     * reused to "prove" a much larger claim.
+     *
+     * @param  array{checked: bool, matched: bool, provider: ?string, message: string, amount: ?string, raw: ?array}  $result
+     * @return array{checked: bool, matched: bool, provider: ?string, message: string, amount: ?string, raw: ?array}
+     */
+    private function requireMatchingAmount(array $result, string $expectedAmount): array
+    {
+        if (! $result['matched']) {
+            return $result;
+        }
+
+        $reported = $result['amount'];
+        if ($reported === null || ! is_numeric($reported)) {
+            return [...$result, 'matched' => false, 'amount' => null, 'message' => __('portal.si_pay_amount_unknown', ['provider' => (string) $result['provider']])];
+        }
+
+        $reportedCents = (int) round(((float) $reported) * 100);
+        $expectedCents = (int) round(((float) $expectedAmount) * 100);
+        if ($reportedCents !== $expectedCents) {
+            return [...$result, 'matched' => false, 'message' => __('portal.si_pay_amount_mismatch', [
+                'provider' => (string) $result['provider'],
+                'reported' => number_format($reportedCents / 100, 2),
+                'claimed' => number_format($expectedCents / 100, 2),
+            ])];
+        }
+
+        return $result;
     }
 
     /** @param  array<string, mixed>  $config */
@@ -63,10 +97,10 @@ final class PaymentGatewayClient
             'Content-Type' => 'application/json',
         ])->post($base.'/tokenized/checkout/general/searchTransaction', ['trxID' => $reference]);
         $payload = $response->json();
-        $amount = is_array($payload) ? (string) ($payload['amount'] ?? $payload['transactionStatus'] ?? '') : '';
+        $amount = is_array($payload) ? (string) ($payload['amount'] ?? '') : '';
         $matched = $response->successful() && isset($payload['transactionStatus']) && strtoupper((string) $payload['transactionStatus']) === 'COMPLETED';
 
-        return ['checked' => true, 'matched' => $matched, 'provider' => 'bkash', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'bKash']) : __('portal.si_pay_unconfirmed', ['provider' => 'bKash']), 'amount' => $amount !== '' ? $amount : $expectedAmount, 'raw' => is_array($payload) ? $payload : null];
+        return ['checked' => true, 'matched' => $matched, 'provider' => 'bkash', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'bKash']) : __('portal.si_pay_unconfirmed', ['provider' => 'bKash']), 'amount' => $amount !== '' ? $amount : null, 'raw' => is_array($payload) ? $payload : null];
     }
 
     /** @param  array<string, mixed>  $config */
@@ -79,7 +113,7 @@ final class PaymentGatewayClient
         $payload = $response->json();
         $matched = $response->successful() && in_array(strtoupper((string) ($payload['status'] ?? '')), ['SUCCESS', 'COMPLETE', 'COMPLETED'], true);
 
-        return ['checked' => true, 'matched' => $matched, 'provider' => 'nagad', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'Nagad']) : __('portal.si_pay_unconfirmed', ['provider' => 'Nagad']), 'amount' => (string) ($payload['amount'] ?? $expectedAmount), 'raw' => is_array($payload) ? $payload : null];
+        return ['checked' => true, 'matched' => $matched, 'provider' => 'nagad', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'Nagad']) : __('portal.si_pay_unconfirmed', ['provider' => 'Nagad']), 'amount' => isset($payload['amount']) ? (string) $payload['amount'] : null, 'raw' => is_array($payload) ? $payload : null];
     }
 
     /** @param  array<string, mixed>  $config */
@@ -95,7 +129,7 @@ final class PaymentGatewayClient
         $status = strtoupper((string) ($payload['status'] ?? $payload['APIConnect'] ?? ''));
         $matched = $response->successful() && in_array($status, ['VALID', 'VALIDATED', 'SUCCESS'], true);
 
-        return ['checked' => true, 'matched' => $matched, 'provider' => 'sslcommerz', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'SSLCommerz']) : __('portal.si_pay_unconfirmed', ['provider' => 'SSLCommerz']), 'amount' => (string) ($payload['amount'] ?? $expectedAmount), 'raw' => is_array($payload) ? $payload : null];
+        return ['checked' => true, 'matched' => $matched, 'provider' => 'sslcommerz', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'SSLCommerz']) : __('portal.si_pay_unconfirmed', ['provider' => 'SSLCommerz']), 'amount' => isset($payload['amount']) ? (string) $payload['amount'] : null, 'raw' => is_array($payload) ? $payload : null];
     }
 
     /** @param  array<string, mixed>  $config */
@@ -111,6 +145,6 @@ final class PaymentGatewayClient
         $payload = $response->json();
         $matched = $response->successful() && in_array(strtoupper((string) ($payload['status'] ?? '')), ['SUCCESS', 'PAID', 'COMPLETED'], true);
 
-        return ['checked' => true, 'matched' => $matched, 'provider' => 'rocket', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'Rocket']) : __('portal.si_pay_unconfirmed', ['provider' => 'Rocket']), 'amount' => (string) ($payload['amount'] ?? $expectedAmount), 'raw' => is_array($payload) ? $payload : null];
+        return ['checked' => true, 'matched' => $matched, 'provider' => 'rocket', 'message' => $matched ? __('portal.si_pay_found', ['provider' => 'Rocket']) : __('portal.si_pay_unconfirmed', ['provider' => 'Rocket']), 'amount' => isset($payload['amount']) ? (string) $payload['amount'] : null, 'raw' => is_array($payload) ? $payload : null];
     }
 }

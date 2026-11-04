@@ -23,9 +23,15 @@ class Order extends Model
         return ['is_opening_balance' => 'boolean', 'total' => 'decimal:2', 'paid' => 'decimal:2', 'due_credit' => 'decimal:2', 'commission_policy_snapshot' => 'array'];
     }
 
+    /**
+     * Amount the buyer still owes. Never negative: an order settled by credit
+     * plus payments beyond its total simply has nothing left to pay.
+     */
     public function outstanding(): string
     {
-        return Money::decimal(Money::cents($this->total) - Money::cents($this->paid) - Money::cents($this->due_credit ?? '0.00'));
+        $due = Money::cents($this->total) - Money::cents($this->paid) - Money::cents($this->due_credit ?? '0.00');
+
+        return Money::decimal(max(0, $due));
     }
 
     public function lines(): HasMany

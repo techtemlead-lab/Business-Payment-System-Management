@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Portals\Dealer\DashboardController;
+use App\Support\PortalCatalog;
 use Illuminate\Support\Facades\Route;
 
 $registerCommands = require __DIR__.'/commands.php';
@@ -30,7 +31,7 @@ Route::middleware(['auth', 'active', 'portal:dealer'])->group(function () use ($
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
     Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');
     Route::get('/referral-qr.svg', [DashboardController::class, 'referralQrSvg'])->middleware('throttle:30,1');
-    Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
-    Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
-    Route::get('/{section?}', [DashboardController::class, 'index']);
+    Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
+    Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
+    Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('dealer'));
 });

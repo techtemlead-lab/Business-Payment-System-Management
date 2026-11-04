@@ -167,6 +167,7 @@ class OrderService
     public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
+        $this->assertNotOwnOrder($actor, $order);
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
@@ -224,6 +225,7 @@ class OrderService
                 $initial = DB::table('payment_claims')->find($claimId);
                 abort_unless($initial, 404);
                 $order = Order::whereKey($initial->order_id)->lockForUpdate()->firstOrFail();
+                $this->assertNotOwnOrder($actor, $order);
                 $claim = DB::table('payment_claims')->where('id', $claimId)->lockForUpdate()->first();
                 if ($claim->status !== 'pending') {
                     throw ValidationException::withMessages(['payment' => __('portal.err_payment_already_reviewed')]);
@@ -285,6 +287,7 @@ class OrderService
     public function dispatch(User $actor, Order $order, array $data): void
     {
         abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
         DB::transaction(function () use ($actor, $order, $data): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $hash = $this->hash($data);
@@ -394,6 +397,7 @@ class OrderService
     public function deliver(User $actor, Order $order, int $shipmentId, string $reason): void
     {
         abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
         DB::transaction(function () use ($actor, $order, $shipmentId, $reason): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
@@ -486,5 +490,14 @@ class OrderService
     private function hash(array $data): string
     {
         return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * Maker-checker rule: nobody may approve, verify payment for, dispatch or
+     * deliver an order they placed themselves (e.g. a dealer with a staff desk).
+     */
+    private function assertNotOwnOrder(User $actor, Order $order): void
+    {
+        abort_if((int) $actor->id === (int) $order->user_id, 403, __('portal.err_self_review_order'));
     }
 }

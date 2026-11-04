@@ -86,8 +86,8 @@ class ProjectAuditTest extends TestCase
         $this->actingAs($admin)->post('/commands/products', ['name' => 'New stocked product', 'sku' => 'AUDIT-STOCK',
             'category' => 'Care', 'unit' => 'pack', 'mrp' => '200.00', 'dealer_price' => '100.00',
             'initial_stock' => 4, 'reason' => 'Opening inventory approved'])->assertRedirect();
-        $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => 'Product available',
-            'body' => 'New stocked product (AUDIT-STOCK) is now available in the product showcase.']);
+        $this->assertDatabaseHas('account_notices', ['user_id' => $dealer->id, 'title' => __('portal.notice_product_available_title', [], 'en'),
+            'body' => __('portal.notice_product_available_body', ['name' => 'New stocked product', 'sku' => 'AUDIT-STOCK'], 'en')]);
     }
 
     public function test_dispatch_warns_inventory_staff_when_stock_crosses_low_and_zero_thresholds(): void

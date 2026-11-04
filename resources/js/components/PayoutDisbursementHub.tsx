@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import {
-    Wallet, DollarSign, CheckCircle2, XCircle, Clock, AlertTriangle,
-    FileText, ArrowUpRight, Upload, ShieldCheck, Download, Search,
-    Filter, ChevronRight, UserCheck
-} from 'lucide-react';
-import { money, date, Table, Pagination, type TableColumn } from './UI';
+import { Search } from 'lucide-react';
+import { money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+
+type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
 interface WithdrawalRecord {
     id: string;
@@ -15,36 +13,64 @@ interface WithdrawalRecord {
     dealer_code: string;
     phone: string;
     amount: string | number;
-    withheld_amount?: string | number;
+    withheld_amount?: string | number | null;
     net_amount?: string | number | null;
     channel: string;
-    destination: string;
-    status: 'requested' | 'approved' | 'paid' | 'rejected';
+    destination_masked: string | null;
+    status: WithdrawalStatus;
     reason: string | null;
     payment_reference: string | null;
     paid_at: string | null;
-    receipt_path: string | null;
     created_at: string;
 }
 
-interface PayoutsHubProps {
-    withdrawals: {
-        data: WithdrawalRecord[];
-        current_page: number;
-        last_page: number;
-        total: number;
-        links: Array<{ url: string | null; label: string; active: boolean }>;
-    };
-    tdsRate: number;
+interface WithdrawalPage extends Row {
+    data: WithdrawalRecord[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    prev_page_url: string | null;
+    next_page_url: string | null;
 }
 
-export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: PayoutsHubProps) {
-    const translate = useT();
-    const { auth, flash } = usePage<any>().props;
-    const currentUser = auth.user;
+/** Totals over every request that matches the search, not only the visible page. */
+interface PayoutTotals {
+    requested_count: number;
+    requested_amount: string | number;
+    approved_count: number;
+    approved_amount: string | number;
+    paid_count: number;
+    paid_amount: string | number;
+    paid_withheld_amount: string | number;
+}
 
-    const [filterStatus, setFilterStatus] = useState<string>('all');
-    const [searchQuery, setSearchQuery] = useState('');
+interface PayoutsHubProps {
+    withdrawals: WithdrawalPage;
+    tdsRate: number;
+    totals?: PayoutTotals;
+}
+
+const statusTabs: Array<'all' | WithdrawalStatus> = ['all', 'requested', 'approved', 'paid', 'rejected'];
+
+const emptyTotals: PayoutTotals = {
+    requested_count: 0,
+    requested_amount: 0,
+    approved_count: 0,
+    approved_amount: 0,
+    paid_count: 0,
+    paid_amount: 0,
+    paid_withheld_amount: 0,
+};
+
+export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals }: PayoutsHubProps) {
+    const translate = useT();
+    const { portalBase, filters, data: pageData } = usePage<any>().props;
+    const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
+    const activeSearch = String(filters?.q ?? '');
+    const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
+
+    const [searchQuery, setSearchQuery] = useState(activeSearch);
+    useEffect(() => setSearchQuery(activeSearch), [activeSearch]);
 
     // Modal states
     const [reviewModalRecord, setReviewModalRecord] = useState<WithdrawalRecord | null>(null);
@@ -59,30 +85,22 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
 
-    // Calculate aggregated metrics
-    const records = withdrawals.data || [];
-    const pendingRecords = records.filter(r => r.status === 'requested');
-    const approvedRecords = records.filter(r => r.status === 'approved');
-    const paidRecords = records.filter(r => r.status === 'paid');
+    const records = withdrawals?.data ?? [];
 
-    const totalPendingAmount = pendingRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalApprovedAmount = approvedRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalPaidAmount = paidRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalTdsWithheld = paidRecords.reduce((sum,w)=>sum+Number(w.withheld_amount??0),0);
-
-    // Filtered records
-    const displayedRecords = records.filter(r => {
-        if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            const matchName = r.user_name?.toLowerCase().includes(q);
-            const matchCode = r.dealer_code?.toLowerCase().includes(q);
-            const matchRef = r.payment_reference?.toLowerCase().includes(q);
-            const matchPhone = r.phone?.includes(q);
-            return matchName || matchCode || matchRef || matchPhone;
-        }
-        return true;
-    });
+    /** Search and status run on the server so every page and the totals agree. */
+    const applyFilters = (next: { q?: string; status?: string }) => {
+        const status = next.status ?? activeStatus;
+        const query = {
+            q: (next.q ?? activeSearch).trim(),
+            status: status === 'all' ? '' : status,
+        };
+        router.get(
+            `${portalBase ?? ''}/payouts-hub`,
+            Object.fromEntries(Object.entries(query).filter(([, value]) => value)),
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
         setReviewModalRecord(record);
@@ -179,37 +197,37 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_pending')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>
-                        ৳{totalPendingAmount.toLocaleString()}
+                        {money(summary.requested_amount)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_pending_hint', { count: String(pendingRecords.length) })}
+                        {translate('portal', 'pay_kpi_pending_hint', { count: String(summary.requested_count) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_approved')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
-                        ৳{totalApprovedAmount.toLocaleString()}
+                        {money(summary.approved_amount)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_approved_hint', { count: String(approvedRecords.length) })}
+                        {translate('portal', 'pay_kpi_approved_hint', { count: String(summary.approved_count) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_settled')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
-                        ৳{totalPaidAmount.toLocaleString()}
+                        {money(summary.paid_amount)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_settled_hint', { count: String(paidRecords.length) })}
+                        {translate('portal', 'pay_kpi_settled_hint', { count: String(summary.paid_count) })}
                     </span>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_withheld')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#475569', marginTop: '6px' }}>
-                        ৳{totalTdsWithheld.toLocaleString()}
+                        {money(summary.paid_withheld_amount)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
                         {translate('portal', 'pay_kpi_withheld_hint')}
@@ -230,18 +248,19 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                 gap: '12px'
             }}>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['all', 'requested', 'approved', 'paid', 'rejected'].map(st => (
+                    {statusTabs.map(st => (
                         <button
                             key={st}
                             type="button"
-                            onClick={() => setFilterStatus(st)}
+                            aria-pressed={activeStatus === st}
+                            onClick={() => applyFilters({ status: st })}
                             style={{
                                 padding: '6px 14px',
                                 borderRadius: '6px',
                                 fontSize: '13px',
-                                fontWeight: filterStatus === st ? 700 : 500,
-                                background: filterStatus === st ? '#0f172a' : '#f1f5f9',
-                                color: filterStatus === st ? '#ffffff' : '#475569',
+                                fontWeight: activeStatus === st ? 700 : 500,
+                                background: activeStatus === st ? '#0f172a' : '#f1f5f9',
+                                color: activeStatus === st ? '#ffffff' : '#475569',
                                 border: 'none',
                                 cursor: 'pointer',
                                 textTransform: 'capitalize'
@@ -252,7 +271,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: '320px' }}>
+                <form
+                    role="search"
+                    onSubmit={(e) => { e.preventDefault(); applyFilters({ q: searchQuery }); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: '420px' }}
+                >
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -265,7 +288,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                     }}>
                         <Search size={16} color="#64748b" />
                         <input
-                            type="text"
+                            type="search"
+                            aria-label={translate('portal', 'pay_search_ph')}
                             placeholder={translate('portal', 'pay_search_ph')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -278,7 +302,17 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             }}
                         />
                     </div>
-                </div>
+                    <button type="submit" className="button small dark">{translate('portal', 'search')}</button>
+                    {hasActiveFilters && (
+                        <button
+                            type="button"
+                            className="text-link"
+                            onClick={() => { setSearchQuery(''); applyFilters({ q: '', status: 'all' }); }}
+                        >
+                            {translate('portal', 'clear')}
+                        </button>
+                    )}
+                </form>
             </div>
 
             {/* Withdrawals Table */}
@@ -290,7 +324,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
             }}>
                 <Table
                     tools={false}
-                    rows={displayedRecords}
+                    rows={records}
                     empty={translate('portal', 'pay_empty')}
                     columns={[
                         {
@@ -320,12 +354,12 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             render: (w: WithdrawalRecord) => <span style={{ fontWeight: 600, color: '#334155' }}>{w.channel}</span>,
                         },
                         {
-                            key: 'destination',
+                            key: 'destination_masked',
                             title: translate('portal', 'wd_destination'),
                             sortable: true,
                             render: (w: WithdrawalRecord) => (
                                 <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#475569' }}>
-                                    {w.destination || '—'}
+                                    {w.destination_masked || '—'}
                                 </span>
                             ),
                         },
@@ -345,7 +379,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             sortValue: (w: WithdrawalRecord) => Number(w.amount) || 0,
                             render: (w: WithdrawalRecord) => (
                                 <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                                    ৳{(Number(w.amount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {money(w.amount)}
                                 </span>
                             ),
                         },
@@ -357,7 +391,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             sortValue: (w: WithdrawalRecord) => Number(w.withheld_amount ?? 0),
                             render: (w: WithdrawalRecord) => (
                                 <span style={{ color: '#dc2626' }}>
-                                    -৳{(Number(w.withheld_amount ?? 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    -{money(w.withheld_amount ?? 0)}
                                 </span>
                             ),
                         },
@@ -369,7 +403,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             sortValue: (w: WithdrawalRecord) => Number(w.net_amount ?? w.amount),
                             render: (w: WithdrawalRecord) => (
                                 <b style={{ fontWeight: 800, color: '#047857' }}>
-                                    ৳{(Number(w.net_amount ?? w.amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    {money(w.net_amount ?? w.amount)}
                                 </b>
                             ),
                         },
@@ -472,6 +506,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         },
                     ]}
                 />
+                <Pagination page={withdrawals} />
             </div>
 
             {/* Review Modal */}
@@ -510,15 +545,15 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                         }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
 <span>{translate('portal', 'pay_gross_amount')}</span>
-                                <b>৳{Number(reviewModalRecord.amount).toLocaleString()}</b>
+                                <b>{money(reviewModalRecord.amount)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: '#dc2626' }}>
 <span>{translate('portal', 'pay_recorded_withholding')}</span>
-                                <b>-৳{Number(reviewModalRecord.withheld_amount??0).toLocaleString()}</b>
+                                <b>-{money(reviewModalRecord.withheld_amount ?? 0)}</b>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: '#047857', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
 <span>{translate('portal', 'pay_net_approved')}</span>
-                                <b>৳{Number(reviewModalRecord.net_amount??reviewModalRecord.amount).toLocaleString()}</b>
+                                <b>{money(reviewModalRecord.net_amount ?? reviewModalRecord.amount)}</b>
                             </div>
                         </div>
 
@@ -634,7 +669,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                             {translate('portal', 'pay_settle_title')}
                         </h3>
                         <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: `৳${Number(settleModalRecord.net_amount??settleModalRecord.amount).toLocaleString()}` })}
+                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: money(settleModalRecord.net_amount ?? settleModalRecord.amount) })}
                         </p>
 
                         <div style={{

@@ -1,5 +1,6 @@
+@use('App\Support\Money')
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <title>Invoice {{ $order['number'] ?? '' }} — {{ $company['name'] ?? 'Madina' }}</title>
@@ -249,6 +250,25 @@
             color: #64748b;
             margin-top: 1px;
         }
+        table.items td.num { text-align: right; white-space: nowrap; }
+
+        /* Payment summary */
+        table.pay-summary { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.pay-summary td { vertical-align: top; }
+        table.pay-summary .totals { width: 42%; }
+        table.pay-summary .totals table { width: 100%; border-collapse: collapse; }
+        table.pay-summary .totals td { font-size: 10.5px; padding: 3px 6px; border-bottom: 0.5px solid #cbd5e1; }
+        table.pay-summary .totals td.amt { text-align: right; font-weight: 600; white-space: nowrap; }
+        table.pay-summary .totals tr.due td { font-weight: 700; border-top: 1.5px solid #0f172a; border-bottom: 1.5px solid #0f172a; }
+        table.pay-summary .history { padding-right: 14px; }
+        table.pay-summary .history table { width: 100%; border-collapse: collapse; }
+        table.pay-summary .history th { font-size: 9px; text-align: left; padding: 3px 4px; background: #f1f5f9; border-bottom: 1px solid #94a3b8; }
+        table.pay-summary .history td { font-size: 9.5px; padding: 3px 4px; border-bottom: 0.5px solid #e2e8f0; }
+        .pay-state { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9.5px; font-weight: 700; }
+        .pay-state.paid { background: #dcfce7; color: #166534; }
+        .pay-state.partial { background: #fef3c7; color: #92400e; }
+        .pay-state.unpaid { background: #fee2e2; color: #991b1b; }
+
         table.items tr.total-row td {
             font-weight: 700;
             border-top: 1.5px solid #0f172a;
@@ -325,8 +345,8 @@
             <a class="btn-outline" target="_blank" rel="noopener" href="https://wa.me/?text={{ rawurlencode($invoiceShareBody) }}">
                 {{ __('portal.share_invoice_whatsapp') }}
             </a>
-            <a class="btn-outline" target="_blank" rel="noopener" href="https://www.facebook.com/dialog/send?link={{ rawurlencode($invoiceShareUrl) }}&app_id=0&redirect_uri={{ rawurlencode($invoiceShareUrl) }}">
-                {{ __('portal.share_messenger') }}
+            <a class="btn-outline" target="_blank" rel="noopener" href="https://www.facebook.com/sharer/sharer.php?u={{ rawurlencode($invoiceShareUrl) }}">
+                {{ __('portal.share_facebook') }}
             </a>
             <a class="btn-outline" href="mailto:?subject={{ rawurlencode($invoiceShareText) }}&body={{ rawurlencode($invoiceShareBody) }}">
                 {{ __('portal.share_invoice_email') }}
@@ -357,7 +377,7 @@
                     <div class="brand-name">{{ $company['name'] }}</div>
                 @endif
                 <div class="brand-address">{{ $company['address'] }}</div>
-                <div class="brand-phone">Mob: {{ $company['phones'] }}</div>
+                <div class="brand-phone">{{ __('portal.inv_mobile_short') }}: {{ $company['phones'] }}</div>
             </td>
             <td class="logo-cell"></td>
         </tr>
@@ -365,21 +385,21 @@
 
     @if (! empty($company['marketed_by']))
         <div class="marketed">
-            <div class="by">Marketed By: {{ $company['marketed_by'] }}.</div>
+            <div class="by">{{ __('portal.inv_marketed_by') }}: {{ $company['marketed_by'] }}</div>
             @if (! empty($company['marketed_phones']))
-                <div class="phones">Mob: {{ $company['marketed_phones'] }}</div>
+                <div class="phones">{{ __('portal.inv_mobile_short') }}: {{ $company['marketed_phones'] }}</div>
             @endif
         </div>
     @endif
 
-    <div class="invoice-title"><span>Invoice</span></div>
+    <div class="invoice-title"><span>{{ __('portal.inv_title') }}</span></div>
 
     <table class="meta-row">
         <tr>
-            <td class="invoice-no">Invoice No : {{ $order['number'] }}</td>
+            <td class="invoice-no">{{ __('portal.inv_number') }} : {{ $order['number'] }}</td>
             <td style="text-align:right">
                 @if (! empty($buyer['referred_code']))
-                    <div class="referred">Referred Dealer Code: {{ $buyer['referred_code'] }}</div>
+                    <div class="referred">{{ __('portal.inv_referred_code') }}: {{ $buyer['referred_code'] }}</div>
                 @endif
             </td>
         </tr>
@@ -390,31 +410,31 @@
             <td>
                 <div class="dealer-box">
                     <table>
-                        <tr><td class="k">Name :</td><td class="v">{{ $buyer['name'] }}</td></tr>
-                        <tr><td class="k">Dealer Code :</td><td class="v">{{ $buyer['code'] ?: '—' }}</td></tr>
-                        <tr><td class="k">Designation :</td><td class="v">{{ $buyer['designation'] }}</td></tr>
-                        <tr><td class="k">Area :</td><td class="v">{{ $buyer['area'] }}</td></tr>
-                        <tr><td class="k">Mobile No :</td><td class="v">{{ $buyer['phone'] ?: '—' }}</td></tr>
-                        <tr><td class="k">Booking Address :</td><td class="v">{{ $buyer['booking_address'] }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_name') }} :</td><td class="v">{{ $buyer['name'] }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_dealer_code') }} :</td><td class="v">{{ $buyer['code'] ?: '—' }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_designation') }} :</td><td class="v">{{ $buyer['designation'] }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_area') }} :</td><td class="v">{{ $buyer['area'] }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_mobile') }} :</td><td class="v">{{ $buyer['phone'] ?: '—' }}</td></tr>
+                        <tr><td class="k">{{ __('portal.inv_booking_address') }} :</td><td class="v">{{ $buyer['booking_address'] }}</td></tr>
                     </table>
                 </div>
             </td>
-            <td class="date-cell">Date : {{ $order['date'] }}</td>
+            <td class="date-cell">{{ __('portal.inv_date') }} : {{ $order['date'] }}</td>
         </tr>
     </table>
 
     <table class="items">
         <thead>
             <tr>
-                <th style="width:6%">Sl.No</th>
-                <th class="name" style="width:23%">Product Description</th>
-                <th style="width:9%">Pack Size</th>
-                <th style="width:8%">Quantity</th>
-                <th style="width:10%">Rate</th>
-                <th style="width:12%">MRP Rate Bill</th>
-                <th style="width:11%">Commission</th>
-                <th style="width:12%">Total Bill</th>
-                <th style="width:9%">Remarks</th>
+                <th style="width:6%">{{ __('portal.inv_col_sl') }}</th>
+                <th class="name" style="width:23%">{{ __('portal.inv_col_product') }}</th>
+                <th style="width:9%">{{ __('portal.inv_col_pack') }}</th>
+                <th style="width:8%">{{ __('portal.inv_col_qty') }}</th>
+                <th style="width:10%">{{ __('portal.inv_col_rate') }}</th>
+                <th style="width:12%">{{ __('portal.inv_col_mrp_bill') }}</th>
+                <th style="width:11%">{{ __('portal.inv_col_commission') }}</th>
+                <th style="width:12%">{{ __('portal.inv_col_total') }}</th>
+                <th style="width:9%">{{ __('portal.inv_col_remarks') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -431,34 +451,74 @@
                 </td>
                 <td>{{ $line['pack_size'] }}</td>
                 <td><strong>{{ $line['quantity'] }}</strong></td>
-                <td>{{ $line['rate'] }}</td>
-                <td>{{ $line['mrp_bill'] }}</td>
-                <td>{{ $line['commission'] }}</td>
-                <td><strong>{{ $line['total'] }}</strong></td>
+                <td class="num">{{ Money::grouped($line['rate']) }}</td>
+                <td class="num">{{ Money::grouped($line['mrp_bill']) }}</td>
+                <td class="num">{{ Money::grouped($line['commission']) }}</td>
+                <td class="num"><strong>{{ Money::grouped($line['total']) }}</strong></td>
                 <td>{{ $line['remark'] }}</td>
             </tr>
         @endforeach
             <tr class="total-row">
                 <td></td>
-                <td class="name"><strong>Total =</strong></td>
+                <td class="name"><strong>{{ __('portal.inv_total_row') }}</strong></td>
                 <td></td>
                 <td><strong>{{ $totals['quantity'] }}</strong></td>
                 <td></td>
-                <td><strong>{{ $totals['mrp_bill'] }}</strong></td>
-                <td><strong>{{ $totals['commission'] }}</strong></td>
-                <td><strong>{{ $totals['total'] }}</strong></td>
+                <td class="num"><strong>{{ Money::grouped($totals['mrp_bill']) }}</strong></td>
+                <td class="num"><strong>{{ Money::grouped($totals['commission']) }}</strong></td>
+                <td class="num"><strong>{{ Money::grouped($totals['total']) }}</strong></td>
                 <td></td>
             </tr>
         </tbody>
     </table>
 
-    <div class="in-words"><strong>In Word :</strong> {{ $totals['in_words'] }}</div>
+    <div class="in-words"><strong>{{ __('portal.inv_in_words') }} :</strong> {{ $totals['in_words'] }}</div>
+
+    <table class="pay-summary">
+        <tr>
+            <td class="history">
+                @if (! empty($payments))
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{{ __('portal.inv_pay_date') }}</th>
+                                <th>{{ __('portal.inv_pay_method') }}</th>
+                                <th>{{ __('portal.inv_pay_reference') }}</th>
+                                <th style="text-align:right">{{ __('portal.inv_pay_amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach ($payments as $payment)
+                            <tr>
+                                <td>{{ $payment['date'] }}</td>
+                                <td>{{ $payment['channel'] }}</td>
+                                <td>{{ $payment['reference'] }}</td>
+                                <td style="text-align:right">{{ $payment['amount'] }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </td>
+            <td class="totals">
+                <table>
+                    <tr><td>{{ __('portal.inv_bill_total') }}</td><td class="amt">৳ {{ $order['total_display'] }}</td></tr>
+                    <tr><td>{{ __('portal.inv_paid') }}</td><td class="amt">৳ {{ $order['paid_display'] }}</td></tr>
+                    @if ($order['credit_display'] !== '0.00')
+                        <tr><td>{{ __('portal.inv_credit') }}</td><td class="amt">৳ {{ $order['credit_display'] }}</td></tr>
+                    @endif
+                    <tr class="due"><td>{{ __('portal.inv_due') }}</td><td class="amt">৳ {{ $order['due_display'] }}</td></tr>
+                    <tr><td>{{ __('portal.inv_payment_status') }}</td><td class="amt"><span class="pay-state {{ $order['payment_state'] }}">{{ $order['payment_state_label'] }}</span></td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     <table class="signs">
         <tr>
-            <td><div class="line"></div>Customer Signature</td>
-            <td><div class="line"></div>Distributor Signature</td>
-            <td><div class="line"></div>Authority Signature</td>
+            <td><div class="line"></div>{{ __('portal.inv_sign_customer') }}</td>
+            <td><div class="line"></div>{{ __('portal.inv_sign_distributor') }}</td>
+            <td><div class="line"></div>{{ __('portal.inv_sign_authority') }}</td>
         </tr>
     </table>
 </div>

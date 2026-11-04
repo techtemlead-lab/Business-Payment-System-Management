@@ -5,6 +5,7 @@ import type { Row } from './UI';
 type PasswordStatus = {
     managed_by: string;
     can_reveal: boolean;
+    owner_only?: boolean;
     password: string | null;
 };
 
@@ -486,7 +487,9 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                         }}
                     >
                         <p style={{ margin: 0, lineHeight: 1.5 }}>
-                            ⚠️ {translate('portal', 'acct_password_self_changed')}
+                            {status?.owner_only
+                                ? <>🔒 {translate('portal', 'acct_password_owner_only')}</>
+                                : <>⚠️ {translate('portal', 'acct_password_self_changed')}</>}
                         </p>
                     </div>
                 )}

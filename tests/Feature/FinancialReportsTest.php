@@ -44,7 +44,9 @@ class FinancialReportsTest extends TestCase
         $this->assertStringNotContainsString('OTHER-ORDER', $xml);
         $this->assertStringContainsString('=SUM(1,2)', $xml);
         $this->assertStringNotContainsString('<f>', $xml);
-        $this->assertStringContainsString('1000.50', $xml);
+        // Totals are numeric cells so Excel can add them up; 1250.50 - 250.00 = 1000.50 due.
+        $this->assertStringContainsString('<v>1000.5</v>', $xml);
+        $this->assertStringContainsString('Dealer', $xml);
         $zip->close();
         unlink($file);
     }
@@ -99,7 +101,7 @@ class FinancialReportsTest extends TestCase
         $zip = new ZipArchive;
         $zip->open($file);
         $this->assertStringContainsString('COMMISSION-ADJUSTMENT-1', $zip->getFromName('xl/worksheets/sheet1.xml'));
-        $this->assertStringContainsString('do not confirm execution of a bank refund', $zip->getFromName('xl/worksheets/sheet2.xml'));
+        $this->assertStringContainsString(e(__('portal.ops_export_note_refunds')), $zip->getFromName('xl/worksheets/sheet2.xml'));
         $zip->close();
         unlink($file);
         $this->assertDatabaseCount('journal_entries', 0);

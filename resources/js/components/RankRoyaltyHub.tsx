@@ -1,7 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { Award, ShieldCheck, TrendingUp, Users, Search, Filter, CheckCircle2, Clock, DollarSign, ChevronRight, Eye } from 'lucide-react';
-import { money, date, Table, type TableColumn } from './UI';
+import React, { useState } from 'react';
+import { Eye } from 'lucide-react';
+import { money, date, Table } from './UI';
 import { useT } from '../shared/i18n/t';
+
+/** A live policy number, or null when the policy does not set it. */
+function policyNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
 
 interface RankHistoryEntry {
     rank: string;
@@ -35,7 +44,7 @@ interface RankStats {
 interface RankRoyaltyHubProps {
     ranks: RankRecord[];
     stats: RankStats;
-    policy?: {qualification: Record<string,number|string>; incentives: Record<string,number|string>};
+    policy?: {qualification: Record<string,number|string>; incentives: Record<string,number|string>; pool_pct?: number|string|null};
 }
 
 const rankBadgeStyles: Record<string, { bg: string; text: string; border: string }> = {
@@ -52,6 +61,26 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
     const translate = useT();
     const q=policy?.qualification??{};
     const bonuses=policy?.incentives??{};
+    const notSet = translate('portal','policy_value_not_set');
+    const moTarget = policyNumber(q.mo_target);
+    const poolPct = policyNumber(policy?.pool_pct);
+    const moneyOrNotSet = (value: unknown) => {
+        const amount = policyNumber(value);
+        return amount === null ? notSet : money(amount);
+    };
+    const textOrNotSet = (value: unknown) => {
+        const amount = policyNumber(value);
+        return amount === null ? notSet : String(amount);
+    };
+    const incentiveText = (value: unknown) => policyNumber(value) === null
+        ? notSet
+        : translate('portal','rank_incentive_dyn',{amount:moneyOrNotSet(value)});
+    const royaltyText = (value: unknown) => policyNumber(value) === null
+        ? notSet
+        : translate('portal','rank_royalty_dyn',{pct:textOrNotSet(value)});
+    const leadersRequirement = (count: unknown, rankKey: string) => policyNumber(count) === null || policyNumber(q.qualification_depth) === null
+        ? notSet
+        : translate('portal','rank_req_leaders_dyn',{count:textOrNotSet(count),rank:translate('portal',rankKey),depth:textOrNotSet(q.qualification_depth)});
     const rankHierarchy = [
         {
             key: 'dealer',
@@ -65,33 +94,33 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
             key: 'mo',
             name: translate('portal','net_rank_mo'),
             badge: { label: translate('portal','rank_badge_mo'), ...rankBadgeStyles.mo },
-            requirement: translate('portal','rank_req_mo_dyn',{amount:money(q.mo_target??250000)}),
-            incentive: translate('portal','rank_incentive_dyn',{amount:money(bonuses.mo_bonus??0)}),
-            royaltyShare: translate('portal','rank_royalty_dyn',{pct:String(q.mo_share_pct??1)}),
+            requirement: moTarget === null ? notSet : translate('portal','rank_req_mo_dyn',{amount:money(moTarget)}),
+            incentive: incentiveText(bonuses.mo_bonus),
+            royaltyShare: royaltyText(q.mo_share_pct),
         },
         {
             key: 'am',
             name: translate('portal','net_rank_am'),
             badge: { label: translate('portal','rank_badge_am'), ...rankBadgeStyles.am },
-            requirement: translate('portal','rank_req_leaders_dyn',{count:String(q.am_count??10),rank:translate('portal','rank_short_mo'),depth:String(q.qualification_depth??3)}),
-            incentive: translate('portal','rank_incentive_dyn',{amount:money(bonuses.am_bonus??0)}),
-            royaltyShare: translate('portal','rank_royalty_dyn',{pct:String(q.am_share_pct??1)}),
+            requirement: leadersRequirement(q.am_count,'rank_short_mo'),
+            incentive: incentiveText(bonuses.am_bonus),
+            royaltyShare: royaltyText(q.am_share_pct),
         },
         {
             key: 'sm',
             name: translate('portal','net_rank_sm'),
             badge: { label: translate('portal','rank_badge_sm'), ...rankBadgeStyles.sm },
-            requirement: translate('portal','rank_req_leaders_dyn',{count:String(q.sm_count??10),rank:translate('portal','rank_short_am'),depth:String(q.qualification_depth??3)}),
-            incentive: translate('portal','rank_incentive_dyn',{amount:money(bonuses.sm_bonus??0)}),
-            royaltyShare: translate('portal','rank_royalty_dyn',{pct:String(q.sm_share_pct??1)}),
+            requirement: leadersRequirement(q.sm_count,'rank_short_am'),
+            incentive: incentiveText(bonuses.sm_bonus),
+            royaltyShare: royaltyText(q.sm_share_pct),
         },
         {
             key: 'me',
             name: translate('portal','net_rank_me'),
             badge: { label: translate('portal','rank_badge_me'), ...rankBadgeStyles.me },
-            requirement: translate('portal','rank_req_leaders_dyn',{count:String(q.me_count??10),rank:translate('portal','rank_short_sm'),depth:String(q.qualification_depth??3)}),
-            incentive: translate('portal','rank_incentive_dyn',{amount:money(bonuses.me_bonus??0)}),
-            royaltyShare: translate('portal','rank_royalty_dyn',{pct:String(q.me_share_pct??1)}),
+            requirement: leadersRequirement(q.me_count,'rank_short_sm'),
+            incentive: incentiveText(bonuses.me_bonus),
+            royaltyShare: royaltyText(q.me_share_pct),
         },
     ];
     const [auditingPartner, setAuditingPartner] = useState<RankRecord | null>(null);
@@ -140,7 +169,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 4 }}>
                         {stats.mo_count}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal','rank_pool_mo')}</div>
+                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{royaltyText(q.mo_share_pct)}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
@@ -148,7 +177,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
                         {stats.am_count}
                     </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{translate('portal','rank_pool_am')}</div>
+                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{royaltyText(q.am_share_pct)}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 16 }}>
@@ -156,7 +185,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#7e22ce', marginTop: 4 }}>
                         {stats.sm_count}
                     </div>
-                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>{translate('portal','rank_pool_sm')}</div>
+                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>{royaltyText(q.sm_share_pct)}</div>
                 </div>
 
                 <div style={{ background: '#ffffff', border: '1px solid #fde68a', borderRadius: 10, padding: 16 }}>
@@ -164,7 +193,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#b45309', marginTop: 4 }}>
                         {stats.me_count}
                     </div>
-                    <div style={{ fontSize: 11, color: '#d97706', marginTop: 2 }}>{translate('portal','rank_pool_me')}</div>
+                    <div style={{ fontSize: 11, color: '#d97706', marginTop: 2 }}>{royaltyText(q.me_share_pct)}</div>
                 </div>
             </div>
 
@@ -186,7 +215,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                         </p>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#ecfdf5', color: '#047857', borderRadius: 20 }}>
-                        {translate('portal','rank_combined_pool')}
+                        {poolPct === null ? notSet : translate('portal','rank_combined_pool_live',{pct:poolPct.toFixed(2)})}
                     </div>
                 </div>
 
@@ -442,17 +471,16 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
 
                         {/* Progress Towards MO Target */}
                         {(() => {
-                            const moTarget = Number(q.mo_target ?? 250000);
-                            const progress = moTarget > 0
+                            const progress = moTarget !== null && moTarget > 0
                                 ? Math.min(100, (Number(auditingPartner.lifetime_purchase_total) / moTarget) * 100)
                                 : 0;
 
                             return (
                         <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700 }}>
-                                <span>{translate('portal','rank_mo_milestone',{amount:money(moTarget)})}</span>
+                                <span>{moTarget === null ? notSet : translate('portal','rank_mo_milestone',{amount:money(moTarget)})}</span>
                                 <span style={{ color: '#006837' }}>
-                                    {Math.round(progress)}%
+                                    {moTarget === null ? '—' : `${Math.round(progress)}%`}
                                 </span>
                             </div>
                             <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
@@ -465,7 +493,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginTop: 6 }}>
                                 <span>{translate('portal','rank_current')}: {money(auditingPartner.lifetime_purchase_total)}</span>
-                                <span>{translate('portal','rank_target')}: {money(moTarget)}</span>
+                                <span>{translate('portal','rank_target')}: {moneyOrNotSet(moTarget)}</span>
                             </div>
                         </div>
                             );
@@ -477,7 +505,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                                 {translate('portal','rank_am_downline')}
                             </div>
                             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                                {translate('portal','rank_am_downline_hint')}
+                                {leadersRequirement(q.am_count,'rank_short_mo')}
                             </div>
                         </div>
 
@@ -486,8 +514,10 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             <div style={{ fontWeight: 700, color: '#047857' }}>{translate('portal','rank_pool_participation')}</div>
                             <div style={{ color: '#065f46', marginTop: 2 }}>
                                 {auditingPartner.current_rank === 'dealer'
-                                    ? translate('portal','rank_needs_mo',{amount:money(q.mo_target ?? 250000)})
-                                    : translate('portal','rank_active_pool',{share:String((rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).royaltyShare)})}
+                                    ? (moTarget === null ? notSet : translate('portal','rank_needs_mo_live',{amount:money(moTarget)}))
+                                    : policyNumber(q[`${auditingPartner.current_rank}_share_pct`]) === null
+                                        ? notSet
+                                        : translate('portal','rank_active_pool',{share:String((rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).royaltyShare)})}
                             </div>
                         </div>
 

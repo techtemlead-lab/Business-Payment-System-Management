@@ -383,11 +383,11 @@ export default function ProductPurchaseMatrix({
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: 13, fontWeight: 700, color: '#006837' }}>
-                                            ৳ {Number(p.price || p.mrp || 0).toFixed(2)}
+                                            {money(p.price || p.mrp || 0)}
                                         </div>
                                         {Number(p.mrp || 0) > Number(p.price || p.mrp || 0) && (
                                             <div style={{ fontSize: 10, color: '#94a3b8', textDecoration: 'line-through' }}>
-                                                ৳ {Number(p.mrp).toFixed(2)}
+                                                {money(p.mrp)}
                                             </div>
                                         )}
                                     </div>
@@ -471,7 +471,7 @@ export default function ProductPurchaseMatrix({
                                     const specText = v.strength || v.unit || translate('portal', 'b2b_single_spec');
                                     return (
                                         <option key={v.id} value={v.id}>
-                                            {specText} — ৳ {vPrice.toFixed(2)} (MRP ৳{vMrp.toFixed(2)}{vDisc > 0 ? ` · ${vDisc}% off` : ''})
+                                            {specText} — {money(vPrice)} (MRP {money(vMrp)}{vDisc > 0 ? ` · ${vDisc}% off` : ''})
                                         </option>
                                     );
                                 })}
@@ -845,7 +845,7 @@ export default function ProductPurchaseMatrix({
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        placeholder={`৳ ${cartSummary.totalPayable.toFixed(2)}`}
+                                        placeholder={money(cartSummary.totalPayable)}
                                         value={f.data.amount}
                                         onChange={e => f.setData('amount', e.target.value)}
                                     />

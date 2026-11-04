@@ -53,7 +53,7 @@
         @if($isFeatured)
             <div class="luxury-featured-ribbon">
                 <span>★</span>
-                <span>{{ __('site.featured') ?? 'Featured' }}</span>
+                <span>{{ __('site.featured') }}</span>
             </div>
         @endif
     </div>
@@ -85,7 +85,7 @@
                     <div class="bottle-label">
                         <span class="brand">madina</span>
                         <span class="cat">{{ $catName }}</span>
-                        <span class="sub">{{ __('site.brand_tagline') ?? 'NATURAL CARE' }}</span>
+                        <span class="sub">{{ __('site.brand_tagline') }}</span>
                     </div>
                 </a>
             @endif

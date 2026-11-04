@@ -1,8 +1,26 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import { SlidersHorizontal, Percent, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check, ArrowRight } from 'lucide-react';
+import { SlidersHorizontal, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check } from 'lucide-react';
 import { money } from './UI';
 import { useT } from '../shared/i18n/t';
+
+/** Pool limits the backend commission policy enforces (WorkspaceController::commissionPoolLimits). */
+export interface PolicyLimits {
+    dealer_pool_cap_pct?: string | number | null;
+    sub_dealer_pool_cap_pct?: string | number | null;
+    company_mrp_pct?: string | number | null;
+    dealer_rule_keys?: string[];
+    sub_dealer_rule_keys?: string[];
+}
+
+/** A policy percentage, or null when the backend did not send one. */
+export function policyPercent(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
 
 interface RuleRecord {
     id: number;
@@ -18,10 +36,16 @@ interface RuleRecord {
     version: number;
 }
 
-export default function CommissionStudio({ rules: initialRules }: { rules: RuleRecord[] }) {
+export default function CommissionStudio({ rules: initialRules, limits }: { rules: RuleRecord[]; limits?: PolicyLimits }) {
     const translate = useT();
-    const {staffActions} = usePage<any>().props;
+    const {staffActions, data: pageData} = usePage<any>().props;
     const canEdit = staffActions?.finance?.edit ?? true;
+    const policyLimits: PolicyLimits = limits ?? pageData?.policy_limits ?? {};
+    const dealerCap = policyPercent(policyLimits.dealer_pool_cap_pct);
+    const subDealerCap = policyPercent(policyLimits.sub_dealer_pool_cap_pct);
+    const companyMrpPct = policyPercent(policyLimits.company_mrp_pct);
+    const notSet = translate('portal', 'policy_value_not_set');
+    const capLabel = (cap: number | null) => cap === null ? notSet : `${cap.toFixed(2)}%`;
     const [rules, setRules] = useState<Record<string, RuleRecord>>(() => {
         const map: Record<string, RuleRecord> = {};
         initialRules.forEach(r => { map[r.rule_key] = { ...r }; });
@@ -34,12 +58,18 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'editor' | 'simulator'>('editor');
 
-    // Calculate sum of percentages
-    const baseKeys = ['own_dealer_cashback','direct_referral','d2d_multitier','area_dealer_pool','dealer_monthly_salary','rank_royalty','rank_incentive','company_marketing','car_bike_incentive'];
+    // Which rules fill the dealer pool and which are sub-dealer extras comes from the policy.
+    const subDealerKeys = policyLimits.sub_dealer_rule_keys
+        ?? Object.values(rules).filter(r => r.category === 'sub_dealer').map(r => r.rule_key);
+    const baseKeys = policyLimits.dealer_rule_keys
+        ?? Object.values(rules).filter(r => r.category !== 'operations' && !subDealerKeys.includes(r.rule_key)).map(r => r.rule_key);
     const totalPercentage = Object.values(rules).filter(r=>r.is_active&&baseKeys.includes(r.rule_key)).reduce((sum, r) => sum + (Number(r.percentage) || 0), 0);
-    const subDealerPercentage = totalPercentage + Object.values(rules).filter(r=>r.is_active&&['additional_rank','sub_dealer_salary','sub_dealer_tour'].includes(r.rule_key)).reduce((sum,r)=>sum+Number(r.percentage),0);
-    const isOverAllocated = totalPercentage > 40.0001 || subDealerPercentage > 50.0001;
-    const remainingBuffer = Math.max(0, 40.00 - totalPercentage);
+    const subDealerPercentage = totalPercentage + Object.values(rules).filter(r=>r.is_active&&subDealerKeys.includes(r.rule_key)).reduce((sum,r)=>sum+(Number(r.percentage) || 0),0);
+    const isOverAllocated = (dealerCap !== null && totalPercentage > dealerCap + 0.0001)
+        || (subDealerCap !== null && subDealerPercentage > subDealerCap + 0.0001);
+    const simulatedPoolPct = simAccount === 'dealer' ? totalPercentage : subDealerPercentage;
+    const isPreviewUnderfunded = companyMrpPct !== null
+        && simMrp * companyMrpPct / 100 + simOrderAmount * simulatedPoolPct / 100 > simOrderAmount;
 
     const handlePercentageChange = (key: string, val: string) => {
         const num = parseFloat(val) || 0;
@@ -75,7 +105,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                             {isOverAllocated ? translate('portal','cs_violation') : translate('portal','cs_guarantee')}
                         </div>
                         <div style={{ fontSize: 24, fontWeight: 800, color: isOverAllocated ? '#dc2626' : '#006837', marginTop: 2 }}>
-                            {totalPercentage.toFixed(2)}% <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ 40.00% {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / 50.00%</span>
+                            {totalPercentage.toFixed(2)}% <span style={{ fontSize: 14, color: '#64748b', fontWeight: 500 }}>/ {capLabel(dealerCap)} {translate('portal','cs_dealer_pool')} · {translate('portal','cs_sub_dealer')} {subDealerPercentage.toFixed(2)}% / {capLabel(subDealerCap)}</span>
                         </div>
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                             {isOverAllocated
@@ -141,7 +171,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                 <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 4, marginTop: 14, overflow: 'hidden' }}>
                     <div
                         style={{
-                            width: `${Math.min(100, (totalPercentage / 40.00) * 100)}%`,
+                            width: `${dealerCap ? Math.min(100, (totalPercentage / dealerCap) * 100) : 0}%`,
                             height: '100%',
                             background: isOverAllocated ? '#ef4444' : '#006837',
                             transition: 'width 0.2s ease, background 0.2s ease'
@@ -191,7 +221,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                             <input
                                                 type="number"
                                                 min="0"
-                                                max="40"
+                                                max={dealerCap ?? 100}
                                                 step="0.5"
                                                 value={r.percentage}
                                                 onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
@@ -214,7 +244,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                     <input
                                         type="range"
                                         min="0"
-                                        max="20"
+                                        max={dealerCap ?? 100}
                                         step="0.25"
                                         value={pct}
                                         onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
@@ -248,21 +278,21 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                         </div>
                         <label style={{display:'block',marginTop:12}}>{translate('portal','cs_account')} <select value={simAccount} onChange={e=>setSimAccount(e.target.value as 'dealer'|'sub_dealer')}><option value="dealer">{translate('portal','cs_dealer')}</option><option value="sub_dealer">{translate('portal','cs_sub_dealer')}</option></select></label>
                         <label style={{display:'block',marginTop:12}}>{translate('portal','cs_total_mrp')} <input type="number" min="0" step="0.01" value={simMrp} onChange={e=>setSimMrp(Math.max(0,Number(e.target.value)||0))}/></label>
-                        <p style={{fontSize:12,color:simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?'#b91c1c':'#047857'}}>{translate('portal','cs_preview_only')} {simMrp*.3+simOrderAmount*(simAccount==='dealer'?totalPercentage:subDealerPercentage)/100>simOrderAmount?translate('portal','cs_preview_underfunded'):translate('portal','cs_preview_funded')}</p>
+                        <p style={{fontSize:12,color:companyMrpPct===null?'#b45309':isPreviewUnderfunded?'#b91c1c':'#047857'}}>{translate('portal','cs_preview_only')} {companyMrpPct===null?`${translate('portal','cs_company_retained')}: ${notSet}`:isPreviewUnderfunded?translate('portal','cs_preview_underfunded'):translate('portal','cs_preview_funded')}</p>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
                         {/* Company Retained Card */}
                         <div style={{ background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 10, padding: 16 }}>
                             <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>{translate('portal','cs_company_retained')}</div>
-                            <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-                                ৳ {(simMrp * 0.30).toFixed(2)}
+                            <div style={{ fontSize: 22, fontWeight: 800, color: companyMrpPct === null ? '#b45309' : '#0f172a', margin: '4px 0' }}>
+                                {companyMrpPct === null ? notSet : money(simMrp * companyMrpPct / 100)}
                             </div>
-                            <div style={{ fontSize: 11.5, color: '#64748b' }}>{translate('portal','cs_of_mrp',{pct:'30.00'})}</div>
+                            <div style={{ fontSize: 11.5, color: '#64748b' }}>{companyMrpPct === null ? notSet : translate('portal','cs_of_mrp',{pct:companyMrpPct.toFixed(2)})}</div>
                         </div>
 
                         {/* Each of the 9 pools */}
-                        {Object.values(rules).filter(r=>r.is_active&&(baseKeys.includes(r.rule_key)||(simAccount==='sub_dealer'&&r.category==='sub_dealer'))).map(r => {
+                        {Object.values(rules).filter(r=>r.is_active&&(baseKeys.includes(r.rule_key)||(simAccount==='sub_dealer'&&subDealerKeys.includes(r.rule_key)))).map(r => {
                             const pct = Number(r.percentage) || 0;
                             const amount = (simOrderAmount * (pct / 100));
                             return (
@@ -272,7 +302,7 @@ export default function CommissionStudio({ rules: initialRules }: { rules: RuleR
                                         <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{pct.toFixed(1)}%</span>
                                     </div>
                                     <div style={{ fontSize: 20, fontWeight: 800, color: '#006837', margin: '4px 0' }}>
-                                        ৳ {amount.toFixed(2)}
+                                        {money(amount)}
                                     </div>
                                     <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.description}</div>
                                 </div>

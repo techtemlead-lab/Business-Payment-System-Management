@@ -28,6 +28,24 @@ final class Money
         return intdiv($cents, 100).'.'.str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * Format a decimal amount the way Bangladeshi businesses write it:
+     * lakh/crore grouping with two decimals, e.g. "12,34,567.50".
+     */
+    public static function grouped(string|int $value): string
+    {
+        $decimal = self::decimal(self::cents((string) $value));
+        [$whole, $fraction] = explode('.', $decimal);
+        if (strlen($whole) > 3) {
+            $lastThree = substr($whole, -3);
+            $rest = substr($whole, 0, -3);
+            $rest = (string) preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+            $whole = $rest.','.$lastThree;
+        }
+
+        return $whole.'.'.$fraction;
+    }
+
     /** @deprecated Use SalaryCalculator; the monthly purchase tiers were replaced by a flat 3%. */
     public static function salaryTier(int $purchases): int
     {

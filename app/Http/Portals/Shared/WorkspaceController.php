@@ -21,6 +21,8 @@ use App\Domain\Identity\BdrisLookup;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\BranchPerformance;
 use App\Domain\Orders\OrderInvoice;
+use App\Domain\Orders\OrderListFilter;
+use App\Domain\Orders\StaffDashboardSummary;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\GuidePrerequisites;
@@ -79,7 +81,7 @@ class WorkspaceController extends Controller
         PortalCatalog::assertSection($u, $catalogPortal, $section);
         $periodRule = $section === 'branch-performance'
             ? 'nullable|in:today,month,custom'
-            : 'nullable|in:today,week,month,year,day,custom';
+            : 'nullable|in:today,week,month,last_month,year,day,custom';
         $r->validate([
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
@@ -109,40 +111,7 @@ class WorkspaceController extends Controller
         $orders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id))->when($staff && ! $u->allows('orders') && ! $u->allows('finance'), fn ($q) => $q->whereRaw('1=0'));
         $data = [];
         if (in_array($section, ['overview', 'orders', 'deliveries', 'dues', 'reports'])) {
-            $q = clone $orders;
-            if ($r->filled('q')) {
-                $term = '%'.$r->string('q')->toString().'%';
-                $q->where(function ($orders) use ($term): void {
-                    $orders->where('number', 'like', $term)
-                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', $term)
-                            ->orWhere('dealer_code', 'like', $term)
-                            ->orWhere('phone', 'like', $term));
-                });
-            }
-            if ($r->filled('status')) {
-                $q->where('status', $r->string('status'));
-            }
-            if (in_array($section, ['orders', 'deliveries', 'dues', 'reports'], true)) {
-                $range = $this->orderCreatedRange(
-                    $r->string('period')->toString(),
-                    $r->filled('from') ? $r->string('from')->toString() : null,
-                    $r->filled('to') ? $r->string('to')->toString() : null,
-                );
-                if ($range !== null) {
-                    $q->where('created_at', '>=', $range['from'])
-                        ->where('created_at', '<=', $range['until']);
-                }
-            }
-            if ($staff && $r->filled('buyer_role')) {
-                $buyerRole = $r->string('buyer_role')->toString();
-                $q->whereHas('user', fn ($users) => $users->where('role', $buyerRole));
-            }
-            if ($section === 'deliveries') {
-                $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched'])->whereHas('lines', fn ($lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
-            }
-            if ($section === 'dues') {
-                $q->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->whereRaw('paid < total-due_credit');
-            }
+            $q = app(OrderListFilter::class)->apply(clone $orders, $r, $section, $staff);
             // Overview only needs line quantities for the items column — keep the payload slim.
             $lineRelation = $section === 'overview' ? 'lines:id,order_id,quantity' : 'lines';
             $orderWith = ['user:id,name,dealer_code,role,phone,division,district', $lineRelation];
@@ -188,6 +157,7 @@ class WorkspaceController extends Controller
                         'purchases' => $data['stats']['purchases'],
                         'dues' => $data['stats']['dues'],
                     ],
+                    ...app(StaffDashboardSummary::class)->for($u),
                 ];
             }
         }
@@ -342,6 +312,10 @@ class WorkspaceController extends Controller
             $branches = CompanyBranch::query()
                 ->withCount(['stocks as stock_skus' => fn ($stocks) => $stocks->where('quantity', '>', 0)])
                 ->withSum('stocks as stock_units', 'quantity')
+                ->addSelect(['stock_value' => DB::table('branch_product_stocks')
+                    ->join('products', 'products.id', '=', 'branch_product_stocks.product_id')
+                    ->whereColumn('branch_product_stocks.branch_id', 'company_branches.id')
+                    ->selectRaw('COALESCE(SUM(branch_product_stocks.quantity * products.mrp), 0)')])
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString();
@@ -351,13 +325,7 @@ class WorkspaceController extends Controller
                 ->whereIn('branch_id', $branchIds)
                 ->get()
                 ->groupBy('branch_id');
-            $stockValues = DB::table('branch_product_stocks')
-                ->join('products', 'products.id', '=', 'branch_product_stocks.product_id')
-                ->whereIn('branch_product_stocks.branch_id', $branchIds)
-                ->groupBy('branch_product_stocks.branch_id')
-                ->selectRaw('branch_product_stocks.branch_id as branch_id, SUM(branch_product_stocks.quantity * products.mrp) as stock_value')
-                ->pluck('stock_value', 'branch_id');
-            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch, $stockValues) {
+            $data['branches'] = $branches->through(function (CompanyBranch $branch) use ($staffByBranch) {
                 $summary = $branch->summary();
                 $summary['staff'] = ($staffByBranch[$branch->id] ?? collect())->map(fn (BranchStaffAssignment $row) => [
                     'user_id' => $row->user_id,
@@ -369,7 +337,7 @@ class WorkspaceController extends Controller
                 ])->values()->all();
                 $summary['stock_skus'] = (int) ($branch->stock_skus ?? 0);
                 $summary['stock_units'] = (int) ($branch->stock_units ?? 0);
-                $summary['stock_value'] = number_format((float) ($stockValues[$branch->id] ?? 0), 2, '.', '');
+                $summary['stock_value'] = number_format((float) ($branch->stock_value ?? 0), 2, '.', '');
                 $manager = collect($summary['staff'])->first(fn (array $member): bool => (bool) $member['is_primary'])
                     ?? ($summary['staff'][0] ?? null);
                 $summary['manager_name'] = is_array($manager) ? ($manager['name'] ?? null) : null;
@@ -403,11 +371,11 @@ class WorkspaceController extends Controller
                 ->when($r->filled('q'), function ($q) use ($r) {
                     $term = '%'.$r->string('q').'%';
                     $q->where(function ($sub) use ($term) {
-                        $sub->where('name', 'like', $term)
-                            ->orWhere('dealer_code', 'like', $term)
-                            ->orWhere('email', 'like', $term)
-                            ->orWhere('phone', 'like', $term)
-                            ->orWhere('profile->shop_name', 'like', $term);
+                        $sub->where('name', 'ilike', $term)
+                            ->orWhere('dealer_code', 'ilike', $term)
+                            ->orWhere('email', 'ilike', $term)
+                            ->orWhere('phone', 'ilike', $term)
+                            ->orWhere('profile->shop_name', 'ilike', $term);
                     });
                 })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
@@ -419,11 +387,11 @@ class WorkspaceController extends Controller
                 ->when($r->filled('q'), function ($q) use ($r) {
                     $term = '%'.$r->string('q').'%';
                     $q->where(function ($sub) use ($term) {
-                        $sub->where('name', 'like', $term)
-                            ->orWhere('dealer_code', 'like', $term)
-                            ->orWhere('email', 'like', $term)
-                            ->orWhere('phone', 'like', $term)
-                            ->orWhere('profile->shop_name', 'like', $term);
+                        $sub->where('name', 'ilike', $term)
+                            ->orWhere('dealer_code', 'ilike', $term)
+                            ->orWhere('email', 'ilike', $term)
+                            ->orWhere('phone', 'ilike', $term)
+                            ->orWhere('profile->shop_name', 'ilike', $term);
                     });
                 })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
             $data['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
@@ -433,9 +401,9 @@ class WorkspaceController extends Controller
             if ($r->filled('q')) {
                 $term = '%'.$r->string('q').'%';
                 $query->where(function ($sub) use ($term) {
-                    $sub->where('name', 'like', $term)
-                        ->orWhere('email', 'like', $term)
-                        ->orWhere('phone', 'like', $term);
+                    $sub->where('name', 'ilike', $term)
+                        ->orWhere('email', 'ilike', $term)
+                        ->orWhere('phone', 'ilike', $term);
                 });
             }
             if ($r->filled('status')) {
@@ -528,11 +496,11 @@ class WorkspaceController extends Controller
             if ($r->filled('q')) {
                 $term = '%'.$r->string('q')->toString().'%';
                 $claims->where(function ($query) use ($term): void {
-                    $query->where('orders.number', 'like', $term)
-                        ->orWhere('users.name', 'like', $term)
-                        ->orWhere('users.phone', 'like', $term)
-                        ->orWhere('users.dealer_code', 'like', $term)
-                        ->orWhere('payment_claims.reference', 'like', $term);
+                    $query->where('orders.number', 'ilike', $term)
+                        ->orWhere('users.name', 'ilike', $term)
+                        ->orWhere('users.phone', 'ilike', $term)
+                        ->orWhere('users.dealer_code', 'ilike', $term)
+                        ->orWhere('payment_claims.reference', 'ilike', $term);
                 });
             }
             if ($r->filled('buyer_role')) {
@@ -829,7 +797,9 @@ class WorkspaceController extends Controller
         }
         if ($section === 'commissions') {
             $ownerBenefits = $u->owner() && $portal === 'sadmin';
-            $data['rules'] = array_values(app(CommissionPolicy::class)->snapshot(false)['rules']);
+            $commissionSnapshot = app(CommissionPolicy::class)->snapshot(false);
+            $data['rules'] = array_values($commissionSnapshot['rules']);
+            $data['policy_limits'] = $this->commissionPoolLimits($commissionSnapshot);
             $data['allocations'] = CommissionAllocation::with(['order:id,number,total', 'user:id,name,dealer_code'])
                 ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', RetainedFundLedger::BenefitsCategory))
                 ->latest()->paginate(20);
@@ -929,7 +899,11 @@ class WorkspaceController extends Controller
                 $data['stats'][$code.'_count'] = $data['ranks']->where('current_rank', $code)->count();
             }
             $policy = app(CommissionPolicy::class)->snapshot()['rules'];
-            $data['rank_policy'] = ['qualification' => $policy['rank_royalty']['parameters'], 'incentives' => $policy['rank_incentive']['parameters']];
+            $data['rank_policy'] = [
+                'qualification' => $policy['rank_royalty']['parameters'],
+                'incentives' => $policy['rank_incentive']['parameters'],
+                'pool_pct' => CommissionPolicy::rate($policy, 'rank_royalty')->decimal(),
+            ];
         }
         if ($section === 'rewards') {
             $mapMilestone = fn ($row) => [...$row->toArray(), 'target_volume' => $row->target_amount, 'is_claimed' => $row->claimed,
@@ -1075,8 +1049,16 @@ class WorkspaceController extends Controller
                 ->limit(20)
                 ->get();
 
+            $incentiveParameters = app(CommissionPolicy::class)->snapshot()['rules']['rank_incentive']['parameters'] ?? [];
+            $rankIncentives = [];
+            foreach (['mo', 'am', 'sm', 'me'] as $rankCode) {
+                $bonus = $incentiveParameters[$rankCode.'_bonus'] ?? null;
+                $rankIncentives[$rankCode] = is_numeric($bonus) ? Money::decimal(Money::cents((string) $bonus)) : null;
+            }
+
             $data['settlement_state'] = [
                 'current_month' => $currentMonth,
+                'rank_incentives' => $rankIncentives,
                 'salary_pool_pending' => (float) $salaryPoolAllocations->sum('amount'),
                 'dealer_salary_pool_pending' => (float) $salaryPoolAllocations->where('category', 'dealer_monthly_salary_pool')->sum('amount'),
                 'sub_dealer_salary_pending' => (float) $salaryPoolAllocations->where('category', 'sub_dealer_salary')->sum('amount'),
@@ -1102,15 +1084,10 @@ class WorkspaceController extends Controller
             $commissionService = app(CommissionService::class);
             $data['simulation'] = $commissionService->simulatePlan([]);
             $data['active_rules'] = CommissionRuleParameter::orderBy('id')->get();
+            $data['policy_limits'] = $this->commissionPoolLimits();
         }
         if ($section === 'payouts-hub') {
-            $data['withdrawals'] = DB::table('withdrawals')
-                ->join('users', 'users.id', '=', 'withdrawals.user_id')
-                ->select('withdrawals.id', 'withdrawals.user_id', 'withdrawals.amount', 'withdrawals.withheld_amount', 'withdrawals.net_amount', 'withdrawals.channel', 'withdrawals.status', 'withdrawals.reason', 'withdrawals.reviewed_by', 'withdrawals.paid_by', 'withdrawals.payment_reference', 'withdrawals.paid_at', 'withdrawals.created_at', 'users.name as user_name', 'users.dealer_code', 'users.phone')
-                ->latest('withdrawals.created_at')
-                ->paginate(20);
-            $tdsRule = CommissionRuleParameter::getRule('payout_tax_withholding');
-            $data['tds_rate'] = $tdsRule ? (float) $tdsRule->percentage : 0.00;
+            $data = array_merge($data, $this->payoutsHub($r));
         }
 
         $tourGuide = app(TourGuide::class);
@@ -1484,13 +1461,13 @@ class WorkspaceController extends Controller
 
         if ($applyFilters) {
             if ($r->filled('q')) {
-                $term = '%'.$r->string('q')->toString().'%';
+                $term = '%'.OrderListFilter::escapeLike($r->string('q')->trim()->toString()).'%';
                 $query->where(function ($rows) use ($term): void {
-                    $rows->where('users.name', 'like', $term)
-                        ->orWhere('users.dealer_code', 'like', $term)
-                        ->orWhere('users.phone', 'like', $term)
-                        ->orWhere('withdrawals.payment_reference', 'like', $term)
-                        ->orWhere('withdrawals.reason', 'like', $term);
+                    $rows->where('users.name', 'ilike', $term)
+                        ->orWhere('users.dealer_code', 'ilike', $term)
+                        ->orWhere('users.phone', 'ilike', $term)
+                        ->orWhere('withdrawals.payment_reference', 'ilike', $term)
+                        ->orWhere('withdrawals.reason', 'ilike', $term);
                 });
             }
             if ($staff && $r->filled('buyer_role')) {
@@ -1536,6 +1513,119 @@ class WorkspaceController extends Controller
         ]);
     }
 
+    /**
+     * Finance payout desk. Search and status run on the server, and the summary
+     * cards add up every matching request (not just the visible page). The cards
+     * ignore the status tab so each card keeps its own count while staff switch tabs.
+     *
+     * @return array{withdrawals: LengthAwarePaginator<int, array<string, mixed>>, payout_totals: array{requested_count: int, requested_amount: string, approved_count: int, approved_amount: string, paid_count: int, paid_amount: string, paid_withheld_amount: string}, tds_rate: float}
+     */
+    private function payoutsHub(Request $r): array
+    {
+        $matching = DB::table('withdrawals')->join('users', 'users.id', '=', 'withdrawals.user_id');
+        $search = $r->string('q')->trim()->toString();
+        if ($search !== '') {
+            $term = '%'.OrderListFilter::escapeLike($search).'%';
+            $matching->where(function ($rows) use ($term): void {
+                $rows->where('users.name', 'ilike', $term)
+                    ->orWhere('users.dealer_code', 'ilike', $term)
+                    ->orWhere('users.phone', 'ilike', $term)
+                    ->orWhere('withdrawals.payment_reference', 'ilike', $term);
+            });
+        }
+
+        $summary = (clone $matching)
+            ->selectRaw("count(*) filter (where withdrawals.status = 'requested') as requested_count")
+            ->selectRaw("coalesce(sum(withdrawals.amount) filter (where withdrawals.status = 'requested'), 0) as requested_amount")
+            ->selectRaw("count(*) filter (where withdrawals.status = 'approved') as approved_count")
+            ->selectRaw("coalesce(sum(withdrawals.amount) filter (where withdrawals.status = 'approved'), 0) as approved_amount")
+            ->selectRaw("count(*) filter (where withdrawals.status = 'paid') as paid_count")
+            ->selectRaw("coalesce(sum(withdrawals.amount) filter (where withdrawals.status = 'paid'), 0) as paid_amount")
+            ->selectRaw("coalesce(sum(withdrawals.withheld_amount) filter (where withdrawals.status = 'paid'), 0) as paid_withheld_amount")
+            ->first();
+
+        $status = $r->string('status')->toString();
+        $withdrawals = (clone $matching)
+            ->when(in_array($status, ['requested', 'approved', 'rejected', 'paid'], true), fn ($rows) => $rows->where('withdrawals.status', $status))
+            ->select([
+                'withdrawals.id',
+                'withdrawals.user_id',
+                'withdrawals.amount',
+                'withdrawals.withheld_amount',
+                'withdrawals.net_amount',
+                'withdrawals.channel',
+                'withdrawals.destination',
+                'withdrawals.status',
+                'withdrawals.reason',
+                'withdrawals.payment_reference',
+                'withdrawals.paid_at',
+                'withdrawals.created_at',
+                'users.name as user_name',
+                'users.dealer_code',
+                'users.phone',
+            ])
+            ->latest('withdrawals.created_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (object $row): array => [
+                'id' => $row->id,
+                'user_id' => $row->user_id,
+                'user_name' => $row->user_name,
+                'dealer_code' => $row->dealer_code,
+                'phone' => $row->phone,
+                'amount' => $row->amount,
+                'withheld_amount' => $row->withheld_amount,
+                'net_amount' => $row->net_amount,
+                'channel' => $row->channel,
+                'destination_masked' => $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
+                'status' => $row->status,
+                'reason' => $row->reason,
+                'payment_reference' => $row->payment_reference,
+                'paid_at' => $row->paid_at,
+                'created_at' => $row->created_at,
+            ]);
+
+        $rules = app(CommissionPolicy::class)->snapshot()['rules'];
+
+        return [
+            'withdrawals' => $withdrawals,
+            'payout_totals' => [
+                'requested_count' => (int) ($summary->requested_count ?? 0),
+                'requested_amount' => Money::decimal(Money::cents((string) ($summary->requested_amount ?? '0'))),
+                'approved_count' => (int) ($summary->approved_count ?? 0),
+                'approved_amount' => Money::decimal(Money::cents((string) ($summary->approved_amount ?? '0'))),
+                'paid_count' => (int) ($summary->paid_count ?? 0),
+                'paid_amount' => Money::decimal(Money::cents((string) ($summary->paid_amount ?? '0'))),
+                'paid_withheld_amount' => Money::decimal(Money::cents((string) ($summary->paid_withheld_amount ?? '0'))),
+            ],
+            'tds_rate' => (float) CommissionPolicy::rate($rules, 'payout_tax_withholding')->decimal(),
+        ];
+    }
+
+    /**
+     * Pool limits the commission policy enforces, so policy screens show the live
+     * ceiling instead of a number typed into the page. The two ceilings mirror
+     * CommissionPolicy::validateSchedule(); the company share comes from the snapshot.
+     *
+     * @param  array<string, mixed>|null  $snapshot
+     * @return array{dealer_pool_cap_pct: string, sub_dealer_pool_cap_pct: string, company_mrp_pct: string, dealer_rule_keys: list<string>, sub_dealer_rule_keys: list<string>}
+     */
+    private function commissionPoolLimits(?array $snapshot = null): array
+    {
+        $snapshot ??= app(CommissionPolicy::class)->snapshot(false);
+
+        return [
+            'dealer_pool_cap_pct' => '40.00',
+            'sub_dealer_pool_cap_pct' => '50.00',
+            'company_mrp_pct' => (string) ($snapshot['company_mrp_percent'] ?? ''),
+            'dealer_rule_keys' => CommissionPolicy::Keys,
+            'sub_dealer_rule_keys' => array_keys(array_filter(
+                CommissionPolicy::defaults(),
+                fn (array $rule): bool => $rule['category'] === 'sub_dealer',
+            )),
+        ];
+    }
+
     private function maskedDestination(?string $encrypted): ?string
     {
         if ($encrypted === null || $encrypted === '') {
@@ -1561,35 +1651,6 @@ class WorkspaceController extends Controller
      */
     private function orderCreatedRange(string $period, ?string $from, ?string $to): ?array
     {
-        if ($period === '') {
-            return null;
-        }
-
-        $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
-        $now = CarbonImmutable::now($timezone);
-
-        if ($period === 'today') {
-            $start = $now->startOfDay();
-            $end = $now->endOfDay();
-        } elseif ($period === 'week') {
-            $start = $now->startOfWeek();
-            $end = $now->endOfWeek();
-        } elseif ($period === 'month') {
-            $start = $now->startOfMonth();
-            $end = $now->endOfMonth();
-        } elseif ($period === 'year') {
-            $start = $now->startOfYear();
-            $end = $now->endOfYear();
-        } elseif ($period === 'day' && is_string($from) && $from !== '') {
-            $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
-            $end = $start->endOfDay();
-        } elseif ($period === 'custom' && is_string($from) && $from !== '' && is_string($to) && $to !== '') {
-            $start = CarbonImmutable::parse($from, $timezone)->startOfDay();
-            $end = CarbonImmutable::parse($to, $timezone)->endOfDay();
-        } else {
-            return null;
-        }
-
-        return ['from' => $start->utc(), 'until' => $end->utc()];
+        return OrderListFilter::createdRange($period, $from, $to);
     }
 }

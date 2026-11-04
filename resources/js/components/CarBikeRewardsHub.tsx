@@ -1,8 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
-import { Trophy, ShieldCheck, AlertCircle, ChevronRight, Eye, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
-import { money, date, Table, type TableColumn } from './UI';
+import { ShieldCheck, Eye } from 'lucide-react';
+import { money, Table } from './UI';
 import { useT } from '../shared/i18n/t';
+
+/** A positive policy amount, or null when the policy does not set one. */
+function policyAmount(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
 
 interface LegBreakdown {
     leg_user_id: number;
@@ -42,14 +51,21 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     const [activeTab, setActiveTab] = useState<'bike' | 'car'>('bike');
     const [selectedCandidate, setSelectedCandidate] = useState<MilestoneRecord | null>(null);
 
-    const bikeTarget = Number(rule_params.bike_target || 5000000);
-    const bikeCap = Number(rule_params.bike_leg_cap || 800000);
-    const carTarget = Number(rule_params.car_target || 250000000);
-    const carCap = Number(rule_params.car_leg_cap || 20000000);
+    const notSet = translate('portal', 'policy_value_not_set');
+    const moneyOrNotSet = (amount: number | null) => amount === null ? notSet : money(amount);
+    const bikeTarget = policyAmount(rule_params?.bike_target);
+    const bikeCap = policyAmount(rule_params?.bike_leg_cap);
+    const carTarget = policyAmount(rule_params?.car_target);
+    const carCap = policyAmount(rule_params?.car_leg_cap);
 
     const currentMilestones = activeTab === 'bike' ? bike_milestones : car_milestones;
     const currentTarget = activeTab === 'bike' ? bikeTarget : carTarget;
     const currentCap = activeTab === 'bike' ? bikeCap : carCap;
+    const progressPct = (m: MilestoneRecord) => currentTarget === null
+        ? null
+        : Math.min(100, ((Number(m.qualifying_volume) || 0) / currentTarget) * 100);
+    const reachedTarget = (m: MilestoneRecord) => !!m.achieved_at
+        || (currentTarget !== null && (Number(m.qualifying_volume) || 0) >= currentTarget);
     const rewardTitle = activeTab === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car');
     const rewardPrize = activeTab === 'bike' ? translate('portal', 'rw_prize_bike') : translate('portal', 'rw_prize_car');
 
@@ -85,7 +101,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             {translate('portal', 'rw_heading')}
                         </h2>
                         <p style={{ fontSize: 13, color: '#64748b', maxWidth: 740, lineHeight: 1.5, margin: 0 }}>
-                            {translate('portal', 'rw_intro')}
+                            {translate('portal', 'rw_intro_live', { bike_cap: moneyOrNotSet(bikeCap), car_cap: moneyOrNotSet(carCap) })}
                         </p>
                     </div>
 
@@ -109,7 +125,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 boxShadow: activeTab === 'bike' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            {translate('portal', 'rw_tab_bike')}
+                            {translate('portal', 'rw_title_bike')}
                         </button>
                         <button
                             type="button"
@@ -129,7 +145,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                 boxShadow: activeTab === 'car' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
                             }}
                         >
-                            {translate('portal', 'rw_tab_car')}
+                            {translate('portal', 'rw_title_car')}
                         </button>
                     </div>
                 </div>
@@ -145,20 +161,22 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                 }}>
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal', 'rw_kpi_target')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{money(currentTarget)}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: currentTarget === null ? '#b45309' : '#0f172a', marginTop: 2 }}>{moneyOrNotSet(currentTarget)}</div>
                         <div style={{ fontSize: 11, color: '#94a3b8' }}>{translate('portal', 'rw_kpi_target_hint')}</div>
                     </div>
 
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>{translate('portal', 'rw_kpi_cap')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#006837', marginTop: 2 }}>{money(currentCap)}</div>
+                        <div style={{ fontSize: 18, fontWeight: 800, color: currentCap === null ? '#b45309' : '#006837', marginTop: 2 }}>{moneyOrNotSet(currentCap)}</div>
                         <div style={{ fontSize: 11, color: '#059669' }}>{translate('portal', 'rw_kpi_cap_hint')}</div>
                     </div>
 
                     <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>{translate('portal', 'rw_kpi_legs')}</div>
                         <div style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8', marginTop: 2 }}>
-                            {translate('portal', 'rw_kpi_legs_value', { count: String(Math.ceil(currentTarget / currentCap)) })}
+                            {currentTarget === null || currentCap === null
+                                ? notSet
+                                : translate('portal', 'rw_kpi_legs_value', { count: String(Math.ceil(currentTarget / currentCap)) })}
                         </div>
                         <div style={{ fontSize: 11, color: '#3b82f6' }}>{translate('portal', 'rw_kpi_legs_hint')}</div>
                     </div>
@@ -225,14 +243,14 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             key: 'progress',
                             header: translate('portal', 'rw_col_progress'),
                             sortable: true,
-                            sortValue: (m: MilestoneRecord) => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                return Math.min(100, (qualVal / currentTarget) * 100);
-                            },
+                            sortValue: (m: MilestoneRecord) => progressPct(m) ?? -1,
                             render: (m: MilestoneRecord) => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                const pct = Math.min(100, (qualVal / currentTarget) * 100);
-                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                const progress = progressPct(m);
+                                if (progress === null) {
+                                    return <span style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>{notSet}</span>;
+                                }
+                                const pct = progress;
+                                const isAchieved = reachedTarget(m);
                                 return (
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
                                         <div style={{ flex: 1, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
@@ -255,21 +273,16 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             header: translate('portal', 'rw_col_target'),
                             sortable: true,
                             align: 'right',
-                            sortValue: () => currentTarget,
-                            render: () => <span style={{ color: '#64748b' }}>{money(currentTarget)}</span>,
+                            sortValue: () => currentTarget ?? -1,
+                            render: () => <span style={{ color: '#64748b' }}>{moneyOrNotSet(currentTarget)}</span>,
                         },
                         {
                             key: 'status',
                             header: translate('portal', 'rw_col_status'),
                             sortable: true,
-                            sortValue: (m: MilestoneRecord) => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
-                                return m.is_claimed ? 'claimed' : isAchieved ? 'achieved' : 'in_progress';
-                            },
+                            sortValue: (m: MilestoneRecord) => m.is_claimed ? 'claimed' : reachedTarget(m) ? 'achieved' : 'in_progress',
                             render: (m: MilestoneRecord) => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                const isAchieved = reachedTarget(m);
                                 return (
                                     <span style={{
                                         fontSize: 10,
@@ -290,8 +303,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             header: translate('portal', 'rw_col_branches'),
                             align: 'right',
                             render: (m: MilestoneRecord) => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                const isAchieved = reachedTarget(m);
                                 return (
                                     <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                                         {isAchieved && !m.is_claimed && (
@@ -361,7 +373,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                     {selectedCandidate.user?.name} ({selectedCandidate.user?.dealer_code})
                                 </h3>
                                 <div style={{ fontSize: 12, color: '#64748b' }}>
-                                    {selectedCandidate.milestone_type === 'bike' ? translate('portal', 'rw_milestone_bike') : translate('portal', 'rw_milestone_car')}
+                                    {selectedCandidate.milestone_type === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car')}
                                 </div>
                             </div>
                             <button
@@ -388,11 +400,11 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                             </div>
                             <div>
                                 <span style={{ color: '#64748b' }}>{translate('portal', 'rw_branch_cap')} </span>
-                                <b>{money(currentCap)}</b>
+                                <b>{moneyOrNotSet(currentCap)}</b>
                             </div>
                             <div>
                                 <span style={{ color: '#64748b' }}>{translate('portal', 'rw_target')} </span>
-                                <b>{money(currentTarget)}</b>
+                                <b>{moneyOrNotSet(currentTarget)}</b>
                             </div>
                         </div>
 
@@ -408,7 +420,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                     const capped = Number(leg.capped_volume) || 0;
                                     const excess = Number(leg.excess_volume) || 0;
                                     const isCapped = excess > 0;
-                                    const capPct = Math.min(100, (capped / currentCap) * 100);
+                                    const capPct = currentCap === null ? 0 : Math.min(100, (capped / currentCap) * 100);
 
                                     return (
                                         <div key={idx} style={{
@@ -425,7 +437,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                                     <span style={{ fontSize: 12, fontWeight: 800, color: '#006837' }}>
                                                         {money(capped)}
                                                     </span>
-                                                    <span style={{ fontSize: 11, color: '#64748b' }}> qualifying</span>
+                                                    <span style={{ fontSize: 11, color: '#64748b' }}> {translate('portal', 'rw_qualifying')}</span>
                                                 </div>
                                             </div>
 
@@ -450,7 +462,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                                 <span>{translate('portal', 'rw_raw_leg')} <b>{money(raw)}</b></span>
                                                 {isCapped ? (
                                                     <span style={{ color: '#b45309', fontWeight: 600 }}>
-                                                        {translate('portal', 'rw_truncated', { excess: money(excess), cap: money(currentCap) })}
+                                                        {translate('portal', 'rw_truncated', { excess: money(excess), cap: moneyOrNotSet(currentCap) })}
                                                     </span>
                                                 ) : (
                                                     <span style={{ color: '#047857' }}>{translate('portal', 'rw_full_qualifies')}</span>

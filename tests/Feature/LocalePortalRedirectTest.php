@@ -70,6 +70,6 @@ class LocalePortalRedirectTest extends TestCase
         $this->onPortal('dealer')
             ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
             ->assertRedirect('/login/otp')
-            ->assertSessionHas('success', 'আপনার নিবন্ধিত মোবাইলে পাঠানো ওয়ান-টাইম কোডটি লিখুন।');
+            ->assertSessionHas('success', __('portal.flash_otp_sent', [], 'bn'));
     }
 }

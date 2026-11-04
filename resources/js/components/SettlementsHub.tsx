@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import {
-    Calendar, CheckCircle2, Clock, DollarSign, Award, ShieldAlert,
-    ArrowUpRight, Play, RefreshCw, AlertCircle, FileText, ChevronRight, UserCheck
-} from 'lucide-react';
-import { money, date, Table, type TableColumn } from './UI';
+import { Calendar, CheckCircle2, Clock, Play, RefreshCw } from 'lucide-react';
+import { money, date, Table, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
+
+type LeaderRank = 'mo' | 'am' | 'sm' | 'me';
+
+/** A money-moving action that waits for the finance user to say yes. */
+interface PendingConfirmation {
+    message: string;
+    run: () => void;
+}
 
 interface SettlementState {
     current_month: string;
+    /** One-time rank bonus amounts from the live commission policy; null when not set. */
+    rank_incentives?: Partial<Record<LeaderRank, string | number | null>>;
     salary_pool_pending: number;
     dealer_salary_pool_pending: number;
     sub_dealer_salary_pending: number;
@@ -48,30 +55,52 @@ interface SettlementState {
 
 export default function SettlementsHub({ state }: { state: SettlementState }) {
     const translate = useT();
-    const { flash, financeActive, staffActions } = usePage<any>().props;
+    const { financeActive, staffActions } = usePage<any>().props;
     const [selectedMonth, setSelectedMonth] = useState(state.current_month || new Date().toISOString().slice(0, 7));
     const [processingSalary, setProcessingSalary] = useState(false);
     const [processingRank, setProcessingRank] = useState(false);
     const [processingMatured, setProcessingMatured] = useState(false);
     const [claimingIncentive, setClaimingIncentive] = useState<number | null>(null);
+    const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+
+    const incentiveFor = (rank: string): number | null => {
+        const amount = state.rank_incentives?.[rank as LeaderRank];
+        if (amount === null || amount === undefined || amount === '') {
+            return null;
+        }
+        const parsed = Number(amount);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+    const incentiveSummary = (['mo', 'am', 'sm', 'me'] as LeaderRank[])
+        .map(rank => {
+            const amount = incentiveFor(rank);
+            return `${rank.toUpperCase()} ${amount === null ? translate('portal', 'policy_value_not_set') : money(amount)}`;
+        })
+        .join(' · ');
+
+    const confirmThen = (message: string, run: () => void) => setPendingConfirmation({ message, run });
+
+    const handleConfirmed = () => {
+        const confirmation = pendingConfirmation;
+        setPendingConfirmation(null);
+        confirmation?.run();
+    };
 
     const handleSettleSalary = () => {
-        if (!confirm(translate('portal', 'st_confirm_salary', { month: selectedMonth }))) {
-            return;
-        }
-        setProcessingSalary(true);
-        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
-            onFinish: () => setProcessingSalary(false)
+        confirmThen(translate('portal', 'st_confirm_salary', { month: selectedMonth }), () => {
+            setProcessingSalary(true);
+            router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+                onFinish: () => setProcessingSalary(false)
+            });
         });
     };
 
     const handleSettleRank = () => {
-        if (!confirm(translate('portal', 'st_confirm_rank', { month: selectedMonth }))) {
-            return;
-        }
-        setProcessingRank(true);
-        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
-            onFinish: () => setProcessingRank(false)
+        confirmThen(translate('portal', 'st_confirm_rank', { month: selectedMonth }), () => {
+            setProcessingRank(true);
+            router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+                onFinish: () => setProcessingRank(false)
+            });
         });
     };
 
@@ -83,12 +112,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleClaimIncentive = (userId: number, leaderName: string, rank: string) => {
-        if (!confirm(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }))) {
-            return;
-        }
-        setClaimingIncentive(userId);
-        router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
-            onFinish: () => setClaimingIncentive(null)
+        confirmThen(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }), () => {
+            setClaimingIncentive(userId);
+            router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
+                onFinish: () => setClaimingIncentive(null)
+            });
         });
     };
 
@@ -449,7 +477,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             {translate('portal', 'st_incentive_title')}
                         </h3>
                         <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                            {translate('portal', 'st_incentive_hint')}
+                            {translate('portal', 'st_incentive_hint_live', { list: incentiveSummary })}
                         </p>
                     </div>
                 </div>
@@ -494,13 +522,12 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             title: translate('portal', 'st_col_incentive'),
                             align: 'right',
                             sortable: true,
-                            sortValue: l => {
-                                const incentiveAmounts: Record<string, number> = { mo: 5000, am: 15000, sm: 50000, me: 200000 };
-                                return incentiveAmounts[l.rank] || 5000;
-                            },
+                            sortValue: l => incentiveFor(l.rank) ?? -1,
                             render: l => {
-                                const incentiveAmounts: Record<string, number> = { mo: 5000, am: 15000, sm: 50000, me: 200000 };
-                                return <b style={{ color: '#0f172a' }}>{money(incentiveAmounts[l.rank] || 5000)}</b>;
+                                const amount = incentiveFor(l.rank);
+                                return amount === null
+                                    ? <span style={{ color: '#b45309', fontWeight: 600 }}>{translate('portal', 'policy_value_not_set')}</span>
+                                    : <b style={{ color: '#0f172a' }}>{money(amount)}</b>;
                             },
                         },
                         {
@@ -528,7 +555,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                 <button
                                     type="button"
                                     className="button small"
-                                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id}
+                                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id || incentiveFor(l.rank) === null}
                                     onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
                                     style={{
                                         background: '#0f172a',
@@ -585,6 +612,22 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     ]}
                 />
             </div>
+
+            {pendingConfirmation && (
+                <Modal title={translate('portal', 'st_confirm_title')} onClose={() => setPendingConfirmation(null)}>
+                    <p style={{ margin: '0 0 18px', fontSize: '14px', color: '#334155', lineHeight: 1.5 }}>
+                        {pendingConfirmation.message}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
+                        <button type="button" className="button small light" onClick={() => setPendingConfirmation(null)}>
+                            {translate('portal', 'cancel')}
+                        </button>
+                        <button type="button" className="button small dark" onClick={handleConfirmed}>
+                            {translate('portal', 'st_confirm_yes')}
+                        </button>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 }

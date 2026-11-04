@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\SpreadsheetCell;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,39 +14,110 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function export(Request $r)
+    /**
+     * Orders CSV. Honours the same filters as the on-screen order list
+     * (search, status, period/date range, buyer type, section) so staff
+     * download exactly what they are looking at.
+     */
+    public function export(Request $r, OrderListFilter $filter): StreamedResponse
     {
         $u = $r->user();
-        abort_unless(! $u->staff() || $u->allows('reports') || $u->allows('orders') || $u->allows('finance'), 403);
-        $d = $r->validate(['from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from']);
-        $q = Order::when(! $u->staff(), fn ($q) => $q->where('user_id', $u->id))->when(isset($d['from']), fn ($q) => $q->where('created_at', '>=', Carbon::parse($d['from'], 'Asia/Dhaka')->utc()))->when(isset($d['to']), fn ($q) => $q->where('created_at', '<', Carbon::parse($d['to'], 'Asia/Dhaka')->addDay()->utc()))->orderBy('created_at');
-        Audit::record($u->id, 'report.exported', 'orders', $d);
+        $staff = $u->staff();
+        abort_unless(! $staff || $u->allows('reports') || $u->allows('orders') || $u->allows('finance'), 403);
+        $d = $r->validate([
+            'q' => 'nullable|string|max:120',
+            'status' => 'nullable|string|max:40',
+            'period' => 'nullable|in:today,week,month,last_month,year,day,custom',
+            'from' => 'nullable|date_format:Y-m-d',
+            'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
+            'buyer_role' => 'nullable|in:dealer,sub_dealer',
+            'section' => 'nullable|in:orders,deliveries,dues,reports',
+        ]);
+        // Older links sent only from/to; treat them as a custom date range.
+        if (! $r->filled('period') && ($r->filled('from') || $r->filled('to'))) {
+            $r->merge([
+                'period' => 'custom',
+                'from' => $d['from'] ?? '2000-01-01',
+                'to' => $d['to'] ?? now('Asia/Dhaka')->toDateString(),
+            ]);
+        }
+        $section = $d['section'] ?? 'orders';
+
+        $q = $filter->apply(
+            Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id)),
+            $r,
+            $section,
+            $staff,
+        )
+            ->with(['user:id,name,dealer_code,role,phone,division,district', 'fulfillmentBranch:id,name,code'])
+            ->withSum('lines as item_quantity', 'quantity')
+            ->addSelect([
+                'verified_channels' => DB::table('payment_claims')
+                    ->selectRaw("string_agg(distinct channel, ', ')")
+                    ->whereColumn('payment_claims.order_id', 'orders.id')
+                    ->where('payment_claims.status', 'verified'),
+                'verified_references' => DB::table('payment_claims')
+                    ->selectRaw("string_agg(reference, ', ')")
+                    ->whereColumn('payment_claims.order_id', 'orders.id')
+                    ->where('payment_claims.status', 'verified'),
+            ])
+            ->orderBy('created_at');
+
+        Audit::record($u->id, 'report.exported', 'orders', array_filter($d, fn ($value) => $value !== null));
         $locale = $u->preferredLocale();
+        $col = fn (string $key): string => __('portal.'.$key, [], $locale);
         $headers = [
-            __('portal.csv_col_order', [], $locale),
-            __('portal.csv_col_date_dhaka', [], $locale),
-            __('portal.csv_col_status', [], $locale),
-            __('portal.csv_col_total_bdt', [], $locale),
-            __('portal.csv_col_verified_receipts_bdt', [], $locale),
-            __('portal.csv_col_unpaid_bdt', [], $locale),
+            $col('csv_col_order'),
+            $col('csv_col_date_dhaka'),
+            ...($staff ? [
+                $col('csv_col_dealer_code'),
+                $col('csv_col_name'),
+                $col('csv_col_role'),
+                $col('csv_col_phone'),
+                $col('csv_col_district'),
+                $col('csv_col_division'),
+                $col('csv_col_branch'),
+            ] : []),
+            $col('csv_col_items'),
+            $col('csv_col_status'),
+            $col('csv_col_total_bdt'),
+            $col('csv_col_verified_receipts_bdt'),
+            $col('csv_col_credit_bdt'),
+            $col('csv_col_unpaid_bdt'),
+            $col('csv_col_payment_method'),
+            $col('csv_col_payment_ref'),
         ];
 
-        return response()->streamDownload(function () use ($q, $headers, $locale) {
+        return response()->streamDownload(function () use ($q, $headers, $locale, $staff) {
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
             fputcsv($f, $headers, ',', '"', '');
-            foreach ($q->cursor() as $o) {
-                fputcsv($f, [
+            foreach ($q->lazy(500) as $o) {
+                $buyer = $o->user;
+                fputcsv($f, array_map(SpreadsheetCell::text(...), [
                     $o->number,
                     $o->created_at->timezone('Asia/Dhaka')->format('Y-m-d H:i'),
+                    ...($staff ? [
+                        $buyer?->dealer_code,
+                        $buyer?->name,
+                        $buyer ? $this->localizedCsvEnum('acct_role_'.$buyer->role, (string) $buyer->role, $locale) : '',
+                        $buyer?->phone,
+                        $buyer?->district,
+                        $buyer?->division,
+                        $o->fulfillmentBranch?->name,
+                    ] : []),
+                    (int) ($o->item_quantity ?? 0),
                     $this->localizedCsvEnum('status_'.$o->status, (string) $o->status, $locale),
                     $o->total,
                     $o->paid,
+                    $o->due_credit ?? '0.00',
                     $o->outstanding(),
-                ], ',', '"', '');
+                    $o->verified_channels,
+                    $o->verified_references,
+                ]), ',', '"', '');
             }
             fclose($f);
-        }, 'madina-orders-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
+        }, 'madina-orders-'.now('Asia/Dhaka')->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);
     }
 
     /**
@@ -141,7 +214,7 @@ class ReportController extends Controller
                     ? Carbon::parse($row->created_at)->timezone('Asia/Dhaka')->format('Y-m-d H:i')
                     : '';
                 $rank = $row->current_rank ?: 'dealer';
-                fputcsv($f, [
+                fputcsv($f, array_map(SpreadsheetCell::text(...), [
                     $row->dealer_code,
                     $row->name,
                     $row->phone,
@@ -155,7 +228,7 @@ class ReportController extends Controller
                     $row->depth,
                     $row->lifetime_purchase_total ?? '0.00',
                     $joined,
-                ], ',', '"', '');
+                ]), ',', '"', '');
             }
             fclose($f);
         }, $filename, ['Content-Type' => 'text/csv; charset=utf-8', 'Cache-Control' => 'private, no-store']);

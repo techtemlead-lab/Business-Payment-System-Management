@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import {
-    SlidersHorizontal, Percent, ShieldCheck, AlertTriangle, TrendingUp,
-    TrendingDown, RefreshCw, Play, CheckCircle2, ArrowRight, BarChart3,
-    DollarSign, Info, RotateCcw, Sparkles, Layers
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { usePage } from '@inertiajs/react';
+import { ShieldCheck, AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Play, Sparkles } from 'lucide-react';
 import { money } from './UI';
+import { policyPercent, type PolicyLimits } from './CommissionStudio';
 import { useT } from '../shared/i18n/t';
 
 interface SimulationResult {
     gross_sales_tested: number;
     orders_analyzed_count: number;
+    account_mix?: {
+        dealer_purchase_value: string | number;
+        sub_dealer_purchase_value: string | number;
+    };
     is_synthetic_benchmark: boolean;
     total_proposed_pct: number;
     exceeds_cap: boolean;
@@ -67,16 +69,8 @@ const SLICE_METADATA: Record<string, { labelKey: string; group: 'direct' | 'lead
     car_bike_incentive: { labelKey: 'sim_slice_car_bike_incentive', group: 'leadership', descKey: 'sim_slice_car_bike_incentive_desc' },
 };
 
-const PRESETS = [
-    {
-        nameKey: 'sim_preset_baseline',
-        descKey: 'sim_preset_baseline_desc',
-        rates: {
-            own_dealer_cashback: 5.0, direct_referral: 10.0, d2d_gen2: 2.0, d2d_gen3: 1.0,
-            area_dealer_pool: 10.0, dealer_monthly_salary: 2.0, rank_royalty: 4.0,
-            rank_incentive: 2.0, company_marketing: 2.0, car_bike_incentive: 2.0
-        }
-    },
+/** What-if scenarios. The first button ("current live rates") is built from the live policy below. */
+const SCENARIO_PRESETS: Array<{ nameKey: string; descKey: string; rates: Record<string, number> }> = [
     {
         nameKey: 'sim_preset_conservative',
         descKey: 'sim_preset_conservative_desc',
@@ -108,37 +102,78 @@ const PRESETS = [
 
 export default function CompensationSimulator({
     initialSimulation,
-    activeRules
+    activeRules,
+    limits,
 }: {
     initialSimulation: SimulationResult;
     activeRules: RuleRecord[];
+    limits?: PolicyLimits;
 }) {
     const translate = useT();
+    const { data: pageData } = usePage<any>().props;
+    const policyLimits: PolicyLimits = limits ?? pageData?.policy_limits ?? {};
+    const dealerCap = policyPercent(policyLimits.dealer_pool_cap_pct);
+    const subDealerCap = policyPercent(policyLimits.sub_dealer_pool_cap_pct);
+    const subDealerKeys = policyLimits.sub_dealer_rule_keys ?? [];
+    const notSet = translate('portal', 'policy_value_not_set');
     const [simData, setSimData] = useState<SimulationResult>(initialSimulation);
     const [loading, setLoading] = useState(false);
-    const [rates, setRates] = useState<Record<string, number>>(() => {
-        const initial: Record<string, number> = {};
-        initialSimulation.slices_comparison.forEach(s => {
-            initial[s.key] = s.simulated_pct;
-        });
-        return initial;
-    });
+    const liveRates: Record<string, number> = Object.fromEntries(
+        initialSimulation.slices_comparison.map(slice => [slice.key, slice.baseline_pct]),
+    );
+    const [rates, setRates] = useState<Record<string, number>>(() => Object.fromEntries(
+        initialSimulation.slices_comparison.map(slice => [slice.key, slice.simulated_pct]),
+    ));
+    const presets = [
+        { nameKey: 'sim_preset_current', descKey: 'sim_preset_current_desc', rates: liveRates },
+        ...SCENARIO_PRESETS,
+    ];
 
-    // Real-time sum calculation
-    const totalProposedPct = Object.values(rates).reduce((a, b) => a + (Number(b) || 0), 0);
-    const isExceedingCap = totalProposedPct > 40.0001;
-    const remainingBuffer = Math.max(0, 40.00 - totalProposedPct);
+    // Dealer pool and sub-dealer extras are checked against their own policy limits.
+    const sumRates = (keep: (key: string) => boolean) => Object.entries(rates)
+        .filter(([key]) => keep(key))
+        .reduce((sum, [, value]) => sum + (Number(value) || 0), 0);
+    const totalProposedPct = sumRates(key => !subDealerKeys.includes(key));
+    const subDealerProposedPct = totalProposedPct + sumRates(key => subDealerKeys.includes(key));
+    const isExceedingCap = (dealerCap !== null && totalProposedPct > dealerCap + 0.0001)
+        || (subDealerCap !== null && subDealerProposedPct > subDealerCap + 0.0001);
+    const capBadge = dealerCap === null
+        ? translate('portal', 'sim_cap_not_set')
+        : translate('portal', isExceedingCap ? 'sim_cap_breach_live' : 'sim_cap_ok_live', { pct: dealerCap.toFixed(2) });
+    const retentionFloor = dealerCap === null ? notSet : `${(100 - dealerCap).toFixed(2)}%`;
 
     const handleRateChange = (key: string, value: number) => {
         setRates(prev => ({
             ...prev,
-            [key]: Math.max(0, Math.min(40, Math.round(value * 100) / 100))
+            [key]: Math.max(0, Math.min(dealerCap ?? 100, Math.round(value * 100) / 100))
         }));
     };
 
-    const applyPreset = (preset: typeof PRESETS[0]) => {
-        setRates({ ...preset.rates });
+    const applyPreset = (preset: { rates: Record<string, number> }) => {
+        setRates(prev => ({ ...prev, ...preset.rates }));
     };
+
+    /** Sub-dealer extras are paid only on sub-dealer purchases, the same basis the backend uses. */
+    const basisFor = (key: string) => subDealerKeys.includes(key)
+        ? Number(simData.account_mix?.sub_dealer_purchase_value ?? 0)
+        : simData.gross_sales_tested;
+    const signedMoney = (amount: number) => `${amount > 0 ? '+' : amount < 0 ? '-' : ''}${money(Math.abs(amount))}`;
+    const sliceRows = simData.slices_comparison.map(slice => {
+        const currentSimPct = rates[slice.key] ?? slice.simulated_pct;
+        const simAmount = roundAmount(basisFor(slice.key) * (currentSimPct / 100));
+        return {
+            slice,
+            currentSimPct,
+            simAmount,
+            deltaPct: roundAmount(currentSimPct - slice.baseline_pct),
+            deltaAmount: roundAmount(simAmount - slice.baseline_amount),
+        };
+    });
+    const baselinePoolPct = simData.slices_comparison
+        .filter(slice => !subDealerKeys.includes(slice.key))
+        .reduce((sum, slice) => sum + slice.baseline_pct, 0);
+    const simulatedPayoutTotal = roundAmount(sliceRows.reduce((sum, row) => sum + row.simAmount, 0));
+    const payoutVariance = roundAmount(simulatedPayoutTotal - simData.baseline.total_commissions);
 
     const [error, setError] = useState<string | null>(null);
 
@@ -219,11 +254,11 @@ export default function CompensationSimulator({
                                 background: isExceedingCap ? '#fee2e2' : '#dcfce7',
                                 color: isExceedingCap ? '#b91c1c' : '#15803d'
                             }}>
-                                {isExceedingCap ? <AlertTriangle size={15} /> : <ShieldCheck size={15} />}
-                                {isExceedingCap ? translate('portal','sim_cap_breach') : translate('portal','sim_cap_ok')}
+                                {isExceedingCap || dealerCap === null ? <AlertTriangle size={15} /> : <ShieldCheck size={15} />}
+                                {capBadge}
                             </span>
                             <span style={{ fontSize: '13px', color: '#64748b' }}>
-                                {translate('portal','sim_tested_against',{amount:simData.gross_sales_tested.toLocaleString(),count:String(simData.orders_analyzed_count)})}
+                                {translate('portal','sim_tested_against',{amount:money(simData.gross_sales_tested,{symbol:false}),count:String(simData.orders_analyzed_count)})}
                             </span>
                         </div>
                         <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
@@ -267,17 +302,17 @@ export default function CompensationSimulator({
                             {translate('portal','sim_proposed_pool',{pct:totalProposedPct.toFixed(2)})}
                         </span>
                         <span style={{ color: '#64748b' }}>
-                            {translate('portal','sim_company_retention',{pct:(100 - totalProposedPct).toFixed(2)})}
+                            {translate('portal','sim_company_retention_live',{pct:(100 - totalProposedPct).toFixed(2),floor:retentionFloor})}
                         </span>
                     </div>
                     <div style={{ width: '100%', height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
                         <div style={{
-                            width: `${Math.min(100, (totalProposedPct / 40) * 100 * 0.4)}%`,
+                            width: `${Math.min(100, Math.max(0, totalProposedPct))}%`,
                             background: isExceedingCap ? '#ef4444' : '#059669',
                             transition: 'width 0.2s ease'
                         }} />
                         <div style={{
-                            width: `${Math.max(0, 100 - Math.min(100, (totalProposedPct / 40) * 100 * 0.4))}%`,
+                            width: `${Math.max(0, 100 - Math.min(100, totalProposedPct))}%`,
                             background: '#0284c7'
                         }} />
                     </div>
@@ -300,7 +335,7 @@ export default function CompensationSimulator({
                     {translate('portal','sim_scenarios')}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
-                    {PRESETS.map((p, idx) => (
+                    {presets.map((p, idx) => (
                         <button
                             key={idx}
                             type="button"
@@ -331,7 +366,7 @@ export default function CompensationSimulator({
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_gross_sales')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
-                        ৳{simData.gross_sales_tested.toLocaleString()}
+                        {money(simData.gross_sales_tested)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#047857', fontWeight: 500 }}>
                         {simData.is_synthetic_benchmark ? translate('portal','sim_benchmark') : translate('portal','sim_real_orders')}
@@ -341,10 +376,10 @@ export default function CompensationSimulator({
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_commissions')}</span>
                     <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
-                        ৳{simData.simulated.total_commissions.toLocaleString()}
+                        {money(simData.simulated.total_commissions)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal','sim_baseline',{amount:simData.baseline.total_commissions.toLocaleString()})}
+                        {translate('portal','sim_baseline',{amount:money(simData.baseline.total_commissions,{symbol:false})})}
                     </span>
                 </div>
 
@@ -360,7 +395,7 @@ export default function CompensationSimulator({
                         gap: '6px'
                     }}>
                         {simData.variance.amount > 0 ? <TrendingUp size={22} /> : simData.variance.amount < 0 ? <TrendingDown size={22} /> : null}
-                        {simData.variance.amount > 0 ? '+' : ''}৳{simData.variance.amount.toLocaleString()}
+                        {signedMoney(simData.variance.amount)}
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
                         {translate('portal','sim_vs_baseline',{pct:`${simData.variance.pct > 0 ? '+' : ''}${simData.variance.pct.toFixed(2)}`})}
@@ -373,7 +408,7 @@ export default function CompensationSimulator({
                         {simData.simulated.retention_pct.toFixed(2)}%
                     </div>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal','sim_net_margin',{amount:simData.simulated.company_retention.toLocaleString()})}
+                        {translate('portal','sim_net_margin',{amount:money(simData.simulated.company_retention,{symbol:false})})}
                     </span>
                 </div>
             </div>
@@ -414,7 +449,7 @@ export default function CompensationSimulator({
                                             type="number"
                                             step="0.1"
                                             min="0"
-                                            max="30"
+                                            max={dealerCap ?? 100}
                                             value={currentVal}
                                             onChange={(e) => handleRateChange(key, parseFloat(e.target.value) || 0)}
                                             style={{
@@ -433,7 +468,7 @@ export default function CompensationSimulator({
                                 <input
                                     type="range"
                                     min="0"
-                                    max="20"
+                                    max={dealerCap ?? 100}
                                     step="0.25"
                                     value={currentVal}
                                     onChange={(e) => handleRateChange(key, parseFloat(e.target.value) || 0)}
@@ -482,12 +517,7 @@ export default function CompensationSimulator({
                             </tr>
                         </thead>
                         <tbody>
-                            {simData.slices_comparison.map(slice => {
-                                const currentSimPct = rates[slice.key] ?? slice.simulated_pct;
-                                const simAmount = roundAmount(simData.gross_sales_tested * (currentSimPct / 100));
-                                const deltaPct = roundAmount(currentSimPct - slice.baseline_pct);
-                                const deltaAmount = roundAmount(simAmount - slice.baseline_amount);
-
+                            {sliceRows.map(({ slice, currentSimPct, simAmount, deltaPct, deltaAmount }) => {
                                 return (
                                     <tr key={slice.key} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                         <td style={{ padding: '12px 20px', fontWeight: 600, color: '#1e293b' }}>
@@ -508,10 +538,10 @@ export default function CompensationSimulator({
                                             {deltaPct > 0 ? `+${deltaPct.toFixed(2)}%` : deltaPct < 0 ? `${deltaPct.toFixed(2)}%` : '0.00%'}
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b' }}>
-                                            ৳{slice.baseline_amount.toLocaleString()}
+                                            {money(slice.baseline_amount)}
                                         </td>
                                         <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                                            ৳{simAmount.toLocaleString()}
+                                            {money(simAmount)}
                                         </td>
                                         <td style={{
                                             padding: '12px 20px',
@@ -519,7 +549,7 @@ export default function CompensationSimulator({
                                             fontWeight: 700,
                                             color: deltaAmount > 0 ? '#b91c1c' : deltaAmount < 0 ? '#047857' : '#64748b'
                                         }}>
-                                            {deltaAmount > 0 ? `+৳${deltaAmount.toLocaleString()}` : deltaAmount < 0 ? `-৳${Math.abs(deltaAmount).toLocaleString()}` : '৳0.00'}
+                                            {signedMoney(deltaAmount)}
                                         </td>
                                     </tr>
                                 );
@@ -528,21 +558,21 @@ export default function CompensationSimulator({
                         <tfoot>
                             <tr style={{ background: '#f8fafc', fontWeight: 700, borderTop: '2px solid #e2e8f0' }}>
                                 <td style={{ padding: '14px 20px', color: '#0f172a' }}>{translate('portal','sim_total_pool')}</td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>40.00%</td>
+                                <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>{baselinePoolPct.toFixed(2)}%</td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', color: isExceedingCap ? '#dc2626' : '#047857' }}>
                                     {totalProposedPct.toFixed(2)}%
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: totalProposedPct > 40 ? '#dc2626' : '#047857' }}>
-                                    {(totalProposedPct - 40).toFixed(2)}%
+                                <td style={{ padding: '14px 16px', textAlign: 'right', color: totalProposedPct > baselinePoolPct ? '#dc2626' : '#047857' }}>
+                                    {`${totalProposedPct > baselinePoolPct ? '+' : ''}${(totalProposedPct - baselinePoolPct).toFixed(2)}%`}
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>
-                                    ৳{simData.baseline.total_commissions.toLocaleString()}
+                                    {money(simData.baseline.total_commissions)}
                                 </td>
                                 <td style={{ padding: '14px 16px', textAlign: 'right', color: '#0f172a' }}>
-                                    ৳{roundAmount(simData.gross_sales_tested * (totalProposedPct / 100)).toLocaleString()}
+                                    {money(simulatedPayoutTotal)}
                                 </td>
-                                <td style={{ padding: '14px 20px', textAlign: 'right', color: isExceedingCap ? '#dc2626' : '#047857' }}>
-                                    ৳{roundAmount(simData.gross_sales_tested * ((totalProposedPct - 40) / 100)).toLocaleString()}
+                                <td style={{ padding: '14px 20px', textAlign: 'right', color: payoutVariance > 0 ? '#dc2626' : '#047857' }}>
+                                    {signedMoney(payoutVariance)}
                                 </td>
                             </tr>
                         </tfoot>

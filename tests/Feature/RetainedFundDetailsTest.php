@@ -76,7 +76,7 @@ class RetainedFundDetailsTest extends TestCase
                 ->where('data.benefits_entries.data.0.total_allocated', '48.00')
                 ->where('data.benefits_entries.data.0.division', 'Rangpur')
                 ->where('data.benefits_entries.data.0.district', 'Pirganj')
-                ->where('data.benefits_entries.data.0.reason', 'Purchase surplus from dealer order after company MRP share and the approved commission schedule.'));
+                ->where('data.benefits_entries.data.0.reason', __('portal.retained_reason_benefits_surplus', ['account' => __('portal.retained_account_dealer')])));
     }
 
     public function test_sub_dealer_purchases_post_detailed_unassigned_and_benefits_fund_rows(): void
@@ -138,6 +138,6 @@ class RetainedFundDetailsTest extends TestCase
                 ->where('data.benefits_entries.data.0.amount', '10.00')
                 ->where('data.benefits_entries.data.0.company_share', '60.00')
                 ->where('data.benefits_entries.data.0.total_allocated', '70.00')
-                ->where('data.benefits_entries.data.0.reason', 'Purchase surplus from sub-dealer order after company MRP share and the approved commission schedule.'));
+                ->where('data.benefits_entries.data.0.reason', __('portal.retained_reason_benefits_surplus', ['account' => __('portal.retained_account_sub_dealer')])));
     }
 }

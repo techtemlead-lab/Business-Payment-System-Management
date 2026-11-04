@@ -399,7 +399,18 @@ function initScrollReveal() {
         }
     );
 
+    // Never hide what is already on screen at load: the first view (hero, login card)
+    // must paint immediately, otherwise some browsers show a blank page until the
+    // visitor scrolls. Only content further down fades in.
+    const isInFirstView = (el: HTMLElement): boolean => el.getBoundingClientRect().top < window.innerHeight;
+
     targets.forEach((el) => {
+        if (isInFirstView(el)) {
+            el.classList.remove('ref-reveal-init');
+            el.classList.add('is-revealed');
+
+            return;
+        }
         if (!el.classList.contains('ref-reveal-init')) {
             el.classList.add('ref-reveal-init');
         }
@@ -423,6 +434,11 @@ function initScrollReveal() {
     );
 
     document.querySelectorAll<HTMLElement>('.ref-reveal-card').forEach((card) => {
+        if (isInFirstView(card)) {
+            card.classList.add('is-revealed');
+
+            return;
+        }
         cardObserver.observe(card);
     });
 }
@@ -506,7 +522,16 @@ function initPageProgressNavigation() {
     });
 }
 
+const PORTAL_SUBDOMAINS = ['dealer', 'subdealer', 'manage', 'sadmin'];
+
 function prefetchLikelyNextPages() {
+    // Portal hosts (dealer., manage., ...) reuse this script on their login page, but
+    // /products and /dealers only exist on the public site. Prefetching them there makes
+    // the server remember a missing page as the "after login" destination.
+    if (PORTAL_SUBDOMAINS.includes(window.location.hostname.split('.')[0] ?? '')) {
+        return;
+    }
+
     const run = () => {
         const paths = ['/login', '/products', '/dealers'];
         paths.forEach((path) => {

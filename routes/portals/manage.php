@@ -8,6 +8,7 @@ use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Portals\Manage\DashboardController;
+use App\Support\PortalCatalog;
 use Illuminate\Support\Facades\Route;
 
 $registerCommands = require __DIR__.'/commands.php';
@@ -36,8 +37,8 @@ Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
-    Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt']);
-    Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show']);
+    Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
+    Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
     Route::redirect('/places', '/place-codes', 301);
-    Route::get('/{section?}', [DashboardController::class, 'index']);
+    Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('manage'));
 });

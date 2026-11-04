@@ -56,7 +56,7 @@ class SettlementCreditSmsTest extends TestCase
         $this->assertCount(1, $sent);
         $this->assertSame('commission.settled', $sent[0]['event'] ?? null);
         $this->assertSame('01720000101', $sent[0]['phone'] ?? null);
-        $this->assertStringContainsString('স্যালারি', $sent[0]['message'] ?? '');
+        $this->assertStringContainsString(__('portal.settle_kind_salary', [], 'bn'), $sent[0]['message'] ?? '');
         $this->assertStringContainsString('2026-09', $sent[0]['message'] ?? '');
 
         Config::set('madina.sms.sent', []);

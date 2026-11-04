@@ -858,12 +858,19 @@ class CommandController extends Controller
         $isManageable = in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff();
         abort_unless($isManageable, 404);
 
-        $visible = $user->adminVisiblePassword();
+        // Company policy keeps partner passwords viewable by management, but only
+        // owners (Super Admin, MD, Chairman) may see the actual value. Account
+        // staff can still reset it. Every reveal is written to the audit log.
+        $visible = $r->user()->owner() ? $user->adminVisiblePassword() : null;
+        if ($visible !== null) {
+            Audit::record($r->user()->id, 'account.password_revealed', (string) $user->id, []);
+        }
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => $visible !== null,
+                'owner_only' => $visible === null && ! $r->user()->owner() && $user->adminVisiblePassword() !== null,
                 'password' => $visible,
             ],
         ]);
@@ -1206,6 +1213,9 @@ class CommandController extends Controller
 
     public function supportTicket(Request $r, SupportTickets $tickets): RedirectResponse
     {
+        $r->validate([
+            'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:5120',
+        ]);
         $tickets->create($r->user(), $r->only(['category', 'subject', 'body']), $r->file('attachment'));
 
         return back()->with('success', __('portal.flash_support_ticket_sent'));

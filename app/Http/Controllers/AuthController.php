@@ -25,6 +25,7 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AuthController extends Controller
 {
@@ -102,9 +103,20 @@ class AuthController extends Controller
 
             throw ValidationException::withMessages(['code' => __('portal.flash_otp_sign_in_again')]);
         }
+        // Per-account guard: logging in again must not reset the guess budget.
+        $attemptKey = 'totp-attempts:'.$user->id;
+        if (RateLimiter::tooManyAttempts($attemptKey, 5)) {
+            $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
+            Audit::record($user->id, 'security.totp_locked', 'account');
+
+            throw ValidationException::withMessages(['code' => __('portal.err_totp_locked', [
+                'minutes' => (string) max(1, (int) ceil(RateLimiter::availableIn($attemptKey) / 60)),
+            ])]);
+        }
         $code = trim($data['code']);
         $secret = (string) $user->totp_secret;
         if ($totp->verify($secret, $code)) {
+            RateLimiter::clear($attemptKey);
             $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
 
             return $this->completeLogin($r, $user);
@@ -119,8 +131,11 @@ class AuthController extends Controller
             }
         }
         if ($matchIndex === null) {
+            RateLimiter::hit($attemptKey, 900);
+
             throw ValidationException::withMessages(['code' => __('portal.err_totp_invalid')]);
         }
+        RateLimiter::clear($attemptKey);
         unset($recovery[$matchIndex]);
         $user->forceFill(['totp_recovery_codes' => array_values($recovery)])->save();
         $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
@@ -198,11 +213,26 @@ class AuthController extends Controller
         Audit::record($r->user()->id, 'login', 'account');
         $intended = $r->session()->pull('url.intended');
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
-        if (is_string($intended) && is_string($path) && ! in_array($path, ['/login', '/login/otp', '/login/2fa'], true) && parse_url($intended, PHP_URL_HOST) === $r->getHost()) {
+        if (is_string($intended) && is_string($path) && ! in_array($path, ['/login', '/login/otp', '/login/2fa'], true) && parse_url($intended, PHP_URL_HOST) === $r->getHost() && $this->routeExists($intended)) {
             return redirect($intended);
         }
 
         return redirect('/');
+    }
+
+    /**
+     * Only send people back to a page that exists on this portal; a stale or
+     * prefetched URL must never land a freshly signed-in partner on a 404.
+     */
+    private function routeExists(string $url): bool
+    {
+        try {
+            app('router')->getRoutes()->match(Request::create($url, 'GET'));
+
+            return true;
+        } catch (HttpException) {
+            return false;
+        }
     }
 
     /** Keep the language chosen on the login screen after authentication. */

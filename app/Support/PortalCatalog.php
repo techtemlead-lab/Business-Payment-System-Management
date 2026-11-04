@@ -38,6 +38,23 @@ final class PortalCatalog
         return self::definition($portal)['nav'] ?? [];
     }
 
+    /**
+     * Section names the portal's catch-all `/{section?}` route may match.
+     * Partner portals also serve the staff desk (manage sections) for dealers
+     * with a linked staff role; staff portals accept legacy alias slugs.
+     *
+     * @return list<string>
+     */
+    public static function routeSections(string $portal): array
+    {
+        $sections = self::sections($portal);
+        if (in_array($portal, ['dealer', 'subdealer'], true)) {
+            $sections = [...$sections, ...self::sections('manage')];
+        }
+
+        return array_values(array_unique([...$sections, 'customization', 'capital-flow']));
+    }
+
     public static function allowsSection(string $portal, string $section): bool
     {
         return in_array($section, self::sections($portal), true);

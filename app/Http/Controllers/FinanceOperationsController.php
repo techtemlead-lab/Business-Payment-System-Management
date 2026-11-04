@@ -251,7 +251,7 @@ class FinanceOperationsController extends Controller
                 $writer->openToFile($path);
                 try {
                     $writer->getCurrentSheet()->setName(Str::headline($data['type']))->setSheetView(new SheetView(freezeRow: 2));
-                    $writer->addRow(Row::fromValuesWithStyle(array_map(fn ($v) => Str::headline($v), $report['columns']), (new Style)->withFontBold(true)->withFontColor('FFFFFF')->withBackgroundColor('153D30')));
+                    $writer->addRow(Row::fromValuesWithStyle(array_map(fn ($v) => $this->reportColumnLabel($v), $report['columns']), (new Style)->withFontBold(true)->withFontColor('FFFFFF')->withBackgroundColor('153D30')));
                     $rowCount = 0;
                     foreach ($report['query']->cursor() as $item) {
                         $rowCount++;
@@ -259,20 +259,23 @@ class FinanceOperationsController extends Controller
                         foreach ($report['columns'] as $column) {
                             $value = $item->{$column} ?? '';
                             if (in_array($column, ['status', 'program', 'kind', 'account'], true) || $column === 'category' && $data['type'] === 'commissions') {
-                                $value = Str::headline((string) $value);
+                                $value = $this->reportValueLabel((string) $value);
                             }
                             if ($value !== '' && str_ends_with($column, '_at')) {
                                 $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
                             }
                             if (isset($totals[$column])) {
-                                $totals[$column] += Money::cents((string) ($value === '' ? '0' : $value));
+                                $totals[$column] += $this->signedCents((string) $value);
                             }
                             $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00'))
                                 : (in_array($column, ['quantity', 'dispatched', 'order_count'], true) ? new NumericCell((int) $value) : new StringCell(SpreadsheetCell::text($value)));
                         }
                         $writer->addRow(new Row($cells));
                     }
-                    $writer->addRow(Row::fromValues(array_map(fn ($column) => isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? __('portal.ops_export_total') : ''), $report['columns'])));
+                    $totalStyle = (new Style)->withFontBold(true)->withBackgroundColor('E8F0EC');
+                    $writer->addRow(new Row(array_map(fn ($column) => isset($totals[$column])
+                        ? new NumericCell($totals[$column] / 100, $totalStyle->withFormat('#,##0.00'))
+                        : new StringCell($column === $report['columns'][0] ? __('portal.ops_export_total') : '', $totalStyle), $report['columns'])));
                     $writer->addNewSheetAndMakeItCurrent()->setName(__('portal.ops_export_summary_sheet'));
                     foreach ([
                         ['Madina Natural Health Care'],
@@ -287,7 +290,7 @@ class FinanceOperationsController extends Controller
                         $writer->addRow(Row::fromValues($summaryRow));
                     }
                     foreach ($totals as $column => $amount) {
-                        $writer->addRow(new Row([new StringCell(Str::headline($column)), new NumericCell($amount / 100, (new Style)->withFormat('#,##0.00'))]));
+                        $writer->addRow(new Row([new StringCell($this->reportColumnLabel($column)), new NumericCell($amount / 100, (new Style)->withFormat('#,##0.00'))]));
                     }
                 } finally {
                     $writer->close();
@@ -297,9 +300,10 @@ class FinanceOperationsController extends Controller
                 if ($items->count() > 5000) {
                     throw ValidationException::withMessages(['format' => __('portal.ops_val_pdf_row_limit')]);
                 }
-                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportHeading).'</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
+                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}td.num,th.num{text-align:right;white-space:nowrap}tbody tr:nth-child(even) td{background:#f5f9f7}tfoot th{background:#e8f0ec;color:#153d30}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportHeading).'</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka · '.e(__('portal.ops_export_records')).': '.$items->count().'</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
                 foreach ($report['columns'] as $column) {
-                    $html .= '<th>'.e(Str::headline($column)).'</th>';
+                    $numeric = in_array($column, $report['money'], true);
+                    $html .= '<th'.($numeric ? ' class="num"' : '').'>'.e($this->reportColumnLabel($column)).'</th>';
                 }
                 $html .= '</tr></thead><tbody>';
                 foreach ($items as $item) {
@@ -307,21 +311,27 @@ class FinanceOperationsController extends Controller
                     foreach ($report['columns'] as $column) {
                         $value = (string) ($item->{$column} ?? '');
                         if (in_array($column, ['status', 'program', 'kind', 'account'], true) || $column === 'category' && $data['type'] === 'commissions') {
-                            $value = Str::headline($value);
+                            $value = $this->reportValueLabel($value);
                         }
                         if ($value !== '' && str_ends_with($column, '_at')) {
                             $value = CarbonImmutable::parse($value, 'UTC')->timezone('Asia/Dhaka')->format('d M Y H:i');
                         }
                         if (isset($totals[$column])) {
-                            $totals[$column] += Money::cents($value === '' ? '0' : $value);
+                            $totals[$column] += $this->signedCents((string) $value);
                         }
-                        $html .= '<td>'.e($value).'</td>';
+                        $numeric = in_array($column, $report['money'], true);
+                        if ($numeric && $value !== '') {
+                            $value = $this->signedGrouped($value);
+                        }
+                        $html .= '<td'.($numeric ? ' class="num"' : '').'>'.e($value).'</td>';
                     }
                     $html .= '</tr>';
                 }
                 $html .= '</tbody><tfoot><tr>';
                 foreach ($report['columns'] as $column) {
-                    $html .= '<th>'.e(isset($totals[$column]) ? Money::decimal($totals[$column]) : ($column === $report['columns'][0] ? __('portal.ops_export_total') : '')).'</th>';
+                    $html .= isset($totals[$column])
+                        ? '<th class="num">'.e($this->signedGrouped($this->signedDecimal($totals[$column]))).'</th>'
+                        : '<th>'.e($column === $report['columns'][0] ? __('portal.ops_export_total') : '').'</th>';
                 }
                 $html .= '</tr></tfoot></table><p><small>'.e(__('portal.ops_export_generated_footer', ['when' => $generatedAt])).'</small></p>';
                 $pdf = new Mpdf(['tempDir' => Storage::disk('local')->path('report-exports'), 'format' => 'A4-L', 'default_font' => 'freeserif', 'autoScriptToLang' => true, 'autoLangToFont' => true]);
@@ -360,5 +370,61 @@ class FinanceOperationsController extends Controller
         return $request->expectsJson()
             ? response()->json(['data' => $data, 'message' => __('portal.flash_finance_operation')])
             : back()->with('success', __('portal.flash_finance_operation'));
+    }
+
+    /** Report column header in the viewer's language, e.g. "dealer_code" → "Dealer code". */
+    private function reportColumnLabel(string $column): string
+    {
+        $key = 'portal.rpt_col_'.$column;
+        $label = __($key);
+
+        return $label === $key ? Str::headline($column) : $label;
+    }
+
+    /** Status / kind values in the viewer's language, falling back to a readable label. */
+    private function reportValueLabel(string $value): string
+    {
+        if ($value === '') {
+            return '';
+        }
+        foreach (['portal.status_'.$value, 'portal.rpt_val_'.$value] as $key) {
+            $label = __($key);
+            if ($label !== $key) {
+                return $label;
+            }
+        }
+
+        return Str::headline($value);
+    }
+
+    /** Signed amount in cents; report rows (e.g. reversals) may legitimately be negative. */
+    private function signedCents(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+        $negative = str_starts_with($value, '-');
+        $absolute = ltrim($value, '-+');
+        if (str_contains($absolute, '.')) {
+            [$whole, $fraction] = explode('.', $absolute, 2);
+            $absolute = $whole.'.'.substr($fraction, 0, 2);
+        }
+        $cents = Money::cents($absolute === '' ? '0' : $absolute);
+
+        return $negative ? -$cents : $cents;
+    }
+
+    private function signedDecimal(int $cents): string
+    {
+        return ($cents < 0 ? '-' : '').Money::decimal(abs($cents));
+    }
+
+    /** Lakh-grouped amount for printed reports, keeping a minus sign. */
+    private function signedGrouped(string $value): string
+    {
+        $cents = $this->signedCents($value);
+
+        return ($cents < 0 ? '-' : '').Money::grouped(Money::decimal(abs($cents)));
     }
 }
