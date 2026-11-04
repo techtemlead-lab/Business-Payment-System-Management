@@ -56,7 +56,7 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .portal-logo{width:auto;min-width:80px;max-width:240px;height:80px;display:flex;align-items:center;justify-content:flex-start;border-radius:0;background:transparent;padding:0;box-shadow:none;flex-shrink:0;overflow:visible}
 .portal-logo img{height:100%;max-height:78px;width:auto;max-width:100%;object-fit:contain}
 .app-shell .sidebar-logo{width:100%;height:85px;margin-bottom:20px;background:transparent;border-radius:0;box-shadow:none;padding:0 2px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow:visible}
-.app-shell .sidebar-logo img{height:100%;max-height:78px;width:auto;max-width:54px;object-fit:contain;flex-shrink:0}
+.app-shell .sidebar-logo img{height:54px;width:54px;max-height:54px;max-width:54px;border-radius:50%;object-fit:cover;flex-shrink:0}
 .app-shell .sidebar-logo-mark{margin-left:auto;font-size:40px;font-weight:800;letter-spacing:.04em;line-height:1;flex-shrink:0;color:#f8f1e7;animation:sidebar-logo-mark-shift 7s ease-in-out infinite}
 @keyframes sidebar-logo-mark-shift{0%,100%{color:#f8f1e7}40%{color:#e7c56a}70%{color:#f4f7ff}}
 @media(prefers-reduced-motion:reduce){.app-shell .sidebar-logo-mark{animation:none;color:#f8f1e7}}
@@ -65,7 +65,7 @@ body{font-family:'Instrument Sans',ui-sans-serif,system-ui,sans-serif;background
 .app-shell .pc-code-prefix input{flex:1;width:auto;min-width:0;border:0;border-radius:0;box-shadow:none;background:transparent}
 .app-shell .sidebar.sidebar-premium{padding:10px 10px 8px}
 .app-shell .sidebar.sidebar-premium .sidebar-logo{height:64px;margin:0 0 8px}
-.app-shell .sidebar.sidebar-premium .sidebar-logo img{max-height:54px}
+.app-shell .sidebar.sidebar-premium .sidebar-logo img{height:54px;width:54px;max-height:54px;max-width:54px;border-radius:50%}
 .app-shell .sidebar.sidebar-premium .workspace-label{margin:0 0 6px;padding:6px 8px;font-size:12px;line-height:1.2}
 .app-shell label.sidebar-menu-search{flex-direction:row;align-items:center;gap:6px;height:32px;min-height:32px;margin:0 0 8px;padding:0 10px;border-radius:8px}
 .app-shell label.sidebar-menu-search svg{flex-shrink:0}
