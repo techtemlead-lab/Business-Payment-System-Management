@@ -9,7 +9,9 @@ final class Money
     public static function cents(string|int $value): int
     {
         $value = (string) $value;
-        if (! preg_match('/^\d{1,11}(?:\.\d{1,2})?$/D', $value)) {
+        // Single columns are decimal(14,2). Company totals add many of those rows, so allow
+        // 16 digits. 16 digits times 100 still fits in a signed 64-bit integer.
+        if (! preg_match('/^\d{1,16}(?:\.\d{1,2})?$/D', $value)) {
             throw new InvalidArgumentException('Invalid monetary amount.');
         }
         [$whole,$fraction] = array_pad(explode('.', $value), 2, '');
