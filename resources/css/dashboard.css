@@ -19,6 +19,8 @@
   --ds-accent:#ef4a23;
   --ds-accent-text:#c2410c;
   --ds-accent-soft:#fff0e9;
+  --ds-accent-solid:#cf3b18;   /* marigold fill that carries white text at AA */
+  --ds-on-accent:#ffffff;
   --ds-gold:#d7b45a;
 
   /* Surfaces */
@@ -106,6 +108,8 @@ html[data-theme="dark"]{
   --ds-accent:#f26a45;
   --ds-accent-text:#ff9270;
   --ds-accent-soft:rgba(242,106,69,.15);
+  --ds-accent-solid:#f26a45;
+  --ds-on-accent:#1a0700;
 
   --ds-bg:#0b1220;
   --ds-surface:#121a28;
@@ -2444,8 +2448,8 @@ html[data-theme="dark"] .subdealer-shell{--ds-side-bg:#0c1f19}
 .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected{background:var(--ds-side-active);color:var(--ds-side-strong);font-weight:650;box-shadow:inset 3px 0 0 var(--ds-accent)}
 .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a).selected i{display:none}
 .app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a,.sidebar-domain-pocket a) svg{flex-shrink:0;opacity:.85}
-.app-shell .nav-attention-badge,.app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a).selected .nav-attention-badge{min-width:20px;height:18px;padding:0 6px;border-radius:var(--ds-r-pill);background:var(--ds-accent);color:#fff;font-size:var(--ds-fs-2xs);font-weight:700;line-height:18px}
-html[data-theme="dark"] .app-shell .nav-attention-badge{color:#1a0700}
+.app-shell .nav-attention-badge,.app-shell .sidebar :is(.nav-group a,.nav-mother-body>a,.nav-section-body>a).selected .nav-attention-badge{min-width:20px;height:18px;padding:0 6px;border-radius:var(--ds-r-pill);background:var(--ds-accent-solid);color:var(--ds-on-accent);font-size:var(--ds-fs-2xs);font-weight:700;line-height:18px}
+
 
 /* Sidebar footer */
 .app-shell .sidebar .sidebar-footer{padding-top:10px;border-top:1px solid var(--ds-side-line);margin-top:8px}
@@ -2471,7 +2475,7 @@ html[data-theme="dark"] .app-shell .nav-attention-badge{color:#1a0700}
 .app-shell .header-actions .icon-button:hover,.app-shell .header-actions .theme-toggle:hover{background:var(--ds-surface-2);border-color:var(--ds-line-strong);color:var(--ds-text)}
 .app-shell .header-actions .tour-guide-launcher{color:var(--ds-brand-text)!important}
 .app-shell .header-actions .tour-guide-launcher:hover{background:var(--ds-brand-soft)!important}
-.app-shell .notice-bell-count{top:-5px;right:-5px;min-width:18px;height:18px;line-height:18px;font-size:10px;background:var(--ds-accent);color:#fff;box-shadow:0 0 0 2px var(--ds-surface)}
+.app-shell .notice-bell-count{top:-5px;right:-5px;min-width:18px;height:18px;line-height:18px;font-size:10px;background:var(--ds-accent-solid);color:var(--ds-on-accent);box-shadow:0 0 0 2px var(--ds-surface)}
 .app-shell .language-switcher{padding:2px;gap:2px;border:1px solid var(--ds-line);background:var(--ds-surface);box-shadow:none}
 .app-shell .language-switcher button{min-height:30px;padding:0 10px;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text-muted);border-radius:var(--ds-r-pill)}
 .app-shell .language-switcher button.active{background:var(--ds-navy);color:#fff}
@@ -2575,7 +2579,7 @@ html[data-theme="dark"] .app-shell .language-switcher button.active{background:v
 .app-shell .admin-work-queue ul{gap:6px}
 .app-shell .admin-work-queue li a{grid-template-columns:40px minmax(0,1fr) auto;padding:9px 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text)}
 .app-shell .admin-work-queue li a:hover,.app-shell .admin-work-queue li a:focus-visible{border-color:var(--ds-brand);background:var(--ds-brand-soft)}
-.app-shell .admin-work-queue li strong{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text-faint)}
+.app-shell .admin-work-queue li strong{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text-muted)}
 .app-shell .admin-work-queue li.has-work strong{color:var(--ds-accent-text)}
 .app-shell .admin-work-queue li.has-work a{box-shadow:inset 3px 0 0 var(--ds-accent)}
 .app-shell .admin-work-queue li span{font-size:var(--ds-fs-sm);font-weight:500}
@@ -2784,8 +2788,8 @@ html[data-theme="dark"] [data-tooltip]:hover::after,html[data-theme="dark"] [dat
 .app-shell .portal-header-links b{font-size:var(--ds-fs-sm);font-weight:600}
 .app-shell .portal-header-links small{color:rgba(255,255,255,.62);font-size:var(--ds-fs-2xs)}
 .app-shell .portal-header-links>a:hover{color:#ffb59e}
-.app-shell .portal-header-links>.portal-shop{background:var(--ds-accent);border-radius:var(--ds-r-md);padding:10px 16px;color:#fff}
-.app-shell .portal-header-links>.portal-shop:hover{background:#d93d18;color:#fff}
+.app-shell .portal-header-links>.portal-shop{background:var(--ds-accent-solid);border-radius:var(--ds-r-md);padding:10px 16px;color:var(--ds-on-accent)}
+.app-shell .portal-header-links>.portal-shop:hover{background:var(--ds-accent-text);color:#fff}
 .app-shell .portal-category-nav{background:var(--ds-surface);box-shadow:none;border-bottom:1px solid var(--ds-line)}
 .app-shell .portal-category-nav a{font-size:var(--ds-fs-sm);font-weight:600;color:var(--ds-text-2)}
 .app-shell .portal-category-nav a:hover{color:var(--ds-accent-text)}
@@ -2882,3 +2886,18 @@ html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style
 .company-auth .company-auth-toolbar .language-switcher button{color:#fff;font-size:var(--ds-fs-xs);font-weight:600;min-height:28px;padding:0 12px}
 .company-auth .company-auth-toolbar .language-switcher button.active{background:rgba(255,255,255,.14);color:#fff}
 .company-auth .company-auth-toolbar :is(a,button):focus-visible{outline-color:var(--ds-side-focus)}
+.app-shell .admin-home-stats strong{white-space:nowrap}
+@media(min-width:768px) and (max-width:1279px){.app-shell .admin-home-hero>.admin-home-stats strong{font-size:var(--ds-fs-xl)}.app-shell .admin-home-hero>.admin-home-stats>div{padding:14px 16px}}
+/* Page entry: a quick settle after navigation, not a slow reveal */
+.app-shell .portal-fade-in{animation-duration:.18s}
+.app-shell .portal-fade-in-delayed{animation-duration:.22s;animation-delay:0s}
+/* Owner home profile card: tighter so the KPI board beside it stays dense */
+.app-shell .admin-home-hero .partner-home-profile{gap:6px}
+.app-shell .admin-home-hero .partner-home-avatar{width:60px;height:60px;font-size:24px}
+.app-shell .admin-home-hero .partner-home-profile dl{gap:6px;margin-top:4px}
+.app-shell .admin-home-hero .partner-home-profile h2{font-size:var(--ds-fs-md)}
+/* Tour card pills and tip label in sentence case */
+.onboarding-tour-card :is(.onboarding-tag,strong,b,span){text-transform:none;letter-spacing:0}
+.onboarding-tour-card .onboarding-tag{font-size:var(--ds-fs-2xs);font-weight:600}
+.onboarding-tour-card .onboarding-tag.audience{background:var(--ds-brand-soft);color:var(--ds-brand-text);border-color:transparent}
+.onboarding-spotlight-ring{border-color:var(--ds-accent);border-radius:var(--ds-r-lg)}

@@ -3501,3 +3501,75 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
 }
 
 
+
+/* =========================================================================
+   Public site polish layer
+   Mirrors the portal tokens defined at the top of dashboard.css so the
+   website and the portals share one palette, type stack and focus style.
+   ========================================================================= */
+:root{
+  --ds-navy:#0b1f33;
+  --ds-brand:#006a4e;
+  --ds-brand-hover:#00573f;
+  --ds-brand-soft:#e3f1eb;
+  --ds-brand-text:#00694d;
+  --ds-accent:#ef4a23;
+  --ds-accent-text:#c2410c;
+  --ds-text:#0b1f33;
+  --ds-text-muted:#5b6b7a;
+  --ds-line:#dfe5e0;
+  --ds-focus:#006a4e;
+  --ds-font:'Instrument Sans','Hind Siliguri','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;
+}
+html[data-theme="dark"]{
+  --ds-brand:#2fbf8c;
+  --ds-brand-hover:#4fd0a1;
+  --ds-brand-soft:rgba(47,191,140,.14);
+  --ds-brand-text:#5fd3a8;
+  --ds-bg:#0b1220;
+  --ds-surface:#121a28;
+  --ds-surface-2:#0f1724;
+  --ds-surface-3:#1a2538;
+  --ds-text:#e8eef6;
+  --ds-text-muted:#9aa8b8;
+  --ds-line:#2a3648;
+  --ds-line-soft:#243044;
+  --ds-focus:#5fd3a8;
+}
+
+/* Type: Latin in Instrument Sans, Bangla in Hind Siliguri, roomier Bangla leading */
+body.ref-home,body.ref-home.locale-bn{font-family:var(--ds-font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body.ref-home.locale-bn{line-height:1.65}
+body.ref-home.locale-bn :is(h1,h2,h3){line-height:1.35}
+.ref-home :is(.ref-catalog-mrp,.ref-price,.ref-product-price,.ref-metadata){font-variant-numeric:tabular-nums}
+
+/* Focus: one visible ring; gold on the navy header and bottom bar */
+.ref-home :is(a,button,input,select,textarea,summary):focus-visible{outline:2px solid var(--ds-focus);outline-offset:2px}
+.ref-home :is(.ref-header,.ref-company-bar,.ref-mobile-bottom-nav,.ref-footer,footer) :is(a,button,input):focus-visible{outline-color:#f5c451}
+
+/* Content is visible on arrival: no per-section fade/slide entrances */
+.ref-home .ref-reveal-init,.ref-home .ref-reveal-card{opacity:1;transform:none;transition-property:box-shadow,border-color,background-color,color;will-change:auto}
+
+/* Header logo: the round Madina mark at a size that reads */
+@media(min-width:1024px){
+  .ref-home .ref-header .ref-logo.ref-madina-logo{height:64px}
+  .ref-home .ref-header .ref-logo.ref-madina-logo img{height:60px!important;width:60px!important;max-height:60px!important;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px rgba(255,255,255,.14)}
+}
+
+/* Section labels in sentence case */
+.ref-home .ref-company-eyebrow{text-transform:none;letter-spacing:.01em;font-size:13px;font-weight:600;color:var(--ds-brand-text)}
+
+/* Missing product photo: a quiet placeholder, not a headline */
+.ref-home .ref-detail-card .ref-no-image,.ref-home .ref-no-image{font-size:14px;font-weight:600;letter-spacing:0;color:var(--ds-brand-text);gap:12px}
+.ref-home .ref-no-image i{font-size:32px;opacity:.7}
+
+/* Sign-in: primary action matches the portals */
+.ref-home .ref-auth-submit{background:var(--ds-brand);color:#fff;font-size:14px;border-radius:8px;min-height:46px}
+.ref-home .ref-auth-submit:hover{background:var(--ds-brand-hover);box-shadow:0 8px 20px rgba(0,106,78,.22);transform:none}
+html[data-theme="dark"] .ref-home .ref-auth-submit{color:#04140f}
+.ref-home .ref-auth-card{border:1px solid var(--ds-line)}
+.ref-home .ref-form :is(input,select,textarea):focus{box-shadow:0 0 0 3px rgba(0,106,78,.18)!important;border-color:var(--ds-brand)!important}
+
+@media(prefers-reduced-motion:reduce){
+  .ref-home *,.ref-home *::before,.ref-home *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
