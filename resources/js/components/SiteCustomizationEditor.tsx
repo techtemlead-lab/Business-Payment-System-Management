@@ -2692,10 +2692,10 @@ export function CampaignOffersManager({
                                         <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 8, padding: '12px 16px', marginBottom: 14 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                                                 <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    💰 Money in and offer discount:
+                                                    💰 Offer Price & Discount Summary:
                                                 </span>
                                                 <span style={{ fontSize: 11, background: '#16a34a', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
-                                                    {currentPromoDiscountPct}% Promotional Discount Active
+                                                    {currentPromoDiscountPct}% Offer Discount Active
                                                 </span>
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 8 }}>
@@ -2704,16 +2704,16 @@ export function CampaignOffersManager({
                                                     <strong style={{ fontSize: 14, color: '#334155' }}>৳ {linkedMrp.toLocaleString()}</strong>
                                                 </div>
                                                 <div style={{ background: '#ecfdf5', padding: '8px 12px', borderRadius: 6, border: '1.5px solid #86efac' }}>
-                                                    <span style={{ fontSize: 11, color: '#065f46', display: 'block' }}>Money in (offer price)</span>
+                                                    <span style={{ fontSize: 11, color: '#065f46', display: 'block' }}>Offer Price (Payable)</span>
                                                     <strong style={{ fontSize: 15, color: '#006837' }}>৳ {parsePrice(card.price).toLocaleString()}</strong>
                                                 </div>
                                                 <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: 6, border: '1px solid #fecaca' }}>
-                                                    <span style={{ fontSize: 11, color: '#991b1b', display: 'block' }}>Dealer profit kept</span>
+                                                    <span style={{ fontSize: 11, color: '#991b1b', display: 'block' }}>Dealer Profit / Savings</span>
                                                     <strong style={{ fontSize: 14, color: '#dc2626' }}>৳ {parsePrice(card.save).toLocaleString()}</strong>
                                                 </div>
                                             </div>
                                             <p style={{ margin: 0, fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                                                ℹ️ <strong>Which price is used:</strong> This <strong>{currentPromoDiscountPct}%</strong> promotional discount overrides the product's regular catalog dealer price while listed here. The <strong>৳{parsePrice(card.price).toLocaleString()}</strong> collected from the dealer is recognized as cash inflow. If removed from this section, the product automatically reverts to its catalog price.
+                                                ℹ️ <strong>Pricing rule:</strong> This <strong>{currentPromoDiscountPct}%</strong> offer discount applies instead of the regular dealer price while listed here. The dealer pays <strong>৳{parsePrice(card.price).toLocaleString()}</strong> per unit. Removing this offer restores the regular product price.
                                             </p>
                                         </div>
                                     )}
@@ -2926,7 +2926,7 @@ export function CampaignOffersManager({
                                         <div style={{ background: '#f0f9ff', border: '1.5px solid #7dd3fc', borderRadius: 8, padding: '12px 16px', marginBottom: 14 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                                                 <span style={{ fontSize: 13, fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    📦 Bundle money in and savings:
+                                                    📦 Package Price & Savings Summary:
                                                 </span>
                                                 <span style={{ fontSize: 11, background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
                                                     {bundleItems.length} Products Included
@@ -2938,7 +2938,7 @@ export function CampaignOffersManager({
                                                     <strong style={{ fontSize: 14, color: '#334155' }}>৳ {totalBundleMrp.toLocaleString()}</strong>
                                                 </div>
                                                 <div style={{ background: '#e0f2fe', padding: '8px 12px', borderRadius: 6, border: '1.5px solid #7dd3fc' }}>
-                                                    <span style={{ fontSize: 11, color: '#075985', display: 'block' }}>Bundle money-in price</span>
+                                                    <span style={{ fontSize: 11, color: '#075985', display: 'block' }}>Package Offer Price</span>
                                                     <strong style={{ fontSize: 15, color: '#0369a1' }}>৳ {effectiveBundlePrice.toLocaleString()}</strong>
                                                 </div>
                                                 <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: 6, border: '1px solid #fecaca' }}>
@@ -2947,7 +2947,7 @@ export function CampaignOffersManager({
                                                 </div>
                                             </div>
                                             <p style={{ margin: 0, fontSize: 11, color: '#075985', lineHeight: 1.4 }}>
-                                                ℹ️ <strong>Bundle price:</strong> When ordered, this bundle collects <strong>৳{effectiveBundlePrice.toLocaleString()}</strong> as single unit cash inflow. The individual standalone catalog prices of these products remain untouched.
+                                                ℹ️ <strong>Package pricing:</strong> When ordered, this package charges <strong>৳{effectiveBundlePrice.toLocaleString()}</strong> as a single bundle price. Individual product prices in the product list remain unchanged.
                                             </p>
                                         </div>
                                     )}
