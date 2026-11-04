@@ -45,9 +45,42 @@ html[data-theme="dark"] .profile-menu-panel,
 html[data-theme="dark"] .language-switcher,
 html[data-theme="dark"] .workspace-header,
 html[data-theme="dark"] .glass-header {
+    background: transparent;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .workspace-header::before,
+html[data-theme="dark"] .glass-header::before {
+    background: rgba(18, 26, 40, .94);
+}
+
+html[data-theme="dark"] .branch-workspace-select,
+html[data-theme="dark"] .branch-workspace-menu {
     background: #121a28;
     border-color: #2a3648;
     color: #e8eef6;
+}
+
+html[data-theme="dark"] .branch-workspace-menu button {
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .branch-workspace-menu button[aria-selected="true"] {
+    background: #1e293b;
+    color: #c7d2fe;
+}
+
+html[data-theme="dark"] .retained-detail-tabs button {
+    background: #121a28;
+    border-color: #2a3648;
+    color: #e8eef6;
+}
+
+html[data-theme="dark"] .retained-detail-tabs button.is-active {
+    background: #2e3192;
+    border-color: #2e3192;
+    color: #fff;
 }
 
 html[data-theme="dark"] input,

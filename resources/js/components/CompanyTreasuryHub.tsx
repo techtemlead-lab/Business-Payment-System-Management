@@ -4,7 +4,7 @@ import {
     Building2, Wallet, Landmark, Layers, CheckCircle2, AlertCircle, FileText,
     PieChart, ArrowRight, Store, Users, ShoppingBag
 } from 'lucide-react';
-import { money, date } from './UI';
+import { money, date, label } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface CapitalFlowData {
@@ -116,25 +116,25 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
     const translate = useT();
     if (!rows.length) {
         return (
-            <div style={{ marginTop: 18, border: '1px dashed #cbd5e1', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
+            <div className="retained-detail-table" style={{ border: '1px dashed #cbd5e1', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
                 <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
                 <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>{translate('portal', 'tr_no_detail_entries')}</p>
             </div>
         );
     }
     return (
-        <div style={{ marginTop: 18, border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#ffffff' }}>
+        <div className="retained-detail-table" style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#ffffff' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
                 <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{hint}</p>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <div className="table-wrap">
+                <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                         <tr style={{ textAlign: 'left', color: '#64748b', background: '#fcfcfd' }}>
                             <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_posted')}</th>
                             <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_order')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_buyer')}</th>
+                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'col_partner')}</th>
                             <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'label_location')}</th>
                             <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_purchase_value')}</th>
                             <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_rate')}</th>
@@ -149,7 +149,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
                                 <td style={{ padding: '10px 12px' }}>{row.order_number || '—'}</td>
                                 <td style={{ padding: '10px 12px' }}>
                                     <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.buyer_name || '—'}</div>
-                                    <div style={{ color: '#64748b' }}>{[row.buyer_code, row.buyer_role].filter(Boolean).join(' · ')}</div>
+                                    <div style={{ color: '#64748b' }}>{[row.buyer_code, row.buyer_role ? label(row.buyer_role, translate) : null].filter(Boolean).join(' · ')}</div>
                                 </td>
                                 <td style={{ padding: '10px 12px' }}>
                                     <div>{placeLabel(row)}</div>
@@ -164,6 +164,36 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
                     </tbody>
                 </table>
             </div>
+        </div>
+    );
+}
+
+function RetainedDetailSwitcher({ tables }: { tables: Array<{ id: string; title: string; hint: string; rows: RetainedFundRow[]; amountKey?: 'amount' | 'company_share' }> }) {
+    const [activeId, setActiveId] = useState(tables[0]?.id ?? '');
+    const active = tables.find((table) => table.id === activeId) ?? tables[0];
+    if (!active) {
+        return null;
+    }
+    return (
+        <div className="retained-detail-switcher">
+            <div className="retained-detail-tabs" role="tablist">
+                {tables.map((table) => {
+                    const shortTitle = table.title.split('—')[0].trim();
+                    return (
+                        <button
+                            key={table.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={table.id === active.id}
+                            className={table.id === active.id ? 'is-active' : undefined}
+                            onClick={() => setActiveId(table.id)}
+                        >
+                            {shortTitle}
+                        </button>
+                    );
+                })}
+            </div>
+            <RetainedDetailTable title={active.title} hint={active.hint} rows={active.rows} amountKey={active.amountKey} />
         </div>
     );
 }
@@ -318,58 +348,58 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
             </div>
 
             {/* Top 4 KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="treasury-kpi-grid">
+                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_received')}</span>
                         <ArrowDownRight size={18} color="#059669" />
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#011627', marginTop: 6 }}>
+                    <div className="treasury-kpi-amount" style={{ color: '#011627' }}>
                         {money(grossCash)}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_received_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1.5px solid #006837', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1.5px solid #006837', borderRadius: 10, padding: 18 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>{translate('portal', 'tr_kpi_deposited')}</span>
                         <Landmark size={18} color="#006837" />
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 6 }}>
+                    <div className="treasury-kpi-amount" style={{ color: '#006837' }}>
                         {money(totalCompanyDeposits)}
                     </div>
                     <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'tr_kpi_deposited_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: 10, padding: 18 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                         <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_pool')}</span>
                         <ArrowUpRight size={18} color="#ea580c" />
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#c2410c', marginTop: 6 }}>
+                    <div className="treasury-kpi-amount" style={{ color: '#c2410c' }}>
                         {money(maxPool)}
                     </div>
                     <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>{translate('portal', 'tr_kpi_pool_hint')}</div>
                 </div>
 
                 {ownerBenefitsVisible ? (
-                    <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                             <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_benefits')}</span>
                             <ShieldCheck size={18} color="#2563eb" />
                         </div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 6 }}>
+                        <div className="treasury-kpi-amount" style={{ color: '#1d4ed8' }}>
                             {money(unallocatedBuffer)}
                         </div>
                         <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>{translate('portal', 'tr_kpi_benefits_hint')}</div>
                     </div>
                 ) : (
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                             <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_settled')}</span>
                             <ShieldCheck size={18} color="#94a3b8" />
                         </div>
-                        <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
+                        <div className="treasury-kpi-amount" style={{ color: '#0f172a' }}>
                             {money(Number(flow.settled_disbursements) || 0)}
                         </div>
                         <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_settled_hint')}</div>
@@ -396,14 +426,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
                             {/* Block 1 */}
-                            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#0f172a', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>1</span>
                                     {translate('portal', 'tr_flow_from')}
                                 </div>
-                                <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '12px 0 6px' }}>
                                     {money(grossCash)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
@@ -415,12 +445,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Block 2 */}
-                            <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 18 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#006837', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#006837', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>2</span>
                                     {translate('portal', 'tr_flow_deposit')}
                                 </div>
-                                <div style={{ fontSize: 20, fontWeight: 800, color: '#006837', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#006837', margin: '12px 0 6px' }}>
                                     {money(totalCompanyDeposits)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#166534', margin: 0, lineHeight: 1.5 }}>
@@ -432,12 +462,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Block 3 */}
-                            <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 10, padding: 18 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 10, padding: 18 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9a3412', fontWeight: 700, fontSize: 14 }}>
                                     <span style={{ background: '#ea580c', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>3</span>
                                     {translate('portal', 'tr_flow_spent')}
                                 </div>
-                                <div style={{ fontSize: 20, fontWeight: 800, color: '#9a3412', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#9a3412', margin: '12px 0 6px' }}>
                                     {money(allocated)}
                                 </div>
                                 <p style={{ fontSize: 12, color: '#9a3412', margin: 0, lineHeight: 1.5 }}>
@@ -465,7 +495,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
                             {/* Dealer Wholesale Purchases */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Store size={22} color="#2e3192" />
                                     <div>
@@ -473,7 +503,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_dealer_hint')}</div>
                                     </div>
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#2e3192', marginTop: 14 }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#2e3192', marginTop: 14 }}>
                                     {money(dealerCash)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
@@ -482,7 +512,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Sub-Dealer Orders */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <Users size={22} color="#059669" />
                                     <div>
@@ -490,7 +520,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_subdealer_hint')}</div>
                                     </div>
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', marginTop: 14 }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#059669', marginTop: 14 }}>
                                     {money(subDealerCash)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
@@ -552,12 +582,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                             {/* 60% Operating Retention */}
-                            <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 20 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>{translate('portal', 'tr_dep_operating')}</span>
                                     <Building2 size={20} color="#006837" />
                                 </div>
-                                <div style={{ fontSize: 26, fontWeight: 800, color: '#006837', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#006837', margin: '10px 0 4px' }}>
                                     {money(companyShare)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#166534', margin: 0, lineHeight: 1.5 }}>
@@ -566,12 +596,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* 2% Management Area Share */}
-                            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_mgmt')}</span>
                                     <Landmark size={20} color="#2e3192" />
                                 </div>
-                                <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '10px 0 4px' }}>
                                     {money(mgmtReserve)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
@@ -580,12 +610,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Unassigned Territory Reserve */}
-                            <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
+                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_geo')}</span>
                                     <ShieldCheck size={20} color="#059669" />
                                 </div>
-                                <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '10px 0 4px' }}>
                                     {money(unassignedReserve)}
                                 </div>
                                 <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
@@ -594,38 +624,46 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
                         </div>
 
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_operating')}
-                            hint={translate('portal', 'tr_detail_operating_hint')}
-                            rows={companyShareRows}
-                            amountKey="company_share"
-                        />
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_geo')}
-                            hint={translate('portal', 'tr_detail_geo_hint')}
-                            rows={unassignedRows}
-                        />
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_mgmt')}
-                            hint={translate('portal', 'tr_detail_mgmt_hint')}
-                            rows={managementRows}
-                        />
-                        {ownerBenefitsVisible && (
-                            <RetainedDetailTable
-                                title={translate('portal', 'tr_detail_benefits')}
-                                hint={translate('portal', 'tr_detail_benefits_hint')}
-                                rows={benefitsRows}
-                            />
-                        )}
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_override')}
-                            hint={translate('portal', 'tr_detail_override_hint')}
-                            rows={overrideRows}
-                        />
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_settlement')}
-                            hint={translate('portal', 'tr_detail_settlement_hint')}
-                            rows={settlementRows}
+                        <RetainedDetailSwitcher
+                            tables={[
+                                {
+                                    id: 'operating',
+                                    title: translate('portal', 'tr_detail_operating'),
+                                    hint: translate('portal', 'tr_detail_operating_hint'),
+                                    rows: companyShareRows,
+                                    amountKey: 'company_share',
+                                },
+                                {
+                                    id: 'geo',
+                                    title: translate('portal', 'tr_detail_geo'),
+                                    hint: translate('portal', 'tr_detail_geo_hint'),
+                                    rows: unassignedRows,
+                                },
+                                {
+                                    id: 'mgmt',
+                                    title: translate('portal', 'tr_detail_mgmt'),
+                                    hint: translate('portal', 'tr_detail_mgmt_hint'),
+                                    rows: managementRows,
+                                },
+                                ...(ownerBenefitsVisible ? [{
+                                    id: 'benefits',
+                                    title: translate('portal', 'tr_detail_benefits'),
+                                    hint: translate('portal', 'tr_detail_benefits_hint'),
+                                    rows: benefitsRows,
+                                }] : []),
+                                {
+                                    id: 'override',
+                                    title: translate('portal', 'tr_detail_override'),
+                                    hint: translate('portal', 'tr_detail_override_hint'),
+                                    rows: overrideRows,
+                                },
+                                {
+                                    id: 'settlement',
+                                    title: translate('portal', 'tr_detail_settlement'),
+                                    hint: translate('portal', 'tr_detail_settlement_hint'),
+                                    rows: settlementRows,
+                                },
+                            ]}
                         />
 
                         <div style={{ marginTop: 24 }}>
@@ -674,12 +712,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
                             {/* Commission Disbursements */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_payouts')}</span>
                                     <Wallet size={18} color="#059669" />
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#059669', margin: '8px 0 4px' }}>
                                     {money(settledDisbursements)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
@@ -688,12 +726,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Marketing Fund */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_marketing')}</span>
                                     <PieChart size={18} color="#2e3192" />
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#2e3192', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#2e3192', margin: '8px 0 4px' }}>
                                     {money(marketingFund)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
@@ -702,12 +740,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Car & Bike Incentive Fund */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_vehicle')}</span>
                                     <ShieldCheck size={18} color="#d97706" />
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#d97706', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#d97706', margin: '8px 0 4px' }}>
                                     {money(carBikeFund)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
@@ -716,12 +754,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
 
                             {/* Statutory TDS Tax */}
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
+                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_withholding')}</span>
                                     <FileText size={18} color="#e11d48" />
                                 </div>
-                                <div style={{ fontSize: 22, fontWeight: 800, color: '#e11d48', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount" style={{ color: '#e11d48', margin: '8px 0 4px' }}>
                                     {money(tdsTax)}
                                 </div>
                                 <div style={{ fontSize: 11, color: '#64748b' }}>
@@ -730,15 +768,21 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             </div>
                         </div>
 
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_marketing')}
-                            hint={translate('portal', 'tr_detail_marketing_hint')}
-                            rows={marketingRows}
-                        />
-                        <RetainedDetailTable
-                            title={translate('portal', 'tr_detail_vehicle')}
-                            hint={translate('portal', 'tr_detail_vehicle_hint')}
-                            rows={carBikeRows}
+                        <RetainedDetailSwitcher
+                            tables={[
+                                {
+                                    id: 'marketing',
+                                    title: translate('portal', 'tr_detail_marketing'),
+                                    hint: translate('portal', 'tr_detail_marketing_hint'),
+                                    rows: marketingRows,
+                                },
+                                {
+                                    id: 'vehicle',
+                                    title: translate('portal', 'tr_detail_vehicle'),
+                                    hint: translate('portal', 'tr_detail_vehicle_hint'),
+                                    rows: carBikeRows,
+                                },
+                            ]}
                         />
 
                         {/* Category Allocations Table */}
