@@ -30,6 +30,91 @@ import {
     sectionHref,
 } from '../shared/portalNav';
 
+function BranchWorkspaceSelect({ branches }: { branches: { view?: string; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
+    const translate = useT();
+    const root = useRef<HTMLDivElement>(null);
+    const [open, setOpen] = useState(false);
+    const [pendingId, setPendingId] = useState<string | null>(null);
+    const serverId = branches.view === 'all' ? 'all' : (branches.active_branch_id != null ? String(branches.active_branch_id) : '');
+    const selectedId = pendingId ?? serverId;
+    const selectedName = selectedId === 'all'
+        ? translate('portal', 'branch_view_all')
+        : (branches.branches.find((branch) => String(branch.id) === selectedId)?.name ?? translate('portal', 'branch_select'));
+
+    useEffect(() => {
+        setPendingId(null);
+    }, [serverId]);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+        const closeOnOutside = (event: MouseEvent) => {
+            if (!root.current?.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        };
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', closeOnOutside);
+        document.addEventListener('keydown', closeOnEscape);
+        return () => {
+            document.removeEventListener('mousedown', closeOnOutside);
+            document.removeEventListener('keydown', closeOnEscape);
+        };
+    }, [open]);
+
+    const choose = (id: string) => {
+        setOpen(false);
+        if (id === selectedId) {
+            return;
+        }
+        setPendingId(id);
+        const visit = { preserveScroll: true, onError: () => setPendingId(null) };
+        if (id === 'all') {
+            router.post('/commands/branches/view-all', {}, visit);
+            return;
+        }
+        router.post(`/commands/branches/${id}/select`, {}, visit);
+    };
+
+    return (
+        <div className="branch-workspace-select" ref={root}>
+            <button
+                type="button"
+                className="branch-workspace-trigger"
+                aria-label={translate('portal', 'branch_select')}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                onClick={() => setOpen((value) => !value)}
+            >
+                <Store size={14} aria-hidden="true" />
+                <span>{selectedName}</span>
+                <ChevronDown size={14} aria-hidden="true" />
+            </button>
+            {open && (
+                <ul className="branch-workspace-menu" role="listbox" aria-label={translate('portal', 'branch_select')}>
+                    <li>
+                        <button type="button" role="option" aria-selected={selectedId === 'all'} onClick={() => choose('all')}>
+                            {translate('portal', 'branch_view_all')}
+                        </button>
+                    </li>
+                    {branches.branches.map((branch) => (
+                        <li key={branch.id}>
+                            <button type="button" role="option" aria-selected={selectedId === String(branch.id)} onClick={() => choose(String(branch.id))}>
+                                {branch.name}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+}
+
 const icons: Record<string, LucideIcon> = {
     'field-sales': MapPin, 'staff-operations': UserCheck, payroll: Coins, 'my-payroll': Wallet,
     'payment-accounts': Landmark, 'policy-schedules': Percent, 'reserve-payouts': Award,
@@ -45,6 +130,7 @@ const icons: Record<string, LucideIcon> = {
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare,
+    finance: Landmark, payouts: Wallet,
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
@@ -385,7 +471,7 @@ export default function Shell({ section, children, action }: { section: string; 
         const key = `${domainId}:${entry.id}`;
         const hasActive = entry.items.some((item) => isNavItemActive(item, section, locationSearch));
         const badge = motherBadge(entry.items);
-        const Icon = icons[entry.items[0]] || LayoutDashboard;
+        const Icon = icons[entry.id] || icons[entry.items[0]] || LayoutDashboard;
         const label = translate('portal', entry.labelKey);
 
         if (entry.items.length === 1 && !searchingMenu) {
@@ -678,29 +764,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         <b>{currentSectionTitle}</b>
                     </div>
                     {staff && workspaceBranches?.branches?.length > 0 && (
-                        <label className="branch-workspace-select">
-                            <Store size={14} aria-hidden="true" />
-                            <select
-                                aria-label={translate('portal', 'branch_select')}
-                                value={workspaceBranches.view === 'all' ? 'all' : (workspaceBranches.active_branch_id != null ? String(workspaceBranches.active_branch_id) : '')}
-                                onChange={(e) => {
-                                    const id = e.target.value;
-                                    if (!id) {
-                                        return;
-                                    }
-                                    if (id === 'all') {
-                                        router.post('/commands/branches/view-all', {}, { preserveScroll: true });
-                                        return;
-                                    }
-                                    router.post(`/commands/branches/${id}/select`, {}, { preserveScroll: true });
-                                }}
-                            >
-                                <option value="all">{translate('portal', 'branch_view_all')}</option>
-                                {workspaceBranches.branches.map((branch: any) => (
-                                    <option key={branch.id} value={String(branch.id)}>{branch.name}</option>
-                                ))}
-                            </select>
-                        </label>
+                        <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
                     <div className="header-actions" data-tour="header-actions">
                         <ThemeToggle compact />

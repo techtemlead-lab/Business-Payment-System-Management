@@ -309,10 +309,15 @@ function staffNavigation(staffAvailable: Set<string>): {
             ])),
             mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [
-                'treasury', 'payments', 'withdrawals', 'payment-accounts', 'ledger', 'dues-adjustments', 'benefits-fund',
-                'policy-schedules', 'commission-holds', 'settlements', 'rewards', 'payouts-hub', 'reserve-payouts',
-                'finance-settings', 'financial-readiness',
+                'treasury', 'payment-accounts', 'ledger', 'dues-adjustments', 'financial-readiness', 'finance-settings',
             ])),
+            mother('payouts', 'nav_module_payouts', pick(staffAvailable, [
+                'withdrawals', 'payouts-hub', 'payments', 'settlements', 'reserve-payouts',
+            ])),
+            mother('commissions', 'nav_module_commissions', pick(staffAvailable, [
+                'policy-schedules', 'commission-holds', 'rewards',
+            ])),
+            mother('benefits-fund', 'benefits_fund', pick(staffAvailable, ['benefits-fund'])),
             mother('people', 'nav_module_people', pick(staffAvailable, [
                 'employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management',
             ])),
