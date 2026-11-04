@@ -21,7 +21,7 @@ class ActiveAccountLocaleTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertRedirect()
             ->assertSessionHasErrors([
-                'email' => 'এই অ্যাকাউন্ট উপলব্ধ নয়। কোম্পানির সাথে যোগাযোগ করুন।',
+                'email' => __('auth_ui.account_unavailable_contact', [], 'bn'),
             ]);
     }
 
@@ -35,6 +35,6 @@ class ActiveAccountLocaleTest extends TestCase
 
         $this->actingAs($dealer)->onPortal('dealer')->getJson('/api/v1/me')
             ->assertForbidden()
-            ->assertJsonFragment(['message' => 'এই অ্যাকাউন্ট উপলব্ধ নয়।']);
+            ->assertJsonFragment(['message' => __('auth_ui.account_unavailable', [], 'bn')]);
     }
 }

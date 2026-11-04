@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Domain\Orders\OrderService;
+use App\Models\BranchProductStock;
+use App\Models\CommissionAllocation;
+use App\Models\CompanyBranch;
+use App\Models\OrderLine;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,7 +42,7 @@ class OrderServiceLocaleTest extends TestCase
             $this->fail('Expected ValidationException for invalid status');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'অনুমোদিত, হোল্ড বা প্রত্যাখ্যাত বেছে নিন।',
+                __('portal.err_order_status_choice', [], 'bn'),
                 $exception->errors()['status'][0] ?? null,
             );
         }
@@ -126,5 +130,53 @@ class OrderServiceLocaleTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('errors.tracking.0', __('portal.err_dispatch_tracking', [], 'bn'));
+    }
+
+    public function test_order_and_product_relationships_are_properly_bound(): void
+    {
+        $branch = CompanyBranch::factory()->create();
+        $product = Product::create([
+            'sku' => 'REL-'.Str::random(6),
+            'name' => 'Relation Product',
+            'category' => 'Test',
+            'mrp' => '500.00',
+            'dealer_price' => '350.00',
+            'stock' => 50,
+        ]);
+        $stock = BranchProductStock::create([
+            'branch_id' => $branch->id,
+            'product_id' => $product->id,
+            'quantity' => 15,
+        ]);
+
+        $this->assertTrue($product->branchStocks->contains($stock));
+        $this->assertEquals($product->id, $stock->product->id);
+
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        $order = app(OrderService::class)->create($dealer, [
+            'items' => [['product_id' => $product->id, 'quantity' => 2]],
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+
+        /** @var OrderLine $line */
+        $line = $order->lines()->first();
+        $this->assertNotNull($line);
+        $this->assertEquals($order->id, $line->order->id);
+        $this->assertEquals($product->id, $line->product->id);
+
+        $allocation = CommissionAllocation::create([
+            'order_id' => $order->id,
+            'user_id' => $dealer->id,
+            'category' => 'dealer_margin',
+            'rate_percentage' => 10.00,
+            'cash_basis' => 700.00,
+            'amount' => 70.00,
+            'status' => 'available',
+        ]);
+
+        $this->assertTrue($order->allocations->contains($allocation));
+        $this->assertCount(0, $order->paymentClaims);
+        $this->assertCount(0, $order->receipts);
+        $this->assertCount(0, $order->shipments);
     }
 }
