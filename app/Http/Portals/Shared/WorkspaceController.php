@@ -648,10 +648,7 @@ class WorkspaceController extends Controller
                 'commission' => Money::decimal(Money::cents((string) collect($data['earnings'])->sum(fn ($row) => (float) $row['amount']))),
             ];
             $data['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $u->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
-            $data['withdrawals'] = DB::table('withdrawals')
-                ->when(! in_array($portal, ['manage', 'sadmin'], true), fn ($q) => $q->where('user_id', $u->id))
-                ->latest()
-                ->paginate(20, ['id', 'amount', 'channel', 'status', 'reason', 'created_at']);
+            $data['withdrawals'] = $this->withdrawalHistory($r, $u, $portal, $section === 'withdrawals');
             if (in_array($u->role, ['dealer', 'sub_dealer'], true) && $section === 'earnings') {
                 $data['wallet_statement'] = app(PartnerWalletStatement::class)->for($u, $earningsFrom, $earningsTo);
             }
@@ -1423,6 +1420,107 @@ class WorkspaceController extends Controller
                 'rejected' => (int) ($counts->rejected ?? 0),
             ],
         ];
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    private function withdrawalHistory(Request $r, User $u, string $portal, bool $applyFilters): LengthAwarePaginator
+    {
+        $staff = in_array($portal, ['manage', 'sadmin'], true);
+        $query = DB::table('withdrawals')
+            ->join('users', 'users.id', '=', 'withdrawals.user_id')
+            ->when(! $staff, fn ($rows) => $rows->where('withdrawals.user_id', $u->id))
+            ->select([
+                'withdrawals.id',
+                'withdrawals.amount',
+                'withdrawals.withheld_amount',
+                'withdrawals.net_amount',
+                'withdrawals.channel',
+                'withdrawals.destination',
+                'withdrawals.status',
+                'withdrawals.reason',
+                'withdrawals.payment_reference',
+                'withdrawals.paid_at',
+                'withdrawals.created_at',
+                'users.name',
+                'users.dealer_code',
+                'users.role',
+                'users.phone',
+                'users.district',
+                'users.division',
+            ]);
+
+        if ($applyFilters) {
+            if ($r->filled('q')) {
+                $term = '%'.$r->string('q')->toString().'%';
+                $query->where(function ($rows) use ($term): void {
+                    $rows->where('users.name', 'like', $term)
+                        ->orWhere('users.dealer_code', 'like', $term)
+                        ->orWhere('users.phone', 'like', $term)
+                        ->orWhere('withdrawals.payment_reference', 'like', $term)
+                        ->orWhere('withdrawals.reason', 'like', $term);
+                });
+            }
+            if ($staff && $r->filled('buyer_role')) {
+                $query->where('users.role', $r->string('buyer_role')->toString());
+            }
+            $status = $r->string('status')->toString();
+            if (in_array($status, ['requested', 'approved', 'rejected', 'paid'], true)) {
+                $query->where('withdrawals.status', $status);
+            }
+            $channel = $r->string('channel')->toString();
+            if (in_array($channel, PaymentAccounts::channels(), true)) {
+                $query->where('withdrawals.channel', $channel);
+            }
+            $range = $this->orderCreatedRange(
+                $r->string('period')->toString(),
+                $r->filled('from') ? $r->string('from')->toString() : null,
+                $r->filled('to') ? $r->string('to')->toString() : null,
+            );
+            if ($range !== null) {
+                $query->where('withdrawals.created_at', '>=', $range['from'])
+                    ->where('withdrawals.created_at', '<=', $range['until']);
+            }
+        }
+
+        return $query->latest('withdrawals.created_at')->paginate(20)->withQueryString()->through(fn (object $row): array => [
+            'id' => $row->id,
+            'amount' => $row->amount,
+            'withheld_amount' => $row->withheld_amount,
+            'net_amount' => $row->net_amount,
+            'channel' => $row->channel,
+            'destination_masked' => $this->maskedDestination(is_string($row->destination) ? $row->destination : null),
+            'status' => $row->status,
+            'reason' => $row->reason,
+            'payment_reference' => $row->payment_reference,
+            'paid_at' => $row->paid_at,
+            'created_at' => $row->created_at,
+            'name' => $row->name,
+            'dealer_code' => $row->dealer_code,
+            'role' => $row->role,
+            'phone' => $row->phone,
+            'district' => $row->district,
+            'division' => $row->division,
+        ]);
+    }
+
+    private function maskedDestination(?string $encrypted): ?string
+    {
+        if ($encrypted === null || $encrypted === '') {
+            return null;
+        }
+        try {
+            $plain = (string) decrypt($encrypted);
+        } catch (\Throwable) {
+            return null;
+        }
+        if ($plain === '') {
+            return null;
+        }
+        $visible = mb_substr($plain, -4);
+
+        return str_repeat('•', max(0, mb_strlen($plain) - 4)).$visible;
     }
 
     /**
