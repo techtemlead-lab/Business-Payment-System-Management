@@ -1,6 +1,6 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {Link,useForm,usePage} from '@inertiajs/react';
-import {ArrowUpRight, X,Inbox} from 'lucide-react';
+import {ArrowUpRight, X, Inbox, ArrowUpDown, ArrowUp, ArrowDown, RotateCcw, ChevronLeft, ChevronRight} from 'lucide-react';
 import {actionAllowed} from './action-permissions';
 import {businessDate, businessTodayIso, isPastBusinessDate} from '../business-date';
 import {useT} from '../shared/i18n/t';
@@ -59,21 +59,381 @@ function rowSearchText(value:unknown,depth=0):string{
  if(typeof value==='object')return Object.values(value as Record<string,unknown>).map(item=>rowSearchText(item,depth+1)).join(' ');
  return '';
 }
-export function Table<T extends Row = any>({rows,columns,empty,emptyBody,tools=true}:{rows:T[],columns:{key:string,title:string,render?:(row:any)=>React.ReactNode}[],empty?:string,emptyBody?:string,tools?:boolean}){
- const translate=useT();
- const [query,setQuery]=useState('');
- const [status,setStatus]=useState('');
- const statuses=useMemo(()=>[...new Set(rows.map(row=>typeof (row as Row).status==='string'?(row as Row).status as string:'').filter(Boolean))],[rows]);
- const visible=useMemo(()=>{
-  const needle=query.trim().toLowerCase();
-  return rows.filter(row=>{
-   if(status&&String((row as Row).status??'')!==status)return false;
-   if(!needle)return true;
+
+export type TableColumn<T extends Row = any> = {
+ key: string;
+ title?: string;
+ header?: string;
+ render?: (row: T, index: number) => React.ReactNode;
+ sortable?: boolean;
+ sortValue?: (row: T) => any;
+ align?: 'left' | 'center' | 'right';
+ className?: string;
+ width?: string | number;
+};
+
+export interface CustomTableFilter {
+ key: string;
+ label: string;
+ options: { value: string; label: string }[];
+}
+
+export interface TableProps<T extends Row = any> {
+ rows?: T[];
+ data?: T[];
+ columns: TableColumn<T>[];
+ empty?: string;
+ emptyMessage?: string;
+ emptyBody?: string;
+ tools?: boolean;
+ defaultSortKey?: string;
+ defaultSortDir?: 'asc' | 'desc';
+ pageSize?: number;
+ searchPlaceholder?: string;
+ filters?: CustomTableFilter[];
+ extraTools?: React.ReactNode;
+ onRowClick?: (row: T, index: number) => void;
+ rowClassName?: (row: T, index: number) => string | undefined;
+ rowStyle?: (row: T, index: number) => React.CSSProperties | undefined;
+}
+
+function getSortValue(row: any, key: string, col?: TableColumn<any>): any {
+ if (col?.sortValue) {
+  try {
+   return col.sortValue(row);
+  } catch {
+   // fallback
+  }
+ }
+ if (row == null) return undefined;
+ if (row[key] !== undefined) return row[key];
+ if (key.includes('.')) {
+  return key.split('.').reduce((acc, part) => acc?.[part], row);
+ }
+ return undefined;
+}
+
+function compareTableValues(a: any, b: any, dir: 'asc' | 'desc'): number {
+ if (a === b) return 0;
+ if (a == null || a === '') return 1;
+ if (b == null || b === '') return -1;
+
+ if (typeof a === 'boolean' && typeof b === 'boolean') {
+  const diff = a === b ? 0 : a ? 1 : -1;
+  return dir === 'desc' ? -diff : diff;
+ }
+
+ const parseNum = (val: any): number => {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+   const trimmed = val.trim();
+   if (/^[\s৳$€£,.\d+-]+%?$/.test(trimmed) && /\d/.test(trimmed)) {
+    const clean = trimmed.replace(/[^0-9.-]/g, '');
+    const parsed = Number(clean);
+    if (!Number.isNaN(parsed)) return parsed;
+   }
+  }
+  return NaN;
+ };
+
+ const numA = parseNum(a);
+ const numB = parseNum(b);
+ if (!Number.isNaN(numA) && !Number.isNaN(numB)) {
+  const diff = numA - numB;
+  return dir === 'desc' ? -diff : diff;
+ }
+
+ if (typeof a === 'string' && typeof b === 'string' && /^\d{4}-\d{2}-\d{2}/.test(a) && /^\d{4}-\d{2}-\d{2}/.test(b)) {
+  const dateA = Date.parse(a);
+  const dateB = Date.parse(b);
+  if (!Number.isNaN(dateA) && !Number.isNaN(dateB)) {
+   const diff = dateA - dateB;
+   return dir === 'desc' ? -diff : diff;
+  }
+ }
+
+ const strA = String(a).toLowerCase();
+ const strB = String(b).toLowerCase();
+ const cmp = strA.localeCompare(strB, undefined, { numeric: true, sensitivity: 'base' });
+ return dir === 'desc' ? -cmp : cmp;
+}
+
+export function Table<T extends Row = any>({
+ rows,
+ data,
+ columns,
+ empty,
+ emptyMessage,
+ emptyBody,
+ tools = true,
+ defaultSortKey,
+ defaultSortDir,
+ pageSize,
+ searchPlaceholder,
+ filters,
+ extraTools,
+ onRowClick,
+ rowClassName,
+ rowStyle,
+}: TableProps<T>){
+ const translate = useT();
+ const list = rows ?? data ?? [];
+ const emptyTitle = empty ?? emptyMessage;
+ const [query, setQuery] = useState('');
+ const [status, setStatus] = useState('');
+ const [customFilters, setCustomFilters] = useState<Record<string, string>>({});
+ const [sortKey, setSortKey] = useState<string | null>(defaultSortKey ?? null);
+ const [sortDir, setSortDir] = useState<'asc' | 'desc' | null>(defaultSortDir ?? null);
+ const [currentPage, setCurrentPage] = useState(1);
+ const [clientPageSize, setClientPageSize] = useState<number | null>(pageSize ?? null);
+
+ const statuses = useMemo(() => [
+  ...new Set(list.map(row => typeof (row as Row).status === 'string' ? (row as Row).status as string : '').filter(Boolean))
+ ], [list]);
+
+ const handleHeaderClick = (colKey: string, isSortable: boolean) => {
+  if (!isSortable) return;
+  if (sortKey !== colKey) {
+   setSortKey(colKey);
+   setSortDir('asc');
+  } else if (sortDir === 'asc') {
+   setSortDir('desc');
+  } else {
+   setSortKey(null);
+   setSortDir(null);
+  }
+ };
+
+ const filtered = useMemo(() => {
+  const needle = query.trim().toLowerCase();
+  return list.filter(row => {
+   if (status && String((row as Row).status ?? '') !== status) return false;
+   for (const [fKey, fVal] of Object.entries(customFilters)) {
+    if (fVal && String((row as Row)[fKey] ?? '') !== fVal) return false;
+   }
+   if (!needle) return true;
    return rowSearchText(row).toLowerCase().includes(needle);
   });
- },[query,rows,status]);
- const body=visible.length?visible.map((r,i)=><tr key={(r as any).id??i}>{columns.map(c=><td key={c.key}>{c.render?c.render(r):String((r as any)[c.key]??'—')}</td>)}</tr>):<tr><td colSpan={columns.length}><Empty title={rows.length?translate('portal','table_no_matches'):empty} body={rows.length?translate('portal','table_no_matches_hint'):emptyBody}/></td></tr>;
- return <div className="table-block">{tools&&<div className="table-tools"><input type="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder={translate('portal','table_search')} aria-label={translate('portal','table_search')}/>{statuses.length>1&&<select aria-label={translate('portal','table_status')} value={status} onChange={e=>setStatus(e.target.value)}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}</div>}<div className="table-wrap"><table><thead><tr>{columns.map(c=><th key={c.key}>{c.title}</th>)}</tr></thead><tbody>{body}</tbody></table></div></div>;
+ }, [query, list, status, customFilters]);
+
+ const sorted = useMemo(() => {
+  if (!sortKey || !sortDir) return filtered;
+  const col = columns.find(c => c.key === sortKey);
+  return [...filtered].sort((left, right) => {
+   const valL = getSortValue(left, sortKey, col);
+   const valR = getSortValue(right, sortKey, col);
+   return compareTableValues(valL, valR, sortDir);
+  });
+ }, [filtered, sortKey, sortDir, columns]);
+
+ const activePageSize = clientPageSize;
+ const totalPages = activePageSize ? Math.ceil(sorted.length / activePageSize) : 1;
+ const pagedRows = useMemo(() => {
+  if (!activePageSize || activePageSize >= sorted.length) return sorted;
+  const start = (currentPage - 1) * activePageSize;
+  return sorted.slice(start, start + activePageSize);
+ }, [sorted, activePageSize, currentPage]);
+
+ const hasActiveFilters = Boolean(query || status || Object.values(customFilters).some(Boolean) || sortKey);
+
+ const resetFilters = () => {
+  setQuery('');
+  setStatus('');
+  setCustomFilters({});
+  setSortKey(defaultSortKey ?? null);
+  setSortDir(defaultSortDir ?? null);
+  setCurrentPage(1);
+ };
+
+ const body = pagedRows.length ? pagedRows.map((r, i) => (
+  <tr
+   key={(r as any).id ?? (r as any).row_key ?? i}
+   onClick={onRowClick ? () => onRowClick(r, i) : undefined}
+   className={rowClassName ? rowClassName(r, i) : undefined}
+   style={rowStyle ? rowStyle(r, i) : (onRowClick ? { cursor: 'pointer' } : undefined)}
+  >
+   {columns.map(c => (
+    <td
+     key={c.key}
+     style={{ textAlign: c.align ?? 'left' }}
+     className={c.className}
+    >
+     {c.render ? c.render(r, i) : String((r as any)[c.key] ?? '—')}
+    </td>
+   ))}
+  </tr>
+ )) : (
+  <tr>
+   <td colSpan={columns.length}>
+    <Empty
+     title={list.length ? translate('portal', 'table_no_matches') : emptyTitle}
+     body={list.length ? translate('portal', 'table_no_matches_hint') : emptyBody}
+    />
+   </td>
+  </tr>
+ );
+
+ return (
+  <div className="table-block">
+   {tools && (
+    <div className="table-tools">
+     <input
+      type="search"
+      value={query}
+      onChange={e => { setQuery(e.target.value); setCurrentPage(1); }}
+      placeholder={searchPlaceholder ?? translate('portal', 'table_search')}
+      aria-label={searchPlaceholder ?? translate('portal', 'table_search')}
+     />
+     {statuses.length > 1 && (
+      <select
+       aria-label={translate('portal', 'table_status')}
+       value={status}
+       onChange={e => { setStatus(e.target.value); setCurrentPage(1); }}
+      >
+       <option value="">{translate('portal', 'table_all')}</option>
+       {statuses.map(item => (
+        <option key={item} value={item}>{label(item, translate)}</option>
+       ))}
+      </select>
+     )}
+     {filters?.map(f => (
+      <select
+       key={f.key}
+       aria-label={f.label}
+       value={customFilters[f.key] ?? ''}
+       onChange={e => {
+        setCustomFilters(prev => ({ ...prev, [f.key]: e.target.value }));
+        setCurrentPage(1);
+       }}
+      >
+       <option value="">{f.label}</option>
+       {f.options.map(opt => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+       ))}
+      </select>
+     ))}
+     {hasActiveFilters && (
+      <button
+       type="button"
+       className="button small"
+       style={{ padding: '4px 8px', fontSize: 11, height: 32, minHeight: 32, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+       onClick={resetFilters}
+       title={translate('portal', 'table_clear_filters')}
+      >
+       <RotateCcw size={12} />
+       <span>{translate('portal', 'clear')}</span>
+      </button>
+     )}
+     {extraTools}
+     <span className="table-count-badge">
+      {translate('portal', 'table_showing_count', {
+       shown: String(sorted.length),
+       total: String(list.length),
+      })}
+     </span>
+    </div>
+   )}
+   <div className="table-wrap">
+    <table>
+     <thead>
+      <tr>
+       {columns.map(c => {
+        const colHeading = c.title ?? c.header ?? '';
+        const isSortable = c.sortable ?? (c.key !== 'action' && c.key !== 'actions' && (colHeading.trim() !== ''));
+        const isSorted = sortKey === c.key;
+        return (
+         <th
+          key={c.key}
+          style={{
+           textAlign: c.align ?? 'left',
+           width: c.width,
+           cursor: isSortable ? 'pointer' : 'default',
+           userSelect: isSortable ? 'none' : 'auto',
+          }}
+          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.className ?? ''}`}
+          onClick={() => handleHeaderClick(c.key, isSortable)}
+          aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+         >
+          {isSortable ? (
+           <span
+            className="table-sort-trigger"
+            style={{
+             justifyContent: c.align === 'right' ? 'flex-end' : c.align === 'center' ? 'center' : 'flex-start',
+            }}
+            title={
+             isSorted
+              ? (sortDir === 'asc' ? translate('portal', 'table_sort_desc') : translate('portal', 'table_sort_reset'))
+              : translate('portal', 'table_sort_asc')
+            }
+           >
+            <span>{colHeading}</span>
+            <span className="table-sort-icon" aria-hidden="true" style={{ opacity: isSorted ? 1 : 0.35 }}>
+             {isSorted ? (
+              sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+             ) : (
+              <ArrowUpDown size={12} />
+             )}
+            </span>
+           </span>
+          ) : (
+           colHeading
+          )}
+         </th>
+        );
+       })}
+      </tr>
+     </thead>
+     <tbody>{body}</tbody>
+    </table>
+   </div>
+   {activePageSize && totalPages > 1 && (
+    <div className="table-client-pagination">
+     <span>
+      {translate('portal', 'pagination_summary', {
+       page: String(currentPage),
+       pages: String(totalPages),
+       total: String(sorted.length),
+      })}
+     </span>
+     <div className="page-btns">
+      <button
+       type="button"
+       className="page-btn"
+       disabled={currentPage <= 1}
+       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+       aria-label={translate('portal', 'pagination_previous')}
+      >
+       <ChevronLeft size={14} />
+      </button>
+      <span>{currentPage} / {totalPages}</span>
+      <button
+       type="button"
+       className="page-btn"
+       disabled={currentPage >= totalPages}
+       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+       aria-label={translate('portal', 'pagination_next')}
+      >
+       <ChevronRight size={14} />
+      </button>
+      <select
+       className="page-size-select"
+       value={activePageSize}
+       onChange={e => {
+        const val = Number(e.target.value);
+        setClientPageSize(val);
+        setCurrentPage(1);
+       }}
+       aria-label={translate('portal', 'table_rows_per_page')}
+      >
+       {[10, 15, 25, 50, 100].map(sz => (
+        <option key={sz} value={sz}>{sz} / page</option>
+       ))}
+      </select>
+     </div>
+    </div>
+   )}
+  </div>
+ );
 }
 export function Pagination({page}:{page?:Row}){
  const translate=useT();

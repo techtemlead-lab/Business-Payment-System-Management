@@ -1987,5 +1987,93 @@ dialog.portal-modal::backdrop{
 .retained-detail-tabs button.is-active{background:#2e3192;border-color:#2e3192;color:#fff}
 .retained-detail-switcher .retained-detail-table{margin-top:0}
 
+/* Table sorting and enhanced controls */
+.table-th-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.table-th-sortable:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+.table-sort-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: inherit;
+    width: 100%;
+}
+.table-sort-icon {
+    display: inline-flex;
+    align-items: center;
+    opacity: 0.35;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    flex-shrink: 0;
+}
+.table-th-sortable:hover .table-sort-icon,
+.table-th-sortable.is-sorted .table-sort-icon {
+    opacity: 1;
+}
+.table-count-badge {
+    font-size: 11px;
+    color: #64748b;
+    margin-left: auto;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.table-client-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    background: #fcfcfd;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.table-client-pagination .page-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.table-client-pagination .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.table-client-pagination .page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.table-client-pagination .page-size-select {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #334155;
+}
+
+
 
 
