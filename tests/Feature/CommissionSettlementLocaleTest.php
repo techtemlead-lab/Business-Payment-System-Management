@@ -21,7 +21,7 @@ class CommissionSettlementLocaleTest extends TestCase
             $this->fail('Expected ValidationException for open settlement month');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'স্যালারি বা রয়্যালটি সেটেল করার আগে ক্যালেন্ডার মাস শেষ করুন।',
+                'বেতন বা র‍্যাঙ্ক বোনাস মেলানোর আগে মাসটি শেষ হতে দিন।',
                 $exception->errors()['period_month'][0] ?? null,
             );
         }

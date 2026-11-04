@@ -23,9 +23,9 @@ class ServiceIntegrationsLocaleTest extends TestCase
 
         $groups = IntegrationCatalog::groups();
 
-        $this->assertSame('SMS গেটওয়ে', $groups['sms']['label'] ?? null);
+        $this->assertSame('এসএমএস সেবা', $groups['sms']['label'] ?? null);
         $this->assertStringContainsString('অ্যাকাউন্ট তৈরি', $groups['sms']['description'] ?? '');
-        $this->assertSame('পেমেন্ট গেটওয়ে API', $groups['payments']['label'] ?? null);
+        $this->assertSame('পেমেন্ট মাধ্যম', $groups['payments']['label'] ?? null);
         $this->assertSame(__('portal.si_provider_pathao', [], 'bn'), $groups['couriers']['providers']['pathao']['label'] ?? null);
         $this->assertSame(__('portal.si_provider_bkash', [], 'bn'), $groups['payments']['providers']['bkash']['label'] ?? null);
         $this->assertSame(__('portal.si_provider_ssl_wireless', [], 'bn'), $groups['sms']['providers']['ssl_wireless']['label'] ?? null);
@@ -48,7 +48,7 @@ class ServiceIntegrationsLocaleTest extends TestCase
             $this->fail('Expected ValidationException for incomplete BDRIS credentials');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'অটোফিল চালু করার আগে BDRIS এন্ডপয়েন্ট URL ও API কী দিন।',
+                'অটোফিল চালু করার আগে BDRIS-এর লিংক ও API কী দিন।',
                 $exception->errors()['base_url'][0] ?? null,
             );
         }

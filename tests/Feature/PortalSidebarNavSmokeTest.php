@@ -50,7 +50,7 @@ class PortalSidebarNavSmokeTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'catalog')
-                ->where('translations.portal.nav_module_catalog', 'Catalog')
+                ->where('translations.portal.nav_module_catalog', 'Product list')
                 ->where('translations.portal.nav_module_stock', 'Stock')
                 ->where('translations.portal.nav_products', 'Products')
                 ->where('translations.portal.cms_taxonomy_tab', 'Categories & Units')

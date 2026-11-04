@@ -89,7 +89,7 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->get('/login')
             ->assertOk()
             ->assertSee('অ্যাকাউন্ট লগইন', false)
-            ->assertSee('স্বাগতম ফিরে এসেছেন', false)
+            ->assertSee('আবার স্বাগতম', false)
             ->assertSee('ডিলার অ্যাকাউন্ট দরকার?', false)
             ->assertSee('কোম্পানির সাথে যোগাযোগ', false)
             ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false)
@@ -133,8 +133,8 @@ class PortalModulesTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->get('/operations/access-management')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.sa_title', 'স্টাফ অ্যাকশন অনুমতি')
-                ->where('translations.portal.sa_save_staff', 'স্টাফ অনুমতি সংরক্ষণ')
+                ->where('translations.portal.sa_title', 'স্টাফ কাজ অনুমতি')
+                ->where('translations.portal.sa_save_staff', 'স্টাফ অনুমতি সেভ')
                 ->where('translations.portal.sa_roles_title', 'কাস্টম স্টাফ রোল'));
     }
 
@@ -169,9 +169,9 @@ class PortalModulesTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'Orders & catalog')
+                ->where('translations.portal.nav_module_commerce', 'Orders and products')
                 ->where('translations.portal.nav_module_earnings', 'Earnings')
-                ->where('translations.portal.nav_module_fulfillment', 'Orders & fulfillment')
+                ->where('translations.portal.nav_module_fulfillment', 'Orders and delivery')
                 ->where('translations.portal.nav_module_system', 'System')
                 ->where('translations.portal.search_menu', 'Search menu')
                 ->where('translations.portal.download_join_poster', 'Download join poster')
@@ -181,7 +181,7 @@ class PortalModulesTest extends TestCase
         $this->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.nav_module_commerce', 'অর্ডার ও ক্যাটালগ')
+                ->where('translations.portal.nav_module_commerce', 'অর্ডার ও পণ্য')
                 ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.nav_module_fulfillment', 'অর্ডার ও ডেলিভারি')
                 ->where('translations.portal.nav_module_system', 'সিস্টেম')
@@ -189,9 +189,9 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
-                ->where('translations.portal.ops_download_reports', 'আর্থিক প্রতিবেদন ডাউনলোড')
+                ->where('translations.portal.ops_download_reports', 'টাকার রিপোর্ট ডাউনলোড')
                 ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
-                ->where('translations.portal.financial_readiness', 'উদ্বোধনী ব্যালেন্স পর্যালোচনা'));
+                ->where('translations.portal.financial_readiness', 'শুরুর ব্যালেন্স যাচাই'));
     }
 
     public function test_manage_and_subdealer_dashboards_expose_bangla_chrome(): void
@@ -204,7 +204,7 @@ class PortalModulesTest extends TestCase
                 ->where('locale', 'bn')
                 ->where('translations.portal.log_out', 'লগ আউট')
                 ->where('translations.portal.nav_module_home', 'হোম')
-                ->where('translations.portal.financial_readiness', 'উদ্বোধনী ব্যালেন্স পর্যালোচনা'));
+                ->where('translations.portal.financial_readiness', 'শুরুর ব্যালেন্স যাচাই'));
 
         $subdealer = User::factory()->create(['role' => 'sub_dealer', 'locale' => 'bn']);
         $this->actingAs($subdealer)->onPortal('subdealer')->get('/')

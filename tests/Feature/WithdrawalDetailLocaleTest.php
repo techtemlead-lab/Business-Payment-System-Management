@@ -49,8 +49,8 @@ class WithdrawalDetailLocaleTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('WithdrawalDetail')
-                ->where('translations.portal.wd_head_title', 'উত্তোলনের বিবরণ')
-                ->where('translations.portal.wd_manual_title', 'ম্যানুয়াল পেমেন্ট বিবরণ')
+                ->where('translations.portal.wd_head_title', 'টাকা তোলার বিবরণ')
+                ->where('translations.portal.wd_manual_title', 'হাতে করা পেমেন্টের বিবরণ')
                 ->where('translations.portal.wd_history_title', 'অনুরোধ ইতিহাস'));
     }
 

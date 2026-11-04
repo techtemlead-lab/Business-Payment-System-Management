@@ -104,8 +104,8 @@ class FinanceStartupModeTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('ServiceIntegrations')
                 ->where('startup.label', 'এখনো নির্বাচিত হয়নি')
-                ->where('startup.description', 'এই ডিপ্লয়মেন্ট খালি শুরু হবে না কি পুরনো ব্যালেন্স ইমপোর্ট করবে—বেছে নিন। একা এটা আর্থিক পোস্টিং চালু করে না।')
-                ->where('translations.portal.si_heading', 'সার্ভিস ইন্টিগ্রেশন')
+                ->where('startup.description', 'এই সেটআপ খালি শুরু হবে, নাকি আগের ব্যালেন্স আনবেন—বেছে নিন। এটা একা টাকার হিসাব চালু করে না।')
+                ->where('translations.portal.si_heading', 'সংযুক্ত সেবা')
                 ->where('translations.portal.imp_heading', 'আপনার রেকর্ড একত্র করুন'));
 
         app(IntegrationSettings::class)->saveStartupMode(
@@ -120,7 +120,7 @@ class FinanceStartupModeTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('DataImports')
                 ->where('startup.mode', 'import')
-                ->where('startup.label', 'উদ্বোধনী ব্যালেন্স / এক্সেল ইতিহাস ইমপোর্ট'));
+                ->where('startup.label', 'শুরুর ব্যালেন্স / এক্সেলের পুরনো হিসাব আনা'));
 
         $this->actingAs($admin)->onPortal('sadmin')->get('/operations/financial-readiness')
             ->assertOk()
@@ -130,6 +130,6 @@ class FinanceStartupModeTest extends TestCase
                 ->where('translations.portal.ops_fld_wallet_available', 'যাচাইকৃত উপলব্ধ ওয়ালেট মোট (BDT)')
                 ->where('translations.portal.ops_fld_brand_line', 'মাদিনা ন্যাচারাল হেলথ কেয়ার · BDT · Asia/Dhaka')
                 ->where('translations.portal.ops_chk_wallet_available', 'ওয়ালেট উপলব্ধ')
-                ->where('translations.portal.ops_chk_balanced_journals', 'ব্যালান্সড জার্নাল'));
+                ->where('translations.portal.ops_chk_balanced_journals', 'হিসাবের দুই পাশ মিলেছে'));
     }
 }

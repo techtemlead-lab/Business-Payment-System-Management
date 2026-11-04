@@ -28,11 +28,11 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'employees')
-                ->where('translations.portal.emp_create_title', 'নতুন কর্মচারী ড্যাশবোর্ড অ্যাকাউন্ট তৈরি')
-                ->where('translations.portal.emp_save', 'পারমিশন সংরক্ষণ')
-                ->where('translations.portal.emp_preset_finance', 'ফিন্যান্স ও ট্রেজারি')
-                ->where('data.available_permissions.0.label', 'ফিল্ড সেলস টার্মিনাল')
-                ->where('data.available_permissions.0.category', 'ফিল্ড সেলস')
+                ->where('translations.portal.emp_create_title', 'নতুন কর্মচারীর ড্যাশবোর্ড অ্যাকাউন্ট')
+                ->where('translations.portal.emp_save', 'অনুমতি সেভ')
+                ->where('translations.portal.emp_preset_finance', 'হিসাব ও কোম্পানির ক্যাশ')
+                ->where('data.available_permissions.0.label', 'বাজার বিক্রির ডেস্ক')
+                ->where('data.available_permissions.0.category', 'বাজার বিক্রি')
                 ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
     }
 
@@ -48,8 +48,8 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'website')
                 ->where('translations.portal.cms_heading', 'ওয়েবসাইট ম্যানেজ')
-                ->where('translations.portal.cms_tab_pages', 'পাবলিক পেজ')
-                ->where('translations.portal.cms_save', 'কাস্টমাইজেশন সংরক্ষণ'));
+                ->where('translations.portal.cms_tab_pages', 'সবার পাতা')
+                ->where('translations.portal.cms_save', 'সাইট সেটিং সেভ'));
     }
 
     public function test_sub_dealer_hub_exposes_bangla_chrome_keys(): void
@@ -63,9 +63,9 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'sub-dealers')
-                ->where('translations.portal.sd_heading', 'সাব-ডিলার অপারেশন ও রেকর্ড')
-                ->where('translations.portal.sd_salary_title', 'নিশ্চিত সাব-ডিলার মাসিক স্যালারি · ৩%')
-                ->where('translations.portal.sd_policy_rule', 'নীতি নিয়ম:'));
+                ->where('translations.portal.sd_heading', 'সাব-ডিলারের কাজ ও রেকর্ড')
+                ->where('translations.portal.sd_salary_title', 'নিশ্চিত সাব-ডিলার মাসিক বেতন · ৩%')
+                ->where('translations.portal.sd_policy_rule', 'নিয়ম:'));
     }
 
     public function test_payouts_hub_exposes_bangla_chrome_keys(): void
@@ -79,9 +79,9 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'payouts-hub')
-                ->where('translations.portal.pay_heading', 'পার্টনার পেআউট ও ডিসবার্সমেন্ট হাব')
-                ->where('translations.portal.pay_review_title', 'পার্টনার উত্তোলন অনুরোধ পর্যালোচনা')
-                ->where('translations.portal.pay_record_ledger', 'রেকর্ড ও লেজার পোস্ট')
+                ->where('translations.portal.pay_heading', 'পার্টনারকে টাকা দেওয়া')
+                ->where('translations.portal.pay_review_title', 'পার্টনারের টাকা তোলার অনুরোধ')
+                ->where('translations.portal.pay_record_ledger', 'খাতায় লিখে রাখুন')
                 ->where('translations.portal.pco_title', 'কাস্টম কমিশন প্ল্যান')
                 ->where('translations.portal.pco_submit', 'পার্টনার কমিশন প্ল্যান প্রস্তাব'));
     }
@@ -98,8 +98,8 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'area-dealers')
                 ->where('translations.portal.area_kpi_total', 'ডিলার')
-                ->where('translations.portal.area_modal_title', 'এরিয়া / টেরিটরি ডিলার অ্যাসাইন')
-                ->where('translations.portal.area_save', 'টেরিটরি অ্যাসাইনমেন্ট সংরক্ষণ'));
+                ->where('translations.portal.area_modal_title', 'এলাকার ডিলার বসান')
+                ->where('translations.portal.area_save', 'এলাকার দায়িত্ব সেভ করুন'));
     }
 
     public function test_place_codes_hub_exposes_bangla_chrome_keys(): void
@@ -114,8 +114,8 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'place-codes')
                 ->where('translations.portal.pc_badge', 'প্লেস কোড')
-                ->where('translations.portal.pc_save', 'কোড সংরক্ষণ')
-                ->where('translations.portal.pc_save_changes', 'পরিবর্তন সংরক্ষণ'));
+                ->where('translations.portal.pc_save', 'কোড সেভ')
+                ->where('translations.portal.pc_save_changes', 'পরিবর্তন সেভ'));
     }
 
     public function test_settlements_and_rewards_hubs_expose_bangla_chrome_keys(): void
@@ -129,17 +129,17 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'settlements')
-                ->where('translations.portal.st_heading', 'মাস-শেষ সেটেলমেন্ট ও পাইপলাইন')
-                ->where('translations.portal.st_release', 'ম্যাচুর্ড কমিশন রিলিজ')
-                ->where('translations.portal.st_approve_pay', 'অনুমোদন ও পেআউট'));
+                ->where('translations.portal.st_heading', 'মাস শেষের হিসাব')
+                ->where('translations.portal.st_release', 'সময় হওয়া কমিশন ছাড়ুন')
+                ->where('translations.portal.st_approve_pay', 'মঞ্জুর করে টাকা দিন'));
 
         $this->actingAs($admin)->onPortal('sadmin')->get('/rewards')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'rewards')
-                ->where('translations.portal.rw_heading', 'কোম্পানি কার ও মোটরবাইক মাইলস্টোন ট্রেজারি')
+                ->where('translations.portal.rw_heading', 'কোম্পানির গাড়ি ও বাইকের টাকা')
                 ->where('translations.portal.rw_inspect', 'ব্রাঞ্চ পরিদর্শন')
-                ->where('translations.portal.rw_close', 'অডিট বন্ধ'));
+                ->where('translations.portal.rw_close', 'যাচাই শেষ'));
     }
 }
