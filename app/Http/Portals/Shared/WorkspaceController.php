@@ -842,17 +842,26 @@ class WorkspaceController extends Controller
         }
         if ($section === 'area-dealers') {
             $data['assignments'] = $this->dealerPlaceSeats();
-            $data['divisions'] = PlaceCode::query()
+            $catalogDivisions = PlaceCode::query()
                 ->where('level', PlaceCode::LevelDivision)
                 ->where('is_active', true)
-                ->whereNotNull('code')
                 ->orderBy('sort_order')
-                ->orderBy('code')
-                ->get(['id', 'code', 'name', 'level', 'is_active'])
-                ->filter(fn (PlaceCode $place): bool => $place->isReadyForAssignment())
-                ->pluck('name')
-                ->values()
-                ->all();
+                ->orderBy('name')
+                ->pluck('name');
+            $dealerDivisions = collect($data['assignments'])->pluck('division');
+            $divisions = [];
+            $seen = [];
+            foreach ($catalogDivisions->merge($dealerDivisions) as $name) {
+                $label = trim((string) $name);
+                $key = mb_strtolower($label);
+                if ($label === '' || isset($seen[$key]) || PlaceCode::isPlaceholderLabel($label)) {
+                    continue;
+                }
+                $seen[$key] = true;
+                $divisions[] = $label;
+            }
+            natcasesort($divisions);
+            $data['divisions'] = array_values($divisions);
             $data['place_codes'] = PlaceCode::query()
                 ->whereIn('level', PlaceCode::AssignmentLevels)
                 ->where('is_active', true)

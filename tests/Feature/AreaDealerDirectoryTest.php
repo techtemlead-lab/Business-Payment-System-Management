@@ -46,6 +46,7 @@ class AreaDealerDirectoryTest extends TestCase
         $other = User::factory()->dealer()->create([
             'name' => 'Unseated Person',
             'status' => 'active',
+            'division' => 'Sylhet',
         ]);
         AreaDealerAssignment::query()->create([
             'user_id' => $other->id,
@@ -80,6 +81,11 @@ class AreaDealerDirectoryTest extends TestCase
                         && array_key_exists('place_code', $unseated)
                         && $unseated['place_code'] === null
                         && ($unseated['monthly_quota'] ?? null) === '40000.00';
+                })
+                ->where('data.divisions', function (mixed $divisions): bool {
+                    $names = collect($divisions)->flatten()->all();
+
+                    return in_array('Rangpur', $names, true) && in_array('Sylhet', $names, true);
                 }));
     }
 }
