@@ -133,7 +133,7 @@ class PortalModulesTest extends TestCase
         $this->actingAs($admin)->onPortal('sadmin')->get('/operations/access-management')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('translations.portal.sa_title', 'স্টাফ কাজ অনুমতি')
+                ->where('translations.portal.sa_title', 'স্টাফ কাজের অনুমতি')
                 ->where('translations.portal.sa_save_staff', 'স্টাফ অনুমতি সেভ')
                 ->where('translations.portal.sa_roles_title', 'কাস্টম স্টাফ রোল'));
     }
@@ -189,7 +189,7 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
                 ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
-                ->where('translations.portal.ops_download_reports', 'টাকার রিপোর্ট ডাউনলোড')
+                ->where('translations.portal.ops_download_reports', 'হিসাব রিপোর্ট ডাউনলোড')
                 ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
                 ->where('translations.portal.financial_readiness', 'শুরুর ব্যালেন্স যাচাই'));
     }

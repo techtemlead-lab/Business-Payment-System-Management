@@ -30,9 +30,9 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('section', 'employees')
                 ->where('translations.portal.emp_create_title', 'নতুন কর্মচারীর ড্যাশবোর্ড অ্যাকাউন্ট')
                 ->where('translations.portal.emp_save', 'অনুমতি সেভ')
-                ->where('translations.portal.emp_preset_finance', 'হিসাব ও কোম্পানির ক্যাশ')
-                ->where('data.available_permissions.0.label', 'বাজার বিক্রির ডেস্ক')
-                ->where('data.available_permissions.0.category', 'বাজার বিক্রি')
+                ->where('translations.portal.emp_preset_finance', 'হিসাব ও তহবিল')
+                ->where('data.available_permissions.0.label', 'মার্কেট সেলস ডেস্ক')
+                ->where('data.available_permissions.0.category', 'মার্কেট সেলস')
                 ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
     }
 
@@ -48,7 +48,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'website')
                 ->where('translations.portal.cms_heading', 'ওয়েবসাইট ম্যানেজ')
-                ->where('translations.portal.cms_tab_pages', 'সবার পাতা')
+                ->where('translations.portal.cms_tab_pages', 'পাবলিক পেজ')
                 ->where('translations.portal.cms_save', 'সাইট সেটিং সেভ'));
     }
 
@@ -79,9 +79,9 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'payouts-hub')
-                ->where('translations.portal.pay_heading', 'পার্টনারকে টাকা দেওয়া')
-                ->where('translations.portal.pay_review_title', 'পার্টনারের টাকা তোলার অনুরোধ')
-                ->where('translations.portal.pay_record_ledger', 'খাতায় লিখে রাখুন')
+                ->where('translations.portal.pay_heading', 'পার্টনার পেমেন্ট')
+                ->where('translations.portal.pay_review_title', 'পার্টনারের টাকা তোলার অনুরোধ যাচাই')
+                ->where('translations.portal.pay_record_ledger', 'খাতায় রেকর্ড করুন')
                 ->where('translations.portal.pco_title', 'কাস্টম কমিশন প্ল্যান')
                 ->where('translations.portal.pco_submit', 'পার্টনার কমিশন প্ল্যান প্রস্তাব'));
     }
@@ -98,7 +98,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'area-dealers')
                 ->where('translations.portal.area_kpi_total', 'ডিলার')
-                ->where('translations.portal.area_modal_title', 'এলাকার ডিলার বসান')
+                ->where('translations.portal.area_modal_title', 'এলাকার ডিলার নির্ধারণ')
                 ->where('translations.portal.area_save', 'এলাকার দায়িত্ব সেভ করুন'));
     }
 
@@ -129,7 +129,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'settlements')
-                ->where('translations.portal.st_heading', 'মাস শেষের হিসাব')
+                ->where('translations.portal.st_heading', 'মাস শেষের হিসাব ও পেমেন্ট')
                 ->where('translations.portal.st_release', 'সময় হওয়া কমিশন ছাড়ুন')
                 ->where('translations.portal.st_approve_pay', 'মঞ্জুর করে টাকা দিন'));
 
@@ -138,7 +138,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'rewards')
-                ->where('translations.portal.rw_heading', 'কোম্পানির গাড়ি ও বাইকের টাকা')
+                ->where('translations.portal.rw_heading', 'কোম্পানির গাড়ি ও বাইক পুরস্কার তহবিল')
                 ->where('translations.portal.rw_inspect', 'ব্রাঞ্চ পরিদর্শন')
                 ->where('translations.portal.rw_close', 'যাচাই শেষ'));
     }
