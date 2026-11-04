@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, date, label, ActionForm, DateInput, Flash } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import TransactionProgressStepper from '../components/TransactionProgressStepper';
 
 function DispatchForm({ order }: { order: Row }) {
     const translate = useT();
@@ -62,6 +63,14 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         }
         await copyLink();
     };
+    const inFlight = ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched'].includes(order.status);
+    const { stop } = usePoll(5000, { only: ['order', 'claims', 'shipments'] }, { autoStart: inFlight });
+    useEffect(() => {
+        if (!inFlight) {
+            stop();
+        }
+    }, [inFlight, stop]);
+
     return <Shell section="order">
         <Head title={order.number} />
         <Flash />
@@ -87,6 +96,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             )}
             <Badge status={order.status} />
         </div></div>
+        <TransactionProgressStepper order={order} currentStatus={order.status} claims={claims} shipments={shipments} events={events} />
+
         <div className="metric-grid three">
             <div className="metric"><span>{translate('portal', 'order_total')}</span><strong>{money(order.total)}</strong></div>
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>
