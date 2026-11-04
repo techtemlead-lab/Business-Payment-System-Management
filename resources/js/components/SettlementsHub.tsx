@@ -4,7 +4,7 @@ import {
     Calendar, CheckCircle2, Clock, DollarSign, Award, ShieldAlert,
     ArrowUpRight, Play, RefreshCw, AlertCircle, FileText, ChevronRight, UserCheck
 } from 'lucide-react';
-import { money, date } from './UI';
+import { money, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface SettlementState {
@@ -258,25 +258,33 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         {state.qualified_salary_dealers.length > 0 && (
-                            <div style={{ marginBottom: '16px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_dealer')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_code')}</th>
-                                            <th style={{ padding: '6px 10px', textAlign: 'right' }}>{translate('portal', 'st_col_volume')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {state.qualified_salary_dealers.map(d => (
-                                            <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                <td style={{ padding: '6px 10px', fontWeight: 600 }}>{d.name}</td>
-                                                <td style={{ padding: '6px 10px', color: '#64748b' }}>{d.dealer_code}</td>
-                                                <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{money(d.monthly_volume)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div style={{ marginBottom: '16px' }}>
+                                <Table
+                                    tools={false}
+                                    rows={state.qualified_salary_dealers}
+                                    columns={[
+                                        {
+                                            key: 'name',
+                                            title: translate('portal', 'st_col_dealer'),
+                                            sortable: true,
+                                            render: d => <span style={{ fontWeight: 600 }}>{d.name}</span>,
+                                        },
+                                        {
+                                            key: 'dealer_code',
+                                            title: translate('portal', 'st_col_code'),
+                                            sortable: true,
+                                            render: d => <span style={{ color: '#64748b' }}>{d.dealer_code}</span>,
+                                        },
+                                        {
+                                            key: 'monthly_volume',
+                                            title: translate('portal', 'st_col_volume'),
+                                            align: 'right',
+                                            sortable: true,
+                                            sortValue: d => Number(d.monthly_volume) || 0,
+                                            render: d => <b style={{ color: '#10b981' }}>{money(d.monthly_volume)}</b>,
+                                        },
+                                    ]}
+                                />
                             </div>
                         )}
                     </div>
@@ -365,33 +373,38 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         </div>
 
                         {state.qualified_rank_leaders.length > 0 && (
-                            <div style={{ marginBottom: '16px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_leader')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_rank')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_status')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {state.qualified_rank_leaders.map(l => (
-                                            <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                <td style={{ padding: '6px 10px', fontWeight: 600 }}>{l.name}</td>
-                                                <td style={{ padding: '6px 10px', textTransform: 'uppercase', fontWeight: 700, color: '#7c3aed' }}>{l.rank}</td>
-                                                <td style={{ padding: '6px 10px' }}>
-                                                    {l.is_qualified ? (
-                                                        <span style={{ color: '#059669', fontWeight: 600 }}>{translate('portal', 'st_active')}</span>
-                                                    ) : l.in_grace_period ? (
-                                                        <span style={{ color: '#d97706', fontWeight: 600 }}>{translate('portal', 'st_grace')}</span>
-                                                    ) : (
-                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>{translate('portal', 'st_demoted')}</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div style={{ marginBottom: '16px' }}>
+                                <Table
+                                    tools={false}
+                                    rows={state.qualified_rank_leaders}
+                                    columns={[
+                                        {
+                                            key: 'name',
+                                            title: translate('portal', 'st_col_leader'),
+                                            sortable: true,
+                                            render: l => <span style={{ fontWeight: 600 }}>{l.name}</span>,
+                                        },
+                                        {
+                                            key: 'rank',
+                                            title: translate('portal', 'st_col_rank'),
+                                            sortable: true,
+                                            render: l => <span style={{ textTransform: 'uppercase', fontWeight: 700, color: '#7c3aed' }}>{l.rank}</span>,
+                                        },
+                                        {
+                                            key: 'status',
+                                            title: translate('portal', 'st_col_status'),
+                                            sortable: true,
+                                            sortValue: l => l.is_qualified ? 'active' : l.in_grace_period ? 'grace' : 'demoted',
+                                            render: l => l.is_qualified ? (
+                                                <span style={{ color: '#059669', fontWeight: 600 }}>{translate('portal', 'st_active')}</span>
+                                            ) : l.in_grace_period ? (
+                                                <span style={{ color: '#d97706', fontWeight: 600 }}>{translate('portal', 'st_grace')}</span>
+                                            ) : (
+                                                <span style={{ color: '#ef4444', fontWeight: 600 }}>{translate('portal', 'st_demoted')}</span>
+                                            ),
+                                        },
+                                    ]}
+                                />
                             </div>
                         )}
                     </div>
@@ -441,95 +454,98 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                     </div>
                 </div>
 
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_leader')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_dcode')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_achieved')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_incentive')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_claim')}</th>
-                                <th style={{ padding: '10px 14px', textAlign: 'right' }}>{translate('portal', 'st_col_action')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {state.qualified_rank_leaders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                                        {translate('portal', 'st_no_incentive')}
-                                    </td>
-                                </tr>
+                <Table
+                    tools={false}
+                    rows={state.qualified_rank_leaders}
+                    empty={translate('portal', 'st_no_incentive')}
+                    columns={[
+                        {
+                            key: 'name',
+                            title: translate('portal', 'st_col_leader'),
+                            sortable: true,
+                            render: l => <span style={{ fontWeight: 600 }}>{l.name}</span>,
+                        },
+                        {
+                            key: 'dealer_code',
+                            title: translate('portal', 'st_col_dcode'),
+                            sortable: true,
+                            render: l => <span style={{ color: '#64748b' }}>{l.dealer_code}</span>,
+                        },
+                        {
+                            key: 'rank',
+                            title: translate('portal', 'st_col_achieved'),
+                            sortable: true,
+                            render: l => (
+                                <span style={{
+                                    background: '#f1f5f9',
+                                    color: '#334155',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 700,
+                                    fontSize: '11px',
+                                    textTransform: 'uppercase'
+                                }}>
+                                    {l.rank}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'incentive',
+                            title: translate('portal', 'st_col_incentive'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: l => {
+                                const incentiveAmounts: Record<string, number> = { mo: 5000, am: 15000, sm: 50000, me: 200000 };
+                                return incentiveAmounts[l.rank] || 5000;
+                            },
+                            render: l => {
+                                const incentiveAmounts: Record<string, number> = { mo: 5000, am: 15000, sm: 50000, me: 200000 };
+                                return <b style={{ color: '#0f172a' }}>{money(incentiveAmounts[l.rank] || 5000)}</b>;
+                            },
+                        },
+                        {
+                            key: 'status',
+                            title: translate('portal', 'st_col_claim'),
+                            sortable: true,
+                            render: l => l.one_time_incentive_paid ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600, fontSize: '12px' }}>
+                                    <CheckCircle2 size={14} /> {translate('portal', 'st_paid')}
+                                </span>
                             ) : (
-                                state.qualified_rank_leaders.map(l => {
-                                    const incentiveAmounts: Record<string, number> = {
-                                        mo: 5000,
-                                        am: 15000,
-                                        sm: 50000,
-                                        me: 200000
-                                    };
-                                    const amount = incentiveAmounts[l.rank] || 5000;
-                                    return (
-                                        <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '10px 14px', fontWeight: 600 }}>{l.name}</td>
-                                            <td style={{ padding: '10px 14px', color: '#64748b' }}>{l.dealer_code}</td>
-                                            <td style={{ padding: '10px 14px' }}>
-                                                <span style={{
-                                                    background: '#f1f5f9',
-                                                    color: '#334155',
-                                                    padding: '3px 8px',
-                                                    borderRadius: '4px',
-                                                    fontWeight: 700,
-                                                    fontSize: '11px',
-                                                    textTransform: 'uppercase'
-                                                }}>
-                                                    {l.rank}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
-                                                {money(amount)}
-                                            </td>
-                                            <td style={{ padding: '10px 14px' }}>
-                                                {l.one_time_incentive_paid ? (
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600, fontSize: '12px' }}>
-                                                        <CheckCircle2 size={14} /> {translate('portal', 'st_paid')}
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ color: '#d97706', fontWeight: 600, fontSize: '12px' }}>
-                                                        {translate('portal', 'st_pending_claim')}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                                                {l.one_time_incentive_paid ? (
-                                                    <span style={{ color: '#94a3b8', fontSize: '12px' }}>{translate('portal', 'st_settled')}</span>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="button small"
-                                                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id}
-                                                        onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
-                                                        style={{
-                                                            background: '#0f172a',
-                                                            color: '#ffffff',
-                                                            padding: '4px 10px',
-                                                            fontSize: '11px',
-                                                            fontWeight: 600,
-                                                            borderRadius: '4px',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                <span style={{ color: '#d97706', fontWeight: 600, fontSize: '12px' }}>
+                                    {translate('portal', 'st_pending_claim')}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'action',
+                            title: translate('portal', 'st_col_action'),
+                            align: 'right',
+                            sortable: false,
+                            render: l => l.one_time_incentive_paid ? (
+                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>{translate('portal', 'st_settled')}</span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="button small"
+                                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id}
+                                    onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
+                                    style={{
+                                        background: '#0f172a',
+                                        color: '#ffffff',
+                                        padding: '4px 10px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}
+                                </button>
+                            ),
+                        },
+                    ]}
+                />
             </div>
 
             {/* Settled Journal Audit Trail */}
@@ -543,34 +559,31 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                 <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 14px', color: '#0f172a' }}>
                     {translate('portal', 'st_journal_title')}
                 </h3>
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_date')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_event')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_desc')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {state.settled_history.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
-                                        {translate('portal', 'st_no_journal')}
-                                    </td>
-                                </tr>
-                            ) : (
-                                state.settled_history.map(entry => (
-                                    <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{date(entry.created_at)}</td>
-                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 600, color: '#2563eb' }}>{entry.event_key}</td>
-                                        <td style={{ padding: '10px 14px', color: '#0f172a' }}>{entry.description}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <Table
+                    tools={false}
+                    rows={state.settled_history}
+                    empty={translate('portal', 'st_no_journal')}
+                    columns={[
+                        {
+                            key: 'created_at',
+                            title: translate('portal', 'st_col_date'),
+                            sortable: true,
+                            render: entry => <span style={{ color: '#64748b' }}>{date(entry.created_at)}</span>,
+                        },
+                        {
+                            key: 'event_key',
+                            title: translate('portal', 'st_col_event'),
+                            sortable: true,
+                            render: entry => <span style={{ fontFamily: 'monospace', fontWeight: 600, color: '#2563eb' }}>{entry.event_key}</span>,
+                        },
+                        {
+                            key: 'description',
+                            title: translate('portal', 'st_col_desc'),
+                            sortable: true,
+                            render: entry => <span style={{ color: '#0f172a' }}>{entry.description}</span>,
+                        },
+                    ]}
+                />
             </div>
         </div>
     );

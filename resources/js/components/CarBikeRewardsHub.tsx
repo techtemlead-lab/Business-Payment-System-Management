@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { Trophy, ShieldCheck, AlertCircle, ChevronRight, Eye, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
-import { money, date } from './UI';
+import { money, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface LegBreakdown {
@@ -186,110 +186,151 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                     </span>
                 </div>
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_dealer')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_code')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_qual')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_progress')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_target')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_status')}</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal', 'rw_col_branches')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentMilestones.length > 0 ? (
-                            currentMilestones.map(m => {
+                <Table
+                    columns={[
+                        {
+                            key: 'dealer',
+                            header: translate('portal', 'rw_col_dealer'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => m.user?.name || '',
+                            render: (m: MilestoneRecord) => (
+                                <div>
+                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{m.user?.name || translate('portal', 'rw_partner')}</div>
+                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                        {m.user?.phone || translate('portal', 'rw_no_phone')} {m.user?.district ? `• ${m.user.district}` : ''}
+                                    </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'dealer_code',
+                            header: translate('portal', 'rw_col_code'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => m.user?.dealer_code || '',
+                            render: (m: MilestoneRecord) => <span style={{ fontWeight: 600 }}>{m.user?.dealer_code || '—'}</span>,
+                        },
+                        {
+                            key: 'qualifying_volume',
+                            header: translate('portal', 'rw_col_qual'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (m: MilestoneRecord) => Number(m.qualifying_volume) || 0,
+                            render: (m: MilestoneRecord) => (
+                                <span style={{ fontWeight: 800, color: '#006837' }}>
+                                    {money(Number(m.qualifying_volume) || 0)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'progress',
+                            header: translate('portal', 'rw_col_progress'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => {
+                                const qualVal = Number(m.qualifying_volume) || 0;
+                                return Math.min(100, (qualVal / currentTarget) * 100);
+                            },
+                            render: (m: MilestoneRecord) => {
                                 const qualVal = Number(m.qualifying_volume) || 0;
                                 const pct = Math.min(100, (qualVal / currentTarget) * 100);
                                 const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
                                 return (
-                                    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{m.user?.name || translate('portal', 'rw_partner')}</div>
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>
-                                                {m.user?.phone || translate('portal', 'rw_no_phone')} {m.user?.district ? `• ${m.user.district}` : ''}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{m.user?.dealer_code || '—'}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 800, color: '#006837' }}>
-                                            {money(qualVal)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', width: 220 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <div style={{ flex: 1, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                                                    <div style={{
-                                                        height: '100%',
-                                                        width: `${pct}%`,
-                                                        background: isAchieved ? '#059669' : '#006837',
-                                                        borderRadius: 4
-                                                    }} />
-                                                </div>
-                                                <span style={{ fontSize: 11, fontWeight: 700, color: isAchieved ? '#059669' : '#475569', minWidth: 42 }}>
-                                                    {pct.toFixed(1)}%
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                                            {money(currentTarget)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 4,
-                                                background: m.is_claimed ? '#ecfdf5' : isAchieved ? '#eff6ff' : '#f1f5f9',
-                                                color: m.is_claimed ? '#047857' : isAchieved ? '#1d4ed8' : '#64748b',
-                                                border: `1px solid ${m.is_claimed ? '#a7f3d0' : isAchieved ? '#bfdbfe' : '#cbd5e1'}`
-                                            }}>
-                                                {m.is_claimed ? translate('portal', 'rw_claimed') : isAchieved ? translate('portal', 'rw_achieved') : translate('portal', 'rw_in_progress')}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                                                {isAchieved && !m.is_claimed && (
-                                                    <Link
-                                                        href="/operations/reserve-payouts"
-                                                        className="button small"
-                                                        style={{ fontSize: 11, padding: '4px 10px' }}
-                                                    >
-                                                        {translate('portal', 'rw_record_payout')}
-                                                    </Link>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSelectedCandidate(m)}
-                                                    style={{
-                                                        fontSize: 11,
-                                                        fontWeight: 600,
-                                                        padding: '4px 10px',
-                                                        background: '#f8fafc',
-                                                        border: '1px solid #cbd5e1',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 4
-                                                    }}
-                                                >
-                                                    <Eye size={12} /> {translate('portal', 'rw_inspect')}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 160 }}>
+                                        <div style={{ flex: 1, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${pct}%`,
+                                                background: isAchieved ? '#059669' : '#006837',
+                                                borderRadius: 4
+                                            }} />
+                                        </div>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: isAchieved ? '#059669' : '#475569', minWidth: 42 }}>
+                                            {pct.toFixed(1)}%
+                                        </span>
+                                    </div>
                                 );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    {translate('portal', 'rw_empty')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            },
+                        },
+                        {
+                            key: 'target_volume',
+                            header: translate('portal', 'rw_col_target'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: () => currentTarget,
+                            render: () => <span style={{ color: '#64748b' }}>{money(currentTarget)}</span>,
+                        },
+                        {
+                            key: 'status',
+                            header: translate('portal', 'rw_col_status'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => {
+                                const qualVal = Number(m.qualifying_volume) || 0;
+                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                return m.is_claimed ? 'claimed' : isAchieved ? 'achieved' : 'in_progress';
+                            },
+                            render: (m: MilestoneRecord) => {
+                                const qualVal = Number(m.qualifying_volume) || 0;
+                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                return (
+                                    <span style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: '2px 7px',
+                                        borderRadius: 4,
+                                        background: m.is_claimed ? '#ecfdf5' : isAchieved ? '#eff6ff' : '#f1f5f9',
+                                        color: m.is_claimed ? '#047857' : isAchieved ? '#1d4ed8' : '#64748b',
+                                        border: `1px solid ${m.is_claimed ? '#a7f3d0' : isAchieved ? '#bfdbfe' : '#cbd5e1'}`
+                                    }}>
+                                        {m.is_claimed ? translate('portal', 'rw_claimed') : isAchieved ? translate('portal', 'rw_achieved') : translate('portal', 'rw_in_progress')}
+                                    </span>
+                                );
+                            },
+                        },
+                        {
+                            key: 'actions',
+                            header: translate('portal', 'rw_col_branches'),
+                            align: 'right',
+                            render: (m: MilestoneRecord) => {
+                                const qualVal = Number(m.qualifying_volume) || 0;
+                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                                return (
+                                    <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                                        {isAchieved && !m.is_claimed && (
+                                            <Link
+                                                href="/operations/reserve-payouts"
+                                                className="button small"
+                                                style={{ fontSize: 11, padding: '4px 10px' }}
+                                            >
+                                                {translate('portal', 'rw_record_payout')}
+                                            </Link>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedCandidate(m)}
+                                            style={{
+                                                fontSize: 11,
+                                                fontWeight: 600,
+                                                padding: '4px 10px',
+                                                background: '#f8fafc',
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: 4,
+                                                cursor: 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: 4
+                                            }}
+                                        >
+                                            <Eye size={12} /> {translate('portal', 'rw_inspect')}
+                                        </button>
+                                    </div>
+                                );
+                            },
+                        },
+                    ]}
+                    data={currentMilestones}
+                    searchPlaceholder={translate('portal', 'search')}
+                    pageSize={15}
+                    emptyMessage={translate('portal', 'rw_empty')}
+                />
             </div>
 
             {/* Anti-Whale Branch Inspection Modal */}

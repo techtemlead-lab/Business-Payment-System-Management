@@ -4,7 +4,7 @@ import {
     Building2, Wallet, Landmark, Layers, CheckCircle2, AlertCircle, FileText,
     PieChart, ArrowRight, Store, Users, ShoppingBag
 } from 'lucide-react';
-import { money, date, label } from './UI';
+import { money, date, label, Table, Badge, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface CapitalFlowData {
@@ -122,48 +122,89 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             </div>
         );
     }
+
+    const columns: TableColumn<RetainedFundRow>[] = [
+        {
+            key: 'created_at',
+            title: translate('portal', 'sal_col_posted'),
+            sortable: true,
+            render: row => <span style={{ whiteSpace: 'nowrap' }}>{date(row.created_at)}</span>,
+        },
+        {
+            key: 'order_number',
+            title: translate('portal', 'sal_col_order'),
+            sortable: true,
+            render: row => row.order_number || '—',
+        },
+        {
+            key: 'buyer_name',
+            title: translate('portal', 'col_partner'),
+            sortable: true,
+            render: row => (
+                <div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.buyer_name || '—'}</div>
+                    <div style={{ color: '#64748b', fontSize: 11 }}>
+                        {[row.buyer_code, row.buyer_role ? label(row.buyer_role, translate) : null].filter(Boolean).join(' · ')}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'location',
+            title: translate('portal', 'label_location'),
+            sortable: true,
+            sortValue: row => placeLabel(row),
+            render: row => (
+                <div>
+                    <div>{placeLabel(row)}</div>
+                    {row.area_level && <div style={{ color: '#64748b', fontSize: 11 }}>{translate('portal', 'tr_level', { level: String(row.area_level) })}</div>}
+                </div>
+            ),
+        },
+        {
+            key: 'purchase_value',
+            title: translate('portal', 'sal_col_purchase_value'),
+            align: 'right',
+            sortable: true,
+            sortValue: row => Number(row.purchase_value) || 0,
+            render: row => <span style={{ whiteSpace: 'nowrap' }}>{money(row.purchase_value)}</span>,
+        },
+        {
+            key: 'rate_percentage',
+            title: translate('portal', 'tr_col_rate'),
+            align: 'right',
+            sortable: true,
+            sortValue: row => Number(row.rate_percentage) || 0,
+            render: row => row.rate_percentage != null ? `${row.rate_percentage}%` : '—',
+        },
+        {
+            key: amountKey,
+            title: translate('portal', 'col_amount'),
+            align: 'right',
+            sortable: true,
+            sortValue: row => Number(row[amountKey]) || 0,
+            render: row => <b style={{ color: '#0f172a', whiteSpace: 'nowrap' }}>{money(row[amountKey])}</b>,
+        },
+        {
+            key: 'reason',
+            title: translate('portal', 'tr_col_detail'),
+            sortable: true,
+            render: row => <span style={{ color: '#475569', fontSize: 11 }}>{row.reason || row.fund || '—'}</span>,
+        },
+    ];
+
     return (
         <div className="retained-detail-table" style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#ffffff' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
                 <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{hint}</p>
             </div>
-            <div className="table-wrap">
-                <table style={{ borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead>
-                        <tr style={{ textAlign: 'left', color: '#64748b', background: '#fcfcfd' }}>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_posted')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_order')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'col_partner')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'label_location')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'sal_col_purchase_value')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_rate')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'col_amount')}</th>
-                            <th style={{ padding: '10px 12px', fontWeight: 600 }}>{translate('portal', 'tr_col_detail')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row) => (
-                            <tr key={`${row.category}-${row.id}`} style={{ borderTop: '1px solid #eef2f7' }}>
-                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{date(row.created_at)}</td>
-                                <td style={{ padding: '10px 12px' }}>{row.order_number || '—'}</td>
-                                <td style={{ padding: '10px 12px' }}>
-                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.buyer_name || '—'}</div>
-                                    <div style={{ color: '#64748b' }}>{[row.buyer_code, row.buyer_role ? label(row.buyer_role, translate) : null].filter(Boolean).join(' · ')}</div>
-                                </td>
-                                <td style={{ padding: '10px 12px' }}>
-                                    <div>{placeLabel(row)}</div>
-                                    {row.area_level && <div style={{ color: '#64748b' }}>{translate('portal', 'tr_level', { level: String(row.area_level) })}</div>}
-                                </td>
-                                <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>{money(row.purchase_value)}</td>
-                                <td style={{ padding: '10px 12px' }}>{row.rate_percentage != null ? `${row.rate_percentage}%` : '—'}</td>
-                                <td style={{ padding: '10px 12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>{money(row[amountKey])}</td>
-                                <td style={{ padding: '10px 12px', color: '#475569', minWidth: 220 }}>{row.reason || row.fund || '—'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <Table
+                rows={rows}
+                columns={columns}
+                pageSize={15}
+                empty={translate('portal', 'tr_no_detail_entries')}
+            />
         </div>
     );
 }
@@ -534,36 +575,47 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
                                 {translate('portal', 'tr_channels_title')}
                             </h4>
-                            <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_channel')}</th>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_verified')}</th>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_share')}</th>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_status')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {channels.map((ch, idx) => {
+                            <Table
+                                tools={false}
+                                rows={channels}
+                                columns={[
+                                    {
+                                        key: 'channel',
+                                        title: translate('portal', 'tr_col_channel'),
+                                        sortable: true,
+                                        render: (ch: any) => <b>{ch.channel}</b>,
+                                    },
+                                    {
+                                        key: 'total_amount',
+                                        title: translate('portal', 'tr_col_verified'),
+                                        align: 'right',
+                                        sortable: true,
+                                        sortValue: (ch: any) => Number(ch.total_amount) || 0,
+                                        render: (ch: any) => <b style={{ color: '#006837' }}>{money(ch.total_amount)}</b>,
+                                    },
+                                    {
+                                        key: 'share',
+                                        title: translate('portal', 'tr_col_share'),
+                                        align: 'right',
+                                        sortable: true,
+                                        sortValue: (ch: any) => grossCash > 0 ? ((Number(ch.total_amount) || 0) / grossCash) * 100 : 0,
+                                        render: (ch: any) => {
                                             const amt = Number(ch.total_amount) || 0;
                                             const pct = grossCash > 0 ? ((amt / grossCash) * 100).toFixed(1) : '0';
-                                            return (
-                                                <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                    <td style={{ padding: '12px 14px', fontWeight: 600, color: '#0f172a' }}>{ch.channel}</td>
-                                                    <td style={{ padding: '12px 14px', fontWeight: 700, color: '#006837' }}>{money(amt)}</td>
-                                                    <td style={{ padding: '12px 14px', color: '#64748b' }}>{pct}%</td>
-                                                    <td style={{ padding: '12px 14px' }}>
-                                                        <span style={{ background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
-                                                            {translate('portal', 'tr_active_verified')}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
+                                            return `${pct}%`;
+                                        },
+                                    },
+                                    {
+                                        key: 'status',
+                                        title: translate('portal', 'col_status'),
+                                        render: () => (
+                                            <span style={{ background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                                                {translate('portal', 'tr_active_verified')}
+                                            </span>
+                                        ),
+                                    },
+                                ]}
+                            />
                         </div>
                     </div>
                 </div>
@@ -790,30 +842,34 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
                                 {translate('portal', 'tr_slices_title')}
                             </h4>
-                            <div style={{ overflowX: 'auto' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_category')}</th>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_alloc_count')}</th>
-                                            <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_total')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allocations_by_category.map((cat, idx) => (
-                                            <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
-                                                    {cat.category.replaceAll('_', ' ').toUpperCase()}
-                                                </td>
-                                                <td style={{ padding: '10px 14px', color: '#64748b' }}>{translate('portal', 'tr_alloc_count', { count: String(cat.count) })}</td>
-                                                <td style={{ padding: '10px 14px', fontWeight: 700, color: '#006837' }}>
-                                                    {money(cat.total_amount)}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            <Table
+                                tools={false}
+                                rows={allocations_by_category}
+                                columns={[
+                                    {
+                                        key: 'category',
+                                        title: translate('portal', 'tr_col_category'),
+                                        sortable: true,
+                                        render: (cat: CategoryAllocation) => <b>{cat.category.replaceAll('_', ' ').toUpperCase()}</b>,
+                                    },
+                                    {
+                                        key: 'count',
+                                        title: translate('portal', 'tr_col_alloc_count'),
+                                        align: 'right',
+                                        sortable: true,
+                                        sortValue: (cat: CategoryAllocation) => Number(cat.count) || 0,
+                                        render: (cat: CategoryAllocation) => translate('portal', 'tr_alloc_count', { count: String(cat.count) }),
+                                    },
+                                    {
+                                        key: 'total_amount',
+                                        title: translate('portal', 'tr_col_total'),
+                                        align: 'right',
+                                        sortable: true,
+                                        sortValue: (cat: CategoryAllocation) => Number(cat.total_amount) || 0,
+                                        render: (cat: CategoryAllocation) => <b style={{ color: '#006837' }}>{money(cat.total_amount)}</b>,
+                                    },
+                                ]}
+                            />
                         </div>
                     </div>
                 </div>
@@ -830,57 +886,65 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             {translate('portal', 'tr_ledger_hint')}
                         </p>
 
-                        <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                                <thead>
-                                    <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #cbd5e1' }}>
-                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_date')}</th>
-                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'tr_col_recipient')}</th>
-                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_category')}</th>
-                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_amount')}</th>
-                                        <th style={{ padding: '10px 14px' }}>{translate('portal', 'col_status')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recent_allocations.length > 0 ? (
-                                        recent_allocations.map((rec) => (
-                                            <tr key={rec.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                                <td style={{ padding: '10px 14px', color: '#64748b' }}>{date(rec.created_at)}</td>
-                                                <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
-                                                    {rec.user ? `${rec.user.name} (${rec.user.dealer_code})` : translate('portal', 'tr_company_reserve_pool')}
-                                                </td>
-                                                <td style={{ padding: '10px 14px' }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
-                                                        {rec.category.replaceAll('_', ' ')}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '10px 14px', fontWeight: 700, color: '#006837' }}>
-                                                    {money(rec.amount)}
-                                                </td>
-                                                <td style={{ padding: '10px 14px' }}>
-                                                    <span style={{
-                                                        background: rec.is_settled ? '#ecfdf5' : '#fefce8',
-                                                        color: rec.is_settled ? '#047857' : '#854d0e',
-                                                        padding: '2px 8px',
-                                                        borderRadius: 4,
-                                                        fontSize: 11,
-                                                        fontWeight: 700
-                                                    }}>
-                                                        {rec.is_settled ? translate('portal', 'tr_status_settled') : translate('portal', 'tr_status_pending')}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>
-                                                {translate('portal', 'tr_ledger_empty')}
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                        <Table
+                            rows={recent_allocations}
+                            empty={translate('portal', 'tr_ledger_empty')}
+                            pageSize={15}
+                            columns={[
+                                {
+                                    key: 'created_at',
+                                    title: translate('portal', 'col_date'),
+                                    sortable: true,
+                                    render: (rec: AllocationRecord) => <span style={{ color: '#64748b' }}>{date(rec.created_at)}</span>,
+                                },
+                                {
+                                    key: 'recipient',
+                                    title: translate('portal', 'tr_col_recipient'),
+                                    sortable: true,
+                                    sortValue: (rec: AllocationRecord) => rec.user?.name || '',
+                                    render: (rec: AllocationRecord) => (
+                                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                                            {rec.user ? `${rec.user.name} (${rec.user.dealer_code})` : translate('portal', 'tr_company_reserve_pool')}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: 'category',
+                                    title: translate('portal', 'col_category'),
+                                    sortable: true,
+                                    render: (rec: AllocationRecord) => (
+                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
+                                            {rec.category.replaceAll('_', ' ')}
+                                        </span>
+                                    ),
+                                },
+                                {
+                                    key: 'amount',
+                                    title: translate('portal', 'col_amount'),
+                                    align: 'right',
+                                    sortable: true,
+                                    sortValue: (rec: AllocationRecord) => Number(rec.amount) || 0,
+                                    render: (rec: AllocationRecord) => <b style={{ color: '#006837' }}>{money(rec.amount)}</b>,
+                                },
+                                {
+                                    key: 'is_settled',
+                                    title: translate('portal', 'col_status'),
+                                    sortable: true,
+                                    render: (rec: AllocationRecord) => (
+                                        <span style={{
+                                            background: rec.is_settled ? '#ecfdf5' : '#fefce8',
+                                            color: rec.is_settled ? '#047857' : '#854d0e',
+                                            padding: '2px 8px',
+                                            borderRadius: 4,
+                                            fontSize: 11,
+                                            fontWeight: 700
+                                        }}>
+                                            {rec.is_settled ? translate('portal', 'tr_status_settled') : translate('portal', 'tr_status_pending')}
+                                        </span>
+                                    ),
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             )}
