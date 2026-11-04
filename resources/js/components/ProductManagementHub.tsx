@@ -111,7 +111,7 @@ export default function ProductManagementHub({
     const selectedCatalogCategory = catalogCategories.find((item: { name?: string }) => item.name === category);
     const subCategoryOptions = (selectedCatalogCategory?.subcategories ?? [])
         .map((item: { name?: string }) => item.name)
-        .filter((name): name is string => Boolean(name));
+        .filter((name: string): name is string => Boolean(name));
     const unitOptions = catalogUnits
         .map((item: { name?: string }) => item.name)
         .filter((name): name is string => Boolean(name));
@@ -286,7 +286,7 @@ export default function ProductManagementHub({
                                 </select>
                                 <select aria-label={translate('portal', 'col_subcategory')} value={subCategory} disabled={!category} onChange={e => { setSubCategory(e.target.value); applyCatalogFilters(undefined, { sub_category: e.target.value }); }}>
                                     <option value="">{translate('portal', 'col_subcategory')}</option>
-                                    {subCategoryOptions.map(name => <option key={name} value={name}>{name}</option>)}
+                                    {subCategoryOptions.map((name: string) => <option key={name} value={name}>{name}</option>)}
                                 </select>
                                 <select aria-label={translate('portal', 'col_unit')} value={unit} onChange={e => { setUnit(e.target.value); applyCatalogFilters(undefined, { unit: e.target.value }); }}>
                                     <option value="">{translate('portal', 'col_unit')}</option>

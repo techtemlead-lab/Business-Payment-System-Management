@@ -29,6 +29,8 @@ type StockProduct = {
     is_stock_paused?: boolean;
 };
 
+type ProductStockRow = StockProduct;
+
 type SortKey = 'name' | 'sku' | 'available' | 'expires' | 'mrp';
 
 function displayName(product: StockProduct): string {
