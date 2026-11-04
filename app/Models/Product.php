@@ -8,6 +8,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use InvalidArgumentException;
 
 class Product extends Model
@@ -50,6 +51,11 @@ class Product extends Model
     public function productUnit(): BelongsTo
     {
         return $this->belongsTo(ProductUnit::class, 'product_unit_id');
+    }
+
+    public function branchStocks(): HasMany
+    {
+        return $this->hasMany(BranchProductStock::class);
     }
 
     public function stockStatus(): string

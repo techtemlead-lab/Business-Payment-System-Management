@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
@@ -26,18 +28,38 @@ class Order extends Model
         return Money::decimal(Money::cents($this->total) - Money::cents($this->paid) - Money::cents($this->due_credit ?? '0.00'));
     }
 
-    public function lines()
+    public function lines(): HasMany
     {
         return $this->hasMany(OrderLine::class);
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function fulfillmentBranch()
+    public function fulfillmentBranch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class, 'fulfillment_branch_id');
+    }
+
+    public function paymentClaims(): HasMany
+    {
+        return $this->hasMany(PaymentClaim::class);
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
+    }
+
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class);
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(CommissionAllocation::class);
     }
 }
