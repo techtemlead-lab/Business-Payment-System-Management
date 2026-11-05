@@ -13,11 +13,13 @@ Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttl
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', fn () => view('reference.auth', ['mode' => 'login', 'portal' => 'subdealer']))->name('subdealer.login');
-    Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:30,1');
+    Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:30,1,login-otp-showOtp');
     Route::get('/forgot-password', fn () => view('reference.auth', ['mode' => 'forgot', 'portal' => 'subdealer']))->name('subdealer.password.request');
     Route::get('/reset-password/{token}', fn (string $token) => view('reference.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'portal' => 'subdealer']))->name('subdealer.password.reset');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('subdealer.login.store');
-    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1,login')->name('subdealer.login.store');
+    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1,login-otp-verifyOtp');
+    Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:3,1,login-otp-resend');
+    Route::get('/login/captcha', [AuthController::class, 'captcha'])->middleware('throttle:30,1,login-captcha');
     Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1')->name('subdealer.password.email');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1')->name('subdealer.password.update');
 });

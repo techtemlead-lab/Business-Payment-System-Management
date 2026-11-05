@@ -1,4 +1,19 @@
-@php($ownerPortal = $ownerPortal ?? false)
+@php
+    $ownerPortal = $ownerPortal ?? false;
+    $heading = match ($mode) {
+        'login' => $ownerPortal ? __('auth_ui.owner_sign_in') : __('auth_ui.staff_sign_in'),
+        'otp' => __('auth_ui.otp_title'),
+        'totp' => __('auth_ui.totp_title'),
+        'forgot' => __('auth_ui.forgot_password'),
+        default => __('auth_ui.reset_password'),
+    };
+    $help = match ($mode) {
+        'login' => $ownerPortal ? __('auth_ui.owner_help') : __('auth_ui.staff_help'),
+        'otp' => __('auth_ui.otp_subtitle'),
+        'totp' => __('auth_ui.totp_help'),
+        default => __('auth_ui.recovery_help'),
+    };
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -9,7 +24,7 @@
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#011627">
     <meta name="robots" content="noindex,nofollow">
-    <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='totp'?__('auth_ui.totp_title'):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password'))) }} · {{ __('portal.brand_company_bar') }}</title>
+    <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $heading }} · {{ __('portal.brand_company_bar') }}</title>
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
@@ -31,11 +46,24 @@
     <div class="company-auth-brand"><img src="/madina-header-logo.png?v=8" alt="{{ __('portal.brand_alt') }}"></div>
     <section class="company-auth-card">
         <span class="eyebrow">{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }}</span>
-        <h1>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='totp'?__('auth_ui.totp_title'):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password'))) }}</h1>
-        <p>{{ $mode==='login'?($ownerPortal?__('auth_ui.owner_help'):__('auth_ui.staff_help')):($mode==='totp'?__('auth_ui.totp_help'):__('auth_ui.recovery_help')) }}</p>
+        <h1>{{ $heading }}</h1>
+        <p>{{ $help }}</p>
         @if(session('success'))<div class="success" role="status">{{ session('success') }}</div>@endif
         @if($errors->any())<div class="error" role="alert">{{ $errors->first() }}</div>@endif
-        @if($mode === 'totp')
+        @if($mode === 'otp')
+        @if(! empty($phoneHint))<p class="muted">{{ __('auth_ui.otp_sent_to', ['digits' => $phoneHint]) }}</p>@endif
+        @if(! empty($devCode))<div class="success" role="status" data-otp-dev-code>{{ __('auth_ui.otp_dev_code', ['code' => $devCode]) }}</div>@endif
+        <form class="action-form" method="post" action="/login/otp">@csrf
+            <label>{{ __('auth_ui.otp_code') }}<input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" placeholder="{{ __('auth_ui.otp_placeholder') }}" @if($errors->has('code')) aria-invalid="true" @endif></label>
+            <p class="muted">{{ __('auth_ui.otp_hint') }}</p>
+            <button class="button dark" type="submit">{{ __('auth_ui.otp_verify') }}</button>
+        </form>
+        <form class="action-form" method="post" action="/login/otp/resend">@csrf
+            @if(($resendWait ?? 0) > 0)<p class="muted">{{ __('auth_ui.otp_resend_wait', ['seconds' => $resendWait]) }}</p>@endif
+            <button class="button" type="submit">{{ __('auth_ui.otp_resend') }}</button>
+        </form>
+        <div class="company-auth-help"><a href="/login">{{ __('auth_ui.back_to_sign_in') }}</a></div>
+        @elseif($mode === 'totp')
         <form class="action-form" method="post" action="/login/2fa">@csrf
             <label>{{ __('auth_ui.totp_code') }}<input type="text" name="code" inputmode="numeric" maxlength="20" required autocomplete="one-time-code" placeholder="{{ __('auth_ui.totp_placeholder') }}"></label>
             <p class="muted">{{ __('auth_ui.totp_hint') }}</p>
@@ -48,6 +76,9 @@
             <label>{{ $mode==='login'?__('auth_ui.email_or_phone'):__('auth_ui.email') }}<input type="{{ $mode==='login'?'text':'email' }}" name="email" required maxlength="254" autocomplete="username" value="{{ old('email',$email??'') }}" placeholder="{{ $mode==='login'?__('auth_ui.email_or_phone_placeholder'):__('auth_ui.email_placeholder') }}"></label>
             @if($mode!=='forgot')<label>{{ __('auth_ui.password') }}<input type="password" name="password" required maxlength="200" autocomplete="{{ $mode==='reset'?'new-password':'current-password' }}" @if($mode==='reset') minlength="12" @endif></label>@endif
             @if($mode==='reset')<label>{{ __('auth_ui.confirm_password') }}<input type="password" name="password_confirmation" required minlength="12" maxlength="200" autocomplete="new-password"></label><p class="muted">{{ __('auth_ui.password_rules') }}</p>@endif
+            @if($mode === 'login')
+                @include('partials.login-captcha')
+            @endif
             <button class="button dark" type="submit">{{ $mode==='login'?__('auth_ui.sign_in'):($mode==='forgot'?__('auth_ui.send_reset'):__('auth_ui.reset_password')) }}</button>
         </form>
         <div class="company-auth-help"><a href="{{ $mode==='login'?'/forgot-password':'/login' }}">{{ $mode==='login'?__('auth_ui.forgot_password_link'):__('auth_ui.back_to_sign_in') }}</a></div>

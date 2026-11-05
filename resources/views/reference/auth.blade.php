@@ -46,6 +46,12 @@
                 <input type="hidden" name="token" value="{{ $token }}">
             @endif
             @if($mode === 'otp')
+                @if(! empty($phoneHint))
+                    <p class="ref-form-hint">{{ __('auth_ui.otp_sent_to', ['digits' => $phoneHint]) }}</p>
+                @endif
+                @if(! empty($devCode))
+                    <div class="ref-alert ref-success" role="status" data-otp-dev-code>{{ __('auth_ui.otp_dev_code', ['code' => $devCode]) }}</div>
+                @endif
                 <label for="login-otp-code">{{ __('auth_ui.otp_code') }}</label>
                 <input id="login-otp-code" type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" placeholder="{{ __('auth_ui.otp_placeholder') }}" @if($errors->has('code')) aria-invalid="true" @endif>
                 <p class="ref-form-hint">{{ __('auth_ui.otp_hint') }}</p>
@@ -70,9 +76,21 @@
                     <input id="account-password-confirmation" type="password" name="password_confirmation" minlength="12" maxlength="200" required autocomplete="new-password">
                     <p class="ref-form-hint">{{ __('auth_ui.password_rules') }}</p>
                 @endif
+                @if($mode === 'login')
+                    @include('partials.login-captcha')
+                @endif
                 <button class="ref-auth-submit" type="submit">{{ $mode === 'login' ? __('auth_ui.sign_in') : ($mode === 'forgot' ? __('auth_ui.send_reset') : __('auth_ui.reset_password')) }}</button>
             @endif
         </form>
+        @if($mode === 'otp')
+            <form class="ref-form" action="/login/otp/resend" method="post" style="margin-top:12px;">
+                @csrf
+                @if(($resendWait ?? 0) > 0)
+                    <p class="ref-form-hint">{{ __('auth_ui.otp_resend_wait', ['seconds' => $resendWait]) }}</p>
+                @endif
+                <button class="ref-auth-submit" type="submit" style="background:transparent;color:inherit;border:1px solid currentColor;">{{ __('auth_ui.otp_resend') }}</button>
+            </form>
+        @endif
         <div class="ref-auth-bottom">
             @if(\App\Support\PortalHost::sharedPreviewRoot())
                 <a href="/portals">{{ __('site.portal_directory') }}</a>

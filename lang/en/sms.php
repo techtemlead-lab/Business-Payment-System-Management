@@ -52,4 +52,8 @@ return [
     'err_otp_expired' => 'The login code expired. Log in again to get a new code.',
     'err_otp_too_many' => 'Too many wrong codes. Log in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',
+    'err_otp_locked' => 'Too many wrong codes for this account. Try again in :minutes minutes.',
+    'err_otp_resend_wait' => 'Please wait :seconds seconds before asking for a new code.',
+    'err_otp_send_limit' => 'Too many codes were sent to this account. Try again in :minutes minutes.',
+    'err_otp_send_failed' => 'We could not send the SMS code. Please try again in a minute.',
 ];
