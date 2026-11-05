@@ -5935,4 +5935,10 @@ return [
     'office_today_payments' => 'যাচাইয়ের অপেক্ষায় পেমেন্ট',
     'office_today_withdrawals' => 'অপেক্ষায় থাকা টাকা তোলার আবেদন',
     'ops_col_created_at' => 'তারিখ',
+    'dash_work_deliveries_overdue' => '৭ দিনের বেশি আগে পাঠানো, এখনো ডেলিভারি হয়েছে লেখা হয়নি',
+    'label_overdue_delivery' => '৭ দিনের বেশি আগে পাঠানো, এখনো ডেলিভারি হয়েছে লেখা হয়নি',
+    'col_days_since_sent' => 'পাঠানোর পর কত দিন',
+    'col_courier_tracking' => 'কুরিয়ার / ট্র্যাকিং নম্বর',
+    'notice_deliveries_overdue_title' => 'ডেলিভারি হয়েছে লিখতে বাকি অর্ডার',
+    'notice_deliveries_overdue_body' => ':count টি অর্ডার :days দিনের বেশি আগে পাঠানো হয়েছে, কিন্তু এখনো ডেলিভারি হয়েছে লেখা হয়নি। এটা না লেখা পর্যন্ত ডিলার কমিশন পাবেন না। কুরিয়ারের সাথে কথা বলে ডেলিভারি হয়েছে লিখে দিন।',
 ];
