@@ -490,3 +490,10 @@
 /* Payout desk: search, method and dates on one wrapping row. */
 .app-shell .pay-search{flex-wrap:wrap;max-width:none}
 .app-shell .pay-search>select{width:auto;min-height:36px;padding:6px 10px}
+
+/* Phones: a panel heading with a button (e.g. Help → "Start tour") wraps instead of pushing
+   the page wider than the screen. */
+@media (max-width:640px){
+  .app-shell .panel-heading{flex-wrap:wrap}
+  .app-shell .panel-heading>.ops-row,.app-shell .panel-heading>.button{max-width:100%}
+}
