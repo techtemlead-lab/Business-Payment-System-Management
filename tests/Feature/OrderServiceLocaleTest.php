@@ -48,7 +48,8 @@ class OrderServiceLocaleTest extends TestCase
         }
 
         app(OrderService::class)->decision($admin, $order, 'held', 'Need payment proof');
-        app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Credit authorized', true);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Paid in full');
 
         try {
             app(OrderService::class)->decision($admin, $order->fresh(), 'rejected', 'No');
@@ -118,7 +119,8 @@ class OrderServiceLocaleTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
             'idempotency_key' => (string) Str::uuid(),
         ]);
-        app(OrderService::class)->decision($admin, $order, 'approved', 'Credit authorized', true);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Paid in full');
         $line = $order->lines()->first();
 
         $this->actingAs($admin)

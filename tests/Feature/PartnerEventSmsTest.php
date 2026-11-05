@@ -178,6 +178,7 @@ class PartnerEventSmsTest extends TestCase
             'channel' => 'Bank',
             'reference' => 'SMS-LIFECYCLE-RECEIPT',
             'amount' => '100.00',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
         ])->assertCreated()->json('data.id');
 
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');

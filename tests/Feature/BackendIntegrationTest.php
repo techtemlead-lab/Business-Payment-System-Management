@@ -10,6 +10,7 @@ use App\Models\ReferralTreePath;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -34,6 +35,7 @@ class BackendIntegrationTest extends TestCase
         $id = $this->actingAs($buyer)->postJson('/api/v1/orders', [
             'items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(),
             'channel' => 'Bank', 'reference' => 'INTEGRATION-RECEIPT', 'amount' => '100.00',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
         ])->assertCreated()->json('data.id');
         $admin = User::factory()->create(['role' => 'super_admin']);
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');
