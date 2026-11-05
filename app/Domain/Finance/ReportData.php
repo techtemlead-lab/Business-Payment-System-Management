@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'dues', 'due-adjustments', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds'];
+    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'dues', 'due-adjustments', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds'];
 
     /** @return array{query: Builder, columns: list<string>, money: list<string>} */
     public function query(User $actor, string $type, string $from, string $to): array
@@ -30,6 +30,7 @@ final class ReportData
             'products' => [DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered'),
                 ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
             'product-summary', 'category-summary' => $this->salesSummary($type),
+            'district-summary' => $this->districtSummary(),
             'rank-achievements' => [DB::table('dealer_ranks as r')->join('users as u', 'u.id', '=', 'r.user_id')
                 ->crossJoin(DB::raw("LATERAL json_array_elements(CASE WHEN json_array_length(COALESCE(r.qualification_history,'[]'::json))>0 THEN r.qualification_history ELSE json_build_array(json_build_object('rank',r.current_rank,'achieved_at',r.achieved_at)) END) AS h(value)"))->whereRaw("h.value->>'rank' <> 'dealer'"),
                 ['u.name', 'u.dealer_code', DB::raw("h.value->>'rank' AS rank"), DB::raw("(h.value->>'achieved_at')::timestamptz AS achieved_at")], [], DB::raw("((h.value->>'achieved_at')::timestamptz AT TIME ZONE 'UTC')"), 'r.user_id'],
@@ -64,7 +65,12 @@ final class ReportData
                 $query->where($owner, $actor->id);
             }
         }
-        $query->orderBy(in_array($type, ['product-summary', 'category-summary'], true) ? ($type === 'product-summary' ? 'sku' : 'category') : $date)->select($columns);
+        $query->orderBy(match ($type) {
+            'product-summary' => 'sku',
+            'category-summary' => 'category',
+            'district-summary' => 'gross_sales',
+            default => $date,
+        }, $type === 'district-summary' ? 'desc' : 'asc')->select($columns);
         $names = array_map(function ($column) use ($query): string {
             $sql = is_string($column) ? $column : $column->getValue($query->getGrammar());
             if (preg_match('/\sAS\s+([a-z_]+)$/i', $sql, $match)) {
@@ -91,6 +97,31 @@ final class ReportData
         $columns = [...$columns, DB::raw('COUNT(DISTINCT o.id) AS order_count'), DB::raw('SUM(l.quantity) AS quantity'), DB::raw('SUM(l.total) AS gross_sales')];
 
         return [$query, $columns, ['gross_sales'], 'o.created_at', 'o.user_id'];
+    }
+
+    /**
+     * Confirmed sales by division and district, like the location-wise sales
+     * view Bangladeshi distribution software gives area managers.
+     *
+     * @return array{Builder, array<mixed>, list<string>, string, string}
+     */
+    private function districtSummary(): array
+    {
+        $unknown = DB::getPdo()->quote(__('portal.report_area_unknown'));
+        $query = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
+            ->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
+            ->groupByRaw("COALESCE(u.division, {$unknown}), COALESCE(u.district, {$unknown})");
+        $columns = [
+            DB::raw("COALESCE(u.division, {$unknown}) AS division"),
+            DB::raw("COALESCE(u.district, {$unknown}) AS district"),
+            DB::raw('COUNT(DISTINCT o.user_id) AS partner_count'),
+            DB::raw('COUNT(o.id) AS order_count'),
+            DB::raw('SUM(o.total) AS gross_sales'),
+            DB::raw('SUM(o.paid) AS paid'),
+            DB::raw('SUM(GREATEST(o.total-o.due_credit-o.paid, 0)) AS outstanding'),
+        ];
+
+        return [$query, $columns, ['gross_sales', 'paid', 'outstanding'], 'o.created_at', 'o.user_id'];
     }
 
     private function uncategorisedSql(): string

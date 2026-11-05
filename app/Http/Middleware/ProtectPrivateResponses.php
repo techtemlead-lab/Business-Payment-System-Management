@@ -44,7 +44,11 @@ class ProtectPrivateResponses
         $previewRoot = $request->attributes->get('shared_preview_root');
         $insecurePreview = is_string($previewRoot) && str_starts_with($previewRoot, 'http://');
         $previewSource = $insecurePreview ? ' '.$previewRoot : '';
-        $upgrade = $insecurePreview ? '' : '; upgrade-insecure-requests';
+        // Local portal hosts (dealer.localhost, ...) also run on plain HTTP: upgrading there
+        // turns the redirect after a form post into an https URL nothing answers, so the
+        // dealer sees no confirmation and may submit the same order twice.
+        $plainLocalHttp = ! $request->isSecure() && ! app()->isProduction();
+        $upgrade = ($insecurePreview || $plainLocalHttp) ? '' : '; upgrade-insecure-requests';
         // Chrome rejects form posts to this HTTP loopback origin when form-action lists
         // 'self' or the explicit origin. The preview is local HTTP only.
         $formAction = $insecurePreview ? '*' : "'self'{$domainHosts}";

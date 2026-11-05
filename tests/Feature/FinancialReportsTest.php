@@ -107,6 +107,26 @@ class FinancialReportsTest extends TestCase
         $this->assertDatabaseCount('journal_entries', 0);
     }
 
+    public function test_district_sales_summary_groups_confirmed_orders_by_area(): void
+    {
+        $rangpur = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $this->order($rangpur, 'R-1')->update(['status' => 'approved']);
+        $this->order($rangpur, 'R-2')->update(['status' => 'delivered']);
+        $this->order($dhaka, 'D-1')->update(['status' => 'approved']);
+        $this->order($dhaka, 'D-PENDING');
+
+        $rows = app(ReportData::class)->query(User::factory()->create(['role' => 'finance']), 'district-summary', '2026-10-17', '2026-10-17')['query']->get();
+
+        $this->assertCount(2, $rows);
+        $this->assertSame('Rangpur', $rows[0]->district);
+        $this->assertSame(2, (int) $rows[0]->order_count);
+        $this->assertSame(1, (int) $rows[0]->partner_count);
+        $this->assertSame('2501.00', number_format((float) $rows[0]->gross_sales, 2, '.', ''));
+        $this->assertSame('Gazipur', $rows[1]->district);
+        $this->assertSame(1, (int) $rows[1]->order_count);
+    }
+
     public function test_each_company_report_uses_a_valid_schema_and_guest_access_is_denied(): void
     {
         $this->getJson('/api/v1/operations/views/payroll')->assertUnauthorized();

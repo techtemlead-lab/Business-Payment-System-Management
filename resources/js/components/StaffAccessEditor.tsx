@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {useForm, usePage} from '@inertiajs/react';
-import {label, type Row} from './UI';
+import {label, FormErrors, type Row} from './UI';
 import {useT} from '../shared/i18n/t';
 
 const actions = ['view', 'create', 'edit', 'approve'];
@@ -39,10 +39,10 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
         {mode==='role'?<div className="form-grid"><label>{translate('portal', 'sa_role_name')}<input required maxLength={100} value={form.data.name} onChange={e=>form.setData('name',e.target.value)}/></label><label>{translate('portal', 'sa_role_key')}<input required readOnly={!!entry.version} pattern="custom_[a-z][a-z0-9_]{0,49}" value={form.data.key} onChange={e=>form.setData('key',e.target.value)} placeholder="custom_sales_support"/></label></div>:<label>{translate('portal', 'sa_staff_role')}<select value={form.data.role} disabled={entry.role==='sr'} onChange={e=>{
             const role=e.target.value;form.setData('role',role);
             const preset=roles.find(item=>item.key===role);if(preset)form.setData('permissions',preset.permissions);
-        }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role)}</option>)}</select></label>}
+        }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}
         <Matrix modules={visible} value={form.data.permissions} change={value=>form.setData('permissions',value)}/>
         <label>{translate('portal', 'sa_reason')}<textarea required minLength={5} maxLength={1000} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>
-        {Object.keys(form.errors).length>0&&<div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}
+        <FormErrors errors={form.errors}/>
         <button className="button dark" disabled={form.processing}>{form.processing?translate('portal', 'saving'):mode==='role'?translate('portal', 'sa_save_role'):translate('portal', 'sa_save_staff')}</button>
     </form>;
 }
@@ -55,7 +55,7 @@ export default function StaffAccessEditor({modules,staff,roles,presets}:{modules
     const role=roles.find(item=>item.key===roleKey)??{};
     return <>
         <section className="panel"><h2>{translate('portal', 'sa_title')}</h2><p>{translate('portal', 'sa_body')}</p>
-            <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {label(user.role)}</option>)}</select></label>
+            <label>{translate('portal', 'sa_staff_member')}<select value={staffId} onChange={e=>setStaffId(e.target.value)}><option value="">{translate('portal', 'sa_select_staff')}</option>{staff.map(user=><option key={user.id} value={user.id}>{user.name} · {label(user.role, translate)}</option>)}</select></label>
             {selected&&<PermissionForm key={selected.id+':'+selected.version} modules={modules} entry={selected} mode="staff" roles={[...presets,...roles]}/>}
         </section>
         <section className="panel"><h2>{translate('portal', 'sa_roles_title')}</h2><p>{translate('portal', 'sa_roles_body')}</p>

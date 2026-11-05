@@ -1,7 +1,7 @@
 import {useState, useEffect, useMemo} from 'react';
 import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
-import {money, type Row} from '../components/UI';
+import {money, FormErrors, type Row} from '../components/UI';
 import {useT} from '../shared/i18n/t';
 import {isPastBusinessDate} from '../business-date';
 import {skuPrefix, suggestSku} from '../shared/sku';
@@ -270,7 +270,7 @@ export default function ProductEditor({
     </div>
    </div>
   {cost&&<label>{translate('portal','pe_cost')}<input type="number" min="0" step="0.01" disabled={!pricing} value={form.data.cost_price} onChange={e=>form.setData('cost_price',e.target.value)}/></label>}<label>{translate('portal','pe_low_stock_at')}<input type="number" min="0" max="100000" step="1" disabled={!inventory} value={form.data.low_stock_at} onChange={e=>form.setData('low_stock_at',e.target.value)}/></label><label>{translate('portal','pe_publication')}<select aria-label={translate('portal','pe_publication')} disabled={!catalog} value={form.data.active} onChange={e=>form.setData('active',e.target.value)}><option value="0">{translate('portal','pe_draft_hidden')}</option><option value="1">{translate('portal','pe_published')}</option></select></label><label>{translate('portal','pe_homepage')}<select aria-label={translate('portal','pe_homepage')} disabled={!catalog} value={form.data.featured} onChange={e=>form.setData('featured',e.target.value)}><option value="0">{translate('portal','pe_standard')}</option><option value="1">{translate('portal','pe_featured')}</option></select></label><p className="muted">{translate('portal','pe_stock_note')}</p></section>
- {editable&&<section className="panel"><h2>{translate('portal','pe_save_title')}</h2><label>{translate('portal','pe_change_reason')}<textarea required minLength={5} maxLength={1000} rows={3} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>{form.progress&&<progress max={100} value={form.progress.percentage} aria-label={translate('portal','pe_upload_progress')}/>}{Object.keys(form.errors).length>0&&<div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}<button type="submit" className="button dark" disabled={form.processing}>{form.processing?translate('portal','pe_saving'):p?translate('portal','pe_save_product'):translate('portal','pe_create_product')}</button></section>}
+ {editable&&<section className="panel"><h2>{translate('portal','pe_save_title')}</h2><label>{translate('portal','pe_change_reason')}<textarea required minLength={5} maxLength={1000} rows={3} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>{form.progress&&<progress max={100} value={form.progress.percentage} aria-label={translate('portal','pe_upload_progress')}/>}<FormErrors errors={form.errors}/><button type="submit" className="button dark" disabled={form.processing}>{form.processing?translate('portal','pe_saving'):p?translate('portal','pe_save_product'):translate('portal','pe_create_product')}</button></section>}
  {p && catalog && (
   <section className="panel pe-danger-zone tone-danger">
    <h2 className="pe-danger-title">{translate('portal','pe_delete_title')}</h2>
