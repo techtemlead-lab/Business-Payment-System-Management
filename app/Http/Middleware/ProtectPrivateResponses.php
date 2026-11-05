@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Content\TrainingVideoLink;
 use App\Support\PortalHost;
 use Closure;
 use Illuminate\Http\Request;
@@ -52,12 +53,14 @@ class ProtectPrivateResponses
         // Chrome rejects form posts to this HTTP loopback origin when form-action lists
         // 'self' or the explicit origin. The preview is local HTTP only.
         $formAction = $insecurePreview ? '*' : "'self'{$domainHosts}";
+        // Training videos play only from the privacy-enhanced YouTube player and Facebook's video plugin.
+        $videoFrames = ' '.implode(' ', TrainingVideoLink::EmbedHosts);
 
         $response->headers->set(
             'Content-Security-Policy',
             "default-src 'self'{$previewSource}{$domainHosts}; base-uri 'self'; object-src 'none'; "
             ."frame-ancestors 'self'{$domainHosts}; form-action {$formAction}; "
-            ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com; "
+            ."frame-src 'self'{$domainHosts} https://maps.google.com https://www.google.com https://maps.googleapis.com{$videoFrames}; "
             ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "

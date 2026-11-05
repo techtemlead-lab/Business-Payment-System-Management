@@ -61,6 +61,10 @@ class EnforceStaffActions
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
+        if ($controller === 'TrainingController' && $actor->owner()) {
+            // Owners manage the partner training library; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'PartnerAgreementController' && $actor->owner()) {
             // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);
@@ -142,6 +146,7 @@ class EnforceStaffActions
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
+            'TrainingController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
             'PlaceCodeController' => [['accounts'], match ($method) {

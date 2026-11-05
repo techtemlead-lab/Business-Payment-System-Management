@@ -1,0 +1,339 @@
+import React, { useState } from 'react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { ArrowDown, ArrowUp, BookOpen, Eye, EyeOff, FileText, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
+import { Empty, FormErrors, Modal } from './UI';
+import { useT } from '../shared/i18n/t';
+
+export type TrainingItem = {
+    id: number;
+    title_bn: string;
+    title_en: string;
+    summary?: string | null;
+    type: 'video' | 'pdf' | 'article';
+    topic: string;
+    audience: string;
+    embed_url?: string | null;
+    provider?: 'youtube' | 'facebook' | null;
+    body?: string | null;
+    pdf_url?: string | null;
+    pdf_name?: string | null;
+    pdf_size?: number | null;
+    is_new: boolean;
+    published_at?: string | null;
+    video_url?: string | null;
+    published?: boolean;
+    sort_order?: number;
+};
+
+type PartnerData = {
+    mode: 'partner';
+    groups: { topic: string; items: TrainingItem[] }[];
+    new_for_days: number;
+};
+
+type StaffData = {
+    mode: 'staff';
+    can_edit: boolean;
+    can_create: boolean;
+    items: TrainingItem[];
+    topics: string[];
+    types: string[];
+    audiences: string[];
+    pdf_max_mb: number;
+    new_for_days: number;
+};
+
+export type TrainingData = PartnerData | StaffData;
+
+type Translate = ReturnType<typeof useT>;
+
+const TYPE_ICONS = { video: PlayCircle, pdf: FileText, article: BookOpen } as const;
+
+function useTitle(): (item: TrainingItem) => { main: string; other: string } {
+    const { locale } = usePage<any>().props;
+    return (item) => (locale === 'bn'
+        ? { main: item.title_bn, other: item.title_en }
+        : { main: item.title_en, other: item.title_bn });
+}
+
+function fileSize(bytes?: number | null): string {
+    if (!bytes) {
+        return '';
+    }
+    return bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/**
+ * Click-to-play video: nothing is loaded from YouTube or Facebook until the
+ * partner presses play. The embed address comes from the server, which only
+ * builds it for allowed hosts.
+ */
+function VideoFacade({ item, title, translate }: { item: TrainingItem; title: string; translate: Translate }) {
+    const [playing, setPlaying] = useState(false);
+    if (!item.embed_url) {
+        return null;
+    }
+    const provider = item.provider === 'facebook' ? 'Facebook' : 'YouTube';
+    if (playing) {
+        return (
+            <div className="training-video">
+                <iframe
+                    src={item.embed_url}
+                    title={title}
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                    allow="encrypted-media; picture-in-picture; fullscreen"
+                    allowFullScreen
+                />
+            </div>
+        );
+    }
+    return (
+        <div className="training-video is-idle">
+            <button type="button" className="training-play" onClick={() => setPlaying(true)}>
+                <PlayCircle size={34} aria-hidden="true" />
+                <span>{translate('portal', 'training_play_video')}</span>
+            </button>
+            <small>{translate('portal', 'training_video_privacy_note', { provider })}</small>
+        </div>
+    );
+}
+
+function TrainingCard({ item, translate, children }: { item: TrainingItem; translate: Translate; children?: React.ReactNode }) {
+    const titleOf = useTitle();
+    const { main, other } = titleOf(item);
+    const Icon = TYPE_ICONS[item.type] ?? BookOpen;
+    return (
+        <article className="training-card">
+            <header className="training-card-head">
+                <span className={`training-type is-${item.type}`}><Icon size={15} aria-hidden="true" />{translate('portal', `training_type_${item.type}`)}</span>
+                {item.is_new && <span className="training-new">{translate('portal', 'training_new_badge')}</span>}
+            </header>
+            <h3>{main}</h3>
+            {other && other !== main && <p className="training-alt-title">{other}</p>}
+            {item.summary && <p className="training-summary">{item.summary}</p>}
+            {item.type === 'video' && <VideoFacade item={item} title={main} translate={translate} />}
+            {item.type === 'pdf' && item.pdf_url && (
+                <a className="button small training-pdf" href={item.pdf_url} target="_blank" rel="noopener">
+                    <FileText size={16} aria-hidden="true" />{translate('portal', 'training_open_pdf')}
+                    {item.pdf_size ? <span className="muted"> · {fileSize(item.pdf_size)}</span> : null}
+                </a>
+            )}
+            {item.type === 'article' && item.body && (
+                <details className="training-article">
+                    <summary>{translate('portal', 'training_read_article')}</summary>
+                    <div className="training-article-body">{item.body}</div>
+                </details>
+            )}
+            {children}
+        </article>
+    );
+}
+
+function PartnerLibrary({ data }: { data: PartnerData }) {
+    const translate = useT();
+    return (
+        <div className="training-hub" data-tour="training-library">
+            <section className="panel training-intro">
+                <h2>{translate('portal', 'training')}</h2>
+                <p className="muted">{translate('portal', 'training_partner_intro', { days: String(data.new_for_days) })}</p>
+            </section>
+            {data.groups.length === 0 && (
+                <section className="panel"><Empty title={translate('portal', 'training_empty_title')} body={translate('portal', 'training_empty_body')} /></section>
+            )}
+            {data.groups.map((group) => (
+                <section key={group.topic} className="training-topic" aria-labelledby={`training-topic-${group.topic}`}>
+                    <h2 id={`training-topic-${group.topic}`}>{translate('portal', `training_topic_${group.topic}`)}</h2>
+                    <div className="training-grid">
+                        {group.items.map((item) => <TrainingCard key={item.id} item={item} translate={translate} />)}
+                    </div>
+                </section>
+            ))}
+        </div>
+    );
+}
+
+type FormShape = {
+    title_bn: string;
+    title_en: string;
+    summary: string;
+    type: string;
+    topic: string;
+    audience: string;
+    video_url: string;
+    body: string;
+    pdf: File | null;
+};
+
+function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingItem | null; onDone: () => void }) {
+    const translate = useT();
+    const form = useForm<FormShape>({
+        title_bn: item?.title_bn ?? '',
+        title_en: item?.title_en ?? '',
+        summary: item?.summary ?? '',
+        type: item?.type ?? 'video',
+        topic: item?.topic ?? data.topics[0] ?? 'products',
+        audience: item?.audience ?? 'all',
+        video_url: item?.video_url ?? '',
+        body: item?.body ?? '',
+        pdf: null,
+    });
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        const options = { forceFormData: true, preserveScroll: true, onSuccess: () => onDone() };
+        if (item) {
+            form.transform((values) => ({ ...values, _method: 'patch' }));
+            form.post(`/commands/training/${item.id}`, options);
+        } else {
+            form.transform((values) => values);
+            form.post('/commands/training', options);
+        }
+    };
+    const error = (name: keyof FormShape) => (form.errors[name] ? <span className="field-error" role="alert">{String(form.errors[name])}</span> : null);
+    const keepingPdf = item?.type === 'pdf' && item.pdf_name;
+    return (
+        <form className="action-form training-form" onSubmit={submit}>
+            <FormErrors errors={form.errors} />
+            <label>{translate('portal', 'training_field_title_bn')}
+                <input type="text" lang="bn" required maxLength={200} value={form.data.title_bn} onChange={(e) => form.setData('title_bn', e.target.value)} />{error('title_bn')}
+            </label>
+            <label>{translate('portal', 'training_field_title_en')}
+                <input type="text" lang="en" required maxLength={200} value={form.data.title_en} onChange={(e) => form.setData('title_en', e.target.value)} />{error('title_en')}
+            </label>
+            <label>{translate('portal', 'training_field_summary')}
+                <textarea rows={2} maxLength={500} value={form.data.summary} onChange={(e) => form.setData('summary', e.target.value)} />{error('summary')}
+            </label>
+            <div className="training-form-row">
+                <label>{translate('portal', 'training_field_type')}
+                    <select required value={form.data.type} onChange={(e) => form.setData('type', e.target.value)}>
+                        {data.types.map((type) => <option key={type} value={type}>{translate('portal', `training_type_${type}`)}</option>)}
+                    </select>
+                </label>
+                <label>{translate('portal', 'training_field_topic')}
+                    <select required value={form.data.topic} onChange={(e) => form.setData('topic', e.target.value)}>
+                        {data.topics.map((topic) => <option key={topic} value={topic}>{translate('portal', `training_topic_${topic}`)}</option>)}
+                    </select>
+                </label>
+                <label>{translate('portal', 'training_field_audience')}
+                    <select required value={form.data.audience} onChange={(e) => form.setData('audience', e.target.value)}>
+                        {data.audiences.map((audience) => <option key={audience} value={audience}>{translate('portal', `training_audience_${audience}`)}</option>)}
+                    </select>
+                </label>
+            </div>
+            {form.data.type === 'video' && (
+                <label>{translate('portal', 'training_field_video_url')}
+                    <input type="url" inputMode="url" required pattern="https://.*" maxLength={500} placeholder="https://www.youtube.com/watch?v=..." value={form.data.video_url} onChange={(e) => form.setData('video_url', e.target.value)} />
+                    <small className="field-hint">{translate('portal', 'training_field_video_hint')}</small>{error('video_url')}
+                </label>
+            )}
+            {form.data.type === 'pdf' && (
+                <label>{translate('portal', 'training_field_pdf')}
+                    <input type="file" accept="application/pdf,.pdf" required={!keepingPdf} onChange={(e) => form.setData('pdf', e.target.files?.[0] ?? null)} />
+                    <small className="field-hint">
+                        {translate('portal', 'training_field_pdf_hint', { mb: String(data.pdf_max_mb) })}
+                        {keepingPdf ? ` ${translate('portal', 'training_field_pdf_keep_hint', { name: String(item?.pdf_name) })}` : ''}
+                    </small>{error('pdf')}
+                </label>
+            )}
+            {form.data.type === 'article' && (
+                <label>{translate('portal', 'training_field_body')}
+                    <textarea rows={10} required maxLength={20000} value={form.data.body} onChange={(e) => form.setData('body', e.target.value)} />{error('body')}
+                </label>
+            )}
+            <button type="submit" className="button dark" disabled={form.processing}>
+                {form.processing ? translate('portal', 'saving') : translate('portal', 'training_save')}
+            </button>
+        </form>
+    );
+}
+
+function StaffEditor({ data }: { data: StaffData }) {
+    const translate = useT();
+    const titleOf = useTitle();
+    const [editing, setEditing] = useState<TrainingItem | 'new' | null>(null);
+    const items = data.items;
+
+    const move = (index: number, step: -1 | 1) => {
+        const target = index + step;
+        if (target < 0 || target >= items.length) {
+            return;
+        }
+        const ids = items.map((item) => item.id);
+        [ids[index], ids[target]] = [ids[target], ids[index]];
+        router.post('/commands/training/reorder', { ids }, { preserveScroll: true });
+    };
+    const togglePublished = (item: TrainingItem) => {
+        router.post(`/commands/training/${item.id}/publish`, { published: !item.published }, { preserveScroll: true });
+    };
+    const remove = (item: TrainingItem) => {
+        if (window.confirm(translate('portal', 'training_delete_confirm', { title: titleOf(item).main }))) {
+            router.delete(`/commands/training/${item.id}`, { preserveScroll: true });
+        }
+    };
+
+    return (
+        <div className="training-hub" data-tour="training-editor">
+            <section className="panel training-intro">
+                <div className="panel-heading">
+                    <div>
+                        <h2>{translate('portal', 'training')}</h2>
+                        <p className="muted">{translate('portal', 'training_staff_intro')}</p>
+                    </div>
+                    {data.can_create && (
+                        <button type="button" className="button dark" onClick={() => setEditing('new')}>
+                            <Plus size={17} aria-hidden="true" />{translate('portal', 'training_add')}
+                        </button>
+                    )}
+                </div>
+            </section>
+            {items.length === 0 && (
+                <section className="panel"><Empty title={translate('portal', 'training_empty_title')} body={translate('portal', 'training_staff_empty_body')} /></section>
+            )}
+            <div className="training-grid">
+                {items.map((item, index) => (
+                    <TrainingCard key={item.id} item={item} translate={translate}>
+                        <div className="training-meta">
+                            <span className={`badge ${item.published ? 'approved' : 'draft'}`}>{translate('portal', item.published ? 'training_status_published' : 'training_status_draft')}</span>
+                            <span className="training-chip">{translate('portal', `training_topic_${item.topic}`)}</span>
+                            <span className="training-chip">{translate('portal', `training_audience_${item.audience}`)}</span>
+                        </div>
+                        {data.can_edit && (
+                            <div className="training-actions">
+                                <button type="button" className="button small" onClick={() => togglePublished(item)}>
+                                    {item.published ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
+                                    {translate('portal', item.published ? 'training_unpublish' : 'training_publish')}
+                                </button>
+                                <button type="button" className="button small" onClick={() => setEditing(item)}>
+                                    <Pencil size={15} aria-hidden="true" />{translate('portal', 'training_edit')}
+                                </button>
+                                <button type="button" className="icon-button" disabled={index === 0} onClick={() => move(index, -1)} aria-label={translate('portal', 'training_move_up')} title={translate('portal', 'training_move_up')}>
+                                    <ArrowUp size={16} />
+                                </button>
+                                <button type="button" className="icon-button" disabled={index === items.length - 1} onClick={() => move(index, 1)} aria-label={translate('portal', 'training_move_down')} title={translate('portal', 'training_move_down')}>
+                                    <ArrowDown size={16} />
+                                </button>
+                                <button type="button" className="icon-button training-delete" onClick={() => remove(item)} aria-label={translate('portal', 'training_delete')} title={translate('portal', 'training_delete')}>
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        )}
+                    </TrainingCard>
+                ))}
+            </div>
+            {editing && (
+                <Modal title={translate('portal', editing === 'new' ? 'training_modal_add' : 'training_modal_edit')} onClose={() => setEditing(null)}>
+                    <TrainingForm data={data} item={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
+                </Modal>
+            )}
+        </div>
+    );
+}
+
+/** Training library: office editor for staff, topic-grouped lessons for partners. */
+export default function TrainingHub({ data }: { data?: TrainingData | null }) {
+    if (!data) {
+        return null;
+    }
+    return data.mode === 'staff' ? <StaffEditor data={data} /> : <PartnerLibrary data={data} />;
+}
