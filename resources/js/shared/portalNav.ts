@@ -47,7 +47,7 @@ export const MANAGEMENT_SECTIONS = [
     'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin',
-    'training',
+    'training', 'events',
 ];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
@@ -74,7 +74,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin',
-    training: 'training',
+    training: 'training', events: 'events',
 };
 
 function defaultHrefPath(section: string): string {
@@ -223,7 +223,10 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.includes('content')) {
         ['website', 'content', 'enquiries', 'feedback'].forEach((item) => items.add(item));
     }
-    if (capabilities.includes('content') || ownerPortal) items.add('training');
+    if (capabilities.includes('content') || ownerPortal) {
+        items.add('training');
+        items.add('events');
+    }
     if (capabilities.includes('audit')) items.add('audit');
     if (capabilities.includes('orders') || capabilities.includes('finance')) {
         ['orders', 'deliveries', 'dues'].forEach((item) => items.add(item));
@@ -234,7 +237,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -254,7 +257,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -334,7 +337,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('reports', 'nav_module_reports', pick(staffAvailable, [
                 'reports', 'financial-reports', 'dashboards', 'data-imports',
             ])),
-            mother('learning', 'nav_module_learning', pick(staffAvailable, ['training'])),
+            mother('learning', 'nav_module_learning', pick(staffAvailable, ['training', 'events'])),
             mother('settings', 'nav_module_settings', pick(staffAvailable, [
                 'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin',
             ])),
@@ -398,7 +401,7 @@ export function buildDomainMothers(input: {
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
-                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training'])),
+                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
             ]);
         }
@@ -407,7 +410,7 @@ export function buildDomainMothers(input: {
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
-                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training'])),
+                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
             ]);
         }
