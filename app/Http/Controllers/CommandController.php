@@ -7,6 +7,7 @@ use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
 use App\Domain\Accounts\PasswordAccess;
+use App\Domain\Accounts\PasswordResetOwnerNotice;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -919,7 +920,7 @@ class CommandController extends Controller
         ]);
     }
 
-    public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms, PasswordAccess $access): RedirectResponse|JsonResponse
+    public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms, PasswordAccess $access, PasswordResetOwnerNotice $ownerNotice): RedirectResponse|JsonResponse
     {
         abort_unless($access->canReset($r->user(), $user), 403);
         abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
@@ -955,6 +956,8 @@ class CommandController extends Controller
         if (filled($user->phone)) {
             $sms->sendPasswordReset($user->fresh(), $plainPassword);
         }
+        // Staff who are not owners: the owners get an in-app notice (never with the password).
+        $ownerNotice->notify($r->user(), $user);
 
         if ($r->expectsJson() || $r->wantsJson()) {
             return response()->json([

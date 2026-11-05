@@ -626,6 +626,21 @@ class AuthController extends Controller
         return back()->with('success', __('portal.flash_partner_login_otp_updated'));
     }
 
+    /** Owners only: switch the "staff reset a password" notice on or off. */
+    public function passwordResetNotice(Request $request, SecuritySettings $security): Response
+    {
+        $owner = $request->user();
+        abort_unless($owner?->owner(), 403);
+        $data = $request->validate([
+            'enabled' => 'required|in:0,1',
+            'version' => 'required|integer|min:0',
+            'current_password' => 'required|current_password',
+        ]);
+        $security->savePasswordResetNotice($owner, $data['enabled'] === '1', (int) $data['version']);
+
+        return back()->with('success', __('portal.flash_password_reset_notice_updated'));
+    }
+
     public function beginTotp(Request $request, TotpAuthenticator $totp, SecuritySettings $security): Response
     {
         $user = $request->user();

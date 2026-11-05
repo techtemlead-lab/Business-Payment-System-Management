@@ -5935,4 +5935,13 @@ return [
     'office_today_payments' => 'Payments waiting',
     'office_today_withdrawals' => 'Withdrawals waiting',
     'ops_col_created_at' => 'Date',
+    'notice_password_reset_by_staff_title' => 'A staff member reset a password',
+    'notice_password_reset_by_staff_body' => ':staff reset the password of :account (:code) at :time. The new password went to the account holder by SMS. If you did not expect this, check with :staff.',
+    'password_reset_notice_title' => 'Tell owners when staff reset a password',
+    'password_reset_notice_body' => 'When a staff member who is not an owner resets anyone\'s password, every owner gets a notice in Notifications. The notice never shows the new password.',
+    'password_reset_notice_enabled' => 'Password reset notice',
+    'password_reset_notice_on' => 'On',
+    'password_reset_notice_off' => 'Off',
+    'password_reset_notice_save' => 'Save notice setting',
+    'flash_password_reset_notice_updated' => 'Password reset notice setting saved.',
 ];

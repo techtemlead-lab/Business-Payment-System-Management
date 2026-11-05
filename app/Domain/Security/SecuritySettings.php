@@ -17,11 +17,16 @@ final class SecuritySettings
 {
     public const PartnerLoginOtpKey = 'partner_login_otp';
 
+    public const PasswordResetNoticeKey = 'password_reset_owner_notice';
+
+    /** @var array<string, object>|null */
+    private ?array $settingRows = null;
+
     /** @return array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool} */
     public function partnerLoginOtp(): array
     {
         $configDefault = (bool) config('madina.login_otp.enabled', true);
-        $row = DB::table('business_settings')->where('key', self::PartnerLoginOtpKey)->first();
+        $row = $this->settingRow(self::PartnerLoginOtpKey);
         $stored = $row
             ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? $configDefault)
             : $configDefault;
@@ -39,6 +44,51 @@ final class SecuritySettings
     public function partnerLoginOtpEnabled(): bool
     {
         return $this->partnerLoginOtp()['enabled'];
+    }
+
+    /**
+     * Whether owners are told when a non-owner staff member resets a password. Default on.
+     *
+     * @return array{enabled: bool, version: int}
+     */
+    public function passwordResetNotice(): array
+    {
+        $row = $this->settingRow(self::PasswordResetNoticeKey);
+
+        return [
+            'enabled' => $row ? (bool) (json_decode($row->value, true, 512, JSON_THROW_ON_ERROR)['enabled'] ?? true) : true,
+            'version' => (int) ($row->version ?? 0),
+        ];
+    }
+
+    public function passwordResetNoticeEnabled(): bool
+    {
+        return $this->passwordResetNotice()['enabled'];
+    }
+
+    public function savePasswordResetNotice(User $actor, bool $enabled, int $version): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version): void {
+            abort_unless($actor->fresh()->owner(), 403);
+            $this->settingRows = null;
+            $before = $this->passwordResetNotice();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);
+            }
+            $existing = DB::table('business_settings')->where('key', self::PasswordResetNoticeKey)->first();
+            $after = ['enabled' => $enabled];
+            DB::table('business_settings')->updateOrInsert(['key' => self::PasswordResetNoticeKey], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR),
+                'version' => $version + 1,
+                'updated_by' => $actor->id,
+                'created_at' => $existing?->created_at ?? now(),
+                'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'security.password_reset_notice_changed', self::PasswordResetNoticeKey, [
+                'before' => ['enabled' => $before['enabled']],
+                'after' => $after,
+            ]);
+        }, 3);
     }
 
     public function totpChallengesEnabled(): bool
@@ -90,6 +140,7 @@ final class SecuritySettings
      * @return array{
      *   preview_mode: bool,
      *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool, stored_enabled: bool},
+     *   password_reset_notice: array{enabled: bool, version: int},
      *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool},
      *   admin_ip_allowlist_active: bool,
      *   session_count: int
@@ -102,6 +153,7 @@ final class SecuritySettings
         return [
             'preview_mode' => $this->previewMode(),
             'partner_login_otp' => $otp,
+            'password_reset_notice' => $this->passwordResetNotice(),
             'totp' => [
                 'challenges_enabled' => $this->totpChallengesEnabled(),
                 'confirmed' => filled($user->totp_confirmed_at),
@@ -116,6 +168,7 @@ final class SecuritySettings
     {
         DB::transaction(function () use ($actor, $enabled, $version): void {
             abort_unless($actor->fresh()->owner(), 403);
+            $this->settingRows = null;
             $before = $this->partnerLoginOtp();
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);
@@ -135,6 +188,18 @@ final class SecuritySettings
                 'preview_forced_off' => $before['preview_forced_off'],
             ]);
         }, 3);
+    }
+
+    /** The owner switches are read together, so a page pays for one query, not one per switch. */
+    private function settingRow(string $key): ?object
+    {
+        $this->settingRows ??= DB::table('business_settings')
+            ->whereIn('key', [self::PartnerLoginOtpKey, self::PasswordResetNoticeKey])
+            ->get()
+            ->keyBy('key')
+            ->all();
+
+        return $this->settingRows[$key] ?? null;
     }
 
     private function ipMatches(string $ip, string $allowed): bool
