@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Orders\OrderService;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\Product;
@@ -14,6 +16,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -76,6 +79,58 @@ class CommissionSettlementTest extends TestCase
         $divisions = collect($result['divisions'])->keyBy(fn (array $row): string => mb_strtolower($row['division']));
         $this->assertSame(2, $divisions['rangpur']['qualifiers']);
         $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
+    }
+
+    public function test_salary_preview_shows_exactly_what_settlement_then_pays(): void
+    {
+        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
+        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $this->purchase($rangpurA, '10000.00', '20000.00');
+        $this->purchase($rangpurB, '10000.00', '20000.00');
+        $this->purchase($dhaka, '5000.00', '10000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        $plan = app(CommissionSettlement::class)->salaryPlan('2026-09');
+        $divisions = collect($plan['divisions'])->keyBy(fn (array $row): string => mb_strtolower($row['division']));
+        $this->assertSame(2, $divisions['rangpur']['qualifiers']);
+        $this->assertSame('200.00', $divisions['rangpur']['per_head']);
+        $this->assertSame('0.00', $divisions['rangpur']['to_company_profit']);
+        $this->assertSame(0, $divisions['dhaka']['qualifiers']);
+        $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
+        $this->assertSame('100.00', $plan['to_company_profit']);
+        $planned = collect($plan['dealers'])->pluck('share', 'user_id')->all();
+
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        $paid = collect($result['distributed'])
+            ->pluck('amount', 'user_id')->all();
+        $this->assertNotEmpty($paid);
+        ksort($planned);
+        ksort($paid);
+        $this->assertSame($planned, $paid);
+        $this->assertSame($plan['to_company_profit'], $result['total_to_company_profit']);
+    }
+
+    public function test_treasury_counts_settled_pool_leftovers_once(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $this->purchase($dhaka, '5000.00', '10000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+        $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
+        $treasury = fn () => $this->actingAs($owner)->onPortal('sadmin')
+            ->withHeaders(['X-Inertia' => 'true', 'X-Inertia-Version' => $version])
+            ->get('/treasury')->assertOk()->json('props.data.flow');
+
+        $before = $treasury();
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+        $after = $treasury();
+
+        $this->assertSame('100.00', $result['total_to_company_profit']);
+        // The pool row keeps its amount after settling; its ৳100 leftover must not be added again.
+        $this->assertEquals($before['allocated_so_far'], $after['allocated_so_far']);
+        $this->assertEquals(100.0, $after['unclaimed_to_company_profit']);
     }
 
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void

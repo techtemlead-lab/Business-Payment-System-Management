@@ -5,6 +5,7 @@ namespace App\Http\Portals\Shared\Sections;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
@@ -141,25 +142,15 @@ final class CommissionsSection implements WorkspaceSection
             ->whereNotNull('user_id')
             ->get();
 
-        $salaryRule = CommissionRuleParameter::getRule('dealer_monthly_salary');
-        $minSalaryVolume = $salaryRule && isset($salaryRule->parameters['min_monthly_volume']) ? (float) $salaryRule->parameters['min_monthly_volume'] : 10000.00;
+        // Built by the same code that pays, so the list staff check is the list that gets paid.
+        $salaryPlan = app(CommissionSettlement::class)->salaryPlan($currentMonth, $salaryPoolAllocations);
 
         $qualification = app(CommissionQualification::class);
-        $salaryCandidates = DealerRank::whereHas('user', fn ($q) => $q->where('status', 'active')->where('role', 'dealer'))
-            ->with('user:id,name,dealer_code,phone,district')
-            ->get();
         $rankCandidates = DealerRank::whereIn('current_rank', ['mo', 'am', 'sm', 'me'])
             ->whereHas('user', fn ($q) => $q->where('status', 'active'))
             ->with('user:id,name,dealer_code,phone,district')
             ->get();
-        $volumeByUser = $qualification->monthlyVolumesFor(
-            $salaryCandidates->pluck('user_id')->merge($rankCandidates->pluck('user_id'))->unique()->values()->all(),
-            $currentMonth,
-        );
-        $minSalaryCents = Money::cents((string) $minSalaryVolume);
-        $qualifiedSalaryDealers = $salaryCandidates
-            ->filter(fn ($rank) => ($volumeByUser[$rank->user_id] ?? 0) >= $minSalaryCents)
-            ->values();
+        $volumeByUser = $qualification->monthlyVolumesFor($rankCandidates->pluck('user_id')->unique()->values()->all(), $currentMonth);
 
         // One batch evaluation for every leader instead of a policy, volume, rank and user lookup per leader.
         $paidAsByUser = $qualification->paidAsFor($rankCandidates->pluck('user_id')->all(), $currentMonth);
@@ -200,14 +191,18 @@ final class CommissionsSection implements WorkspaceSection
             'dealer_salary_pool_pending' => (float) $salaryPoolAllocations->where('category', 'dealer_monthly_salary_pool')->sum('amount'),
             'sub_dealer_salary_pending' => (float) $salaryPoolAllocations->where('category', 'sub_dealer_salary')->sum('amount'),
             'salary_pool_allocations_count' => $salaryPoolAllocations->count(),
-            'qualified_salary_dealers_count' => $qualifiedSalaryDealers->count(),
-            'qualified_salary_dealers' => $qualifiedSalaryDealers->map(fn ($d) => [
-                'id' => $d->id,
-                'user_id' => $d->user_id,
-                'name' => $d->user?->name,
-                'dealer_code' => $d->user?->dealer_code,
-                'monthly_volume' => ($volumeByUser[$d->user_id] ?? 0) / 100,
-            ])->values(),
+            'qualified_salary_dealers_count' => count($salaryPlan['dealers']),
+            'qualified_salary_dealers' => array_map(fn (array $d): array => [
+                'id' => $d['user_id'],
+                'user_id' => $d['user_id'],
+                'name' => $d['name'],
+                'dealer_code' => $d['dealer_code'],
+                'division' => $d['division'],
+                'monthly_volume' => (float) $d['monthly_volume'],
+                'share' => $d['share'],
+            ], $salaryPlan['dealers']),
+            'salary_divisions' => $salaryPlan['divisions'],
+            'salary_to_company_profit' => $salaryPlan['to_company_profit'],
             'rank_pool_pending' => (float) $rankPoolAllocations->sum('amount'),
             'rank_pool_allocations_count' => $rankPoolAllocations->count(),
             'qualified_rank_leaders_count' => $qualifiedRankLeaders->where('paid_as_rank', '!=', 'dealer')->count(),

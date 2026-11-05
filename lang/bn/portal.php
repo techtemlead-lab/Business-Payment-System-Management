@@ -5427,4 +5427,12 @@ return [
     'deliv_sum_oldest' => 'সবচেয়ে পুরনো অপেক্ষমাণ অর্ডার',
     'col_booked_units_hint' => 'অনুমোদিত অর্ডারের যে পরিমাণ এখনো পাঠানো হয়নি, পুরো কোম্পানির হিসাবে',
     'stock_free_to_sell' => 'বিক্রির জন্য খালি (কোম্পানি): :count',
+    'st_div_total' => 'সব বিভাগ',
+    'st_div_col_division' => 'বিভাগ',
+    'st_div_col_pool' => 'বেতনের টাকা',
+    'st_div_col_qualifiers' => 'যোগ্য ডিলার',
+    'st_div_col_per_head' => 'প্রতি ডিলার পাবেন',
+    'st_div_col_to_company' => 'কোম্পানির লাভে যাবে',
+    'st_col_share' => 'পাবেন',
+    'err_claim_over_waiting' => 'এই অর্ডারে ৳:waiting টাকার পেমেন্ট এখনো যাচাইয়ের অপেক্ষায় আছে। আপনি আর সর্বোচ্চ ৳:left পাঠাতে পারবেন।',
 ];
