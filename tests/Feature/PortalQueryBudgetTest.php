@@ -243,6 +243,27 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Stock movement queries must not grow with the number of movements.');
     }
 
+    public function test_branch_performance_reads_every_order_without_a_query_per_order(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create();
+        $product = Product::factory()->create(['active' => true, 'cost_price' => '30.00']);
+        foreach (range(1, 3) as $index) {
+            $this->line($this->order($dealer, 'approved', total: '50.00'), $product, quantity: 1, dispatched: 0);
+        }
+        $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance')->assertOk();
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance?period=month'));
+        $response->assertOk()->assertInertia(fn (Assert $page) => $page->where('data.performance.totals.order_count', 3)->where('data.performance.orders.total', 3));
+        $this->assertSame(0, $this->matching($queries, 'select count(*) as "aggregate" from "orders"'), 'The branch figures already count the orders, so the page must not count them again.');
+
+        foreach (range(1, 30) as $index) {
+            $this->line($this->order($dealer, 'delivered', total: '20.00'), $product, quantity: 1, dispatched: 1);
+        }
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/branch-performance?period=month'));
+        $this->assertCount(count($queries), $moreQueries, 'Branch performance queries must not grow with the number of orders.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');

@@ -451,7 +451,7 @@ return [
     'branch_perf_order_value' => 'Order value',
     'branch_perf_income' => 'Money collected',
     'branch_perf_profit' => 'Est. profit',
-    'branch_perf_outstanding' => 'Not received yet',
+    'branch_perf_outstanding' => 'Awaiting payment',
     'branch_perf_by_branch' => 'By branch',
     'branch_perf_orders_detail' => 'Orders in this period',
     'branch_perf_filter_branch' => 'Filter',
@@ -5937,4 +5937,9 @@ return [
     'inv_export_hint' => 'Every movement in this filtered list, not only this page',
     'inv_export_title' => 'Stock movements',
     'inv_export_all' => 'All movements (no filter)',
+    'branch_perf_range_total' => 'Total for the whole period',
+    'branch_perf_no_orders' => 'No orders in this period.',
+    'branch_perf_export_hint' => 'Every order in this period and branch, not only this page',
+    'branch_perf_export_note_label' => 'Note',
+    'branch_perf_export_note' => 'Awaiting payment counts only orders that are not rejected or cancelled. Estimated profit uses the cost price where it is known.',
 ];

@@ -451,7 +451,7 @@ return [
     'branch_perf_order_value' => 'অর্ডার মূল্য',
     'branch_perf_income' => 'আদায় করা টাকা',
     'branch_perf_profit' => 'আনুমানিক লাভ',
-    'branch_perf_outstanding' => 'টাকা আসেনি',
+    'branch_perf_outstanding' => 'পরিশোধ বাকি',
     'branch_perf_by_branch' => 'ব্রাঞ্চ অনুযায়ী',
     'branch_perf_orders_detail' => 'এই সময়ের অর্ডার',
     'branch_perf_filter_branch' => 'ফিল্টার',
@@ -5937,4 +5937,9 @@ return [
     'inv_export_hint' => 'শুধু এই পাতা নয়, বাছাই করা তালিকার সব আসা-যাওয়া',
     'inv_export_title' => 'স্টক আসা-যাওয়া',
     'inv_export_all' => 'সব আসা-যাওয়া (কোনো বাছাই নেই)',
+    'branch_perf_range_total' => 'পুরো সময়ের মোট',
+    'branch_perf_no_orders' => 'এই সময়ে কোনো অর্ডার নেই।',
+    'branch_perf_export_hint' => 'শুধু এই পাতা নয়, এই সময় ও ব্রাঞ্চের সব অর্ডার',
+    'branch_perf_export_note_label' => 'খেয়াল করুন',
+    'branch_perf_export_note' => 'পরিশোধ বাকি শুধু বাতিল বা নামঞ্জুর নয় এমন অর্ডারের হিসাব। আনুমানিক লাভ কেনা দাম জানা থাকলে তা দিয়ে হিসাব করা।',
 ];
