@@ -268,7 +268,7 @@ class FinanceOperationsController extends Controller
                                 $totals[$column] += $this->signedCents((string) $value);
                             }
                             $cells[] = in_array($column, $report['money'], true) ? new NumericCell((float) ($value === '' ? 0 : $value), (new Style)->withFormat('#,##0.00'))
-                                : (in_array($column, ['quantity', 'dispatched', 'order_count', 'partner_count'], true) ? new NumericCell((int) $value) : new StringCell(SpreadsheetCell::text($value)));
+                                : (in_array($column, ['quantity', 'dispatched', 'order_count', 'partner_count', 'days_outstanding'], true) ? new NumericCell((int) $value) : new StringCell(SpreadsheetCell::text($value)));
                         }
                         $writer->addRow(new Row($cells));
                     }

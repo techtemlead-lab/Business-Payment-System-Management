@@ -71,6 +71,36 @@ class SiteFeedbackTest extends TestCase
         $home->assertSee('ref-star is-filled', false);
     }
 
+    public function test_homepage_hides_the_review_section_until_feedback_is_approved(): void
+    {
+        SiteFeedback::query()->create([
+            'name' => 'Pending Guest',
+            'location' => 'Rangpur',
+            'rating' => 5,
+            'message' => 'Waiting for the team to review this.',
+            'status' => 'pending',
+            'source' => 'public',
+        ]);
+
+        $this->assertSame([], SiteCustomization::getTestimonials());
+
+        $this->get('/')
+            ->assertOk()
+            ->assertDontSee('ref-testimonials-section', false)
+            ->assertDontSee('Pending Guest');
+    }
+
+    public function test_homepage_promises_only_state_what_the_site_shows(): void
+    {
+        $home = $this->get('/')->assertOk();
+
+        $home->assertSee(__('site.trust_pillar2_title'))
+            ->assertSee(__('site.trust_pillar3_title'));
+        foreach (['GMP', '64 districts', 'certified for potency', 'Tasmin Ahmed'] as $unverifiedClaim) {
+            $home->assertDontSee($unverifiedClaim);
+        }
+    }
+
     public function test_dealer_can_submit_feedback_from_partner_command(): void
     {
         $dealer = User::factory()->create(['role' => 'dealer', 'district' => 'Rangpur']);

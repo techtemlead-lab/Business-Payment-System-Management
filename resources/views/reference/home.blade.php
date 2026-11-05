@@ -393,8 +393,8 @@
     @if(!empty($testimonials))
     <section class="ref-testimonials-section ref-deferred-paint" aria-labelledby="testimonials-title">
         <div class="ref-section-title">
-            <h2 id="testimonials-title">{{ $siteCustomization['testimonials_title'] ?? __('site.testimonials_title') }}</h2>
-            <p>{{ $siteCustomization['testimonials_subtitle'] ?? __('site.testimonials_subtitle') }}</p>
+            <h2 id="testimonials-title">{{ $chrome('testimonials_title', $siteCustomization['testimonials_title'] ?? null) }}</h2>
+            <p>{{ $chrome('testimonials_subtitle', $siteCustomization['testimonials_subtitle'] ?? null) }}</p>
         </div>
         <div class="ref-testimonials-viewport {{ $testimonialsScrollable ? 'is-scrollable' : '' }}">
             <div class="ref-testimonials-grid {{ $testimonialsScrollable ? 'is-marquee' : '' }}" data-testimonial-count="{{ $testimonialCount }}">

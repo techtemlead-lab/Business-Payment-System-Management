@@ -28,6 +28,8 @@ type StockProduct = {
     row_key?: string;
     low_stock_at?: number;
     is_stock_paused?: boolean;
+    /** Units on approved orders that have not been sent yet. */
+    booked_units?: number;
 };
 
 type ProductStockRow = StockProduct;
@@ -290,6 +292,26 @@ export default function StockOnHand({
                                         <small className="cell-sub">{translate('portal', 'branch_company_total', { count: number(p.company_stock) })}</small>
                                     ) : null}
                                 </b>
+                            );
+                        },
+                    },
+                    {
+                        key: 'booked_units',
+                        title: translate('portal', 'col_booked_units'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => Number(p.booked_units ?? 0),
+                        render: (p: ProductStockRow) => {
+                            const booked = Number(p.booked_units ?? 0);
+                            if (booked <= 0) {
+                                return '—';
+                            }
+                            const free = Number(p.company_stock ?? p.stock ?? availableUnits(p)) - booked;
+                            return (
+                                <span title={translate('portal', 'col_booked_units_hint')}>
+                                    {number(booked)}
+                                    <small className={`cell-sub${free < 0 ? ' text-danger' : ''}`}>{translate('portal', 'stock_free_to_sell', { count: number(free) })}</small>
+                                </span>
                             );
                         },
                     },
