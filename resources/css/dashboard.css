@@ -3143,7 +3143,7 @@ html[data-theme="dark"] .app-shell .hub .button.danger:hover{background:var(--ds
 html[data-theme="dark"] .app-shell .order-status-tab.is-active{color:#04140f}
 html[data-theme="dark"] .app-shell .order-status-tab.is-active b{background:rgba(4,20,15,.18);color:#04140f}
 /* Read-only totals above a list (dues, deliveries): same look, no hover/link affordance. */
-.app-shell .admin-kpis.list-summary{margin:0 0 12px}
+.app-shell .admin-kpis.list-summary{margin:0 0 12px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
 .app-shell .admin-kpi.is-static{display:flex;flex-direction:column;gap:2px;padding:10px 14px}
 .app-shell .admin-kpi.is-static:hover{border-color:var(--ds-line);box-shadow:none}
 .app-shell .admin-kpi.is-static .admin-kpi-value{font-size:var(--ds-fs-lg)}
