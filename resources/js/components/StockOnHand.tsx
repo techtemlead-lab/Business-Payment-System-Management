@@ -67,6 +67,16 @@ function availableUnits(product: StockProduct): number {
     return Number(product.branch_stock ?? product.stock ?? 0);
 }
 
+/** Same rule as the stock-status column: nothing left, at or under the low-stock limit, or fine. */
+function stockLevel(product: StockProduct): 'out' | 'low' | 'ok' {
+    const onHand = availableUnits(product);
+    if (onHand <= 0) {
+        return 'out';
+    }
+
+    return onHand <= Number(product.low_stock_at ?? 0) ? 'low' : 'ok';
+}
+
 function uniqueValues(products: StockProduct[], key: 'category' | 'sub_category' | 'unit'): string[] {
     return [...new Set(products.map((product) => (product[key] ?? '').trim()).filter(Boolean))].sort((left, right) => left.localeCompare(right));
 }
@@ -99,6 +109,19 @@ export default function StockOnHand({
     const [subCategory, setSubCategory] = useState('');
     const [unit, setUnit] = useState('');
     const [sort, setSort] = useState<SortKey>('name');
+    const [level, setLevel] = useState<'' | 'low' | 'out'>('');
+
+    // Totals over the whole register (not the filtered rows), like the stock summary in Tally or ERPNext.
+    const summary = useMemo(() => products.reduce((totals, product) => {
+        const state = stockLevel(product);
+        totals.count += 1;
+        totals.low += state === 'low' ? 1 : 0;
+        totals.out += state === 'out' ? 1 : 0;
+        totals.booked += Number(product.booked_units ?? 0);
+        totals.value += availableUnits(product) * Number(product.mrp || 0);
+
+        return totals;
+    }, { count: 0, low: 0, out: 0, booked: 0, value: 0 }), [products]);
 
     const showCost = products.some((product) => product.cost_price != null && product.cost_price !== '');
     const categories = useMemo(() => uniqueValues(products, 'category'), [products]);
@@ -121,6 +144,9 @@ export default function StockOnHand({
                 return false;
             }
             if (unit && (product.unit ?? '') !== unit) {
+                return false;
+            }
+            if (level && stockLevel(product) !== level) {
                 return false;
             }
             if (!needle) {
@@ -165,7 +191,7 @@ export default function StockOnHand({
         });
 
         return sorted;
-    }, [category, products, query, sort, subCategory, unit]);
+    }, [category, level, products, query, sort, subCategory, unit]);
 
     const branchSummary = branchCount > 0
         ? `${branchName} · ${branchCount} ${translate('portal', 'branches_short')}`
@@ -176,6 +202,38 @@ export default function StockOnHand({
             <div className="panel-heading">
                 <h2>{translate('portal', 'stock_on_hand')}</h2>
                 <span>{branchSummary}</span>
+            </div>
+            <div className="admin-kpis list-summary stock-summary">
+                <div className="admin-kpi is-static">
+                    <span className="admin-kpi-label">{translate('portal', 'stock_sum_products')}</span>
+                    <strong className="admin-kpi-value">{number(summary.count)}</strong>
+                </div>
+                <button
+                    type="button"
+                    aria-pressed={level === 'low'}
+                    className={`admin-kpi is-static is-filter${summary.low > 0 ? ' tone-warn' : ''}${level === 'low' ? ' is-active' : ''}`}
+                    onClick={() => setLevel(level === 'low' ? '' : 'low')}
+                >
+                    <span className="admin-kpi-label">{translate('portal', 'stock_sum_low')}</span>
+                    <strong className="admin-kpi-value">{number(summary.low)}</strong>
+                </button>
+                <button
+                    type="button"
+                    aria-pressed={level === 'out'}
+                    className={`admin-kpi is-static is-filter${summary.out > 0 ? ' tone-danger' : ''}${level === 'out' ? ' is-active' : ''}`}
+                    onClick={() => setLevel(level === 'out' ? '' : 'out')}
+                >
+                    <span className="admin-kpi-label">{translate('portal', 'stock_sum_out')}</span>
+                    <strong className="admin-kpi-value">{number(summary.out)}</strong>
+                </button>
+                <div className="admin-kpi is-static">
+                    <span className="admin-kpi-label">{translate('portal', 'col_booked_units')}</span>
+                    <strong className="admin-kpi-value">{number(summary.booked)}</strong>
+                </div>
+                <div className="admin-kpi is-static">
+                    <span className="admin-kpi-label">{translate('portal', 'stock_sum_value')}</span>
+                    <strong className="admin-kpi-value">{money(summary.value)}</strong>
+                </div>
             </div>
             <div className="stock-toolbar">
                 <label className="stock-search">

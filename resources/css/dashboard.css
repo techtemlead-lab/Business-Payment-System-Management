@@ -3160,3 +3160,10 @@ html[data-theme="dark"] .app-shell .order-status-tab.is-active b{background:rgba
   .app-shell .admin-kpis>.admin-kpi:last-child:nth-child(odd){grid-column:1/-1}
   .app-shell .admin-kpis.list-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* Stock totals: "low" and "out of stock" are one-click filters for the register below. */
+.app-shell .admin-kpi.is-filter{cursor:pointer;font:inherit;text-align:left;color:inherit}
+.app-shell .admin-kpi.is-filter:hover{border-color:var(--ds-text-faint)}
+.app-shell .admin-kpi.is-filter:focus-visible{outline:2px solid var(--ds-brand);outline-offset:2px}
+.app-shell .admin-kpi.is-filter.is-active{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor}
+.app-shell .admin-kpi.is-filter.tone-warn.is-active{color:var(--ds-warn-fg)}
+.app-shell .admin-kpi.is-filter.tone-danger.is-active{color:var(--ds-danger-fg)}
