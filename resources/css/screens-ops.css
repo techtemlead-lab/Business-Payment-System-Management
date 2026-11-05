@@ -472,3 +472,14 @@
 .app-shell .aa-item small{color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-note{margin:4px 0 0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-reason{display:grid;gap:4px;font-weight:600;font-size:var(--ds-fs-sm)}
+
+/* Payment list totals: money received, waiting and rejected for the whole filtered list. */
+.pay-totals{padding:0 23px 16px}
+.pay-totals .metric-grid{margin-bottom:8px}
+.pay-total.is-ok strong{color:var(--ds-ok-fg,#166534)}
+.pay-total.is-wait strong{color:var(--ds-warn-fg,#92400e)}
+.pay-total.is-bad strong{color:var(--ds-danger-fg,#b91c1c)}
+.pay-total-channels{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;font-size:13px;color:var(--ds-text-muted,#5b6b7a)}
+.pay-total-channels b{color:var(--ds-text,#0b1f33);font-variant-numeric:tabular-nums}
+.order-totals{padding:16px 23px 0;margin:0}
+.order-totals .metric strong{font-variant-numeric:tabular-nums}
