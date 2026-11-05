@@ -6,7 +6,7 @@ import {
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
-    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, type LucideIcon
+    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -131,6 +131,7 @@ const icons: Record<string, LucideIcon> = {
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet,
+    training: GraduationCap, learning: GraduationCap,
 };
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
