@@ -21,6 +21,8 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
     if (to) query.set('to', to);
     if (preset) query.set('preset', preset);
     const querySuffix = query.toString() ? `?${query.toString()}` : '';
+    const certificateYears: number[] = report?.certificates?.years ?? [new Date().getFullYear()];
+    const [certificateYear, setCertificateYear] = useState(String(certificateYears[0]));
 
     return (
         <div className="partner-full-report">
@@ -35,6 +37,22 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                     <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} target="_blank" rel="noopener noreferrer" download="partner-statement.pdf">
                         <Download size={15} /> {translate('portal', 'download_pdf')}
                     </a>
+                </div>
+                <div className="certificate-links">
+                    <label className="muted">
+                        {translate('portal', 'cert_year_label')}
+                        <select value={certificateYear} onChange={(event) => setCertificateYear(event.target.value)}>
+                            {certificateYears.map((year) => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                    </label>
+                    <a className="button small" href={`${base}/income-certificate/pdf?year=${certificateYear}`} target="_blank" rel="noopener noreferrer">
+                        <Download size={15} /> {translate('portal', 'download_income_certificate')}
+                    </a>
+                    {report?.certificates?.rank && (
+                        <a className="button small" href={`${base}/rank-certificate/pdf`} target="_blank" rel="noopener noreferrer">
+                            <Download size={15} /> {translate('portal', 'download_rank_certificate')}
+                        </a>
+                    )}
                 </div>
                 <form
                     className="filter-bar"

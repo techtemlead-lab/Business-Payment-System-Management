@@ -28,6 +28,16 @@ class DashboardController
         return $this->workspace->idCardPdf($request);
     }
 
+    public function incomeCertificatePdf(Request $request): BinaryFileResponse
+    {
+        return $this->workspace->incomeCertificatePdf($request);
+    }
+
+    public function rankCertificatePdf(Request $request): BinaryFileResponse
+    {
+        return $this->workspace->rankCertificatePdf($request);
+    }
+
     public function joinPosterPdf(Request $request): BinaryFileResponse
     {
         return $this->workspace->joinPosterPdf($request);

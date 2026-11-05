@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared;
 
+use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
@@ -223,6 +224,20 @@ class WorkspaceController extends Controller
         abort_unless(in_array($u->role, ['dealer', 'sub_dealer'], true), 403);
 
         return app(PartnerIdCard::class)->downloadPdf($u);
+    }
+
+    /** Yearly income certificate PDF for the signed-in partner (?year=2026, default this year). */
+    public function incomeCertificatePdf(Request $r): BinaryFileResponse
+    {
+        $year = (int) ($r->validate(['year' => 'nullable|integer|min:2020|max:2100'])['year'] ?? 0) ?: (int) now('Asia/Dhaka')->format('Y');
+
+        return app(PartnerCertificates::class)->incomePdf($r->user(), $year);
+    }
+
+    /** Rank certificate PDF for a dealer who holds a rank above dealer. */
+    public function rankCertificatePdf(Request $r): BinaryFileResponse
+    {
+        return app(PartnerCertificates::class)->rankPdf($r->user());
     }
 
     public function joinPosterPdf(Request $r): BinaryFileResponse
