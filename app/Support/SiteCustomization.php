@@ -146,25 +146,23 @@ class SiteCustomization
             'featured_products_items' => [],
             'products_empty_title' => 'Our collection is being prepared.',
 
-            // Core Brand Promises & Trust Pillars (Toggleable by Admin)
+            // Brand promises. Each one states only what the public site itself
+            // shows (trade licence, head office, dealer directory, phone line).
             'trust_pillars_enabled' => '1',
-            'trust_pillars_title' => 'Our Core Brand Commitments',
+            'trust_pillars_title' => 'Our Promise to You',
             'trust_pillars' => [
-                ['icon' => 'fa-leaf', 'title' => '100% Authentic Botanical Herbs', 'subtitle' => 'Pure natural unani formulations certified for potency and safety.'],
-                ['icon' => 'fa-certificate', 'title' => 'GMP Standard Quality', 'subtitle' => 'Manufactured under modern hygienic pharmaceutical guidelines.'],
-                ['icon' => 'fa-truck-fast', 'title' => 'Nationwide Partner Network', 'subtitle' => 'Distributed through verified authorized dealers across 64 districts.'],
-                ['icon' => 'fa-user-doctor', 'title' => 'Dedicated Health Support', 'subtitle' => 'Expert consultation and product guidance for authentic holistic care.'],
+                ['icon' => 'fa-leaf', 'title' => 'Herbal & Nutrition Products', 'subtitle' => 'Holistic Nutracare herbal and nutrition products for everyday care.'],
+                ['icon' => 'fa-certificate', 'title' => 'Trade-Licensed Business', 'subtitle' => 'A licensed distributor with its head office in Pirganj, Rangpur.'],
+                ['icon' => 'fa-truck-fast', 'title' => 'Company-Approved Dealers', 'subtitle' => 'Buy from dealers the company has approved, and find the one nearest you.'],
+                ['icon' => 'fa-headset', 'title' => 'Help by Phone', 'subtitle' => 'Call our office for product and order information.'],
             ],
 
-            // Customer & Partner Testimonials (Toggleable by Admin)
+            // Reviews come only from customer feedback the owner has approved;
+            // the section stays hidden until at least one is approved.
             'testimonials_section_enabled' => '1',
-            'testimonials_title' => 'Community Trust & Feedback',
-            'testimonials_subtitle' => 'Real clinical feedback and experiences from verified partners, dealers and families across Bangladesh.',
-            'testimonials' => [
-                ['name' => 'Tasmin Ahmed', 'role' => 'Wellness Client', 'location' => 'Dhaka', 'rating' => 5, 'text' => 'Madina botanical products have become an indispensable part of my family routine. 100% natural and remarkably effective!'],
-                ['name' => 'Md. Farhad Hossain', 'role' => 'Authorized Dealer Partner', 'location' => 'Chittagong', 'rating' => 5, 'text' => 'The product consistency and genuine herbal composition make it widely respected and trusted among our local clients.'],
-                ['name' => 'Nusrat Jahan', 'role' => 'Verified Client', 'location' => 'Sylhet', 'rating' => 5, 'text' => 'The natural hair vitality shampoo and botanical care lotion gave noticeable results without any chemical irritation.'],
-            ],
+            'testimonials_title' => 'What Customers Say',
+            'testimonials_subtitle' => 'Shared by customers and partners, and published after our team approves them.',
+            'testimonials' => [],
 
             // Brand Video Gallery Showcase (Toggleable by Admin)
             // Off by default until real company videos are configured — avoids placeholder embeds on a corporate site.
@@ -1340,7 +1338,7 @@ Questions about these terms, partnership rules or platform operations:
             return [];
         }
 
-        $approved = SiteFeedback::query()
+        return SiteFeedback::query()
             ->where('status', 'approved')
             ->orderByDesc('moderated_at')
             ->orderByDesc('id')
@@ -1356,33 +1354,6 @@ Questions about these terms, partnership rules or platform operations:
                 'source' => $row->source,
             ])
             ->all();
-
-        if ($approved !== []) {
-            return $approved;
-        }
-
-        $raw = $all['testimonials'] ?? self::defaults()['testimonials'];
-        if (! is_array($raw) || empty($raw)) {
-            $raw = self::defaults()['testimonials'];
-        }
-
-        $items = [];
-        foreach ($raw as $t) {
-            if (! is_array($t)) {
-                continue;
-            }
-            $items[] = [
-                'name' => trim((string) ($t['name'] ?? '')),
-                'role' => trim((string) ($t['role'] ?? 'Verified Client')),
-                'location' => trim((string) ($t['location'] ?? 'Bangladesh')),
-                'rating' => max(1, min(5, (int) ($t['rating'] ?? 5))),
-                'text' => trim((string) ($t['text'] ?? '')),
-                'avatar' => trim((string) ($t['avatar'] ?? '')),
-                'source' => 'default',
-            ];
-        }
-
-        return $items;
     }
 
     public static function getVideoGallery(): array

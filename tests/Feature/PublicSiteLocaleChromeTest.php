@@ -194,14 +194,13 @@ class PublicSiteLocaleChromeTest extends TestCase
 
         $this->onPortal('public')->get('/')
             ->assertOk()
-            ->assertSee('১০০% প্রামাণিক ভেষজ উদ্ভিদ', false)
-            ->assertSee('শক্তি ও নিরাপত্তার জন্য সনদপ্রাপ্ত বিশুদ্ধ প্রাকৃতিক ইউনানি ফর্মুলেশন।', false)
-            ->assertSee('জিএমপি মানসম্মত কোয়ালিটি', false)
-            ->assertSee('সারাদেশব্যাপী পার্টনার নেটওয়ার্ক', false)
-            ->assertSee('নিবেদিত স্বাস্থ্য সহায়তা', false)
-            ->assertDontSee('100% Authentic Botanical Herbs', false)
-            ->assertDontSee('GMP Standard Quality', false)
-            ->assertDontSee('Nationwide Partner Network', false)
-            ->assertDontSee('Dedicated Health Support', false);
+            ->assertSee('ভেষজ ও পুষ্টি পণ্য', false)
+            ->assertSee('লাইসেন্স করা পরিবেশক, প্রধান অফিস রংপুরের পীরগঞ্জে।', false)
+            ->assertSee('কোম্পানির অনুমোদিত ডিলার', false)
+            ->assertSee('ফোনে সহায়তা', false)
+            ->assertDontSee('Herbal &amp; Nutrition Products', false)
+            ->assertDontSee('Trade-Licensed Business', false)
+            ->assertDontSee('Company-Approved Dealers', false)
+            ->assertDontSee('Help by Phone', false);
     }
 }
