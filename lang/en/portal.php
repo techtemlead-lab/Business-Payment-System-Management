@@ -1599,7 +1599,7 @@ return [
     'kyc_empty' => 'No ID papers saved for this partner yet.',
     'kyc_load_failed' => 'Could not load ID papers.',
     'acct_password_title' => 'Login password',
-    'acct_password_hint' => 'By company rule, permitted admins can see and change login passwords for dealer, sub-dealer and staff accounts. Passwords are stored in locked (encrypted) form.',
+    'acct_password_hint' => 'Owners (Super Admin, MD, Chairman) can see a password. Owners and staff with permission can reset it. Every view and reset is saved in the audit log with who did it and when. Passwords are stored locked (encrypted).',
     'acct_password_current' => 'Current password',
     'acct_password_show' => 'Show',
     'acct_password_hide' => 'Hide',
@@ -5657,4 +5657,7 @@ return [
     'st_div_col_to_company' => 'Goes to company profit',
     'st_col_share' => 'Will get',
     'err_claim_over_waiting' => 'Payments of ৳:waiting for this order are still waiting to be checked. You can send at most ৳:left more.',
+    'acct_password_reveal' => 'Show password',
+    'acct_password_reveal_note' => 'Showing the password is saved in the audit log with your name and the time.',
+    'acct_password_reset_needs_phone' => 'This account has no mobile number, so the new password cannot be sent to them. Add a mobile number first, or ask an owner to reset it.',
 ];

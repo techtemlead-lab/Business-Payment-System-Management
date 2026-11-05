@@ -116,7 +116,7 @@ class EnforceStaffActions
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
             },
             'CommandController' => match ($method) {
-                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'revealPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
                 'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],

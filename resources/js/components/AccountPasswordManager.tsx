@@ -167,11 +167,45 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
             });
     };
 
+    // Owners only. The password is fetched when asked for, and each fetch is written to the audit log.
+    const handleReveal = () => {
+        if (busy) return;
+        setBusy(true);
+        setError('');
+
+        const csrf = getCsrfToken();
+        fetch(`/commands/accounts/${account.id}/reveal-password`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrf,
+                'X-XSRF-TOKEN': csrf,
+            },
+            credentials: 'same-origin',
+        })
+            .then(async (res) => {
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(json.message || translate('portal', 'acct_password_load_failed'));
+                }
+                setStatus(json.data || null);
+                setVisible(true);
+            })
+            .catch((err) => {
+                setError(err.message || translate('portal', 'acct_password_load_failed'));
+            })
+            .finally(() => {
+                setBusy(false);
+            });
+    };
+
     if (!canManage) {
         return null;
     }
 
     const currentPlainPassword = status?.can_reveal && status.password ? status.password : null;
+    const canRevealOnRequest = Boolean(status?.can_reveal && !status.password);
     const isReady = !loading && status !== null;
 
     return (
@@ -192,7 +226,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 </div>
 
                 <div className="hub-row">
-                    {currentPlainPassword ? (
+                    {currentPlainPassword || canRevealOnRequest ? (
                         <span className="badge tone-ok">
                             {translate('portal', 'acct_password_status_synced')}
                         </span>
@@ -283,6 +317,27 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                         <p className="pw-note">
                             <span>ℹ️</span>
                             <span>{translate('portal', 'acct_password_instructions')}</span>
+                        </p>
+                    </div>
+                ) : canRevealOnRequest ? (
+                    <div className="hub-tile is-soft pw-box">
+                        <div className="hub-row is-between">
+                            <div>
+                                <span className="hub-label pw-secret-label">
+                                    {translate('portal', 'acct_password_current')}
+                                </span>
+                                <div className="hub-row">
+                                    <strong className="pw-secret is-masked">••••••••••••••••</strong>
+                                </div>
+                            </div>
+                            <button type="button" className="button" disabled={busy} onClick={handleReveal}>
+                                <span>👁️</span>
+                                <span>{translate('portal', 'acct_password_reveal')}</span>
+                            </button>
+                        </div>
+                        <p className="pw-note">
+                            <span>ℹ️</span>
+                            <span>{translate('portal', 'acct_password_reveal_note')}</span>
                         </p>
                     </div>
                 ) : (

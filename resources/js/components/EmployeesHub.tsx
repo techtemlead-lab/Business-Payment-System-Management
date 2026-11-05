@@ -37,6 +37,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
     const translate = useT();
     const {auth} = usePage<any>().props;
     const canManageStaff = auth.user.role === 'super_admin';
+    const isOwner = ['super_admin', 'md', 'chairman'].includes(auth.user.role);
+    const caps: string[] = auth.capabilities ?? [];
+    // Mirrors PasswordAccess on the server.
+    const canResetPasswordOf = (employee: Row): boolean => employee.role !== 'super_admin' && employee.id !== auth.user.id && (canManageStaff || (!['md', 'chairman'].includes(String(employee.role)) && (isOwner || caps.includes('staff_admin'))));
     const [search, setSearch] = useState(filters.q || '');
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editModalEmployee, setEditModalEmployee] = useState<Row | null>(null);
@@ -705,10 +709,10 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                             </div>
                         </form>
 
-                        {canManageStaff && (
+                        {canResetPasswordOf(editModalEmployee) && (
                             <AccountPasswordManager
                                 account={editModalEmployee}
-                                canManage={canManageStaff}
+                                canManage
                             />
                         )}
                     </div>
