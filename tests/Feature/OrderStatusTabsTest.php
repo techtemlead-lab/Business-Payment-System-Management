@@ -119,6 +119,30 @@ class OrderStatusTabsTest extends TestCase
                 ->where('data.delivery_summary.units', 6));
     }
 
+    public function test_account_tabs_count_partners_per_status_and_follow_search(): void
+    {
+        $owner = User::factory()->staff()->create();
+        User::factory()->dealer()->create(['name' => 'Rahim Traders', 'status' => 'active']);
+        User::factory()->dealer()->create(['name' => 'Rahim Store', 'status' => 'suspended']);
+        User::factory()->dealer()->create(['name' => 'Karim Store', 'status' => 'active']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/accounts?q=Rahim&status=active')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.account_status_counts', ['active' => 1, 'suspended' => 1])
+                ->has('data.accounts.data', 1));
+    }
+
+    public function test_account_search_treats_percent_and_underscore_as_plain_text(): void
+    {
+        $owner = User::factory()->staff()->create();
+        User::factory()->dealer()->create(['name' => 'Ordinary Dealer']);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/accounts?q=%25')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('data.accounts.data', 0));
+    }
+
     private function order(User $buyer, string $status): Order
     {
         return Order::create([
