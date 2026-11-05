@@ -3,6 +3,7 @@
 namespace App\Domain\Integrations;
 
 use App\Support\Audit;
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -73,14 +74,14 @@ final class DisbursementGatewayClient
             Log::error('payout.disbursement_failed', [
                 'provider' => $provider,
                 'withdrawal_id' => $withdrawalId,
-                'error' => $e->getMessage(),
+                'error' => RedactedError::message($e),
             ]);
 
             return [
                 'success' => false,
                 'reference' => null,
                 'provider' => $provider,
-                'message' => 'Disbursement failed: '.$e->getMessage(),
+                'message' => 'Disbursement failed: '.RedactedError::message($e),
                 'fee' => 0.00,
                 'raw' => null,
             ];
