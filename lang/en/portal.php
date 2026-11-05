@@ -5427,4 +5427,12 @@ return [
     'deliv_sum_oldest' => 'Oldest waiting order',
     'col_booked_units_hint' => 'Units on approved orders not sent yet, for the whole company',
     'stock_free_to_sell' => 'Free to sell (company): :count',
+    'st_div_total' => 'All divisions',
+    'st_div_col_division' => 'Division',
+    'st_div_col_pool' => 'Salary money',
+    'st_div_col_qualifiers' => 'Dealers who qualify',
+    'st_div_col_per_head' => 'Each dealer gets',
+    'st_div_col_to_company' => 'Goes to company profit',
+    'st_col_share' => 'Will get',
+    'err_claim_over_waiting' => 'Payments of ৳:waiting for this order are still waiting to be checked. You can send at most ৳:left more.',
 ];

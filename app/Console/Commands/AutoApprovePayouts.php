@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\FinanceSettings;
 use App\Models\DealerRank;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -18,6 +19,9 @@ use Throwable;
 class AutoApprovePayouts extends Command
 {
     /** Pending fund categories each monthly settlement pays out. */
+    /** How many closed months back the automatic run may settle (last month, plus one for a missed run). */
+    public const AutomaticMonthsBack = 2;
+
     private const MonthlyFunds = [
         'salary' => ['dealer_monthly_salary_pool', 'sub_dealer_salary'],
         'royalty' => ['rank_royalty_pool'],
@@ -38,7 +42,16 @@ class AutoApprovePayouts extends Command
 
                 continue;
             }
+            $oldestAutomatic = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth())
+                ->subMonthsNoOverflow(self::AutomaticMonthsBack)->format('Y-m');
             foreach ($this->closedMonthsWithPendingFunds($categories) as $month) {
+                // Older months are left for a person to settle on the Settlements page, so turning
+                // auto-approval on never pays a long backlog in one go with today's dealer list.
+                if ($month < $oldestAutomatic) {
+                    $summary[$kind.':'.$month] = 'older month: needs approval';
+
+                    continue;
+                }
                 $summary[$kind.':'.$month] = $this->attempt(fn () => $kind === 'salary'
                     ? $commissions->settleMonthlySalaryPool($month)['status']
                     : $commissions->settleRankRoyaltyPool($month)['status']);
