@@ -11,6 +11,7 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -54,6 +55,9 @@ final class WithdrawalsSection implements WorkspaceSection
         ];
         $props['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $user->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
         $props['withdrawals'] = $this->withdrawalHistory($request, $user, $context->portal, $context->section === 'withdrawals');
+        if ($context->section === 'withdrawals') {
+            $props['withdrawal_status_counts'] = $this->withdrawalStatusCounts($request, $user, $context->portal);
+        }
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && $context->section === 'earnings') {
             $props['wallet_statement'] = app(PartnerWalletStatement::class)->for($user, $earningsFrom, $earningsTo);
         }
@@ -87,6 +91,30 @@ final class WithdrawalsSection implements WorkspaceSection
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
     private function withdrawalHistory(Request $request, User $user, string $portal, bool $applyFilters): LengthAwarePaginator
+    {
+        $query = $this->filteredWithdrawals($request, $user, $portal, $applyFilters, true);
+
+        return $this->presentHistory($query);
+    }
+
+    /**
+     * Withdrawals per status under every other filter on screen, for the status
+     * tabs above the list. The status filter is left out so every tab keeps its count.
+     *
+     * @return array<string, int>
+     */
+    private function withdrawalStatusCounts(Request $request, User $user, string $portal): array
+    {
+        return $this->filteredWithdrawals($request, $user, $portal, true, false)
+            ->select('withdrawals.status')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('withdrawals.status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
+    }
+
+    private function filteredWithdrawals(Request $request, User $user, string $portal, bool $applyFilters, bool $withStatus): Builder
     {
         $staff = in_array($portal, ['manage', 'sadmin'], true);
         $query = DB::table('withdrawals')
@@ -127,7 +155,7 @@ final class WithdrawalsSection implements WorkspaceSection
                 $query->where('users.role', $request->string('buyer_role')->toString());
             }
             $status = $request->string('status')->toString();
-            if (in_array($status, ['requested', 'approved', 'rejected', 'paid'], true)) {
+            if ($withStatus && in_array($status, ['requested', 'approved', 'rejected', 'paid'], true)) {
                 $query->where('withdrawals.status', $status);
             }
             $channel = $request->string('channel')->toString();
@@ -145,6 +173,11 @@ final class WithdrawalsSection implements WorkspaceSection
             }
         }
 
+        return $query;
+    }
+
+    private function presentHistory(Builder $query): LengthAwarePaginator
+    {
         return $query->latest('withdrawals.created_at')->paginate(20)->withQueryString()->through(fn (object $row): array => [
             'id' => $row->id,
             'amount' => $row->amount,

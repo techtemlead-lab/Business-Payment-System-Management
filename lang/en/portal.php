@@ -5351,6 +5351,13 @@ return [
     'admin_kpis_label' => 'Business at a glance',
     'admin_kpi_open' => 'Open list',
     'orders_tab_all' => 'All',
+    'dues_sum_total' => 'Total due',
+    'dues_sum_orders' => 'Orders with dues',
+    'dues_sum_over_60' => 'Due over 60 days',
+    'dues_sum_oldest' => 'Oldest due',
+    'deliv_sum_orders' => 'Orders waiting to send',
+    'deliv_sum_units' => 'Units waiting to send',
+    'deliv_sum_oldest' => 'Oldest waiting order',
     'col_booked_units_hint' => 'Units on approved orders not sent yet, for the whole company',
     'stock_free_to_sell' => 'Free to sell (company): :count',
 ];

@@ -3,6 +3,9 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Orders\OrderListFilter;
+use App\Support\Money;
+use Illuminate\Contracts\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -34,8 +37,54 @@ final class OrdersSection implements WorkspaceSection
         if ($context->section === 'orders') {
             $props['order_status_counts'] = $this->statusCounts($context);
         }
+        if ($context->section === 'dues') {
+            $props['dues_summary'] = $this->duesSummary($filteredOrders);
+        }
+        if ($context->section === 'deliveries') {
+            $props['delivery_summary'] = $this->deliverySummary($filteredOrders);
+        }
 
         return $props;
+    }
+
+    /**
+     * Totals above the dues list: how much is owed, on how many orders, how much
+     * of it is over 60 days old and the oldest due — counted on Dhaka calendar days.
+     *
+     * @return array{outstanding: string, orders: int, over_60: string, oldest_days: int}
+     */
+    private function duesSummary(Builder $filteredOrders): array
+    {
+        $today = now('Asia/Dhaka')->toDateString();
+        $outstanding = 'GREATEST(orders.total - orders.due_credit - orders.paid, 0)';
+        $age = "(DATE '{$today}' - DATE(orders.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka'))";
+        $row = (clone $filteredOrders)->toBase()->reorder()
+            ->selectRaw("COALESCE(SUM({$outstanding}), 0) AS outstanding, COUNT(*) AS orders, COALESCE(SUM(CASE WHEN {$age} > 60 THEN {$outstanding} ELSE 0 END), 0) AS over_60, COALESCE(MAX({$age}), 0) AS oldest_days")
+            ->first();
+
+        return [
+            'outstanding' => Money::decimal(Money::cents((string) $row->outstanding)),
+            'orders' => (int) $row->orders,
+            'over_60' => Money::decimal(Money::cents((string) $row->over_60)),
+            'oldest_days' => (int) $row->oldest_days,
+        ];
+    }
+
+    /**
+     * Totals above the deliveries list: orders and units still waiting to be sent.
+     *
+     * @return array{orders: int, units: int, oldest_days: int}
+     */
+    private function deliverySummary(Builder $filteredOrders): array
+    {
+        $today = now('Asia/Dhaka')->toDateString();
+        $ids = (clone $filteredOrders)->toBase()->reorder()->select('orders.id');
+        $units = (int) DB::table('order_lines')->whereIn('order_id', $ids)->sum(DB::raw('GREATEST(quantity - dispatched, 0)'));
+        $row = (clone $filteredOrders)->toBase()->reorder()
+            ->selectRaw("COUNT(*) AS orders, COALESCE(MAX(DATE '{$today}' - DATE(orders.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka')), 0) AS oldest_days")
+            ->first();
+
+        return ['orders' => (int) $row->orders, 'units' => $units, 'oldest_days' => (int) $row->oldest_days];
     }
 
     /**
