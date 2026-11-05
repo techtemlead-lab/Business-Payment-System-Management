@@ -7,11 +7,14 @@ use App\Domain\Integrations\SmtpMailConfig;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\User;
+use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Events\QueueBusy;
@@ -19,10 +22,12 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -101,5 +106,44 @@ class AppServiceProvider extends ServiceProvider
         } catch (\Throwable) {
             // Integrations table may be unavailable during early migrate/install.
         }
+
+        $this->configureSignInLimits();
+    }
+
+    /**
+     * Sign-in limits are kept per account, not per internet address (owner decision, 2026-11-05):
+     * mobile networks put many dealers behind one address, and busy times must never let one
+     * person's sign-in block another's. The per-address figures are only a backstop against
+     * scripted abuse and sit far above what a crowded office or phone network sends.
+     */
+    private function configureSignInLimits(): void
+    {
+        RateLimiter::for('sign-in', function (Request $request): array {
+            $typed = trim((string) $request->input('email'));
+            $identity = PhoneIdentity::normalize($typed) ?? Str::lower($typed);
+
+            return [
+                Limit::perMinute(30)->by('account|'.$identity),
+                Limit::perMinute(600)->by('address|'.$request->ip()),
+            ];
+        });
+        RateLimiter::for('sign-in-code', function (Request $request): array {
+            $session = $request->hasSession() ? $request->session() : null;
+            $account = $session?->get('pending_login_id') ?? $session?->get('pending_totp_id');
+            $key = $account !== null ? 'account|'.$account : 'session|'.($session?->getId() ?? $request->ip());
+
+            return [
+                Limit::perMinute(10)->by($key),
+                Limit::perMinute(600)->by('address|'.$request->ip()),
+            ];
+        });
+        RateLimiter::for('sign-in-page', function (Request $request): array {
+            $session = $request->hasSession() ? $request->session()->getId() : $request->ip();
+
+            return [
+                Limit::perMinute(60)->by('session|'.$session),
+                Limit::perMinute(1200)->by('address|'.$request->ip()),
+            ];
+        });
     }
 }

@@ -39,6 +39,8 @@ class User extends Authenticatable implements HasLocalePreference
         'totp_secret',
         'totp_confirmed_at',
         'totp_recovery_codes',
+        'phone_share_approved_by',
+        'phone_share_reason',
     ];
 
     protected $attributes = ['status' => 'active', 'role' => 'dealer'];

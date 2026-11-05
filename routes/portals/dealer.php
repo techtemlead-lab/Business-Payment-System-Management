@@ -14,13 +14,13 @@ Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttl
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', fn () => view('reference.auth', ['mode' => 'login', 'portal' => 'dealer']))->name('login');
-    Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:30,1,login-otp-showOtp');
+    Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:sign-in-page');
     Route::get('/forgot-password', fn () => view('reference.auth', ['mode' => 'forgot', 'portal' => 'dealer']))->name('password.request');
     Route::get('/reset-password/{token}', fn (string $token) => view('reference.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'portal' => 'dealer']))->name('password.reset');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1,login');
-    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1,login-otp-verifyOtp');
-    Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:3,1,login-otp-resend');
-    Route::get('/login/captcha', [AuthController::class, 'captcha'])->middleware('throttle:30,1,login-captcha');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:sign-in');
+    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:sign-in-code');
+    Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:sign-in-code');
+    Route::get('/login/captcha', [AuthController::class, 'captcha'])->middleware('throttle:sign-in-page');
     Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });

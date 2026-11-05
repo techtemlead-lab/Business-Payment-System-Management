@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Owner-tunable security controls with preview-safe overrides.
@@ -120,21 +121,45 @@ final class SecuritySettings
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_security_setting_stale')]);
             }
-            $existing = DB::table('business_settings')->where('key', self::PartnerLoginOtpKey)->first();
-            $after = ['enabled' => $enabled];
-            DB::table('business_settings')->updateOrInsert(['key' => self::PartnerLoginOtpKey], [
-                'value' => json_encode($after, JSON_THROW_ON_ERROR),
-                'version' => $version + 1,
-                'updated_by' => $actor->id,
-                'created_at' => $existing?->created_at ?? now(),
-                'updated_at' => now(),
-            ]);
-            Audit::record($actor->id, 'security.partner_login_otp_changed', self::PartnerLoginOtpKey, [
-                'before' => ['enabled' => $before['stored_enabled']],
-                'after' => $after,
-                'preview_forced_off' => $before['preview_forced_off'],
-            ]);
+            $this->storePartnerLoginOtp($actor->id, $enabled, $before, 'owner_panel');
         }, 3);
+    }
+
+    /**
+     * Emergency switch run on the server (`php artisan madina:sms-login off`), for when SMS is
+     * down and nobody — the Super Admin included — can get a code to reach the owner switch.
+     */
+    public function savePartnerLoginOtpFromServer(bool $enabled): void
+    {
+        DB::transaction(function () use ($enabled): void {
+            $before = $this->partnerLoginOtp();
+            // The settings row needs an account to name; the audit entry records that it came from the server.
+            $ownerId = User::query()->where('role', 'super_admin')->orderBy('id')->value('id');
+            if ($ownerId === null) {
+                throw new RuntimeException('Create the Super Admin account first (php artisan madina:admin).');
+            }
+            $this->storePartnerLoginOtp(null, $enabled, $before, 'server_command', (int) $ownerId);
+        }, 3);
+    }
+
+    /** @param array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool, stored_enabled: bool} $before */
+    private function storePartnerLoginOtp(?int $actorId, bool $enabled, array $before, string $source, ?int $recordedBy = null): void
+    {
+        $existing = DB::table('business_settings')->where('key', self::PartnerLoginOtpKey)->first();
+        $after = ['enabled' => $enabled];
+        DB::table('business_settings')->updateOrInsert(['key' => self::PartnerLoginOtpKey], [
+            'value' => json_encode($after, JSON_THROW_ON_ERROR),
+            'version' => $before['version'] + 1,
+            'updated_by' => $recordedBy ?? $actorId,
+            'created_at' => $existing?->created_at ?? now(),
+            'updated_at' => now(),
+        ]);
+        Audit::record($actorId, 'security.partner_login_otp_changed', self::PartnerLoginOtpKey, [
+            'before' => ['enabled' => $before['stored_enabled']],
+            'after' => $after,
+            'preview_forced_off' => $before['preview_forced_off'],
+            'source' => $source,
+        ]);
     }
 
     private function ipMatches(string $ip, string $allowed): bool
