@@ -55,6 +55,7 @@ final class InventorySection implements WorkspaceSection
                 return $product;
             })->all();
         }
+        $props['products'] = $this->withBookedUnits($props['products'] ?? $data['products'] ?? []);
         $props['movements'] = DB::table('stock_movements')
             ->join('products', 'products.id', '=', 'product_id')
             ->leftJoin('company_branches', 'company_branches.id', '=', 'stock_movements.branch_id')
@@ -64,5 +65,32 @@ final class InventorySection implements WorkspaceSection
             ->paginate(20);
 
         return $props;
+    }
+
+    /**
+     * Units promised to approved orders that have not been sent yet. Stock only
+     * drops when an order is sent, so this shows how much is really free to sell,
+     * like the reserved quantity in ERPNext or Odoo. Counted for the whole
+     * company: an order gets its sending branch only when it is sent.
+     *
+     * @param  iterable<array<string, mixed>|object>  $products
+     * @return list<array<string, mixed>>
+     */
+    private function withBookedUnits(iterable $products): array
+    {
+        $booked = DB::table('order_lines as l')
+            ->join('orders as o', 'o.id', '=', 'l.order_id')
+            ->whereIn('o.status', ['approved', 'partially_dispatched'])
+            ->whereColumn('l.dispatched', '<', 'l.quantity')
+            ->groupBy('l.product_id')
+            ->selectRaw('l.product_id, SUM(l.quantity - l.dispatched) AS units')
+            ->pluck('units', 'product_id');
+
+        return collect($products)->map(function (mixed $product) use ($booked): array {
+            $product = (array) $product;
+            $product['booked_units'] = (int) ($booked[$product['id'] ?? 0] ?? 0);
+
+            return $product;
+        })->values()->all();
     }
 }
