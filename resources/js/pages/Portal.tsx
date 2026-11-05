@@ -103,7 +103,10 @@ function StatusTabs({counts,filters,section,statuses}:{counts:Record<string,numb
   const query=Object.fromEntries(Object.entries({...filters,status}).filter(([key,value])=>value!==''&&value!=null&&key!=='page'));
   router.get(`${base}/${section}`,query,{preserveState:true,preserveScroll:true});
  };
- return <div className="order-status-tabs" role="tablist" aria-label={translate('portal','orders_filter_status')}>
+ const listRef=React.useRef<HTMLDivElement>(null);
+ // Phones scroll the tabs sideways: keep the selected one in view after a reload.
+ useEffect(()=>{listRef.current?.querySelector<HTMLElement>('.is-active')?.scrollIntoView({block:'nearest',inline:'nearest'});},[active]);
+ return <div ref={listRef} className="order-status-tabs" role="tablist" aria-label={translate('portal','orders_filter_status')}>
   {tabs.map(tab=><button key={tab.value||'all'} type="button" role="tab" aria-selected={active===tab.value} className={`order-status-tab${active===tab.value?' is-active':''}${tab.count===0&&tab.value!==''?' is-empty':''}`} onClick={()=>go(tab.value)}>
    <span>{tab.label}</span><b>{number(tab.count)}</b>
   </button>)}

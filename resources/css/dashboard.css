@@ -3148,3 +3148,15 @@ html[data-theme="dark"] .app-shell .order-status-tab.is-active b{background:rgba
 .app-shell .admin-kpi.is-static:hover{border-color:var(--ds-line);box-shadow:none}
 .app-shell .admin-kpi.is-static .admin-kpi-value{font-size:var(--ds-fs-lg)}
 .app-shell .admin-kpi.is-static .admin-kpi-label{align-self:auto}
+
+/* Phones: figures two per row instead of five stacked cards filling the first screen.
+   The whole card stays tappable, so the "open list" hint is dropped to save height. */
+@media (max-width:600px){
+  .app-shell .admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .app-shell .admin-kpi{padding:10px 12px;column-gap:8px}
+  .app-shell .admin-kpi-icon{width:28px;height:28px;border-radius:8px}
+  .app-shell .admin-kpi-value{font-size:var(--ds-fs-lg);white-space:normal;overflow-wrap:anywhere}
+  .app-shell .admin-kpi-link{display:none}
+  .app-shell .admin-kpis>.admin-kpi:last-child:nth-child(odd){grid-column:1/-1}
+  .app-shell .admin-kpis.list-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
