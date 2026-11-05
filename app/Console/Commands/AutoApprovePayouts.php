@@ -12,6 +12,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 #[Signature('finance:auto-approve')]
@@ -69,6 +70,14 @@ class AutoApprovePayouts extends Command
         }
 
         $this->line(json_encode($summary, JSON_THROW_ON_ERROR));
+
+        $failed = array_filter($summary, fn (string $outcome): bool => str_starts_with($outcome, 'failed: '));
+        if ($failed !== []) {
+            // A failed payout is retried next hour, but someone must look at why it failed.
+            Log::critical('Automatic payout approval failed for some payouts.', ['failed' => $failed]);
+
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }

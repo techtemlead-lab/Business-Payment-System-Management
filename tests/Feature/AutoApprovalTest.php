@@ -11,6 +11,8 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -134,6 +136,21 @@ class AutoApprovalTest extends TestCase
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
         $this->assertDatabaseCount('commission_settlement_payouts', 0);
+    }
+
+    public function test_a_failed_payout_makes_the_scheduled_run_fail_loudly(): void
+    {
+        $this->purchase(User::factory()->create(['division' => 'Rangpur']), '10000.00', '20000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+        // Any database error during the payout; the trigger is rolled back with the test.
+        DB::unprepared("CREATE FUNCTION test_reject_payout() RETURNS trigger AS \$\$ BEGIN RAISE EXCEPTION 'Ledger is locked by a long report.'; END; \$\$ LANGUAGE plpgsql;
+            CREATE TRIGGER test_reject_payout BEFORE INSERT ON commission_settlement_payouts FOR EACH ROW EXECUTE FUNCTION test_reject_payout();");
+        Log::spy();
+
+        $this->artisan('finance:auto-approve')->assertFailed();
+
+        Log::shouldHaveReceived('critical')->withArgs(fn (string $message, array $context): bool => str_contains($message, 'Automatic payout approval failed')
+            && str_contains((string) ($context['failed']['salary:2026-09'] ?? ''), 'Ledger is locked'));
     }
 
     private function purchase(User $buyer, string $cash, string $mrp): Order

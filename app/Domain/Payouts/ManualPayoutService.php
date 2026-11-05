@@ -101,7 +101,9 @@ class ManualPayoutService
             }
             DB::table('withdrawals')->where('id', $id)->update(['status' => $decision, 'reviewed_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
             DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => $decision, 'note' => $reason, 'created_at' => now()]);
-            Audit::record($actor->id, 'withdrawal.'.$decision, $id);
+            Audit::record($actor->id, 'withdrawal.'.$decision, $id, [
+                'user_id' => $w->user_id, 'amount' => $w->amount, 'previous_status' => $w->status, 'reason' => $reason,
+            ]);
             $partner = User::find($w->user_id);
             $locale = $partner?->preferredLocale() ?? app()->getLocale();
             $decisionLabel = __('portal.wd_decision_'.$decision, [], $locale);
@@ -149,7 +151,11 @@ class ManualPayoutService
                 DB::table('journal_lines')->insert([['entry_id' => $entry, 'user_id' => $w->user_id, 'account' => 'wallet_liability', 'debit' => $w->amount, 'credit' => '0.00'], ['entry_id' => $entry, 'user_id' => null, 'account' => 'manual_payout_clearing', 'debit' => '0.00', 'credit' => $w->net_amount ?? $w->amount], ['entry_id' => $entry, 'user_id' => null, 'account' => 'payout_withholding_payable', 'debit' => '0.00', 'credit' => $w->withheld_amount]]);
                 DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference, 'paid_at' => $paidAt, 'paid_by' => $actor->id, 'receipt_path' => $path, 'receipt_mime' => $receipt->getMimeType(), 'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
                 DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'paid', 'note' => $note, 'created_at' => now()]);
-                Audit::record($actor->id, 'withdrawal.paid', $id, ['receipt_sha256' => hash_file('sha256', $receipt->getRealPath())]);
+                Audit::record($actor->id, 'withdrawal.paid', $id, [
+                    'user_id' => $w->user_id, 'amount' => $w->amount, 'net_amount' => $w->net_amount ?? $w->amount,
+                    'withheld_amount' => $w->withheld_amount, 'payment_reference' => $reference,
+                    'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()),
+                ]);
                 Audit::notice(
                     $w->user_id,
                     __('portal.notice_wd_paid_title', [], $locale),

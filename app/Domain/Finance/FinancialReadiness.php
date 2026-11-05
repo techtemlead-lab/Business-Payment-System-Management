@@ -27,8 +27,10 @@ final class FinancialReadiness
                 'withdrawal_reservations' => ! DB::table('wallets as w')->whereRaw("w.held-w.commission_held <> COALESCE((SELECT SUM(amount) FROM withdrawals x WHERE x.user_id=w.user_id AND x.status IN ('requested','approved')),0)")->exists(),
                 'order_receipts' => ! DB::table('orders as o')->whereRaw('o.paid <> COALESCE((SELECT SUM(amount) FROM receipts r WHERE r.order_id=o.id),0)')->exists(),
                 'funded_batches' => ! DB::table('commission_batches')->whereRaw('cash_basis <> company_share + total_allocated + unallocated OR refunded_amount > cash_basis')->exists(),
-                'allocation_totals' => ! DB::table('commission_batches as b')->whereRaw('b.total_allocated <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id),0)')->exists(),
-                'nonnegative_balances' => ! DB::table('wallets')->whereRaw('available < 0 OR held < 0 OR commission_held < 0 OR commission_held > held')->exists(),
+                // Commission rows must add up to the batch. The purchase surplus is the batch's
+                // unallocated part, and settlement leftovers are carved out of an existing fund,
+                // so neither is counted again here.
+                'allocation_totals' => ! DB::table('commission_batches as b')->whereRaw("b.total_allocated <> COALESCE((SELECT SUM(COALESCE(a.original_amount,a.amount)) FROM commission_allocations a WHERE a.order_id=b.order_id AND a.category <> 'company_commission_benefits_fund' AND a.metadata->>'source_allocation_id' IS NULL),0)")->exists(),                'nonnegative_balances' => ! DB::table('wallets')->whereRaw('available < 0 OR held < 0 OR commission_held < 0 OR commission_held > held')->exists(),
                 'nonnegative_stock' => ! DB::table('products')->where('stock', '<', 0)->exists(),
                 'opening_receivables' => ! DB::table('orders as o')->where('o.is_opening_balance', true)
                     ->whereRaw("o.total-o.paid-o.due_credit <> COALESCE((SELECT SUM(j.debit-j.credit) FROM journal_lines j WHERE j.user_id=o.user_id AND j.account='opening_receivables'),0)")->exists(),
