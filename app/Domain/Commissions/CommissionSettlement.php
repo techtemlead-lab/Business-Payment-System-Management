@@ -4,6 +4,7 @@ namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\Percentage;
+use App\Domain\Geography\PlaceGeographyResolver;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\CommissionAllocation;
 use App\Models\DealerRank;
@@ -22,13 +23,25 @@ final class CommissionSettlement
 
     public const RankRoyaltyReserve = 'rank_royalty_settlement_reserve';
 
+    /**
+     * The company's general profit fund. Division salary money that nobody in
+     * the division qualified for lands here — never in the owner's special
+     * benefit fund (RetainedFundLedger::BenefitsCategory).
+     */
+    public const CompanyProfitCategory = 'company_profit_fund';
+
     /** @return list<string> */
     public static function settlementReserveCategories(): array
     {
         return [self::DealerSalaryReserve, self::SubDealerSalaryReserve, self::RankRoyaltyReserve];
     }
 
-    public function __construct(private CommissionWallet $wallets, private CommissionQualification $qualification, private CommissionPolicy $policies) {}
+    public function __construct(
+        private CommissionWallet $wallets,
+        private CommissionQualification $qualification,
+        private CommissionPolicy $policies,
+        private PlaceGeographyResolver $geography,
+    ) {}
 
     /** @return array<string, mixed> */
     public function settle(string $month, string $kind, ?int $actorId = null, ?string $requestKey = null): array
@@ -71,17 +84,25 @@ final class CommissionSettlement
             $dealerIds = $dealers->pluck('id')->map(fn ($id): int => (int) $id)->all();
             $volumes = $this->qualification->monthlyVolumesFor($dealerIds, $month);
             $dealerNames = $dealers->pluck('name', 'id')->all();
+            // Salary is shared within each division (বিভাগ): the dealer's division, resolved the same way an order resolves its buyer's.
+            $dealerDivisions = $kind === 'salary' ? $dealers->mapWithKeys(fn (User $dealer): array => [
+                (int) $dealer->id => $this->divisionOf($this->geography->forBuyer($dealer)),
+            ])->all() : [];
+            $divisionSummary = [];
+            $toCompanyProfit = 0;
             $subDealerNames = [];
             /** @var array<string, array<int, array<string, mixed>>> */
             $paidAsByRules = [];
             foreach ($funds as $fund) {
                 $source = DB::table('commission_batches')->where('order_id', $fund->order_id)->value('policy');
-                $rules = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR)['rules'] : $this->policies->snapshot()['rules'];
+                $policy = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR) : null;
+                $rules = $policy['rules'] ?? $this->policies->snapshot()['rules'];
                 $parameters = $rules['dealer_monthly_salary']['parameters'];
                 $minVolume = Money::cents((string) $parameters['min_monthly_volume']);
+                $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? $this->orderBuyerGeography($fund)) : null;
                 $qualifiedIds = $dealers
-                    ->filter(fn (User $user): bool => PartnerBenefitControls::waivesSalaryVolume($user)
-                        || ($volumes[$user->id] ?? 0) >= $minVolume)
+                    ->filter(fn (User $user): bool => ($kind !== 'salary' || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
+                        && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= $minVolume))
                     ->pluck('id')
                     ->map(fn ($id): int => (int) $id)
                     ->all();
@@ -98,6 +119,9 @@ final class CommissionSettlement
                     }
                 } elseif ($kind === 'salary') {
                     $shares = $this->divide($cents, $qualifiedIds);
+                    $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
+                    $divisionSummary[$label]['pool_cents'] = ($divisionSummary[$label]['pool_cents'] ?? 0) + $cents;
+                    $divisionSummary[$label]['qualifiers'] = count($qualifiedIds);
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
                     $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
@@ -128,8 +152,19 @@ final class CommissionSettlement
                 $remainder = $cents - $paidCents;
                 $reserveId = null;
                 if ($remainder > 0) {
-                    $reserveId = $this->rollUndistributed($fund, $remainder, $month, $kind);
-                    $rolled += $remainder;
+                    // Sub-dealer salary keeps its own reserve (unchanged). Unclaimed dealer
+                    // salary and rank royalty go to the company's general profit fund.
+                    if ($fund->category === 'sub_dealer_salary') {
+                        $reserveId = $this->rollUndistributed($fund, $remainder, $month, $kind);
+                        $rolled += $remainder;
+                    } else {
+                        $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
+                        $toCompanyProfit += $remainder;
+                        if ($kind === 'salary') {
+                            $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
+                            $divisionSummary[$label]['to_company_profit_cents'] = ($divisionSummary[$label]['to_company_profit_cents'] ?? 0) + $remainder;
+                        }
+                    }
                 }
                 $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
                     'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
@@ -155,16 +190,28 @@ final class CommissionSettlement
                 $tier['rolled_to_reserve'] = Money::decimal($tier['reserve_cents']);
                 unset($tier['allocated_cents'], $tier['reserve_cents']);
             }
+            $divisions = [];
+            foreach ($divisionSummary as $name => $row) {
+                $divisions[] = [
+                    'division' => $name,
+                    'pool' => Money::decimal($row['pool_cents'] ?? 0),
+                    'qualifiers' => (int) ($row['qualifiers'] ?? 0),
+                    'to_company_profit' => Money::decimal($row['to_company_profit_cents'] ?? 0),
+                ];
+            }
             Audit::record($actorId, 'commissions.'.$kind.'_pool_settled', $month, [
                 'distributed' => Money::decimal($totalPaid),
                 'rolled_to_reserve' => Money::decimal($rolled),
+                'to_company_profit' => Money::decimal($toCompanyProfit),
                 'request_key' => $requestKey,
             ]);
 
             return $this->rememberSettlement($month, $kind, $requestKey, $actorId, [
                 'status' => $totalPaid > 0 ? 'settled' : 'rolled_over', 'period' => $month, 'total_pool' => Money::decimal($total),
                 'total_distributed' => Money::decimal($totalPaid), 'total_rolled_to_reserve' => Money::decimal($rolled),
+                'total_to_company_profit' => Money::decimal($toCompanyProfit),
                 'qualifiers_count' => count($distributed), 'distributed' => $result, 'distributions' => $tiers,
+                'divisions' => $divisions,
             ]);
         }, 3);
 
@@ -265,6 +312,85 @@ final class CommissionSettlement
                     : __('portal.retained_reason_settle_rollover_royalty'),
             ],
         ])->id;
+    }
+
+    /**
+     * Money nobody qualified for (a division with no qualifying dealer, or a
+     * royalty rank with nobody at it) becomes company profit.
+     */
+    private function toCompanyProfit(CommissionAllocation $fund, int $amount, string $month, string $kind, ?string $division): int
+    {
+        return CommissionAllocation::query()->create([
+            'order_id' => $fund->order_id,
+            'user_id' => null,
+            'category' => self::CompanyProfitCategory,
+            'rate_percentage' => $fund->rate_percentage,
+            'cash_basis' => $fund->cash_basis,
+            'amount' => Money::decimal($amount),
+            'original_amount' => Money::decimal($amount),
+            'status' => 'reserved',
+            'metadata' => [
+                'basis' => 'purchase_value',
+                'period_month' => $month,
+                'source_allocation_id' => $fund->id,
+                'source_category' => $fund->category,
+                'settlement_kind' => $kind,
+                'division' => $division,
+                'retained_by' => 'company_profit_unclaimed',
+                'reason_key' => $kind === 'salary' ? 'retained_reason_unclaimed_division_salary' : 'retained_reason_unclaimed_royalty',
+                'reason' => $kind === 'salary'
+                    ? __('portal.retained_reason_unclaimed_division_salary', ['division' => $division ?? __('portal.report_area_unknown')])
+                    : __('portal.retained_reason_unclaimed_royalty'),
+            ],
+        ])->id;
+    }
+
+    /**
+     * A division identified by its place code when known, and by its
+     * normalised name as well — older orders saved only the name.
+     *
+     * @param  array<string, mixed>|null  $geography
+     * @return array{id: int|null, key: string|null, name: string|null}
+     */
+    private function divisionOf(?array $geography): array
+    {
+        $name = trim((string) ($geography['division'] ?? ''));
+        $id = $geography['place_ids']['division'] ?? null;
+
+        return [
+            'id' => $id !== null ? (int) $id : null,
+            'key' => $name === '' ? null : mb_strtolower($name),
+            'name' => $name === '' ? null : $name,
+        ];
+    }
+
+    /**
+     * @param  array{id: int|null, key: string|null, name: string|null}|null  $dealer
+     * @param  array{id: int|null, key: string|null, name: string|null}|null  $fund
+     */
+    private function sameDivision(?array $dealer, ?array $fund): bool
+    {
+        if ($dealer === null || $fund === null) {
+            return false;
+        }
+        if ($dealer['id'] !== null && $fund['id'] !== null) {
+            return $dealer['id'] === $fund['id'];
+        }
+        // Neither side has a division on file: share within that "no division" group
+        // rather than sending the money to company profit over a missing address.
+        if ($dealer['key'] === null && $fund['key'] === null) {
+            return true;
+        }
+
+        return $dealer['key'] !== null && $dealer['key'] === $fund['key'];
+    }
+
+    /** @return array<string, mixed>|null Fallback for funds whose order kept no geography snapshot. */
+    private function orderBuyerGeography(CommissionAllocation $fund): ?array
+    {
+        $buyer = User::query()->whereKey(DB::table('orders')->where('id', $fund->order_id)->value('user_id'))->first();
+
+        return $buyer ? $this->geography->forBuyer($buyer) : null;
     }
 
     /** @param list<int> $ids @return array<int, int> */

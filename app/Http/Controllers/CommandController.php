@@ -973,17 +973,13 @@ class CommandController extends Controller
         if ($result['status'] === 'empty_pool') {
             return back()->with('success', __('portal.flash_salary_pool_empty', ['period' => $d['period_month']]));
         }
-        if ($result['status'] === 'rolled_over') {
-            return back()->with('success', __('portal.flash_salary_pool_rolled', [
-                'period' => $d['period_month'],
-                'amount' => $result['total_rolled_to_reserve'],
-            ]));
-        }
-
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0
-            ? __('portal.flash_salary_pool_reserve_extra', ['amount' => $rolled])
-            : '';
+        $toProfit = $result['total_to_company_profit'] ?? '0.00';
+        $extra = (Money::cents((string) $rolled) > 0 ? __('portal.flash_salary_pool_reserve_extra', ['amount' => $rolled]) : '')
+            .(Money::cents((string) $toProfit) > 0 ? __('portal.flash_salary_profit_extra', ['amount' => $toProfit]) : '');
+        if ($result['status'] === 'rolled_over') {
+            return back()->with('success', __('portal.flash_salary_pool_none_qualified', ['period' => $d['period_month']]).$extra);
+        }
 
         return back()->with('success', __('portal.flash_salary_pool_distributed', [
             'period' => $d['period_month'],
@@ -1003,9 +999,9 @@ class CommandController extends Controller
         }
 
         $rolled = $result['total_rolled_to_reserve'] ?? '0.00';
-        $extra = Money::cents((string) $rolled) > 0
-            ? __('portal.flash_royalty_pool_reserve_extra', ['amount' => $rolled])
-            : '';
+        $toProfit = $result['total_to_company_profit'] ?? '0.00';
+        $extra = (Money::cents((string) $rolled) > 0 ? __('portal.flash_royalty_pool_reserve_extra', ['amount' => $rolled]) : '')
+            .(Money::cents((string) $toProfit) > 0 ? __('portal.flash_royalty_profit_extra', ['amount' => $toProfit]) : '');
 
         return back()->with('success', __('portal.flash_royalty_pool_distributed', [
             'period' => $d['period_month'],

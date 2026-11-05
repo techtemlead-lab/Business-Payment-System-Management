@@ -26,6 +26,7 @@ final class RetainedFundLedger
      *   management_area: list<array<string, mixed>>,
      *   override_reserves: list<array<string, mixed>>,
      *   settlement_reserves: list<array<string, mixed>>,
+     *   company_profit: list<array<string, mixed>>,
      *   marketing_fund: list<array<string, mixed>>,
      *   car_bike_fund: list<array<string, mixed>>,
      *   benefits_fund: list<array<string, mixed>>,
@@ -40,6 +41,7 @@ final class RetainedFundLedger
             'management_area' => [],
             'override_reserves' => [],
             'settlement_reserves' => [],
+            'company_profit' => [],
             'marketing_fund' => [],
             'car_bike_fund' => [],
             'benefits_fund' => [],
@@ -56,6 +58,7 @@ final class RetainedFundLedger
                     ->orWhere('category', 'car_bike_incentive_fund')
                     ->orWhere('category', self::BenefitsCategory)
                     ->orWhereIn('category', CommissionSettlement::settlementReserveCategories())
+                    ->orWhere('category', CommissionSettlement::CompanyProfitCategory)
                     ->orWhere('category', 'like', '%_override_reserve')
                     ->orWhere('category', 'like', '%_breakage')
                     ->orWhere('metadata->retained_by', ManagementReferral::FundRetainedBy);
@@ -76,6 +79,8 @@ final class RetainedFundLedger
                 }
             } elseif (in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
                 $groups['settlement_reserves'][] = $row;
+            } elseif ($allocation->category === CommissionSettlement::CompanyProfitCategory) {
+                $groups['company_profit'][] = $row;
             } elseif ($allocation->category === 'company_marketing_fund') {
                 $groups['marketing_fund'][] = $row;
             } elseif ($allocation->category === 'car_bike_incentive_fund') {
@@ -99,6 +104,7 @@ final class RetainedFundLedger
             'management_area' => $this->sumAmount($groups['management_area']),
             'override_reserves' => $this->sumAmount($groups['override_reserves']),
             'settlement_reserves' => $this->sumAmount($groups['settlement_reserves']),
+            'company_profit' => $this->sumAmount($groups['company_profit']),
             'marketing_fund' => $this->sumAmount($groups['marketing_fund']),
             'car_bike_fund' => $this->sumAmount($groups['car_bike_fund']),
             'benefits_fund' => $includeOwnerBenefits ? $this->sumAmount($groups['benefits_fund']) : 0.0,
@@ -298,7 +304,7 @@ final class RetainedFundLedger
         if ($allocation->category === 'car_bike_incentive_fund') {
             return __('portal.retained_reason_vehicle');
         }
-        if (in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
+        if ($allocation->category === CommissionSettlement::CompanyProfitCategory || in_array((string) $allocation->category, CommissionSettlement::settlementReserveCategories(), true)) {
             $reasonKey = (string) ($metadata['reason_key'] ?? '');
             if ($reasonKey !== '') {
                 $localized = __('portal.'.$reasonKey);
@@ -329,6 +335,7 @@ final class RetainedFundLedger
             $allocation->status === 'unassigned_reserve' => __('portal.retained_fund_unassigned'),
             $allocation->category === 'company_marketing_fund' => __('portal.retained_fund_marketing'),
             $allocation->category === 'car_bike_incentive_fund' => __('portal.retained_fund_vehicle'),
+            $allocation->category === CommissionSettlement::CompanyProfitCategory => __('portal.retained_fund_company_profit'),
             $allocation->category === CommissionSettlement::DealerSalaryReserve => __('portal.retained_fund_dealer_salary'),
             $allocation->category === CommissionSettlement::SubDealerSalaryReserve => __('portal.retained_fund_sub_dealer_salary'),
             $allocation->category === CommissionSettlement::RankRoyaltyReserve => __('portal.retained_fund_rank_royalty'),

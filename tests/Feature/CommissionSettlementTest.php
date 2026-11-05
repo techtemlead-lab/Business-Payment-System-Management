@@ -49,6 +49,35 @@ class CommissionSettlementTest extends TestCase
         return $order;
     }
 
+    public function test_salary_pool_is_shared_within_each_division_and_unclaimed_division_money_becomes_company_profit(): void
+    {
+        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
+        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $this->purchase($rangpurA, '10000.00', '20000.00');
+        $this->purchase($rangpurB, '10000.00', '20000.00');
+        $this->purchase($dhaka, '5000.00', '10000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        // Rangpur's 2% (৳400) goes to its two qualified dealers only; the Dhaka dealer is under the ৳10,000 target.
+        $paid = fn (User $user): string => Money::decimal((int) DB::table('commission_settlement_payouts')
+            ->where('user_id', $user->id)->where('kind', 'salary')->get()->sum(fn ($row) => Money::cents((string) $row->amount)));
+        $this->assertSame('200.00', $paid($rangpurA));
+        $this->assertSame('200.00', $paid($rangpurB));
+        $this->assertSame('0.00', $paid($dhaka));
+        // Dhaka's ৳100 had no qualifier in Dhaka, so it is company profit — not the owner's special benefit fund.
+        $this->assertSame('100.00', $result['total_to_company_profit']);
+        $this->assertSame('100.00', Money::decimal((int) DB::table('commission_allocations')->where('category', 'company_profit_fund')
+            ->where('metadata->settlement_kind', 'salary')->get()->sum(fn ($row) => Money::cents((string) $row->amount))));
+        $this->assertSame(0, DB::table('commission_allocations')->where('category', 'company_commission_benefits_fund')
+            ->where('metadata->settlement_kind', 'salary')->count());
+        $divisions = collect($result['divisions'])->keyBy(fn (array $row): string => mb_strtolower($row['division']));
+        $this->assertSame(2, $divisions['rangpur']['qualifiers']);
+        $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
+    }
+
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void
     {
         $dealer = User::factory()->create();
@@ -119,11 +148,11 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('3.34', DB::table('wallets')->where('user_id', $leader->id)->value('available'));
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
-            'category' => 'rank_royalty_settlement_reserve',
+            'category' => 'company_profit_fund',
             'status' => 'reserved',
             'amount' => '9.99',
         ]);
-        $this->assertSame('9.99', $result['total_rolled_to_reserve']);
+        $this->assertSame('9.99', $result['total_to_company_profit']);
     }
 
     public function test_rank_incentives_require_real_reserve_funding_and_cannot_be_claimed_twice(): void
@@ -158,7 +187,7 @@ class CommissionSettlementTest extends TestCase
         $this->assertDatabaseCount('rank_incentive_awards', 0);
     }
 
-    public function test_salary_pool_with_no_qualifiers_moves_cash_into_settlement_reserve(): void
+    public function test_salary_pool_with_no_qualifiers_moves_cash_into_company_profit(): void
     {
         $buyer = User::factory()->create();
         $order = $this->purchase($buyer, '5000.00', '10000.00');
@@ -166,10 +195,11 @@ class CommissionSettlementTest extends TestCase
         $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
 
         $this->assertSame('rolled_over', $result['status']);
-        $this->assertSame('100.00', $result['total_rolled_to_reserve']);
+        $this->assertSame('100.00', $result['total_to_company_profit']);
+        $this->assertSame('0.00', $result['total_rolled_to_reserve']);
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
-            'category' => 'dealer_salary_settlement_reserve',
+            'category' => 'company_profit_fund',
             'status' => 'reserved',
             'amount' => '100.00',
         ]);
@@ -212,10 +242,10 @@ class CommissionSettlementTest extends TestCase
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $result = app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
         $this->assertSame('0.00', $result['total_distributed']);
-        $this->assertSame('400.00', $result['total_rolled_to_reserve']);
+        $this->assertSame('400.00', $result['total_to_company_profit']);
         $this->assertDatabaseMissing('commission_settlement_payouts', ['user_id' => $leader->id]);
         $this->assertDatabaseHas('commission_allocations', [
-            'category' => 'rank_royalty_settlement_reserve',
+            'category' => 'company_profit_fund',
             'status' => 'reserved',
             'amount' => '400.00',
         ]);
