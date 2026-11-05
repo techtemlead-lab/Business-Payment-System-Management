@@ -45,6 +45,9 @@ class DashboardManagement
             'company_commissions_enabled' => true,
             'company_customization_enabled' => true,
             'company_audit_enabled' => true,
+
+            // Birthday SMS to dealers and sub-dealers. Off by default: every SMS costs money.
+            'birthday_sms_enabled' => false,
         ];
     }
 
@@ -70,6 +73,9 @@ class DashboardManagement
             if (array_key_exists($flag, $clean)) {
                 $clean[$flag] = filter_var($clean[$flag], FILTER_VALIDATE_BOOLEAN);
             }
+        }
+        if (array_key_exists('birthday_sms_enabled', $clean)) {
+            $clean['birthday_sms_enabled'] = filter_var($clean['birthday_sms_enabled'], FILTER_VALIDATE_BOOLEAN);
         }
         foreach (['dealer_announcement_type', 'subdealer_announcement_type', 'employee_announcement_type'] as $typeKey) {
             if (array_key_exists($typeKey, $clean) && ! in_array($clean[$typeKey], ['info', 'warning', 'danger', 'success'], true)) {

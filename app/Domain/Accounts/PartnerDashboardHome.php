@@ -4,6 +4,7 @@ namespace App\Domain\Accounts;
 
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Notifications\BirthdayGreetings;
 use App\Models\DealerRank;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
@@ -26,7 +27,8 @@ final class PartnerDashboardHome
      *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
-     *   wallet: array{available: string, pending_withdrawal: string}
+     *   wallet: array{available: string, pending_withdrawal: string},
+     *   is_birthday: bool
      * }
      */
     public function for(User $user): array
@@ -96,6 +98,8 @@ final class PartnerDashboardHome
             'sponsor' => $this->sponsorCard($user),
             // Shown behind a "tap to see balance" button on the home screen.
             'wallet' => $this->walletSummary($user),
+            // Shows a small "happy birthday" card; read from the profile already loaded, no query.
+            'is_birthday' => BirthdayGreetings::isBirthdayToday($user),
         ];
     }
 
