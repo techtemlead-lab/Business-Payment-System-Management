@@ -84,11 +84,10 @@ class HealthCheckController extends Controller
         }
 
         // 4. Financial & Environment Controls
+        // Public endpoint: no environment name or PHP version, which only help an attacker.
         $checks['environment'] = [
-            'app_env' => app()->environment(),
             'financial_activation' => (bool) config('madina.financial_activation'),
             'preview_mode' => (bool) config('madina.preview_mode'),
-            'php_version' => PHP_VERSION,
         ];
 
         $statusCode = $healthy ? Response::HTTP_OK : Response::HTTP_SERVICE_UNAVAILABLE;

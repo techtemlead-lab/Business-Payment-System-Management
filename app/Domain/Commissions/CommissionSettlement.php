@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -93,19 +94,9 @@ final class CommissionSettlement
             $subDealerNames = [];
             /** @var array<string, array<int, array<string, mixed>>> */
             $paidAsByRules = [];
+            $batchPolicies = $this->batchPolicies($funds);
             foreach ($funds as $fund) {
-                $source = DB::table('commission_batches')->where('order_id', $fund->order_id)->value('policy');
-                $policy = $source ? json_decode($source, true, 512, JSON_THROW_ON_ERROR) : null;
-                $rules = $policy['rules'] ?? $this->policies->snapshot()['rules'];
-                $parameters = $rules['dealer_monthly_salary']['parameters'];
-                $minVolume = Money::cents((string) $parameters['min_monthly_volume']);
-                $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? $this->orderBuyerGeography($fund)) : null;
-                $qualifiedIds = $dealers
-                    ->filter(fn (User $user): bool => ($kind !== 'salary' || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
-                        && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= $minVolume))
-                    ->pluck('id')
-                    ->map(fn ($id): int => (int) $id)
-                    ->all();
+                [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies);
                 $cents = Money::cents($fund->amount);
                 $shares = [];
                 if ($fund->category === 'sub_dealer_salary') {
@@ -121,7 +112,7 @@ final class CommissionSettlement
                     $shares = $this->divide($cents, $qualifiedIds);
                     $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
                     $divisionSummary[$label]['pool_cents'] = ($divisionSummary[$label]['pool_cents'] ?? 0) + $cents;
-                    $divisionSummary[$label]['qualifiers'] = count($qualifiedIds);
+                    $divisionSummary[$label]['qualifiers'] = max($divisionSummary[$label]['qualifiers'] ?? 0, count($qualifiedIds));
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
                     $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
@@ -280,6 +271,128 @@ final class CommissionSettlement
         ]);
 
         return $result;
+    }
+
+    /**
+     * What settling a month's salary would pay, worked out with exactly the same rules,
+     * divisions and volume waivers as settle(). Nothing is paid or saved. Pass the month's
+     * pending salary funds when they are already loaded.
+     *
+     * @param  Collection<int, CommissionAllocation>|null  $pendingFunds
+     * @return array{
+     *   divisions: list<array{division: string, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
+     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, monthly_volume: string, share: string}>,
+     *   dealer_pool: string, sub_dealer_salary: string, to_company_profit: string
+     * }
+     */
+    public function salaryPlan(string $month, ?Collection $pendingFunds = null): array
+    {
+        $funds = ($pendingFunds ?? CommissionAllocation::whereIn('category', ['dealer_monthly_salary_pool', 'sub_dealer_salary'])
+            ->where('status', 'pending')->where('metadata->period_month', $month)->get())->sortBy('id')->values();
+        if ($funds->where('category', 'dealer_monthly_salary_pool')->isEmpty()) {
+            $subDealer = $funds->sum(fn (CommissionAllocation $fund): int => Money::cents($fund->amount));
+
+            return ['divisions' => [], 'dealers' => [], 'dealer_pool' => '0.00', 'sub_dealer_salary' => Money::decimal($subDealer), 'to_company_profit' => '0.00'];
+        }
+        $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
+        $volumes = $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month);
+        $dealerDivisions = $dealers->mapWithKeys(fn (User $dealer): array => [
+            (int) $dealer->id => $this->divisionOf($this->geography->forBuyer($dealer)),
+        ])->all();
+        $batchPolicies = $this->batchPolicies($funds);
+        $divisions = [];
+        $shares = [];
+        $shareDivision = [];
+        $subDealerCents = 0;
+        foreach ($funds as $fund) {
+            $cents = Money::cents($fund->amount);
+            if ($fund->category === 'sub_dealer_salary') {
+                $subDealerCents += $cents;
+
+                continue;
+            }
+            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies);
+            $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
+            $fundShares = $this->divide($cents, $qualifiedIds);
+            $divisions[$label]['pool'] = ($divisions[$label]['pool'] ?? 0) + $cents;
+            $divisions[$label]['to_company'] = ($divisions[$label]['to_company'] ?? 0) + $cents - array_sum($fundShares);
+            $divisions[$label]['qualifiers'] = max($divisions[$label]['qualifiers'] ?? 0, count($qualifiedIds));
+            foreach ($fundShares as $id => $amount) {
+                $shares[$id] = ($shares[$id] ?? 0) + $amount;
+                $shareDivision[$id] = $label;
+            }
+        }
+        ksort($divisions);
+        $byId = $dealers->keyBy('id');
+        $dealerRows = [];
+        foreach ($shares as $id => $amount) {
+            $dealer = $byId->get($id);
+            $dealerRows[] = [
+                'user_id' => (int) $id,
+                'name' => (string) $dealer?->name,
+                'dealer_code' => $dealer?->dealer_code,
+                'division' => $shareDivision[$id],
+                'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
+                'share' => Money::decimal($amount),
+            ];
+        }
+        usort($dealerRows, fn (array $a, array $b): int => [$a['division'], $a['name']] <=> [$b['division'], $b['name']]);
+
+        return [
+            'divisions' => array_map(fn (string $name, array $row): array => [
+                'division' => $name,
+                'pool' => Money::decimal($row['pool']),
+                'qualifiers' => (int) $row['qualifiers'],
+                'per_head' => Money::decimal($row['qualifiers'] > 0 ? intdiv($row['pool'] - $row['to_company'], $row['qualifiers']) : 0),
+                'to_company_profit' => Money::decimal($row['to_company']),
+            ], array_keys($divisions), array_values($divisions)),
+            'dealers' => $dealerRows,
+            'dealer_pool' => Money::decimal(array_sum(array_column($divisions, 'pool'))),
+            'sub_dealer_salary' => Money::decimal($subDealerCents),
+            'to_company_profit' => Money::decimal(array_sum(array_column($divisions, 'to_company'))),
+        ];
+    }
+
+    /**
+     * The commission rules saved with each fund's order, loaded in one query.
+     *
+     * @param  Collection<int, CommissionAllocation>  $funds
+     * @return array<int|string, string|null>
+     */
+    private function batchPolicies(Collection $funds): array
+    {
+        return DB::table('commission_batches')
+            ->whereIn('order_id', $funds->pluck('order_id')->filter()->unique()->values())
+            ->pluck('policy', 'order_id')
+            ->all();
+    }
+
+    /**
+     * The rules, division and qualifying dealers for one salary or royalty fund: dealers in the
+     * fund's division who met the monthly volume (or have it waived) under the order's rules.
+     *
+     * @param  Collection<int, User>  $dealers
+     * @param  array<int, array<string, mixed>>  $dealerDivisions
+     * @param  array<int, int>  $volumes
+     * @param  array<int|string, string|null>  $batchPolicies
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>|null, 2: list<int>}
+     */
+    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies): array
+    {
+        $source = $batchPolicies[$fund->order_id] ?? null;
+        $policy = $source ? json_decode((string) $source, true, 512, JSON_THROW_ON_ERROR) : null;
+        $rules = $policy['rules'] ?? $this->policies->snapshot()['rules'];
+        $minVolume = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
+        $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? $this->orderBuyerGeography($fund)) : null;
+        $qualifiedIds = $dealers
+            ->filter(fn (User $user): bool => ($kind !== 'salary' || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
+                && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= $minVolume))
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+
+        return [$rules, $fundDivision, $qualifiedIds];
     }
 
     private function rollUndistributed(CommissionAllocation $fund, int $remainder, string $month, string $kind): int

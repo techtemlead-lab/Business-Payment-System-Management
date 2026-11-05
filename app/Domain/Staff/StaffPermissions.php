@@ -35,7 +35,7 @@ final class StaffPermissions
             $caps = app(PartnerStaffLink::class)->linkedCapabilities($user);
             $matrix = [];
             foreach ($this->modules() as $module) {
-                $enabled = in_array($module, $caps, true) || in_array('accounts', $caps, true);
+                $enabled = in_array($module, $caps, true);
                 $matrix[$module] = array_fill_keys(self::Actions, $enabled);
             }
 

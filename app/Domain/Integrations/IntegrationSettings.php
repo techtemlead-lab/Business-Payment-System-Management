@@ -14,6 +14,9 @@ final class IntegrationSettings
 
     public const StartupKey = 'finance_startup_mode';
 
+    /** Gateways that can receive password-reset mail, login codes or money: Super Admin only. */
+    public const OwnerOnlyGroups = ['mail', 'sms', 'payments', 'bdris'];
+
     /** @return array{version: int, groups: array<string, mixed>} */
     public function snapshot(bool $revealSecrets = false): array
     {
@@ -119,7 +122,12 @@ final class IntegrationSettings
 
         DB::transaction(function () use ($actor, $group, $provider, $input, $version, $reason, $catalog): void {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->canAct('finance', 'edit') || $actor->fresh()->role === 'super_admin', 403);
+            $fresh = $actor->fresh();
+            // Mail, SMS and payment gateways carry password-reset links, login codes and money,
+            // so only the Super Admin may point them somewhere else.
+            abort_unless(in_array($group, self::OwnerOnlyGroups, true)
+                ? $fresh->role === 'super_admin'
+                : ($fresh->canAct('finance', 'edit') || $fresh->role === 'super_admin'), 403);
             $snapshot = $this->snapshot(true);
             if ($version !== $snapshot['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.si_err_stale_version')]);
@@ -180,6 +188,10 @@ final class IntegrationSettings
             Audit::record($actor->id, 'integrations.provider_saved', $group.'.'.$provider, [
                 'enabled' => $next['enabled'],
                 'base_url' => $next['base_url'] ?? null,
+                'host' => $next['host'] ?? null,
+                'port' => $next['port'] ?? null,
+                'username' => $next['username'] ?? null,
+                'from_address' => $next['from_address'] ?? null,
                 'reason' => $reason,
             ]);
         }, 3);

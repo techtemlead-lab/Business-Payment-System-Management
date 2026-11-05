@@ -108,8 +108,9 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
     );
 }
 
-export default function ServiceIntegrations({ integrations, startup, canEdit, channelHint }: {
+export default function ServiceIntegrations({ integrations, startup, canEdit, ownerOnlyGroups = [], channelHint }: {
     integrations: { version: number; groups: Record<string, Group> };
+    ownerOnlyGroups?: string[];
     startup: { mode: string | null; version: number; label: string; description: string };
     canEdit: boolean;
     channelHint?: string;
@@ -171,7 +172,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ch
                         <p>{group.description}</p>
                         {Object.values(group.providers).map(provider => (
                             <section className="panel narrow-panel ops-mt-4" key={provider.key}>
-                                <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit} />
+                                <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit && !ownerOnlyGroups.includes(groupKey)} />
                             </section>
                         ))}
                     </>}

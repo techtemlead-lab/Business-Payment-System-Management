@@ -24,6 +24,13 @@ Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->without
 Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled automatic payout approval failed.'));
 
+// Daily self-checks: the audit trail has not been edited, and the money books still balance
+// (journals balanced, wallets equal the ledger). A failure is logged as critical for the owner.
+Schedule::command('audit:verify-integrity')->dailyAt('03:00')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::critical('Daily audit-trail integrity check failed. Someone may have changed audit records.'));
+Schedule::command('finance:readiness')->dailyAt('03:15')->timezone('Asia/Dhaka')->withoutOverlapping(60)->onOneServer()
+    ->onFailure(fn () => Log::critical('Daily money reconciliation failed. The ledger and wallets no longer match.'));
+
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));
