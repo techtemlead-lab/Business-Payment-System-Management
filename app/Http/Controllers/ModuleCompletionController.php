@@ -41,6 +41,21 @@ class ModuleCompletionController extends Controller
         return $this->done($request);
     }
 
+    public function autoApproval(Request $request, FinanceSettings $settings): Response
+    {
+        $items = array_map(fn (string $item): string => 'items.'.$item, FinanceSettings::AutoApprovalItems);
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+            'items' => 'array',
+            ...array_fill_keys($items, 'boolean'),
+            'version' => 'required|integer|min:0',
+            'reason' => FinanceOperationsController::Reason,
+        ]);
+        $settings->saveAutoApproval($request->user(), (bool) $data['enabled'], $data['items'] ?? [], (int) $data['version'], $data['reason']);
+
+        return $this->done($request);
+    }
+
     public function role(Request $request, StaffPermissions $permissions): Response
     {
         abort_unless($request->user()->role === 'super_admin', 403);

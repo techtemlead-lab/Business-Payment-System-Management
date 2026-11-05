@@ -94,7 +94,7 @@ class EnforceStaffActions
         $permission = match ($controller) {
             'ModuleCompletionController' => match ($method) {
                 'adjustment' => [['finance'], 'create'], 'reviewAdjustment' => [['finance'], 'approve'],
-                'minimum' => [['finance'], 'edit'], 'homepageVideo' => [['content', 'catalog'], 'edit'], default => [['staff_admin'], 'edit'],
+                'minimum' => [['finance'], 'edit'], 'autoApproval' => [['finance'], 'edit'], 'homepageVideo' => [['content', 'catalog'], 'edit'], default => [['staff_admin'], 'edit'],
             },
             'FinanceOperationsController' => match ($method) {
                 'prepare' => [['payroll'], 'create'],

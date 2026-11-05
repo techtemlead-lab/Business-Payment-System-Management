@@ -450,3 +450,17 @@
 .icon-brand{color:var(--ds-brand-text)}
 .icon-warn{color:var(--ds-warn-fg)}
 .icon-muted{color:var(--ds-text-faint)}
+
+/* ---- Finance settings: automatic payouts ---------------------------------- */
+.app-shell .auto-approval-panel form{display:grid;gap:12px}
+.app-shell .aa-switch{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2);cursor:pointer}
+.app-shell .aa-switch input{width:18px;height:18px;margin-top:2px;accent-color:var(--ds-brand)}
+.app-shell .aa-switch span{display:grid;gap:2px}
+.app-shell .aa-switch small{color:var(--ds-text-muted)}
+.app-shell .aa-items{display:grid;gap:6px;margin:0;padding:10px 14px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md)}
+.app-shell .aa-items legend{padding:0 4px;font-weight:600;font-size:var(--ds-fs-sm)}
+.app-shell .aa-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:4px 0}
+.app-shell .aa-item input{width:16px;height:16px;accent-color:var(--ds-brand)}
+.app-shell .aa-item small{color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.app-shell .aa-note{margin:4px 0 0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
+.app-shell .aa-reason{display:grid;gap:4px;font-weight:600;font-size:var(--ds-fs-sm)}
