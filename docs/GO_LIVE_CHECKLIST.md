@@ -54,6 +54,9 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 
 - [ ] SMS: enable a Service integrations SMS provider (base URL + API key) and/or set a non-log `MADINA_SMS_DRIVER`; verify `app:readiness` clears SMS warnings
 - [ ] Partner login OTP verified end-to-end (`MADINA_LOGIN_OTP=true`) with a real provider before go-live
+- [ ] **Turn on SMS and every feature that was switched off for testing** (owner Security page → SMS sign-in code ON; SMS provider enabled; birthday SMS and other SMS notices confirmed) — `app:readiness` must not warn `sms_login_code_switched_off`
+- [ ] Every account has its own valid Bangladeshi mobile number, the Super Admin included (there is no sign-in without one) — `app:readiness` must not warn `accounts_missing_mobile` or `accounts_sharing_mobile`
+- [ ] Emergency only: if SMS breaks after go-live and nobody can sign in, run `php artisan madina:sms-login off` on the server, fix SMS, then turn the switch back on
 - [ ] SMTP (or SES/Postmark) uses a real host — not Mailpit/`mail`/`localhost` — and `MAIL_FROM_ADDRESS` is not `@example.com`
 - [ ] `php artisan app:readiness` lists no unresolved go-live mail/SMS warnings (or each warning has an accepted ops waiver)
 - [ ] Password-reset and owner-contact mail verified on the live portal hosts

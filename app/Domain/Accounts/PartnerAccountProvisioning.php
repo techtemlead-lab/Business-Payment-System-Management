@@ -25,6 +25,7 @@ final class PartnerAccountProvisioning
         private AccountCreatedSms $sms,
         private CommissionPolicy $policies,
         private ManagementReferral $managementReferral,
+        private AccountPhoneRules $phones,
     ) {}
 
     /**
@@ -38,7 +39,8 @@ final class PartnerAccountProvisioning
             throw ValidationException::withMessages(['role' => __('portal.acct_val_role')]);
         }
 
-        $phone = $this->normalizeBdMobile((string) ($input['phone'] ?? ''));
+        $phoneCheck = $this->phones->check($actor, $input['phone'] ?? '', null, $input['phone_share_reason'] ?? null);
+        $phone = $phoneCheck['phone'];
         $email = strtolower(trim((string) ($input['email'] ?? '')));
         $referenceCode = strtoupper(trim((string) ($input['reference_code'] ?? '')));
         $identityType = (string) ($input['identity_type'] ?? 'birth_certificate');
@@ -46,9 +48,6 @@ final class PartnerAccountProvisioning
             throw ValidationException::withMessages(['identity_type' => __('portal.acct_val_identity_type')]);
         }
 
-        if (User::query()->where('phone', $phone)->exists()) {
-            throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
-        }
         if (User::query()->where('email', $email)->exists()) {
             throw ValidationException::withMessages(['email' => __('portal.acct_val_email_taken')]);
         }
@@ -187,7 +186,7 @@ final class PartnerAccountProvisioning
             }
         }
 
-        $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings): User {
+        $user = DB::transaction(function () use ($actor, $input, $role, $phone, $email, $referCode, $sponsor, $place, $path, $dealerCode, $profile, $plainPassword, $managementReferral, $managementSettings, $phoneCheck): User {
             CommissionWallet::lock();
             $user = (new User)->forceFill([
                 'role' => $role,
@@ -196,6 +195,8 @@ final class PartnerAccountProvisioning
                 'name' => trim((string) $input['name']),
                 'email' => $email,
                 'phone' => $phone,
+                'phone_share_approved_by' => $phoneCheck['phone_share_approved_by'],
+                'phone_share_reason' => $phoneCheck['phone_share_reason'],
                 'division' => $path['division'] ?? ($input['division'] ?? null),
                 'district' => $path['district'] ?? ($input['district'] ?? null),
                 'sponsor_id' => $sponsor?->id,
@@ -244,6 +245,7 @@ final class PartnerAccountProvisioning
                 'referred_by_management' => $managementReferral,
                 'reason' => $input['reason'] ?? __('portal.acct_default_onboarding_reason'),
             ]);
+            $this->phones->recordShare($actor, $user, $phoneCheck);
 
             return $user;
         }, 3);
@@ -548,15 +550,7 @@ final class PartnerAccountProvisioning
 
     public function normalizeBdMobile(string $phone): string
     {
-        $digits = preg_replace('/\D+/', '', $phone) ?: '';
-        if (str_starts_with($digits, '880') && strlen($digits) === 13) {
-            $digits = substr($digits, 2);
-        }
-        if (! preg_match('/^01[3-9]\d{8}$/', $digits)) {
-            throw ValidationException::withMessages(['phone' => __('portal.acct_phone_bd_invalid')]);
-        }
-
-        return $digits;
+        return $this->phones->normalize($phone);
     }
 
     private function temporaryPassword(): string

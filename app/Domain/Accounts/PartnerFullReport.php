@@ -110,7 +110,7 @@ final class PartnerFullReport
                 'category' => $row->category,
                 'label' => in_array((string) $row->category, self::CategoryKeys, true)
                     ? __('portal.report_cat_'.$row->category)
-                    : str_replace('_', ' ', (string) $row->category),
+                    : ucfirst(str_replace('_', ' ', (string) $row->category)),
                 'amount' => Money::decimal($cents),
                 'entries' => (int) $row->entries,
             ];
@@ -226,7 +226,7 @@ final class PartnerFullReport
         $roleKey = 'acct_role_'.$user->role;
         $roleLabel = __('portal.'.$roleKey, [], $locale);
         if ($roleLabel === 'portal.'.$roleKey) {
-            $roleLabel = str_replace('_', ' ', (string) $user->role);
+            $roleLabel = ucfirst(str_replace('_', ' ', (string) $user->role));
         }
 
         $commissionRows = $rows($report['commissions'], fn (array $row) => [$row['label'], $row['entries'], $row['amount']]);

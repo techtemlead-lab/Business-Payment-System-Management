@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
@@ -273,13 +274,10 @@ class AuthController extends Controller
         $security = app(SecuritySettings::class);
         $decision = $otp->decide($candidate);
         if (in_array($decision, ['no_phone', 'unavailable'], true)) {
-            // The Super Admin is the one person who can add a mobile number or set up SMS,
-            // so only that account may continue without a code — and every such sign-in is audited.
-            if ($candidate->role === 'super_admin') {
-                Audit::record($candidate->id, 'login.second_factor_bypassed', (string) $candidate->id, ['portal' => $portal, 'reason' => $decision, 'ip' => $r->ip()]);
-
-                return $this->afterSecondFactor($r, $candidate, $portal, 'bypass_'.$decision, $security);
-            }
+            // Every account needs its own mobile number, the Super Admin included (owner decision,
+            // 2026-11-05). While SMS is not live, the owner's switch turns the code step off for
+            // everyone; if that switch is on and SMS breaks, `php artisan madina:sms-login off`
+            // on the server turns it off again.
             $this->recordFailedLogin($r, $portal, $decision, $candidate, $identity);
             throw ValidationException::withMessages([
                 'email' => $decision === 'no_phone' ? __('auth_ui.otp_no_phone') : __('auth_ui.otp_sms_unavailable'),
@@ -470,8 +468,15 @@ class AuthController extends Controller
             'current_password' => 'required|current_password',
             'name' => ['sometimes', 'required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:254', Rule::unique('users')->ignore($owner->id)],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'phone' => ['sometimes', 'required', 'string', 'max:30'],
         ]);
+        if (array_key_exists('phone', $data)) {
+            $phones = app(AccountPhoneRules::class);
+            $data['phone'] = $phones->normalize($data['phone']);
+            if (PhoneIdentity::normalize($data['phone']) !== PhoneIdentity::normalize((string) $owner->phone) && $phones->holders($data['phone'], $owner->id) !== []) {
+                throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
+            }
+        }
         DB::transaction(function () use ($owner, $data, $request): void {
             $previousEmail = $owner->email;
             $changed = [];

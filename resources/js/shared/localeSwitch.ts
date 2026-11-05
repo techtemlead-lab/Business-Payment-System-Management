@@ -9,7 +9,7 @@ function overlayCopy(targetLocale: string): { title: string; subtitle: string } 
     if (targetLocale === 'bn') {
         return {
             title: 'Switching to বাংলা…',
-            subtitle: 'ভাষা পরিবর্তন হচ্ছে — পুরো পেজ রিলোড হচ্ছে',
+            subtitle: 'ভাষা পরিবর্তন হচ্ছে — পুরো পাতা রিলোড হচ্ছে',
         };
     }
 

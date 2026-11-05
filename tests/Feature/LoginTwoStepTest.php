@@ -236,7 +236,7 @@ class LoginTwoStepTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_staff_without_a_phone_are_stopped_and_super_admin_gets_through_audited(): void
+    public function test_accounts_without_a_phone_are_stopped_even_the_super_admin(): void
     {
         $staff = User::factory()->staff('finance')->create(['phone' => null, 'password' => 'SyntheticPassword123']);
         $this->onPortal('manage')
@@ -246,9 +246,11 @@ class LoginTwoStepTest extends TestCase
         $this->assertTrue(\DB::table('audit_events')->where('action', 'login.failed')->where('subject', (string) $staff->id)->where('metadata', 'like', '%"reason":"no_phone"%')->exists());
 
         $owner = User::factory()->staff('super_admin')->create(['phone' => null, 'password' => 'SyntheticPassword123']);
-        $this->onPortal('sadmin')->post('/login', ['email' => $owner->email, 'password' => 'SyntheticPassword123'])->assertRedirect('/');
-        $this->assertAuthenticatedAs($owner);
-        $this->assertDatabaseHas('audit_events', ['action' => 'login.second_factor_bypassed', 'subject' => (string) $owner->id]);
+        $this->onPortal('sadmin')
+            ->post('/login', ['email' => $owner->email, 'password' => 'SyntheticPassword123'])
+            ->assertSessionHasErrors(['email' => __('auth_ui.otp_no_phone')]);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('audit_events', ['action' => 'login.second_factor_bypassed']);
     }
 
     public function test_staff_with_an_authenticator_app_pass_sms_then_the_app_code(): void

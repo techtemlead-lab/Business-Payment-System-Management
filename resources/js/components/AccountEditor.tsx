@@ -52,6 +52,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
         name: account.name,
         dealer_code: account.dealer_code ?? '',
         phone: account.phone ?? '',
+        phone_share_reason: '',
         division: account.division ?? '',
         district: account.district ?? '',
         place_code: account.profile?.place_code ?? account.profile?.area_code ?? '',
@@ -120,8 +121,13 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     <input value={form.data.dealer_code} onChange={event => form.setData('dealer_code', event.target.value.toUpperCase())} />
                 </label>}
                 <label>{translate('portal', 'acct_phone_number')}
-                    <input value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} />
+                    <input required value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} />
+                    {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
                 </label>
+                {isOwner && <label>{translate('portal', 'acct_phone_share_reason')}
+                    <input maxLength={500} value={form.data.phone_share_reason} onChange={event => form.setData('phone_share_reason', event.target.value)} />
+                    <small className="ops-muted">{translate('portal', 'acct_phone_share_reason_hint')}</small>
+                </label>}
                 {isPartner ? <>
                     <label>{isSubDealer ? translate('portal', 'acct_union_code') : translate('portal', 'acct_place_code')}
                         <input required value={form.data.place_code} onChange={event => form.setData('place_code', event.target.value.toUpperCase())} placeholder={isSubDealer ? translate('portal', 'acct_union_code_ph') : translate('portal', 'acct_place_code_ph')} />

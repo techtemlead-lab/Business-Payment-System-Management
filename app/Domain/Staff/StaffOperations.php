@@ -2,6 +2,7 @@
 
 namespace App\Domain\Staff;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
@@ -84,6 +85,11 @@ final class StaffOperations
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('sr_onboarding'), 403);
             $this->territories->assertGeography($actor->fresh(), $data);
+            $phones = app(AccountPhoneRules::class);
+            $data['phone'] = $phones->normalize($data['phone'] ?? '');
+            if ($phones->holders($data['phone']) !== []) {
+                throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
+            }
             if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()
                 || DB::table('dealer_applications')->whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->where('status', 'pending')->exists()) {
                 throw ValidationException::withMessages(['email' => __('portal.err_staff_email_taken')]);
@@ -122,6 +128,11 @@ final class StaffOperations
                 $data = $payload;
                 if (User::whereRaw('LOWER(email) = ?', [mb_strtolower($data['email'])])->exists()) {
                     throw ValidationException::withMessages(['email' => __('portal.err_staff_email_exists')]);
+                }
+                $phones = app(AccountPhoneRules::class);
+                $data['phone'] = $phones->normalize($data['phone'] ?? '');
+                if ($phones->holders($data['phone']) !== []) {
+                    throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
                 }
                 $sponsorId = $data['sponsor_id'] ?? null;
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
