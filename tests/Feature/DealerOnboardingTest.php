@@ -137,6 +137,7 @@ class DealerOnboardingTest extends TestCase
             'dealer_code' => 'SD-ERR-001',
             'name' => 'Invalid Sub',
             'email' => 'err@example.com',
+            'phone' => '01811110001',
             'directory_visible' => '1',
             'reason' => 'Test invalid sub-dealer publication',
         ];
@@ -183,6 +184,7 @@ class DealerOnboardingTest extends TestCase
             'dealer_code' => 'SD-SPONSOR-TEST',
             'name' => 'Sub Test',
             'email' => 'subtest@example.com',
+            'phone' => '01811110002',
             'sponsor_id' => $suspendedDealer->id,
         ]);
         $res->assertStatus(422);

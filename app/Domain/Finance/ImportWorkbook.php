@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Models\AreaDealerAssignment;
 use App\Models\Order;
 use App\Models\PlaceCode;
@@ -156,11 +157,14 @@ final class ImportWorkbook
                 $seen[$key][$value ?? ''] = $row['row'];
             }
             if ($type === 'partners') {
-                $phone = PhoneIdentity::normalize($data['phone']);
-                if ($phone === null || User::whereRaw(PhoneIdentity::SQL.' = ?', [$phone])->exists()) {
+                // Every account needs its own valid Bangladeshi mobile number (owner decision, 2026-11-05).
+                $phones = app(AccountPhoneRules::class);
+                if (! $phones->isValid($data['phone'])) {
+                    $errors[] = __('portal.acct_phone_bd_invalid');
+                } elseif ($phones->holders($phones->normalize($data['phone'])) !== []) {
                     $errors[] = __('portal.err_wb_phone_taken');
                 } else {
-                    $data['phone'] = $phone;
+                    $data['phone'] = $phones->normalize($data['phone']);
                 }
                 if ($data['sponsor_code'] !== '' && ! User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->exists()) {
                     $errors[] = __('portal.err_wb_sponsor_missing');

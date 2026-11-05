@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Console\Attributes\Description;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 
-#[Signature('madina:admin {email : Administrator email} {--name=Company Administrator} {--invite : Email a one-use password-setting link instead of prompting for a password}')]
+#[Signature('madina:admin {email : Administrator email} {--name=Company Administrator} {--phone= : Bangladeshi mobile number for the sign-in code (required)} {--invite : Email a one-use password-setting link instead of prompting for a password}')]
 #[Description('Create the first administrator with a private password or invitation; no shared default password.')]
 class CreateAdministrator extends Command
 {
@@ -38,8 +39,8 @@ class CreateAdministrator extends Command
             return self::FAILURE;
         }
         $password = $this->option('invite') ? Str::random(48) : $this->secret('Choose a strong administrator password');
-        $data = ['name' => $this->option('name'), 'email' => $this->argument('email'), 'password' => $password];
-        $validator = Validator::make($data, ['name' => 'required|string|max:150', 'email' => 'required|email|max:254|unique:users',
+        $data = ['name' => $this->option('name'), 'email' => $this->argument('email'), 'password' => $password, 'phone' => (string) $this->option('phone')];
+        $validator = Validator::make($data, ['name' => 'required|string|max:150', 'email' => 'required|email|max:254|unique:users', 'phone' => ['required', 'regex:/^(?:\+?88)?01[3-9][0-9]{8}$/D'],
             'password' => ['required', PasswordRule::min(12)->mixedCase()->numbers()]]);
         if ($validator->fails()) {
             foreach ($validator->errors()->all() as $message) {
@@ -49,7 +50,7 @@ class CreateAdministrator extends Command
             return self::FAILURE;
         }
         $user = DB::transaction(function () use ($data): User {
-            $user = (new User)->forceFill(['name' => $data['name'], 'email' => $data['email'], 'role' => 'super_admin', 'status' => 'active', 'password' => $data['password']]);
+            $user = (new User)->forceFill(['name' => $data['name'], 'email' => $data['email'], 'role' => 'super_admin', 'status' => 'active', 'password' => $data['password'], 'phone' => app(AccountPhoneRules::class)->normalize($data['phone'])]);
             $user->save();
             DB::table('wallets')->insert(['user_id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
             Audit::record(null, 'administrator.bootstrapped', (string) $user->id, ['source' => 'authorized_cli']);
