@@ -253,7 +253,7 @@
 .app-shell .ntx-gen{display:inline-block;padding:1px 4px;border-radius:3px;background:var(--tone-bg,var(--ds-neutral-bg));color:var(--tone-fg,var(--ds-text-muted));font-size:10px;font-weight:600;line-height:1.4;white-space:nowrap}
 .app-shell .ntx-card-meta{margin-top:2px}
 .app-shell .ntx-counts{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
-.app-shell .ntx-count{display:inline-block;padding:2px 7px;border-radius:var(--ds-r-pill);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-faint));font-size:var(--ds-fs-2xs);font-weight:700;line-height:1.4;white-space:nowrap}
+.app-shell .ntx-count{display:inline-block;padding:2px 7px;border-radius:var(--ds-r-pill);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-muted));font-size:var(--ds-fs-2xs);font-weight:700;line-height:1.4;white-space:nowrap}
 .app-shell .ntx-count-total{font-size:10px;color:var(--ds-text-faint)}
 .app-shell :is(.ntx-search,.adh-search){position:relative;width:260px;max-width:100%}
 .app-shell :is(.ntx-search,.adh-search)>svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ds-text-faint);pointer-events:none}
@@ -288,7 +288,7 @@
 .app-shell .adh-division.is-all{border-color:var(--ds-line-strong);background:var(--ds-surface);font-weight:700}
 .app-shell .adh-division:hover{border-color:var(--ds-line-strong);color:var(--ds-text)}
 .app-shell .adh-division.is-selected{border-color:var(--ds-brand);background:var(--ds-brand-soft);color:var(--ds-brand-text)}
-.app-shell .adh-division-count{padding:1px 5px;border-radius:var(--ds-r-pill);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-faint));font-size:10px;font-weight:700;line-height:1.4}
+.app-shell .adh-division-count{padding:1px 5px;border-radius:var(--ds-r-pill);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-muted));font-size:10px;font-weight:700;line-height:1.4}
 .app-shell .ops-card.adh-table{padding:0;overflow:hidden}
 .app-shell .adh-code{margin-top:2px;font-size:var(--ds-fs-2xs);font-weight:700}
 .app-shell tbody td b.adh-quota{color:var(--ds-brand-text)}

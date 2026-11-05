@@ -69,7 +69,7 @@
         <h1>{{ $item['name'] }}</h1>
 
         <div class="ref-metadata">
-            <span>{{ __('site.mrp') }}: <b>৳ {{ number_format((float) $item['mrp'], 2) }}</b></span>
+            <span>{{ __('site.mrp') }}: <b>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</b></span>
             <span>{{ __('site.availability') }}: <b class="{{ $inStock ? 'ref-green' : 'ref-orange' }}">{{ $stockLabel }}</b></span>
             <span>{{ __('site.product_code') }}: <b>{{ $item['sku'] }}</b></span>
             <span>{{ __('site.category') }}: <b>{{ $item['category'] }}</b></span>
@@ -218,7 +218,7 @@
                 @endif
                 <tr>
                     <th>{{ __('site.mrp') }}</th>
-                    <td>৳ {{ number_format((float) $item['mrp'], 2) }}</td>
+                    <td>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</td>
                 </tr>
                 <tr>
                     <th>{{ app()->getLocale() === 'bn' ? 'বিতরণকারী প্রতিষ্ঠান' : 'Licensed Distributor' }}</th>

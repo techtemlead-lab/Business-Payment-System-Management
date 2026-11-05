@@ -6,7 +6,7 @@ import {
     Laptop, Eye, EyeOff, Lock, Unlock, ArrowRight, UserCheck,
     Layers, ToggleLeft, ToggleRight, Radio, ExternalLink
 } from 'lucide-react';
-import { Badge, type Row } from './UI';
+import { Badge, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 export interface DashboardManagementHubProps {
@@ -190,7 +190,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         </span>
                     </div>
                     <div className="ops-figure">
-                        {stats.super_admins_count} <small>{translate('portal','dash_mgmt_super_admins')}</small>
+                        {number(stats.super_admins_count)} <small>{translate('portal','dash_mgmt_super_admins')}</small>
                     </div>
                     <p className="ops-meta">
                         {translate('portal','dash_mgmt_card_company_hint')}

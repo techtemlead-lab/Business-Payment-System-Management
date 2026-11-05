@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { FolderTree, Layers, Plus, Ruler } from 'lucide-react';
-import { Badge, Modal, Table, type Row } from './UI';
+import { Badge, Modal, Table, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface SubcategoryRow {
@@ -272,7 +272,7 @@ export default function CatalogTaxonomyHub({
                         <h2><Layers size={16} className="ctx-h-icon" />{translate('portal', 'cms_categories_title')}</h2>
                         <p className="muted">{translate('portal', 'cms_categories_hint')}</p>
                     </div>
-                    <span className="badge">{categories.length}</span>
+                    <span className="badge">{number(categories.length)}</span>
                 </div>
                 <Table
                     rows={categories}
@@ -323,7 +323,7 @@ export default function CatalogTaxonomyHub({
                         <h2>{translate('portal', 'cms_subcategories_title')}</h2>
                         <p className="muted">{translate('portal', 'cms_subcategories_hint')}</p>
                     </div>
-                    <span className="badge">{subcategoryRows.length}</span>
+                    <span className="badge">{number(subcategoryRows.length)}</span>
                 </div>
                 <Table
                     rows={subcategoryRows as unknown as Row[]}
@@ -372,7 +372,7 @@ export default function CatalogTaxonomyHub({
                         <h2><Ruler size={16} className="ctx-h-icon" />{translate('portal', 'cms_units_title')}</h2>
                         <p className="muted">{translate('portal', 'cms_units_hint')}</p>
                     </div>
-                    <span className="badge">{units.length}</span>
+                    <span className="badge">{number(units.length)}</span>
                 </div>
                 <Table
                     rows={units}

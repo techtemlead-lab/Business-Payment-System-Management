@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
+import { number } from './UI';
 import {
     Sparkles, BookOpen, Compass, ChevronRight, ChevronLeft, X, Search,
     CheckCircle2, HelpCircle, Lightbulb, ArrowUpRight, ShoppingBag, Coins,
@@ -788,7 +789,7 @@ export default function OnboardingTour({
                                 <div className="toc-header">
                                     <span>{translate('portal', 'tour_manual_filter_all')}</span>
                                     <span className="chapter-count-badge">
-                                        {filteredChapters.length} / {chapters.length}
+                                        {number(filteredChapters.length)} / {number(chapters.length)}
                                     </span>
                                 </div>
 

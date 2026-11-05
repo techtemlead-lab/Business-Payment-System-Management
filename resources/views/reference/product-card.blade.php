@@ -11,7 +11,7 @@
             ? __('site.low_stock')
             : \App\Support\SiteChrome::text('in_stock', $siteCustomization['product_in_stock_label'] ?? null));
     $mrp = (float) str_replace(',', '', preg_replace('/[^\d.]/', '', (string) ($item['mrp'] ?? '0')));
-    $displayMrp = number_format($mrp, $mrp === floor($mrp) ? 0 : 2);
+    $displayMrp = \App\Support\LocalDigits::text(number_format($mrp, $mrp === floor($mrp) ? 0 : 2));
     $isFeatured = !empty($item['featured']);
 @endphp
 <article class="ref-product-card luxury-product-card"

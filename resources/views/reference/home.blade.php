@@ -82,7 +82,7 @@
             <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
             <div class="ref-carousel-dots">
                 @foreach($slides as $idx => $slide)
-                <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => \App\Support\LocalDigits::text($idx + 1)]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                 @endforeach
             </div>
         </div>
@@ -100,7 +100,7 @@
                 <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                 <div class="ref-carousel-dots">
                     @foreach($sideBanner1Slides as $idx => $slide)
-                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => \App\Support\LocalDigits::text($idx + 1)]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                     @endforeach
                 </div>
             </div>
@@ -117,7 +117,7 @@
                 <button class="ref-carousel-arrow next" aria-label="{{ __('site.next_promotion') }}"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
                 <div class="ref-carousel-dots">
                     @foreach($sideBanner2Slides as $idx => $slide)
-                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => $idx + 1]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
+                    <button class="{{ $loop->first ? 'is-active' : '' }}" data-slide="{{ $idx }}" aria-label="{{ __('site.show_promotion', ['number' => \App\Support\LocalDigits::text($idx + 1)]) }}" aria-current="{{ $loop->first ? 'true' : 'false' }}"></button>
                     @endforeach
                 </div>
             </div>
@@ -224,7 +224,7 @@
         @if(count($categoriesList) > 8)
         <div class="ref-cat-expand-wrap">
             <button type="button" class="ref-cat-toggle-btn" id="refCatToggleBtn" aria-expanded="false">
-                <span>{{ __('site.view_all_categories', ['count' => count($categoriesList)]) }}</span>
+                <span>{{ __('site.view_all_categories', ['count' => \App\Support\LocalDigits::text(count($categoriesList))]) }}</span>
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
         </div>
@@ -232,7 +232,7 @@
         (function() {
             var btn = document.getElementById('refCatToggleBtn');
             var grid = document.getElementById('refCategoryGrid');
-            var moreLabel = @json(__('site.view_all_categories', ['count' => count($categoriesList)]));
+            var moreLabel = @json(__('site.view_all_categories', ['count' => \App\Support\LocalDigits::text(count($categoriesList))]));
             var fewerLabel = @json(__('site.show_fewer_categories'));
             if (btn && grid) {
                 btn.addEventListener('click', function() {
@@ -313,7 +313,7 @@
 
         <div class="ref-tab-empty" id="refTabEmpty" style="display: none;">
             <i class="fa-solid fa-box-open" style="font-size: 36px; color: #94a3b8; margin-bottom: 12px;"></i>
-            <p style="color: #64748b; font-size: 14px; margin: 0;">{{ __('site.no_products_in_category') }}</p>
+            <p class="ref-empty-note">{{ __('site.no_products_in_category') }}</p>
         </div>
     </section>
     @endif

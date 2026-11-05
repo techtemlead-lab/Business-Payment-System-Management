@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
 import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
-import { money, Table, type TableColumn } from './UI';
+import { money, number, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
@@ -108,7 +108,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                         <MapPin size={16} /> {translate('portal', 'area_kpi_total')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {assignments.length}
+                        {number(assignments.length)}
                     </div>
                     <div className="hub-hint">{translate('portal', 'area_kpi_total_hint')}</div>
                 </div>
@@ -158,7 +158,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             >
                                 <span>{div}</span>
                                 <span className={`adh-division-count${st.count > 0 ? ' tone-ok' : ''}`}>
-                                    {st.count}
+                                    {number(st.count)}
                                 </span>
                             </button>
                         );
