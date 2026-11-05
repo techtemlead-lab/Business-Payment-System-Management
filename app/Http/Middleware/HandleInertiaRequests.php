@@ -7,6 +7,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\PartnerChat;
 use App\Domain\Support\TourGuide;
 use App\Domain\Support\UserManual;
 use App\Support\DashboardManagement;
@@ -33,11 +34,27 @@ class HandleInertiaRequests extends Middleware
         $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
 
         $payments = app(PaymentAccounts::class);
-        // navAttention and unreadNotices both show this number; count it once per request.
-        $unreadNoticeCount = null;
-        $unreadNotices = function () use ($u, &$unreadNoticeCount): int {
-            return $unreadNoticeCount ??= (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count();
+        // Unread notices and unread chat messages come from one query per request; navAttention and
+        // unreadNotices both read them. Partners count office replies; staff who may answer count
+        // partner messages.
+        $attentionCounts = null;
+        $attention = function () use ($u, &$attentionCounts): array {
+            if ($attentionCounts !== null) {
+                return $attentionCounts;
+            }
+            $chatSql = '0';
+            $bindings = [$u->id];
+            if (PartnerChat::isPartner($u)) {
+                $chatSql = 'COALESCE((SELECT partner_unread FROM partner_conversations WHERE partner_id = ?), 0)';
+                $bindings[] = $u->id;
+            } elseif (($u->staff() || $u->usingStaffWorkspace()) && PartnerChat::canAnswer($u)) {
+                $chatSql = '(SELECT COALESCE(SUM(office_unread), 0) FROM partner_conversations)';
+            }
+            $row = DB::selectOne('SELECT (SELECT COUNT(*) FROM "account_notices" WHERE user_id = ? AND read_at IS NULL) AS notices, '.$chatSql.' AS chat', $bindings);
+
+            return $attentionCounts = ['notices' => (int) ($row->notices ?? 0), 'chat' => (int) ($row->chat ?? 0)];
         };
+        $unreadNotices = fn (): int => $attention()['notices'];
 
         return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
@@ -71,13 +88,15 @@ class HandleInertiaRequests extends Middleware
             'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
                 ? app(StaffPermissions::class)->matrix($u)
                 : [],
-            'navAttention' => function () use ($u, $unreadNotices) {
+            'navAttention' => function () use ($u, $unreadNotices, $attention) {
                 if (! $u) {
                     return [
                         'notifications' => 0,
                         'enquiries' => 0,
                         'withdrawals' => 0,
                         'support-admin' => 0,
+                        'messages' => 0,
+                        'partner-messages' => 0,
                     ];
                 }
 
@@ -94,6 +113,9 @@ class HandleInertiaRequests extends Middleware
                     'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->owner())
                         ? (int) DB::table('support_tickets')->whereIn('status', ['pending', 'in_progress'])->count()
                         : 0,
+                    // Unread chat: office replies for a partner, partner messages for staff who may answer.
+                    'messages' => PartnerChat::isPartner($u) ? $attention()['chat'] : 0,
+                    'partner-messages' => $staffWorkspace && PartnerChat::canAnswer($u) ? $attention()['chat'] : 0,
                 ];
             },
             // Kept for Shell fallbacks; value mirrors navAttention.notifications and shares its single count.

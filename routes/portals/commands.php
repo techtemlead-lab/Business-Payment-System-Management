@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\IdentityLookupController;
+use App\Http\Controllers\PartnerAgreementController;
+use App\Http\Controllers\PartnerChatController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductRegistryController;
@@ -30,9 +32,15 @@ return function (string $portal): void {
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
     Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
     Route::post('/commands/partner-support', [CommandController::class, 'partnerSupport'])->middleware('throttle:5,1');
+    Route::post('/commands/messages', [PartnerChatController::class, 'send'])->middleware('throttle:20,1');
+    Route::post('/commands/partner-messages/{user}', [PartnerChatController::class, 'reply'])->middleware('throttle:60,1');
+    Route::get('/commands/messages/{message}/photo', [PartnerChatController::class, 'photo'])->middleware('throttle:120,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
+    Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
+    Route::post('/commands/agreement/setting', [PartnerAgreementController::class, 'setting'])->middleware('throttle:10,1');
+    Route::post('/commands/agreement/accept', [PartnerAgreementController::class, 'accept'])->middleware('throttle:10,1');
 
     Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
     Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');

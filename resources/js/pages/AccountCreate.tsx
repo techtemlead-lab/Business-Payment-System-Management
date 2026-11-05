@@ -15,7 +15,7 @@ type Consumer = { id: number | null; name: string; refer_code: string | null; ra
 const availablePermissionKeys = [
     'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'staff_admin', 'payroll',
     'orders', 'order_review', 'inventory', 'catalog', 'accounts', 'finance', 'reports',
-    'content', 'audit', 'pricing', 'cost_read', 'identity_write',
+    'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat',
 ] as const;
 
 async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {

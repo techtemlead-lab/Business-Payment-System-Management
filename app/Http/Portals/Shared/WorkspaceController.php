@@ -18,6 +18,7 @@ use App\Domain\Support\GuidePrerequisites;
 use App\Domain\Support\TourGuide;
 use App\Http\Controllers\Controller;
 use App\Http\Portals\Shared\Sections\AccountsSection;
+use App\Http\Portals\Shared\Sections\AgreementSection;
 use App\Http\Portals\Shared\Sections\BranchesSection;
 use App\Http\Portals\Shared\Sections\CatalogSection;
 use App\Http\Portals\Shared\Sections\CommissionsSection;
@@ -77,6 +78,7 @@ class WorkspaceController extends Controller
         FeedbackSection::class,
         CommissionsSection::class,
         TerritorySection::class,
+        AgreementSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

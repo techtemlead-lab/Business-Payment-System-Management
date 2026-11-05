@@ -1,0 +1,46 @@
+/* =========================================================================
+   Dealer agreement: the partner reading screen (one readable column, a big
+   "I have read and agree" button) and the office screen (switch, editor,
+   version history, who accepted). Colours come from the --ds tokens.
+   ========================================================================= */
+.agr-panel{display:flex;flex-direction:column;gap:var(--ds-s-4);max-width:860px}
+.agr-notice{display:flex;align-items:flex-start;gap:var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);border-radius:var(--ds-r-md);background:var(--ds-warn-bg);color:var(--ds-warn-fg);font-weight:600}
+.agr-notice p{margin:0;line-height:var(--ds-lh)}
+.agr-notice svg{flex-shrink:0;margin-top:2px}
+
+.agr-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2) var(--ds-s-3);font-size:var(--ds-fs-sm)}
+.agr-language{margin-left:auto;display:inline-flex;align-items:center;gap:var(--ds-s-2)}
+
+.agr-text{white-space:pre-line;overflow-wrap:anywhere;max-height:min(62vh,640px);overflow-y:auto;padding:var(--ds-s-4) var(--ds-s-5);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2);color:var(--ds-text);font-size:var(--ds-fs-base);line-height:1.75}
+.agr-text:focus-visible{outline:3px solid var(--ds-brand);outline-offset:2px}
+.agr-text:lang(bn){font-size:calc(var(--ds-fs-base) + 1px)}
+
+.agr-accept{display:flex;flex-direction:column;gap:var(--ds-s-3)}
+.agr-accept .button{align-self:stretch;justify-content:center;min-height:52px;font-size:var(--ds-fs-md);gap:var(--ds-s-2)}
+.agr-done{display:flex;align-items:center;gap:var(--ds-s-2);margin:0;padding:var(--ds-s-3) var(--ds-s-4);border-radius:var(--ds-r-md);background:var(--ds-ok-bg);color:var(--ds-ok-fg);font-weight:600}
+.agr-help{margin:0}
+.agr-help .text-link{display:inline-flex;align-items:center;gap:var(--ds-s-2)}
+
+.agr-office{display:flex;flex-direction:column;gap:var(--ds-s-4)}
+.agr-switch{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--ds-s-4);padding:var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.agr-switch h3{margin:0 0 var(--ds-s-1);font-size:var(--ds-fs-md)}
+.agr-switch p{margin:0 0 var(--ds-s-2);max-width:640px}
+.agr-switch form{display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.agr-summary{margin:var(--ds-s-3) 0 0;color:var(--ds-text-2);font-weight:600}
+
+.agr-editor textarea{font-family:var(--ds-font);line-height:1.65;min-height:280px}
+
+.agr-history{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.agr-history details{border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+.agr-history summary{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2) var(--ds-s-3);padding:var(--ds-s-3) var(--ds-s-4);cursor:pointer;font-size:var(--ds-fs-sm)}
+.agr-history details[open] summary{border-bottom:1px solid var(--ds-line-soft)}
+.agr-history details > .agr-meta,.agr-history details > .agr-text{margin:var(--ds-s-3) var(--ds-s-4)}
+
+.agr-search{display:flex;flex-wrap:wrap;gap:var(--ds-s-2);margin-bottom:var(--ds-s-3)}
+.agr-search input{flex:1;min-width:200px}
+.agr-search .button{display:inline-flex;align-items:center;gap:var(--ds-s-1)}
+
+@media (max-width:640px){
+  .agr-text{padding:var(--ds-s-3);max-height:none}
+  .agr-language{margin-left:0}
+}
