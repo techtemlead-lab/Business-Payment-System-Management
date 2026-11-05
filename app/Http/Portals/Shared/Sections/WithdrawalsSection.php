@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerWalletStatement;
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\User;
@@ -48,6 +49,7 @@ final class WithdrawalsSection implements WorkspaceSection
         [$earningsFromUtc, $earningsToUtc] = SectionDates::businessDayBounds($earningsFrom, $earningsTo);
         $props['wallet'] = DB::table('wallets')->where('user_id', $user->id)->first(['available', 'held', 'commission_held']);
         $props['withdrawal_balances'] = $presenter->withdrawalBalances($user);
+        $props['withdrawal_kyc_block'] = app(FinanceSettings::class)->needsKycBeforeWithdrawal($user);
         $props['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo, 'preset' => $preset];
         $props['earnings'] = $presenter->ledgerRows($user, $earningsFromUtc, $earningsToUtc, 500);
         // The period total comes from the database, so it covers every row in the dates (not only
