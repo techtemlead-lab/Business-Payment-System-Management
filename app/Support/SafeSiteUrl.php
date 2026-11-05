@@ -30,6 +30,18 @@ final class SafeSiteUrl
         return $values;
     }
 
+    /** True for a safe link: a site path, #anchor, tel:, mailto: or http(s) URL. Never javascript: or //host. */
+    public static function isSafeLink(string $value): bool
+    {
+        return trim($value) !== '' && self::allowed($value, false);
+    }
+
+    /** True for a safe image source: a site path, data:image or http(s) URL. */
+    public static function isSafeImage(string $value): bool
+    {
+        return trim($value) !== '' && self::allowed($value, true);
+    }
+
     private static function allowed(string $value, bool $image): bool
     {
         $value = trim($value);
