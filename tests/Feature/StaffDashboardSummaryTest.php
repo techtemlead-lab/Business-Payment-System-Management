@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\Order;
+use App\Models\PaymentClaim;
+use App\Models\Receipt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -54,6 +56,40 @@ class StaffDashboardSummaryTest extends TestCase
         $this->assertContains('applications_to_review', $keys);
         $this->assertNotContains('payments_to_check', $keys);
         $this->assertNotContains('withdrawals_to_review', $keys);
+    }
+
+    public function test_month_block_includes_money_received_today(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create();
+        $this->receipt($dealer, '420.00');
+        $this->receipt($dealer, '999.00')->forceFill(['created_at' => now()->subDays(40)])->save();
+
+        $month = app(StaffDashboardSummary::class)->for($owner)['month'];
+
+        $this->assertSame('420.00', $month['collected_today']);
+        $this->assertSame('420.00', $month['collected']);
+    }
+
+    private function receipt(User $buyer, string $amount): Receipt
+    {
+        $order = $this->order($buyer, 'approved', $amount);
+        $claim = PaymentClaim::create([
+            'order_id' => $order->id,
+            'user_id' => $buyer->id,
+            'amount' => $amount,
+            'channel' => 'bank',
+            'reference' => 'REF-'.Str::random(8),
+            'status' => 'verified',
+        ]);
+
+        return Receipt::create([
+            'order_id' => $order->id,
+            'claim_id' => $claim->id,
+            'channel' => 'bank',
+            'reference' => 'RCP-'.Str::random(8),
+            'amount' => $amount,
+        ]);
     }
 
     private function order(User $buyer, string $status, string $total): Order

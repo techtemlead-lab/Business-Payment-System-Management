@@ -5883,4 +5883,8 @@ return [
     'chat_pick_partner' => 'Choose a chat on the left to read and reply.',
     'perm_partner_chat' => 'Partner chat',
     'perm_partner_chat_hint' => 'Read and answer messages from dealers and sub-dealers.',
+    'office_today_title' => 'Today’s business',
+    'office_today_received' => 'Money received today',
+    'office_today_payments' => 'Payments waiting',
+    'office_today_withdrawals' => 'Withdrawals waiting',
 ];
