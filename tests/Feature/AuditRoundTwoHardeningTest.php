@@ -180,10 +180,8 @@ class AuditRoundTwoHardeningTest extends TestCase
         $this->assertStringNotContainsString('upgrade-insecure-requests', $csp);
     }
 
-    public function test_production_https_portals_keep_https_upgrades(): void
+    public function test_https_portals_keep_https_upgrades(): void
     {
-        $this->app->detectEnvironment(fn () => 'production');
-
         $csp = (string) $this->onPortal('dealer')->get('https://'.PortalHost::host('dealer').'/login')->headers->get('Content-Security-Policy');
 
         $this->assertStringContainsString('upgrade-insecure-requests', $csp);
