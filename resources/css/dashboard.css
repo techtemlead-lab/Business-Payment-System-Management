@@ -2843,29 +2843,13 @@ html[data-theme="dark"] [data-tooltip]:hover::after,html[data-theme="dark"] [dat
 }
 
 /* ---- Inline-style bridge ----------------------------------------------
-   Some screens (area dealers, employees, network tree, product editor,
-   site customisation, ...) still paint with inline light-mode colours.
-   These rules map the common ones onto tokens so dark mode stays legible,
-   and keep labels in sentence case. Payouts, settlements, commissions,
-   treasury, ranks, rewards and the password panel use the "Hub screens"
-   classes at the end of this file instead. */
-.app-shell .portal-workspace-body [style*="text-transform: uppercase"]{text-transform:none!important;letter-spacing:.01em!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(255, 255, 255)"],[style*="background-color: rgb(255, 255, 255)"],[style*="background: white"]){background:var(--ds-surface)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(248, 250, 252)"],[style*="background: rgb(250, 250, 250)"],[style*="background: rgb(252, 252, 253)"]){background:var(--ds-surface-2)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(241, 245, 249)"],[style*="background: rgb(226, 232, 240)"]){background:var(--ds-surface-3)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(236, 253, 245)"],[style*="background: rgb(240, 253, 244)"],[style*="background: rgb(220, 252, 231)"]){background:var(--ds-ok-bg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(254, 242, 242)"],[style*="background: rgb(254, 226, 226)"]){background:var(--ds-danger-bg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(239, 246, 255)"],[style*="background: rgb(219, 234, 254)"]){background:var(--ds-info-bg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(255, 251, 235)"],[style*="background: rgb(254, 243, 199)"],[style*="background: rgb(255, 247, 237)"]){background:var(--ds-warn-bg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="solid rgb(226, 232, 240)"],[style*="solid rgb(203, 213, 225)"],[style*="solid rgb(241, 245, 249)"],[style*="dashed rgb(203, 213, 225)"]){border-color:var(--ds-line)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(15, 23, 42)"],[style*="color: rgb(1, 22, 39)"],[style*="color: rgb(30, 41, 59)"],[style*="color: rgb(11, 31, 51)"]){color:var(--ds-text)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(51, 65, 85)"],[style*="color: rgb(71, 85, 105)"]){color:var(--ds-text-2)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) [style*="color: rgb(100, 116, 139)"]{color:var(--ds-text-muted)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(0, 104, 55)"],[style*="color: rgb(4, 120, 87)"],[style*="color: rgb(6, 95, 70)"],[style*="color: rgb(22, 101, 52)"],[style*="color: rgb(5, 150, 105)"]){color:var(--ds-ok-fg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(46, 49, 146)"],[style*="color: rgb(29, 78, 216)"],[style*="color: rgb(30, 64, 175)"],[style*="color: rgb(37, 99, 235)"],[style*="color: rgb(3, 105, 161)"]){color:var(--ds-info-fg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(153, 27, 27)"],[style*="color: rgb(185, 28, 28)"],[style*="color: rgb(220, 38, 38)"],[style*="color: rgb(225, 29, 72)"]){color:var(--ds-danger-fg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(180, 83, 9)"],[style*="color: rgb(154, 52, 18)"],[style*="color: rgb(217, 119, 6)"],[style*="color: rgb(146, 64, 14)"]){color:var(--ds-warn-fg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(250, 245, 255)"],[style*="background: rgb(238, 242, 255)"]){background:var(--ds-transit-bg)!important}
+   Only the inline colours still painted at runtime remain here: the owner
+   home banner (DashboardOverview) and the hover handlers in the purchase
+   search (ProductPurchaseMatrix) and site customisation editor. Everything
+   else uses token classes (screens-ops.css, "Hub screens" below). */
+html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(255, 255, 255)"]){background:var(--ds-surface)!important}
+html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(236, 253, 245)"],[style*="background: rgb(240, 253, 244)"]){background:var(--ds-ok-bg)!important}
+html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(4, 120, 87)"]){color:var(--ds-ok-fg)!important}
 /* Sidebar nav scrollbar sits in the sidebar's right padding instead of eating label width */
 .app-shell .sidebar .sidebar-nav-container{margin-right:-8px;padding-right:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;scrollbar-gutter:stable}
 .app-shell .portal-site-header .portal-logo{height:60px;min-width:60px;width:auto}

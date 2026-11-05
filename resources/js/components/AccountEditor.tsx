@@ -165,7 +165,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
         </form>
         {canKyc && isPartner && (
-            <section className="panel" style={{ marginTop: 16 }}>
+            <section className="panel aed-kyc">
                 <div className="panel-heading">
                     <div>
                         <h3>{translate('portal', 'kyc_documents')}</h3>
@@ -208,9 +208,9 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     </div>
                     <button className="button dark" disabled={kyc.processing || !kyc.data.document}>{translate('portal', 'kyc_upload')}</button>
                 </form>
-                {docsError && <p className="muted" style={{ marginTop: 10 }}>{docsError}</p>}
+                {docsError && <p className="muted ops-mt-3">{docsError}</p>}
                 {docs.length > 0 ? (
-                    <ul style={{ marginTop: 14, paddingLeft: 18, display: 'grid', gap: 6 }}>
+                    <ul className="aed-docs">
                         {docs.map(doc => (
                             <li key={doc.id}>
                                 <a className="text-link" href={`/commands/accounts/${account.id}/kyc-documents/${doc.id}`}>
@@ -221,7 +221,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         ))}
                     </ul>
                 ) : !docsError ? (
-                    <p className="muted" style={{ marginTop: 12 }}>{translate('portal', 'kyc_empty')}</p>
+                    <p className="muted ops-mt-3">{translate('portal', 'kyc_empty')}</p>
                 ) : null}
             </section>
         )}

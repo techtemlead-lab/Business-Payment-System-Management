@@ -91,7 +91,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         <h2>{translate('portal', 'help_manual_title')}</h2>
                         <p className="muted">{translate('portal', 'help_manual_hint')}</p>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div className="ops-row">
                         <button
                             type="button"
                             className="button small dark"
@@ -481,7 +481,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                 ) : (
                     <Empty title={translate('portal', 'support_empty_title')} body={translate('portal', 'support_empty_body')} />
                 )}
-                <p className="muted" style={{ marginTop: 12 }}>{translate('portal', 'support_signed_in_as', { name: auth.user.name })}</p>
+                <p className="muted ops-mt-3">{translate('portal', 'support_signed_in_as', { name: auth.user.name })}</p>
             </section>
         </div>
     );
@@ -508,7 +508,7 @@ export function SupportAdminHub({ data }: { data: Row }) {
                     router.get('/support-admin', { status: String(fd.get('status') || '') || undefined }, { preserveState: true });
                 }}
             >
-                <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
+                <label className="muted ops-stack is-tight ops-fs-2xs">
                     {translate('portal', 'col_status')}
                     <select name="status" defaultValue={admin.filters?.status || ''}>
                         <option value="">{translate('portal', 'all')}</option>
@@ -520,7 +520,7 @@ export function SupportAdminHub({ data }: { data: Row }) {
                 <button className="button small" type="submit">{translate('portal', 'apply_dates')}</button>
             </form>
             {tickets.map((ticket) => (
-                <article key={ticket.id} className="panel" style={{ marginTop: 12 }}>
+                <article key={ticket.id} className="panel ops-mt-3">
                     <div className="panel-heading">
                         <div>
                             <h3>{ticket.subject}</h3>
@@ -529,7 +529,7 @@ export function SupportAdminHub({ data }: { data: Row }) {
                         <Badge status={ticket.status} />
                     </div>
                     <p>{ticket.body}</p>
-                    <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form" style={{ marginTop: 12 }}>
+                    <Form action={`/commands/support-tickets/${ticket.id}/reply`} method="post" className="action-form ops-mt-3">
                         {({ processing }) => (
                             <>
                                 <label>

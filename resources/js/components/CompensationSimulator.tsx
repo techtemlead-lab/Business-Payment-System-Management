@@ -214,80 +214,44 @@ export default function CompensationSimulator({
         }
     };
 
+    const signTone = (value: number): string => (value > 0 ? 'tone-danger' : value < 0 ? 'tone-ok' : '');
+    const capTone = isExceedingCap ? 'tone-danger' : 'tone-ok';
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="hub sim">
             {error && (
-                <div role="alert" style={{
-                    background: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    color: '#991b1b',
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    fontSize: 13,
-                    display: 'flex',
-                    gap: 8,
-                    alignItems: 'flex-start',
-                }}>
-                    <AlertTriangle size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div role="alert" className="error sim-alert">
+                    <AlertTriangle size={16} />
                     <span>{error}</span>
                 </div>
             )}
             {/* Header Banner & Cap Guardrail */}
-            <div style={{
-                background: isExceedingCap ? '#fef2f2' : '#f0fdf4',
-                border: `1.5px solid ${isExceedingCap ? '#fca5a5' : '#86efac'}`,
-                borderRadius: '14px',
-                padding: '24px',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+            <div className={`panel is-tinted sim-banner ${capTone}`}>
+                <div className="ops-row is-between is-top is-wrap is-wide">
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                            <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                background: isExceedingCap ? '#fee2e2' : '#dcfce7',
-                                color: isExceedingCap ? '#b91c1c' : '#15803d'
-                            }}>
+                        <div className="hub-kicker">
+                            <span className="hub-pill">
                                 {isExceedingCap || dealerCap === null ? <AlertTriangle size={15} /> : <ShieldCheck size={15} />}
                                 {capBadge}
                             </span>
-                            <span style={{ fontSize: '13px', color: '#64748b' }}>
+                            <span className="ops-fs-sm ops-muted">
                                 {translate('portal','sim_tested_against',{amount:money(simData.gross_sales_tested,{symbol:false}),count:String(simData.orders_analyzed_count)})}
                             </span>
                         </div>
-                        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: '#0f172a' }}>
+                        <h2 className="sim-title">
                             {translate('portal','sim_title')}
                         </h2>
-                        <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#475569', maxWidth: '750px' }}>
+                        <p className="sim-lead">
                             {translate('portal','sim_body')}
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className="ops-row is-loose">
                         <button
                             type="button"
                             onClick={runSimulation}
                             disabled={loading}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                background: isExceedingCap ? '#94a3b8' : '#047857',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '12px 20px',
-                                fontSize: '14px',
-                                fontWeight: 700,
-                                cursor: isExceedingCap ? 'not-allowed' : 'pointer',
-                                boxShadow: '0 2px 6px rgba(4,120,87,0.25)'
-                            }}
+                            className={`button dark sim-run${isExceedingCap ? ' is-blocked' : ''}`}
                         >
                             {loading ? <RefreshCw size={16} className="spin" /> : <Play size={16} />}
                             {loading ? translate('portal','sim_running') : translate('portal','sim_run')}
@@ -296,63 +260,35 @@ export default function CompensationSimulator({
                 </div>
 
                 {/* Pool Sum Progress Bar */}
-                <div style={{ marginTop: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-                        <span style={{ color: isExceedingCap ? '#b91c1c' : '#047857' }}>
+                <div className="ops-mt-5">
+                    <div className="ops-row is-between is-wrap ops-fs-sm ops-semibold ops-mb-2">
+                        <span className={capTone}>
                             {translate('portal','sim_proposed_pool',{pct:totalProposedPct.toFixed(2)})}
                         </span>
-                        <span style={{ color: '#64748b' }}>
+                        <span className="ops-muted">
                             {translate('portal','sim_company_retention_live',{pct:(100 - totalProposedPct).toFixed(2),floor:retentionFloor})}
                         </span>
                     </div>
-                    <div style={{ width: '100%', height: '12px', background: '#e2e8f0', borderRadius: '6px', overflow: 'hidden', display: 'flex' }}>
-                        <div style={{
-                            width: `${Math.min(100, Math.max(0, totalProposedPct))}%`,
-                            background: isExceedingCap ? '#ef4444' : '#059669',
-                            transition: 'width 0.2s ease'
-                        }} />
-                        <div style={{
-                            width: `${Math.max(0, 100 - Math.min(100, totalProposedPct))}%`,
-                            background: '#0284c7'
-                        }} />
+                    <div className="hub-progress is-lg sim-pool">
+                        <div className={capTone} style={{ width: `${Math.min(100, Math.max(0, totalProposedPct))}%` }} />
+                        <div className="tone-info" style={{ width: `${Math.max(0, 100 - Math.min(100, totalProposedPct))}%` }} />
                     </div>
                 </div>
             </div>
 
             {/* Presets Quick Picker */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-                flexWrap: 'wrap'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#334155' }}>
-                    <Sparkles size={16} color="#047857" />
+            <div className="ops-card ops-row is-wide is-wrap">
+                <div className="ops-row ops-fs-sm ops-bold ops-text-2">
+                    <Sparkles size={16} className="sim-accent-icon" />
                     {translate('portal','sim_scenarios')}
                 </div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', flex: 1 }}>
+                <div className="ops-row is-wrap ops-grow">
                     {presets.map((p, idx) => (
                         <button
                             key={idx}
                             type="button"
                             onClick={() => applyPreset(p)}
-                            style={{
-                                background: '#f8fafc',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                padding: '6px 12px',
-                                fontSize: '12px',
-                                fontWeight: 600,
-                                color: '#1e293b',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#047857'; e.currentTarget.style.background = '#f0fdf4'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}
+                            className="button small sim-preset"
                             title={translate('portal',p.descKey)}
                         >
                             {translate('portal',p.nameKey)}
@@ -362,89 +298,71 @@ export default function CompensationSimulator({
             </div>
 
             {/* KPI Cards: Baseline vs Simulated */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_gross_sales')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>
+            <div className="hub-grid">
+                <div className="hub-tile">
+                    <span className="hub-label">{translate('portal','sim_gross_sales')}</span>
+                    <div className="ops-figure">
                         {money(simData.gross_sales_tested)}
                     </div>
-                    <span style={{ fontSize: '12px', color: '#047857', fontWeight: 500 }}>
+                    <span className="hub-hint ops-medium tone-ok">
                         {simData.is_synthetic_benchmark ? translate('portal','sim_benchmark') : translate('portal','sim_real_orders')}
                     </span>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_commissions')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
+                <div className="hub-tile">
+                    <span className="hub-label">{translate('portal','sim_commissions')}</span>
+                    <div className="ops-figure tone-ok">
                         {money(simData.simulated.total_commissions)}
                     </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    <span className="hub-hint">
                         {translate('portal','sim_baseline',{amount:money(simData.baseline.total_commissions,{symbol:false})})}
                     </span>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_variance')}</span>
-                    <div style={{
-                        fontSize: '24px',
-                        fontWeight: 800,
-                        color: simData.variance.amount > 0 ? '#b91c1c' : simData.variance.amount < 0 ? '#047857' : '#0f172a',
-                        marginTop: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
+                <div className="hub-tile">
+                    <span className="hub-label">{translate('portal','sim_variance')}</span>
+                    <div className={`ops-figure ops-row is-snug ${signTone(simData.variance.amount)}`}>
                         {simData.variance.amount > 0 ? <TrendingUp size={22} /> : simData.variance.amount < 0 ? <TrendingDown size={22} /> : null}
                         {signedMoney(simData.variance.amount)}
                     </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    <span className="hub-hint">
                         {translate('portal','sim_vs_baseline',{pct:`${simData.variance.pct > 0 ? '+' : ''}${simData.variance.pct.toFixed(2)}`})}
                     </span>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal','sim_retained')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
+                <div className="hub-tile">
+                    <span className="hub-label">{translate('portal','sim_retained')}</span>
+                    <div className="ops-figure tone-info">
                         {simData.simulated.retention_pct.toFixed(2)}%
                     </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                    <span className="hub-hint">
                         {translate('portal','sim_net_margin',{amount:money(simData.simulated.company_retention,{symbol:false})})}
                     </span>
                 </div>
             </div>
 
             {/* Parameter Adjustment Sliders & Inputs */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '24px'
-            }}>
-                <div style={{ marginBottom: '20px' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+            <div className="panel">
+                <div className="ops-mb-5">
+                    <h3 className="hub-title is-lg">
                         {translate('portal','sim_adjust_title')}
                     </h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+                    <p className="hub-sub">
                         {translate('portal','sim_adjust_hint')}
                     </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                <div className="hub-grid is-xwide">
                     {Object.keys(SLICE_METADATA).map(key => {
                         const meta = SLICE_METADATA[key];
                         const currentVal = rates[key] ?? 0;
                         return (
-                            <div key={key} style={{
-                                padding: '16px',
-                                borderRadius: '8px',
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0'
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                            <div key={key} className="ops-card is-soft">
+                                <div className="ops-row is-between ops-mb-2">
+                                    <span className="hub-strong ops-fs-base">
                                         {translate('portal',meta.labelKey)}
                                     </span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div className="ops-row is-tight">
                                         <input
                                             type="number"
                                             step="0.1"
@@ -452,17 +370,9 @@ export default function CompensationSimulator({
                                             max={dealerCap ?? 100}
                                             value={currentVal}
                                             onChange={(e) => handleRateChange(key, parseFloat(e.target.value) || 0)}
-                                            style={{
-                                                width: '64px',
-                                                padding: '4px 8px',
-                                                borderRadius: '6px',
-                                                border: '1px solid #cbd5e1',
-                                                fontSize: '13px',
-                                                fontWeight: 700,
-                                                textAlign: 'right'
-                                            }}
+                                            className="cs-pct-input sim-pct-input"
                                         />
-                                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>%</span>
+                                        <span className="ops-fs-sm ops-semibold ops-muted">%</span>
                                     </div>
                                 </div>
                                 <input
@@ -472,13 +382,9 @@ export default function CompensationSimulator({
                                     step="0.25"
                                     value={currentVal}
                                     onChange={(e) => handleRateChange(key, parseFloat(e.target.value) || 0)}
-                                    style={{
-                                        width: '100%',
-                                        accentColor: '#047857',
-                                        cursor: 'pointer'
-                                    }}
+                                    className="cs-range"
                                 />
-                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                                <div className="ops-meta ops-mt-1">
                                     {translate('portal',meta.descKey)}
                                 </div>
                             </div>
@@ -488,67 +394,52 @@ export default function CompensationSimulator({
             </div>
 
             {/* Slices Breakdown Comparison Table */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                overflow: 'hidden'
-            }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+            <div className="panel table-panel">
+                <div className="sim-table-head">
+                    <h3 className="hub-title">
                         {translate('portal','sim_breakdown_title')}
                     </h3>
-                    <span style={{ fontSize: '13px', color: '#64748b' }}>
+                    <span className="ops-fs-sm ops-muted">
                         {translate('portal','sim_breakdown_hint')}
                     </span>
                 </div>
 
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <div className="table-wrap">
+                    <table className="sim-table">
                         <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>{translate('portal','sim_col_stream')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_base_pct')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_sim_pct')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_delta')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_base_pay')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_sim_pay')}</th>
-                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>{translate('portal','sim_col_cash_var')}</th>
+                            <tr>
+                                <th>{translate('portal','sim_col_stream')}</th>
+                                <th className="is-num">{translate('portal','sim_col_base_pct')}</th>
+                                <th className="is-num">{translate('portal','sim_col_sim_pct')}</th>
+                                <th className="is-num">{translate('portal','sim_col_delta')}</th>
+                                <th className="is-num">{translate('portal','sim_col_base_pay')}</th>
+                                <th className="is-num">{translate('portal','sim_col_sim_pay')}</th>
+                                <th className="is-num">{translate('portal','sim_col_cash_var')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {sliceRows.map(({ slice, currentSimPct, simAmount, deltaPct, deltaAmount }) => {
                                 return (
-                                    <tr key={slice.key} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 20px', fontWeight: 600, color: '#1e293b' }}>
+                                    <tr key={slice.key}>
+                                        <td className="is-strong">
                                             {SLICE_METADATA[slice.key] ? translate('portal',SLICE_METADATA[slice.key].labelKey) : slice.name}
                                         </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b' }}>
+                                        <td className="is-num is-muted">
                                             {slice.baseline_pct.toFixed(2)}%
                                         </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#047857' }}>
+                                        <td className="is-num is-strong tone-ok">
                                             {currentSimPct.toFixed(2)}%
                                         </td>
-                                        <td style={{
-                                            padding: '12px 16px',
-                                            textAlign: 'right',
-                                            fontWeight: 600,
-                                            color: deltaPct > 0 ? '#b91c1c' : deltaPct < 0 ? '#047857' : '#64748b'
-                                        }}>
+                                        <td className={`is-num is-semibold ${signTone(deltaPct) || 'is-muted'}`}>
                                             {deltaPct > 0 ? `+${deltaPct.toFixed(2)}%` : deltaPct < 0 ? `${deltaPct.toFixed(2)}%` : '0.00%'}
                                         </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b' }}>
+                                        <td className="is-num is-muted">
                                             {money(slice.baseline_amount)}
                                         </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                        <td className="is-num is-strong">
                                             {money(simAmount)}
                                         </td>
-                                        <td style={{
-                                            padding: '12px 20px',
-                                            textAlign: 'right',
-                                            fontWeight: 700,
-                                            color: deltaAmount > 0 ? '#b91c1c' : deltaAmount < 0 ? '#047857' : '#64748b'
-                                        }}>
+                                        <td className={`is-num is-strong ${signTone(deltaAmount) || 'is-muted'}`}>
                                             {signedMoney(deltaAmount)}
                                         </td>
                                     </tr>
@@ -556,22 +447,22 @@ export default function CompensationSimulator({
                             })}
                         </tbody>
                         <tfoot>
-                            <tr style={{ background: '#f8fafc', fontWeight: 700, borderTop: '2px solid #e2e8f0' }}>
-                                <td style={{ padding: '14px 20px', color: '#0f172a' }}>{translate('portal','sim_total_pool')}</td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>{baselinePoolPct.toFixed(2)}%</td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: isExceedingCap ? '#dc2626' : '#047857' }}>
+                            <tr>
+                                <td className="is-strong">{translate('portal','sim_total_pool')}</td>
+                                <td className="is-num is-muted">{baselinePoolPct.toFixed(2)}%</td>
+                                <td className={`is-num ${capTone}`}>
                                     {totalProposedPct.toFixed(2)}%
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: totalProposedPct > baselinePoolPct ? '#dc2626' : '#047857' }}>
+                                <td className={`is-num ${totalProposedPct > baselinePoolPct ? 'tone-danger' : 'tone-ok'}`}>
                                     {`${totalProposedPct > baselinePoolPct ? '+' : ''}${(totalProposedPct - baselinePoolPct).toFixed(2)}%`}
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: '#64748b' }}>
+                                <td className="is-num is-muted">
                                     {money(simData.baseline.total_commissions)}
                                 </td>
-                                <td style={{ padding: '14px 16px', textAlign: 'right', color: '#0f172a' }}>
+                                <td className="is-num is-strong">
                                     {money(simulatedPayoutTotal)}
                                 </td>
-                                <td style={{ padding: '14px 20px', textAlign: 'right', color: payoutVariance > 0 ? '#dc2626' : '#047857' }}>
+                                <td className={`is-num ${payoutVariance > 0 ? 'tone-danger' : 'tone-ok'}`}>
                                     {signedMoney(payoutVariance)}
                                 </td>
                             </tr>

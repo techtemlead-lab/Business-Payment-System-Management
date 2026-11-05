@@ -60,7 +60,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'financial-readiness': 'financial_readiness', 'financial-reports': 'financial_reports',
     'dues-adjustments': 'dues_adjustments', 'finance-settings': 'finance_settings',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
-    overview: 'overview', orders: 'orders', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
+    overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
     inventory: 'inventory', deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network',
     policies: 'policies', salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports',
     customization: 'website', website: 'website', content: 'content', enquiries: 'enquiries', feedback: 'feedback',

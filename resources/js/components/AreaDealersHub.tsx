@@ -56,11 +56,11 @@ interface AreaDealersHubProps {
     place_codes?: PlaceCodeOption[];
 }
 
-const levelMeta: Record<string, { labelKey: string; bg: string; text: string; defaultQuota: number }> = {
-    division: { labelKey: 'area_lvl_division', bg: '#eff6ff', text: '#1d4ed8', defaultQuota: 50000 },
-    district: { labelKey: 'area_lvl_district', bg: '#ecfdf5', text: '#047857', defaultQuota: 40000 },
-    upazila: { labelKey: 'area_lvl_upazila', bg: '#fdf4ff', text: '#a21caf', defaultQuota: 20000 },
-    union: { labelKey: 'area_lvl_union', bg: '#fffbeb', text: '#b45309', defaultQuota: 10000 },
+const levelMeta: Record<string, { labelKey: string; tone: string; defaultQuota: number }> = {
+    division: { labelKey: 'area_lvl_division', tone: 'tone-info', defaultQuota: 50000 },
+    district: { labelKey: 'area_lvl_district', tone: 'tone-ok', defaultQuota: 40000 },
+    upazila: { labelKey: 'area_lvl_upazila', tone: 'tone-violet', defaultQuota: 20000 },
+    union: { labelKey: 'area_lvl_union', tone: 'tone-warn', defaultQuota: 10000 },
 };
 
 export default function AreaDealersHub({ assignments, divisions }: AreaDealersHubProps) {
@@ -98,68 +98,51 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
     const levelLabel = (level: string) => translate('portal', levelMeta[level]?.labelKey ?? 'area_lvl_district');
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#334155', maxWidth: 760 }}>
+        <div className="hub">
+            <p className="adh-intro">
                 {translate('portal', 'area_intro')}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 12, fontWeight: 600 }}>
+            <div className="hub-grid">
+                <div className="hub-tile">
+                    <div className="hub-label ops-row">
                         <MapPin size={16} /> {translate('portal', 'area_kpi_total')}
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {assignments.length}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{translate('portal', 'area_kpi_total_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'area_kpi_total_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#047857', fontSize: 12, fontWeight: 600 }}>
+                <div className="hub-tile is-accent tone-ok">
+                    <div className="hub-label ops-row">
                         <Building2 size={16} /> {translate('portal', 'area_kpi_quota')}
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {money(totalActiveQuota)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'area_kpi_quota_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'area_kpi_quota_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>
+                <div className="hub-tile is-accent tone-info">
+                    <div className="hub-label ops-row">
                         <Compass size={16} /> {translate('portal', 'area_kpi_pool')}
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         4.00%
                     </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{translate('portal', 'area_kpi_pool_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'area_kpi_pool_hint')}</div>
                 </div>
             </div>
 
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '14px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10
-            }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+            <div className="ops-card ops-stack">
+                <div className="hub-label">
                     {translate('portal', 'area_regional')}
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="ops-row is-wrap">
                     <button
                         type="button"
                         onClick={() => setSelectedDivision('all')}
-                        style={{
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 20,
-                            border: `1.5px solid ${selectedDivision === 'all' ? '#006837' : '#cbd5e1'}`,
-                            background: selectedDivision === 'all' ? '#ecfdf5' : '#ffffff',
-                            color: selectedDivision === 'all' ? '#006837' : '#475569',
-                            cursor: 'pointer'
-                        }}
+                        className={`adh-division is-all${selectedDivision === 'all' ? ' is-selected' : ''}`}
                     >
                         {translate('portal', 'area_all_divisions', { count: String(assignments.length) })}
                     </button>
@@ -171,29 +154,10 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                                 key={div}
                                 type="button"
                                 onClick={() => setSelectedDivision(div)}
-                                style={{
-                                    padding: '6px 12px',
-                                    fontSize: 12,
-                                    fontWeight: 600,
-                                    borderRadius: 20,
-                                    border: `1.5px solid ${isSelected ? '#006837' : '#e2e8f0'}`,
-                                    background: isSelected ? '#ecfdf5' : '#f8fafc',
-                                    color: isSelected ? '#006837' : '#475569',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6
-                                }}
+                                className={`adh-division${isSelected ? ' is-selected' : ''}`}
                             >
                                 <span>{div}</span>
-                                <span style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: '1px 5px',
-                                    borderRadius: 10,
-                                    background: st.count > 0 ? '#dcfce7' : '#f1f5f9',
-                                    color: st.count > 0 ? '#15803d' : '#94a3b8'
-                                }}>
+                                <span className={`adh-division-count${st.count > 0 ? ' tone-ok' : ''}`}>
                                     {st.count}
                                 </span>
                             </button>
@@ -202,48 +166,23 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                 </div>
             </div>
 
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '12px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 12
-            }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', width: 260 }}>
-                        <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }} />
+            <div className="ops-card is-tight ops-row is-between is-wrap is-loose">
+                <div className="ops-row is-wrap is-loose">
+                    <div className="adh-search">
+                        <Search size={16} />
                         <input
                             type="text"
                             placeholder={translate('portal', 'area_search_ph')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '8px 12px 8px 34px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6
-                            }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Filter size={15} style={{ color: '#64748b' }} />
+                    <div className="ops-row is-snug">
+                        <Filter size={15} className="ops-muted" />
                         <select
                             value={selectedLevel}
                             onChange={e => setSelectedLevel(e.target.value)}
-                            style={{
-                                padding: '8px 12px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6,
-                                background: '#ffffff',
-                                color: '#334155'
-                            }}
                         >
                             <option value="all">{translate('portal', 'area_all_tiers')}</option>
                             <option value="division">{translate('portal', 'area_tier_division')}</option>
@@ -256,23 +195,13 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
 
                 <Link
                     href="/accounts/create?intent=dealer"
-                    style={{
-                        padding: '8px 16px',
-                        background: '#006837',
-                        color: '#ffffff',
-                        borderRadius: 6,
-                        fontWeight: 700,
-                        fontSize: 13,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                    }}
+                    className="button dark"
                 >
                     {translate('portal', 'area_add_dealer')}
                 </Link>
             </div>
 
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+            <div className="ops-card adh-table">
                 <Table
                     tools={false}
                     rows={filteredAssignments}
@@ -284,13 +213,13 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             sortable: true,
                             render: (a: AreaAssignment) => (
                                 <div>
-                                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{a.zone_name}</div>
+                                    <div className="ops-bold ops-text">{a.zone_name}</div>
                                     {a.place_code?.code && (
-                                        <div style={{ fontSize: 11, color: '#0f766e', fontWeight: 700, marginTop: 2 }}>
+                                        <div className="adh-code tone-teal">
                                             {translate('portal', 'area_code', { code: a.place_code.code })}
                                         </div>
                                     )}
-                                    <div style={{ fontSize: 11, color: '#64748b' }}>{a.place_code ? translate('portal', 'area_holds_code') : translate('portal', 'area_no_place')}</div>
+                                    <div className="ops-meta">{a.place_code ? translate('portal', 'area_holds_code') : translate('portal', 'area_no_place')}</div>
                                 </div>
                             ),
                         },
@@ -301,13 +230,13 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             sortValue: (a: AreaAssignment) => a.user?.name || '',
                             render: (a: AreaAssignment) => a.user ? (
                                 <div>
-                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{a.user.name}</div>
-                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                    <div className="hub-strong">{a.user.name}</div>
+                                    <div className="ops-meta">
                                         {a.user.dealer_code} {a.user.phone ? `• ${a.user.phone}` : ''}
                                     </div>
                                 </div>
                             ) : (
-                                <span style={{ color: '#94a3b8' }}>{translate('portal', 'area_unassigned')}</span>
+                                <span className="ops-faint">{translate('portal', 'area_unassigned')}</span>
                             ),
                         },
                         {
@@ -317,14 +246,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             render: (a: AreaAssignment) => {
                                 const levelConfig = levelMeta[a.level] || levelMeta.district;
                                 return a.place_code ? (
-                                    <span style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        padding: '2px 8px',
-                                        borderRadius: 4,
-                                        background: levelConfig.bg,
-                                        color: levelConfig.text
-                                    }}>
+                                    <span className={`adh-chip ${levelConfig.tone}`}>
                                         {levelLabel(a.level)}
                                     </span>
                                 ) : '—';
@@ -338,8 +260,8 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             render: (a: AreaAssignment) => (
                                 <div>
                                     <div>{a.division || '—'}</div>
-                                    {a.district && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_district', { name: a.district })}</div>}
-                                    {a.upazila && <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'area_upazila', { name: a.upazila })}</div>}
+                                    {a.district && <div className="ops-meta">{translate('portal', 'area_district', { name: a.district })}</div>}
+                                    {a.upazila && <div className="ops-meta">{translate('portal', 'area_upazila', { name: a.upazila })}</div>}
                                 </div>
                             ),
                         },
@@ -350,7 +272,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             sortable: true,
                             sortValue: (a: AreaAssignment) => Number(a.monthly_quota) || 0,
                             render: (a: AreaAssignment) => (
-                                <b style={{ color: '#006837' }}>
+                                <b className="adh-quota">
                                     {money(a.monthly_quota)}
                                 </b>
                             ),
@@ -360,14 +282,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                             title: translate('portal', 'area_col_status'),
                             sortable: true,
                             render: (a: AreaAssignment) => (
-                                <span style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    background: a.is_active ? '#dcfce7' : '#fee2e2',
-                                    color: a.is_active ? '#15803d' : '#b91c1c'
-                                }}>
+                                <span className={`adh-chip is-sm ${a.is_active ? 'tone-ok' : 'tone-danger'}`}>
                                     {a.place_code ? translate('portal', 'area_active') : translate('portal', 'area_no_place')}
                                 </span>
                             ),

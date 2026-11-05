@@ -27,12 +27,12 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
             <section className="panel">
                 <div className="panel-heading">
                     <div>
-                        <h2 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="ops-row is-inline">
                             <FileBarChart2 size={18} /> {translate('portal', 'full_report')}
                         </h2>
                         <p className="muted">{translate('portal', 'full_report_hint')}</p>
                     </div>
-                    <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} target="_blank" rel="noopener noreferrer" download="partner-statement.pdf" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <a className="button small dark" href={`${base}/full-report/pdf${querySuffix}`} target="_blank" rel="noopener noreferrer" download="partner-statement.pdf">
                         <Download size={15} /> {translate('portal', 'download_pdf')}
                     </a>
                 </div>
@@ -50,18 +50,18 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                             </button>
                         ))}
                     </div>
-                    <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
+                    <label className="muted pfr-date">
                         {translate('portal', 'date_from')}
                         <DateInput value={from} onChange={(event) => setFrom(event.target.value)} />
                     </label>
-                    <label className="muted" style={{ display: 'grid', gap: 4, fontSize: 11 }}>
+                    <label className="muted pfr-date">
                         {translate('portal', 'date_to')}
                         <DateInput value={to} onChange={(event) => setTo(event.target.value)} />
                     </label>
                     <button className="button small" type="submit">{translate('portal', 'apply_dates')}</button>
                     {(filters.from || filters.to) && <button type="button" className="text-link" onClick={() => router.get(`${base}/full-report`)}>{translate('portal', 'clear')}</button>}
                 </form>
-                <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+                <div className="metric-grid four">
                     <div className="metric"><span>{translate('portal', 'report_total_ordered')}</span><strong>{money(summary.ordered)}</strong><small>{translate('portal', 'report_orders_count', { count: String(summary.orders_count ?? 0) })}</small></div>
                     <div className="metric"><span>{translate('portal', 'report_payments_received')}</span><strong>{money(summary.paid)}</strong></div>
                     <div className="metric"><span>{translate('portal', 'report_outstanding_due')}</span><strong>{money(summary.due)}</strong></div>
@@ -148,7 +148,7 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                                 <>
                                     {(order.payments ?? []).length === 0 && <span className="muted">—</span>}
                                     {(order.payments ?? []).map((payment: Row, index: number) => (
-                                        <div key={`${order.id}-${index}`} style={{ fontSize: 11, marginBottom: 4 }}>
+                                        <div key={`${order.id}-${index}`} className="ops-fs-2xs ops-mb-1">
                                             <b>{payment.channel}</b> {money(payment.amount)} · {payment.status}
                                             {payment.reference ? <small className="cell-sub">{payment.reference}</small> : null}
                                         </div>

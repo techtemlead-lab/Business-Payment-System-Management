@@ -1801,3 +1801,12 @@ html[data-theme="dark"] .pagination .page-link.is-disabled {
     background: transparent;
     color: #5b6b80;
 }
+
+/* Dark-mode fixes for older components that still carried light backgrounds */
+html[data-theme="dark"] .help-toc-count,
+html[data-theme="dark"] .help-manual-toc-index{background:var(--ds-surface-3);color:var(--ds-text-2)}
+html[data-theme="dark"] .help-article-category-badge{background:var(--ds-info-bg);color:var(--ds-info-fg)}
+html[data-theme="dark"] .import-choice{background:var(--ds-surface-2);border-color:var(--ds-line);color:var(--ds-text)}
+html[data-theme="dark"] .import-choice:has(input:checked),
+html[data-theme="dark"] .import-choice.is-selected{background:var(--ds-brand-soft);border-color:var(--ds-brand)}
+html[data-theme="dark"] .stock-search{background:var(--ds-surface);border-color:var(--ds-line);color:var(--ds-text)}

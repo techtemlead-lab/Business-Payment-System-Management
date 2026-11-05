@@ -86,7 +86,7 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
             <section className="panel">
                 <div className="panel-heading">
                     <div>
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <h2 className="ops-row">
                             <BarChart3 size={18} /> {translate('portal', 'branch_perf_title')}
                         </h2>
                         <p className="muted">{translate('portal', 'branch_perf_hint')}</p>
@@ -143,14 +143,14 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                     <button type="submit" className="button small dark">{translate('portal', 'branch_perf_apply')}</button>
                 </form>
 
-                <div className="metric-grid" style={{ marginTop: 16 }}>
+                <div className="metric-grid ops-mt-4">
                     <div className="metric"><span>{translate('portal', 'branch_perf_orders')}</span><strong>{performance.totals.order_count}</strong></div>
                     <div className="metric"><span>{translate('portal', 'branch_perf_order_value')}</span><strong>{money(performance.totals.order_value)}</strong></div>
                     <div className="metric"><span>{translate('portal', 'branch_perf_income')}</span><strong>{money(performance.totals.income)}</strong></div>
                     <div className="metric"><span>{translate('portal', 'branch_perf_profit')}</span><strong>{money(performance.totals.estimated_profit)}</strong></div>
                     <div className="metric"><span>{translate('portal', 'branch_perf_outstanding')}</span><strong>{money(performance.totals.outstanding)}</strong></div>
                 </div>
-                <p className="muted" style={{ marginTop: 8 }}>{translate('portal', 'branch_perf_profit_note')}</p>
+                <p className="muted ops-mt-2">{translate('portal', 'branch_perf_profit_note')}</p>
             </section>
 
             <section className="panel table-panel">

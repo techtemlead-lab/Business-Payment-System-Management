@@ -36,13 +36,13 @@ export default function PartnerCommissionOverride({ account }: { account: Row })
     }
 
     return (
-        <section className="panel" style={{ marginTop: 16, borderLeft: '4px solid #0f766e' }}>
+        <section className="panel pco-panel">
             <div className="panel-heading">
                 <div>
-                    <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <h3 className="ops-row is-inline">
                         <Percent size={18} /> {translate('portal', 'pco_title')}
                     </h3>
-                    <p className="muted" style={{ margin: '6px 0 0' }}>
+                    <p className="muted pco-hint">
                         {translate('portal', 'pco_hint', { name: String(account.name) })}
                     </p>
                 </div>

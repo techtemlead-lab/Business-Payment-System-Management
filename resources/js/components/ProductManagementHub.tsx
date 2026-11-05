@@ -138,37 +138,12 @@ export default function ProductManagementHub({
     return (
         <div>
             {/* Top Navigation Tabs for Product Management */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '8px 12px',
-                marginBottom: 24,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 12
-            }}>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="ops-card ops-row is-between is-wrap is-loose ops-mb-6 pmh-tabbar">
+                <div className="ops-row is-wrap is-snug">
                     <button
                         type="button"
                         onClick={() => handleTabChange('products')}
-                        style={{
-                            padding: '9px 16px',
-                            borderRadius: 7,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: activeTab === 'products' ? '#006837' : 'transparent',
-                            color: activeTab === 'products' ? '#ffffff' : '#475569',
-                            transition: 'all 0.15s ease'
-                        }}
+                        className={`pmh-tab${activeTab === 'products' ? ' is-active' : ''}`}
                     >
                         <Package size={16} />
                         <span>{translate('portal', 'all_products_count', { count: String(products.length) })}</span>
@@ -179,20 +154,7 @@ export default function ProductManagementHub({
                     <button
                         type="button"
                         onClick={() => handleTabChange('featured')}
-                        style={{
-                            padding: '9px 16px',
-                            borderRadius: 7,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: activeTab === 'featured' ? '#006837' : 'transparent',
-                            color: activeTab === 'featured' ? '#ffffff' : '#475569',
-                            transition: 'all 0.15s ease'
-                        }}
+                        className={`pmh-tab${activeTab === 'featured' ? ' is-active' : ''}`}
                     >
                         <Sparkles size={16} />
                         <span>{translate('portal', 'featured_showcase')}</span>
@@ -201,44 +163,19 @@ export default function ProductManagementHub({
                     <button
                         type="button"
                         onClick={() => handleTabChange('taxonomy')}
-                        style={{
-                            padding: '9px 16px',
-                            borderRadius: 7,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: activeTab === 'taxonomy' ? '#006837' : 'transparent',
-                            color: activeTab === 'taxonomy' ? '#ffffff' : '#475569',
-                            transition: 'all 0.15s ease'
-                        }}
+                        className={`pmh-tab${activeTab === 'taxonomy' ? ' is-active' : ''}`}
                     >
                         <Layers size={16} />
                         <span>{translate('portal', 'cms_taxonomy_tab')}</span>
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="ops-row">
                     <a
                         href="/"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: '#006837',
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            border: '1px solid #bbf7d0',
-                            background: '#f0fdf4',
-                            textDecoration: 'none'
-                        }}
+                        className="button small light"
                     >
                         <Eye size={14} /> {translate('portal', 'view_homepage')}
                     </a>
@@ -249,14 +186,7 @@ export default function ProductManagementHub({
             {activeTab === 'products' && (
                 <div>
                     {/* Catalog Control Bar */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: 20,
-                        flexWrap: 'wrap',
-                        gap: 12
-                    }}>
+                    <div className="ops-row is-between is-wrap is-loose ops-mb-5">
                         <form className="catalog-toolbar" onSubmit={applyCatalogFilters}>
                             <div className="catalog-toolbar-search">
                                 <div className="search-input">
@@ -310,13 +240,6 @@ export default function ProductManagementHub({
                                 type="button"
                                 className="button dark"
                                 onClick={onCreateProduct}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    fontWeight: 700,
-                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
-                                }}
                             >
                                 <Plus size={17} /> {translate('portal', 'add_new_product')}
                             </button>
@@ -345,17 +268,10 @@ export default function ProductManagementHub({
                     </div>
 
                     {!products.length && (
-                        <div style={{
-                            padding: '40px 20px',
-                            background: '#fff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 10,
-                            textAlign: 'center',
-                            marginTop: 16
-                        }}>
-                            <Package size={36} style={{ color: '#94a3b8', margin: '0 auto 12px' }} />
-                            <h3 style={{ margin: '0 0 6px', fontSize: 16, color: '#334155' }}>{translate('portal', 'no_matching_products')}</h3>
-                            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>
+                        <div className="ops-card ops-center ops-mt-4 pmh-empty">
+                            <Package size={36} className="ops-faint pmh-empty-icon" />
+                            <h3 className="pmh-empty-title">{translate('portal', 'no_matching_products')}</h3>
+                            <p className="ops-m-0 ops-mb-4 ops-fs-sm ops-muted">
                                 {translate('portal', 'no_matching_products_body')}
                             </p>
                             {canCreate && (
@@ -371,39 +287,20 @@ export default function ProductManagementHub({
             {/* TAB 3: FEATURED PRODUCTS SHOWCASE */}
             {activeTab === 'featured' && (
                 <form onSubmit={handleSaveFeatured}>
-                    <div style={{
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 20px',
-                        marginBottom: 20
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                    <div className="ops-card is-soft ops-mb-5 pmh-bar">
+                        <div className="ops-row is-between is-wrap is-loose">
                             <div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
+                                <h3 className="hub-title">
                                     {translate('portal', 'featured_showcase')}
                                 </h3>
-                                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                                <p className="hub-sub">
                                     {translate('portal', 'catalog_staff_hint')}
                                 </p>
                             </div>
                             <button
                                 type="submit"
+                                className="button dark"
                                 disabled={!canEditMarketing || featuredForm.processing}
-                                style={{
-                                    background: '#006837',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '10px 22px',
-                                    borderRadius: 7,
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
-                                }}
                             >
                                 <Save size={16} />
                                 {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}
@@ -422,38 +319,14 @@ export default function ProductManagementHub({
                     />
 
                     {/* Bottom Save Bar */}
-                    <div style={{
-                        marginTop: 24,
-                        padding: '16px 20px',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: 12
-                    }}>
-                        <div style={{ fontSize: 13, color: '#64748b' }}>
+                    <div className="ops-card ops-row is-between is-wrap is-loose ops-mt-6 pmh-bar">
+                        <div className="ops-fs-sm ops-muted">
                             {translate('portal', 'pm_featured_save_hint')}
                         </div>
                         <button
                             type="submit"
+                            className="button dark"
                             disabled={!canEditMarketing || featuredForm.processing}
-                            style={{
-                                background: '#006837',
-                                color: '#ffffff',
-                                border: 'none',
-                                padding: '10px 24px',
-                                borderRadius: 7,
-                                fontSize: 13,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                boxShadow: '0 2px 6px rgba(0, 104, 55, 0.2)'
-                            }}
                         >
                             <Save size={16} />
                             {featuredForm.processing ? translate('portal', 'cms_saving') : translate('portal', 'pm_save_featured')}

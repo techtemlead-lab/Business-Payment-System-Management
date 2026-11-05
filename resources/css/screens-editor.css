@@ -1,1 +1,247 @@
 /* Website editor (SiteCustomizationEditor) and product editor screens — token-based classes. */
+
+/* =========================================================================
+   ed-* vocabulary. Tokens only, so html[data-theme="dark"] follows --ds-*.
+   This file is imported at the top of dashboard.css, so it loads before the
+   design system layer. Text and box classes stay at .app-shell .ed-* so a
+   tone-* class (defined later) on the same element still wins the colour;
+   headings, inputs and button sizes use .app-shell .workspace to outrank
+   the generic panel / control rules.
+   Consumers read var(--tone-fg, …) so a tone on a container tints them.
+   ========================================================================= */
+
+/* ---- Layout ------------------------------------------------------------ */
+.app-shell .ed-row{display:flex;align-items:center;gap:8px;min-width:0}
+.app-shell .ed-row.is-inline{display:inline-flex}
+.app-shell .ed-row.is-tight{gap:4px}
+.app-shell .ed-row.is-loose{gap:12px}
+.app-shell .ed-row.is-wrap{flex-wrap:wrap}
+.app-shell .ed-row.is-top{align-items:flex-start}
+.app-shell .ed-row.is-center{justify-content:center}
+.app-shell .ed-row.is-end{justify-content:flex-end}
+
+.app-shell .ed-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:16px;min-width:0}
+.app-shell .ed-head.is-sm{margin-bottom:8px}
+.app-shell .ed-head.is-flush{margin-bottom:0}
+.app-shell .ed-head.is-top{align-items:flex-start}
+.app-shell .ed-head.is-ruled{padding-bottom:10px;border-bottom:1px solid var(--ds-line-soft)}
+
+.app-shell .ed-stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.app-shell .ed-stack.is-tight{gap:6px}
+.app-shell .ed-stack.is-loose{gap:20px}
+.app-shell .ed-stack.is-center{align-items:center}
+
+.app-shell .ed-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px}
+.app-shell .ed-grid.is-lg{grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:24px}
+.app-shell .ed-grid.is-md{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px}
+.app-shell .ed-grid.is-sm{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+.app-shell .ed-grid.is-xs{grid-template-columns:repeat(auto-fill,minmax(min(100%,130px),1fr));gap:8px}
+.app-shell .ed-grid.is-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:10px}
+.app-shell .ed-grid.is-single{grid-template-columns:minmax(0,1fr);gap:12px}
+.app-shell .ed-grid>*{min-width:0}
+.app-shell .ed-item-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center}
+.app-shell .ed-shrink{min-width:0}
+.app-shell .ed-grow{flex:1;min-width:0}
+.app-shell .ed-block{display:block}
+.app-shell .ed-hidden{display:none}
+
+/* ---- Text -------------------------------------------------------------- */
+.app-shell .workspace .ed-title{margin:0 0 16px;font-size:var(--ds-fs-md);font-weight:650;line-height:var(--ds-lh-tight);letter-spacing:-.005em;color:var(--ds-text)}
+.app-shell .workspace .ed-title.is-sm{font-size:var(--ds-fs-base)}
+.app-shell .workspace .ed-title.is-tight{margin-bottom:6px}
+.app-shell .workspace :is(.ed-title,.ed-subtitle).is-flush{margin:0}
+.app-shell .workspace .ed-subtitle{margin:0 0 12px;font-size:var(--ds-fs-base);font-weight:650;line-height:var(--ds-lh-tight);color:var(--ds-brand-text)}
+
+.app-shell .ed-label{display:block;margin-bottom:4px;font-size:var(--ds-fs-xs);font-weight:600;line-height:1.35;color:var(--tone-fg,var(--ds-text-2))}
+.app-shell .ed-label.is-inline{display:inline;margin-bottom:0}
+.app-shell .ed-field{display:flex;flex-direction:column;gap:6px;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text-2)}
+.app-shell .ed-hint{display:block;margin-top:2px;font-size:var(--ds-fs-2xs);font-weight:400;line-height:1.45;color:var(--ds-text-faint)}
+.app-shell .ed-meta{font-size:var(--ds-fs-2xs);line-height:1.45;color:var(--tone-fg,var(--ds-text-muted))}
+.app-shell .ed-meta.is-block{display:block}
+.app-shell .ed-desc{margin:4px 0 0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--tone-fg,var(--ds-text-muted))}
+.app-shell .ed-desc.is-sm{font-size:var(--ds-fs-xs)}
+.app-shell .ed-desc.is-flush{margin-top:0}
+.app-shell .ed-body{font-size:var(--ds-fs-sm);font-weight:500;color:var(--tone-fg,var(--ds-text-2))}
+.app-shell .ed-strong{font-size:var(--ds-fs-sm);font-weight:650;line-height:1.35;color:var(--tone-fg,var(--ds-text))}
+.app-shell .ed-strong.is-lg{font-size:var(--ds-fs-md)}
+.app-shell .ed-strong.is-sm{font-size:var(--ds-fs-xs)}
+.app-shell .ed-strong.is-block{display:block}
+.app-shell .ed-kicker{font-size:var(--ds-fs-2xs);font-weight:650;letter-spacing:.02em;color:var(--ds-text-faint)}
+.app-shell .ed-placeholder{font-style:italic;color:var(--ds-text-faint)}
+.app-shell .ed-truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-shell .ed-group-label{margin-bottom:6px;padding-bottom:2px;border-bottom:1px solid var(--ds-line);font-size:var(--ds-fs-2xs);font-weight:650;color:var(--ds-text-2)}
+
+/* ---- Boxes ------------------------------------------------------------- */
+.app-shell .ed-card{min-width:0;padding:16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);color:var(--ds-text)}
+.app-shell .ed-card.is-soft{background:var(--ds-surface-2)}
+.app-shell .ed-card.is-lg{padding:24px}
+.app-shell .ed-card.is-compact{padding:12px 14px;border-radius:var(--ds-r-md)}
+.app-shell .ed-card.is-accent{border-color:color-mix(in srgb,var(--tone-fg,var(--ds-brand)) 55%,var(--ds-line))}
+.app-shell .ed-callout{padding:12px 16px;border:1px solid color-mix(in srgb,var(--tone-fg,var(--ds-text-faint)) 28%,transparent);border-radius:var(--ds-r-md);background:var(--tone-bg,var(--ds-surface-2));color:var(--tone-fg,var(--ds-text-2))}
+.app-shell .ed-callout.is-sm{padding:6px 8px;border-style:dashed;font-size:var(--ds-fs-2xs)}
+.app-shell .ed-well{padding:12px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2);font-size:var(--ds-fs-xs);color:var(--ds-text-2)}
+.app-shell .ed-note{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 14px;border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface-2);font-size:var(--ds-fs-xs);color:var(--ds-text-2)}
+.app-shell .ed-stat{padding:8px 12px;border:1px solid color-mix(in srgb,var(--tone-fg,var(--ds-text-faint)) 30%,var(--ds-line));border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text)}
+.app-shell .ed-stat.is-tinted{background:var(--tone-bg,var(--ds-surface-2))}
+.app-shell .ed-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;margin-bottom:16px;padding:10px 14px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+.app-shell .ed-toolbar.is-soft{justify-content:flex-start;margin-bottom:20px;background:var(--ds-surface-2)}
+.app-shell .ed-empty{padding:32px 20px;border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-sm);text-align:center}
+.app-shell .ed-empty.is-sm{padding:16px}
+.app-shell .ed-empty-icon{display:block;margin:0 auto 8px;font-size:24px;line-height:1}
+.app-shell .ed-foot{margin-top:12px;padding-top:12px;border-top:1px dashed color-mix(in srgb,var(--tone-fg,var(--ds-line-strong)) 35%,var(--ds-line))}
+.app-shell .ed-divided{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--ds-line)}
+.app-shell .ed-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--ds-line)}
+.app-shell .ed-picker{margin-top:12px;padding:12px;border:1px solid var(--ds-brand);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.app-shell .ed-picker-icon{width:16px;font-size:14px;text-align:center;flex-shrink:0}
+.app-shell .ed-checklist{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;font-size:var(--ds-fs-2xs);color:var(--ds-text-2)}
+.app-shell .ed-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.app-shell .ed-list-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+.app-shell .ed-chip-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2);transition:border-color .15s ease}
+.app-shell .ed-search{position:relative;flex:1;min-width:min(100%,240px)}
+.app-shell .ed-thumb{height:110px;margin-bottom:12px;overflow:hidden;border-radius:var(--ds-r-md)}
+.app-shell .ed-thumb>img{display:block;width:100%;height:100%;object-fit:cover}
+
+/* Small marks */
+.app-shell .ed-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:32px;height:32px;border-radius:var(--ds-r-md);border:1px solid color-mix(in srgb,var(--tone-fg,var(--ds-line-strong)) 25%,transparent);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-2));font-size:16px}
+.app-shell .ed-icon-img{width:22px;height:22px;object-fit:contain}
+.app-shell .ed-icon-img.is-lg{width:26px;height:26px}
+.app-shell .ed-index{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:26px;height:26px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-xs);background:var(--ds-surface);color:var(--ds-text-muted);font-size:var(--ds-fs-2xs);font-weight:700}
+.app-shell .ed-dot{display:inline-block;flex-shrink:0;width:8px;height:8px;border-radius:50%;background:var(--tone-fg,var(--ds-brand))}
+
+/* ---- Controls ---------------------------------------------------------- */
+.app-shell .ed-input{width:100%}
+.app-shell .workspace .ed-input.is-sm{min-height:var(--ds-control-h-sm);padding:5px 8px;border-radius:var(--ds-r-sm);font-size:var(--ds-fs-xs)}
+.app-shell .workspace .ed-input.is-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;line-height:1.55}
+.app-shell .workspace .ed-input.is-grow{flex:1;width:auto;min-width:0}
+.app-shell .workspace .ed-row.is-wrap>.ed-input.is-grow{min-width:min(100%,240px)}
+.app-shell .workspace .ed-input.is-narrow{max-width:120px}
+.app-shell .workspace .ed-input.ed-pct{width:80px;min-height:var(--ds-control-h-sm);padding:4px 8px;text-align:right;font-weight:700;border-color:color-mix(in srgb,var(--tone-fg,var(--ds-line-strong)) 60%,var(--ds-line));color:var(--tone-fg,var(--ds-text))}
+.app-shell .workspace .ed-inline-input{flex:1;min-width:0;min-height:30px;padding:4px 6px;border:1px solid transparent;border-radius:var(--ds-r-xs);background:transparent;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text);transition:border-color .15s ease,background .15s ease}
+.app-shell .workspace .ed-inline-input:hover:not(:focus){border-color:var(--ds-line)}
+.app-shell .workspace .ed-inline-input:focus{border-color:var(--ds-focus);background:var(--ds-surface)}
+
+.app-shell .workspace .button.ed-lg{min-height:44px;padding:0 24px;font-size:var(--ds-fs-base)}
+
+/* Dashed "add another" button */
+.app-shell .ed-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 20px;border:1.5px dashed currentColor;border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--tone-fg,var(--ds-brand-text));font-size:var(--ds-fs-sm);font-weight:650;cursor:pointer;transition:background .15s ease}
+.app-shell .ed-add:hover{background:var(--tone-bg,var(--ds-brand-soft))}
+
+/* Tiny inline action (clear, auto, remove) */
+.app-shell .ed-mini{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border:0;border-radius:var(--ds-r-xs);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-2));font-size:var(--ds-fs-2xs);font-weight:600;line-height:1.4;cursor:pointer}
+.app-shell .ed-mini:hover{background:color-mix(in srgb,var(--tone-fg,var(--ds-text-muted)) 16%,var(--tone-bg,var(--ds-surface-3)))}
+.app-shell .ed-mini:disabled{opacity:.45;cursor:not-allowed}
+
+/* Square icon button (move up / down / remove) */
+.app-shell .ed-icon-btn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;padding:0;border:1px solid color-mix(in srgb,var(--tone-fg,var(--ds-line-strong)) 40%,var(--ds-line));border-radius:var(--ds-r-sm);background:var(--tone-bg,var(--ds-surface));color:var(--tone-fg,var(--ds-text-2));cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.app-shell .ed-icon-btn:hover:not(:disabled){border-color:var(--tone-fg,var(--ds-text-faint));background:color-mix(in srgb,var(--tone-fg,var(--ds-text-muted)) 10%,var(--tone-bg,var(--ds-surface)))}
+.app-shell .ed-icon-btn:disabled{opacity:.4;cursor:not-allowed}
+.app-shell .ed-icon-btn.is-sm{width:26px;height:26px}
+
+.app-shell .ed-mini.is-active{background:var(--ds-brand);color:var(--ds-on-brand)}
+.app-shell .ed-icon-btn.is-disabled{opacity:.4;cursor:not-allowed}
+.app-shell .workspace .button.is-disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
+.app-shell .workspace .panel .button.is-off{background:var(--ds-surface-3);border-color:var(--ds-line-strong);color:var(--ds-text-muted)}
+.app-shell .workspace .button.ed-toggle-btn{min-width:72px;font-size:var(--ds-fs-2xs)}
+.app-shell .ed-busy{cursor:wait}
+
+/* Selectable chip (discount presets, badge presets) */
+.app-shell .ed-chip{display:inline-flex;align-items:center;padding:3px 9px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-xs);background:var(--ds-surface-2);color:var(--ds-text-2);font-size:var(--ds-fs-2xs);font-weight:700;line-height:1.4;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.app-shell .ed-chip:hover{border-color:var(--ds-text-faint)}
+.app-shell .ed-chip.is-active{border-color:var(--ds-brand);background:var(--ds-brand);color:var(--ds-on-brand)}
+.app-shell .ed-chip.is-info.is-active{border-color:var(--ds-info-fg);background:var(--ds-info-fg);color:var(--ds-surface)}
+
+/* Icon option in the icon picker grid */
+.app-shell .ed-option{display:flex;align-items:center;gap:8px;min-width:0;padding:6px 8px;border:1px solid var(--ds-line);border-radius:var(--ds-r-sm);background:var(--ds-surface);color:var(--ds-text-2);font-size:var(--ds-fs-2xs);text-align:left;cursor:pointer}
+.app-shell .ed-option:hover{border-color:var(--ds-line-strong)}
+.app-shell .ed-option.is-active{border-color:var(--ds-ok-fg);background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
+
+/* Radio-like text choice */
+.app-shell label.ed-choice{display:flex;flex-direction:row;align-items:center;gap:4px;font-size:var(--ds-fs-xs);font-weight:500;cursor:pointer}
+.app-shell label.ed-choice.is-active{font-weight:700;color:var(--ds-text)}
+
+/* Pill switch (show / hide a block) */
+.app-shell .ed-toggle{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1.5px solid var(--ds-line-strong);border-radius:var(--ds-r-pill);background:var(--ds-surface-2);color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.app-shell .ed-toggle .ed-dot{background:var(--ds-text-faint)}
+.app-shell .ed-toggle.is-on{border-color:color-mix(in srgb,var(--ds-ok-fg) 55%,transparent);background:var(--ds-ok-bg);color:var(--ds-ok-fg)}
+.app-shell .ed-toggle.is-on .ed-dot{background:var(--ds-ok-fg)}
+
+/* Option card with a radio mark (product mode) */
+.app-shell .ed-mode{display:flex;align-items:center;gap:10px;padding:10px 18px;border:1.5px solid var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface);color:var(--ds-text-2);font-size:var(--ds-fs-sm);font-weight:600;text-align:left;cursor:pointer}
+.app-shell .ed-mode.is-active{border-color:var(--ds-brand);background:var(--ds-brand-soft);color:var(--ds-brand-text);box-shadow:var(--ds-shadow-xs)}
+.app-shell .ed-radio{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:16px;height:16px;border:2px solid var(--ds-text-faint);border-radius:50%;background:var(--ds-surface)}
+.app-shell .ed-mode.is-active .ed-radio{border-color:var(--ds-brand)}
+
+/* Section on/off banner */
+.app-shell .ed-switch-banner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:20px;padding:16px 20px;border:1.5px solid var(--ds-line-strong);border-radius:var(--ds-r-lg);background:var(--ds-surface-2);color:var(--ds-text)}
+.app-shell .ed-switch-banner.is-on{border-color:color-mix(in srgb,var(--ds-ok-fg) 45%,transparent);background:var(--ds-ok-bg)}
+.app-shell .ed-switch-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:38px;height:38px;border-radius:50%;background:var(--ds-surface-3);color:var(--tone-fg,var(--ds-text-muted));font-size:18px;font-weight:700}
+.app-shell .ed-switch-banner.is-on .ed-switch-icon{background:var(--ds-surface)}
+.app-shell .workspace .ed-state-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--ds-r-pill);background:var(--tone-fg,var(--ds-text-muted));color:var(--ds-surface);font-size:var(--ds-fs-2xs);font-weight:700;line-height:1.4;white-space:nowrap}
+
+/* Card states */
+.app-shell .ed-card.is-brand{border:2px solid var(--ds-brand);box-shadow:var(--ds-shadow-sm)}
+.app-shell .ed-card.is-info{border-color:color-mix(in srgb,var(--ds-info-fg) 45%,var(--ds-line))}
+.app-shell .ed-card.is-on{border-color:color-mix(in srgb,var(--ds-ok-fg) 35%,var(--ds-line));background:var(--ds-ok-bg)}
+.app-shell .ed-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.app-shell .ed-toggle-row.is-on{background:var(--ds-surface)}
+.app-shell .ed-preview-card{position:relative;max-width:380px;padding:18px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);box-shadow:var(--ds-shadow-sm)}
+.app-shell .ed-preview-card.is-brand{border:1.5px solid var(--ds-brand)}
+.app-shell .ed-preview-card.is-info{border:1.5px solid var(--ds-info-fg)}
+
+/* Tabs across the top of the website editor */
+.app-shell .ed-tabs{display:flex;gap:8px;margin-top:18px;padding-bottom:8px;overflow-x:auto;border-bottom:1px solid var(--ds-line);scrollbar-width:thin}
+
+/* ---- Tables ------------------------------------------------------------ */
+.app-shell .ed-table-wrap{margin-bottom:12px;overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+.app-shell .ed-table{width:100%;border-collapse:collapse;font-size:var(--ds-fs-xs)}
+.app-shell .ed-table .ed-col-xs{width:30px}
+.app-shell .ed-table .ed-col-sm{width:90px}
+.app-shell .ed-table .ed-col-md{width:120px}
+.app-shell .ed-table :is(th,td).is-num{text-align:right}
+.app-shell .ed-table td.is-strong{font-weight:650}
+
+/* ---- Previews of the public site -------------------------------------- */
+.app-shell .ed-preview-chip{display:inline-flex;align-items:center;gap:12px;min-width:220px;padding:10px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface);box-shadow:var(--ds-shadow-sm)}
+.app-shell .ed-preview-icon{font-size:24px;color:var(--ds-accent-text)}
+.app-shell .ed-preview-cta{padding:7px 12px;border-radius:var(--ds-r-sm);background:var(--ds-accent-solid);color:var(--ds-on-accent);font-size:var(--ds-fs-xs);font-weight:700;text-align:center}
+.app-shell .ed-nav-preview{display:flex;align-items:center;gap:16px;min-height:46px;padding:0 16px;overflow-x:auto;border:1px solid var(--ds-line);border-radius:var(--ds-r-sm);background:var(--ds-surface);scrollbar-width:thin}
+.app-shell .ed-nav-preview-item{padding:8px 0;font-size:var(--ds-fs-xs);font-weight:700;color:var(--ds-text);white-space:nowrap;cursor:default}
+
+/* ---- Spacing helpers (last so they settle margins above) -------------- */
+.app-shell .ed-mt-xs{margin-top:4px}
+.app-shell .ed-mt-sm{margin-top:8px}
+.app-shell .ed-mt{margin-top:16px}
+.app-shell .ed-mt-lg{margin-top:28px}
+.app-shell .ed-mb-xs{margin-bottom:4px}
+.app-shell .ed-mb-sm{margin-bottom:8px}
+.app-shell .ed-mb{margin-bottom:16px}
+.app-shell .ed-mb-lg{margin-bottom:28px}
+.app-shell .workspace .ed-title.ed-mb-sm{margin-bottom:8px}
+
+/* =========================================================================
+   Product editor (pe-*): label rows, dealer / sub-dealer discount blocks,
+   the cash split preview and the delete zone.
+   ========================================================================= */
+.app-shell .pe-label-row{margin-bottom:4px}
+.app-shell .workspace .text-link.pe-label-action{padding:0;border:0;background:none;font-size:var(--ds-fs-2xs);font-weight:600;cursor:pointer}
+.app-shell .pe-discount{margin:8px 0}
+.app-shell .pe-discount.is-divided{margin-top:16px;padding-top:12px;border-top:1px dashed var(--ds-line-strong)}
+.app-shell .registry-layout label.pe-discount-label{display:block;margin:0;font-size:var(--ds-fs-sm);font-weight:600;color:var(--tone-fg,var(--ds-text-2))}
+.app-shell .pe-cap{font-size:var(--ds-fs-2xs);font-weight:700}
+.app-shell .pe-warning{margin-top:4px;font-size:var(--ds-fs-2xs);font-weight:600}
+.app-shell .pe-split{margin:12px 0;padding:12px;border:1px solid color-mix(in srgb,var(--tone-fg) 28%,transparent);border-radius:var(--ds-r-md);background:var(--tone-bg)}
+.app-shell .pe-split-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:var(--ds-fs-2xs);font-weight:700;letter-spacing:.01em}
+.app-shell .pe-split-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.app-shell .pe-split-cell{min-width:0;padding:8px;border:1px solid color-mix(in srgb,var(--tone-fg) 22%,var(--ds-line));border-radius:var(--ds-r-sm);background:var(--ds-surface)}
+.app-shell .pe-split-value{font-size:15px;font-weight:750;line-height:1.3;color:var(--tone-fg,var(--ds-text));font-variant-numeric:tabular-nums lining-nums}
+.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .panel.pe-danger-zone{margin-top:20px;border-color:color-mix(in srgb,var(--ds-danger-fg) 30%,var(--ds-line));background:var(--ds-danger-bg)}
+.app-shell .workspace .panel.pe-danger-zone .pe-danger-title{margin:0 0 8px;font-size:15px;color:var(--ds-danger-fg)}
+.app-shell .pe-danger-body{margin:0 0 14px;font-size:var(--ds-fs-xs);color:var(--ds-danger-fg)}
+.app-shell .workspace .panel .button.pe-danger-button{border-color:var(--ds-danger-fg);background:var(--ds-danger-fg);color:var(--ds-surface)}
+.app-shell .workspace .panel .button.pe-danger-button:hover{border-color:var(--ds-danger-fg);background:color-mix(in srgb,var(--ds-danger-fg) 88%,var(--ds-text))}
+
+@media(max-width:767px){
+  .app-shell .ed-card.is-lg{padding:16px}
+  .app-shell .ed-switch-banner{padding:14px}
+  .app-shell .ed-toolbar{padding:10px}
+}

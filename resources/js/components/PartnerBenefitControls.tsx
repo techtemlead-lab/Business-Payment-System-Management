@@ -23,13 +23,13 @@ export default function PartnerBenefitControls({ account }: { account: Row }) {
     }
 
     return (
-        <section className="panel" style={{ marginTop: 16, borderLeft: '4px solid #b45309' }}>
+        <section className="panel pbc-panel">
             <div className="panel-heading">
                 <div>
-                    <h3 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <h3 className="ops-row is-inline">
                         <ShieldCheck size={18} /> {translate('portal', 'pbc_title')}
                     </h3>
-                    <p className="muted" style={{ margin: '6px 0 0' }}>
+                    <p className="muted pbc-hint">
                         {translate('portal', 'pbc_body', { name: String(account.name ?? '') })}
                     </p>
                 </div>

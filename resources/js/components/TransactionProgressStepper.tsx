@@ -334,15 +334,7 @@ export default function TransactionProgressStepper({
 
     return (
         <section
-            className={`panel transaction-progress-stepper ${className}`}
-            style={{
-                marginBottom: 24,
-                padding: '20px 24px',
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                background: '#ffffff',
-                boxShadow: '0 4px 16px rgba(1, 22, 39, 0.04)',
-            }}
+            className={`panel transaction-progress-stepper tps-panel ${className}`}
             data-tour="order-progress-stepper"
         >
             <style>{`
@@ -353,7 +345,7 @@ export default function TransactionProgressStepper({
                     gap: 16px;
                     padding-bottom: 16px;
                     margin-bottom: 20px;
-                    border-bottom: 1px solid #f1f5f9;
+                    border-bottom: 1px solid var(--ds-surface-3, #f1f5f9);
                     flex-wrap: wrap;
                 }
                 .transaction-progress-stepper .stepper-title-area {
@@ -365,16 +357,16 @@ export default function TransactionProgressStepper({
                     margin: 0;
                     font-size: 17px;
                     font-weight: 700;
-                    color: #011627;
+                    color: var(--ds-text, #011627);
                     letter-spacing: -0.02em;
                 }
                 .transaction-progress-stepper .live-pulse-badge {
                     display: inline-flex;
                     align-items: center;
                     gap: 6px;
-                    background: #ecfdf5;
-                    color: #006837;
-                    border: 1px solid #a7f3d0;
+                    background: var(--ds-ok-bg, #ecfdf5);
+                    color: var(--ds-brand, #006837);
+                    border: 1px solid var(--ds-line, #a7f3d0);
                     font-size: 11px;
                     font-weight: 700;
                     padding: 2px 8px;
@@ -385,7 +377,7 @@ export default function TransactionProgressStepper({
                 .transaction-progress-stepper .live-dot-pulse {
                     width: 7px;
                     height: 7px;
-                    background: #006837;
+                    background: var(--ds-brand, #006837);
                     border-radius: 50%;
                     box-shadow: 0 0 0 0 rgba(0, 104, 55, 0.5);
                     animation: stepperPulse 1.8s infinite;
@@ -413,27 +405,27 @@ export default function TransactionProgressStepper({
                     gap: 8px;
                     padding: 12px 14px;
                     border-radius: 9px;
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
+                    background: var(--ds-surface-2, #f8fafc);
+                    border: 1px solid var(--ds-line, #e2e8f0);
                     transition: all 0.2s ease;
                     position: relative;
                 }
                 .transaction-progress-stepper .step-card.state-completed {
-                    background: #f0fdf4;
-                    border-color: #bbf7d0;
+                    background: var(--ds-ok-bg, #f0fdf4);
+                    border-color: var(--ds-line, #bbf7d0);
                 }
                 .transaction-progress-stepper .step-card.state-active {
-                    background: #ffffff;
-                    border-color: #006837;
-                    box-shadow: 0 0 0 1px #006837, 0 4px 12px rgba(0, 104, 55, 0.12);
+                    background: var(--ds-surface, #ffffff);
+                    border-color: var(--ds-brand, #006837);
+                    box-shadow: 0 0 0 1px var(--ds-brand, #006837), 0 4px 12px rgba(0, 104, 55, 0.12);
                 }
                 .transaction-progress-stepper .step-card.state-warning {
-                    background: #fffbeb;
-                    border-color: #fde68a;
+                    background: var(--ds-warn-bg, #fffbeb);
+                    border-color: var(--ds-line, #fde68a);
                 }
                 .transaction-progress-stepper .step-card.state-failed {
-                    background: #fef2f2;
-                    border-color: #fecaca;
+                    background: var(--ds-danger-bg, #fef2f2);
+                    border-color: var(--ds-line, #fecaca);
                 }
                 .transaction-progress-stepper .step-card.state-upcoming {
                     opacity: 0.72;
@@ -457,27 +449,27 @@ export default function TransactionProgressStepper({
                     transition: all 0.2s ease;
                 }
                 .transaction-progress-stepper .step-indicator.state-completed {
-                    background: #006837;
-                    color: #ffffff;
+                    background: var(--ds-brand, #006837);
+                    color: var(--ds-surface, #ffffff);
                     box-shadow: 0 2px 6px rgba(0, 104, 55, 0.25);
                 }
                 .transaction-progress-stepper .step-indicator.state-active {
-                    background: #011627;
-                    color: #ffffff;
-                    border: 2px solid #006837;
+                    background: var(--ds-text, #011627);
+                    color: var(--ds-surface, #ffffff);
+                    border: 2px solid var(--ds-brand, #006837);
                     animation: stepperPulse 2s infinite;
                 }
                 .transaction-progress-stepper .step-indicator.state-warning {
-                    background: #d97706;
-                    color: #ffffff;
+                    background: var(--ds-warn-fg, #d97706);
+                    color: var(--ds-surface, #ffffff);
                 }
                 .transaction-progress-stepper .step-indicator.state-failed {
-                    background: #dc2626;
-                    color: #ffffff;
+                    background: var(--ds-danger-fg, #dc2626);
+                    color: var(--ds-surface, #ffffff);
                 }
                 .transaction-progress-stepper .step-indicator.state-upcoming {
-                    background: #e2e8f0;
-                    color: #64748b;
+                    background: var(--ds-line, #e2e8f0);
+                    color: var(--ds-text-muted, #64748b);
                 }
                 .transaction-progress-stepper .step-badge {
                     font-size: 10px;
@@ -487,43 +479,43 @@ export default function TransactionProgressStepper({
                     letter-spacing: 0.02em;
                 }
                 .transaction-progress-stepper .step-badge.state-completed {
-                    background: #dcfce7;
-                    color: #166534;
+                    background: var(--ds-ok-bg, #dcfce7);
+                    color: var(--ds-ok-fg, #166534);
                 }
                 .transaction-progress-stepper .step-badge.state-active {
-                    background: #ecfdf5;
-                    color: #006837;
-                    border: 1px solid #a7f3d0;
+                    background: var(--ds-ok-bg, #ecfdf5);
+                    color: var(--ds-brand, #006837);
+                    border: 1px solid var(--ds-line, #a7f3d0);
                 }
                 .transaction-progress-stepper .step-badge.state-warning {
-                    background: #fef3c7;
-                    color: #92400e;
+                    background: var(--ds-warn-bg, #fef3c7);
+                    color: var(--ds-warn-fg, #92400e);
                 }
                 .transaction-progress-stepper .step-badge.state-failed {
-                    background: #fee2e2;
-                    color: #991b1b;
+                    background: var(--ds-danger-bg, #fee2e2);
+                    color: var(--ds-danger-fg, #991b1b);
                 }
                 .transaction-progress-stepper .step-badge.state-upcoming {
-                    background: #f1f5f9;
-                    color: #64748b;
+                    background: var(--ds-surface-3, #f1f5f9);
+                    color: var(--ds-text-muted, #64748b);
                 }
                 .transaction-progress-stepper .step-name {
                     font-size: 13px;
                     font-weight: 700;
-                    color: #011627;
+                    color: var(--ds-text, #011627);
                     margin: 2px 0 0;
                     line-height: 1.3;
                 }
                 .transaction-progress-stepper .step-desc {
                     font-size: 11px;
-                    color: #475569;
+                    color: var(--ds-text-2, #475569);
                     margin: 0;
                     line-height: 1.4;
                     word-break: break-word;
                 }
                 .transaction-progress-stepper .step-time {
                     font-size: 10px;
-                    color: #64748b;
+                    color: var(--ds-text-muted, #64748b);
                     margin-top: auto;
                     padding-top: 4px;
                     border-top: 1px dashed rgba(226, 232, 240, 0.8);
@@ -570,23 +562,14 @@ export default function TransactionProgressStepper({
                         </span>
                     )}
                     {isTerminal && (
-                        <span
-                            style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                borderRadius: 4,
-                                background: status === 'delivered' ? '#dcfce7' : '#fee2e2',
-                                color: status === 'delivered' ? '#166534' : '#991b1b',
-                            }}
-                        >
+                        <span className={`hub-pill tps-end-pill ${status === 'delivered' ? 'tone-ok' : 'tone-danger'}`}>
                             {status === 'delivered' ? t('stage_completed', 'Completed') : t('stage_closed', 'Closed')}
                         </span>
                     )}
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>
+                <div className="ops-caption">
                     <span>{t('current_status', 'Status')}: </span>
-                    <strong style={{ color: '#011627', textTransform: 'capitalize' }}>
+                    <strong className="ops-text hub-capital">
                         {status.replaceAll('_', ' ')}
                     </strong>
                 </div>

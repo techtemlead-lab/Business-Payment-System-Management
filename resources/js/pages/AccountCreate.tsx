@@ -412,13 +412,13 @@ export default function AccountCreate({
                     </section>
 
                     {['employee', 'sr'].includes(form.data.role) && (
-                        <section className="panel" style={{ borderLeft: '4px solid #059669' }}>
+                        <section className="panel acr-accent">
                             <div className="panel-heading">
                                 <div>
                                     <h3>{translate('portal','acct_employee_privileges')}</h3>
                                 </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
+                            <div className="hub-grid is-wide acr-option-grid">
                                 {availablePermissionKeys.filter((key) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'].includes(key)).map((key) => {
                                     const checked = form.data.permissions.includes(key);
                                     return (
@@ -428,18 +428,18 @@ export default function AccountCreate({
                                                 const cur = form.data.permissions;
                                                 form.setData('permissions', cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]);
                                             }}
-                                            style={{ display: 'flex', gap: 10, padding: 10, border: checked ? '1px solid #10b981' : '1px solid #e2e8f0', borderRadius: 6, background: checked ? '#ecfdf5' : '#fff' }}
+                                            className={`acr-option${checked ? ' is-checked' : ''}`}
                                         >
                                             <input type="checkbox" checked={checked} onChange={() => {}} />
                                             <div>
-                                                <b style={{ fontSize: 12 }}>{translate('portal',`perm_${key}`)}</b>
-                                                <small style={{ display: 'block', color: '#64748b' }}>{translate('portal',`perm_${key}_hint`)}</small>
+                                                <b className="ops-fs-xs">{translate('portal',`perm_${key}`)}</b>
+                                                <small className="ops-block ops-muted">{translate('portal',`perm_${key}_hint`)}</small>
                                             </div>
                                         </label>
                                     );
                                 })}
                             </div>
-                            <div className="form-grid" style={{ marginTop: 16 }}>
+                            <div className="form-grid ops-mt-4">
                                 <label>{translate('portal','acct_full_name')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
                                 <label>{translate('portal','acct_email')}<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
                                 <label>{translate('portal','acct_phone')}<input value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
@@ -457,7 +457,7 @@ export default function AccountCreate({
                                     </div>
                                     <IdCard size={22} className="text-muted" />
                                 </div>
-                                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                                <div className="ops-row ops-mb-3">
                                     <button type="button" className={`button small ${form.data.identity_type === 'birth_certificate' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'birth_certificate')}>{translate('portal','acct_birth_certificate')}</button>
                                     <button type="button" className={`button small ${form.data.identity_type === 'nid' ? 'dark' : ''}`} onClick={() => form.setData('identity_type', 'nid')}>{translate('portal','acct_nid')}</button>
                                 </div>
@@ -482,18 +482,18 @@ export default function AccountCreate({
                                     </label>
                                 </div>
                                 {form.data.identity_type === 'birth_certificate' && (
-                                    <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <div className="ops-row is-wrap is-loose ops-mt-3">
                                         {bdris_enabled ? (
                                             <button type="button" className="button dark" onClick={lookupBdris} disabled={bdrisLoading}>
                                                 <Search size={16} /> {bdrisLoading ? translate('portal','acct_searching_bdris') : translate('portal','acct_search_bdris')}
                                             </button>
                                         ) : (
-                                            <span className="muted" style={{ fontSize: 13 }}>{translate('portal','acct_bdris_disabled')}</span>
+                                            <span className="muted ops-fs-sm">{translate('portal','acct_bdris_disabled')}</span>
                                         )}
-                                        {bdrisMessage && <span className="muted" style={{ fontSize: 13 }}>{bdrisMessage}</span>}
+                                        {bdrisMessage && <span className="muted ops-fs-sm">{bdrisMessage}</span>}
                                     </div>
                                 )}
-                                <div className="form-grid" style={{ marginTop: 16 }}>
+                                <div className="form-grid ops-mt-4">
                                     <label>{translate('portal','acct_name_en')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />{form.errors.name && <span className="field-error">{form.errors.name}</span>}</label>
                                     <label>{translate('portal','acct_name_bn')}<input required value={form.data.name_bn} onChange={(e) => form.setData('name_bn', e.target.value)} />{form.errors.name_bn && <span className="field-error">{form.errors.name_bn}</span>}</label>
                                     <label>{translate('portal','acct_father_name')}<input required value={form.data.father_name} onChange={(e) => form.setData('father_name', e.target.value)} />{form.errors.father_name && <span className="field-error">{form.errors.father_name}</span>}</label>
@@ -510,7 +510,7 @@ export default function AccountCreate({
                                     </div>
                                     <MapPin size={22} className="text-muted" />
                                 </div>
-                                <label style={{ display: 'block', marginBottom: 12 }}>
+                                <label className="ops-block ops-mb-3">
                                     {translate('portal','acct_search_places')}
                                     <input value={addressSearch} onChange={(e) => setAddressSearch(e.target.value)} placeholder={translate('portal','acct_filter_places')} />
                                 </label>
@@ -556,7 +556,7 @@ export default function AccountCreate({
                                         {form.errors.longitude && <span className="field-error">{form.errors.longitude}</span>}
                                     </label>
                                 </div>
-                                <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>
+                                <p className="muted ops-mt-3 ops-fs-sm">
                                     {translate('portal','acct_gps_hint')}
                                 </p>
                             </section>
@@ -576,7 +576,7 @@ export default function AccountCreate({
                                 <div className="form-grid">
                                     <label>
                                         {form.data.role === 'sub_dealer' ? translate('portal','acct_union_code') : translate('portal','acct_place_code')}
-                                        <div style={{ display: 'flex', gap: 8 }}>
+                                        <div className="ops-row is-stretch">
                                             <input required value={form.data.place_code} onChange={(e) => form.setData('place_code', e.target.value)} placeholder={form.data.role === 'sub_dealer' ? translate('portal','acct_union_code_ph') : translate('portal','acct_place_code_ph')} />
                                             <button type="button" className="button dark" onClick={previewPlace}>{translate('portal','acct_resolve')}</button>
                                         </div>
@@ -604,20 +604,20 @@ export default function AccountCreate({
                                     )}
                                 </div>
                                 {placePreview && (
-                                    <div style={{ marginTop: 14, padding: 12, background: placePreview.available ? '#ecfdf5' : '#fff7ed', border: `1px solid ${placePreview.available ? '#a7f3d0' : '#fed7aa'}`, borderRadius: 8 }}>
-                                        <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div className={`ops-card is-tight is-tinted ops-mt-3 acr-place ${placePreview.available ? 'tone-ok' : 'tone-orange'}`}>
+                                        <div className="ops-row is-snug ops-bold">
                                             {placePreview.available ? <CheckCircle2 size={16} color="#047857" /> : <AlertTriangle size={16} color="#c2410c" />}
                                             {placePreview.label}
                                         </div>
-                                        {!placePreview.available && <p className="muted" style={{ margin: '6px 0 0' }}>{translate('portal','acct_area_taken')}</p>}
-                                        <div style={{ marginTop: 10, display: 'grid', gap: 4 }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e' }}>
+                                        {!placePreview.available && <p className="muted ops-m-0 ops-mt-2">{translate('portal','acct_area_taken')}</p>}
+                                        <div className="ops-stack is-tight ops-mt-3">
+                                            <div className="ops-fs-xs ops-bold tone-teal">
                                                 {translate('portal','acct_area_pool',{pool:String(placePreview.area_pool_rate||'10.00'),mgmt:String(placePreview.management_rate||'2.00')})}
                                             </div>
                                             {commissionLines.map((row) => {
                                                 const title = row.level === 'management' ? translate('portal','acct_level_management') : row.level === 'division' ? translate('portal','acct_level_div') : row.level === 'district' ? translate('portal','acct_level_dist') : row.level === 'upazila' ? translate('portal','acct_level_upazila') : translate('portal','acct_level_union');
                                                 return (
-                                                    <div key={row.level} style={{ fontSize: 13 }}>
+                                                    <div key={row.level} className="ops-fs-sm">
                                                         <b>{title}{row.rate ? ` (${row.rate}%)` : ''}:</b>{' '}
                                                         {row.code ? `${row.code} — ${row.name || '—'}` : (row.level === 'management' ? translate('portal','acct_mgmt_reserve') : translate('portal','acct_not_on_path'))}
                                                     </div>
@@ -641,7 +641,7 @@ export default function AccountCreate({
                                         {translate('portal','acct_your_reference')}
                                         <input value={form.data.reference_code} onChange={(e) => form.setData('reference_code', e.target.value.toUpperCase())} placeholder={translate('portal','acct_reference_placeholder')} />
                                         {management_referral?.enabled && management_referral.auto_blank_reference && management_referral.place_code && (
-                                            <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_reference_blank_hint',{code:management_referral.place_code})}</span>
+                                            <span className="muted ops-block ops-mt-1 ops-fs-xs">{translate('portal','acct_reference_blank_hint',{code:management_referral.place_code})}</span>
                                         )}
                                         {form.errors.reference_code && <span className="field-error">{form.errors.reference_code}</span>}
                                     </label>
@@ -657,20 +657,20 @@ export default function AccountCreate({
                                             setReferCodeTouched(true);
                                             form.setData('refer_code', next);
                                         }} placeholder={form.data.dealer_code || translate('portal','acct_refer_placeholder')} />
-                                        <span className="muted" style={{ display: 'block', marginTop: 4, fontSize: 12 }}>{translate('portal','acct_refer_defaults_hint')}</span>
+                                        <span className="muted ops-block ops-mt-1 ops-fs-xs">{translate('portal','acct_refer_defaults_hint')}</span>
                                         {form.errors.refer_code && <span className="field-error">{form.errors.refer_code}</span>}
                                     </label>
                                 </div>
                                 {referPreviewError && (
-                                    <p className="muted" style={{ marginTop: 10, fontSize: 13 }}>{referPreviewError}</p>
+                                    <p className="muted ops-mt-3 ops-fs-sm">{referPreviewError}</p>
                                 )}
                                 {referWarnings.length > 0 && (
-                                    <div className="error" style={{ marginTop: 10 }}>
+                                    <div className="error ops-mt-3">
                                         {referWarnings.map((warning) => <div key={warning}>{warning}</div>)}
                                     </div>
                                 )}
                                 {consumers && (
-                                    <div style={{ marginTop: 12, fontSize: 13 }}>
+                                    <div className="ops-mt-3 ops-fs-sm">
                                         <b>{translate('portal','acct_commission_consumers')}</b>
                                         <div>{translate('portal','acct_direct_referral')}: {consumers.direct_referral ? `${consumers.direct_referral.name}${consumers.direct_referral.refer_code ? ` (${consumers.direct_referral.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
                                         <div>{translate('portal','acct_d2d_gen2')}: {consumers.d2d_gen2 ? `${consumers.d2d_gen2.name}${consumers.d2d_gen2.refer_code ? ` (${consumers.d2d_gen2.refer_code})` : ''}` : `→ ${translate('portal','acct_unassigned_reserve')}`}</div>
@@ -733,15 +733,15 @@ export default function AccountCreate({
                             <textarea rows={3} required value={form.data.reason} onChange={(e) => form.setData('reason', e.target.value)} />
                         </label>
                         {form.data.role === 'dealer' && (
-                            <label className="checkbox-label" style={{ marginTop: 12 }}>
+                            <label className="checkbox-label ops-mt-3">
                                 <input type="checkbox" checked={!!form.data.directory_visible} onChange={(e) => form.setData('directory_visible', e.target.checked)} />
                                 <span>{translate('portal','acct_directory_visible')}</span>
                             </label>
                         )}
                         {isPartner && (
-                            <fieldset className="optional-media-fieldset" style={{ marginTop: 16 }}>
+                            <fieldset className="optional-media-fieldset ops-mt-4">
                                 <legend>{translate('portal', 'optional_media_title')}</legend>
-                                <p className="muted" style={{ fontSize: 12 }}>{translate('portal', 'optional_media_hint')}</p>
+                                <p className="muted ops-fs-xs">{translate('portal', 'optional_media_hint')}</p>
                                 <label>{translate('portal', 'kyc_photo')}<input type="file" accept="image/*" onChange={(e) => form.setData('kyc_photo', e.target.files?.[0] || null)} /></label>
                                 <label>{translate('portal', 'kyc_nid_front')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_front', e.target.files?.[0] || null)} /></label>
                                 <label>{translate('portal', 'kyc_nid_back')}<input type="file" accept="image/*,.pdf" onChange={(e) => form.setData('kyc_nid_back', e.target.files?.[0] || null)} /></label>
@@ -751,9 +751,9 @@ export default function AccountCreate({
                             </fieldset>
                         )}
                         {Object.keys(form.errors).length > 0 && (
-                            <div className="error" role="alert" style={{ marginTop: 12 }}>{translate('portal','acct_fix_errors')}</div>
+                            <div className="error ops-mt-3" role="alert">{translate('portal','acct_fix_errors')}</div>
                         )}
-                        <button type="submit" className="button dark full-width" disabled={form.processing || (isPartner && referWarnings.length > 0)} style={{ marginTop: 16, justifyContent: 'center' }}>
+                        <button type="submit" className="button dark full-width ops-mt-4" disabled={form.processing || (isPartner && referWarnings.length > 0)}>
                             {form.processing ? translate('portal','acct_creating') : isPartner ? translate('portal','acct_submit_partner') : translate('portal','acct_submit_staff')}
                         </button>
                     </section>
@@ -763,7 +763,7 @@ export default function AccountCreate({
                                 <div><h3>{translate('portal','acct_business_point')}</h3></div>
                                 <Store size={20} className="text-muted" />
                             </div>
-                            <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                            <p className="muted ops-m-0 ops-fs-sm">
                                 {translate('portal','acct_sms_hint')}
                             </p>
                         </section>

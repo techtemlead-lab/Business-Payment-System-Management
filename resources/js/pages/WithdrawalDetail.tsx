@@ -97,15 +97,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
 
     return (
         <section
-            className="panel withdrawal-progress-stepper"
-            style={{
-                marginBottom: 24,
-                padding: '20px 24px',
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                background: '#ffffff',
-                boxShadow: '0 4px 16px rgba(1, 22, 39, 0.04)',
-            }}
+            className="panel withdrawal-progress-stepper tps-panel"
             data-tour="withdrawal-progress-stepper"
         >
             <style>{`
@@ -116,7 +108,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     gap: 16px;
                     padding-bottom: 14px;
                     margin-bottom: 18px;
-                    border-bottom: 1px solid #f1f5f9;
+                    border-bottom: 1px solid var(--ds-surface-3, #f1f5f9);
                     flex-wrap: wrap;
                 }
                 .withdrawal-progress-stepper .wd-stepper-title-area {
@@ -128,16 +120,16 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     margin: 0;
                     font-size: 16px;
                     font-weight: 700;
-                    color: #011627;
+                    color: var(--ds-text, #011627);
                     letter-spacing: -0.02em;
                 }
                 .withdrawal-progress-stepper .wd-live-badge {
                     display: inline-flex;
                     align-items: center;
                     gap: 6px;
-                    background: #ecfdf5;
-                    color: #006837;
-                    border: 1px solid #a7f3d0;
+                    background: var(--ds-ok-bg, #ecfdf5);
+                    color: var(--ds-brand, #006837);
+                    border: 1px solid var(--ds-line, #a7f3d0);
                     font-size: 11px;
                     font-weight: 700;
                     padding: 2px 8px;
@@ -148,7 +140,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                 .withdrawal-progress-stepper .wd-live-dot {
                     width: 7px;
                     height: 7px;
-                    background: #006837;
+                    background: var(--ds-brand, #006837);
                     border-radius: 50%;
                     box-shadow: 0 0 0 0 rgba(0, 104, 55, 0.5);
                     animation: wdStepperPulse 1.8s infinite;
@@ -175,22 +167,22 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     gap: 8px;
                     padding: 14px 16px;
                     border-radius: 9px;
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
+                    background: var(--ds-surface-2, #f8fafc);
+                    border: 1px solid var(--ds-line, #e2e8f0);
                     transition: all 0.2s ease;
                 }
                 .withdrawal-progress-stepper .wd-step-card.state-completed {
-                    background: #f0fdf4;
-                    border-color: #bbf7d0;
+                    background: var(--ds-ok-bg, #f0fdf4);
+                    border-color: var(--ds-line, #bbf7d0);
                 }
                 .withdrawal-progress-stepper .wd-step-card.state-active {
-                    background: #ffffff;
-                    border-color: #006837;
-                    box-shadow: 0 0 0 1px #006837, 0 4px 12px rgba(0, 104, 55, 0.12);
+                    background: var(--ds-surface, #ffffff);
+                    border-color: var(--ds-brand, #006837);
+                    box-shadow: 0 0 0 1px var(--ds-brand, #006837), 0 4px 12px rgba(0, 104, 55, 0.12);
                 }
                 .withdrawal-progress-stepper .wd-step-card.state-failed {
-                    background: #fef2f2;
-                    border-color: #fecaca;
+                    background: var(--ds-danger-bg, #fef2f2);
+                    border-color: var(--ds-line, #fecaca);
                 }
                 .withdrawal-progress-stepper .wd-step-card.state-upcoming {
                     opacity: 0.72;
@@ -213,23 +205,23 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     flex-shrink: 0;
                 }
                 .withdrawal-progress-stepper .wd-step-indicator.state-completed {
-                    background: #006837;
-                    color: #ffffff;
+                    background: var(--ds-brand, #006837);
+                    color: var(--ds-surface, #ffffff);
                     box-shadow: 0 2px 6px rgba(0, 104, 55, 0.25);
                 }
                 .withdrawal-progress-stepper .wd-step-indicator.state-active {
-                    background: #011627;
-                    color: #ffffff;
-                    border: 2px solid #006837;
+                    background: var(--ds-text, #011627);
+                    color: var(--ds-surface, #ffffff);
+                    border: 2px solid var(--ds-brand, #006837);
                     animation: wdStepperPulse 2s infinite;
                 }
                 .withdrawal-progress-stepper .wd-step-indicator.state-failed {
-                    background: #dc2626;
-                    color: #ffffff;
+                    background: var(--ds-danger-fg, #dc2626);
+                    color: var(--ds-surface, #ffffff);
                 }
                 .withdrawal-progress-stepper .wd-step-indicator.state-upcoming {
-                    background: #e2e8f0;
-                    color: #64748b;
+                    background: var(--ds-line, #e2e8f0);
+                    color: var(--ds-text-muted, #64748b);
                 }
                 .withdrawal-progress-stepper .wd-step-badge {
                     font-size: 10px;
@@ -239,38 +231,38 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                     letter-spacing: 0.02em;
                 }
                 .withdrawal-progress-stepper .wd-step-badge.state-completed {
-                    background: #dcfce7;
-                    color: #166534;
+                    background: var(--ds-ok-bg, #dcfce7);
+                    color: var(--ds-ok-fg, #166534);
                 }
                 .withdrawal-progress-stepper .wd-step-badge.state-active {
-                    background: #ecfdf5;
-                    color: #006837;
-                    border: 1px solid #a7f3d0;
+                    background: var(--ds-ok-bg, #ecfdf5);
+                    color: var(--ds-brand, #006837);
+                    border: 1px solid var(--ds-line, #a7f3d0);
                 }
                 .withdrawal-progress-stepper .wd-step-badge.state-failed {
-                    background: #fee2e2;
-                    color: #991b1b;
+                    background: var(--ds-danger-bg, #fee2e2);
+                    color: var(--ds-danger-fg, #991b1b);
                 }
                 .withdrawal-progress-stepper .wd-step-badge.state-upcoming {
-                    background: #f1f5f9;
-                    color: #64748b;
+                    background: var(--ds-surface-3, #f1f5f9);
+                    color: var(--ds-text-muted, #64748b);
                 }
                 .withdrawal-progress-stepper .wd-step-name {
                     font-size: 13px;
                     font-weight: 700;
-                    color: #011627;
+                    color: var(--ds-text, #011627);
                     margin: 2px 0 0;
                 }
                 .withdrawal-progress-stepper .wd-step-desc {
                     font-size: 11px;
-                    color: #475569;
+                    color: var(--ds-text-2, #475569);
                     margin: 0;
                     line-height: 1.4;
                     word-break: break-word;
                 }
                 .withdrawal-progress-stepper .wd-step-time {
                     font-size: 10px;
-                    color: #64748b;
+                    color: var(--ds-text-muted, #64748b);
                     margin-top: auto;
                     padding-top: 4px;
                     border-top: 1px dashed rgba(226, 232, 240, 0.8);
@@ -316,23 +308,14 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                         </span>
                     )}
                     {isTerminal && (
-                        <span
-                            style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                borderRadius: 4,
-                                background: status === 'paid' ? '#dcfce7' : '#fee2e2',
-                                color: status === 'paid' ? '#166534' : '#991b1b',
-                            }}
-                        >
+                        <span className={`hub-pill tps-end-pill ${status === 'paid' ? 'tone-ok' : 'tone-danger'}`}>
                             {status === 'paid' ? t('stage_settled', 'Settled') : t('stage_rejected', 'Rejected')}
                         </span>
                     )}
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>
+                <div className="ops-caption">
                     <span>{t('current_status', 'Status')}: </span>
-                    <strong style={{ color: '#011627', textTransform: 'capitalize' }}>
+                    <strong className="hub-strong hub-capital">
                         {status.replaceAll('_', ' ')}
                     </strong>
                 </div>

@@ -62,37 +62,35 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
     return (
         <div className="dashboard-management-hub">
             {/* Top Heading Banner */}
-            <div className="panel" style={{ marginBottom: 20, borderLeft: '4px solid #2e3192', background: '#ffffff' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div className="panel dmh-banner">
+                <div className="ops-row is-between is-top is-wrap is-wide">
                     <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#2e3192', textTransform: 'uppercase', marginBottom: 4 }}>
+                        <div className="dmh-eyebrow tone-info">
                             <SlidersHorizontal size={16} />
                             {translate('portal','dash_mgmt_eyebrow')}
                         </div>
-                        <h2 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
+                        <h2 className="dmh-title">
                             {translate('portal','dash_mgmt_title')}
                         </h2>
-                        <p style={{ margin: 0, color: '#64748b', fontSize: 13, maxWidth: 820 }}>
+                        <p className="dmh-lead">
                             {translate('portal','dash_mgmt_body')}
                         </p>
                     </div>
 
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <div className="ops-row is-wrap is-loose">
                         <button
                             type="button"
-                            className="button"
+                            className="button dmh-action"
                             onClick={handleReset}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
                         >
                             <RotateCcw size={15} />
                             {translate('portal','dash_mgmt_restore')}
                         </button>
                         <button
                             type="button"
-                            className="button dark"
+                            className="button dark dmh-action"
                             onClick={submitSave}
                             disabled={form.processing}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12 }}
                         >
                             <Save size={15} />
                             {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
@@ -102,38 +100,30 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
             </div>
 
             {/* 4 Dashboard Overview Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div className="hub-grid ops-mb-6">
                 {/* 1. Dealer Dashboard */}
                 <div
                     onClick={() => setActiveTab('dealers')}
-                    style={{
-                        background: '#ffffff',
-                        border: activeTab === 'dealers' ? '2px solid #2e3192' : '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 18px',
-                        cursor: 'pointer',
-                        boxShadow: activeTab === 'dealers' ? '0 4px 12px rgba(46, 49, 146, 0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                    }}
+                    className={`ops-card dmh-card tone-info${activeTab === 'dealers' ? ' is-active' : ''}`}
                 >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#2e3192', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="dmh-card-head">
+                        <span className="dmh-card-label">
                             <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_card_dealer')}
                         </span>
                         {form.data.settings.dealer_maintenance_mode ? (
-                            <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                            <span className="dmh-flag tone-danger">
                                 {translate('portal','dash_mgmt_badge_locked')}
                             </span>
                         ) : (
-                            <span style={{ background: '#ecfdf5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                            <span className="dmh-flag tone-ok">
                                 {translate('portal','dash_mgmt_badge_active')}
                             </span>
                         )}
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_dealers_of',{total:String(stats.dealers_count)})}</small>
+                    <div className="ops-figure">
+                        {stats.active_dealers} <small>{translate('portal','dash_mgmt_dealers_of',{total:String(stats.dealers_count)})}</small>
                     </div>
-                    <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
+                    <p className="ops-meta">
                         {translate('portal','dash_mgmt_card_dealer_hint')}
                     </p>
                 </div>
@@ -141,34 +131,26 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 {/* 2. Sub-Dealer Dashboard */}
                 <div
                     onClick={() => setActiveTab('subdealers')}
-                    style={{
-                        background: '#ffffff',
-                        border: activeTab === 'subdealers' ? '2px solid #059669' : '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 18px',
-                        cursor: 'pointer',
-                        boxShadow: activeTab === 'subdealers' ? '0 4px 12px rgba(5, 150, 105, 0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                    }}
+                    className={`ops-card dmh-card tone-ok${activeTab === 'subdealers' ? ' is-active' : ''}`}
                 >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="dmh-card-head">
+                        <span className="dmh-card-label">
                             <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_card_subdealer')}
                         </span>
                         {form.data.settings.subdealer_maintenance_mode ? (
-                            <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                            <span className="dmh-flag tone-danger">
                                 {translate('portal','dash_mgmt_badge_locked')}
                             </span>
                         ) : (
-                            <span style={{ background: '#ecfdf5', color: '#047857', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                            <span className="dmh-flag tone-ok">
                                 {translate('portal','dash_mgmt_badge_active')}
                             </span>
                         )}
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_sub_dealers} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_subdealers_of',{total:String(stats.sub_dealers_count)})}</small>
+                    <div className="ops-figure">
+                        {stats.active_sub_dealers} <small>{translate('portal','dash_mgmt_subdealers_of',{total:String(stats.sub_dealers_count)})}</small>
                     </div>
-                    <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
+                    <p className="ops-meta">
                         {translate('portal','dash_mgmt_card_subdealer_hint')}
                     </p>
                 </div>
@@ -176,28 +158,20 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 {/* 3. Employee Dashboard */}
                 <div
                     onClick={() => setActiveTab('employees')}
-                    style={{
-                        background: '#ffffff',
-                        border: activeTab === 'employees' ? '2px solid #0284c7' : '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 18px',
-                        cursor: 'pointer',
-                        boxShadow: activeTab === 'employees' ? '0 4px 12px rgba(2, 132, 199, 0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                    }}
+                    className={`ops-card dmh-card tone-teal${activeTab === 'employees' ? ' is-active' : ''}`}
                 >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#0284c7', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="dmh-card-head">
+                        <span className="dmh-card-label">
                             <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_card_employee')}
                         </span>
-                        <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                        <span className="dmh-flag tone-teal">
                             {translate('portal','dash_mgmt_badge_permitted')}
                         </span>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.active_employees} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_employees_of',{total:String(stats.employees_count)})}</small>
+                    <div className="ops-figure">
+                        {stats.active_employees} <small>{translate('portal','dash_mgmt_employees_of',{total:String(stats.employees_count)})}</small>
                     </div>
-                    <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
+                    <p className="ops-meta">
                         {translate('portal','dash_mgmt_card_employee_hint')}
                     </p>
                 </div>
@@ -205,51 +179,31 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 {/* 4. Company & Super Dashboard */}
                 <div
                     onClick={() => setActiveTab('company')}
-                    style={{
-                        background: '#ffffff',
-                        border: activeTab === 'company' ? '2px solid #011627' : '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '16px 18px',
-                        cursor: 'pointer',
-                        boxShadow: activeTab === 'company' ? '0 4px 12px rgba(1, 22, 39, 0.08)' : 'none',
-                        transition: 'all 0.15s ease'
-                    }}
+                    className={`ops-card dmh-card tone-neutral${activeTab === 'company' ? ' is-active' : ''}`}
                 >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#011627', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="dmh-card-head">
+                        <span className="dmh-card-label">
                             <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_card_company')}
                         </span>
-                        <span style={{ background: '#f1f5f9', color: '#334155', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+                        <span className="dmh-flag tone-neutral">
                             {translate('portal','dash_mgmt_badge_root')}
                         </span>
                     </div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a' }}>
-                        {stats.super_admins_count} <small style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>{translate('portal','dash_mgmt_super_admins')}</small>
+                    <div className="ops-figure">
+                        {stats.super_admins_count} <small>{translate('portal','dash_mgmt_super_admins')}</small>
                     </div>
-                    <p style={{ margin: '6px 0 0 0', fontSize: 11, color: '#64748b' }}>
+                    <p className="ops-meta">
                         {translate('portal','dash_mgmt_card_company_hint')}
                     </p>
                 </div>
             </div>
 
             {/* Sub-Navigation Tabs */}
-            <div style={{ display: 'flex', gap: 8, borderBottom: '2px solid #e2e8f0', marginBottom: 20, flexWrap: 'wrap' }}>
+            <div className="dmh-tabs">
                 <button
                     type="button"
                     onClick={() => setActiveTab('dealers')}
-                    style={{
-                        padding: '10px 18px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'dealers' ? '3px solid #2e3192' : '3px solid transparent',
-                        color: activeTab === 'dealers' ? '#2e3192' : '#64748b',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                    }}
+                    className={`dmh-tab tone-info${activeTab === 'dealers' ? ' is-active' : ''}`}
                 >
                     <span aria-hidden="true">🤝</span> {translate('portal','dash_mgmt_tab_dealer')}
                 </button>
@@ -257,19 +211,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 <button
                     type="button"
                     onClick={() => setActiveTab('subdealers')}
-                    style={{
-                        padding: '10px 18px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'subdealers' ? '3px solid #059669' : '3px solid transparent',
-                        color: activeTab === 'subdealers' ? '#059669' : '#64748b',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                    }}
+                    className={`dmh-tab tone-ok${activeTab === 'subdealers' ? ' is-active' : ''}`}
                 >
                     <span aria-hidden="true">🏬</span> {translate('portal','dash_mgmt_tab_subdealer')}
                 </button>
@@ -277,19 +219,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 <button
                     type="button"
                     onClick={() => setActiveTab('employees')}
-                    style={{
-                        padding: '10px 18px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'employees' ? '3px solid #0284c7' : '3px solid transparent',
-                        color: activeTab === 'employees' ? '#0284c7' : '#64748b',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                    }}
+                    className={`dmh-tab tone-teal${activeTab === 'employees' ? ' is-active' : ''}`}
                 >
                     <span aria-hidden="true">👥</span> {translate('portal','dash_mgmt_tab_employee')}
                 </button>
@@ -297,19 +227,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 <button
                     type="button"
                     onClick={() => setActiveTab('company')}
-                    style={{
-                        padding: '10px 18px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer',
-                        borderBottom: activeTab === 'company' ? '3px solid #011627' : '3px solid transparent',
-                        color: activeTab === 'company' ? '#011627' : '#64748b',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                    }}
+                    className={`dmh-tab tone-neutral${activeTab === 'company' ? ' is-active' : ''}`}
                 >
                     <span aria-hidden="true">🏢</span> {translate('portal','dash_mgmt_tab_company')}
                 </button>
@@ -319,22 +237,22 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
             <form onSubmit={submitSave} className="action-form">
                 {/* 1. DEALER DASHBOARD TAB */}
                 {activeTab === 'dealers' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div className="ops-stack is-loose">
                         {/* Feature Toggles Card */}
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_dealer_switches_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_dealer_switches_hint')}
                                     </p>
                                 </div>
                                 <Layers size={20} className="text-muted" />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
+                            <div className="dmh-toggles tone-info">
                                 {[
                                     { key: 'dealer_network_tree_enabled', label: translate('portal','dash_mgmt_toggle_network'), desc: translate('portal','dash_mgmt_toggle_network_desc') },
                                     { key: 'dealer_ranks_enabled', label: translate('portal','dash_mgmt_toggle_ranks'), desc: translate('portal','dash_mgmt_toggle_ranks_desc') },
@@ -348,24 +266,13 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                         <div
                                             key={toggle.key}
                                             onClick={() => toggleBool(toggle.key)}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'flex-start',
-                                                justifyContent: 'space-between',
-                                                gap: 12,
-                                                padding: '12px 14px',
-                                                borderRadius: 8,
-                                                border: active ? '1px solid #c7d2fe' : '1px solid #e2e8f0',
-                                                background: active ? '#f8faff' : '#ffffff',
-                                                cursor: 'pointer',
-                                                userSelect: 'none'
-                                            }}
+                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
                                         >
                                             <div>
-                                                <b style={{ fontSize: 13, color: active ? '#1e1b4b' : '#334155', display: 'block' }}>{toggle.label}</b>
-                                                <small style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 2, lineHeight: 1.3 }}>{toggle.desc}</small>
+                                                <b>{toggle.label}</b>
+                                                <small>{toggle.desc}</small>
                                             </div>
-                                            <span style={{ fontSize: 20, color: active ? '#2e3192' : '#cbd5e1', cursor: 'pointer' }}>
+                                            <span className="dmh-toggle-dot">
                                                 {active ? '●' : '○'}
                                             </span>
                                         </div>
@@ -378,39 +285,39 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_dealer_announce_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_dealer_announce_hint')}
                                     </p>
                                 </div>
-                                <Bell size={20} color="#2e3192" />
+                                <Bell size={20} className="tone-info" />
                             </div>
 
-                            <div style={{ marginTop: 12 }}>
-                                <label style={{ display: 'block', marginBottom: 10 }}>
+                            <div className="ops-mt-3">
+                                <label className="ops-block ops-mb-3">
                                     {translate('portal','dash_mgmt_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.dealer_announcement || ''}
                                         placeholder={translate('portal','dash_mgmt_announce_placeholder_dealer')}
                                         onChange={e => updateField('dealer_announcement', e.target.value)}
-                                        style={{ width: '100%', marginTop: 4 }}
+                                        className="ops-full ops-mt-1"
                                     />
                                 </label>
 
-                                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{translate('portal','dash_mgmt_banner_style')}</span>
+                                <div className="ops-row is-wrap is-wide">
+                                    <span className="ops-fs-xs ops-semibold ops-text-2">{translate('portal','dash_mgmt_banner_style')}</span>
                                     {['info', 'success', 'warning'].map(t => (
-                                        <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                                        <label key={t} className="dmh-radio">
                                             <input
                                                 type="radio"
                                                 name="dealer_announcement_type"
                                                 checked={form.data.settings.dealer_announcement_type === t}
                                                 onChange={() => updateField('dealer_announcement_type', t)}
                                             />
-                                            <span style={{ textTransform: 'capitalize' }}>{t}</span>
+                                            <span className="hub-capital">{t}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -418,35 +325,28 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         </section>
 
                         {/* Dealer Maintenance Mode */}
-                        <section className="panel" style={{ borderLeft: '4px solid #e11d48' }}>
+                        <section className="panel dmh-lock">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#9f1239' }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_dealer_lock_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_dealer_lock_hint')}
                                     </p>
                                 </div>
-                                <AlertTriangle size={20} color="#e11d48" />
+                                <AlertTriangle size={20} className="tone-danger" />
                             </div>
 
-                            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div className="ops-row is-loose ops-mt-3">
                                 <button
                                     type="button"
                                     onClick={() => toggleBool('dealer_maintenance_mode')}
-                                    className={`button ${form.data.settings.dealer_maintenance_mode ? 'dark' : ''}`}
-                                    style={{
-                                        background: form.data.settings.dealer_maintenance_mode ? '#9f1239' : '#ffffff',
-                                        color: form.data.settings.dealer_maintenance_mode ? '#ffffff' : '#0f172a',
-                                        borderColor: '#e2e8f0',
-                                        fontSize: 12,
-                                        fontWeight: 700
-                                    }}
+                                    className={`button dmh-lock-button ${form.data.settings.dealer_maintenance_mode ? 'dark is-on' : ''}`}
                                 >
                                     {form.data.settings.dealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
                                 </button>
-                                <span style={{ fontSize: 12, color: '#64748b' }}>
+                                <span className="ops-caption">
                                     {form.data.settings.dealer_maintenance_mode ? translate('portal','dash_mgmt_dealer_lock_on_hint') : translate('portal','dash_mgmt_dealer_lock_off_hint')}
                                 </span>
                             </div>
@@ -456,22 +356,22 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 2. SUB-DEALER DASHBOARD TAB */}
                 {activeTab === 'subdealers' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div className="ops-stack is-loose">
                         {/* Feature Toggles */}
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_sub_switches_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_sub_switches_hint')}
                                     </p>
                                 </div>
                                 <Store size={20} className="text-muted" />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
+                            <div className="dmh-toggles tone-ok">
                                 {[
                                     { key: 'subdealer_salary_enabled', label: translate('portal','dash_mgmt_toggle_sub_salary'), desc: translate('portal','dash_mgmt_toggle_sub_salary_desc') },
                                     { key: 'subdealer_orders_enabled', label: translate('portal','dash_mgmt_toggle_sub_orders'), desc: translate('portal','dash_mgmt_toggle_sub_orders_desc') },
@@ -483,24 +383,13 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                         <div
                                             key={toggle.key}
                                             onClick={() => toggleBool(toggle.key)}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'flex-start',
-                                                justifyContent: 'space-between',
-                                                gap: 12,
-                                                padding: '12px 14px',
-                                                borderRadius: 8,
-                                                border: active ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
-                                                background: active ? '#f0fdf4' : '#ffffff',
-                                                cursor: 'pointer',
-                                                userSelect: 'none'
-                                            }}
+                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
                                         >
                                             <div>
-                                                <b style={{ fontSize: 13, color: active ? '#064e3b' : '#334155', display: 'block' }}>{toggle.label}</b>
-                                                <small style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 2, lineHeight: 1.3 }}>{toggle.desc}</small>
+                                                <b>{toggle.label}</b>
+                                                <small>{toggle.desc}</small>
                                             </div>
-                                            <span style={{ fontSize: 20, color: active ? '#059669' : '#cbd5e1', cursor: 'pointer' }}>
+                                            <span className="dmh-toggle-dot">
                                                 {active ? '●' : '○'}
                                             </span>
                                         </div>
@@ -513,39 +402,39 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_sub_announce_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_sub_announce_hint')}
                                     </p>
                                 </div>
-                                <Bell size={20} color="#059669" />
+                                <Bell size={20} className="tone-ok" />
                             </div>
 
-                            <div style={{ marginTop: 12 }}>
-                                <label style={{ display: 'block', marginBottom: 10 }}>
+                            <div className="ops-mt-3">
+                                <label className="ops-block ops-mb-3">
                                     {translate('portal','dash_mgmt_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.subdealer_announcement || ''}
                                         placeholder={translate('portal','dash_mgmt_announce_placeholder_sub')}
                                         onChange={e => updateField('subdealer_announcement', e.target.value)}
-                                        style={{ width: '100%', marginTop: 4 }}
+                                        className="ops-full ops-mt-1"
                                     />
                                 </label>
 
-                                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{translate('portal','dash_mgmt_banner_style')}</span>
+                                <div className="ops-row is-wrap is-wide">
+                                    <span className="ops-fs-xs ops-semibold ops-text-2">{translate('portal','dash_mgmt_banner_style')}</span>
                                     {['info', 'success', 'warning'].map(t => (
-                                        <label key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                                        <label key={t} className="dmh-radio">
                                             <input
                                                 type="radio"
                                                 name="subdealer_announcement_type"
                                                 checked={form.data.settings.subdealer_announcement_type === t}
                                                 onChange={() => updateField('subdealer_announcement_type', t)}
                                             />
-                                            <span style={{ textTransform: 'capitalize' }}>{t}</span>
+                                            <span className="hub-capital">{t}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -553,31 +442,24 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                         </section>
 
                         {/* Sub-Dealer Maintenance Mode */}
-                        <section className="panel" style={{ borderLeft: '4px solid #e11d48' }}>
+                        <section className="panel dmh-lock">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#9f1239' }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_sub_lock_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_sub_lock_hint')}
                                     </p>
                                 </div>
-                                <AlertTriangle size={20} color="#e11d48" />
+                                <AlertTriangle size={20} className="tone-danger" />
                             </div>
 
-                            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div className="ops-row is-loose ops-mt-3">
                                 <button
                                     type="button"
                                     onClick={() => toggleBool('subdealer_maintenance_mode')}
-                                    className={`button ${form.data.settings.subdealer_maintenance_mode ? 'dark' : ''}`}
-                                    style={{
-                                        background: form.data.settings.subdealer_maintenance_mode ? '#9f1239' : '#ffffff',
-                                        color: form.data.settings.subdealer_maintenance_mode ? '#ffffff' : '#0f172a',
-                                        borderColor: '#e2e8f0',
-                                        fontSize: 12,
-                                        fontWeight: 700
-                                    }}
+                                    className={`button dmh-lock-button ${form.data.settings.subdealer_maintenance_mode ? 'dark is-on' : ''}`}
                                 >
                                     {form.data.settings.subdealer_maintenance_mode ? `🚨 ${translate('portal','dash_mgmt_sub_lockout_on')}` : `✓ ${translate('portal','dash_mgmt_lockout_off')}`}
                                 </button>
@@ -588,63 +470,62 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 3. EMPLOYEE DASHBOARD TAB */}
                 {activeTab === 'employees' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div className="ops-stack is-loose">
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_employee_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_employee_hint')}
                                     </p>
                                 </div>
                                 <Link
                                     href="/employees"
                                     className="button small dark"
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                                 >
                                     <UserCheck size={16} /> {translate('portal','dash_mgmt_open_employees')}
                                 </Link>
                             </div>
 
-                            <div style={{ marginTop: 14 }}>
-                                <label style={{ display: 'block', marginBottom: 12 }}>
+                            <div className="ops-mt-3">
+                                <label className="ops-block ops-mb-3">
                                     {translate('portal','dash_mgmt_staff_announce_label')}
                                     <textarea
                                         rows={3}
                                         value={form.data.settings.employee_announcement || ''}
                                         placeholder={translate('portal','dash_mgmt_announce_placeholder_staff')}
                                         onChange={e => updateField('employee_announcement', e.target.value)}
-                                        style={{ width: '100%', marginTop: 4 }}
+                                        className="ops-full ops-mt-1"
                                     />
                                 </label>
                             </div>
 
                             {/* Recent employees list */}
                             {recent_employees.length > 0 && (
-                                <div style={{ marginTop: 16 }}>
-                                    <h4 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px 0', color: '#334155' }}>
+                                <div className="ops-mt-4">
+                                    <h4 className="dmh-subhead">
                                         {translate('portal','dash_mgmt_recent_employees')}
                                     </h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
+                                    <div className="dmh-people">
                                         {recent_employees.map(emp => {
                                             const perms: string[] = Array.isArray(emp.profile?.permissions) ? emp.profile.permissions : [];
                                             return (
-                                                <div key={emp.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                        <b style={{ fontSize: 12, color: '#0f172a' }}>{emp.name}</b>
+                                                <div key={emp.id} className="ops-card is-soft is-tight">
+                                                    <div className="ops-row is-between">
+                                                        <b className="ops-fs-xs hub-strong">{emp.name}</b>
                                                         <Badge status={emp.status} />
                                                     </div>
-                                                    <small style={{ color: '#64748b', fontSize: 11, display: 'block', marginTop: 2 }}>{emp.email}</small>
-                                                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                                                    <small className="ops-meta ops-block dmh-email">{emp.email}</small>
+                                                    <div className="ops-row is-wrap is-tight ops-mt-2">
                                                         {perms.slice(0, 4).map(p => (
-                                                            <span key={p} style={{ fontSize: 9, background: '#e2e8f0', padding: '1px 5px', borderRadius: 3, fontWeight: 600 }}>
+                                                            <span key={p} className="dmh-perm">
                                                                 {p}
                                                             </span>
                                                         ))}
                                                         {perms.length > 4 && (
-                                                            <span style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>{translate('portal','dash_mgmt_more_perms',{count:String(perms.length - 4)})}</span>
+                                                            <span className="ops-meta ops-semibold">{translate('portal','dash_mgmt_more_perms',{count:String(perms.length - 4)})}</span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -659,21 +540,21 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
 
                 {/* 4. COMPANY HUB TAB */}
                 {activeTab === 'company' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div className="ops-stack is-loose">
                         <section className="panel">
                             <div className="panel-heading">
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+                                    <h3 className="hub-title">
                                         {translate('portal','dash_mgmt_company_title')}
                                     </h3>
-                                    <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                                    <p className="hub-sub">
                                         {translate('portal','dash_mgmt_company_hint')}
                                     </p>
                                 </div>
                                 <Building2 size={20} className="text-muted" />
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
+                            <div className="dmh-toggles tone-neutral">
                                 {[
                                     { key: 'company_treasury_enabled', label: translate('portal','dash_mgmt_toggle_treasury'), desc: translate('portal','dash_mgmt_toggle_treasury_desc') },
                                     { key: 'company_commissions_enabled', label: translate('portal','dash_mgmt_toggle_commissions'), desc: translate('portal','dash_mgmt_toggle_commissions_desc') },
@@ -685,24 +566,13 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                         <div
                                             key={toggle.key}
                                             onClick={() => toggleBool(toggle.key)}
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'flex-start',
-                                                justifyContent: 'space-between',
-                                                gap: 12,
-                                                padding: '12px 14px',
-                                                borderRadius: 8,
-                                                border: active ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
-                                                background: active ? '#f8fafc' : '#ffffff',
-                                                cursor: 'pointer',
-                                                userSelect: 'none'
-                                            }}
+                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
                                         >
                                             <div>
-                                                <b style={{ fontSize: 13, color: active ? '#0f172a' : '#475569', display: 'block' }}>{toggle.label}</b>
-                                                <small style={{ fontSize: 11, color: '#64748b', display: 'block', marginTop: 2, lineHeight: 1.3 }}>{toggle.desc}</small>
+                                                <b>{toggle.label}</b>
+                                                <small>{toggle.desc}</small>
                                             </div>
-                                            <span style={{ fontSize: 20, color: active ? '#011627' : '#cbd5e1', cursor: 'pointer' }}>
+                                            <span className="dmh-toggle-dot">
                                                 {active ? '●' : '○'}
                                             </span>
                                         </div>
@@ -714,28 +584,18 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                 )}
 
                 {/* Bottom Action Footer */}
-                <div style={{
-                    marginTop: 24,
-                    paddingTop: 16,
-                    borderTop: '1px solid #e2e8f0',
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: 12,
-                    alignItems: 'center'
-                }}>
+                <div className="ops-row is-end is-loose dmh-footer">
                     <button
                         type="button"
                         className="button"
                         onClick={handleReset}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
                         <RotateCcw size={15} /> {translate('portal','dash_mgmt_reset_footer')}
                     </button>
                     <button
                         type="submit"
-                        className="button dark"
+                        className="button dark dmh-submit"
                         disabled={form.processing}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, padding: '10px 20px' }}
                     >
                         <Save size={16} /> {form.processing ? translate('portal','dash_mgmt_saving') : translate('portal','dash_mgmt_save')}
                     </button>

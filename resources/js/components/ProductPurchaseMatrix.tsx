@@ -271,32 +271,20 @@ export default function ProductPurchaseMatrix({
     };
 
     return (
-        <div className="b2b-purchase-container" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="b2b-purchase-container hub">
             {/* Header with Direct Link to Directory */}
-            <div style={{
-                background: 'linear-gradient(135deg, #022c1b 0%, #006837 100%)',
-                color: '#ffffff',
-                padding: '20px 24px',
-                borderRadius: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent:'space-between',
-                flexWrap: 'wrap',
-                gap: 16,
-                boxShadow: '0 4px 16px rgba(0, 104, 55, 0.15)'
-            }}>
+            <div className="ppm-hero">
                 <div>
-                    <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, letterSpacing: '-0.01em', color: '#ffffff' }}>
+                    <h2 className="ppm-hero-title">
                         {translate('portal', 'b2b_purchase_title')}
                     </h2>
-                    <p style={{ margin: 0, fontSize: 13, color: '#dcfce7', maxWidth: 640, lineHeight: 1.5 }}>
+                    <p className="ppm-hero-sub">
                         {translate('portal', 'b2b_purchase_subtitle')}
                     </p>
                 </div>
                 <Link
                     href="/catalog"
-                    className="button small"
-                    style={{ background: '#ffffff', color: '#006837', fontWeight: 700, border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    className="button small ppm-hero-link"
                 >
                     <Package size={15} /> {translate('portal', 'b2b_catalog_list_title')} ↗
                 </Link>
@@ -304,89 +292,67 @@ export default function ProductPurchaseMatrix({
 
             {/* Success Toast */}
             {addedBanner && (
-                <div style={{
-                    background: '#ecfdf5',
-                    border: '1.5px solid #10b981',
-                    color: '#065f46',
-                    padding: '12px 18px',
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    fontWeight: 600,
-                    fontSize: 13,
-                    animation: 'fadeIn 0.25s ease-out'
-                }}>
-                    <CheckCircle2 size={18} style={{ color: '#059669', flexShrink: 0 }} />
+                <div className="success ppm-added">
+                    <CheckCircle2 size={18} className="ops-shrink-0" />
                     <span>{addedBanner}</span>
                 </div>
             )}
 
             {/* Cascading Matrix Builder Panel */}
-            <section className="panel" style={{ border: '1.5px solid #00683726', background: '#ffffff', borderRadius: 12, padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, borderBottom: '1px solid #f1f5f9', paddingBottom: 12 }}>
-                    <Sparkles size={18} style={{ color: '#006837' }} />
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+            <section className="panel ppm-panel ppm-builder">
+                <div className="ppm-head">
+                    <Sparkles size={18} />
+                    <h3 className="hub-title">
                         {translate('portal', 'b2b_purchase_title')}
                     </h3>
-                    <span style={{ fontSize: 11, background: '#ecfdf5', color: '#047857', fontWeight: 700, padding: '2px 8px', borderRadius: 12, marginLeft: 'auto' }}>
+                    <span className="hub-pill tone-ok ops-ml-auto">
                         Persistent B2B Matrix
                     </span>
                 </div>
 
                 {/* Instant Product Search */}
-                <div style={{ marginBottom: 16, position: 'relative' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1' }}>
-                        <Search size={16} style={{ color: '#64748b', flexShrink: 0 }} />
+                <div className="ppm-search">
+                    <div className="ppm-search-box">
+                        <Search size={16} className="ops-shrink-0" />
                         <input
                             type="text"
                             placeholder={translate('portal', 'b2b_quick_search_placeholder')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: 13, fontWeight: 500 }}
                         />
                         {searchQuery && (
                             <button
                                 type="button"
                                 onClick={() => setSearchQuery('')}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2 }}
+                                className="ppm-icon-btn"
                             >
                                 <X size={14} />
                             </button>
                         )}
                     </div>
                     {searchResults.length > 0 && (
-                        <div style={{
-                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40,
-                            background: '#ffffff', borderRadius: 8, marginTop: 4,
-                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                            border: '1.5px solid #cbd5e1', maxHeight: 280, overflowY: 'auto'
-                        }}>
+                        <div className="ppm-results">
                             {searchResults.map(p => (
                                 <div
                                     key={p.id}
                                     onClick={() => selectProductFromSearch(p)}
-                                    style={{
-                                        padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        transition: 'background 0.15s ease'
-                                    }}
+                                    className="ppm-result"
                                     onMouseEnter={e => (e.currentTarget.style.background = '#f0fdf4')}
                                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                 >
                                     <div>
-                                        <strong style={{ fontSize: 13, color: '#0f172a' }}>{p.name}</strong>
-                                        {p.strength && <span style={{ fontSize: 12, color: '#047857', marginLeft: 6, fontWeight: 600 }}>({p.strength})</span>}
-                                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                                        <strong className="hub-strong ops-fs-sm">{p.name}</strong>
+                                        {p.strength && <span className="ppm-strength">({p.strength})</span>}
+                                        <div className="ops-meta">
                                             {p.category} {p.sub_category ? `› ${p.sub_category}` : ''} · SKU: {p.sku}
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#006837' }}>
+                                    <div className="ops-right">
+                                        <div className="ppm-price">
                                             {money(p.price || p.mrp || 0)}
                                         </div>
                                         {Number(p.mrp || 0) > Number(p.price || p.mrp || 0) && (
-                                            <div style={{ fontSize: 10, color: '#94a3b8', textDecoration: 'line-through' }}>
+                                            <div className="ops-fs-2xs ops-faint ppm-struck">
                                                 {money(p.mrp)}
                                             </div>
                                         )}
@@ -398,17 +364,17 @@ export default function ProductPurchaseMatrix({
                 </div>
 
                 <form onSubmit={handleAddToCart}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                    <div className="hub-grid">
                         {/* Step 1: Category */}
                         <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_category')}
                             </label>
                             <select
                                 required
                                 value={selectedCategory}
                                 onChange={e => handleCategoryChange(e.target.value)}
-                                style={{ width: '100%', height: 42, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: 13, background: '#f8fafc', fontWeight: 600 }}
+                                className="ppm-control"
                             >
                                 <option value="">{translate('portal', 'b2b_select_category_first')}</option>
                                 {availableCategories.map(cat => (
@@ -419,13 +385,13 @@ export default function ProductPurchaseMatrix({
 
                         {/* Step 2: Sub-Category */}
                         <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_subcategory')}
                             </label>
                             <select
                                 value={selectedSubCategory}
                                 onChange={e => handleSubCategoryChange(e.target.value)}
-                                style={{ width: '100%', height: 42, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: 13, background: '#f8fafc', fontWeight: 600 }}
+                                className="ppm-control"
                             >
                                 <option value="">{translate('portal', 'b2b_all_subcategories')}</option>
                                 {availableSubCategories.map(sub => (
@@ -436,7 +402,7 @@ export default function ProductPurchaseMatrix({
 
                         {/* Step 3: Product Name */}
                         <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_product')}
                             </label>
                             <select
@@ -444,7 +410,7 @@ export default function ProductPurchaseMatrix({
                                 value={selectedProductName}
                                 onChange={e => handleProductNameChange(e.target.value)}
                                 disabled={!selectedCategory || availableProductNames.length === 0}
-                                style={{ width: '100%', height: 42, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: 13, background: '#f8fafc', fontWeight: 600 }}
+                                className="ppm-control"
                             >
                                 <option value="">{translate('portal', 'b2b_select_product_first')}</option>
                                 {availableProductNames.map(name => (
@@ -455,14 +421,14 @@ export default function ProductPurchaseMatrix({
 
                         {/* Step 4: Strength / Measure / Variant */}
                         <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                            <label className="ops-field-label">
                                 {translate('portal', 'b2b_step_strength')}
                             </label>
                             <select
                                 value={activeProduct ? activeProduct.id : ''}
                                 onChange={e => handleVariantChange(e.target.value)}
                                 disabled={!selectedProductName || availableVariants.length === 0}
-                                style={{ width: '100%', height: 42, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: 13, background: '#f8fafc', fontWeight: 600 }}
+                                className="ppm-control"
                             >
                                 {availableVariants.map(v => {
                                     const vMrp = Number(v.mrp || 0);
@@ -479,10 +445,10 @@ export default function ProductPurchaseMatrix({
                         </div>
 
                         {/* Step 5: Quantity & Add Button */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                        <div className="ops-stack is-snug">
+                            <div className="ppm-qty-row">
+                                <div className="ops-grow">
+                                    <label className="ops-field-label">
                                         {translate('portal', 'b2b_step_quantity')} {activeProduct?.unit ? `(${activeProduct.unit})` : ''}
                                     </label>
                                     <input
@@ -492,41 +458,25 @@ export default function ProductPurchaseMatrix({
                                         required
                                         value={quantity}
                                         onChange={e => setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                                        style={{ width: '100%', height: 42, padding: '8px 12px', borderRadius: 8, border: '1.5px solid #cbd5e1', fontSize: 14, fontWeight: 700 }}
+                                        className="ppm-control is-qty"
                                     />
                                 </div>
                                 <button
                                     type="submit"
-                                    className="button dark"
+                                    className="button dark ppm-add"
                                     disabled={!activeProduct || activeProduct.is_stock_paused || Number(activeProduct.stock || 0) <= 0}
-                                    style={{
-                                        height: 42,
-                                        padding: '0 20px',
-                                        borderRadius: 8,
-                                        fontSize: 13,
-                                        fontWeight: 700,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        whiteSpace: 'nowrap',
-                                        background: '#006837',
-                                        borderColor: '#006837'
-                                    }}
                                 >
                                     <Plus size={16} /> {translate('portal', 'b2b_add_to_order')}
                                 </button>
                             </div>
-                            <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'b2b_quick_qty')}:</span>
+                            <div className="ops-row is-wrap is-tight">
+                                <span className="ops-meta ops-semibold">{translate('portal', 'b2b_quick_qty')}:</span>
                                 {[5, 10, 20, 50, 100].map(chip => (
                                     <button
                                         key={chip}
                                         type="button"
                                         onClick={() => setQuantity(q => q + chip)}
-                                        style={{
-                                            fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
-                                            background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', cursor: 'pointer'
-                                        }}
+                                        className="ppm-chip"
                                     >
                                         +{chip}
                                     </button>
@@ -534,10 +484,7 @@ export default function ProductPurchaseMatrix({
                                 <button
                                     type="button"
                                     onClick={() => setQuantity(1)}
-                                    style={{
-                                        fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
-                                        background: '#ffffff', border: '1px solid #e2e8f0', color: '#64748b', cursor: 'pointer'
-                                    }}
+                                    className="ppm-chip is-reset"
                                 >
                                     1
                                 </button>
@@ -547,71 +494,53 @@ export default function ProductPurchaseMatrix({
 
                     {/* Active Selection Details Strip */}
                     {activeProduct && (
-                        <div style={{
-                            marginTop: 16,
-                            padding: '12px 16px',
-                            background: '#f0fdf4',
-                            border: '1px solid #bbf7d0',
-                            borderRadius: 8,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: 12
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#065f46' }}>
+                        <div className="ppm-selection">
+                            <div className="ops-row is-loose is-wrap">
+                                <div className="ppm-sel-name">
                                     {activeProduct.name} {activeProduct.strength ? `(${activeProduct.strength})` : ''}
-                                    <span style={{ fontSize: 11, color: '#047857', marginLeft: 8, fontWeight: 500 }}>
+                                    <span className="ppm-sel-sku">
                                         SKU: {activeProduct.sku} · {activeProduct.category}{activeProduct.sub_category ? ` / ${activeProduct.sub_category}` : ''}
                                     </span>
                                 </div>
-                                <span style={{
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    padding: '2px 8px',
-                                    borderRadius: 12,
-                                    background: activeProduct.stock > 0 && !activeProduct.is_stock_paused ? '#dcfce7' : '#fee2e2',
-                                    color: activeProduct.stock > 0 && !activeProduct.is_stock_paused ? '#15803d' : '#b91c1c'
-                                }}>
+                                <span className={`hub-pill ${activeProduct.stock > 0 && !activeProduct.is_stock_paused ? 'tone-ok' : 'tone-danger'}`}>
                                     {activeProduct.stock > 0 && !activeProduct.is_stock_paused ? `Stock: ${activeProduct.stock} ${activeProduct.unit || 'units'}` : 'Stock Awaiting'}
                                 </span>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <div className="ops-row is-wide is-wrap">
                                 <div>
-                                    <small style={{ display: 'block', fontSize: 10, color: '#64748b' }}>MRP / Box</small>
-                                    <span style={{ fontSize: 12, color: '#64748b', textDecoration: hasDiscount ? 'line-through' : 'none' }}>
+                                    <small className="ppm-sel-label ops-muted">MRP / Box</small>
+                                    <span className={`ops-fs-xs ops-muted${hasDiscount ? ' ppm-struck' : ''}`}>
                                         {money(mrp)}
                                     </span>
                                 </div>
 
                                 {hasDiscount && (
                                     <div>
-                                        <small style={{ display: 'block', fontSize: 10, color: '#059669' }}>কমিশন ছাড়</small>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#047857', background: '#dcfce7', padding: '1px 6px', borderRadius: 4 }}>
+                                        <small className="ppm-sel-label">কমিশন ছাড়</small>
+                                        <span className="ppm-save">
                                             {discountPct}% ({money(unitSavings)} সাশ্রয়)
                                         </span>
                                     </div>
                                 )}
 
                                 <div>
-                                    <small style={{ display: 'block', fontSize: 10, color: '#065f46' }}>ক্রয় দর / বক্স</small>
-                                    <strong style={{ fontSize: 14, color: '#065f46', fontWeight: 800 }}>
+                                    <small className="ppm-sel-label">ক্রয় দর / বক্স</small>
+                                    <strong className="ppm-sel-price">
                                         {money(unitPrice)}
                                     </strong>
                                 </div>
 
-                                <div style={{ borderLeft: '1px solid #bbf7d0', paddingLeft: 16 }}>
-                                    <small style={{ display: 'block', fontSize: 10, color: '#065f46' }}>লাইন মোট ({quantity} বক্স)</small>
-                                    <strong style={{ fontSize: 16, color: '#006837', fontWeight: 900 }}>
+                                <div className="ppm-sel-total">
+                                    <small className="ppm-sel-label">লাইন মোট ({quantity} বক্স)</small>
+                                    <strong className="ppm-sel-price is-lg">
                                         {money(currentLineTotal)}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div style={{ width: '100%', borderTop: '1px dashed #bbf7d0', paddingTop: 8, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#047857' }}>
-                                <Info size={13} style={{ flexShrink: 0 }} />
+                            <div className="ppm-sel-hint">
+                                <Info size={13} className="ops-shrink-0" />
                                 <span>{translate('portal', 'b2b_keep_category_hint')}</span>
                             </div>
                         </div>
@@ -620,13 +549,13 @@ export default function ProductPurchaseMatrix({
             </section>
 
             {/* Selected Products Order Table Breakdown */}
-            <section className="panel" style={{ borderRadius: 12, padding: '20px 24px', background: '#ffffff', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <section className="panel ppm-panel">
+                <div className="ops-row is-between is-wrap ops-mb-4">
                     <div>
-                        <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+                        <h3 className="hub-title">
                             {translate('portal', 'b2b_order_list_title')}
                         </h3>
-                        <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                        <p className="hub-sub">
                             {cart.length > 0
                                 ? `${cart.length} টি প্রোডাক্ট অর্ডার তালিকায় যোগ করা হয়েছে। পরিমাণ পরিবর্তন করতে পারেন।`
                                 : 'এখনো কোনো প্রোডাক্ট যোগ করা হয়নি। উপরের ফর্ম থেকে প্রোডাক্ট যোগ করুন।'}
@@ -635,8 +564,7 @@ export default function ProductPurchaseMatrix({
                     {cart.length > 0 && (
                         <button
                             type="button"
-                            className="text-link"
-                            style={{ color: '#ef4444', fontSize: 12, fontWeight: 600 }}
+                            className="text-link ppm-clear"
                             onClick={() => setCart([])}
                         >
                             সব মুছুন (Clear All)
@@ -646,17 +574,17 @@ export default function ProductPurchaseMatrix({
 
                 {cart.length > 0 ? (
                     <div className="table-responsive">
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <table className="ppm-cart">
                             <thead>
-                                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                    <th style={{ padding: '10px 12px', width: '5%' }}>{translate('portal', 'b2b_col_sl')}</th>
-                                    <th style={{ padding: '10px 12px', width: '28%' }}>{translate('portal', 'b2b_col_product_desc')}</th>
-                                    <th style={{ padding: '10px 12px', width: '11%', textAlign: 'right' }}>{translate('portal', 'b2b_col_mrp')}</th>
-                                    <th style={{ padding: '10px 12px', width: '12%', textAlign: 'center' }}>{translate('portal', 'b2b_col_discount_pct')}</th>
-                                    <th style={{ padding: '10px 12px', width: '13%', textAlign: 'right' }}>{translate('portal', 'b2b_col_unit_price')}</th>
-                                    <th style={{ padding: '10px 12px', width: '13%', textAlign: 'center' }}>{translate('portal', 'b2b_col_qty')}</th>
-                                    <th style={{ padding: '10px 12px', width: '13%', textAlign: 'right' }}>{translate('portal', 'b2b_col_total')}</th>
-                                    <th style={{ padding: '10px 12px', width: '5%', textAlign: 'center' }}></th>
+                                <tr>
+                                    <th>{translate('portal', 'b2b_col_sl')}</th>
+                                    <th>{translate('portal', 'b2b_col_product_desc')}</th>
+                                    <th className="ops-right">{translate('portal', 'b2b_col_mrp')}</th>
+                                    <th className="ops-center">{translate('portal', 'b2b_col_discount_pct')}</th>
+                                    <th className="ops-right">{translate('portal', 'b2b_col_unit_price')}</th>
+                                    <th className="ops-center">{translate('portal', 'b2b_col_qty')}</th>
+                                    <th className="ops-right">{translate('portal', 'b2b_col_total')}</th>
+                                    <th className="ops-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -668,39 +596,38 @@ export default function ProductPurchaseMatrix({
                                     const lineTotal = itemPrice * item.quantity;
 
                                     return (
-                                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? '#ffffff' : '#fafafa' }}>
-                                            <td style={{ padding: '12px', fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
-                                            <td style={{ padding: '12px' }}>
-                                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>
+                                        <tr key={p.id}>
+                                            <td className="ppm-sl">{index + 1}</td>
+                                            <td>
+                                                <div className="ppm-line-name">
                                                     {p.name}
                                                 </div>
-                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                                                    {p.strength ? <strong style={{ color: '#006837', marginRight: 6 }}>{p.strength}</strong> : null}
+                                                <div className="cell-sub">
+                                                    {p.strength ? <strong className="ppm-line-strength">{p.strength}</strong> : null}
                                                     <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
-                                                    <span style={{ marginLeft: 6 }}>({p.unit || 'pack'})</span>
+                                                    <span className="ppm-line-unit">({p.unit || 'pack'})</span>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>
+                                            <td className="ppm-mrp ops-right">
                                                 {money(itemMrp)}
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                                            <td className="ops-center">
                                                 {lineDiscount > 0 ? (
-                                                    <span style={{ background: '#ecfdf5', color: '#047857', fontWeight: 700, fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #a7f3d0' }}>
+                                                    <span className="hub-pill tone-ok">
                                                         {lineDiscount}% ছাড়
                                                     </span>
                                                 ) : (
-                                                    <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>
+                                                    <span className="ops-faint ops-fs-2xs">—</span>
                                                 )}
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#065f46' }}>
+                                            <td className="ppm-unit ops-right">
                                                 {money(itemPrice)}
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                                                <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden' }}>
+                                            <td className="ops-center">
+                                                <div className="ppm-stepper">
                                                     <button
                                                         type="button"
                                                         onClick={() => updateCartQty(p.id, item.quantity - 1)}
-                                                        style={{ width: 28, height: 28, background: '#f8fafc', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                                                     >
                                                         -
                                                     </button>
@@ -710,25 +637,23 @@ export default function ProductPurchaseMatrix({
                                                         max="50000"
                                                         value={item.quantity}
                                                         onChange={e => updateCartQty(p.id, parseInt(e.target.value, 10) || 1)}
-                                                        style={{ width: 44, height: 28, border: 'none', textAlign: 'center', fontWeight: 700, fontSize: 12 }}
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => updateCartQty(p.id, item.quantity + 1)}
-                                                        style={{ width: 28, height: 28, background: '#f8fafc', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                                                     >
                                                         +
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, color: '#006837', fontSize: 14 }}>
+                                            <td className="ppm-total ops-right">
                                                 {money(lineTotal)}
                                             </td>
-                                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                                            <td className="ops-center">
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFromCart(p.id)}
-                                                    style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4 }}
+                                                    className="ppm-icon-btn is-danger"
                                                     title="Remove Item"
                                                 >
                                                     <Trash2 size={16} />
@@ -741,51 +666,42 @@ export default function ProductPurchaseMatrix({
                         </table>
                     </div>
                 ) : (
-                    <div style={{ padding: '36px 16px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-                        <ShoppingBag size={32} style={{ opacity: 0.5, marginBottom: 8 }} />
-                        <p style={{ margin: 0, fontWeight: 600 }}>অর্ডারের তালিকা বর্তমানে খালি</p>
-                        <small style={{ color: '#64748b' }}>উপরে ক্যাটাগরি, সাব-ক্যাটাগরি এবং প্রোডাক্ট সিলেক্ট করে '+ অর্ডারে যোগ করুন' বাটনে ক্লিক করুন।</small>
+                    <div className="hub-empty ppm-empty">
+                        <ShoppingBag size={32} />
+                        <p className="ops-semibold">অর্ডারের তালিকা বর্তমানে খালি</p>
+                        <small className="ops-muted">উপরে ক্যাটাগরি, সাব-ক্যাটাগরি এবং প্রোডাক্ট সিলেক্ট করে '+ অর্ডারে যোগ করুন' বাটনে ক্লিক করুন।</small>
                     </div>
                 )}
 
                 {/* Totals & Checkout Summary Form */}
                 {cart.length > 0 && (
-                    <div style={{ marginTop: 24, paddingTop: 20, borderTop: '2px solid #e2e8f0' }}>
+                    <div className="ppm-checkout">
                         {/* Summary Metrics Bar */}
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                            gap: 12,
-                            background: '#f8fafc',
-                            padding: 16,
-                            borderRadius: 10,
-                            border: '1px solid #e2e8f0',
-                            marginBottom: 20
-                        }}>
+                        <div className="ppm-summary">
                             <div>
-                                <small style={{ color: '#64748b', fontSize: 11, display: 'block' }}>মোট আইটেম ও ইউনিট</small>
-                                <strong style={{ fontSize: 15, color: '#334155' }}>
+                                <small className="ppm-sum-label">মোট আইটেম ও ইউনিট</small>
+                                <strong className="ppm-sum-value">
                                     {cartSummary.itemsCount} আইটেম ({cartSummary.totalQty} বক্স)
                                 </strong>
                             </div>
 
                             <div>
-                                <small style={{ color: '#64748b', fontSize: 11, display: 'block' }}>{translate('portal', 'b2b_total_mrp')}</small>
-                                <strong style={{ fontSize: 15, color: '#64748b', textDecoration: 'line-through' }}>
+                                <small className="ppm-sum-label">{translate('portal', 'b2b_total_mrp')}</small>
+                                <strong className="ppm-sum-value is-muted ppm-struck">
                                     {money(cartSummary.totalMrp)}
                                 </strong>
                             </div>
 
                             <div>
-                                <small style={{ color: '#059669', fontSize: 11, display: 'block' }}>{translate('portal', 'b2b_total_savings')}</small>
-                                <strong style={{ fontSize: 15, color: '#059669' }}>
+                                <small className="ppm-sum-label is-ok">{translate('portal', 'b2b_total_savings')}</small>
+                                <strong className="ppm-sum-value is-ok">
                                     {money(cartSummary.totalSavings)} ({cartSummary.overallDiscountPct}% কমিশন)
                                 </strong>
                             </div>
 
-                            <div style={{ background: '#ecfdf5', padding: '8px 12px', borderRadius: 6, border: '1.5px solid #a7f3d0' }}>
-                                <small style={{ color: '#065f46', fontSize: 11, fontWeight: 700, display: 'block' }}>{translate('portal', 'b2b_net_payable')}</small>
-                                <strong style={{ fontSize: 18, color: '#006837', fontWeight: 900 }}>
+                            <div className="ppm-sum-net">
+                                <small className="ppm-sum-label is-ok ops-bold">{translate('portal', 'b2b_net_payable')}</small>
+                                <strong className="ppm-sum-value is-net">
                                     {money(cartSummary.totalPayable)}
                                 </strong>
                             </div>
@@ -793,8 +709,8 @@ export default function ProductPurchaseMatrix({
 
                         {/* Payment & Submission */}
                         <form onSubmit={submitOrder} className="action-form">
-                            <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-                                পেমেন্ট ও পারচেজ রিকোয়েস্ট নিশ্চিতকরণ
+                            <h4 className="ppm-pay-title">
+                                পেমেন্ট ও পারচেজ রিকোয়েস্ট নিশ্চিতকরণ
                             </h4>
 
                             <div className="form-grid">
@@ -863,27 +779,16 @@ export default function ProductPurchaseMatrix({
                             </label>
 
                             {Object.keys(f.errors).length > 0 && (
-                                <div className="error" style={{ marginBottom: 12 }}>
+                                <div className="error ppm-error">
                                     {Object.values(f.errors).join(' ')}
                                 </div>
                             )}
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                            <div className="ops-row is-end ops-mt-3">
                                 <button
                                     type="submit"
-                                    className="button dark"
+                                    className="button dark ppm-submit"
                                     disabled={f.processing}
-                                    style={{
-                                        padding: '12px 28px',
-                                        fontSize: 14,
-                                        fontWeight: 800,
-                                        background: '#006837',
-                                        borderColor: '#006837',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        boxShadow: '0 4px 12px rgba(0, 104, 55, 0.25)'
-                                    }}
                                 >
                                     {f.processing ? translate('portal', 'submitting') : translate('portal', 'submit_purchase_request')}
                                     <ArrowRight size={17} />

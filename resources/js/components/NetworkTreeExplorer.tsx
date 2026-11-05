@@ -24,13 +24,30 @@ interface NetworkTreeExplorerProps {
     dealers: DealerNode[];
 }
 
-const rankBadgeStyles: Record<string, { labelKey: string; bg: string; text: string; border: string }> = {
-    dealer: { labelKey: 'net_badge_dealer', bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
-    mo: { labelKey: 'net_badge_mo', bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-    am: { labelKey: 'net_badge_am', bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
-    sm: { labelKey: 'net_badge_sm', bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff' },
-    me: { labelKey: 'net_badge_me', bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+const rankBadgeStyles: Record<string, { labelKey: string; tone: string }> = {
+    dealer: { labelKey: 'net_badge_dealer', tone: 'tone-neutral' },
+    mo: { labelKey: 'net_badge_mo', tone: 'tone-ok' },
+    am: { labelKey: 'net_badge_am', tone: 'tone-info' },
+    sm: { labelKey: 'net_badge_sm', tone: 'tone-violet' },
+    me: { labelKey: 'net_badge_me', tone: 'tone-warn' },
 };
+
+/**
+ * Tone for the generation tag beside a tree node: G1 green, G2 blue, G3 violet, deeper neutral.
+ */
+function generationTone(depth: number): string {
+    if (depth === 1) {
+        return 'tone-ok';
+    }
+    if (depth === 2) {
+        return 'tone-info';
+    }
+    if (depth === 3) {
+        return 'tone-violet';
+    }
+
+    return 'tone-neutral';
+}
 
 export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProps) {
     const translate = useT();
@@ -119,105 +136,52 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
         else genTag = translate('portal','net_gen_n',{depth:String(depth)});
 
         return (
-            <div key={dealer.id} style={{ marginLeft: depth > 0 ? 28 : 0, marginTop: 8, position: 'relative' }}>
+            <div key={dealer.id} className={`ntx-node${depth > 0 ? ' is-child' : ''}`}>
                 {depth > 0 && (
-                    <div style={{
-                        position: 'absolute',
-                        left: -18,
-                        top: 18,
-                        width: 16,
-                        height: 2,
-                        background: '#cbd5e1'
-                    }} />
+                    <div className="ntx-connector" />
                 )}
 
                 <div
                     onClick={() => setSelectedDealerId(dealer.id)}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '10px 14px',
-                        background: isSelected ? '#f0fdf4' : '#ffffff',
-                        border: `1.5px solid ${isSelected ? '#006837' : '#e2e8f0'}`,
-                        borderRadius: 10,
-                        boxShadow: isSelected ? '0 0 0 2px rgba(0, 104, 55, 0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        minWidth: 320,
-                        maxWidth: 480
-                    }}
+                    className={`ntx-card${isSelected ? ' is-selected' : ''}`}
                 >
                     {children.length > 0 ? (
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); toggleCollapse(dealer.id); }}
-                            style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: 4,
-                                border: '1px solid #cbd5e1',
-                                background: '#f8fafc',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                padding: 0
-                            }}
+                            className="ntx-toggle"
                         >
                             {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                         </button>
                     ) : (
-                        <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#cbd5e1' }} />
+                        <div className="ntx-leaf">
+                            <div className="ntx-leaf-dot" />
                         </div>
                     )}
 
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{dealer.name}</span>
-                            <span style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                padding: '1px 5px',
-                                borderRadius: 4,
-                                background: badge.bg,
-                                color: badge.text,
-                                border: `1px solid ${badge.border}`
-                            }}>
+                    <div className="ops-grow">
+                        <div className="ops-row is-snug is-wrap">
+                            <span className="ntx-name">{dealer.name}</span>
+                            <span className={`ntx-rank ${badge.tone}`}>
                                 {translate('portal', badge.labelKey)}
                             </span>
-                            <span style={{
-                                fontSize: 9,
-                                fontWeight: 600,
-                                padding: '1px 4px',
-                                borderRadius: 3,
-                                background: depth === 1 ? '#dcfce7' : depth === 2 ? '#dbeafe' : depth === 3 ? '#f3e8ff' : '#f1f5f9',
-                                color: depth === 1 ? '#15803d' : depth === 2 ? '#1d4ed8' : depth === 3 ? '#7e22ce' : '#64748b'
-                            }}>
+                            <span className={`ntx-gen ${generationTone(depth)}`}>
                                 {genTag}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                        <div className="ops-row ops-meta ntx-card-meta">
                             <span>{translate('portal','net_code')}: <b>{dealer.dealer_code || '—'}</b></span>
                             <span>•</span>
-                            <span>{translate('portal','net_purchases')}: <b style={{ color: '#006837' }}>{money(dealer.lifetime_purchases)}</b></span>
+                            <span>{translate('portal','net_purchases')}: <b className="tone-brand">{money(dealer.lifetime_purchases)}</b></span>
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                        <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 6px',
-                            borderRadius: 12,
-                            background: directCount > 0 ? '#e0f2fe' : '#f1f5f9',
-                            color: directCount > 0 ? '#0369a1' : '#94a3b8'
-                        }}>
+                    <div className="ntx-counts">
+                        <span className={`ntx-count${directCount > 0 ? ' tone-info' : ''}`}>
                             {translate('portal','net_direct_count',{count:String(directCount)})}
                         </span>
                         {totalDownline > directCount && (
-                            <span style={{ fontSize: 10, color: '#94a3b8' }}>
+                            <span className="ntx-count-total">
                                 {translate('portal','net_total_count',{count:String(totalDownline)})}
                             </span>
                         )}
@@ -225,12 +189,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                 </div>
 
                 {!isCollapsed && children.length > 0 && (
-                    <div style={{
-                        position: 'relative',
-                        borderLeft: '2px solid #cbd5e1',
-                        marginLeft: 10,
-                        paddingLeft: 4
-                    }}>
+                    <div className="ntx-branch">
                         {children.map(child => renderTreeNode(child, depth + 1))}
                     </div>
                 )}
@@ -239,93 +198,68 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="hub">
             {/* Top Stat Summary Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 12, fontWeight: 600 }}>
+            <div className="hub-grid">
+                <div className="hub-tile">
+                    <div className="hub-label ops-row">
                         <Users size={16} /> {translate('portal','net_kpi_total')}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {stats.total}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{translate('portal','net_enrolled')}</div>
+                    <div className="hub-hint">{translate('portal','net_enrolled')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#047857', fontSize: 12, fontWeight: 600 }}>
+                <div className="hub-tile is-accent tone-ok">
+                    <div className="hub-label ops-row">
                         <Award size={16} /> {translate('portal','net_rank_mo')}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#006837', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {stats.moCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal','net_mo_hint')}</div>
+                    <div className="hub-hint">{translate('portal','net_mo_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>
+                <div className="hub-tile is-accent tone-info">
+                    <div className="hub-label ops-row">
                         <ShieldCheck size={16} /> {translate('portal','net_kpi_am')}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {stats.amCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{translate('portal','net_kpi_am_hint')}</div>
+                    <div className="hub-hint">{translate('portal','net_kpi_am_hint')}</div>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#7e22ce', fontSize: 12, fontWeight: 600 }}>
+                <div className="hub-tile is-accent tone-violet">
+                    <div className="hub-label ops-row">
                         <Award size={16} /> {translate('portal','net_kpi_sm_me')}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#7e22ce', marginTop: 4 }}>
+                    <div className="ops-figure ops-mt-1">
                         {stats.smCount + stats.meCount}
                     </div>
-                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>{translate('portal','net_higher_ranks')}</div>
+                    <div className="hub-hint">{translate('portal','net_higher_ranks')}</div>
                 </div>
             </div>
 
             {/* Filter & Toolbar Bar */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: '12px 16px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 12
-            }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'relative', width: 260 }}>
-                        <Search size={16} style={{ position: 'absolute', left: 10, top: 10, color: '#94a3b8' }} />
+            <div className="ops-card is-tight ops-row is-between is-wrap is-loose">
+                <div className="ops-row is-wrap is-loose">
+                    <div className="ntx-search">
+                        <Search size={16} />
                         <input
                             type="text"
                             placeholder={translate('portal','net_search_placeholder')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '8px 12px 8px 34px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6
-                            }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Filter size={15} style={{ color: '#64748b' }} />
+                    <div className="ops-row is-snug">
+                        <Filter size={15} className="ops-muted" />
                         <select
                             value={rankFilter}
                             onChange={e => setRankFilter(e.target.value)}
-                            style={{
-                                padding: '8px 12px',
-                                fontSize: 13,
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 6,
-                                background: '#ffffff',
-                                color: '#334155'
-                            }}
                         >
                             <option value="all">{translate('portal','net_all_ranks')}</option>
                             <option value="dealer">{translate('portal','acct_role_dealer')}</option>
@@ -340,67 +274,33 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <button
                             type="button"
                             onClick={() => setFocusedRootId(null)}
-                            style={{
-                                padding: '6px 12px',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: '#fef2f2',
-                                color: '#b91c1c',
-                                border: '1px solid #fecaca',
-                                borderRadius: 6,
-                                cursor: 'pointer'
-                            }}
+                            className="button small danger"
                         >
                             ✕ {translate('portal','net_reset_focus')}
                         </button>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div className="ops-row is-wrap is-loose">
                     <a
                         href="/exports/genealogy"
                         className="button small"
                         title={translate('portal', 'net_export_hint')}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
                         <Download size={14} /> {translate('portal', 'net_export_csv')}
                     </a>
-                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3 }}>
+                <div className="hub-seg">
                     <button
                         type="button"
                         onClick={() => setViewMode('tree')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            background: viewMode === 'tree' ? '#ffffff' : 'transparent',
-                            color: viewMode === 'tree' ? '#006837' : '#64748b',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5
-                        }}
+                        className={viewMode === 'tree' ? 'is-active' : undefined}
                     >
                         <GitFork size={14} /> {translate('portal','net_view_tree')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setViewMode('table')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            background: viewMode === 'table' ? '#ffffff' : 'transparent',
-                            color: viewMode === 'table' ? '#006837' : '#64748b',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5
-                        }}
+                        className={viewMode === 'table' ? 'is-active' : undefined}
                     >
                         <Users size={14} /> {translate('portal','net_view_table')}
                     </button>
@@ -409,38 +309,23 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
             </div>
 
             {/* Main Interactive Content Area: Tree or Table + Inspection Drawer */}
-            <div style={{ display: 'grid', gridTemplateColumns: activeDealer ? '1fr 340px' : '1fr', gap: 20, alignItems: 'start' }}>
+            <div className={`ntx-main${activeDealer ? ' has-drawer' : ''}`}>
                 {viewMode === 'tree' ? (
-                    <div style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 12,
-                        padding: 24,
-                        minHeight: 520,
-                        overflowX: 'auto'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div className="ops-card ntx-tree">
+                        <div className="ops-row is-between is-wrap ops-mb-4">
                             <div>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                                <h3 className="hub-title">
                                     {focusedRootId ? translate('portal','net_subtree_for',{name: dealerMap[focusedRootId]?.name || '—'}) : translate('portal','net_company_tree')}
                                 </h3>
-                                <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0 0' }}>
+                                <p className="hub-sub">
                                     {translate('portal', 'net_tree_hint')}
                                 </p>
                             </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
+                            <div className="ops-row">
                                 <button
                                     type="button"
                                     onClick={() => setCollapsedNodes({})}
-                                    style={{
-                                        fontSize: 12,
-                                        fontWeight: 600,
-                                        padding: '5px 10px',
-                                        background: '#f8fafc',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: 6,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="button small"
                                 >
                                     {translate('portal','net_expand_all')}
                                 </button>
@@ -451,15 +336,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         dealers.forEach(d => { if ((childrenMap[d.id] || []).length > 0) c[d.id] = true; });
                                         setCollapsedNodes(c);
                                     }}
-                                    style={{
-                                        fontSize: 12,
-                                        fontWeight: 600,
-                                        padding: '5px 10px',
-                                        background: '#f8fafc',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: 6,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="button small"
                                 >
                                     {translate('portal','net_collapse_all')}
                                 </button>
@@ -467,13 +344,13 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         </div>
 
                         {/* Tree Nodes Rendering */}
-                        <div style={{ paddingTop: 8 }}>
+                        <div className="ntx-forest">
                             {focusedRootId ? (
                                 dealerMap[focusedRootId] ? renderTreeNode(dealerMap[focusedRootId], 0) : <p>{translate('portal','net_root_missing')}</p>
                             ) : roots.length > 0 ? (
                                 roots.map(rootNode => renderTreeNode(rootNode, 0))
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
+                                <div className="hub-empty is-plain ntx-empty">
                                     {translate('portal','net_no_roots')}
                                 </div>
                             )}
@@ -481,7 +358,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                     </div>
                 ) : (
                     /* Table View */
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+                    <div className="ops-card">
                         <Table
                             columns={[
                                 {
@@ -491,8 +368,8 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     sortValue: (d: DealerNode) => d.name,
                                     render: (d: DealerNode) => (
                                         <div>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{d.name}</div>
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>{d.phone || translate('portal', 'net_no_phone')}</div>
+                                            <div className="hub-strong">{d.name}</div>
+                                            <div className="ops-meta">{d.phone || translate('portal', 'net_no_phone')}</div>
                                         </div>
                                     ),
                                 },
@@ -501,7 +378,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     title: translate('portal', 'net_code'),
                                     sortable: true,
                                     sortValue: (d: DealerNode) => d.dealer_code || '',
-                                    render: (d: DealerNode) => <span style={{ fontWeight: 600 }}>{d.dealer_code || '—'}</span>,
+                                    render: (d: DealerNode) => <span className="ops-semibold">{d.dealer_code || '—'}</span>,
                                 },
                                 {
                                     key: 'rank',
@@ -511,15 +388,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     render: (d: DealerNode) => {
                                         const badge = rankBadgeStyles[d.rank] || rankBadgeStyles.dealer;
                                         return (
-                                            <span style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 6px',
-                                                borderRadius: 4,
-                                                background: badge.bg,
-                                                color: badge.text,
-                                                border: `1px solid ${badge.border}`
-                                            }}>
+                                            <span className={`ntx-rank ${badge.tone}`}>
                                                 {translate('portal', badge.labelKey)}
                                             </span>
                                         );
@@ -533,7 +402,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     render: (d: DealerNode) => d.sponsor_name ? (
                                         <span>{d.sponsor_name}</span>
                                     ) : (
-                                        <span style={{ color: '#94a3b8' }}>{translate('portal', 'net_company_direct')}</span>
+                                        <span className="ops-faint">{translate('portal', 'net_company_direct')}</span>
                                     ),
                                 },
                                 {
@@ -543,7 +412,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     align: 'right',
                                     sortValue: (d: DealerNode) => Number(d.lifetime_purchases) || 0,
                                     render: (d: DealerNode) => (
-                                        <span style={{ fontWeight: 700, color: '#006837' }}>
+                                        <span className="ops-bold tone-brand">
                                             {money(d.lifetime_purchases)}
                                         </span>
                                     ),
@@ -557,14 +426,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     render: (d: DealerNode) => {
                                         const directCount = (childrenMap[d.id] || []).length;
                                         return (
-                                            <span style={{
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 10,
-                                                background: directCount > 0 ? '#e0f2fe' : '#f1f5f9',
-                                                color: directCount > 0 ? '#0369a1' : '#94a3b8'
-                                            }}>
+                                            <span className={`ntx-count${directCount > 0 ? ' tone-info' : ''}`}>
                                                 {directCount}
                                             </span>
                                         );
@@ -582,16 +444,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                                 setFocusedRootId(d.id);
                                                 setViewMode('tree');
                                             }}
-                                            style={{
-                                                fontSize: 11,
-                                                fontWeight: 600,
-                                                padding: '4px 8px',
-                                                background: '#ecfdf5',
-                                                color: '#047857',
-                                                border: '1px solid #a7f3d0',
-                                                borderRadius: 4,
-                                                cursor: 'pointer'
-                                            }}
+                                            className="button small light"
                                         >
                                             {translate('portal', 'net_view_tree_btn')} ↗
                                         </button>
@@ -600,10 +453,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             ]}
                             data={filteredDealers}
                             onRowClick={(d: DealerNode) => setSelectedDealerId(d.id)}
-                            rowStyle={(d: DealerNode) => ({
-                                background: selectedDealerId === d.id ? '#f0fdf4' : 'transparent',
-                                cursor: 'pointer',
-                            })}
+                            rowClassName={(d: DealerNode) => (selectedDealerId === d.id ? 'ntx-row is-selected' : 'ntx-row')}
                             pageSize={15}
                             emptyMessage={translate('portal', 'net_no_match')}
                         />
@@ -612,118 +462,83 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
 
                 {/* Right-Hand Inspection Card for Selected Dealer */}
                 {activeDealer && (
-                    <div style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 12,
-                        padding: 20,
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                        position: 'sticky',
-                        top: 20
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div className="ops-card ntx-drawer">
+                        <div className="ops-row is-between is-top">
                             <div>
-                                <span style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    background: (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).bg,
-                                    color: (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).text,
-                                    border: `1px solid ${(rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).border}`
-                                }}>
+                                <span className={`ntx-rank ${(rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).tone}`}>
                                     {translate('portal', (rankBadgeStyles[activeDealer.rank] || rankBadgeStyles.dealer).labelKey)}
                                 </span>
-                                <h3 style={{ fontSize: 17, fontWeight: 800, margin: '8px 0 2px 0', color: '#0f172a' }}>
+                                <h3 className="ntx-drawer-name">
                                     {activeDealer.name}
                                 </h3>
-                                <div style={{ fontSize: 12, color: '#64748b' }}>
+                                <div className="ops-caption">
                                     {translate('portal','net_code')}: <b>{activeDealer.dealer_code || '—'}</b>
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSelectedDealerId(null)}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    fontSize: 18,
-                                    color: '#94a3b8',
-                                    cursor: 'pointer',
-                                    padding: 4
-                                }}
+                                className="hub-dismiss ntx-close"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '14px 0' }} />
+                        <hr className="hub-divider" />
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
-                                <Phone size={14} style={{ color: '#94a3b8' }} />
+                        <div className="ops-stack ops-fs-xs">
+                            <div className="ops-row ops-text-2">
+                                <Phone size={14} className="ops-faint" />
                                 <span>{activeDealer.phone || translate('portal','net_no_phone')}</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
-                                <MapPin size={14} style={{ color: '#94a3b8' }} />
+                            <div className="ops-row ops-text-2">
+                                <MapPin size={14} className="ops-faint" />
                                 <span>{activeDealer.district || '—'}, {activeDealer.division || '—'}</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
-                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                            <div className="ops-row ops-text-2">
+                                <Calendar size={14} className="ops-faint" />
                                 <span>{translate('portal','net_joined')}: {date(activeDealer.created_at)}</span>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
-                                <DollarSign size={14} style={{ color: '#94a3b8' }} />
-                                <span>{translate('portal','net_lifetime_purchases')}: <b style={{ color: '#006837' }}>{money(activeDealer.lifetime_purchases)}</b></span>
+                            <div className="ops-row ops-text-2">
+                                <DollarSign size={14} className="ops-faint" />
+                                <span>{translate('portal','net_lifetime_purchases')}: <b className="tone-brand">{money(activeDealer.lifetime_purchases)}</b></span>
                             </div>
                         </div>
 
-                        <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '14px 0' }} />
+                        <hr className="hub-divider" />
 
                         {/* Network Stats */}
                         <div>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 8 }}>
+                            <div className="hub-label ops-mb-2">
                                 {translate('portal','net_subtree_stats')}
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#0369a1' }}>
+                            <div className="ntx-substats">
+                                <div className="ntx-substat tone-info">
+                                    <div className="hub-value">
                                         {(childrenMap[activeDealer.id] || []).length}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{translate('portal','net_direct_referrals')}</div>
+                                    <div className="ops-meta">{translate('portal','net_direct_referrals')}</div>
                                 </div>
-                                <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: 8, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#006837' }}>
+                                <div className="ntx-substat tone-brand">
+                                    <div className="hub-value">
                                         {getDownlineCount(activeDealer.id)}
                                     </div>
-                                    <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{translate('portal','net_total_downline')}</div>
+                                    <div className="ops-meta">{translate('portal','net_total_downline')}</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Sponsor info */}
-                        <div style={{ marginTop: 14, background: '#f8fafc', padding: 12, borderRadius: 8 }}>
-                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal','net_direct_sponsor')}</div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginTop: 2 }}>
+                        <div className="hub-well ops-mt-3">
+                            <div className="hub-label">{translate('portal','net_direct_sponsor')}</div>
+                            <div className="hub-strong ops-fs-sm ops-mt-1">
                                 {activeDealer.sponsor_name || translate('portal','net_company_placement')}
                             </div>
                             {activeDealer.sponsor_id && (
                                 <button
                                     type="button"
                                     onClick={() => setSelectedDealerId(activeDealer.sponsor_id)}
-                                    style={{
-                                        marginTop: 6,
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        color: '#006837',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: 0,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 4
-                                    }}
+                                    className="ntx-link"
                                 >
                                     {translate('portal','net_inspect_sponsor')}
                                 </button>
@@ -733,15 +548,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         {isDealerPortal && activeDealer.id && (
                             <Link
                                 href={`/network?member_id=${activeDealer.id}`}
-                                className="button small"
-                                style={{
-                                    marginTop: 12,
-                                    width: '100%',
-                                    justifyContent: 'center',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                }}
+                                className="button small hub-block ops-mt-3"
                             >
                                 <Eye size={14} /> {translate('portal', 'net_view_timeline')}
                             </Link>
@@ -754,22 +561,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                 setFocusedRootId(activeDealer.id);
                                 setViewMode('tree');
                             }}
-                            style={{
-                                marginTop: 16,
-                                width: '100%',
-                                padding: '10px',
-                                background: '#006837',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: 8,
-                                fontWeight: 700,
-                                fontSize: 12,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 6
-                            }}
+                            className="button dark hub-block ops-mt-4"
                         >
                             <GitFork size={15} /> {translate('portal','net_focus_subtree')}
                         </button>
