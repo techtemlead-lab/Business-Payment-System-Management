@@ -47,12 +47,13 @@ interface RankRoyaltyHubProps {
     policy?: {qualification: Record<string,number|string>; incentives: Record<string,number|string>; pool_pct?: number|string|null};
 }
 
-const rankBadgeStyles: Record<string, { bg: string; text: string; border: string }> = {
-    dealer: { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
-    mo: { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' },
-    am: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
-    sm: { bg: '#faf5ff', text: '#7e22ce', border: '#e9d5ff' },
-    me: { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+/** Design-system tone class for each rank's tag, tier card and roster pill. */
+const rankBadgeStyles: Record<string, { tone: string }> = {
+    dealer: { tone: 'tone-neutral' },
+    mo: { tone: 'tone-ok' },
+    am: { tone: 'tone-info' },
+    sm: { tone: 'tone-violet' },
+    me: { tone: 'tone-warn' },
 };
 
 
@@ -134,133 +135,111 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
         : [];
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="hub">
             {personalHistory.length > 0 && (
-                <section className="panel" style={{ margin: 0 }}>
+                <section className="panel">
                     <div className="panel-heading">
                         <div>
-                            <h2 style={{ margin: 0, fontSize: 16 }}>{translate('portal','rank_history_title')}</h2>
-                            <p className="muted" style={{ margin: '4px 0 0' }}>{translate('portal','rank_history_hint')}</p>
+                            <h2>{translate('portal','rank_history_title')}</h2>
+                            <p className="muted">{translate('portal','rank_history_hint')}</p>
                         </div>
                         <span className="badge">{String(ranks[0].current_rank).toUpperCase()}</span>
                     </div>
-                    <ol style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <ol className="rk-history">
                         {personalHistory.map((entry, index) => (
-                            <li key={`${entry.rank}-${entry.achieved_at}-${index}`} style={{ color: '#0f172a', fontSize: 13 }}>
-                                <b style={{ textTransform: 'uppercase' }}>{entry.rank}</b>
-                                <span style={{ color: '#64748b' }}> · {date(entry.achieved_at)}</span>
+                            <li key={`${entry.rank}-${entry.achieved_at}-${index}`}>
+                                <b className="hub-upper">{entry.rank}</b>
+                                <span className="muted"> · {date(entry.achieved_at)}</span>
                             </li>
                         ))}
                     </ol>
                 </section>
             )}
             {/* Top Stat Summary Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14 }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal','rank_stat_dealers')}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+            <div className="hub-grid is-narrow">
+                <div className="metric">
+                    <span>{translate('portal','rank_stat_dealers')}</span>
+                    <strong>
                         {stats.dealer_count || ranks.length}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{translate('portal','rank_stat_dealers_hint')}</div>
+                    </strong>
+                    <small>{translate('portal','rank_stat_dealers_hint')}</small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #a7f3d0', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#047857', fontSize: 12, fontWeight: 600 }}>{translate('portal','rank_stat_mo')}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#006837', marginTop: 4 }}>
+                <div className="metric tone-ok">
+                    <span>{translate('portal','rank_stat_mo')}</span>
+                    <strong>
                         {stats.mo_count}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{royaltyText(q.mo_share_pct)}</div>
+                    </strong>
+                    <small>{royaltyText(q.mo_share_pct)}</small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>{translate('portal','rank_stat_am')}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8', marginTop: 4 }}>
+                <div className="metric tone-info">
+                    <span>{translate('portal','rank_stat_am')}</span>
+                    <strong>
                         {stats.am_count}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#3b82f6', marginTop: 2 }}>{royaltyText(q.am_share_pct)}</div>
+                    </strong>
+                    <small>{royaltyText(q.am_share_pct)}</small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e9d5ff', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#7e22ce', fontSize: 12, fontWeight: 600 }}>{translate('portal','rank_stat_sm')}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#7e22ce', marginTop: 4 }}>
+                <div className="metric tone-violet">
+                    <span>{translate('portal','rank_stat_sm')}</span>
+                    <strong>
                         {stats.sm_count}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#a855f7', marginTop: 2 }}>{royaltyText(q.sm_share_pct)}</div>
+                    </strong>
+                    <small>{royaltyText(q.sm_share_pct)}</small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #fde68a', borderRadius: 10, padding: 16 }}>
-                    <div style={{ color: '#b45309', fontSize: 12, fontWeight: 600 }}>{translate('portal','rank_stat_me')}</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#b45309', marginTop: 4 }}>
+                <div className="metric tone-warn">
+                    <span>{translate('portal','rank_stat_me')}</span>
+                    <strong>
                         {stats.me_count}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#d97706', marginTop: 2 }}>{royaltyText(q.me_share_pct)}</div>
+                    </strong>
+                    <small>{royaltyText(q.me_share_pct)}</small>
                 </div>
             </div>
 
             {/* Rank Ladder Progression Visualizer */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                padding: '20px 24px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div className="panel">
+                <div className="panel-heading">
                     <div>
-                        <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        <h3 className="hub-title">
                             {translate('portal','rank_framework_title')}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0 0' }}>
+                        <p className="hub-sub">
                             {translate('portal','rank_framework_hint')}
                         </p>
                     </div>
-                    <div style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#ecfdf5', color: '#047857', borderRadius: 20 }}>
+                    <div className="hub-pill tone-ok">
                         {poolPct === null ? notSet : translate('portal','rank_combined_pool_live',{pct:poolPct.toFixed(2)})}
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+                <div className="hub-grid">
                     {rankHierarchy.map((tier, idx) => (
                         <div
                             key={tier.key}
-                            style={{
-                                border: `1.5px solid ${tier.badge.border}`,
-                                borderRadius: 10,
-                                padding: 14,
-                                background: '#fafafa',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'space-between'
-                            }}
+                            className={`hub-tile hub-col is-soft is-accent rk-tier ${tier.badge.tone}`}
                         >
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8' }}>{translate('portal','rank_level',{n:String(idx+1)})}</span>
-                                    <span style={{
-                                        fontSize: 9,
-                                        fontWeight: 800,
-                                        padding: '2px 5px',
-                                        borderRadius: 4,
-                                        background: tier.badge.bg,
-                                        color: tier.badge.text,
-                                        border: `1px solid ${tier.badge.border}`
-                                    }}>
+                                <div className="hub-row is-between">
+                                    <span className="rk-level">{translate('portal','rank_level',{n:String(idx+1)})}</span>
+                                    <span className="hub-pill">
                                         {tier.badge.label}
                                     </span>
                                 </div>
-                                <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
+                                <div className="hub-title is-sm">
                                     {tier.name}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#475569', marginTop: 6, lineHeight: 1.4 }}>
+                                <div className="rk-req">
                                     <b>{translate('portal','rank_requirement')}:</b> {tier.requirement}
                                 </div>
                             </div>
 
-                            <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid #e2e8f0', fontSize: 11 }}>
-                                <div style={{ color: '#006837', fontWeight: 600 }}>
+                            <div className="rk-tier-foot">
+                                <div className="tone-brand">
                                     🎁 {tier.incentive}
                                 </div>
-                                <div style={{ color: '#1d4ed8', fontWeight: 600, marginTop: 2 }}>
+                                <div className="tone-info">
                                     💎 {translate('portal','rank_royalty_label')}: {tier.royaltyShare}
                                 </div>
                             </div>
@@ -270,7 +249,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
             </div>
 
             {/* Roster Table */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16 }}>
+            <div className="panel table-panel">
                 <Table
                     columns={[
                         {
@@ -280,8 +259,8 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             sortValue: (r: RankRecord) => r.name || '',
                             render: (r: RankRecord) => (
                                 <div>
-                                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{r.name || translate('portal', 'rank_unnamed')}</div>
-                                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                                    <div className="hub-strong">{r.name || translate('portal', 'rank_unnamed')}</div>
+                                    <div className="cell-sub">
                                         {r.phone || translate('portal', 'net_no_phone')} {r.district ? `• ${r.district}` : ''}
                                     </div>
                                 </div>
@@ -292,7 +271,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             title: translate('portal', 'net_code'),
                             sortable: true,
                             sortValue: (r: RankRecord) => r.dealer_code || '',
-                            render: (r: RankRecord) => <span style={{ fontWeight: 600 }}>{r.dealer_code || '—'}</span>,
+                            render: (r: RankRecord) => <span className="hub-strong">{r.dealer_code || '—'}</span>,
                         },
                         {
                             key: 'current_rank',
@@ -302,15 +281,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             render: (r: RankRecord) => {
                                 const rankCfg = rankHierarchy.find(x => x.key === r.current_rank) || rankHierarchy[0];
                                 return (
-                                    <span style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        padding: '2px 7px',
-                                        borderRadius: 4,
-                                        background: rankCfg.badge.bg,
-                                        color: rankCfg.badge.text,
-                                        border: `1px solid ${rankCfg.badge.border}`
-                                    }}>
+                                    <span className={`hub-pill ${rankCfg.badge.tone}`}>
                                         {rankCfg.badge.label}
                                     </span>
                                 );
@@ -323,7 +294,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             align: 'right',
                             sortValue: (r: RankRecord) => Number(r.lifetime_purchase_total) || 0,
                             render: (r: RankRecord) => (
-                                <span style={{ fontWeight: 700, color: '#006837' }}>
+                                <span className="hub-strong tone-brand">
                                     {money(r.lifetime_purchase_total)}
                                 </span>
                             ),
@@ -335,7 +306,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             align: 'right',
                             sortValue: (r: RankRecord) => Number(r.monthly_purchase_total) || 0,
                             render: (r: RankRecord) => (
-                                <span style={{ color: '#475569' }}>
+                                <span>
                                     {money(r.monthly_purchase_total)}
                                 </span>
                             ),
@@ -346,7 +317,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             sortable: true,
                             sortValue: (r: RankRecord) => r.achieved_at || '',
                             render: (r: RankRecord) => (
-                                <span style={{ color: '#64748b', fontSize: 12 }}>
+                                <span className="muted">
                                     {r.achieved_at ? date(r.achieved_at) : '—'}
                                 </span>
                             ),
@@ -358,18 +329,10 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             sortValue: (r: RankRecord) => r.one_time_incentive_paid ? 1 : 0,
                             render: (r: RankRecord) => {
                                 if (r.current_rank === 'dealer') {
-                                    return <span style={{ color: '#94a3b8' }}>—</span>;
+                                    return <span className="muted">—</span>;
                                 }
                                 return (
-                                    <span style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        padding: '2px 6px',
-                                        borderRadius: 4,
-                                        background: r.one_time_incentive_paid ? '#dcfce7' : '#fffbeb',
-                                        color: r.one_time_incentive_paid ? '#15803d' : '#b45309',
-                                        border: `1px solid ${r.one_time_incentive_paid ? '#a7f3d0' : '#fde68a'}`
-                                    }}>
+                                    <span className={`badge ${r.one_time_incentive_paid ? 'tone-ok' : 'tone-warn'}`}>
                                         {r.one_time_incentive_paid ? translate('portal', 'rank_paid') : translate('portal', 'rank_pending')}
                                     </span>
                                 );
@@ -383,18 +346,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                                 <button
                                     type="button"
                                     onClick={() => setAuditingPartner(r)}
-                                    style={{
-                                        fontSize: 11,
-                                        fontWeight: 600,
-                                        padding: '4px 8px',
-                                        background: '#f8fafc',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: 4,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 4
-                                    }}
+                                    className="button small"
                                 >
                                     <Eye size={12} /> {translate('portal', 'rank_inspect')}
                                 </button>
@@ -423,51 +375,30 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
 
             {/* Audit Modal for Selected Partner */}
             {auditingPartner && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 9999, padding: 16
-                }}>
-                    <div style={{
-                        background: '#ffffff',
-                        borderRadius: 12,
-                        maxWidth: 480,
-                        width: '100%',
-                        padding: 24,
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="hub-overlay">
+                    <div className="hub-dialog">
+                        <div className="hub-dialog-head">
                             <div>
-                                <span style={{
-                                    fontSize: 10,
-                                    fontWeight: 700,
-                                    padding: '2px 6px',
-                                    borderRadius: 4,
-                                    background: (rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.bg,
-                                    color: (rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.text,
-                                    border: `1px solid ${(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.border}`
-                                }}>
+                                <span className={`hub-pill ${(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.tone}`}>
                                     {(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.label}
                                 </span>
-                                <h3 style={{ fontSize: 18, fontWeight: 800, margin: '8px 0 2px 0', color: '#0f172a' }}>
+                                <h3 className="hub-title is-lg">
                                     {auditingPartner.name}
                                 </h3>
-                                <div style={{ fontSize: 12, color: '#64748b' }}>
+                                <div className="hub-hint">
                                     {translate('portal','net_code')}: <b>{auditingPartner.dealer_code}</b> • {translate('portal','acct_phone')}: {auditingPartner.phone || '—'}
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setAuditingPartner(null)}
-                                style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer' }}
+                                className="icon-button"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '14px 0' }} />
+                        <hr className="hub-divider" />
 
                         {/* Progress Towards MO Target */}
                         {(() => {
@@ -476,22 +407,17 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                                 : 0;
 
                             return (
-                        <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700 }}>
+                        <div className="hub-well">
+                            <div className="hub-row is-between rk-milestone">
                                 <span>{moTarget === null ? notSet : translate('portal','rank_mo_milestone',{amount:money(moTarget)})}</span>
-                                <span style={{ color: '#006837' }}>
+                                <span className="tone-brand">
                                     {moTarget === null ? '—' : `${Math.round(progress)}%`}
                                 </span>
                             </div>
-                            <div style={{ width: '100%', height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
-                                <div style={{
-                                    height: '100%',
-                                    width: `${progress}%`,
-                                    background: '#006837',
-                                    borderRadius: 4
-                                }} />
+                            <div className="hub-progress">
+                                <div style={{ width: `${progress}%` }} />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginTop: 6 }}>
+                            <div className="hub-row is-between hub-hint">
                                 <span>{translate('portal','rank_current')}: {money(auditingPartner.lifetime_purchase_total)}</span>
                                 <span>{translate('portal','rank_target')}: {moneyOrNotSet(moTarget)}</span>
                             </div>
@@ -500,19 +426,19 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                         })()}
 
                         {/* AM Downline Qualification Progress */}
-                        <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, marginTop: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>
+                        <div className="hub-well">
+                            <div className="hub-label tone-info">
                                 {translate('portal','rank_am_downline')}
                             </div>
-                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                            <div className="hub-hint">
                                 {leadersRequirement(q.am_count,'rank_short_mo')}
                             </div>
                         </div>
 
                         {/* Royalty Status */}
-                        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: 12, borderRadius: 8, marginTop: 12, fontSize: 12 }}>
-                            <div style={{ fontWeight: 700, color: '#047857' }}>{translate('portal','rank_pool_participation')}</div>
-                            <div style={{ color: '#065f46', marginTop: 2 }}>
+                        <div className="hub-well is-tinted tone-ok">
+                            <div className="hub-strong tone-ok">{translate('portal','rank_pool_participation')}</div>
+                            <div className="hub-hint">
                                 {auditingPartner.current_rank === 'dealer'
                                     ? (moTarget === null ? notSet : translate('portal','rank_needs_mo_live',{amount:money(moTarget)}))
                                     : policyNumber(q[`${auditingPartner.current_rank}_share_pct`]) === null
@@ -521,20 +447,11 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                        <div className="hub-row is-end hub-dialog-foot">
                             <button
                                 type="button"
                                 onClick={() => setAuditingPartner(null)}
-                                style={{
-                                    padding: '8px 16px',
-                                    background: '#006837',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    fontWeight: 700,
-                                    fontSize: 12,
-                                    cursor: 'pointer'
-                                }}
+                                className="button small dark"
                             >
                                 {translate('portal','rank_close_audit')}
                             </button>

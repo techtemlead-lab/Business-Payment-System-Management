@@ -2841,9 +2841,12 @@ html[data-theme="dark"] [data-tooltip]:hover::after,html[data-theme="dark"] [dat
 }
 
 /* ---- Inline-style bridge ----------------------------------------------
-   Several hubs (payouts, settlements, commissions, rewards) paint with
-   inline light-mode colours. These rules map the common ones onto tokens
-   so dark mode stays legible, and keep labels in sentence case. */
+   Some screens (area dealers, employees, network tree, product editor,
+   site customisation, ...) still paint with inline light-mode colours.
+   These rules map the common ones onto tokens so dark mode stays legible,
+   and keep labels in sentence case. Payouts, settlements, commissions,
+   treasury, ranks, rewards and the password panel use the "Hub screens"
+   classes at the end of this file instead. */
 .app-shell .portal-workspace-body [style*="text-transform: uppercase"]{text-transform:none!important;letter-spacing:.01em!important}
 html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(255, 255, 255)"],[style*="background-color: rgb(255, 255, 255)"],[style*="background: white"]){background:var(--ds-surface)!important}
 html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(248, 250, 252)"],[style*="background: rgb(250, 250, 250)"],[style*="background: rgb(252, 252, 253)"]){background:var(--ds-surface-2)!important}
@@ -2860,7 +2863,7 @@ html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style
 html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(46, 49, 146)"],[style*="color: rgb(29, 78, 216)"],[style*="color: rgb(30, 64, 175)"],[style*="color: rgb(37, 99, 235)"],[style*="color: rgb(3, 105, 161)"]){color:var(--ds-info-fg)!important}
 html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(153, 27, 27)"],[style*="color: rgb(185, 28, 28)"],[style*="color: rgb(220, 38, 38)"],[style*="color: rgb(225, 29, 72)"]){color:var(--ds-danger-fg)!important}
 html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="color: rgb(180, 83, 9)"],[style*="color: rgb(154, 52, 18)"],[style*="color: rgb(217, 119, 6)"],[style*="color: rgb(146, 64, 14)"]){color:var(--ds-warn-fg)!important}
-html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(250, 245, 255)"],[style*="background: rgb(245, 243, 255)"],[style*="background: rgb(238, 242, 255)"]){background:var(--ds-transit-bg)!important}
+html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style*="background: rgb(250, 245, 255)"],[style*="background: rgb(238, 242, 255)"]){background:var(--ds-transit-bg)!important}
 /* Sidebar nav scrollbar sits in the sidebar's right padding instead of eating label width */
 .app-shell .sidebar .sidebar-nav-container{margin-right:-8px;padding-right:0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) transparent;scrollbar-gutter:stable}
 .app-shell .portal-site-header .portal-logo{height:60px;min-width:60px;width:auto}
@@ -2901,3 +2904,205 @@ html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style
 .onboarding-tour-card .onboarding-tag{font-size:var(--ds-fs-2xs);font-weight:600}
 .onboarding-tour-card .onboarding-tag.audience{background:var(--ds-brand-soft);color:var(--ds-brand-text);border-color:transparent}
 .onboarding-spotlight-ring{border-color:var(--ds-accent);border-radius:var(--ds-r-lg)}
+
+/* =========================================================================
+   Hub screens: payouts, settlements, commissions, treasury, ranks, rewards,
+   account password panel. Shared hub-* primitives, tone-* colour modifiers
+   and short per-screen prefixes (pay-, st-, cs-, tr-, rk-, rw-, pw-).
+   Tokens only, so light and dark mode both follow --ds-*.
+   Order matters: text rules that fix their own colour (.hub-strong) come
+   before the tones so a tone on the same element wins; containers
+   (.hub-tile) come after, so a tone on a container only tints the
+   consumers inside it (label, hint, value, pill, icon, step, bar).
+   ========================================================================= */
+.app-shell .hub-title{margin:0}
+.app-shell .hub{display:flex;flex-direction:column;gap:var(--ds-s-5);min-width:0}
+.app-shell .hub>:is(.panel,.metric){margin:0}
+.app-shell .hub .metric{background:var(--ds-surface)}
+.app-shell .hub .panel-heading{flex-wrap:wrap}
+.app-shell .panel-heading.is-top{align-items:flex-start}
+.app-shell .hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--ds-s-4)}
+.app-shell .hub-grid.is-narrow{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:var(--ds-s-3)}
+.app-shell .hub-grid.is-wide{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.app-shell .hub-grid.is-xwide{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:var(--ds-s-5)}
+.app-shell .hub-grid>*{min-width:0}
+.app-shell .hub-span-all{grid-column:1 / -1}
+.app-shell .hub-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--ds-s-2);min-width:0}
+.app-shell .hub-row.is-between{justify-content:space-between;gap:var(--ds-s-3) var(--ds-s-4)}
+.app-shell .hub-row.is-end{justify-content:flex-end}
+.app-shell .hub-row.is-top{align-items:flex-start}
+.app-shell .hub-row.is-loose{gap:var(--ds-s-4)}
+.app-shell .hub-media{display:flex;align-items:center;gap:var(--ds-s-3);min-width:0}
+.app-shell .hub-kicker{display:flex;align-items:center;flex-wrap:wrap;gap:var(--ds-s-2);margin-bottom:6px}
+.app-shell .hub-inline{display:inline-flex;align-items:center;gap:4px}
+.app-shell .hub-col{display:flex;flex-direction:column;justify-content:space-between;gap:var(--ds-s-3)}
+.app-shell .hub-section{margin-top:var(--ds-s-6)}
+.app-shell .hub-spaced{margin-bottom:var(--ds-s-4)}
+
+/* Text that keeps its own colour unless a tone sits on the same element */
+.app-shell :is(h2,h3,h4,div).hub-title{font-size:var(--ds-fs-md);font-weight:650;line-height:var(--ds-lh-tight);letter-spacing:-.005em;color:var(--ds-text)}
+.app-shell :is(h2,h3,h4,div).hub-title.is-lg{font-size:var(--ds-fs-lg)}
+.app-shell :is(h2,h3,h4,div).hub-title.is-sm{font-size:var(--ds-fs-base)}
+.app-shell :is(.hub-label,.hub-kicker)+.hub-title{margin-top:4px}
+.app-shell .hub-flag+.hub-title{margin-top:6px}
+.app-shell .hub-section>.hub-title{margin-bottom:var(--ds-s-3)}
+.app-shell .hub-sub{margin:4px 0 0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .hub-sub.is-lead{margin-bottom:var(--ds-s-5)}
+.app-shell .hub-note{margin:0 0 var(--ds-s-4);font-size:var(--ds-fs-xs);line-height:1.5;color:var(--ds-text-muted)}
+.app-shell .hub-strong{font-weight:650;color:var(--ds-text)}
+.app-shell .hub-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--ds-fs-xs)}
+.app-shell .hub-upper{text-transform:uppercase;letter-spacing:.02em}
+.app-shell .hub-capital{text-transform:capitalize}
+.app-shell .hub-nowrap{white-space:nowrap}
+
+/* ---- Tones ------------------------------------------------------------- */
+.app-shell :is(.tone-neutral,.tone-brand,.tone-ok,.tone-info,.tone-warn,.tone-orange,.tone-danger,.tone-violet,.tone-teal){color:var(--tone-fg)}
+.app-shell .tone-neutral{--tone-bg:var(--ds-neutral-bg);--tone-fg:var(--ds-neutral-fg)}
+.app-shell .tone-brand{--tone-bg:var(--ds-brand-soft);--tone-fg:var(--ds-brand-text)}
+.app-shell .tone-ok{--tone-bg:var(--ds-ok-bg);--tone-fg:var(--ds-ok-fg)}
+.app-shell .tone-info{--tone-bg:var(--ds-info-bg);--tone-fg:var(--ds-info-fg)}
+.app-shell .tone-warn{--tone-bg:var(--ds-warn-bg);--tone-fg:var(--ds-warn-fg)}
+.app-shell .tone-orange{--tone-bg:var(--ds-orange-bg);--tone-fg:var(--ds-orange-fg)}
+.app-shell .tone-danger{--tone-bg:var(--ds-danger-bg);--tone-fg:var(--ds-danger-fg)}
+.app-shell .tone-violet{--tone-bg:var(--ds-transit-bg);--tone-fg:var(--ds-transit-fg)}
+.app-shell .tone-teal{--tone-bg:var(--ds-teal-bg);--tone-fg:var(--ds-teal-fg)}
+.app-shell .badge:is(.tone-neutral,.tone-brand,.tone-ok,.tone-info,.tone-warn,.tone-orange,.tone-danger,.tone-violet,.tone-teal){background:var(--tone-bg);color:var(--tone-fg)}
+.app-shell .metric:is(.tone-neutral,.tone-brand,.tone-ok,.tone-info,.tone-warn,.tone-orange,.tone-danger,.tone-violet,.tone-teal){border-color:color-mix(in srgb,var(--tone-fg) 32%,var(--ds-line))}
+.app-shell .metric:is(.tone-neutral,.tone-brand,.tone-ok,.tone-info,.tone-warn,.tone-orange,.tone-danger,.tone-violet,.tone-teal) strong{color:var(--tone-fg)}
+
+/* Consumers: tinted by a tone on themselves or on any ancestor */
+.app-shell .hub-label{font-size:var(--ds-fs-xs);font-weight:600;line-height:1.35;color:var(--tone-fg,var(--ds-text-muted))}
+.app-shell .hub-hint{font-size:var(--ds-fs-xs);line-height:1.45;color:var(--tone-fg,var(--ds-text-muted))}
+.app-shell .hub-value{display:block;margin:4px 0 2px;font-size:var(--ds-fs-lg);font-weight:650;letter-spacing:-.015em;line-height:1.2;color:var(--tone-fg,var(--ds-text));font-variant-numeric:tabular-nums lining-nums}
+.app-shell .hub-value.is-sm{font-size:var(--ds-fs-base)}
+.app-shell .hub-flag{display:flex;align-items:center;gap:8px;font-size:var(--ds-fs-sm);font-weight:650;color:var(--tone-fg,var(--ds-text))}
+.app-shell .hub-pill{display:inline-flex;align-items:center;gap:6px;min-height:22px;padding:2px 9px;border-radius:var(--ds-r-pill);background:var(--tone-bg,var(--ds-neutral-bg));color:var(--tone-fg,var(--ds-neutral-fg));font-size:var(--ds-fs-xs);font-weight:600;line-height:1.3;white-space:nowrap}
+.app-shell .hub-pill.is-solid{background:var(--ds-text);color:var(--ds-surface)}
+.app-shell .hub-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:40px;height:40px;border-radius:var(--ds-r-md);background:var(--tone-bg,var(--ds-surface-3));color:var(--tone-fg,var(--ds-text-2));font-size:18px;line-height:1}
+.app-shell .hub-step{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--tone-fg,var(--ds-text));color:var(--ds-surface);font-size:var(--ds-fs-2xs);font-weight:700}
+.app-shell .hub-progress{display:flex;width:100%;height:8px;overflow:hidden;border-radius:var(--ds-r-pill);background:var(--ds-surface-3)}
+.app-shell .hub-progress.is-lg{height:10px}
+.app-shell .hub-progress>*{height:100%;background:var(--ds-brand);transition:width .2s ease,background .2s ease}
+.app-shell .hub-progress>:is(.tone-neutral,.tone-brand,.tone-ok,.tone-info,.tone-warn,.tone-orange,.tone-danger,.tone-violet,.tone-teal){background:var(--tone-fg)}
+.app-shell .hub-progress>.is-faded{opacity:.8}
+
+/* ---- Containers: keep their own text colour ----------------------------- */
+.app-shell .hub-tile{display:flex;flex-direction:column;gap:4px;min-width:0;padding:16px 18px;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface);color:var(--ds-text)}
+.app-shell .hub-tile.hub-col{justify-content:space-between;gap:var(--ds-s-3)}
+.app-shell .hub-tile-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.app-shell .hub-tile-head>svg{flex-shrink:0;color:var(--tone-fg,var(--ds-text-faint))}
+.app-shell .hub-tile .treasury-kpi-amount{margin:6px 0 2px;color:var(--tone-fg,var(--ds-text))}
+.app-shell .hub-tile .text-link{align-self:flex-start;margin-top:8px;padding:0;font-size:var(--ds-fs-xs);color:var(--tone-fg,var(--ds-brand-text))}
+.app-shell :is(.panel,.hub-tile).is-soft{background:var(--ds-surface-2)}
+.app-shell :is(.panel,.hub-tile).is-accent{border-color:color-mix(in srgb,var(--tone-fg,var(--ds-line-strong)) 45%,var(--ds-line))}
+.app-shell :is(.panel,.hub-tile,.hub-well).is-tinted{background:var(--tone-bg);border:1px solid color-mix(in srgb,var(--tone-fg) 26%,transparent)}
+.app-shell .hub-well{padding:12px 14px;border-radius:var(--ds-r-md);background:var(--ds-surface-2);color:var(--ds-text)}
+.app-shell .hub-well+.hub-well{margin-top:var(--ds-s-3)}
+.app-shell .hub-ledger{display:flex;flex-direction:column;gap:6px;margin:0 0 var(--ds-s-4);padding:12px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.app-shell .hub-ledger-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:var(--ds-fs-sm);color:var(--tone-fg,var(--ds-text-muted))}
+.app-shell .hub-ledger-row>:last-child{font-weight:650;text-align:right;color:var(--tone-fg,var(--ds-text));font-variant-numeric:tabular-nums lining-nums}
+.app-shell .hub-ledger-row.is-total{padding-top:6px;border-top:1px solid var(--ds-line);font-size:var(--ds-fs-base);font-weight:650}
+.app-shell .hub-empty{padding:16px;border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface-2);color:var(--ds-text-muted);font-size:var(--ds-fs-sm);line-height:1.5}
+.app-shell .hub-empty>p{margin:0}
+.app-shell .hub-empty.is-plain{padding:24px 0;border:0;background:transparent;text-align:center;color:var(--ds-text-muted)}
+.app-shell .hub-loading{padding:20px 0;text-align:center;color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+.app-shell .hub-divider{margin:14px 0;border:0;border-top:1px solid var(--ds-line-soft)}
+
+/* ---- Controls ---------------------------------------------------------- */
+.app-shell .hub-seg{display:inline-flex;flex-wrap:wrap;gap:2px;max-width:100%;padding:3px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-2)}
+.app-shell .hub-seg>button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border:0;border-radius:var(--ds-r-sm);background:transparent;color:var(--ds-text-muted);font-size:var(--ds-fs-xs);font-weight:600;line-height:1.2;white-space:nowrap;cursor:pointer;transition:background .15s ease,color .15s ease}
+.app-shell .hub-seg>button:hover{background:var(--ds-surface-3);color:var(--ds-text)}
+.app-shell .hub-seg>button:is(.is-active,[aria-pressed="true"]){background:var(--ds-surface);color:var(--ds-brand-text);box-shadow:var(--ds-shadow-xs),0 0 0 1px var(--ds-line)}
+html[data-theme="dark"] .app-shell .hub-seg>button:is(.is-active,[aria-pressed="true"]){background:var(--ds-surface-3)}
+.app-shell .button.hub-block{width:100%}
+html[data-theme="dark"] .app-shell .hub .button.danger{color:var(--ds-danger-fg);border-color:color-mix(in srgb,var(--ds-danger-fg) 35%,transparent)}
+html[data-theme="dark"] .app-shell .hub .button.danger:hover{background:var(--ds-danger-bg);border-color:var(--ds-danger-fg)}
+.app-shell label.hub-inline-field{flex-direction:row;align-items:center;gap:8px}
+.app-shell label.hub-inline-field>input{width:auto}
+.app-shell .hub-field{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+.app-shell .hub-field.is-last{margin-bottom:var(--ds-s-5)}
+.app-shell label.hub-choice{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--ds-text);cursor:pointer}
+.app-shell .hub-alert{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.app-shell .hub-dismiss{flex-shrink:0;min-width:28px;min-height:28px;padding:0 6px;border:0;border-radius:var(--ds-r-sm);background:transparent;color:inherit;font-weight:700;cursor:pointer}
+.app-shell .hub-dismiss:hover{background:color-mix(in srgb,currentColor 12%,transparent)}
+.app-shell .hub-quiet{padding:0;border:0;background:none;color:var(--ds-text-muted);font-size:var(--ds-fs-xs);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.app-shell .hub-quiet:hover{color:var(--ds-text)}
+
+/* ---- In-page dialogs --------------------------------------------------- */
+.app-shell .hub-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--ds-overlay);backdrop-filter:blur(2px)}
+.app-shell .hub-dialog{width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;border:1px solid var(--ds-line);border-radius:var(--ds-r-xl);background:var(--ds-surface);color:var(--ds-text);box-shadow:var(--ds-shadow-lg)}
+.app-shell .hub-dialog.is-wide{max-width:640px}
+.app-shell .hub-dialog-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.app-shell .hub-dialog-head .hub-title{margin:6px 0 2px}
+.app-shell .hub-dialog>.hub-sub{margin:6px 0 16px}
+.app-shell .hub-dialog-foot{margin-top:var(--ds-s-5)}
+@media(max-width:767px){
+  .app-shell .hub-dialog{padding:18px}
+  .app-shell .hub-seg{display:flex;width:100%}
+  .app-shell .hub-seg>button{flex:1 1 auto;justify-content:center}
+}
+
+/* ---- Per screen -------------------------------------------------------- */
+.app-shell .pay-search{display:flex;align-items:center;gap:8px;flex:1 1 320px;max-width:460px}
+.app-shell .pay-search .search-input{max-width:none}
+.app-shell .pay-reason{display:inline-block;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font-size:var(--ds-fs-2xs);font-style:italic;color:var(--ds-text-muted)}
+.app-shell .st-confirm{margin:0 0 18px;font-size:var(--ds-fs-base);line-height:1.5;color:var(--ds-text-2)}
+.app-shell .cs-guard .hub-progress{margin-top:14px}
+.app-shell .cs-guard-value{margin-top:2px;font-size:var(--ds-fs-2xl);font-weight:650;letter-spacing:-.02em;line-height:1.2;color:var(--tone-fg,var(--ds-text));font-variant-numeric:tabular-nums}
+.app-shell .cs-guard-value>span{font-size:var(--ds-fs-sm);font-weight:500;letter-spacing:0;color:var(--ds-text-muted)}
+.app-shell .cs-rule .hub-title{margin:8px 0 4px}
+.app-shell .cs-rule-foot{padding-top:12px;border-top:1px solid var(--ds-line-soft)}
+.app-shell .cs-rule-foot>.hub-row{margin-bottom:8px}
+.app-shell .cs-pct-input{width:72px;min-height:32px;padding:4px 8px;text-align:right;font-size:var(--ds-fs-base);font-weight:700;color:var(--ds-brand-text)}
+.app-shell .cs-range{width:100%;accent-color:var(--ds-brand);cursor:pointer}
+.app-shell label.cs-param{display:block;margin-top:8px;font-size:var(--ds-fs-2xs);font-weight:500}
+.app-shell label.cs-param>input{margin-left:8px;max-width:130px}
+.app-shell .cs-sim-form{max-width:450px;margin-bottom:var(--ds-s-6)}
+.app-shell .cs-sim-form>label{margin-top:12px}
+.app-shell .cs-sim-form>label:first-child{margin:0 0 6px;color:var(--ds-text);font-weight:650}
+.app-shell .cs-money{position:relative}
+.app-shell .cs-money>span{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;font-weight:700;color:var(--ds-brand-text);pointer-events:none}
+.app-shell .cs-money>input{padding-left:32px;font-size:var(--ds-fs-md);font-weight:700;color:var(--ds-brand-text);background-color:var(--ds-brand-soft);border-color:color-mix(in srgb,var(--ds-brand) 35%,var(--ds-line))}
+.app-shell .cs-preview{margin-top:8px;font-size:var(--ds-fs-xs)}
+.app-shell .tr-step{display:flex;align-items:center;gap:8px;font-size:var(--ds-fs-base);font-weight:650;color:var(--tone-fg,var(--ds-text))}
+.app-shell .tr-detail{overflow:hidden;border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);background:var(--ds-surface)}
+.app-shell .tr-detail-head{padding:12px 16px;border-bottom:1px solid var(--ds-line);background:var(--ds-surface-2)}
+.app-shell .retained-detail-switcher .retained-detail-tabs button{border-color:var(--ds-line);background:var(--ds-surface);color:var(--ds-text-2)}
+.app-shell .retained-detail-switcher .retained-detail-tabs button:hover{background:var(--ds-surface-2);color:var(--ds-text)}
+.app-shell .retained-detail-switcher .retained-detail-tabs button.is-active{background:var(--ds-brand);border-color:var(--ds-brand);color:var(--ds-on-brand)}
+.app-shell .rk-history{display:flex;flex-direction:column;gap:8px;margin:0;padding-left:18px}
+.app-shell .rk-history li{font-size:var(--ds-fs-sm);color:var(--ds-text)}
+.app-shell .rk-level{font-size:var(--ds-fs-2xs);font-weight:700;color:var(--ds-text-muted)}
+.app-shell .rk-tier .hub-title{margin-top:6px}
+.app-shell .rk-req{margin-top:6px;font-size:var(--ds-fs-2xs);line-height:1.4;color:var(--ds-text-2)}
+.app-shell .rk-tier-foot{padding-top:8px;border-top:1px solid var(--ds-line);font-size:var(--ds-fs-2xs);font-weight:600}
+.app-shell .rk-tier-foot>*+*{margin-top:2px}
+.app-shell .rk-milestone{font-size:var(--ds-fs-xs);font-weight:700}
+.app-shell .hub-well .hub-progress{margin:8px 0 6px}
+.app-shell .rw-intro{max-width:740px}
+.app-shell .panel.rw-banner{border-color:color-mix(in srgb,var(--ds-brand) 45%,var(--ds-line))}
+.app-shell .rw-rules{margin-top:18px;padding-top:16px;border-top:1px solid var(--ds-line)}
+.app-shell .rw-progress{display:flex;align-items:center;gap:8px;min-width:160px}
+.app-shell .rw-progress>.hub-progress{flex:1}
+.app-shell .rw-pct{min-width:42px;font-size:var(--ds-fs-2xs);font-weight:700;color:var(--tone-fg,var(--ds-text-2))}
+.app-shell .rw-summary{margin:16px 0;font-size:var(--ds-fs-xs)}
+.app-shell .rw-legs{display:flex;flex-direction:column;gap:12px}
+.app-shell .hub-tile.rw-leg{padding:12px}
+.app-shell .rw-leg .hub-progress{margin:4px 0 2px}
+.app-shell .rw-leg-foot{font-size:var(--ds-fs-2xs);color:var(--ds-text-muted)}
+.app-shell .panel.pw-panel{margin-top:var(--ds-s-5);padding:0;overflow:hidden}
+.app-shell .pw-head{padding:16px 20px;border-bottom:1px solid var(--ds-line-soft);background:var(--ds-surface-2)}
+.app-shell .pw-body{padding:20px}
+.app-shell .pw-box{margin-bottom:18px}
+.app-shell .pw-secret-label{display:block;margin-bottom:6px}
+.app-shell .pw-secret{display:inline-block;min-width:180px;padding:6px 12px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-sm);background:var(--ds-surface);color:var(--ds-text);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:var(--ds-fs-lg);letter-spacing:.05em;user-select:all}
+.app-shell .pw-secret.is-masked{letter-spacing:.2em}
+.app-shell .button.pw-copied{box-shadow:var(--ds-focus-ring)}
+.app-shell .pw-note{display:flex;align-items:center;gap:6px;margin:14px 0 0;padding-top:10px;border-top:1px dashed var(--ds-line);font-size:var(--ds-fs-xs);color:var(--ds-text-2)}
+.app-shell .pw-actions{padding-top:16px;border-top:1px solid var(--ds-line-soft)}
+.app-shell .pw-custom{margin-top:14px;padding:14px 16px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface-3)}
+.app-shell .pw-custom>label{margin-bottom:6px}
+.app-shell .pw-input-wrap{position:relative;flex:1 1 240px}
+.app-shell .pw-input-wrap>input{padding-right:36px;font-family:ui-monospace,monospace}
+.app-shell .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:2px;border:0;background:none;font-size:14px;line-height:1;cursor:pointer}
+.app-shell .pw-custom>small{display:block;margin-top:6px}

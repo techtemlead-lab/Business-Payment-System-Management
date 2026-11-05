@@ -116,9 +116,9 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
     const translate = useT();
     if (!rows.length) {
         return (
-            <div className="retained-detail-table" style={{ border: '1px dashed #cbd5e1', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
-                <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
-                <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>{translate('portal', 'tr_no_detail_entries')}</p>
+            <div className="retained-detail-table hub-empty">
+                <b className="hub-strong">{title}</b>
+                <p className="hub-sub">{translate('portal', 'tr_no_detail_entries')}</p>
             </div>
         );
     }
@@ -128,7 +128,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             key: 'created_at',
             title: translate('portal', 'sal_col_posted'),
             sortable: true,
-            render: row => <span style={{ whiteSpace: 'nowrap' }}>{date(row.created_at)}</span>,
+            render: row => <span className="hub-nowrap">{date(row.created_at)}</span>,
         },
         {
             key: 'order_number',
@@ -142,8 +142,8 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             sortable: true,
             render: row => (
                 <div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.buyer_name || '—'}</div>
-                    <div style={{ color: '#64748b', fontSize: 11 }}>
+                    <div className="hub-strong">{row.buyer_name || '—'}</div>
+                    <div className="cell-sub">
                         {[row.buyer_code, row.buyer_role ? label(row.buyer_role, translate) : null].filter(Boolean).join(' · ')}
                     </div>
                 </div>
@@ -157,7 +157,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             render: row => (
                 <div>
                     <div>{placeLabel(row)}</div>
-                    {row.area_level && <div style={{ color: '#64748b', fontSize: 11 }}>{translate('portal', 'tr_level', { level: String(row.area_level) })}</div>}
+                    {row.area_level && <div className="cell-sub">{translate('portal', 'tr_level', { level: String(row.area_level) })}</div>}
                 </div>
             ),
         },
@@ -167,7 +167,7 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             align: 'right',
             sortable: true,
             sortValue: row => Number(row.purchase_value) || 0,
-            render: row => <span style={{ whiteSpace: 'nowrap' }}>{money(row.purchase_value)}</span>,
+            render: row => <span className="hub-nowrap">{money(row.purchase_value)}</span>,
         },
         {
             key: 'rate_percentage',
@@ -183,21 +183,21 @@ function RetainedDetailTable({ title, hint, rows, amountKey = 'amount' }: { titl
             align: 'right',
             sortable: true,
             sortValue: row => Number(row[amountKey]) || 0,
-            render: row => <b style={{ color: '#0f172a', whiteSpace: 'nowrap' }}>{money(row[amountKey])}</b>,
+            render: row => <b className="hub-nowrap">{money(row[amountKey])}</b>,
         },
         {
             key: 'reason',
             title: translate('portal', 'tr_col_detail'),
             sortable: true,
-            render: row => <span style={{ color: '#475569', fontSize: 11 }}>{row.reason || row.fund || '—'}</span>,
+            render: row => <span className="hub-hint">{row.reason || row.fund || '—'}</span>,
         },
     ];
 
     return (
-        <div className="retained-detail-table" style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', background: '#ffffff' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                <b style={{ fontSize: 13, color: '#0f172a' }}>{title}</b>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>{hint}</p>
+        <div className="retained-detail-table tr-detail">
+            <div className="tr-detail-head">
+                <b className="hub-strong">{title}</b>
+                <p className="hub-sub">{hint}</p>
             </div>
             <Table
                 rows={rows}
@@ -276,112 +276,57 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
     const channels = flow.channel_breakdown ?? [];
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="hub">
             {/* Header & Sub-Navigation for Treasury */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                padding: '20px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 16
-            }}>
+            <div className="panel hub-row is-between">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ background: '#011627', color: '#ffffff', padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700 }}>
+                    <div className="hub-kicker">
+                        <span className="hub-pill is-solid">
                             {translate('portal', 'tr_badge_company')}
                         </span>
-                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'tr_subtitle')}</span>
+                        <span className="hub-label">{translate('portal', 'tr_subtitle')}</span>
                     </div>
-                    <h2 style={{ fontSize: 22, fontWeight: 800, color: '#011627', margin: '6px 0 2px' }}>
+                    <h2 className="hub-title is-lg">
                         {translate('portal', 'tr_heading')}
                     </h2>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                    <p className="hub-sub">
                         {translate('portal', 'tr_heading_hint')}
                     </p>
                 </div>
 
-                <div style={{ display: 'flex', gap: 6, background: '#f8fafc', padding: 4, borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <div className="hub-seg">
                     <button
                         type="button"
                         onClick={() => setActiveTab('overview')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: 0,
-                            cursor: 'pointer',
-                            background: activeTab === 'overview' ? '#011627' : 'transparent',
-                            color: activeTab === 'overview' ? '#ffffff' : '#475569'
-                        }}
+                        className={activeTab === 'overview' ? 'is-active' : undefined}
                     >
                         {translate('portal', 'tr_tab_overview')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setActiveTab('inflows')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: 0,
-                            cursor: 'pointer',
-                            background: activeTab === 'inflows' ? '#011627' : 'transparent',
-                            color: activeTab === 'inflows' ? '#ffffff' : '#475569'
-                        }}
+                        className={activeTab === 'inflows' ? 'is-active' : undefined}
                     >
                         {translate('portal', 'tr_tab_inflows')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setActiveTab('deposits')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: 0,
-                            cursor: 'pointer',
-                            background: activeTab === 'deposits' ? '#011627' : 'transparent',
-                            color: activeTab === 'deposits' ? '#ffffff' : '#475569'
-                        }}
+                        className={activeTab === 'deposits' ? 'is-active' : undefined}
                     >
                         {translate('portal', 'tr_tab_deposits')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setActiveTab('expenses')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: 0,
-                            cursor: 'pointer',
-                            background: activeTab === 'expenses' ? '#011627' : 'transparent',
-                            color: activeTab === 'expenses' ? '#ffffff' : '#475569'
-                        }}
+                        className={activeTab === 'expenses' ? 'is-active' : undefined}
                     >
                         {translate('portal', 'tr_tab_expenses')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setActiveTab('ledger')}
-                        style={{
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            border: 0,
-                            cursor: 'pointer',
-                            background: activeTab === 'ledger' ? '#011627' : 'transparent',
-                            color: activeTab === 'ledger' ? '#ffffff' : '#475569'
-                        }}
+                        className={activeTab === 'ledger' ? 'is-active' : undefined}
                     >
                         {translate('portal', 'tr_tab_ledger')}
                     </button>
@@ -390,131 +335,131 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
             {/* Top 4 KPI Cards */}
             <div className="treasury-kpi-grid">
-                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_received')}</span>
-                        <ArrowDownRight size={18} color="#059669" />
+                <div className="treasury-kpi-card hub-tile">
+                    <div className="hub-tile-head">
+                        <span className="hub-label">{translate('portal', 'tr_kpi_received')}</span>
+                        <ArrowDownRight size={18} className="tone-ok" />
                     </div>
-                    <div className="treasury-kpi-amount" style={{ color: '#011627' }}>
+                    <div className="treasury-kpi-amount">
                         {money(grossCash)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_received_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'tr_kpi_received_hint')}</div>
                 </div>
 
-                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1.5px solid #006837', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: '#006837', fontSize: 12, fontWeight: 700 }}>{translate('portal', 'tr_kpi_deposited')}</span>
-                        <Landmark size={18} color="#006837" />
+                <div className="treasury-kpi-card hub-tile is-accent tone-brand">
+                    <div className="hub-tile-head">
+                        <span className="hub-label">{translate('portal', 'tr_kpi_deposited')}</span>
+                        <Landmark size={18} />
                     </div>
-                    <div className="treasury-kpi-amount" style={{ color: '#006837' }}>
+                    <div className="treasury-kpi-amount">
                         {money(totalCompanyDeposits)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{translate('portal', 'tr_kpi_deposited_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'tr_kpi_deposited_hint')}</div>
                 </div>
 
-                <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: 10, padding: 18 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: '#c2410c', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_pool')}</span>
-                        <ArrowUpRight size={18} color="#ea580c" />
+                <div className="treasury-kpi-card hub-tile is-accent tone-orange">
+                    <div className="hub-tile-head">
+                        <span className="hub-label">{translate('portal', 'tr_kpi_pool')}</span>
+                        <ArrowUpRight size={18} />
                     </div>
-                    <div className="treasury-kpi-amount" style={{ color: '#c2410c' }}>
+                    <div className="treasury-kpi-amount">
                         {money(maxPool)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#9a3412', marginTop: 2 }}>{translate('portal', 'tr_kpi_pool_hint')}</div>
+                    <div className="hub-hint">{translate('portal', 'tr_kpi_pool_hint')}</div>
                 </div>
 
                 {ownerBenefitsVisible ? (
-                    <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 18 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#1d4ed8', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_benefits')}</span>
-                            <ShieldCheck size={18} color="#2563eb" />
+                    <div className="treasury-kpi-card hub-tile is-accent tone-info">
+                        <div className="hub-tile-head">
+                            <span className="hub-label">{translate('portal', 'tr_kpi_benefits')}</span>
+                            <ShieldCheck size={18} />
                         </div>
-                        <div className="treasury-kpi-amount" style={{ color: '#1d4ed8' }}>
+                        <div className="treasury-kpi-amount">
                             {money(unallocatedBuffer)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#2563eb', marginTop: 2 }}>{translate('portal', 'tr_kpi_benefits_hint')}</div>
+                        <div className="hub-hint">{translate('portal', 'tr_kpi_benefits_hint')}</div>
                     </div>
                 ) : (
-                    <div className="treasury-kpi-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: '#64748b', fontSize: 12, fontWeight: 600 }}>{translate('portal', 'tr_kpi_settled')}</span>
-                            <ShieldCheck size={18} color="#94a3b8" />
+                    <div className="treasury-kpi-card hub-tile">
+                        <div className="hub-tile-head">
+                            <span className="hub-label">{translate('portal', 'tr_kpi_settled')}</span>
+                            <ShieldCheck size={18} />
                         </div>
-                        <div className="treasury-kpi-amount" style={{ color: '#0f172a' }}>
+                        <div className="treasury-kpi-amount">
                             {money(Number(flow.settled_disbursements) || 0)}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{translate('portal', 'tr_kpi_settled_hint')}</div>
+                        <div className="hub-hint">{translate('portal', 'tr_kpi_settled_hint')}</div>
                     </div>
                 )}
             </div>
 
             {/* TAB CONTENT: Overview */}
             {activeTab === 'overview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div className="hub">
                     {/* Visual 3-Stage Capital Flow Architecture */}
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+                    <div className="panel">
+                        <div className="panel-heading">
                             <div>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#006837', letterSpacing: '0.05em' }}>
+                                <span className="hub-label tone-brand">
                                     {translate('portal', 'tr_arch_badge')}
                                 </span>
-                                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '4px 0 0' }}>
+                                <h3 className="hub-title is-lg">
                                     {translate('portal', 'tr_flow_title')}
                                 </h3>
                             </div>
-                            <div style={{ background: '#ecfdf5', color: '#047857', padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+                            <div className="hub-pill tone-ok">
                                 {translate('portal', 'tr_flow_balanced')}
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
+                        <div className="hub-grid">
                             {/* Block 1 */}
-                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 18 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a', fontWeight: 700, fontSize: 14 }}>
-                                    <span style={{ background: '#0f172a', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>1</span>
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="tr-step">
+                                    <span className="hub-step">1</span>
                                     {translate('portal', 'tr_flow_from')}
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(grossCash)}
                                 </div>
-                                <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_flow_from_body')}
                                 </p>
-                                <button type="button" onClick={() => setActiveTab('inflows')} style={{ marginTop: 12, color: '#2e3192', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                                <button type="button" onClick={() => setActiveTab('inflows')} className="text-link">
                                     {translate('portal', 'tr_flow_from_cta')}
                                 </button>
                             </div>
 
                             {/* Block 2 */}
-                            <div className="treasury-kpi-card" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 18 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#006837', fontWeight: 700, fontSize: 14 }}>
-                                    <span style={{ background: '#006837', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>2</span>
+                            <div className="treasury-kpi-card hub-tile is-tinted tone-brand">
+                                <div className="tr-step">
+                                    <span className="hub-step">2</span>
                                     {translate('portal', 'tr_flow_deposit')}
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#006837', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(totalCompanyDeposits)}
                                 </div>
-                                <p style={{ fontSize: 12, color: '#166534', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_flow_deposit_body')}
                                 </p>
-                                <button type="button" onClick={() => setActiveTab('deposits')} style={{ marginTop: 12, color: '#006837', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                                <button type="button" onClick={() => setActiveTab('deposits')} className="text-link">
                                     {translate('portal', 'tr_flow_deposit_cta')}
                                 </button>
                             </div>
 
                             {/* Block 3 */}
-                            <div className="treasury-kpi-card" style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 10, padding: 18 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#9a3412', fontWeight: 700, fontSize: 14 }}>
-                                    <span style={{ background: '#ea580c', color: '#ffffff', width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11 }}>3</span>
+                            <div className="treasury-kpi-card hub-tile is-tinted tone-orange">
+                                <div className="tr-step">
+                                    <span className="hub-step">3</span>
                                     {translate('portal', 'tr_flow_spent')}
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#9a3412', margin: '12px 0 6px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(allocated)}
                                 </div>
-                                <p style={{ fontSize: 12, color: '#9a3412', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_flow_spent_body')}
                                 </p>
-                                <button type="button" onClick={() => setActiveTab('expenses')} style={{ marginTop: 12, color: '#ea580c', background: 'transparent', border: 0, fontWeight: 700, fontSize: 12, cursor: 'pointer', padding: 0 }}>
+                                <button type="button" onClick={() => setActiveTab('expenses')} className="text-link">
                                     {translate('portal', 'tr_flow_spent_cta')}
                                 </button>
                             </div>
@@ -525,54 +470,54 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
             {/* TAB CONTENT: 1. Sources of Money (Inflow) */}
             {activeTab === 'inflows' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
+                <div className="hub">
+                    <div className="panel">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'tr_inflow_title')}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
+                        <p className="hub-sub is-lead">
                             {translate('portal', 'tr_inflow_hint')}
                         </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                        <div className="hub-grid is-wide">
                             {/* Dealer Wholesale Purchases */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <Store size={22} color="#2e3192" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-media">
+                                    <Store size={22} className="tone-violet" />
                                     <div>
-                                        <b style={{ fontSize: 14, color: '#0f172a' }}>{translate('portal', 'tr_inflow_dealer')}</b>
-                                        <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_dealer_hint')}</div>
+                                        <b className="hub-strong">{translate('portal', 'tr_inflow_dealer')}</b>
+                                        <div className="hub-hint">{translate('portal', 'tr_inflow_dealer_hint')}</div>
                                     </div>
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#2e3192', marginTop: 14 }}>
+                                <div className="treasury-kpi-amount tone-violet">
                                     {money(dealerCash)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_inflow_share', { pct: String(grossCash > 0 ? ((dealerCash / grossCash) * 100).toFixed(1) : 0) })}
                                 </div>
                             </div>
 
                             {/* Sub-Dealer Orders */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <Users size={22} color="#059669" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-media">
+                                    <Users size={22} className="tone-ok" />
                                     <div>
-                                        <b style={{ fontSize: 14, color: '#0f172a' }}>{translate('portal', 'tr_inflow_subdealer')}</b>
-                                        <div style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'tr_inflow_subdealer_hint')}</div>
+                                        <b className="hub-strong">{translate('portal', 'tr_inflow_subdealer')}</b>
+                                        <div className="hub-hint">{translate('portal', 'tr_inflow_subdealer_hint')}</div>
                                     </div>
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#059669', marginTop: 14 }}>
+                                <div className="treasury-kpi-amount tone-ok">
                                     {money(subDealerCash)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_inflow_share', { pct: String(grossCash > 0 ? ((subDealerCash / grossCash) * 100).toFixed(1) : 0) })}
                                 </div>
                             </div>
                         </div>
 
                         {/* Payment Collection Channels */}
-                        <div style={{ marginTop: 24 }}>
-                            <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+                        <div className="hub-section">
+                            <h4 className="hub-title is-sm">
                                 {translate('portal', 'tr_channels_title')}
                             </h4>
                             <Table
@@ -591,7 +536,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         align: 'right',
                                         sortable: true,
                                         sortValue: (ch: any) => Number(ch.total_amount) || 0,
-                                        render: (ch: any) => <b style={{ color: '#006837' }}>{money(ch.total_amount)}</b>,
+                                        render: (ch: any) => <b className="tone-brand">{money(ch.total_amount)}</b>,
                                     },
                                     {
                                         key: 'share',
@@ -609,7 +554,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         key: 'status',
                                         title: translate('portal', 'col_status'),
                                         render: () => (
-                                            <span style={{ background: '#ecfdf5', color: '#047857', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>
+                                            <span className="badge tone-ok">
                                                 {translate('portal', 'tr_active_verified')}
                                             </span>
                                         ),
@@ -623,54 +568,54 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
             {/* TAB CONTENT: 2. Deposits & Retained Capital */}
             {activeTab === 'deposits' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
+                <div className="hub">
+                    <div className="panel">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'tr_deposit_title')}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
+                        <p className="hub-sub is-lead">
                             {translate('portal', 'tr_deposit_hint')}
                         </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                        <div className="hub-grid is-wide">
                             {/* 60% Operating Retention */}
-                            <div className="treasury-kpi-card" style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 10, padding: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#166534' }}>{translate('portal', 'tr_dep_operating')}</span>
-                                    <Building2 size={20} color="#006837" />
+                            <div className="treasury-kpi-card hub-tile is-tinted tone-brand">
+                                <div className="hub-tile-head">
+                                    <span className="hub-label">{translate('portal', 'tr_dep_operating')}</span>
+                                    <Building2 size={20} />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#006837', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(companyShare)}
                                 </div>
-                                <p style={{ fontSize: 11, color: '#166534', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_dep_operating_body')}
                                 </p>
                             </div>
 
                             {/* 2% Management Area Share */}
-                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_mgmt')}</span>
-                                    <Landmark size={20} color="#2e3192" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-label">{translate('portal', 'tr_dep_mgmt')}</span>
+                                    <Landmark size={20} className="tone-violet" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(mgmtReserve)}
                                 </div>
-                                <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_dep_mgmt_body')}
                                 </p>
                             </div>
 
                             {/* Unassigned Territory Reserve */}
-                            <div className="treasury-kpi-card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10, padding: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>{translate('portal', 'tr_dep_geo')}</span>
-                                    <ShieldCheck size={20} color="#059669" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-label">{translate('portal', 'tr_dep_geo')}</span>
+                                    <ShieldCheck size={20} className="tone-ok" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#0f172a', margin: '10px 0 4px' }}>
+                                <div className="treasury-kpi-amount">
                                     {money(unassignedReserve)}
                                 </div>
-                                <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+                                <p className="hub-hint">
                                     {translate('portal', 'tr_dep_geo_body')}
                                 </p>
                             </div>
@@ -718,16 +663,16 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                             ]}
                         />
 
-                        <div style={{ marginTop: 24 }}>
-                            <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+                        <div className="hub-section">
+                            <h4 className="hub-title is-sm">
                                 {translate('portal', 'tr_accounts_title')}
                             </h4>
                             {payment_accounts.length === 0 ? (
-                                <div style={{ padding: 14, border: '1px dashed #cbd5e1', borderRadius: 8, background: '#f8fafc', color: '#64748b', fontSize: 13 }}>
+                                <div className="hub-empty">
                                     {translate('portal', 'tr_accounts_empty')}
                                 </div>
                             ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                                <div className="hub-grid">
                                     {payment_accounts.map((account) => {
                                         const roles = [
                                             account.collects_payments ? translate('portal', 'tr_role_collection') : null,
@@ -735,12 +680,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                             account.is_active === false ? translate('portal', 'tr_role_inactive') : null,
                                         ].filter(Boolean).join(' · ');
                                         return (
-                                            <div key={account.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 8, background: '#ffffff' }}>
-                                                <b style={{ fontSize: 13, color: '#0f172a' }}>{account.label}</b>
-                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                            <div key={account.id} className="hub-tile">
+                                                <b className="hub-strong">{account.label}</b>
+                                                <div className="hub-hint">
                                                     {account.channel} · {account.account_number_masked || account.account_number || '••••'} · {account.holder}
                                                 </div>
-                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f766e', marginTop: 8 }}>{roles || translate('portal', 'tr_account_configured')}</div>
+                                                <div className="hub-label tone-teal">{roles || translate('portal', 'tr_account_configured')}</div>
                                             </div>
                                         );
                                     })}
@@ -753,68 +698,68 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
             {/* TAB CONTENT: 3. Where Money is Spent (Expenses & Funds) */}
             {activeTab === 'expenses' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
+                <div className="hub">
+                    <div className="panel">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'tr_expense_title')}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
+                        <p className="hub-sub is-lead">
                             {translate('portal', 'tr_expense_hint')}
                         </p>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                        <div className="hub-grid is-wide">
                             {/* Commission Disbursements */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_payouts')}</span>
-                                    <Wallet size={18} color="#059669" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-strong">{translate('portal', 'tr_exp_payouts')}</span>
+                                    <Wallet size={18} className="tone-ok" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#059669', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount tone-ok">
                                     {money(settledDisbursements)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_exp_payouts_hint')}
                                 </div>
                             </div>
 
                             {/* Marketing Fund */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_marketing')}</span>
-                                    <PieChart size={18} color="#2e3192" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-strong">{translate('portal', 'tr_exp_marketing')}</span>
+                                    <PieChart size={18} className="tone-violet" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#2e3192', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount tone-violet">
                                     {money(marketingFund)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_exp_marketing_hint')}
                                 </div>
                             </div>
 
                             {/* Car & Bike Incentive Fund */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_vehicle')}</span>
-                                    <ShieldCheck size={18} color="#d97706" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-strong">{translate('portal', 'tr_exp_vehicle')}</span>
+                                    <ShieldCheck size={18} className="tone-warn" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#d97706', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount tone-warn">
                                     {money(carBikeFund)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_exp_vehicle_hint')}
                                 </div>
                             </div>
 
                             {/* Statutory TDS Tax */}
-                            <div className="treasury-kpi-card" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, background: '#f8fafc' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{translate('portal', 'tr_exp_withholding')}</span>
-                                    <FileText size={18} color="#e11d48" />
+                            <div className="treasury-kpi-card hub-tile is-soft">
+                                <div className="hub-tile-head">
+                                    <span className="hub-strong">{translate('portal', 'tr_exp_withholding')}</span>
+                                    <FileText size={18} className="tone-danger" />
                                 </div>
-                                <div className="treasury-kpi-amount" style={{ color: '#e11d48', margin: '8px 0 4px' }}>
+                                <div className="treasury-kpi-amount tone-danger">
                                     {money(tdsTax)}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#64748b' }}>
+                                <div className="hub-hint">
                                     {translate('portal', 'tr_exp_withholding_hint')}
                                 </div>
                             </div>
@@ -838,8 +783,8 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                         />
 
                         {/* Category Allocations Table */}
-                        <div style={{ marginTop: 24 }}>
-                            <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+                        <div className="hub-section">
+                            <h4 className="hub-title is-sm">
                                 {translate('portal', 'tr_slices_title')}
                             </h4>
                             <Table
@@ -866,7 +811,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         align: 'right',
                                         sortable: true,
                                         sortValue: (cat: CategoryAllocation) => Number(cat.total_amount) || 0,
-                                        render: (cat: CategoryAllocation) => <b style={{ color: '#006837' }}>{money(cat.total_amount)}</b>,
+                                        render: (cat: CategoryAllocation) => <b className="tone-brand">{money(cat.total_amount)}</b>,
                                     },
                                 ]}
                             />
@@ -877,12 +822,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
 
             {/* TAB CONTENT: Financial Ledger */}
             {activeTab === 'ledger' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#011627', margin: '0 0 4px' }}>
+                <div className="hub">
+                    <div className="panel">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'tr_ledger_title')}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 20px' }}>
+                        <p className="hub-sub is-lead">
                             {translate('portal', 'tr_ledger_hint')}
                         </p>
 
@@ -895,7 +840,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     key: 'created_at',
                                     title: translate('portal', 'col_date'),
                                     sortable: true,
-                                    render: (rec: AllocationRecord) => <span style={{ color: '#64748b' }}>{date(rec.created_at)}</span>,
+                                    render: (rec: AllocationRecord) => <span className="muted">{date(rec.created_at)}</span>,
                                 },
                                 {
                                     key: 'recipient',
@@ -903,7 +848,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     sortable: true,
                                     sortValue: (rec: AllocationRecord) => rec.user?.name || '',
                                     render: (rec: AllocationRecord) => (
-                                        <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                                        <span className="hub-strong">
                                             {rec.user ? `${rec.user.name} (${rec.user.dealer_code})` : translate('portal', 'tr_company_reserve_pool')}
                                         </span>
                                     ),
@@ -913,7 +858,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     title: translate('portal', 'col_category'),
                                     sortable: true,
                                     render: (rec: AllocationRecord) => (
-                                        <span style={{ fontSize: 11, fontWeight: 600, color: '#475569' }}>
+                                        <span className="hub-label">
                                             {rec.category.replaceAll('_', ' ')}
                                         </span>
                                     ),
@@ -924,21 +869,14 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     align: 'right',
                                     sortable: true,
                                     sortValue: (rec: AllocationRecord) => Number(rec.amount) || 0,
-                                    render: (rec: AllocationRecord) => <b style={{ color: '#006837' }}>{money(rec.amount)}</b>,
+                                    render: (rec: AllocationRecord) => <b className="tone-brand">{money(rec.amount)}</b>,
                                 },
                                 {
                                     key: 'is_settled',
                                     title: translate('portal', 'col_status'),
                                     sortable: true,
                                     render: (rec: AllocationRecord) => (
-                                        <span style={{
-                                            background: rec.is_settled ? '#ecfdf5' : '#fefce8',
-                                            color: rec.is_settled ? '#047857' : '#854d0e',
-                                            padding: '2px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 11,
-                                            fontWeight: 700
-                                        }}>
+                                        <span className={`badge ${rec.is_settled ? 'tone-ok' : 'tone-warn'}`}>
                                             {rec.is_settled ? translate('portal', 'tr_status_settled') : translate('portal', 'tr_status_pending')}
                                         </span>
                                     ),
