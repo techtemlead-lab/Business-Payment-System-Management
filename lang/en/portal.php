@@ -5583,7 +5583,6 @@ return [
     'sce_f_why_partner_heading' => '"Why partner with us": heading',
     'sce_f_x_url' => 'X / Twitter link (if any)',
     'sce_f_youtube_url' => 'YouTube channel link',
-=======
     'ops_export_name_collections' => 'Payments received (collection sheet)',
     'ops_export_name_tds_register' => 'Tax cut on money sent (TDS register)',
     'ops_report_collections' => 'Payments received',
@@ -5605,7 +5604,17 @@ return [
     'order_totals_value' => 'Order value',
     'order_totals_paid' => 'Paid',
     'order_totals_to_pay' => 'Still to pay',
->>>>>>> origin/tables/totals-filters-exports
+=======
+    'team_summary_title' => 'My team at a glance',
+    'team_summary_hint' => 'Everyone below you in your team, for this month.',
+    'team_summary_members' => 'Team members',
+    'team_summary_direct' => ':count brought in by you',
+    'team_summary_joined' => 'Joined this month',
+    'team_summary_sales' => 'Team purchases this month',
+    'team_summary_bought' => 'Bought this month',
+    'team_summary_quiet' => 'No purchase in 60 days',
+    'team_summary_quiet_hint' => 'A call or a visit may help them start again.',
+>>>>>>> origin/mlm/team-summary
     'ph_greeting' => 'Assalamu alaikum,',
     'ph_tap_for_balance' => 'Tap to see balance',
     'ph_commission_month' => 'Commission this month',
