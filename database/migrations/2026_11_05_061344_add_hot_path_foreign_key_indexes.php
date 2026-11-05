@@ -53,14 +53,23 @@ return new class extends Migration
     public function up(): void
     {
         foreach ($this->indexes as $name => $definition) {
-            DB::statement("CREATE INDEX CONCURRENTLY IF NOT EXISTS {$name} ON {$definition}");
+            DB::statement("CREATE INDEX {$this->concurrently()}IF NOT EXISTS {$name} ON {$definition}");
         }
     }
 
     public function down(): void
     {
         foreach (array_keys($this->indexes) as $name) {
-            DB::statement("DROP INDEX CONCURRENTLY IF EXISTS {$name}");
+            DB::statement("DROP INDEX {$this->concurrently()}IF EXISTS {$name}");
         }
+    }
+
+    /**
+     * Build without blocking writes when running on its own. Inside an outer
+     * transaction (a test rolling migrations back) a plain build is the only option.
+     */
+    private function concurrently(): string
+    {
+        return DB::transactionLevel() === 0 ? 'CONCURRENTLY ' : '';
     }
 };
