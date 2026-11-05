@@ -1,6 +1,7 @@
 @import './theme-dark.css';
 @import './screens-editor.css';
 @import './screens-ops.css';
+@import './screens-chat.css';
 @import './screens-partner-home.css';
 @import './screens-agreement.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');

@@ -46,7 +46,7 @@ export const MANAGEMENT_SECTIONS = [
     'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
     'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
-    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement',
+    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
 ];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
@@ -73,6 +73,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
+    messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office',
 };
 
 function defaultHrefPath(section: string): string {
@@ -194,6 +195,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('support-admin');
         items.add('agreement');
     }
+    if (capabilities.includes('partner_chat') || ownerPortal) items.add('partner-messages');
     if (capabilities.includes('field_sales')) items.add('field-sales');
     if (capabilities.includes('staff_admin')) items.add('staff-operations');
     if (capabilities.includes('payroll')) items.add('payroll');
@@ -234,7 +236,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -254,7 +256,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -335,7 +337,7 @@ function staffNavigation(staffAvailable: Set<string>): {
                 'reports', 'financial-reports', 'dashboards', 'data-imports',
             ])),
             mother('settings', 'nav_module_settings', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement',
+                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages',
             ])),
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]),
@@ -397,7 +399,7 @@ export function buildDomainMothers(input: {
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
         if (role === 'sub_dealer') {
@@ -405,7 +407,7 @@ export function buildDomainMothers(input: {
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
         return compactMothers([

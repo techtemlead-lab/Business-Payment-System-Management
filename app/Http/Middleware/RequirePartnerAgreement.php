@@ -31,6 +31,10 @@ class RequirePartnerAgreement
         'commands/support-tickets',
         'commands/support-tickets/*',
         'commands/partner-support',
+        // The office chat stays open, so a partner can ask about the agreement before accepting it.
+        'messages',
+        'commands/messages',
+        'commands/messages/*',
         'commands/tours/*',
         'api/v1/me',
         'api/v1/health',

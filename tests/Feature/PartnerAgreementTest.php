@@ -146,6 +146,8 @@ class PartnerAgreementTest extends TestCase
                 ->where('data.agreement.latest.body_bn', $first->body_bn)
                 ->where('data.agreement.latest.body_en', $first->body_en));
         $this->actingAs($dealer)->onPortal('dealer')->get('/help')->assertOk();
+        $this->actingAs($dealer)->onPortal('dealer')->get('/messages')->assertOk();
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/messages', ['body' => 'Agreement question'])->assertRedirect();
         $this->actingAs($dealer)->onPortal('dealer')->post('/logout')->assertRedirect();
         $this->assertGuest();
 
