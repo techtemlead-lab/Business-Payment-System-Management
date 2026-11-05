@@ -5898,4 +5898,5 @@ return [
     'office_today_received' => 'আজ জমা হওয়া টাকা',
     'office_today_payments' => 'যাচাইয়ের অপেক্ষায় পেমেন্ট',
     'office_today_withdrawals' => 'অপেক্ষায় থাকা টাকা তোলার আবেদন',
+    'ops_col_created_at' => 'তারিখ',
 ];

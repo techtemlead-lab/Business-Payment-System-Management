@@ -5898,4 +5898,5 @@ return [
     'office_today_received' => 'Money received today',
     'office_today_payments' => 'Payments waiting',
     'office_today_withdrawals' => 'Withdrawals waiting',
+    'ops_col_created_at' => 'Date',
 ];
