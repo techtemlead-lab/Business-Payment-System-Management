@@ -490,3 +490,7 @@
 /* Payout desk: search, method and dates on one wrapping row. */
 .app-shell .pay-search{flex-wrap:wrap;max-width:none}
 .app-shell .pay-search>select{width:auto;min-height:36px;padding:6px 10px}
+/* Party ledger: balance tiles and the note sit inside the table panel. */
+.stmt-panel>.metric-grid{padding:0 23px 16px}
+.stmt-panel .metric small{display:block;color:var(--ds-text-muted,#5b6b7a);font-size:12px}
+.stmt-panel .stmt-note{padding:12px 23px 16px;margin:0;font-size:13px}
