@@ -1,0 +1,246 @@
+<?php
+
+namespace App\Domain\Accounts;
+
+use App\Domain\Orders\OrderListFilter;
+use App\Models\User;
+use App\Support\Money;
+use App\Support\TableWorkbook;
+use Carbon\CarbonImmutable;
+use Generator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * The staff list of dealers or sub-dealers: search, status, area, rank and
+ * "no confirmed order lately" filters, plus each partner's rank, last
+ * confirmed order and this month's confirmed purchases. The page and the
+ * Excel download share these filters, so the file always matches the list.
+ */
+final class PartnerAccountList
+{
+    /** Ranks a dealer can hold, lowest first. */
+    public const Ranks = ['dealer', 'mo', 'am', 'sm', 'me'];
+
+    /** "No confirmed order in the last N days" choices. */
+    public const QuietDays = [30, 60, 90];
+
+    /** Columns the list shows; never the NID or any secret. */
+    private const Columns = ['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.linked_staff_role', 'users.status', 'users.dealer_code', 'users.division', 'users.district', 'users.latitude', 'users.longitude', 'users.directory_visible', 'users.profile', 'users.sponsor_id', 'users.created_at'];
+
+    /**
+     * Validation rules for the list filters, shared by the page and the download.
+     *
+     * @return array<string, string>
+     */
+    public static function rules(): array
+    {
+        return [
+            'q' => 'nullable|string|max:100',
+            'status' => 'nullable|string|max:40',
+            'division' => 'nullable|string|max:80',
+            'district' => 'nullable|string|max:80',
+            'rank' => 'nullable|in:'.implode(',', self::Ranks),
+            'no_order_days' => 'nullable|in:'.implode(',', self::QuietDays),
+        ];
+    }
+
+    /**
+     * The filters as plain values, read from an already validated request.
+     *
+     * @return array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}
+     */
+    public static function filters(Request $request): array
+    {
+        return [
+            'q' => $request->string('q')->trim()->toString(),
+            'status' => $request->string('status')->trim()->toString(),
+            'division' => $request->string('division')->trim()->toString(),
+            'district' => $request->string('district')->trim()->toString(),
+            'rank' => $request->string('rank')->trim()->toString(),
+            'no_order_days' => (int) $request->integer('no_order_days'),
+        ];
+    }
+
+    /**
+     * Partners of one role matching every filter except status, so the status tabs keep their counts.
+     *
+     * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @return EloquentBuilder<User>
+     */
+    public function matching(string $role, array $filters): EloquentBuilder
+    {
+        return User::query()
+            ->where('users.role', $role)
+            ->when($filters['q'] !== '', function (EloquentBuilder $query) use ($filters): void {
+                $term = '%'.OrderListFilter::escapeLike($filters['q']).'%';
+                $query->where(function (EloquentBuilder $sub) use ($term): void {
+                    $sub->where('users.name', 'ilike', $term)
+                        ->orWhere('users.dealer_code', 'ilike', $term)
+                        ->orWhere('users.email', 'ilike', $term)
+                        ->orWhere('users.phone', 'ilike', $term)
+                        ->orWhere('users.profile->shop_name', 'ilike', $term);
+                });
+            })
+            ->when($filters['division'] !== '', fn (EloquentBuilder $query) => $query->where('users.division', $filters['division']))
+            ->when($filters['district'] !== '', fn (EloquentBuilder $query) => $query->where('users.district', $filters['district']))
+            ->when($role === 'dealer' && $filters['rank'] !== '', function (EloquentBuilder $query) use ($filters): void {
+                // A dealer without a rank row is still a plain dealer.
+                if ($filters['rank'] === 'dealer') {
+                    $query->whereNotExists(fn (Builder $rank) => $rank->selectRaw('1')->from('dealer_ranks')
+                        ->whereColumn('dealer_ranks.user_id', 'users.id')->where('dealer_ranks.current_rank', '<>', 'dealer'));
+                } else {
+                    $query->whereExists(fn (Builder $rank) => $rank->selectRaw('1')->from('dealer_ranks')
+                        ->whereColumn('dealer_ranks.user_id', 'users.id')->where('dealer_ranks.current_rank', $filters['rank']));
+                }
+            })
+            ->when($filters['no_order_days'] > 0, fn (EloquentBuilder $query) => $query->whereNotExists(fn (Builder $orders) => $orders->selectRaw('1')->from('orders')
+                ->whereColumn('orders.user_id', 'users.id')
+                ->whereIn('orders.status', OrderListFilter::Confirmed)
+                ->where('orders.created_at', '>=', now()->subDays($filters['no_order_days']))));
+    }
+
+    /**
+     * Status tab counts for the filtered partners.
+     *
+     * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @return array<string, int>
+     */
+    public function statusCounts(string $role, array $filters): array
+    {
+        return $this->matching($role, $filters)->toBase()
+            ->select('users.status')->selectRaw('COUNT(*) AS aggregate')->groupBy('users.status')
+            ->pluck('aggregate', 'status')->map(fn ($count): int => (int) $count)->all();
+    }
+
+    /**
+     * One page of partners, each with rank, last confirmed order and this month's purchases.
+     *
+     * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function page(string $role, array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        $page = $this->withStatus($this->matching($role, $filters), $filters)
+            ->select(self::Columns)
+            ->addSelect(['current_rank' => DB::table('dealer_ranks')->select('current_rank')->whereColumn('dealer_ranks.user_id', 'users.id')->limit(1)])
+            ->with('sponsor:id,name,dealer_code')
+            ->orderByDesc('users.id')
+            ->paginate($perPage)
+            ->withQueryString();
+        $activity = $this->activity()
+            ->whereIn('orders.user_id', $page->getCollection()->pluck('id')->all())
+            ->get()
+            ->keyBy('user_id');
+        $page->getCollection()->each(function (User $user) use ($activity, $role): void {
+            $row = $activity->get($user->id);
+            $user->setAttribute('current_rank', $role === 'dealer' ? ($user->getAttribute('current_rank') ?? 'dealer') : null);
+            $user->setAttribute('last_order_at', $row?->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->toIso8601String() : null);
+            $user->setAttribute('month_purchase', $this->decimal($row?->month_purchase));
+        });
+
+        return $page;
+    }
+
+    /**
+     * Every filtered partner as one export row, newest first like the list.
+     *
+     * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @return Generator<int, array<string, mixed>>
+     */
+    public function exportRows(string $role, array $filters): Generator
+    {
+        $query = $this->withStatus($this->matching($role, $filters), $filters)->toBase()
+            ->leftJoin('users as sponsors', 'sponsors.id', '=', 'users.sponsor_id')
+            ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
+            ->leftJoinSub($this->activity(), 'activity', 'activity.user_id', '=', 'users.id')
+            ->select(['users.id', 'users.name', 'users.email', 'users.phone', 'users.role', 'users.status', 'users.dealer_code', 'users.division', 'users.district', 'users.profile', 'users.created_at',
+                'sponsors.name as sponsor_name', 'sponsors.dealer_code as sponsor_code', 'dealer_ranks.current_rank', 'activity.last_order_at', 'activity.month_purchase'])
+            ->orderByDesc('users.id');
+        foreach ($query->cursor() as $row) {
+            $profile = json_decode((string) ($row->profile ?? '{}'), true);
+            $profile = is_array($profile) ? $profile : [];
+            yield [
+                'name' => $row->name,
+                'name_bn' => $profile['name_bn'] ?? '',
+                'shop_name' => $profile['shop_name'] ?? '',
+                'phone' => $row->phone,
+                'email' => $row->email,
+                'dealer_code' => $row->dealer_code,
+                'sponsor' => trim(($row->sponsor_name ?? '').($row->sponsor_code ? ' ('.$row->sponsor_code.')' : '')),
+                'place' => $profile['place_code'] ?? ($profile['area_code'] ?? ''),
+                'role' => __('portal.acct_role_'.$row->role),
+                'district' => $row->district,
+                'division' => $row->division,
+                'joined' => $row->created_at ? CarbonImmutable::parse($row->created_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
+                'status' => $this->statusLabel((string) $row->status),
+                'rank' => __('portal.net_rank_'.($row->current_rank ?: 'dealer')),
+                'last_order_at' => $row->last_order_at ? CarbonImmutable::parse($row->last_order_at, 'UTC')->timezone('Asia/Dhaka')->format('d M Y') : '',
+                'month_purchase' => $this->decimal($row->month_purchase),
+            ];
+        }
+    }
+
+    /**
+     * Divisions and their districts that partners of this role live in, for the area filters.
+     *
+     * @return list<array{division: string, districts: list<string>}>
+     */
+    public function areaOptions(string $role): array
+    {
+        return User::query()->toBase()
+            ->where('role', $role)
+            ->whereNotNull('division')->where('division', '<>', '')
+            ->select('division', 'district')->distinct()
+            ->orderBy('division')->orderBy('district')
+            ->get()
+            ->groupBy('division')
+            ->map(fn ($rows, $division): array => [
+                'division' => (string) $division,
+                'districts' => $rows->pluck('district')->filter(fn ($district): bool => is_string($district) && $district !== '')->values()->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Last confirmed order and this Dhaka month's confirmed purchases, one row per partner.
+     */
+    private function activity(): Builder
+    {
+        $monthStart = CarbonImmutable::now('Asia/Dhaka')->startOfMonth()->utc();
+
+        return DB::table('orders')
+            ->whereIn('orders.status', OrderListFilter::Confirmed)
+            ->groupBy('orders.user_id')
+            ->select('orders.user_id')
+            ->selectRaw('MAX(orders.created_at) AS last_order_at')
+            ->selectRaw('COALESCE(SUM(orders.total) FILTER (WHERE orders.created_at >= ?), 0) AS month_purchase', [$monthStart]);
+    }
+
+    /**
+     * @param  EloquentBuilder<User>  $query
+     * @param  array{q: string, status: string, division: string, district: string, rank: string, no_order_days: int}  $filters
+     * @return EloquentBuilder<User>
+     */
+    private function withStatus(EloquentBuilder $query, array $filters): EloquentBuilder
+    {
+        return $query->when($filters['status'] !== '', fn (EloquentBuilder $q) => $q->where('users.status', $filters['status']));
+    }
+
+    private function decimal(mixed $value): string
+    {
+        return Money::decimal(max(0, TableWorkbook::signedCents($value)));
+    }
+
+    private function statusLabel(string $status): string
+    {
+        $key = 'portal.status_'.$status;
+        $label = __($key);
+
+        return $label === $key ? ucfirst($status) : $label;
+    }
+}

@@ -888,6 +888,7 @@ dialog.portal-modal::backdrop{
 .app-shell .order-filters select{width:auto;min-width:0;padding:0 28px 0 10px}
 .app-shell .order-filters select.order-partner-select{width:168px}
 .app-shell .order-filters select.order-period-select{width:148px}
+.app-shell .order-filters select.order-extra-select{max-width:190px}
 .app-shell .order-filters .order-filter-actions{display:inline-flex;align-items:center;gap:8px;margin-left:auto}
 .app-shell .order-filters .order-dates{display:inline-flex;align-items:center;gap:8px}
 .app-shell .order-filters .date-input-wrapper{width:148px}
