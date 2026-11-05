@@ -47,9 +47,29 @@ export const number=(value:unknown)=>{
 export const date=businessDate;
 export const dateTime=businessDateTime;
 type TranslateFn=(group:string,key:string,replace?:Record<string,string>)=>string;
-export const label=(text:string,translate?:TranslateFn)=>{
+const CODE_PATTERN=/^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$/;
+/**
+ * Last resort for a code with no translation: "partially_dispatched" becomes
+ * "Partially dispatched". Ordinary text such as a name or "SKU" is left as it is.
+ */
+export const humanize=(text:string)=>{
+ if(!text||!CODE_PATTERN.test(text)||(!text.includes('_')&&text!==text.toLowerCase())){
+  return text;
+ }
+ const words=text.replaceAll('_',' ').toLowerCase();
+ return words.charAt(0).toUpperCase()+words.slice(1);
+};
+const OVERRIDE_RESERVE_SUFFIX='_override_reserve';
+export const label=(text:string,translate?:TranslateFn):string=>{
  if(!text){
   return text;
+ }
+ if(translate&&text.endsWith(OVERRIDE_RESERVE_SUFFIX)){
+  const key='report_cat_override_reserve';
+  const localized=translate('portal',key,{category:label(text.slice(0,-OVERRIDE_RESERVE_SUFFIX.length),translate)});
+  if(localized!==key){
+   return localized;
+  }
  }
  if(translate){
   const candidates=[
@@ -69,7 +89,7 @@ export const label=(text:string,translate?:TranslateFn)=>{
    }
   }
  }
- return text.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
+ return humanize(text);
 };
 export function useLabel(){
  const translate=useT();

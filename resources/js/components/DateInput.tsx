@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { toDisplayDate, toIsoDate } from '../business-date';
+import { useT } from '../shared/i18n/t';
 
 export type DateChangeEvent = { target: { value: string; name?: string } };
 
@@ -20,7 +21,7 @@ export default function DateInput({
     separator = '/',
     wrapperClassName = '',
     className = '',
-    placeholder = 'DD/MM/YYYY',
+    placeholder,
     name,
     required,
     disabled,
@@ -30,6 +31,11 @@ export default function DateInput({
     style,
     ...rest
 }: DateInputProps) {
+    const translate = useT();
+    const text = (key: string, fallback: string) => {
+        const localized = translate('portal', key);
+        return localized === key ? fallback : localized;
+    };
     const effectiveInitial = value !== undefined ? value : defaultValue;
     const [displayVal, setDisplayVal] = useState<string>(() => toDisplayDate(effectiveInitial, separator));
     const [isoVal, setIsoVal] = useState<string>(() => toIsoDate(effectiveInitial));
@@ -128,7 +134,7 @@ export default function DateInput({
                 type="text"
                 id={id}
                 className={`date-input-field ${className}`.trim()}
-                placeholder={placeholder}
+                placeholder={placeholder ?? text('date_input_placeholder', 'DD/MM/YYYY')}
                 value={displayVal}
                 onChange={handleTextChange}
                 onBlur={handleBlur}
@@ -161,7 +167,7 @@ export default function DateInput({
                 onClick={openPicker}
                 disabled={disabled}
                 tabIndex={-1}
-                aria-label="Open Calendar"
+                aria-label={text('date_input_open_calendar', 'Open calendar')}
             >
                 <CalendarIcon size={17} />
             </button>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { SlidersHorizontal, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check } from 'lucide-react';
-import { money, label } from './UI';
+import { money, label, humanize } from './UI';
 import { useT } from '../shared/i18n/t';
 
 /** Pool limits the backend commission policy enforces (CommissionsSection::commissionPoolLimits). */
@@ -38,6 +38,10 @@ interface RuleRecord {
 
 export default function CommissionStudio({ rules: initialRules, limits }: { rules: RuleRecord[]; limits?: PolicyLimits }) {
     const translate = useT();
+    const paramLabel = (key: string) => {
+        const localized = translate('portal', `cs_param_${key}`);
+        return localized === `cs_param_${key}` ? humanize(key) : localized;
+    };
     const {staffActions, data: pageData, auth} = usePage<any>().props;
     // Only the owner's own changes apply at once; everyone else's wait for the owner's approval.
     const needsOwnerApproval = auth?.user?.role !== 'super_admin';
@@ -207,7 +211,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                                         onChange={e => handlePercentageChange(r.rule_key, e.target.value)}
                                         className="cs-range"
                                     />
-                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&typeof value!=='object').map(([key,value])=><label key={key} className="cs-param">{key.replaceAll('_',' ')}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>)}
+                                    {Object.entries(r.parameters??{}).filter(([key,value])=>key!=='dynamic_compression'&&typeof value!=='object').map(([key,value])=><label key={key} className="cs-param">{paramLabel(key)}<input type={typeof value==='boolean'?'checkbox':'number'} step="0.01" checked={typeof value==='boolean'?value:undefined} value={typeof value==='boolean'?undefined:String(value)} onChange={e=>setRules(prev=>({...prev,[r.rule_key]:{...prev[r.rule_key],parameters:{...prev[r.rule_key].parameters,[key]:typeof value==='boolean'?e.target.checked:e.target.value}}}))}/></label>)}
                                 </div>
                             </div>
                         );
