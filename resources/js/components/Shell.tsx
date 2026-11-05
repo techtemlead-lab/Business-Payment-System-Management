@@ -129,7 +129,7 @@ const icons: Record<string, LucideIcon> = {
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
-    employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare,
+    employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet,
 };
 
