@@ -2,7 +2,6 @@
 
 namespace App\Domain\Payouts;
 
-use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FraudAnomalyDetector;
@@ -40,11 +39,14 @@ class ManualPayoutService
             if (CommissionWallet::hasDebt($actor->id)) {
                 throw ValidationException::withMessages(['amount' => __('portal.err_wd_clawback')]);
             }
+            if (app(FinanceSettings::class)->needsKycBeforeWithdrawal($actor)) {
+                throw ValidationException::withMessages(['amount' => __('portal.err_wd_kyc_first')]);
+            }
             $wallet = DB::table('wallets')->where('user_id', $actor->id)->lockForUpdate()->first();
             if (! $wallet || Money::cents($wallet->available) < $amount) {
                 throw ValidationException::withMessages(['amount' => __('portal.err_wd_insufficient')]);
             }
-            $tax = app(CommissionService::class)->calculatePayoutTds((float) $data['amount']);
+            $tax = app(MonthlyPayoutTax::class)->forWithdrawal($actor->id, $amount);
             $id = (string) Str::uuid();
             DB::table('withdrawals')->insert(['id' => $id, 'user_id' => $actor->id, 'amount' => Money::decimal($amount), 'minimum_snapshot' => $minimum,
                 'channel' => $data['channel'], 'destination' => encrypt(trim($data['destination'])), 'idempotency_key' => $data['idempotency_key'],

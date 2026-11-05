@@ -56,6 +56,20 @@ class ModuleCompletionController extends Controller
         return $this->done($request);
     }
 
+    /** Owner-only switch: approved ID papers needed before a partner's first withdrawal. */
+    public function kycBeforeFirstWithdrawal(Request $request, FinanceSettings $settings): Response
+    {
+        abort_unless($request->user()->owner(), 403);
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+            'version' => 'required|integer|min:0',
+            'reason' => FinanceOperationsController::Reason,
+        ]);
+        $settings->saveKycBeforeFirstWithdrawal($request->user(), (bool) $data['enabled'], (int) $data['version'], $data['reason']);
+
+        return $this->done($request);
+    }
+
     public function role(Request $request, StaffPermissions $permissions): Response
     {
         abort_unless($request->user()->role === 'super_admin', 403);
