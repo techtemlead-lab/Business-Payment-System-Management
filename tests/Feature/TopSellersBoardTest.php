@@ -122,23 +122,22 @@ class TopSellersBoardTest extends TestCase
         $this->assertSame('100.00', $board['me']['amount']);
     }
 
-    public function test_dealers_hidden_from_the_public_list_keep_their_place_but_are_not_shown(): void
+    public function test_dealers_left_out_of_the_public_directory_still_appear_on_the_board(): void
     {
-        $hidden = $this->dealer('Hidden Leader', 'MNHC-601', 'Sylhet', 'Sylhet', visible: false);
-        $shown = $this->dealer('Shown Second', 'MNHC-602', 'Sylhet', 'Moulvibazar');
-        $this->order($hidden, 'approved', '1000.00');
-        $this->order($shown, 'approved', '500.00');
+        $unlisted = $this->dealer('Unlisted Leader', 'MNHC-601', 'Sylhet', 'Sylhet', visible: false);
+        $listed = $this->dealer('Listed Second', 'MNHC-602', 'Sylhet', 'Moulvibazar');
+        $this->order($unlisted, 'approved', '1000.00');
+        $this->order($listed, 'approved', '500.00');
 
-        $publicBoard = app(TopSellersBoard::class)->forPartner($shown, null);
-        $this->assertSame([['Shown Second', 2, 50.0]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['percent']], $publicBoard['national']));
-        $this->assertSame([['Shown Second', 2, 50.0]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['percent']], $publicBoard['divisional']));
+        $board = app(TopSellersBoard::class)->forPartner($listed, null);
+        $this->assertSame([['Unlisted Leader', 1, 100.0], ['Listed Second', 2, 50.0]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['percent']], $board['national']));
 
-        $ownBoard = app(TopSellersBoard::class)->forPartner($hidden, null);
-        $this->assertSame([['Hidden Leader', 1, true], ['Shown Second', 2, false]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['is_me']], $ownBoard['national']));
+        $ownBoard = app(TopSellersBoard::class)->forPartner($unlisted, null);
+        $this->assertSame([['Unlisted Leader', 1, true], ['Listed Second', 2, false]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['is_me']], $ownBoard['national']));
         $this->assertSame(1, $ownBoard['me']['national_rank']);
 
         $staffBoard = app(TopSellersBoard::class)->forStaff(null, 'Sylhet');
-        $this->assertSame([['Hidden Leader', true], ['Shown Second', false]], array_map(fn (array $row) => [$row['name'], $row['hidden']], $staffBoard['national']));
+        $this->assertSame(['Unlisted Leader', 'Listed Second'], array_column($staffBoard['national'], 'name'));
         $this->assertSame(['Sylhet'], $staffBoard['divisions']);
     }
 

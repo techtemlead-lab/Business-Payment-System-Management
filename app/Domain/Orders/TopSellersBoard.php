@@ -89,7 +89,9 @@ final class TopSellersBoard
         $me = null;
         foreach ($rows as $row) {
             $isMe = $viewerId !== null && (int) $row->id === $viewerId;
-            $listed = (bool) $row->directory_visible || $isMe;
+            // The board is only inside the portal, so every active dealer is shown by name, code
+            // and place (owner's choice). The directory setting only controls the public website.
+            $listed = true;
             if ($listed && (int) $row->national_rank <= self::Size) {
                 $national[] = $this->entry($row, (int) $row->national_rank, (string) $row->national_top, $isMe, $showAmounts);
             }
