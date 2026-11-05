@@ -13,6 +13,8 @@ use App\Support\DashboardManagement;
 use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Closure;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
@@ -126,6 +128,20 @@ class HandleInertiaRequests extends Middleware
      *
      * @return array<string, mixed>
      */
+    /**
+     * Send Bangla text as real characters instead of \uXXXX escapes. The page data on a
+     * portal is mostly Bangla, so this makes every in-app page visit about a third the size.
+     */
+    public function handle(Request $request, Closure $next)
+    {
+        $response = parent::handle($request, $next);
+        if ($response instanceof JsonResponse && $request->header('X-Inertia')) {
+            $response->setEncodingOptions($response->getEncodingOptions() | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return $response;
+    }
+
     public function shareOnce(Request $request): array
     {
         $u = $request->user();
