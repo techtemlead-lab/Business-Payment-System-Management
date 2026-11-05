@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Orders\OrderListFilter;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,11 +34,9 @@ final class AccountsSection implements WorkspaceSection
     private function partnerAccounts(Request $request, string $role): array
     {
         $props = [];
-        $props['accounts'] = User::where('role', $role)
-            ->with('sponsor:id,name,dealer_code')
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+        $matching = User::where('role', $role)
             ->when($request->filled('q'), function ($q) use ($request) {
-                $term = '%'.$request->string('q').'%';
+                $term = '%'.OrderListFilter::escapeLike($request->string('q')->trim()->toString()).'%';
                 $q->where(function ($sub) use ($term) {
                     $sub->where('name', 'ilike', $term)
                         ->orWhere('dealer_code', 'ilike', $term)
@@ -45,7 +44,15 @@ final class AccountsSection implements WorkspaceSection
                         ->orWhere('phone', 'ilike', $term)
                         ->orWhere('profile->shop_name', 'ilike', $term);
                 });
-            })->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
+            });
+        // Status tab counts follow the search but not the status filter, so every tab keeps its number.
+        $props['account_status_counts'] = (clone $matching)->toBase()
+            ->select('status')->selectRaw('COUNT(*) AS aggregate')->groupBy('status')
+            ->pluck('aggregate', 'status')->map(fn ($count): int => (int) $count)->all();
+        $props['accounts'] = $matching
+            ->with('sponsor:id,name,dealer_code')
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
+            ->orderByDesc('id')->paginate(20, ['id', 'name', 'email', 'phone', 'role', 'linked_staff_role', 'status', 'dealer_code', 'division', 'district', 'latitude', 'longitude', 'directory_visible', 'profile', 'sponsor_id', 'created_at']);
         $props['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
 
         return $props;
