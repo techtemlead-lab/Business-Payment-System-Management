@@ -151,10 +151,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         return null;
                     }
                     if (isPartner && ['upazila', 'union', 'area_code'].includes(field)) {
-                        const fieldLabel = label(field);
+                        const fieldLabel = label(field, translate);
                         return <label key={field}>{fieldLabel}<input readOnly maxLength={150} value={form.data.profile[field]} /></label>;
                     }
-                    const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : label(field);
+                    const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : label(field, translate);
                     return <label key={field}>{fieldLabel}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
                 })}
                 <label>{translate('portal', 'col_status')}<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">{translate('portal', 'status_active')}</option><option value="suspended">{translate('portal', 'status_suspended')}</option></select></label>

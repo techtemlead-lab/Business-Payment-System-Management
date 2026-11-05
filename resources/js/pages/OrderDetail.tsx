@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { Row, Table, Badge, money, date, label, ActionForm, DateInput, Flash } from '../components/UI';
+import { Row, Table, Badge, money, date, label, ActionForm, DateInput } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 
@@ -73,7 +73,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
 
     return <Shell section="order">
         <Head title={order.number} />
-        <Flash />
         <Link className="text-link" href={backUrl??base+'/orders'}>{translate('portal', 'all_orders')}</Link>
         <div className="order-title"><div><h2>{order.number}</h2><p>{order.user.name} · {order.user.dealer_code} · {date(order.created_at)}</p></div><div className="ops-row is-wrap ops-relative" data-tour="invoice-actions">
             <a className="button small dark" href={pdfUrl}>{translate('portal','download_invoice')}</a>
@@ -156,7 +155,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">
             <h2>{translate('portal', 'review_this_order')}</h2><p className="muted">{translate('portal', 'review_this_order_hint')}</p>{replacementSlots.length>0&&<div className="notice"><p>{translate('portal', 'replacement_hint')}</p><form method="get"><label>{translate('portal', 'find_replacement_partners')}<input name="replacement_q" type="search"/></label><button className="button small">{translate('portal', 'find_partners')}</button></form></div>}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
-                { name: 'status', label: translate('portal', 'decision'), required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value) })) },
+                { name: 'status', label: translate('portal', 'decision'), required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value, translate) })) },
                 ...(capabilities.includes('finance') ? [{ name: 'allow_credit', label: translate('portal', 'credit_authorization'), value: '0', options: [{ value: '0', label: translate('portal', 'full_payment_required') }, { value: '1', label: translate('portal', 'authorize_credit') }] }] : []),
                 ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:translate('portal','replacement_for_generation',{generation:String(slot.generation),name:String(slot.name)}),options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??translate('portal','col_partner')}`}))})),
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', required: true },
@@ -166,7 +165,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <section className="panel"><h2>{translate('portal', 'order_activity')}</h2>
             {events.length ? events.map(event => {
                 const metadata = typeof event.metadata === 'string' ? JSON.parse(event.metadata) : event.metadata;
-                return <div className="timeline-item" key={event.id}><i /><div><b>{label(event.action.replaceAll('.', ' '))}</b><p>{date(event.created_at)}{metadata?.reason ? ` · ${metadata.reason}` : ''}</p></div></div>;
+                return <div className="timeline-item" key={event.id}><i /><div><b>{translate('portal', `event_${event.action.replaceAll('.', '_')}`) === `event_${event.action.replaceAll('.', '_')}` ? label(event.action.replaceAll('.', ' ')) : translate('portal', `event_${event.action.replaceAll('.', '_')}`)}</b><p>{date(event.created_at)}{metadata?.reason ? ` · ${metadata.reason}` : ''}</p></div></div>;
             }) : <p className="muted">{translate('portal', 'order_activity_empty')}</p>}
         </section>
     </Shell>;

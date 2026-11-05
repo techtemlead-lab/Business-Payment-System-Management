@@ -55,6 +55,7 @@ export const label=(text:string,translate?:TranslateFn)=>{
    `report_cat_${text}`,
    `label_${text}`,
    `acct_role_${text}`,
+   `staff_role_${text}`,
    `settle_kind_${text}`,
    `jr_account_${text}`,
    `status_${text}`,

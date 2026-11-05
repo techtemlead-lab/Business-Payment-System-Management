@@ -402,7 +402,7 @@ export default function AccountCreate({
                                     >
                                         {roles.map((r) => (
                                             <option key={r} value={r}>
-                                                {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r)}
+                                                {r === 'dealer' ? translate('portal','acct_role_dealer') : r === 'sub_dealer' ? translate('portal','acct_role_sub_dealer') : label(r, translate)}
                                             </option>
                                         ))}
                                     </select>

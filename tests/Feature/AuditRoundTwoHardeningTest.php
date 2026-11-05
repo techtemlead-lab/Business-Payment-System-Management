@@ -8,6 +8,7 @@ use App\Domain\Orders\OrderListFilter;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Models\Order;
 use App\Models\User;
+use App\Support\PortalHost;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -170,6 +171,22 @@ class AuditRoundTwoHardeningTest extends TestCase
 
         $this->assertSame('2026-02-01', $range['from']->timezone('Asia/Dhaka')->toDateString());
         $this->assertSame('2026-02-28', $range['until']->timezone('Asia/Dhaka')->toDateString());
+    }
+
+    public function test_local_http_portals_do_not_force_https_upgrades(): void
+    {
+        $csp = (string) $this->onPortal('dealer')->get('/login')->headers->get('Content-Security-Policy');
+
+        $this->assertStringNotContainsString('upgrade-insecure-requests', $csp);
+    }
+
+    public function test_production_https_portals_keep_https_upgrades(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        $csp = (string) $this->onPortal('dealer')->get('https://'.PortalHost::host('dealer').'/login')->headers->get('Content-Security-Policy');
+
+        $this->assertStringContainsString('upgrade-insecure-requests', $csp);
     }
 
     public function test_withdrawal_detail_with_non_uuid_id_is_not_found(): void

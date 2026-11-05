@@ -437,7 +437,7 @@ export default function ProductPurchaseMatrix({
                                     const specText = v.strength || v.unit || translate('portal', 'b2b_single_spec');
                                     return (
                                         <option key={v.id} value={v.id}>
-                                            {specText} — {money(vPrice)} (MRP {money(vMrp)}{vDisc > 0 ? ` · ${vDisc}% off` : ''})
+                                            {specText} — {money(vPrice)} (MRP {money(vMrp)}{vDisc > 0 ? ` · ${translate('portal', 'pct_off', { pct: String(vDisc) })}` : ''})
                                         </option>
                                     );
                                 })}
@@ -567,7 +567,7 @@ export default function ProductPurchaseMatrix({
                             className="text-link ppm-clear"
                             onClick={() => setCart([])}
                         >
-                            সব মুছুন (Clear All)
+                            {translate('portal', 'b2b_clear_all')}
                         </button>
                     )}
                 </div>
