@@ -1810,3 +1810,13 @@ html[data-theme="dark"] .import-choice{background:var(--ds-surface-2);border-col
 html[data-theme="dark"] .import-choice:has(input:checked),
 html[data-theme="dark"] .import-choice.is-selected{background:var(--ds-brand-soft);border-color:var(--ds-brand)}
 html[data-theme="dark"] .stock-search{background:var(--ds-surface);border-color:var(--ds-line);color:var(--ds-text)}
+html[data-theme="dark"] .transaction-progress-stepper .step-indicator.state-active,
+html[data-theme="dark"] .withdrawal-progress-stepper .wd-step-indicator.state-active{background:var(--ds-brand);color:var(--ds-on-brand)}
+html[data-theme="dark"] .app-shell .stock-toolbar label.stock-search{background:var(--ds-surface);border-color:var(--ds-line);color:var(--ds-text)}
+html[data-theme="dark"] .app-shell .policy-gate{background:var(--ds-warn-bg);border-color:var(--ds-line);color:var(--ds-text)}
+html[data-theme="dark"] .app-shell .step-icon{background:var(--ds-surface-3);color:var(--ds-text-2)}
+html[data-theme="dark"] .partner-home-avatar-camera{background:var(--ds-surface-3);color:var(--ds-text);border-color:var(--ds-line)}
+html[data-theme="dark"] .luxury-btn-pause,html[data-theme="dark"] .luxury-btn-archive{background:var(--ds-surface-3);color:var(--ds-text);border-color:var(--ds-line)}
+html[data-theme="dark"] .hub-pill.is-solid,html[data-theme="dark"] .hub-step{background:var(--ds-brand);color:var(--ds-on-brand)}
+html[data-theme="dark"] .home-pie.empty{background:var(--ds-surface-3);color:var(--ds-text-muted)}
+html[data-theme="dark"] .home-pie{box-shadow:inset 0 0 0 10px var(--ds-surface),0 8px 18px rgba(0,0,0,.35)}

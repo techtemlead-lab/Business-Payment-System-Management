@@ -147,7 +147,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                 <div className="hub-row is-between is-top">
                     <div>
                         <div className="emp-kicker">
-                            <ShieldCheck size={16} color="#059669" />
+                            <ShieldCheck size={16} className="icon-ok" />
                             {translate('portal', 'emp_badge')}
                         </div>
                         <h2 className="emp-heading">

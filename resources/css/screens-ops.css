@@ -444,3 +444,9 @@
 .app-shell .ptl-foot{margin-top:var(--ds-s-6);padding-top:var(--ds-s-4);border-top:1px solid var(--ds-line)}
 .app-shell .button.ptl-logout{background:var(--ds-accent-soft);border-color:color-mix(in srgb,var(--ds-accent) 30%,transparent);color:var(--ds-accent-text)}
 .app-shell .button.ptl-logout:hover{background:var(--ds-accent-soft);border-color:var(--ds-accent);color:var(--ds-accent-text)}
+
+/* Icon tones (replace hard-coded icon colours; follow light/dark tokens) */
+.icon-ok{color:var(--ds-ok-fg)}
+.icon-brand{color:var(--ds-brand-text)}
+.icon-warn{color:var(--ds-warn-fg)}
+.icon-muted{color:var(--ds-text-faint)}

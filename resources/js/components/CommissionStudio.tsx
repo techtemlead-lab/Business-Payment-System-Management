@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { SlidersHorizontal, ShieldCheck, AlertCircle, RefreshCw, Calculator, Check } from 'lucide-react';
-import { money } from './UI';
+import { money, label } from './UI';
 import { useT } from '../shared/i18n/t';
 
 /** Pool limits the backend commission policy enforces (CommissionsSection::commissionPoolLimits). */
@@ -162,7 +162,7 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                                 <div>
                                     <div className="hub-row is-between">
                                         <span className="hub-pill tone-brand">
-                                            {r.category}
+                                            {label(String(r.category ?? ""), translate)}
                                         </span>
                                         <span className="hub-label">v{r.version}</span>
                                     </div>

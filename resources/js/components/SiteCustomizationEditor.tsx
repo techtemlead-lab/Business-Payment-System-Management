@@ -2786,7 +2786,7 @@ export function FeaturedProductsManager({
             <div className="ed-head">
                 <div>
                     <h3 className="ed-title is-flush ed-row">
-                        <Package size={20} color="#006837" /> {translate('portal', 'sce_featured_products_section')}
+                        <Package size={20} className="icon-ok" /> {translate('portal', 'sce_featured_products_section')}
                     </h3>
                     <p className="ed-desc">
                         {translate('portal', 'sce_featured_products_section_hint')}
@@ -2931,7 +2931,7 @@ export function FeaturedProductsManager({
 
                     {items.length === 0 ? (
                         <div className="ed-empty">
-                            <Package size={32} color="#94a3b8" className="ed-empty-icon" />
+                            <Package size={32} className="ed-empty-icon icon-muted" />
                             <p className="ed-desc is-flush ed-mb">
                                 {translate('portal', 'sce_curated_products_empty')}
                             </p>
@@ -4093,7 +4093,7 @@ export default function SiteCustomizationEditor({
                 <div className="ed-head is-flush">
                     <div>
                         <h2 className="ed-row is-loose">
-                            <SlidersHorizontal size={22} color="#2e3192" /> {translate('portal', 'cms_heading')}
+                            <SlidersHorizontal size={22} className="icon-brand" /> {translate('portal', 'cms_heading')}
                         </h2>
                         <p className="ed-desc">
                             {translate('portal', 'cms_heading_hint')}
@@ -4112,7 +4112,7 @@ export default function SiteCustomizationEditor({
                 {/* Relocation guidance banner */}
                 <div className="ed-callout tone-ok ed-head is-flush ed-mt">
                     <div className="ed-row is-loose">
-                        <Package size={20} color="#15803d" />
+                        <Package size={20} className="icon-ok" />
                         <span className="ed-body tone-ok">
                             {translate('portal', 'cms_product_banner')}
                         </span>

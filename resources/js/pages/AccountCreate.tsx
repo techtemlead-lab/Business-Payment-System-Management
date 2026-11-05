@@ -606,7 +606,7 @@ export default function AccountCreate({
                                 {placePreview && (
                                     <div className={`ops-card is-tight is-tinted ops-mt-3 acr-place ${placePreview.available ? 'tone-ok' : 'tone-orange'}`}>
                                         <div className="ops-row is-snug ops-bold">
-                                            {placePreview.available ? <CheckCircle2 size={16} color="#047857" /> : <AlertTriangle size={16} color="#c2410c" />}
+                                            {placePreview.available ? <CheckCircle2 size={16} className="icon-ok" /> : <AlertTriangle size={16} className="icon-warn" />}
                                             {placePreview.label}
                                         </div>
                                         {!placePreview.available && <p className="muted ops-m-0 ops-mt-2">{translate('portal','acct_area_taken')}</p>}

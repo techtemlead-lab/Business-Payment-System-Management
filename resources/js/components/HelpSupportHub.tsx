@@ -206,7 +206,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                 <div className="help-article-header">
                                     <div className="help-article-meta-top">
                                         <span className="help-article-eyebrow">
-                                            {translate('portal', 'help_manual_title')} · {active.key.replaceAll('_', ' ').toUpperCase()}
+                                            {translate('portal', 'help_manual_title')}
                                         </span>
                                         {active.badge && (
                                             <span className="help-article-category-badge">{active.badge}</span>

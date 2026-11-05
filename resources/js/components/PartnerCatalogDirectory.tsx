@@ -113,14 +113,14 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         onClick={() => setViewMode('grid')}
                         className={viewMode === 'grid' ? 'is-active' : undefined}
                     >
-                        <LayoutGrid size={14} /> গ্রিড ভিউ (Cards)
+                        <LayoutGrid size={14} /> {translate('portal', 'catalog_view_grid')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setViewMode('table')}
                         className={viewMode === 'table' ? 'is-active' : undefined}
                     >
-                        <List size={14} /> টেবিল ভিউ (Table)
+                        <List size={14} /> {translate('portal', 'catalog_view_table')}
                     </button>
                 </div>
             </div>

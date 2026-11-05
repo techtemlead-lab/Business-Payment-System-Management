@@ -306,7 +306,7 @@ export default function ProductPurchaseMatrix({
                         {translate('portal', 'b2b_purchase_title')}
                     </h3>
                     <span className="hub-pill tone-ok ops-ml-auto">
-                        Persistent B2B Matrix
+                        {translate('portal', 'b2b_cart_saved_badge')}
                     </span>
                 </div>
 
