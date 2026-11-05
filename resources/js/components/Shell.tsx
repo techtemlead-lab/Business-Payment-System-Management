@@ -6,7 +6,7 @@ import {
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
-    Layers, ArrowDownToLine, ArrowUpFromLine, type LucideIcon
+    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -129,7 +129,7 @@ const icons: Record<string, LucideIcon> = {
     commissions: Percent, 'network-tree': GitBranch, 'area-dealers': MapPin, 'place-codes': Hash, branches: Store, 'branch-performance': BarChart3, rewards: Trophy, 'capital-flow': TrendingUp,
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
-    employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, 'top-sellers': Trophy,
+    employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
     finance: Landmark, payouts: Wallet,
 };
 
