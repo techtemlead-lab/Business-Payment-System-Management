@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#011627">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $ownerPortal ? __('portal.owner_portal') : __('portal.company_portal') }} · {{ $mode==='login'?($ownerPortal?__('auth_ui.owner_sign_in'):__('auth_ui.staff_sign_in')):($mode==='totp'?__('auth_ui.totp_title'):($mode==='forgot'?__('auth_ui.forgot_password'):__('auth_ui.reset_password'))) }} · {{ __('portal.brand_company_bar') }}</title>
-    <link rel="stylesheet" href="/reference/instrument-sans-local.css">
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css','resources/css/dashboard.css','resources/js/theme-boot.ts'])
