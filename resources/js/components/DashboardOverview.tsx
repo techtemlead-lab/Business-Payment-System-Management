@@ -204,6 +204,16 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                 </dl>
             </section>
 
+            {home.is_birthday === true && (
+                <section className="ph-birthday" role="status" data-tour="home-birthday">
+                    <span className="ph-birthday-icon" aria-hidden="true">🎂</span>
+                    <div>
+                        <h3>{translate('portal', 'ph_birthday_title')}</h3>
+                        <p>{translate('portal', 'ph_birthday_body', { name: String(profile.name ?? '') })}</p>
+                    </div>
+                </section>
+            )}
+
             <QuickActions base={base} />
 
             <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">

@@ -101,3 +101,9 @@ html[data-theme="dark"] .ph-action-icon.tone-rose{background:#3d1626;color:#f59c
 /* The account card already greets the partner and has a New order shortcut, so the page
    title block above it is kept for screen readers only. */
 .workspace-main:has(.ph)>.page-heading{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Birthday greeting card, shown on the partner's birthday */
+.ph-birthday{display:flex;align-items:center;gap:14px;background:var(--ds-warn-bg);border:1px solid var(--ds-gold);border-radius:18px;padding:14px 16px;color:var(--ds-text)}
+.ph-birthday-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:48px;height:48px;border-radius:50%;background:var(--ds-surface);font-size:26px;line-height:1}
+.ph-birthday h3{margin:0;font-size:var(--ds-fs-md);font-weight:700;color:var(--ds-text);letter-spacing:0}
+.ph-birthday p{margin:2px 0 0;font-size:var(--ds-fs-sm);line-height:1.5;color:var(--ds-text-2)}

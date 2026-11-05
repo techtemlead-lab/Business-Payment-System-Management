@@ -5657,4 +5657,8 @@ return [
     'st_div_col_to_company' => 'Goes to company profit',
     'st_col_share' => 'Will get',
     'err_claim_over_waiting' => 'Payments of ৳:waiting for this order are still waiting to be checked. You can send at most ৳:left more.',
+    'ph_birthday_title' => 'Happy birthday!',
+    'ph_birthday_body' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
+    'dash_mgmt_toggle_birthday_sms' => 'Send birthday SMS',
+    'dash_mgmt_toggle_birthday_sms_desc' => 'Send one short birthday SMS to each dealer and sub-dealer at 9 am on their birthday. Each SMS costs money, so this is off at first.',
 ];

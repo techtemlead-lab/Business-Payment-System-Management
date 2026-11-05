@@ -560,6 +560,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                     { key: 'company_commissions_enabled', label: translate('portal','dash_mgmt_toggle_commissions'), desc: translate('portal','dash_mgmt_toggle_commissions_desc') },
                                     { key: 'company_customization_enabled', label: translate('portal','dash_mgmt_toggle_cms'), desc: translate('portal','dash_mgmt_toggle_cms_desc') },
                                     { key: 'company_audit_enabled', label: translate('portal','dash_mgmt_toggle_audit'), desc: translate('portal','dash_mgmt_toggle_audit_desc') },
+                                    { key: 'birthday_sms_enabled', label: translate('portal','dash_mgmt_toggle_birthday_sms'), desc: translate('portal','dash_mgmt_toggle_birthday_sms_desc') },
                                 ].map(toggle => {
                                     const active = Boolean(form.data.settings[toggle.key]);
                                     return (
