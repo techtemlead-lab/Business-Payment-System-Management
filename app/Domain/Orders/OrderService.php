@@ -134,7 +134,7 @@ class OrderService
                 throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
             }
             $reference = Str::upper(trim($data['reference']));
-            if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
+            if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->where('status', '<>', 'rejected')->exists()
                 || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
                 throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
@@ -218,8 +218,11 @@ class OrderService
     public function verify(User $actor, int $claimId, bool $approve, string $reason): void
     {
         abort_unless($actor->allows('finance'), 403);
+        // The gateway can take up to 30 seconds. Ask it before taking the money lock so a
+        // slow provider does not stall every other order, payout and settlement.
+        $checked = $approve ? $this->gatewayLookupBeforeLock($claimId) : null;
         try {
-            DB::transaction(function () use ($actor, $claimId, $approve, $reason): void {
+            DB::transaction(function () use ($actor, $claimId, $approve, $reason, $checked): void {
                 CommissionWallet::lock();
                 $initial = DB::table('payment_claims')->find($claimId);
                 abort_unless($initial, 404);
@@ -236,7 +239,9 @@ class OrderService
                     if (DB::table('receipts')->where('channel', $claim->channel)->where('reference', $claim->reference)->exists()) {
                         throw ValidationException::withMessages(['payment' => __('portal.err_payment_ref_used')]);
                     }
-                    $gateway = app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount);
+                    $gateway = $checked !== null && $checked['claim'] === $this->gatewayLookupKey($claim)
+                        ? $checked['result']
+                        : app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount);
                     if ($gateway['checked'] && ! $gateway['matched']) {
                         throw ValidationException::withMessages(['payment' => __('portal.err_payment_gateway_manual', ['message' => $gateway['message']])]);
                     }
@@ -262,7 +267,10 @@ class OrderService
                 }
                 DB::table('payment_claims')->where('id', $claimId)->update(['status' => $approve ? 'verified' : 'rejected',
                     'verified_by' => $actor->id, 'reason' => $reason, 'updated_at' => now()]);
-                $this->event($order, $actor, $approve ? 'payment.verified' : 'payment.rejected', ['claim_id' => $claimId, 'reason' => $reason]);
+                $this->event($order, $actor, $approve ? 'payment.verified' : 'payment.rejected', [
+                    'claim_id' => $claimId, 'reason' => $reason, 'channel' => $claim->channel, 'reference' => $claim->reference,
+                    'amount' => $claim->amount, 'order_paid_after' => $order->paid, 'order_total' => $order->total,
+                ]);
                 $partner = User::find($order->user_id);
                 $locale = $partner?->preferredLocale() ?? app()->getLocale();
                 $outcome = __($approve ? 'portal.payment_outcome_verified' : 'portal.payment_outcome_rejected', [], $locale);
@@ -457,6 +465,30 @@ class OrderService
         });
     }
 
+    /**
+     * Asks the payment gateway about a pending claim without holding any lock.
+     *
+     * @return array{claim: string, result: array<string, mixed>}|null
+     */
+    private function gatewayLookupBeforeLock(int $claimId): ?array
+    {
+        $claim = DB::table('payment_claims')->where('id', $claimId)->first(['channel', 'reference', 'amount', 'status']);
+        if (! $claim || $claim->status !== 'pending') {
+            return null;
+        }
+
+        return [
+            'claim' => $this->gatewayLookupKey($claim),
+            'result' => app(PaymentGatewayClient::class)->lookup((string) $claim->channel, (string) $claim->reference, (string) $claim->amount),
+        ];
+    }
+
+    /** The claim details the gateway answer is valid for. */
+    private function gatewayLookupKey(object $claim): string
+    {
+        return $claim->channel.'|'.$claim->reference.'|'.Money::cents((string) $claim->amount);
+    }
+
     private function insertClaim(Order $order, array $data): int
     {
         $amount = Money::cents((string) $data['amount']);
@@ -475,7 +507,7 @@ class OrderService
 
         $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
         $reference = Str::upper(trim($data['reference']));
-        if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->exists()
+        if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->where('status', '<>', 'rejected')->exists()
             || DB::table('receipts')->where('channel', $data['channel'])->where('reference', $reference)->exists()) {
             throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
         }

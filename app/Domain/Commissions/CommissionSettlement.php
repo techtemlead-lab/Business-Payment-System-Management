@@ -14,6 +14,7 @@ use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 final class CommissionSettlement
@@ -691,12 +692,25 @@ final class CommissionSettlement
             $funds = CommissionAllocation::where('status', 'maturing')->whereNotNull('user_id')->orderBy('id')->lockForUpdate()->get();
             $count = 0;
             $total = 0;
+            $skipped = 0;
             foreach ($funds as $fund) {
                 $due = $fund->metadata['maturation_due_at'] ?? null;
                 if (! $due || now()->lt(CarbonImmutable::parse($due)) || ! User::whereKey($fund->user_id)->where('status', 'active')->exists()) {
                     continue;
                 }
                 $amount = Money::cents($fund->amount);
+                // One wallet whose held balance has drifted must not stop everyone else's
+                // commissions from maturing. Skip it, leave it maturing and raise an alert.
+                $heldBalance = Money::cents((string) (DB::table('wallets')->where('user_id', $fund->user_id)->value('commission_held') ?? '0'));
+                if ($heldBalance < $amount) {
+                    Log::critical('commission.maturity_release_skipped', [
+                        'allocation_id' => $fund->id, 'user_id' => $fund->user_id,
+                        'amount' => Money::decimal($amount), 'commission_held' => Money::decimal($heldBalance),
+                    ]);
+                    $skipped++;
+
+                    continue;
+                }
                 $result = $this->wallets->debit($fund->user_id, $amount, true);
                 if ($result['unrecovered'] !== 0) {
                     throw ValidationException::withMessages(['commissions' => __('portal.err_settle_holds')]);
@@ -740,6 +754,7 @@ final class CommissionSettlement
             return $this->rememberSettlement($period, 'matured', $requestKey, $actorId, [
                 'status' => $count > 0 ? 'success' : 'no_matured_commissions',
                 'released_count' => $count,
+                'skipped_count' => $skipped,
                 'total_amount' => Money::decimal($total),
             ]);
         }, 3);

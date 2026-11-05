@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Orders\OrderService;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
@@ -259,6 +260,21 @@ class CommissionSettlementTest extends TestCase
             'amount' => '100.00',
         ]);
         $this->assertDatabaseMissing('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary']);
+    }
+
+    public function test_reconciliation_still_balances_after_purchase_surplus_and_unclaimed_settlement(): void
+    {
+        // MRP 200 paid 120 leaves a ৳12 purchase surplus in the owner's benefits fund.
+        $this->purchase(User::factory()->create(), '120.00', '200.00');
+        $this->purchase(User::factory()->create(), '5000.00', '10000.00');
+        $this->assertDatabaseHas('commission_allocations', ['category' => 'company_commission_benefits_fund']);
+        $this->assertTrue(app(FinancialReadiness::class)->inspect()['checks']['allocation_totals']);
+
+        $this->travelTo(now()->setDate(2026, 10, 1));
+        $this->assertSame('rolled_over', app(CommissionService::class)->settleMonthlySalaryPool('2026-09')['status']);
+        $this->assertDatabaseHas('commission_allocations', ['category' => 'company_profit_fund']);
+
+        $this->assertTrue(app(FinancialReadiness::class)->inspect()['checks']['allocation_totals']);
     }
 
     public function test_open_month_cannot_be_settled_early(): void
