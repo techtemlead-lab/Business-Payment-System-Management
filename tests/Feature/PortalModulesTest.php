@@ -147,7 +147,8 @@ class PortalModulesTest extends TestCase
 
     public function test_partner_nav_is_grouped_into_mother_modules(): void
     {
-        $this->assertSame(['overview'], PortalCatalog::nav('dealer')['home']);
+        $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('dealer')['home']);
+        $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('subdealer')['home']);
         $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries'], PortalCatalog::nav('dealer')['commerce']);
         $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);

@@ -16,9 +16,9 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'network', 'ranks', 'withdrawals', 'full-report', 'share-feedback', 'help'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help'],
         'nav' => [
-            'home' => ['overview'],
+            'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'network' => ['network', 'ranks'],
             'earnings' => ['earnings', 'full-report', 'withdrawals'],
@@ -30,9 +30,9 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'salary', 'withdrawals', 'full-report', 'share-feedback', 'help'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help'],
         'nav' => [
-            'home' => ['overview'],
+            'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'earnings' => ['salary', 'earnings', 'full-report', 'withdrawals'],
             'account' => ['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'],
@@ -46,7 +46,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'content', 'website', 'customization',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin',
         ],
@@ -68,6 +68,7 @@ return [
             'withdrawals' => 'finance',
             'ledger' => 'finance',
             'reports' => 'reports',
+            'top-sellers' => 'reports',
             'content' => 'content',
             'website' => 'content',
             'customization' => 'content',
@@ -92,7 +93,7 @@ return [
             'commissions' => ['rewards', 'settlements'],
             'finance' => ['treasury', 'payments', 'withdrawals', 'payouts-hub', 'ledger'],
             'people' => ['employees', 'dashboards'],
-            'reports' => ['reports'],
+            'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
             'system' => ['audit', 'support-admin'],
             'dealer_directory' => ['accounts', 'partnerships'],
@@ -114,7 +115,7 @@ return [
         'sections' => [
             'overview', 'orders', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications',
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
-            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'content', 'website', 'customization',
+            'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
             'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin',
         ],
@@ -136,6 +137,7 @@ return [
             'withdrawals' => 'finance',
             'ledger' => 'finance',
             'reports' => 'reports',
+            'top-sellers' => 'reports',
             'content' => 'content',
             'website' => 'content',
             'customization' => 'content',
@@ -160,7 +162,7 @@ return [
             'commissions' => ['rewards', 'settlements'],
             'finance' => ['treasury', 'benefits-fund', 'payments', 'withdrawals', 'payouts-hub', 'ledger'],
             'people' => ['dashboards', 'employees'],
-            'reports' => ['reports'],
+            'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
             'system' => ['audit', 'support-admin'],
             'dealer_directory' => ['accounts', 'partnerships'],
