@@ -114,8 +114,8 @@ class AuditRemediationFixesTest extends TestCase
 
     public function test_portal_checkout_review_exposes_line_and_order_total_copy(): void
     {
-        $this->assertSame('Line total', __('portal.col_line_total', [], 'en'));
-        $this->assertSame('লাইন মোট', __('portal.col_line_total', [], 'bn'));
+        $this->assertSame('Total', __('portal.col_line_total', [], 'en'));
+        $this->assertSame('মোট দাম', __('portal.col_line_total', [], 'bn'));
         $this->assertSame('Open Help & Support', __('portal.profile_locked_support_cta', [], 'en'));
 
         // The live checkout (ProductPurchaseMatrix) shows a total for each line and for the cart.

@@ -123,7 +123,7 @@ return [
     'ordering_paused' => 'Ordering paused',
     'mrp' => 'MRP',
     'retail_price' => 'Retail price',
-    'availability' => 'Availability',
+    'availability' => 'Stock',
     'product_code' => 'Product Code',
     'product_code_short' => 'Product code',
     'category' => 'Category',
@@ -188,14 +188,14 @@ We collect only the information we need to run the website, answer questions and
 Company staff open and manage dealer and sub-dealer accounts after checking them — there is no public self-registration; nobody can sign up by themselves. Keep your login details private. Inside the company, each staff member sees only the records they need for their job.
 
 4. Payments & Transaction IDs (TrxID)
-When you send a payment claim (for example bKash, Nagad, Rocket or bank transfer), we save the amount, the company account you paid to, and the TrxID or reference number, so the accounts team can check it against company records. A false, repeated or changed TrxID can lead to the claim being rejected, your account being checked, or other action under company rules.
+When you send a payment (for example bKash, Nagad, Rocket or bank transfer), we save the amount, the company account you paid to, the TrxID and the payment screenshot, so the accounts team can check it against company records. A false, repeated or changed TrxID can lead to the payment being rejected, your account being checked, or other action under company rules.
 
 5. How We Use Information
 We use this information to:
 • Answer customer care, product and partnership questions.
 • Check, approve and support dealer and sub-dealer accounts.
 • Handle product orders, warehouse work and delivery.
-• Match payment claims, keep dealer account books, and pay approved withdrawals as company policy allows.
+• Match payments, keep dealer account books, and pay approved withdrawals as company policy allows.
 • Send notices such as circulars, product list updates or service messages.
 • Keep activity records for security and for the company\'s own money checks.
 
@@ -218,7 +218,7 @@ We may change this policy when our work or the law changes. The date on this pag
 • Email: holisticnutracare@gmail.com
 • Or use the public Contact form',
     'terms_hero_title' => 'Terms of Use',
-    'terms_hero_lead' => 'Rules for using the Madina Natural Health Care website, product list and dealer services — including accounts, orders and TrxID payment claims.',
+    'terms_hero_lead' => 'Rules for using the Madina Natural Health Care website, product list and dealer services — including accounts, orders and TrxID payments.',
     'terms_body' => '1. Agreement to These Terms
 By using the Madina Natural Health Care website, product list, dealer directory or dealer panels, you agree to follow these Terms of Use and the company\'s working rules. If you do not agree, please stop using the site and its services.
 
@@ -231,11 +231,11 @@ Only company staff open dealer and sub-dealer accounts, after checking documents
 • Do not give false information about your area, level or link with the company.
 • The company may stop or close your panel access for breaking the rules, false claims or bad conduct.
 
-4. Orders, Payments & TrxID Claims
+4. Orders, Payments & TrxID
 The company checks dealer orders and payments:
 • An order in the panel is a request. It depends on stock and staff approval.
-• A payment claim must match a real payment. Give the correct TrxID / transaction reference and the correct company account you paid to. A false, repeated or jointly faked TrxID claim is serious misconduct. It can lead to the claim being rejected, the account being closed, and further action.
-• Buying on credit (due) and wallet payouts need clear company approval under the published rules.
+• The payment details you send must match a real payment. Give the correct TrxID, a screenshot of the payment and the correct company account you paid to. A false, repeated or jointly faked TrxID is serious misconduct. It can lead to the payment being rejected, the account being closed, and further action.
+• Orders must be paid in full before the company approves and sends the goods. Wallet withdrawals need company approval under the published rules.
 
 5. Product & Health Information
 The product list may include unani medicines, food supplements and herbal health products. Website content is for information and learning only. It is not personal medical advice, diagnosis or a prescription. See a qualified doctor or health professional when you need treatment advice.
@@ -372,7 +372,7 @@ Questions about these terms, partnership rules or the website:
     'quality_pillar2_title' => 'Authorized partners only',
     'quality_pillar2_desc' => 'Listed dealers are approved by the company — this helps people avoid fake or unofficial sellers.',
     'quality_pillar3_title' => 'Checked dealer work',
-    'quality_pillar3_desc' => 'Staff check every order, delivery and payment claim, and every step is recorded.',
+    'quality_pillar3_desc' => 'Staff check every order, delivery and payment, and every step is recorded.',
     'quality_cta_btn' => 'Browse Products',
 
     'faq_hero_title' => 'Frequently Asked Questions',
@@ -397,7 +397,7 @@ Questions about these terms, partnership rules or the website:
     'partnership_benefit2_title' => 'Easy start',
     'partnership_benefit2_desc' => 'Company staff check your application, open your account and help you set up your area.',
     'partnership_benefit3_title' => 'Partner store panel',
-    'partnership_benefit3_desc' => 'Use your own dealer or sub-dealer panel to see orders, deliveries, dues and earnings.',
+    'partnership_benefit3_desc' => 'Use your own dealer or sub-dealer panel to see orders, deliveries, payments and earnings.',
     'partnership_benefit4_title' => 'Local market support',
     'partnership_benefit4_desc' => 'Serve people near you as an authorized seller of a known health brand.',
     'partnership_steps_title' => 'How to apply',
@@ -470,7 +470,7 @@ Questions about these terms, partnership rules or the website:
     'share_refer_title' => ':name invites you to :company',
     'share_refer_description' => ':name (:code) invites you to join the :company partner network. Open the contact form to continue — the referrer code is already filled in.',
     'share_refer_eyebrow' => 'Partner invitation',
-    'share_refer_code_label' => 'Refer code',
+    'share_refer_code_label' => 'Referral code',
     'share_refer_phone_label' => 'Contact number',
     'share_refer_contact_cta' => 'Continue to contact form',
     'share_refer_apply_cta' => 'Apply for partnership',
@@ -515,4 +515,27 @@ Questions about these terms, partnership rules or the website:
     'legal_nav' => 'Legal',
     'featured' => 'Featured',
     'brand_tagline' => 'NATURAL CARE',
+    'pd_tag_natural' => '100% natural herbs',
+    'pd_tag_gmp' => 'GMP quality',
+    'pd_tag_safe' => 'Safe to use',
+    'pd_strength' => 'Strength',
+    'pd_default_description' => 'Made by Madina Natural Health Care from pure herbs and natural ingredients, for good health over time.',
+    'pd_feature_herbs_title' => 'Pure herbs',
+    'pd_feature_herbs_body' => 'Made from natural herbs and plant extracts.',
+    'pd_feature_made_title' => 'Carefully made',
+    'pd_feature_made_body' => 'Made in a clean, checked place.',
+    'pd_feature_natural_title' => 'Natural and long-lasting',
+    'pd_feature_natural_body' => 'No harsh chemicals, parabens or artificial fillers.',
+    'pd_feature_care_title' => 'Daily nutrition and care',
+    'pd_feature_care_body' => 'Helps you feel fresh and well every day.',
+    'pd_feature_advisers_title' => 'Checked by our health advisers',
+    'pd_feature_advisers_body' => 'Backed by the Madina Natural Health Care health advisers.',
+    'pd_directions_title' => 'How to use',
+    'pd_directions_body' => 'Use as written on the pack or as your health adviser says. If it is a liquid, shake well before use.',
+    'pd_storage_title' => 'How to store',
+    'pd_storage_body' => 'Keep in a cool, dry place away from sunlight. Keep out of reach of children.',
+    'pd_col_strength' => 'Strength / size',
+    'pd_col_distributor' => 'Licensed distributor',
+    'form_fix_errors' => 'Please fix these:',
+    'partner_message_placeholder' => 'Tell us briefly about your business, your shop or pharmacy, and your plans...',
 ];

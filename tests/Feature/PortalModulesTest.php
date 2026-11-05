@@ -68,7 +68,7 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/dealer/Dashboard')
                 ->where('locale', 'bn')
-                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.log_out', 'লগআউট')
                 ->where('translations.portal.brand_company_bar', 'মদিনা ন্যাচারাল হেলথ কেয়ার')
                 ->where('translations.portal.brand_home_aria', 'মদিনা ন্যাচারাল হেলথ কেয়ার হোম'));
     }
@@ -79,7 +79,7 @@ class PortalModulesTest extends TestCase
         $this->onPortal('manage')->get('/login')
             ->assertOk()
             ->assertSee('ভাষা', false)
-            ->assertSee('স্টাফ সাইন ইন')
+            ->assertSee('স্টাফ লগইন')
             ->assertSee('মদিনা ন্যাচারাল হেলথ কেয়ার', false);
     }
 
@@ -96,8 +96,7 @@ class PortalModulesTest extends TestCase
             ->assertDontSee('Account Login', false)
             ->assertDontSee('Need a dealer account?', false)
             ->assertDontSee('Madina Natural Health Care', false)
-            ->assertDontSee('সাব-ডিলার সাইন ইন', false)
-            ->assertDontSee('Sub-dealer Sign In', false);
+            ->assertDontSee('Sub-dealer log in', false);
     }
 
     public function test_cross_portal_login_links_only_appear_on_owner_login(): void
@@ -105,26 +104,26 @@ class PortalModulesTest extends TestCase
         $this->onPortal('sadmin')->get('/login')
             ->assertOk()
             ->assertSee('data-tour="owner-login-portals"', false)
-            ->assertSee('Employee Sign In', false)
-            ->assertSee('Dealer Sign In', false)
-            ->assertSee('Sub-dealer Sign In', false);
+            ->assertSee('Employee log in', false)
+            ->assertSee('Dealer log in', false)
+            ->assertSee('Sub-dealer log in', false);
 
         $this->onPortal('manage')->get('/login')
             ->assertOk()
             ->assertDontSee('data-tour="owner-login-portals"', false)
-            ->assertDontSee('Owner Sign In', false)
-            ->assertDontSee('Dealer Sign In', false)
-            ->assertDontSee('Sub-dealer Sign In', false);
+            ->assertDontSee('Owner log in', false)
+            ->assertDontSee('Dealer log in', false)
+            ->assertDontSee('Sub-dealer log in', false);
 
         $this->onPortal('dealer')->get('/login')
             ->assertOk()
-            ->assertDontSee('Sub-dealer Sign In', false)
-            ->assertDontSee('Owner Sign In', false);
+            ->assertDontSee('Sub-dealer log in', false)
+            ->assertDontSee('Owner log in', false);
 
         $this->onPortal('subdealer')->get('/login')
             ->assertOk()
-            ->assertDontSee('Dealer Sign In', false)
-            ->assertDontSee('Owner Sign In', false);
+            ->assertDontSee('Dealer log in', false)
+            ->assertDontSee('Owner log in', false);
     }
 
     public function test_access_management_exposes_bangla_staff_access_copy(): void
@@ -175,7 +174,7 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.nav_module_system', 'System')
                 ->where('translations.portal.search_menu', 'Search menu')
                 ->where('translations.portal.download_join_poster', 'Download join poster')
-                ->where('translations.portal.new_purchase_request', 'New purchase request'));
+                ->where('translations.portal.new_purchase_request', 'New order'));
 
         $this->actingAs($dealer)->onPortal('dealer')->post('/locale', ['locale' => 'bn'])->assertRedirect();
         $this->onPortal('dealer')->get('/')
@@ -187,7 +186,7 @@ class PortalModulesTest extends TestCase
                 ->where('translations.portal.nav_module_system', 'সিস্টেম')
                 ->where('translations.portal.search_menu', 'মেনু খুঁজুন')
                 ->where('translations.portal.download_join_poster', 'জয়েন পোস্টার ডাউনলোড')
-                ->where('translations.portal.new_purchase_request', 'নতুন ক্রয় অনুরোধ')
+                ->where('translations.portal.new_purchase_request', 'নতুন অর্ডার')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন')
                 ->where('translations.portal.ops_download_reports', 'হিসাব রিপোর্ট ডাউনলোড')
                 ->where('translations.portal.ops_assign_territory', 'এলাকা নির্ধারণ')
@@ -202,7 +201,7 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/manage/Dashboard')
                 ->where('locale', 'bn')
-                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.log_out', 'লগআউট')
                 ->where('translations.portal.nav_module_home', 'হোম')
                 ->where('translations.portal.financial_readiness', 'শুরুর ব্যালেন্স যাচাই'));
 
@@ -212,7 +211,7 @@ class PortalModulesTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('portals/subdealer/Dashboard')
                 ->where('locale', 'bn')
-                ->where('translations.portal.log_out', 'লগ আউট')
+                ->where('translations.portal.log_out', 'লগআউট')
                 ->where('translations.portal.nav_module_earnings', 'আয়')
                 ->where('translations.portal.change_password', 'পাসওয়ার্ড পরিবর্তন'));
     }

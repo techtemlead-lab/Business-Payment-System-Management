@@ -96,7 +96,7 @@ class OrderServiceLocaleTest extends TestCase
             $this->fail('Expected ValidationException for unapproved dispatch');
         } catch (ValidationException $exception) {
             $this->assertSame(
-                'ডিসপ্যাচের আগে অর্ডার অনুমোদন করুন।',
+                'মাল পাঠানোর আগে অর্ডার অনুমোদন করুন।',
                 $exception->errors()['shipment'][0] ?? null,
             );
         }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote } from 'lucide-react';
 import Shell from '../components/Shell';
-import { Row, Badge, ActionForm, money, date, FormErrors } from '../components/UI';
+import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
@@ -316,7 +316,7 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
                 <div className="ops-caption">
                     <span>{t('current_status', 'Status')}: </span>
                     <strong className="hub-strong hub-capital">
-                        {status.replaceAll('_', ' ')}
+                        {label(status, translate)}
                     </strong>
                 </div>
             </div>

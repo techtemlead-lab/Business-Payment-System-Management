@@ -282,7 +282,7 @@ class PartnerEventSmsTest extends TestCase
         $events = collect(config('madina.sms.sent'))->pluck('event')->all();
         $this->assertContains('commission.matured', $events);
         $this->assertTrue(
-            collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'কুলিং-অফ')),
+            collect(config('madina.sms.sent'))->contains(fn ($row) => str_contains((string) ($row['message'] ?? ''), 'অপেক্ষার সময় শেষ')),
         );
     }
 

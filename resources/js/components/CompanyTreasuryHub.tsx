@@ -803,7 +803,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                         key: 'category',
                                         title: translate('portal', 'tr_col_category'),
                                         sortable: true,
-                                        render: (cat: CategoryAllocation) => <b>{cat.category.replaceAll('_', ' ').toUpperCase()}</b>,
+                                        render: (cat: CategoryAllocation) => <b>{label(cat.category, translate)}</b>,
                                     },
                                     {
                                         key: 'count',
@@ -867,7 +867,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     sortable: true,
                                     render: (rec: AllocationRecord) => (
                                         <span className="hub-label">
-                                            {rec.category.replaceAll('_', ' ')}
+                                            {label(rec.category, translate)}
                                         </span>
                                     ),
                                 },

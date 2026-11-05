@@ -90,7 +90,7 @@ class BusinessPolicyDecisionsTest extends TestCase
     {
         Notification::fake();
         $owner = User::factory()->staff()->create();
-        $this->get('/owner/login')->assertOk()->assertSee('Owner Sign In')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
+        $this->get('/owner/login')->assertOk()->assertSee('Owner log in')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->post('/owner/forgot-password', ['email' => $owner->email])->assertSessionHas('success');
         Notification::assertSentTo($owner, ResetPassword::class, fn ($notice) => str_starts_with($notice->toMail($owner)->actionUrl, PortalHost::url('sadmin', '/reset-password/')));
         $this->actingAs($owner)->withHeader('X-Inertia', 'true')->post('/logout')->assertStatus(409)->assertHeader('X-Inertia-Location', PortalHost::loginUrl($owner));

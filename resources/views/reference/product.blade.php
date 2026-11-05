@@ -58,11 +58,11 @@
     </div>
     <div class="ref-detail-info">
         <div class="ref-product-concern-tags">
-            <span class="ref-concern-tag"><i class="fa-solid fa-leaf" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? '১০০% প্রাকৃতিক ভেষজ' : '100% Authentic Botanical' }}</span>
-            <span class="ref-concern-tag"><i class="fa-solid fa-certificate" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'GMP মানসম্মত' : 'GMP Quality Standard' }}</span>
-            <span class="ref-concern-tag"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'নিরাপদ ফর্মুলেশন' : 'Safe Formulation' }}</span>
+            <span class="ref-concern-tag"><i class="fa-solid fa-leaf" aria-hidden="true"></i> {{ __('site.pd_tag_natural') }}</span>
+            <span class="ref-concern-tag"><i class="fa-solid fa-certificate" aria-hidden="true"></i> {{ __('site.pd_tag_gmp') }}</span>
+            <span class="ref-concern-tag"><i class="fa-solid fa-shield-heart" aria-hidden="true"></i> {{ __('site.pd_tag_safe') }}</span>
             @if(!empty($item['strength']))
-                <span class="ref-concern-tag potency"><i class="fa-solid fa-flask" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'মাত্রা' : 'Potency' }}: {{ $item['strength'] }}</span>
+                <span class="ref-concern-tag potency"><i class="fa-solid fa-flask" aria-hidden="true"></i> {{ __('site.pd_strength') }}: {{ $item['strength'] }}</span>
             @endif
         </div>
 
@@ -128,21 +128,21 @@
         <h2>{{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}</h2>
         <h3>{{ $item['name'] }}</h3>
         <p style="font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 20px;">
-            {{ $item['description'] ?: (app()->getLocale() === 'bn' ? 'মাদিনা ন্যাচারাল হেলথ কেয়ারের বিশুদ্ধ ভেষজ ও প্রাকৃতিক উপাদানে তৈরি পণ্য যা স্বাস্থ্য ও সুস্থতায় দীর্ঘমেয়াদি উপকারিতা প্রদান করে।' : 'Formulated with pure botanical extracts and balanced herbal actives to support long-term wellness and natural care.') }}
+            {{ $item['description'] ?: __('site.pd_default_description') }}
         </p>
         <div class="ref-product-highlights-grid">
             <div class="ref-highlight-box">
                 <i class="fa-solid fa-leaf" aria-hidden="true"></i>
                 <div>
-                    <strong>{{ app()->getLocale() === 'bn' ? 'বিশুদ্ধ ভেষজ উপাদান' : 'Pure Botanical Actives' }}</strong>
-                    <p>{{ app()->getLocale() === 'bn' ? 'প্রাকৃতিক নির্যাস ও আয়ুর্বেদিক নির্দেশনায় তৈরি।' : 'Enriched with authentic herbs and traditional holistic extracts.' }}</p>
+                    <strong>{{ __('site.pd_feature_herbs_title') }}</strong>
+                    <p>{{ __('site.pd_feature_herbs_body') }}</p>
                 </div>
             </div>
             <div class="ref-highlight-box">
                 <i class="fa-solid fa-check-double" aria-hidden="true"></i>
                 <div>
-                    <strong>{{ app()->getLocale() === 'bn' ? 'মানসম্মত উৎপাদন' : 'Standard Manufacturing' }}</strong>
-                    <p>{{ app()->getLocale() === 'bn' ? 'ফার্মাসিউটিক্যাল স্বাস্থ্যসম্মত পরিবেশ ও মান নিশ্চিতকরণ।' : 'Controlled hygiene standards and clinical formulation purity.' }}</p>
+                    <strong>{{ __('site.pd_feature_made_title') }}</strong>
+                    <p>{{ __('site.pd_feature_made_body') }}</p>
                 </div>
             </div>
         </div>
@@ -155,22 +155,22 @@
             <li>
                 <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <div>
-                    <strong>{{ app()->getLocale() === 'bn' ? 'প্রাকৃতিক কার্যকারিতা ও দীর্ঘস্থায়ী ফলাফল' : 'Authentic Holistic Potency' }}</strong>
-                    <p>{{ app()->getLocale() === 'bn' ? 'ক্ষতিকারক কৃত্রিম কেমিক্যাল ও প্যারাবেন সম্পূর্ণ মুক্ত।' : 'Free of aggressive chemicals, parabens and artificial fillers.' }}</p>
+                    <strong>{{ __('site.pd_feature_natural_title') }}</strong>
+                    <p>{{ __('site.pd_feature_natural_body') }}</p>
                 </div>
             </li>
             <li>
                 <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <div>
-                    <strong>{{ app()->getLocale() === 'bn' ? 'সুষম পুষ্টি ও ত্বক/স্বাস্থ্যের সুরক্ষা' : 'Cellular Nourishment & Daily Protection' }}</strong>
-                    <p>{{ app()->getLocale() === 'bn' ? 'শরীরের স্বাভাবিক রোগ প্রতিরোধ ক্ষমতা ও সতেজতা বৃদ্ধি করে।' : 'Reinforces vitality, natural glow and metabolic balance.' }}</p>
+                    <strong>{{ __('site.pd_feature_care_title') }}</strong>
+                    <p>{{ __('site.pd_feature_care_body') }}</p>
                 </div>
             </li>
             <li>
                 <span class="ref-benefit-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <div>
-                    <strong>{{ app()->getLocale() === 'bn' ? 'চিকিৎসক ও বিশেষজ্ঞ পরামর্শ বান্ধব' : 'Practitioner Guided Integrity' }}</strong>
-                    <p>{{ app()->getLocale() === 'bn' ? 'মাদিনা ন্যাচারাল হেলথ কেয়ার বিশেষজ্ঞ পরামর্শ টিম কর্তৃক সমর্থিত।' : 'Backed by Madina Natural Health Care wellness advisors.' }}</p>
+                    <strong>{{ __('site.pd_feature_advisers_title') }}</strong>
+                    <p>{{ __('site.pd_feature_advisers_body') }}</p>
                 </div>
             </li>
         </ul>
@@ -181,12 +181,12 @@
         <h2>{{ __('site.product_tab_usage') }}</h2>
         <div class="ref-usage-content">
             <div class="ref-usage-section">
-                <h3><i class="fa-solid fa-book-medical" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'ব্যবহারবিধি ও মাত্রা' : 'Recommended Directions' }}</h3>
-                <p>{{ app()->getLocale() === 'bn' ? 'প্যাকেটের নির্দেশিকা অনুযায়ী অথবা স্বাস্থ্য উপদেষ্টার পরামর্শ অনুযায়ী সেবন বা ব্যবহার করুন। ব্যবহারের পূর্বে বোতলটি ভালো করে ঝাঁকিয়ে নিন।' : 'Use or consume as directed on the packaging or as advised by your registered wellness practitioner. Shake well before use if liquid.' }}</p>
+                <h3><i class="fa-solid fa-book-medical" aria-hidden="true"></i> {{ __('site.pd_directions_title') }}</h3>
+                <p>{{ __('site.pd_directions_body') }}</p>
             </div>
             <div class="ref-usage-section">
-                <h3><i class="fa-solid fa-temperature-arrow-down" aria-hidden="true"></i> {{ app()->getLocale() === 'bn' ? 'সংরক্ষণ নির্দেশিকা' : 'Storage Guidelines' }}</h3>
-                <p>{{ app()->getLocale() === 'bn' ? 'আলো ও তাপ থেকে দূরে শুষ্ক ও ঠান্ডা স্থানে রাখুন। শিশুদের নাগালের বাইরে রাখুন।' : 'Store in a cool, dry place away from direct sunlight and moisture. Keep out of reach of children.' }}</p>
+                <h3><i class="fa-solid fa-temperature-arrow-down" aria-hidden="true"></i> {{ __('site.pd_storage_title') }}</h3>
+                <p>{{ __('site.pd_storage_body') }}</p>
             </div>
         </div>
     </div>
@@ -212,7 +212,7 @@
                 @endif
                 @if(!empty($item['strength']))
                 <tr>
-                    <th>{{ app()->getLocale() === 'bn' ? 'মাত্রা / পরিমাণ' : 'Strength / Volume' }}</th>
+                    <th>{{ __('site.pd_col_strength') }}</th>
                     <td>{{ $item['strength'] }}</td>
                 </tr>
                 @endif
@@ -221,7 +221,7 @@
                     <td>৳ {{ \App\Support\LocalDigits::text(number_format((float) $item['mrp'], 2)) }}</td>
                 </tr>
                 <tr>
-                    <th>{{ app()->getLocale() === 'bn' ? 'বিতরণকারী প্রতিষ্ঠান' : 'Licensed Distributor' }}</th>
+                    <th>{{ __('site.pd_col_distributor') }}</th>
                     <td>Madina Natural Health Care</td>
                 </tr>
             </tbody>

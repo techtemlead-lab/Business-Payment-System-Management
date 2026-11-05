@@ -2819,42 +2819,42 @@ export function FeaturedProductsManager({
             {/* General Section Labels */}
             <div className="form-grid ed-grid is-md ed-mb">
                 <Field
-                    label="Section Badge (Pill)"
+                    label={translate('portal', 'sce_f_section_label')}
                     fieldKey="featured_products_badge"
                     value={customization.featured_products_badge}
                     placeholder={defaults.featured_products_badge || 'POPULAR SELECTION'}
                     onChange={updateField}
                 />
                 <Field
-                    label="Section Main Title"
+                    label={translate('portal', 'sce_f_section_title')}
                     fieldKey="featured_products_title"
                     value={customization.featured_products_title}
                     placeholder={defaults.featured_products_title || 'Featured Products'}
                     onChange={updateField}
                 />
                 <Field
-                    label="Section Subtitle"
+                    label={translate('portal', 'sce_f_section_subtitle')}
                     fieldKey="public_products_subtitle"
                     value={customization.public_products_subtitle}
                     placeholder={defaults.public_products_subtitle || 'Discover our product range and connect with an authorized dealer.'}
                     onChange={updateField}
                 />
                 <Field
-                    label="View All Button Text"
+                    label={translate('portal', 'sce_f_see_all_text')}
                     fieldKey="featured_products_view_all"
                     value={customization.featured_products_view_all}
                     placeholder={defaults.featured_products_view_all || 'View All Products'}
                     onChange={updateField}
                 />
                 <Field
-                    label="View All Button Link"
+                    label={translate('portal', 'sce_f_see_all_link')}
                     fieldKey="featured_products_view_all_link"
                     value={customization.featured_products_view_all_link}
                     placeholder={defaults.featured_products_view_all_link || '/products'}
                     onChange={updateField}
                 />
                 <Field
-                    label="Products Empty State Text"
+                    label={translate('portal', 'sce_f_products_empty')}
                     fieldKey="products_empty_title"
                     value={customization.products_empty_title}
                     placeholder={defaults.products_empty_title || 'Our collection is being prepared.'}
@@ -4215,21 +4215,21 @@ export default function SiteCustomizationEditor({
                         <div>
                             <h3 className="ed-title">{translate('portal', 'cms_header_title')}</h3>
                             <div className="form-grid ed-grid">
-                                <Field label="Top Company Bar Text" fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
-                                <Field label="Search Input Placeholder" fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
-                                <Field label="Product Catalogue Link Label" fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_top_bar_text')} fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_search_placeholder')} fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_catalog_link')} fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
                                 
-                                <Field label="About Us Link Title" fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
-                                <Field label="About Us Link Subtitle" fieldKey="header_about_subtitle" value={form.data.customization.header_about_subtitle} placeholder={defaults.header_about_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_about_link_title')} fieldKey="header_about_title" value={form.data.customization.header_about_title} placeholder={defaults.header_about_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_about_link_subtitle')} fieldKey="header_about_subtitle" value={form.data.customization.header_about_subtitle} placeholder={defaults.header_about_subtitle} onChange={updateField} />
                                 
-                                <Field label="Contact Link Title" fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
-                                <Field label="Contact Link Subtitle" fieldKey="header_contact_subtitle" value={form.data.customization.header_contact_subtitle} placeholder={defaults.header_contact_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_contact_link_title')} fieldKey="header_contact_title" value={form.data.customization.header_contact_title} placeholder={defaults.header_contact_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_contact_link_subtitle')} fieldKey="header_contact_subtitle" value={form.data.customization.header_contact_subtitle} placeholder={defaults.header_contact_subtitle} onChange={updateField} />
 
 
-                                <Field label="Dealer Network Link Title" fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_network_link_title')} fieldKey="header_network_title" value={form.data.customization.header_network_title} placeholder={defaults.header_network_title} onChange={updateField} />
 
-                                <Field label="Partner Account Link Title" fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
-                                <Field label="Partner Account Link Subtitle" fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_account_link_title')} fieldKey="header_account_title" value={form.data.customization.header_account_title} placeholder={defaults.header_account_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_account_link_subtitle')} fieldKey="header_account_subtitle" value={form.data.customization.header_account_subtitle} placeholder={defaults.header_account_subtitle} onChange={updateField} />
 
                                 <MobileSearchCategoriesManager
                                     enabled={form.data.customization.mobile_search_categories_enabled || '1'}
@@ -4476,8 +4476,8 @@ export default function SiteCustomizationEditor({
                                 </div>
 
                                 <div className="form-grid ed-grid ed-mb">
-                                    <Field label="Section Heading Title" fieldKey="featured_categories_title" value={form.data.customization.featured_categories_title} placeholder={defaults.featured_categories_title} onChange={updateField} />
-                                    <Field label="Section Subtitle" fieldKey="featured_categories_subtitle" value={form.data.customization.featured_categories_subtitle} placeholder={defaults.featured_categories_subtitle} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_f_section_heading')} fieldKey="featured_categories_title" value={form.data.customization.featured_categories_title} placeholder={defaults.featured_categories_title} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_f_section_subtitle')} fieldKey="featured_categories_subtitle" value={form.data.customization.featured_categories_subtitle} placeholder={defaults.featured_categories_subtitle} onChange={updateField} />
                                 </div>
 
                                 <CategoryManager
@@ -4490,10 +4490,10 @@ export default function SiteCustomizationEditor({
 
                             <h3 className="ed-title">{translate('portal', 'sce_dealer_banner_ticker_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Homepage Scrolling Ticker Text" fieldKey="announcement_text" value={form.data.customization.announcement_text} placeholder={defaults.announcement_text} onChange={updateField} span2 />
-                                <Field label="Authorized Dealer Network Banner Title" fieldKey="dealer_banner_title" value={form.data.customization.dealer_banner_title} placeholder={defaults.dealer_banner_title} onChange={updateField} />
-                                <Field label="Dealer Banner Subtitle" fieldKey="dealer_banner_subtitle" value={form.data.customization.dealer_banner_subtitle} placeholder={defaults.dealer_banner_subtitle} onChange={updateField} />
-                                <Field label="Dealer Banner Button Label" fieldKey="dealer_banner_btn_text" value={form.data.customization.dealer_banner_btn_text} placeholder={defaults.dealer_banner_btn_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_ticker_text')} fieldKey="announcement_text" value={form.data.customization.announcement_text} placeholder={defaults.announcement_text} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_dealer_banner_title')} fieldKey="dealer_banner_title" value={form.data.customization.dealer_banner_title} placeholder={defaults.dealer_banner_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dealer_banner_subtitle')} fieldKey="dealer_banner_subtitle" value={form.data.customization.dealer_banner_subtitle} placeholder={defaults.dealer_banner_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dealer_banner_btn')} fieldKey="dealer_banner_btn_text" value={form.data.customization.dealer_banner_btn_text} placeholder={defaults.dealer_banner_btn_text} onChange={updateField} />
                             </div>
 
                             <FeaturedProductsManager
@@ -4505,26 +4505,26 @@ export default function SiteCustomizationEditor({
 
                             <h3 className="ed-title">{translate('portal', 'sce_catalog_page_labels_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Categories Filter Title" fieldKey="catalog_categories_title" value={form.data.customization.catalog_categories_title} placeholder={defaults.catalog_categories_title} onChange={updateField} />
-                                <Field label="All Products Radio Label" fieldKey="catalog_all_products_label" value={form.data.customization.catalog_all_products_label} placeholder={defaults.catalog_all_products_label} onChange={updateField} />
-                                <Field label="Price Range Filter Title" fieldKey="catalog_price_title" value={form.data.customization.catalog_price_title} placeholder={defaults.catalog_price_title} onChange={updateField} />
-                                <Field label="In-Stock Filter Label" fieldKey="catalog_instock_label" value={form.data.customization.catalog_instock_label} placeholder={defaults.catalog_instock_label} onChange={updateField} />
-                                <Field label="Apply Filters Button Text" fieldKey="catalog_apply_filters_btn" value={form.data.customization.catalog_apply_filters_btn} placeholder={defaults.catalog_apply_filters_btn} onChange={updateField} />
-                                <Field label="Clear Filters Button Text" fieldKey="catalog_clear_filters_btn" value={form.data.customization.catalog_clear_filters_btn} placeholder={defaults.catalog_clear_filters_btn} onChange={updateField} />
-                                <Field label="Sort By Dropdown Label" fieldKey="catalog_sort_by_label" value={form.data.customization.catalog_sort_by_label} placeholder={defaults.catalog_sort_by_label} onChange={updateField} />
-                                <Field label="Catalog Empty State Title" fieldKey="catalog_empty_title" value={form.data.customization.catalog_empty_title} placeholder={defaults.catalog_empty_title} onChange={updateField} />
-                                <Field label="Catalog Empty State Description" fieldKey="catalog_empty_desc" value={form.data.customization.catalog_empty_desc} placeholder={defaults.catalog_empty_desc} onChange={updateField} />
-                                <Field label="Catalog Empty State Button Text" fieldKey="catalog_empty_btn" value={form.data.customization.catalog_empty_btn} placeholder={defaults.catalog_empty_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_categories_filter_title')} fieldKey="catalog_categories_title" value={form.data.customization.catalog_categories_title} placeholder={defaults.catalog_categories_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_all_products_label')} fieldKey="catalog_all_products_label" value={form.data.customization.catalog_all_products_label} placeholder={defaults.catalog_all_products_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_price_filter_title')} fieldKey="catalog_price_title" value={form.data.customization.catalog_price_title} placeholder={defaults.catalog_price_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_in_stock_filter')} fieldKey="catalog_instock_label" value={form.data.customization.catalog_instock_label} placeholder={defaults.catalog_instock_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_apply_filters_btn')} fieldKey="catalog_apply_filters_btn" value={form.data.customization.catalog_apply_filters_btn} placeholder={defaults.catalog_apply_filters_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_clear_filters_btn')} fieldKey="catalog_clear_filters_btn" value={form.data.customization.catalog_clear_filters_btn} placeholder={defaults.catalog_clear_filters_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_sort_label')} fieldKey="catalog_sort_by_label" value={form.data.customization.catalog_sort_by_label} placeholder={defaults.catalog_sort_by_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_catalog_empty_title')} fieldKey="catalog_empty_title" value={form.data.customization.catalog_empty_title} placeholder={defaults.catalog_empty_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_catalog_empty_desc')} fieldKey="catalog_empty_desc" value={form.data.customization.catalog_empty_desc} placeholder={defaults.catalog_empty_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_catalog_empty_btn')} fieldKey="catalog_empty_btn" value={form.data.customization.catalog_empty_btn} placeholder={defaults.catalog_empty_btn} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_product_card_details_heading')}</h3>
                             <div className="form-grid ed-grid">
-                                <Field label="In Stock Badge Label" fieldKey="product_in_stock_label" value={form.data.customization.product_in_stock_label} placeholder={defaults.product_in_stock_label} onChange={updateField} />
-                                <Field label="Awaiting Stock Badge Label" fieldKey="product_out_of_stock_label" value={form.data.customization.product_out_of_stock_label} placeholder={defaults.product_out_of_stock_label} onChange={updateField} />
-                                <Field label="Share Label" fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
-                                <Field label="Product Video Heading" fieldKey="product_video_title" value={form.data.customization.product_video_title} placeholder={defaults.product_video_title} onChange={updateField} />
-                                <Field label="Description Tab Title" fieldKey="product_tab_description" value={form.data.customization.product_tab_description} placeholder={defaults.product_tab_description} onChange={updateField} />
-                                <Field label="Specification Tab Title" fieldKey="product_tab_specification" value={form.data.customization.product_tab_specification} placeholder={defaults.product_tab_specification} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_in_stock_badge')} fieldKey="product_in_stock_label" value={form.data.customization.product_in_stock_label} placeholder={defaults.product_in_stock_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_out_of_stock_badge')} fieldKey="product_out_of_stock_label" value={form.data.customization.product_out_of_stock_label} placeholder={defaults.product_out_of_stock_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_share_label')} fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_product_video_title')} fieldKey="product_video_title" value={form.data.customization.product_video_title} placeholder={defaults.product_video_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_tab_description')} fieldKey="product_tab_description" value={form.data.customization.product_tab_description} placeholder={defaults.product_tab_description} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_tab_specification')} fieldKey="product_tab_specification" value={form.data.customization.product_tab_specification} placeholder={defaults.product_tab_specification} onChange={updateField} />
                             </div>
                         </div>
                     )}
@@ -4534,8 +4534,8 @@ export default function SiteCustomizationEditor({
                         <div>
                             <h3 className="ed-title">{translate('portal', 'sce_company_intro_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Company Introduction Title" fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
-                                <Field label="Company Introduction Text" fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
+                                <Field label={translate('portal', 'sce_f_intro_title')} fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_intro_text')} fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
                             </div>
 
                             {/* Brand Trust, Video Showcase & Testimonials Toggle Controls */}
@@ -4562,7 +4562,7 @@ export default function SiteCustomizationEditor({
                                             {form.data.customization.trust_pillars_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
                                         </button>
                                     </div>
-                                    <Field label="Trust Pillars Section Title" fieldKey="trust_pillars_title" value={form.data.customization.trust_pillars_title} placeholder={defaults.trust_pillars_title} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_f_trust_title')} fieldKey="trust_pillars_title" value={form.data.customization.trust_pillars_title} placeholder={defaults.trust_pillars_title} onChange={updateField} />
                                 </div>
 
                                 {/* 2. Video Gallery & Demonstrations */}
@@ -4581,8 +4581,8 @@ export default function SiteCustomizationEditor({
                                         </button>
                                     </div>
                                     <div className="form-grid ed-grid is-md">
-                                        <Field label="Video Showcase Title" fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
-                                        <Field label="Video Showcase Subtitle" fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_f_video_title')} fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_f_video_subtitle')} fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
                                     </div>
                                 </div>
 
@@ -4602,134 +4602,134 @@ export default function SiteCustomizationEditor({
                                         </button>
                                     </div>
                                     <div className="form-grid ed-grid is-md">
-                                        <Field label="Testimonials Section Title" fieldKey="testimonials_title" value={form.data.customization.testimonials_title} placeholder={defaults.testimonials_title} onChange={updateField} />
-                                        <Field label="Testimonials Section Subtitle" fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_f_testimonials_title')} fieldKey="testimonials_title" value={form.data.customization.testimonials_title} placeholder={defaults.testimonials_title} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_f_testimonials_subtitle')} fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
                                     </div>
                                 </div>
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_about_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="About Page Hero Title" fieldKey="about_hero_title" value={form.data.customization.about_hero_title} placeholder={defaults.about_hero_title} onChange={updateField} />
-                                <Field label="About Page Hero Lead" fieldKey="about_hero_lead" value={form.data.customization.about_hero_lead} placeholder={defaults.about_hero_lead} onChange={updateField} multiline rows={3} span2 />
-                                <Field label="Company History Title" fieldKey="about_history_title" value={form.data.customization.about_history_title} placeholder={defaults.about_history_title} onChange={updateField} />
-                                <Field label="Company History Text" fieldKey="about_history" value={form.data.customization.about_history} placeholder={defaults.about_history} onChange={updateField} multiline rows={4} span2 />
-                                <Field label="Mission Title" fieldKey="about_mission_title" value={form.data.customization.about_mission_title} placeholder={defaults.about_mission_title} onChange={updateField} />
-                                <Field label="Mission Statement" fieldKey="about_mission" value={form.data.customization.about_mission} placeholder={defaults.about_mission} onChange={updateField} multiline rows={3} />
-                                <Field label="Vision Title" fieldKey="about_vision_title" value={form.data.customization.about_vision_title} placeholder={defaults.about_vision_title} onChange={updateField} />
-                                <Field label="Vision Statement" fieldKey="about_vision" value={form.data.customization.about_vision} placeholder={defaults.about_vision} onChange={updateField} multiline rows={3} />
+                                <Field label={translate('portal', 'sce_f_about_hero_title')} fieldKey="about_hero_title" value={form.data.customization.about_hero_title} placeholder={defaults.about_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_about_hero_lead')} fieldKey="about_hero_lead" value={form.data.customization.about_hero_lead} placeholder={defaults.about_hero_lead} onChange={updateField} multiline rows={3} span2 />
+                                <Field label={translate('portal', 'sce_f_history_title')} fieldKey="about_history_title" value={form.data.customization.about_history_title} placeholder={defaults.about_history_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_history_text')} fieldKey="about_history" value={form.data.customization.about_history} placeholder={defaults.about_history} onChange={updateField} multiline rows={4} span2 />
+                                <Field label={translate('portal', 'sce_f_mission_title')} fieldKey="about_mission_title" value={form.data.customization.about_mission_title} placeholder={defaults.about_mission_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_mission_text')} fieldKey="about_mission" value={form.data.customization.about_mission} placeholder={defaults.about_mission} onChange={updateField} multiline rows={3} />
+                                <Field label={translate('portal', 'sce_f_vision_title')} fieldKey="about_vision_title" value={form.data.customization.about_vision_title} placeholder={defaults.about_vision_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_vision_text')} fieldKey="about_vision" value={form.data.customization.about_vision} placeholder={defaults.about_vision} onChange={updateField} multiline rows={3} />
 
-                                <Field label="Core Objectives Title" fieldKey="about_objectives_title" value={form.data.customization.about_objectives_title} placeholder={defaults.about_objectives_title} onChange={updateField} span2 />
-                                <Field label="Objective 1 Title" fieldKey="about_obj1_title" value={form.data.customization.about_obj1_title} placeholder={defaults.about_obj1_title} onChange={updateField} />
-                                <Field label="Objective 1 Description" fieldKey="about_obj1_desc" value={form.data.customization.about_obj1_desc} placeholder={defaults.about_obj1_desc} onChange={updateField} multiline rows={2} />
-                                <Field label="Objective 2 Title" fieldKey="about_obj2_title" value={form.data.customization.about_obj2_title} placeholder={defaults.about_obj2_title} onChange={updateField} />
-                                <Field label="Objective 2 Description" fieldKey="about_obj2_desc" value={form.data.customization.about_obj2_desc} placeholder={defaults.about_obj2_desc} onChange={updateField} multiline rows={2} />
-                                <Field label="Objective 3 Title" fieldKey="about_obj3_title" value={form.data.customization.about_obj3_title} placeholder={defaults.about_obj3_title} onChange={updateField} />
-                                <Field label="Objective 3 Description" fieldKey="about_obj3_desc" value={form.data.customization.about_obj3_desc} placeholder={defaults.about_obj3_desc} onChange={updateField} multiline rows={2} />
-                                <Field label="Objective 4 Title" fieldKey="about_obj4_title" value={form.data.customization.about_obj4_title} placeholder={defaults.about_obj4_title} onChange={updateField} />
-                                <Field label="Objective 4 Description" fieldKey="about_obj4_desc" value={form.data.customization.about_obj4_desc} placeholder={defaults.about_obj4_desc} onChange={updateField} multiline rows={2} />
-                                <Field label="Network Section Title" fieldKey="about_network_title" value={form.data.customization.about_network_title} placeholder={defaults.about_network_title} onChange={updateField} />
-                                <Field label="Network Section Text" fieldKey="about_network" value={form.data.customization.about_network} placeholder={defaults.about_network} onChange={updateField} multiline rows={4} span2 />
+                                <Field label={translate('portal', 'sce_f_objectives_title')} fieldKey="about_objectives_title" value={form.data.customization.about_objectives_title} placeholder={defaults.about_objectives_title} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_objective1_title')} fieldKey="about_obj1_title" value={form.data.customization.about_obj1_title} placeholder={defaults.about_obj1_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_objective1_desc')} fieldKey="about_obj1_desc" value={form.data.customization.about_obj1_desc} placeholder={defaults.about_obj1_desc} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_objective2_title')} fieldKey="about_obj2_title" value={form.data.customization.about_obj2_title} placeholder={defaults.about_obj2_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_objective2_desc')} fieldKey="about_obj2_desc" value={form.data.customization.about_obj2_desc} placeholder={defaults.about_obj2_desc} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_objective3_title')} fieldKey="about_obj3_title" value={form.data.customization.about_obj3_title} placeholder={defaults.about_obj3_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_objective3_desc')} fieldKey="about_obj3_desc" value={form.data.customization.about_obj3_desc} placeholder={defaults.about_obj3_desc} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_objective4_title')} fieldKey="about_obj4_title" value={form.data.customization.about_obj4_title} placeholder={defaults.about_obj4_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_objective4_desc')} fieldKey="about_obj4_desc" value={form.data.customization.about_obj4_desc} placeholder={defaults.about_obj4_desc} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_network_title')} fieldKey="about_network_title" value={form.data.customization.about_network_title} placeholder={defaults.about_network_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_network_text')} fieldKey="about_network" value={form.data.customization.about_network} placeholder={defaults.about_network} onChange={updateField} multiline rows={4} span2 />
 
-                                <Field label="Button 1 (Explore Products)" fieldKey="about_btn_products" value={form.data.customization.about_btn_products} placeholder={defaults.about_btn_products} onChange={updateField} />
-                                <Field label="Button 2 (Find a Dealer)" fieldKey="about_btn_dealers" value={form.data.customization.about_btn_dealers} placeholder={defaults.about_btn_dealers} onChange={updateField} />
-                                <Field label="Button 3 (Contact Head Office)" fieldKey="about_btn_contact" value={form.data.customization.about_btn_contact} placeholder={defaults.about_btn_contact} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_button_1')} fieldKey="about_btn_products" value={form.data.customization.about_btn_products} placeholder={defaults.about_btn_products} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_button_2')} fieldKey="about_btn_dealers" value={form.data.customization.about_btn_dealers} placeholder={defaults.about_btn_dealers} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_button_3')} fieldKey="about_btn_contact" value={form.data.customization.about_btn_contact} placeholder={defaults.about_btn_contact} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_contact_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Contact Page Heading" fieldKey="contact_title" value={form.data.customization.contact_title} placeholder={defaults.contact_title} onChange={updateField} />
-                                <Field label="Contact Company Title" fieldKey="contact_company_title" value={form.data.customization.contact_company_title} placeholder={defaults.contact_company_title} onChange={updateField} />
-                                <Field label="Contact Intro Description" fieldKey="contact_company_desc" value={form.data.customization.contact_company_desc} placeholder={defaults.contact_company_desc} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_contact_page_heading')} fieldKey="contact_title" value={form.data.customization.contact_title} placeholder={defaults.contact_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_contact_company_title')} fieldKey="contact_company_title" value={form.data.customization.contact_company_title} placeholder={defaults.contact_company_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_contact_intro')} fieldKey="contact_company_desc" value={form.data.customization.contact_company_desc} placeholder={defaults.contact_company_desc} onChange={updateField} span2 />
 
-                                <Field label="Customer Care / Hotline Title" fieldKey="contact_phone_title" value={form.data.customization.contact_phone_title} placeholder={defaults.contact_phone_title} onChange={updateField} />
-                                <Field label="Customer Care Phone Number" fieldKey="contact_phone" value={form.data.customization.contact_phone} placeholder={defaults.contact_phone} onChange={updateField} />
-                                <Field label="Customer Care Service Hours" fieldKey="contact_phone_hours" value={form.data.customization.contact_phone_hours} placeholder={defaults.contact_phone_hours} onChange={updateField} />
-                                <Field label="Official Email Title" fieldKey="contact_email_title" value={form.data.customization.contact_email_title} placeholder={defaults.contact_email_title} onChange={updateField} />
-                                <Field label="Official Email Address" fieldKey="contact_email" value={form.data.customization.contact_email} placeholder={defaults.contact_email} onChange={updateField} />
-                                <Field label="Social Links Section Title" fieldKey="contact_social_title" value={form.data.customization.contact_social_title} placeholder={defaults.contact_social_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hotline_title')} fieldKey="contact_phone_title" value={form.data.customization.contact_phone_title} placeholder={defaults.contact_phone_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hotline_phone')} fieldKey="contact_phone" value={form.data.customization.contact_phone} placeholder={defaults.contact_phone} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hotline_hours')} fieldKey="contact_phone_hours" value={form.data.customization.contact_phone_hours} placeholder={defaults.contact_phone_hours} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_email_title')} fieldKey="contact_email_title" value={form.data.customization.contact_email_title} placeholder={defaults.contact_email_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_email_address')} fieldKey="contact_email" value={form.data.customization.contact_email} placeholder={defaults.contact_email} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_social_title')} fieldKey="contact_social_title" value={form.data.customization.contact_social_title} placeholder={defaults.contact_social_title} onChange={updateField} />
                                 
-                                <Field label="Inquiry Topic 1 Title" fieldKey="contact_topic1_title" value={form.data.customization.contact_topic1_title} placeholder={defaults.contact_topic1_title} onChange={updateField} />
-                                <Field label="Inquiry Topic 1 Description" fieldKey="contact_topic1_desc" value={form.data.customization.contact_topic1_desc} placeholder={defaults.contact_topic1_desc} onChange={updateField} />
-                                <Field label="Inquiry Topic 2 Title" fieldKey="contact_topic2_title" value={form.data.customization.contact_topic2_title} placeholder={defaults.contact_topic2_title} onChange={updateField} />
-                                <Field label="Inquiry Topic 2 Description" fieldKey="contact_topic2_desc" value={form.data.customization.contact_topic2_desc} placeholder={defaults.contact_topic2_desc} onChange={updateField} />
-                                <Field label="Head Office Card Title" fieldKey="contact_topic3_title" value={form.data.customization.contact_topic3_title} placeholder={defaults.contact_topic3_title} onChange={updateField} />
-                                <Field label="Head Office Physical Address" fieldKey="office_address" value={form.data.customization.office_address} placeholder={defaults.office_address} onChange={updateField} span2 />
-                                <Field label="Map Latitude (optional)" fieldKey="map_latitude" value={form.data.customization.map_latitude} placeholder={defaults.map_latitude || 'e.g. 25.7701'} onChange={updateField} />
-                                <Field label="Map Longitude (optional)" fieldKey="map_longitude" value={form.data.customization.map_longitude} placeholder={defaults.map_longitude || 'e.g. 88.8240'} onChange={updateField} />
-                                <Field label="Contact Form Header" fieldKey="contact_form_title" value={form.data.customization.contact_form_title} placeholder={defaults.contact_form_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_topic1_title')} fieldKey="contact_topic1_title" value={form.data.customization.contact_topic1_title} placeholder={defaults.contact_topic1_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_topic1_desc')} fieldKey="contact_topic1_desc" value={form.data.customization.contact_topic1_desc} placeholder={defaults.contact_topic1_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_topic2_title')} fieldKey="contact_topic2_title" value={form.data.customization.contact_topic2_title} placeholder={defaults.contact_topic2_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_topic2_desc')} fieldKey="contact_topic2_desc" value={form.data.customization.contact_topic2_desc} placeholder={defaults.contact_topic2_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_head_office_title')} fieldKey="contact_topic3_title" value={form.data.customization.contact_topic3_title} placeholder={defaults.contact_topic3_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_head_office_address')} fieldKey="office_address" value={form.data.customization.office_address} placeholder={defaults.office_address} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_map_lat')} fieldKey="map_latitude" value={form.data.customization.map_latitude} placeholder={defaults.map_latitude || 'e.g. 25.7701'} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_map_lng')} fieldKey="map_longitude" value={form.data.customization.map_longitude} placeholder={defaults.map_longitude || 'e.g. 88.8240'} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_contact_form_header')} fieldKey="contact_form_title" value={form.data.customization.contact_form_title} placeholder={defaults.contact_form_title} onChange={updateField} />
                                 
-                                <Field label="Map Location Title" fieldKey="map_title" value={form.data.customization.map_title} placeholder={defaults.map_title} onChange={updateField} />
-                                <Field label="Map Subtitle" fieldKey="map_subtitle" value={form.data.customization.map_subtitle} placeholder={defaults.map_subtitle} onChange={updateField} />
-                                <Field label="Map Facility Name" fieldKey="map_facility" value={form.data.customization.map_facility} placeholder={defaults.map_facility} onChange={updateField} />
-                                <Field label="Map Directions Button Text" fieldKey="map_directions_text" value={form.data.customization.map_directions_text} placeholder={defaults.map_directions_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_map_title')} fieldKey="map_title" value={form.data.customization.map_title} placeholder={defaults.map_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_map_subtitle')} fieldKey="map_subtitle" value={form.data.customization.map_subtitle} placeholder={defaults.map_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_map_place_name')} fieldKey="map_facility" value={form.data.customization.map_facility} placeholder={defaults.map_facility} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_map_directions_btn')} fieldKey="map_directions_text" value={form.data.customization.map_directions_text} placeholder={defaults.map_directions_text} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_dealer_directory_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Directory Main Title" fieldKey="directory_title" value={form.data.customization.directory_title} placeholder={defaults.directory_title} onChange={updateField} />
-                                <Field label="Directory Subtitle" fieldKey="directory_subtitle" value={form.data.customization.directory_subtitle} placeholder={defaults.directory_subtitle} onChange={updateField} />
-                                <Field label="GPS Current Location Button Text" fieldKey="directory_gps_btn" value={form.data.customization.directory_gps_btn} placeholder={defaults.directory_gps_btn} onChange={updateField} span2 />
-                                <Field label="Directory Empty Results Title" fieldKey="directory_empty_title" value={form.data.customization.directory_empty_title} placeholder={defaults.directory_empty_title} onChange={updateField} />
-                                <Field label="Directory Empty Results Description" fieldKey="directory_empty_desc" value={form.data.customization.directory_empty_desc} placeholder={defaults.directory_empty_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_title')} fieldKey="directory_title" value={form.data.customization.directory_title} placeholder={defaults.directory_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_subtitle')} fieldKey="directory_subtitle" value={form.data.customization.directory_subtitle} placeholder={defaults.directory_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_gps_button')} fieldKey="directory_gps_btn" value={form.data.customization.directory_gps_btn} placeholder={defaults.directory_gps_btn} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_dir_empty_title')} fieldKey="directory_empty_title" value={form.data.customization.directory_empty_title} placeholder={defaults.directory_empty_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_empty_desc')} fieldKey="directory_empty_desc" value={form.data.customization.directory_empty_desc} placeholder={defaults.directory_empty_desc} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_partnership_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Hero Title" fieldKey="partnership_hero_title" value={form.data.customization.partnership_hero_title} placeholder={defaults.partnership_hero_title} onChange={updateField} />
-                                <Field label="Hero Lead" fieldKey="partnership_hero_lead" value={form.data.customization.partnership_hero_lead} placeholder={defaults.partnership_hero_lead} onChange={updateField} multiline rows={2} />
-                                <Field label="Why Partner Heading" fieldKey="partnership_why_title" value={form.data.customization.partnership_why_title} placeholder={defaults.partnership_why_title} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_hero_title')} fieldKey="partnership_hero_title" value={form.data.customization.partnership_hero_title} placeholder={defaults.partnership_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hero_lead')} fieldKey="partnership_hero_lead" value={form.data.customization.partnership_hero_lead} placeholder={defaults.partnership_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_why_partner_heading')} fieldKey="partnership_why_title" value={form.data.customization.partnership_why_title} placeholder={defaults.partnership_why_title} onChange={updateField} span2 />
                                 {[1, 2, 3, 4].map((i) => (
                                     <React.Fragment key={`pb-${i}`}>
                                         <Field label={translate('portal', 'sce_benefit_title', { number: String(i) })} fieldKey={`partnership_benefit${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_benefit_description', { number: String(i) })} fieldKey={`partnership_benefit${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
-                                <Field label="Steps Heading" fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_steps_heading')} fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`ps-${i}`}>
                                         <Field label={translate('portal', 'sce_step_title', { number: String(i) })} fieldKey={`partnership_step${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_step_description', { number: String(i) })} fieldKey={`partnership_step${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
-                                <Field label="CTA Title" fieldKey="partnership_cta_title" value={form.data.customization.partnership_cta_title} placeholder={defaults.partnership_cta_title} onChange={updateField} />
-                                <Field label="CTA Button Text" fieldKey="partnership_cta_btn" value={form.data.customization.partnership_cta_btn} placeholder={defaults.partnership_cta_btn} onChange={updateField} />
-                                <Field label="CTA Body" fieldKey="partnership_cta_body" value={form.data.customization.partnership_cta_body} placeholder={defaults.partnership_cta_body} onChange={updateField} multiline rows={2} span2 />
-                                <Field label="CTA Link" fieldKey="partnership_cta_link" value={form.data.customization.partnership_cta_link} placeholder={defaults.partnership_cta_link} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_cta_title')} fieldKey="partnership_cta_title" value={form.data.customization.partnership_cta_title} placeholder={defaults.partnership_cta_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_button_text')} fieldKey="partnership_cta_btn" value={form.data.customization.partnership_cta_btn} placeholder={defaults.partnership_cta_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_body')} fieldKey="partnership_cta_body" value={form.data.customization.partnership_cta_body} placeholder={defaults.partnership_cta_body} onChange={updateField} multiline rows={2} span2 />
+                                <Field label={translate('portal', 'sce_f_cta_link')} fieldKey="partnership_cta_link" value={form.data.customization.partnership_cta_link} placeholder={defaults.partnership_cta_link} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_services_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Hero Title" fieldKey="services_hero_title" value={form.data.customization.services_hero_title} placeholder={defaults.services_hero_title} onChange={updateField} />
-                                <Field label="Hero Lead" fieldKey="services_hero_lead" value={form.data.customization.services_hero_lead} placeholder={defaults.services_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_hero_title')} fieldKey="services_hero_title" value={form.data.customization.services_hero_title} placeholder={defaults.services_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hero_lead')} fieldKey="services_hero_lead" value={form.data.customization.services_hero_lead} placeholder={defaults.services_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`svc-${i}`}>
                                         <Field label={translate('portal', 'sce_service_title', { number: String(i) })} fieldKey={`services_card${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_service_description', { number: String(i) })} fieldKey={`services_card${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
-                                <Field label="CTA Button" fieldKey="services_cta_btn" value={form.data.customization.services_cta_btn} placeholder={defaults.services_cta_btn} onChange={updateField} />
-                                <Field label="CTA Link" fieldKey="services_cta_link" value={form.data.customization.services_cta_link} placeholder={defaults.services_cta_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_button')} fieldKey="services_cta_btn" value={form.data.customization.services_cta_btn} placeholder={defaults.services_cta_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_link')} fieldKey="services_cta_link" value={form.data.customization.services_cta_link} placeholder={defaults.services_cta_link} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_quality_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Hero Title" fieldKey="quality_hero_title" value={form.data.customization.quality_hero_title} placeholder={defaults.quality_hero_title} onChange={updateField} />
-                                <Field label="Hero Lead" fieldKey="quality_hero_lead" value={form.data.customization.quality_hero_lead} placeholder={defaults.quality_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_hero_title')} fieldKey="quality_hero_title" value={form.data.customization.quality_hero_title} placeholder={defaults.quality_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_hero_lead')} fieldKey="quality_hero_lead" value={form.data.customization.quality_hero_lead} placeholder={defaults.quality_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`q-${i}`}>
                                         <Field label={translate('portal', 'sce_pillar_title', { number: String(i) })} fieldKey={`quality_pillar${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_pillar_description', { number: String(i) })} fieldKey={`quality_pillar${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
-                                <Field label="CTA Button" fieldKey="quality_cta_btn" value={form.data.customization.quality_cta_btn} placeholder={defaults.quality_cta_btn} onChange={updateField} />
-                                <Field label="CTA Link" fieldKey="quality_cta_link" value={form.data.customization.quality_cta_link} placeholder={defaults.quality_cta_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_button')} fieldKey="quality_cta_btn" value={form.data.customization.quality_cta_btn} placeholder={defaults.quality_cta_btn} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_cta_link')} fieldKey="quality_cta_link" value={form.data.customization.quality_cta_link} placeholder={defaults.quality_cta_link} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_faq_page_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb">
-                                <Field label="FAQ Hero Title" fieldKey="faq_hero_title" value={form.data.customization.faq_hero_title} placeholder={defaults.faq_hero_title} onChange={updateField} />
-                                <Field label="FAQ Hero Lead" fieldKey="faq_hero_lead" value={form.data.customization.faq_hero_lead} placeholder={defaults.faq_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_faq_hero_title')} fieldKey="faq_hero_title" value={form.data.customization.faq_hero_title} placeholder={defaults.faq_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_faq_hero_lead')} fieldKey="faq_hero_lead" value={form.data.customization.faq_hero_lead} placeholder={defaults.faq_hero_lead} onChange={updateField} multiline rows={2} />
                             </div>
                             <div className="ed-stack ed-mb-lg">
                                 {(form.data.customization.faq_items || []).map((item, idx) => (
@@ -4791,15 +4791,15 @@ export default function SiteCustomizationEditor({
 
                             <h3 className="ed-title">{translate('portal', 'sce_privacy_terms_heading')}</h3>
                             <div className="form-grid ed-grid">
-                                <Field label="Privacy Title" fieldKey="privacy_hero_title" value={form.data.customization.privacy_hero_title} placeholder={defaults.privacy_hero_title} onChange={updateField} />
-                                <Field label="Privacy Lead" fieldKey="privacy_hero_lead" value={form.data.customization.privacy_hero_lead} placeholder={defaults.privacy_hero_lead} onChange={updateField} multiline rows={2} />
-                                <Field label="Privacy Body" fieldKey="privacy_body" value={form.data.customization.privacy_body} placeholder={defaults.privacy_body} onChange={updateField} multiline rows={6} span2 />
-                                <Field label="Terms Title" fieldKey="terms_hero_title" value={form.data.customization.terms_hero_title} placeholder={defaults.terms_hero_title} onChange={updateField} />
-                                <Field label="Terms Lead" fieldKey="terms_hero_lead" value={form.data.customization.terms_hero_lead} placeholder={defaults.terms_hero_lead} onChange={updateField} multiline rows={2} />
-                                <Field label="Terms Body" fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
-                                <Field label="Legal Meta · Effective" fieldKey="legal_meta_effective" value={form.data.customization.legal_meta_effective} placeholder={defaults.legal_meta_effective} onChange={updateField} />
-                                <Field label="Legal Meta · Governance" fieldKey="legal_meta_governance" value={form.data.customization.legal_meta_governance} placeholder={defaults.legal_meta_governance} onChange={updateField} />
-                                <Field label="Legal Meta · Location" fieldKey="legal_meta_location" value={form.data.customization.legal_meta_location} placeholder={defaults.legal_meta_location} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_privacy_title')} fieldKey="privacy_hero_title" value={form.data.customization.privacy_hero_title} placeholder={defaults.privacy_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_privacy_lead')} fieldKey="privacy_hero_lead" value={form.data.customization.privacy_hero_lead} placeholder={defaults.privacy_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_privacy_body')} fieldKey="privacy_body" value={form.data.customization.privacy_body} placeholder={defaults.privacy_body} onChange={updateField} multiline rows={6} span2 />
+                                <Field label={translate('portal', 'sce_f_terms_title')} fieldKey="terms_hero_title" value={form.data.customization.terms_hero_title} placeholder={defaults.terms_hero_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_terms_lead')} fieldKey="terms_hero_lead" value={form.data.customization.terms_hero_lead} placeholder={defaults.terms_hero_lead} onChange={updateField} multiline rows={2} />
+                                <Field label={translate('portal', 'sce_f_terms_body')} fieldKey="terms_body" value={form.data.customization.terms_body} placeholder={defaults.terms_body} onChange={updateField} multiline rows={6} span2 />
+                                <Field label={translate('portal', 'sce_f_legal_effective')} fieldKey="legal_meta_effective" value={form.data.customization.legal_meta_effective} placeholder={defaults.legal_meta_effective} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_legal_governance')} fieldKey="legal_meta_governance" value={form.data.customization.legal_meta_governance} placeholder={defaults.legal_meta_governance} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_legal_location')} fieldKey="legal_meta_location" value={form.data.customization.legal_meta_location} placeholder={defaults.legal_meta_location} onChange={updateField} />
                             </div>
                         </div>
                     )}
@@ -4809,76 +4809,76 @@ export default function SiteCustomizationEditor({
                         <div>
                             <h3 className="ed-title">{translate('portal', 'sce_footer_column_1_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Column 1 Heading" fieldKey="footer_support_heading" value={form.data.customization.footer_support_heading} placeholder={defaults.footer_support_heading} onChange={updateField} />
-                                <Field label="Support Box 1 Title" fieldKey="footer_support_title" value={form.data.customization.footer_support_title} placeholder={defaults.footer_support_title} onChange={updateField} />
-                                <Field label="Support Box 1 Subtitle" fieldKey="footer_support_subtitle" value={form.data.customization.footer_support_subtitle} placeholder={defaults.footer_support_subtitle} onChange={updateField} />
-                                <Field label="Support Box 1 Link (tel: or URL)" fieldKey="footer_support_link" value={form.data.customization.footer_support_link} placeholder={defaults.footer_support_link} onChange={updateField} />
-                                <Field label="Support Box 1 FontAwesome Icon" fieldKey="footer_support_icon" value={form.data.customization.footer_support_icon} placeholder={defaults.footer_support_icon} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_column_1_heading')} fieldKey="footer_support_heading" value={form.data.customization.footer_support_heading} placeholder={defaults.footer_support_heading} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_support_box1_title')} fieldKey="footer_support_title" value={form.data.customization.footer_support_title} placeholder={defaults.footer_support_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_support_box1_subtitle')} fieldKey="footer_support_subtitle" value={form.data.customization.footer_support_subtitle} placeholder={defaults.footer_support_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_support_box1_link')} fieldKey="footer_support_link" value={form.data.customization.footer_support_link} placeholder={defaults.footer_support_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_support_box1_icon')} fieldKey="footer_support_icon" value={form.data.customization.footer_support_icon} placeholder={defaults.footer_support_icon} onChange={updateField} />
 
-                                <Field label="Directory Box 2 Title" fieldKey="footer_directory_title" value={form.data.customization.footer_directory_title} placeholder={defaults.footer_directory_title} onChange={updateField} />
-                                <Field label="Directory Box 2 Subtitle" fieldKey="footer_directory_subtitle" value={form.data.customization.footer_directory_subtitle} placeholder={defaults.footer_directory_subtitle} onChange={updateField} />
-                                <Field label="Directory Box 2 Link" fieldKey="footer_directory_link" value={form.data.customization.footer_directory_link} placeholder={defaults.footer_directory_link} onChange={updateField} />
-                                <Field label="Directory Box 2 FontAwesome Icon" fieldKey="footer_directory_icon" value={form.data.customization.footer_directory_icon} placeholder={defaults.footer_directory_icon} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_box2_title')} fieldKey="footer_directory_title" value={form.data.customization.footer_directory_title} placeholder={defaults.footer_directory_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_box2_subtitle')} fieldKey="footer_directory_subtitle" value={form.data.customization.footer_directory_subtitle} placeholder={defaults.footer_directory_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_box2_link')} fieldKey="footer_directory_link" value={form.data.customization.footer_directory_link} placeholder={defaults.footer_directory_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dir_box2_icon')} fieldKey="footer_directory_icon" value={form.data.customization.footer_directory_icon} placeholder={defaults.footer_directory_icon} onChange={updateField} />
 
-                                <Field label="Footer Hotline Phone" fieldKey="footer_phone" value={form.data.customization.footer_phone} placeholder={defaults.footer_phone} onChange={updateField} />
-                                <Field label="Footer Official Email" fieldKey="footer_email" value={form.data.customization.footer_email} placeholder={defaults.footer_email} onChange={updateField} />
-                                <Field label="Footer Physical Address" fieldKey="footer_address" value={form.data.customization.footer_address} placeholder={defaults.footer_address} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_footer_phone')} fieldKey="footer_phone" value={form.data.customization.footer_phone} placeholder={defaults.footer_phone} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_email')} fieldKey="footer_email" value={form.data.customization.footer_email} placeholder={defaults.footer_email} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_address')} fieldKey="footer_address" value={form.data.customization.footer_address} placeholder={defaults.footer_address} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_footer_column_2_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Column 2 Heading" fieldKey="footer_about_heading" value={form.data.customization.footer_about_heading} placeholder={defaults.footer_about_heading} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_column_2_heading')} fieldKey="footer_about_heading" value={form.data.customization.footer_about_heading} placeholder={defaults.footer_about_heading} onChange={updateField} span2 />
 
-                                <Field label="Footer Link 1 Text" fieldKey="footer_link_about" value={form.data.customization.footer_link_about} placeholder={defaults.footer_link_about} onChange={updateField} />
-                                <Field label="Footer Link 1 Target URL" fieldKey="footer_link_about_url" value={form.data.customization.footer_link_about_url} placeholder={defaults.footer_link_about_url} onChange={updateField} />
-
-
+                                <Field label={translate('portal', 'sce_f_footer_link1_text')} fieldKey="footer_link_about" value={form.data.customization.footer_link_about} placeholder={defaults.footer_link_about} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_link1_url')} fieldKey="footer_link_about_url" value={form.data.customization.footer_link_about_url} placeholder={defaults.footer_link_about_url} onChange={updateField} />
 
 
-                                <Field label="Footer Link 5 Text (Contact)" fieldKey="footer_link_contact" value={form.data.customization.footer_link_contact} placeholder={defaults.footer_link_contact} onChange={updateField} />
-                                <Field label="Footer Link 5 Target URL" fieldKey="footer_link_contact_url" value={form.data.customization.footer_link_contact_url} placeholder={defaults.footer_link_contact_url} onChange={updateField} />
 
-                                <Field label="Footer Link 6 Text (Dealership)" fieldKey="footer_link_dealer_apply" value={form.data.customization.footer_link_dealer_apply} placeholder={defaults.footer_link_dealer_apply} onChange={updateField} />
-                                <Field label="Footer Link 6 Target URL" fieldKey="footer_link_dealer_apply_url" value={form.data.customization.footer_link_dealer_apply_url} placeholder={defaults.footer_link_dealer_apply_url} onChange={updateField} />
+
+                                <Field label={translate('portal', 'sce_f_footer_link5_text')} fieldKey="footer_link_contact" value={form.data.customization.footer_link_contact} placeholder={defaults.footer_link_contact} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_link5_url')} fieldKey="footer_link_contact_url" value={form.data.customization.footer_link_contact_url} placeholder={defaults.footer_link_contact_url} onChange={updateField} />
+
+                                <Field label={translate('portal', 'sce_f_footer_link6_text')} fieldKey="footer_link_dealer_apply" value={form.data.customization.footer_link_dealer_apply} placeholder={defaults.footer_link_dealer_apply} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_link6_url')} fieldKey="footer_link_dealer_apply_url" value={form.data.customization.footer_link_dealer_apply_url} placeholder={defaults.footer_link_dealer_apply_url} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_footer_column_3_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Column 3 Heading" fieldKey="footer_stay_connected_heading" value={form.data.customization.footer_stay_connected_heading} placeholder={defaults.footer_stay_connected_heading} onChange={updateField} />
-                                <Field label="Footer Logo Image URL" fieldKey="footer_logo_url" value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={updateField} />
-                                <Field label="Footer Brand Title" fieldKey="footer_about_title" value={form.data.customization.footer_about_title} placeholder={defaults.footer_about_title} onChange={updateField} />
-                                <Field label="Footer Brand Description" fieldKey="footer_about_desc" value={form.data.customization.footer_about_desc} placeholder={defaults.footer_about_desc} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_column_3_heading')} fieldKey="footer_stay_connected_heading" value={form.data.customization.footer_stay_connected_heading} placeholder={defaults.footer_stay_connected_heading} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_logo_url')} fieldKey="footer_logo_url" value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_brand_title')} fieldKey="footer_about_title" value={form.data.customization.footer_about_title} placeholder={defaults.footer_about_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_footer_brand_desc')} fieldKey="footer_about_desc" value={form.data.customization.footer_about_desc} placeholder={defaults.footer_about_desc} onChange={updateField} />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_social_media_heading')}</h3>
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Facebook Page URL" fieldKey="social_facebook" value={form.data.customization.social_facebook} placeholder={defaults.social_facebook} onChange={updateField} />
-                                <Field label="YouTube Channel URL" fieldKey="social_youtube" value={form.data.customization.social_youtube} placeholder={defaults.social_youtube} onChange={updateField} />
-                                <Field label="LinkedIn Page URL" fieldKey="social_linkedin" value={form.data.customization.social_linkedin} placeholder={defaults.social_linkedin} onChange={updateField} />
-                                <Field label="Instagram Profile URL" fieldKey="social_instagram" value={form.data.customization.social_instagram} placeholder={defaults.social_instagram} onChange={updateField} />
-                                <Field label="WhatsApp Chat URL / Phone Number" fieldKey="social_whatsapp" value={form.data.customization.social_whatsapp} placeholder={defaults.social_whatsapp} onChange={updateField} />
-                                <Field label="Floating WhatsApp Tool Link" fieldKey="whatsapp_link" value={form.data.customization.whatsapp_link} placeholder={defaults.whatsapp_link} onChange={updateField} />
-                                <Field label="X / Twitter Profile URL (Optional)" fieldKey="social_twitter" value={form.data.customization.social_twitter} placeholder={defaults.social_twitter || 'https://x.com/...'} onChange={updateField} />
-                                <Field label="TikTok Profile URL (Optional)" fieldKey="social_tiktok" value={form.data.customization.social_tiktok} placeholder={defaults.social_tiktok || 'https://tiktok.com/@...'} onChange={updateField} />
-                                <Field label="Telegram Channel / Link (Optional)" fieldKey="social_telegram" value={form.data.customization.social_telegram} placeholder={defaults.social_telegram || 'https://t.me/...'} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_facebook_url')} fieldKey="social_facebook" value={form.data.customization.social_facebook} placeholder={defaults.social_facebook} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_youtube_url')} fieldKey="social_youtube" value={form.data.customization.social_youtube} placeholder={defaults.social_youtube} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_linkedin_url')} fieldKey="social_linkedin" value={form.data.customization.social_linkedin} placeholder={defaults.social_linkedin} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_instagram_url')} fieldKey="social_instagram" value={form.data.customization.social_instagram} placeholder={defaults.social_instagram} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_whatsapp_link')} fieldKey="social_whatsapp" value={form.data.customization.social_whatsapp} placeholder={defaults.social_whatsapp} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_whatsapp_button_link')} fieldKey="whatsapp_link" value={form.data.customization.whatsapp_link} placeholder={defaults.whatsapp_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_x_url')} fieldKey="social_twitter" value={form.data.customization.social_twitter} placeholder={defaults.social_twitter || 'https://x.com/...'} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_tiktok_url')} fieldKey="social_tiktok" value={form.data.customization.social_tiktok} placeholder={defaults.social_tiktok || 'https://tiktok.com/@...'} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_telegram_url')} fieldKey="social_telegram" value={form.data.customization.social_telegram} placeholder={defaults.social_telegram || 'https://t.me/...'} onChange={updateField} />
                             </div>
 
                             <div className="form-grid ed-grid ed-mb-lg">
-                                <Field label="Google Play App Link (optional)" fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
-                                <Field label="Apple App Store Link (optional)" fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
-                                <Field label="Copyright Notice" fieldKey="copyright_text" value={form.data.customization.copyright_text} placeholder={defaults.copyright_text} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_f_play_store_link')} fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_app_store_link')} fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_copyright')} fieldKey="copyright_text" value={form.data.customization.copyright_text} placeholder={defaults.copyright_text} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_support_partner_access_heading')}</h3>
                             <div className="form-grid ed-grid">
-                                <Field label="Floating Chat Button Label" fieldKey="floating_chat_label" value={form.data.customization.floating_chat_label} placeholder={defaults.floating_chat_label} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_chat_button_label')} fieldKey="floating_chat_label" value={form.data.customization.floating_chat_label} placeholder={defaults.floating_chat_label} onChange={updateField} />
 
 
 
-                                <Field label="Partner Portal Login Heading" fieldKey="auth_login_title" value={form.data.customization.auth_login_title} placeholder={defaults.auth_login_title} onChange={updateField} />
-                                <Field label="Partner Portal Login Subtitle" fieldKey="auth_login_subtitle" value={form.data.customization.auth_login_subtitle} placeholder={defaults.auth_login_subtitle} onChange={updateField} />
-                                <Field label="Dealer Account Inquiry Text" fieldKey="auth_dealer_help_text" value={form.data.customization.auth_dealer_help_text} placeholder={defaults.auth_dealer_help_text} onChange={updateField} />
-                                <Field label="Dealer Account Inquiry Link Text" fieldKey="auth_dealer_contact_text" value={form.data.customization.auth_dealer_contact_text} placeholder={defaults.auth_dealer_contact_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_partner_login_heading')} fieldKey="auth_login_title" value={form.data.customization.auth_login_title} placeholder={defaults.auth_login_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_partner_login_subtitle')} fieldKey="auth_login_subtitle" value={form.data.customization.auth_login_subtitle} placeholder={defaults.auth_login_subtitle} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dealer_inquiry_text')} fieldKey="auth_dealer_help_text" value={form.data.customization.auth_dealer_help_text} placeholder={defaults.auth_dealer_help_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_f_dealer_inquiry_link')} fieldKey="auth_dealer_contact_text" value={form.data.customization.auth_dealer_contact_text} placeholder={defaults.auth_dealer_contact_text} onChange={updateField} />
                             </div>
                         </div>
                     )}

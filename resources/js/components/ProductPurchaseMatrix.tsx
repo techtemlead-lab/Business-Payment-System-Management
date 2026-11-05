@@ -656,7 +656,8 @@ export default function ProductPurchaseMatrix({
                                                     type="button"
                                                     onClick={() => removeFromCart(p.id)}
                                                     className="ppm-icon-btn is-danger"
-                                                    title="Remove Item"
+                                                    title={translate('portal', 'cart_remove_item')}
+                                                    aria-label={translate('portal', 'cart_remove_item')}
                                                 >
                                                     <Trash2 size={16} />
                                                 </button>

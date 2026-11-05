@@ -8,7 +8,7 @@ import {
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
     Layers, ArrowDownToLine, ArrowUpFromLine, type LucideIcon
 } from 'lucide-react';
-import { Flash } from './UI';
+import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
 import OnboardingTour from './OnboardingTour';
@@ -809,7 +809,7 @@ export default function Shell({ section, children, action }: { section: string; 
                                 </div>
                                 <div className="user-caption">
                                     <b>{user.name}</b>
-                                    <span>{user.role.replaceAll('_', ' ')}</span>
+                                    <span>{label(user.role, translate)}</span>
                                 </div>
                                 <ChevronDown size={14} className={`profile-chevron ${profileOpen ? 'open' : ''}`} aria-hidden="true" />
                             </button>

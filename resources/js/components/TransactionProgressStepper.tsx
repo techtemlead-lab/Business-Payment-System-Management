@@ -213,7 +213,7 @@ export default function TransactionProgressStepper({
             } else if (orderPaid > 0) {
                 stage3Desc = `${t('stage_settled_paid', 'Verified')} ${money(orderPaid)}`;
             } else if (orderDueCredit > 0) {
-                stage3Desc = `${t('stage_credit_auth', 'Credit authorized')} ${money(orderDueCredit)}`;
+                stage3Desc = `${t('stage_credit_auth', 'Discount')} ${money(orderDueCredit)}`;
             } else {
                 stage3Desc = t('stage_desc_payment_cleared', 'Payment verified');
             }

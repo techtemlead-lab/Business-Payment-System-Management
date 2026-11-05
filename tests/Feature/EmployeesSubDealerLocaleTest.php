@@ -30,7 +30,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('section', 'employees')
                 ->where('translations.portal.emp_create_title', 'নতুন কর্মচারীর ড্যাশবোর্ড অ্যাকাউন্ট')
                 ->where('translations.portal.emp_save', 'অনুমতি সেভ')
-                ->where('translations.portal.emp_preset_finance', 'হিসাব ও তহবিল')
+                ->where('translations.portal.emp_preset_finance', 'হিসাব ও ফান্ড')
                 ->where('data.available_permissions.0.label', 'মার্কেট সেলস ডেস্ক')
                 ->where('data.available_permissions.0.category', 'মার্কেট সেলস')
                 ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
@@ -98,7 +98,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'area-dealers')
                 ->where('translations.portal.area_kpi_total', 'ডিলার')
-                ->where('translations.portal.area_modal_title', 'এলাকার ডিলার নির্ধারণ')
+                ->where('translations.portal.area_modal_title', 'এরিয়া ডিলার ঠিক করুন')
                 ->where('translations.portal.area_save', 'এলাকার দায়িত্ব সেভ করুন'));
     }
 
@@ -131,14 +131,14 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('section', 'settlements')
                 ->where('translations.portal.st_heading', 'মাস শেষের হিসাব ও পেমেন্ট')
                 ->where('translations.portal.st_release', 'সময় হওয়া কমিশন ছাড়ুন')
-                ->where('translations.portal.st_approve_pay', 'মঞ্জুর করে টাকা দিন'));
+                ->where('translations.portal.st_approve_pay', 'অনুমোদন দিয়ে টাকা দিন'));
 
         $this->actingAs($admin)->onPortal('sadmin')->get('/rewards')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'rewards')
-                ->where('translations.portal.rw_heading', 'কোম্পানির গাড়ি ও বাইক পুরস্কার তহবিল')
+                ->where('translations.portal.rw_heading', 'কোম্পানির গাড়ি ও বাইক পুরস্কার ফান্ড')
                 ->where('translations.portal.rw_inspect', 'ব্রাঞ্চ পরিদর্শন')
                 ->where('translations.portal.rw_close', 'যাচাই শেষ'));
     }

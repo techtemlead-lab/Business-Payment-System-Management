@@ -829,7 +829,7 @@ export default function OnboardingTour({
                                             <div>
                                                 <div className="ops-row ops-mb-1">
                                                     <span className="reader-eyebrow">
-                                                        {translate('portal', 'help_manual_title')} · {activeChapter.key.replaceAll('_', ' ')}
+                                                        {translate('portal', 'help_manual_title')}
                                                     </span>
                                                     {activeChapter.badge && (
                                                         <span className="badge info small">{activeChapter.badge}</span>

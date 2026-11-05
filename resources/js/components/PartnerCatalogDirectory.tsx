@@ -210,7 +210,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'mrp',
-                                title: 'MRP (BDT)',
+                                title: 'MRP (৳)',
                                 sortable: true,
                                 align: 'right',
                                 sortValue: (p: Row) => Number(p.mrp || 0),

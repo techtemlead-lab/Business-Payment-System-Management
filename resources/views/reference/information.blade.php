@@ -385,7 +385,7 @@
         <div class="ref-alert ref-error" role="alert">
             <div class="ref-error-header" style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:6px;">
                 <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-                <span>{{ app()->getLocale() === 'bn' ? 'অনুগ্রহ করে নিচের ত্রুটিগুলো সংশোধন করুন:' : 'Please correct the following errors:' }}</span>
+                <span>{{ __('site.form_fix_errors') }}</span>
             </div>
             <ul class="ref-form-errors" style="margin:0;padding-left:20px;">
                 @foreach($errors->all() as $error)
@@ -575,7 +575,7 @@
                     <span class="ref-badge-optional">{{ __('site.optional') }}</span>
                 </label>
                 <div class="ref-textarea-wrap">
-                    <textarea id="partner-message" name="message" maxlength="2000" rows="4" class="ref-textarea-control" placeholder="{{ app()->getLocale() === 'bn' ? 'আপনার বর্তমান ব্যবসা, ফার্মেসি বা আউটলেটের বিবরণ এবং ভবিষ্যৎ পরিকল্পনা সম্পর্কে সংক্ষেপে লিখুন...' : 'Briefly describe your business background, current shop/pharmacy setup, or plans...' }}">{{ old('message') }}</textarea>
+                    <textarea id="partner-message" name="message" maxlength="2000" rows="4" class="ref-textarea-control" placeholder="{{ __('site.partner_message_placeholder') }}">{{ old('message') }}</textarea>
                 </div>
             </div>
         </div>

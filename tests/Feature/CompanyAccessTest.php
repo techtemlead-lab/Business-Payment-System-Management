@@ -31,7 +31,7 @@ class CompanyAccessTest extends TestCase
     {
         $this->get('/company')->assertRedirect('/login');
         $this->get('/company/orders')->assertRedirect('/login');
-        $this->get('/company/login')->assertOk()->assertSee('Staff Sign In')->assertDontSee('portal-category-nav')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
+        $this->get('/company/login')->assertOk()->assertSee('Staff log in')->assertDontSee('portal-category-nav')->assertHeader('Cache-Control', 'max-age=0, no-store, private');
         $this->get('/')->assertDontSee('/company/login');
     }
 
