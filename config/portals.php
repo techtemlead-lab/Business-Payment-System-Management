@@ -16,14 +16,14 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'network' => ['network', 'ranks'],
             'earnings' => ['earnings', 'full-report', 'withdrawals'],
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
-            'learning' => ['training'],
+            'learning' => ['training', 'events'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -31,13 +31,13 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'dues', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries', 'dues'],
             'earnings' => ['salary', 'earnings', 'full-report', 'withdrawals'],
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
-            'learning' => ['training'],
+            'learning' => ['training', 'events'],
         ],
         'partner_commands' => true,
         'staff_commands' => false,
@@ -50,7 +50,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training',
+            'settlements', 'simulator', 'payouts-hub', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -89,6 +89,7 @@ return [
             'support-admin' => 'accounts',
             'partner-messages' => 'partner_chat',
             'training' => 'content',
+            'events' => 'content',
         ],
         'nav' => [
             'home' => ['overview'],
@@ -99,7 +100,7 @@ return [
             'people' => ['employees', 'dashboards'],
             'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
-            'learning' => ['training'],
+            'learning' => ['training', 'events'],
             'system' => ['audit', 'support-admin', 'agreement', 'partner-messages'],
             'dealer_directory' => ['accounts', 'partnerships'],
             'dealer_fulfillment' => ['orders', 'deliveries', 'dues'],
@@ -122,7 +123,7 @@ return [
             'dashboards', 'employees', 'accounts', 'sub-dealers', 'sub-dealer-applications', 'sub-dealer-orders', 'treasury', 'inventory', 'branches', 'branch-performance',
             'payments', 'policies', 'salary', 'withdrawals', 'ledger', 'reports', 'top-sellers', 'content', 'website', 'customization',
             'enquiries', 'feedback', 'partnerships', 'audit', 'commissions', 'network-tree', 'area-dealers', 'place-codes', 'ranks', 'rewards',
-            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training',
+            'settlements', 'simulator', 'payouts-hub', 'benefits-fund', 'help', 'support-admin', 'agreement', 'partner-messages', 'training', 'events',
         ],
         'staff_capabilities' => [
             'dashboards' => 'accounts',
@@ -161,6 +162,7 @@ return [
             'support-admin' => 'accounts',
             'partner-messages' => 'partner_chat',
             'training' => 'content',
+            'events' => 'content',
         ],
         'nav' => [
             'home' => ['overview'],
@@ -171,7 +173,7 @@ return [
             'people' => ['dashboards', 'employees'],
             'reports' => ['reports', 'top-sellers'],
             'website' => ['website', 'content', 'enquiries', 'feedback'],
-            'learning' => ['training'],
+            'learning' => ['training', 'events'],
             'system' => ['audit', 'support-admin', 'agreement', 'partner-messages'],
             'dealer_directory' => ['accounts', 'partnerships'],
             'dealer_fulfillment' => ['orders', 'deliveries', 'dues'],

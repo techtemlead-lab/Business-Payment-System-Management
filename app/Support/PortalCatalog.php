@@ -94,7 +94,7 @@ final class PortalCatalog
             abort_unless($user->owner() || $user->allows('reports') || $user->allows('finance') || $user->allows('inventory'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['orders', 'deliveries', 'dues'], true)) {
             abort_unless($user->allows('orders') || $user->allows('finance'), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'training') {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['training', 'events'], true)) {
             abort_unless($user->owner() || $user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);

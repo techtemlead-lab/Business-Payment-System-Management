@@ -24,6 +24,7 @@ use App\Http\Portals\Shared\Sections\CatalogSection;
 use App\Http\Portals\Shared\Sections\CommissionsSection;
 use App\Http\Portals\Shared\Sections\ContentSection;
 use App\Http\Portals\Shared\Sections\EmployeesSection;
+use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
 use App\Http\Portals\Shared\Sections\FinanceSection;
 use App\Http\Portals\Shared\Sections\InventorySection;
@@ -83,6 +84,7 @@ class WorkspaceController extends Controller
         TopSellersSection::class,
         AgreementSection::class,
         TrainingSection::class,
+        EventsSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse
