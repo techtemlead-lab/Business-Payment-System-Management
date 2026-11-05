@@ -43,6 +43,8 @@ class EnforceStaffActions
                 'CatalogController' => $method === 'index',
                 'ReportController' => $method === 'export',
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
+                'PartnerAgreementController' => $method === 'accept',
+                'PartnerChatController' => $method === 'send',
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -52,11 +54,19 @@ class EnforceStaffActions
         if ($actor->role === 'super_admin') {
             return $next($request);
         }
+        // Owners always answer partner chat; other staff need the partner_chat permission.
+        if ($controller === 'PartnerChatController' && $actor->owner()) {
+            return $next($request);
+        }
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
         if (in_array($controller, ['TrainingController', 'PartnerEventController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
+            return $next($request);
+        }
+        if ($controller === 'PartnerAgreementController' && $actor->owner()) {
+            // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);
         }
         if ($controller === 'BranchController' && $method === 'select') {
@@ -165,6 +175,7 @@ class EnforceStaffActions
                 default => [['catalog'], 'edit'],
             },
             'CatalogController' => [['catalog', 'pricing', 'inventory', 'orders', 'finance'], 'view'],
+            'PartnerChatController' => [['partner_chat'], 'create'],
             default => null,
         };
         abort_unless($permission, 403, __('portal.err_staff_perm_disabled'));

@@ -22,7 +22,7 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });
 
-Route::middleware(['auth', 'active', 'portal:dealer'])->group(function () use ($registerCommands): void {
+Route::middleware(['auth', 'active', 'portal:dealer', 'agreement'])->group(function () use ($registerCommands): void {
     $registerCommands('dealer');
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
