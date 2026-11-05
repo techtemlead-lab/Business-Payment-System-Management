@@ -35,6 +35,10 @@ class DashboardManagement
             'subdealer_min_order' => '0.00',
             'subdealer_maintenance_mode' => false,
 
+            // Monthly top-sellers board (dealers and sub-dealers see it)
+            'top_sellers_enabled' => true,
+            'top_sellers_show_amounts' => true,
+
             // Employee Dashboard Controls
             'employee_default_permissions' => ['orders', 'inventory'],
             'employee_announcement' => 'All actions on customer accounts, inventory, and orders are logged in the append-only company audit trail.',
@@ -69,7 +73,7 @@ class DashboardManagement
     {
         $defaults = self::defaults();
         $clean = array_intersect_key($settings, $defaults);
-        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'company_treasury_enabled', 'company_commissions_enabled', 'company_customization_enabled', 'company_audit_enabled'] as $flag) {
+        foreach (['dealer_network_tree_enabled', 'dealer_ranks_enabled', 'dealer_rewards_enabled', 'dealer_orders_enabled', 'dealer_claims_enabled', 'dealer_catalog_enabled', 'dealer_maintenance_mode', 'subdealer_salary_enabled', 'subdealer_orders_enabled', 'subdealer_deliveries_enabled', 'subdealer_catalog_enabled', 'subdealer_maintenance_mode', 'top_sellers_enabled', 'top_sellers_show_amounts', 'company_treasury_enabled', 'company_commissions_enabled', 'company_customization_enabled', 'company_audit_enabled'] as $flag) {
             if (array_key_exists($flag, $clean)) {
                 $clean[$flag] = filter_var($clean[$flag], FILTER_VALIDATE_BOOLEAN);
             }
@@ -130,6 +134,7 @@ class DashboardManagement
                 'ranks' => 'dealer_ranks_enabled',
                 'rewards' => 'dealer_rewards_enabled',
                 'deliveries' => 'dealer_orders_enabled',
+                'top_sellers' => 'top_sellers_enabled',
                 default => null,
             };
         }
@@ -141,6 +146,7 @@ class DashboardManagement
                 'catalog' => 'subdealer_catalog_enabled',
                 'salary' => 'subdealer_salary_enabled',
                 'deliveries' => 'subdealer_deliveries_enabled',
+                'top_sellers' => 'top_sellers_enabled',
                 default => null,
             };
         }
@@ -183,6 +189,7 @@ class DashboardManagement
             'salary' => 'salary',
             'orders' => 'orders',
             'deliveries' => 'deliveries',
+            'top-sellers' => 'top_sellers',
             default => null,
         };
 

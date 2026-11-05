@@ -1,0 +1,67 @@
+/* =========================================================================
+   Monthly top-sellers board (dealer, sub-dealer and office views).
+   Mobile first: one column of lists, two side by side on wide screens.
+   Places 1-3 get gold, silver and bronze; colours come from the --ds tokens.
+   ========================================================================= */
+.tsb{display:flex;flex-direction:column;gap:var(--ds-s-4)}
+.tsb .panel{margin-bottom:0}
+
+/* Heading and month picker */
+.tsb-head{display:flex;flex-direction:column;gap:var(--ds-s-3)}
+.tsb-title{display:flex;align-items:flex-start;gap:var(--ds-s-3)}
+.tsb-title h2{margin:0;font-size:var(--ds-fs-xl)}
+.tsb-title p{margin-top:var(--ds-s-1);font-size:var(--ds-fs-sm)}
+.tsb-title-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:var(--ds-r-pill);background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
+.tsb-months{display:flex;flex-wrap:wrap;gap:var(--ds-s-2)}
+.tsb-month{min-height:40px;padding:0 var(--ds-s-4);border:1px solid var(--ds-line);border-radius:var(--ds-r-pill);background:var(--ds-surface);color:var(--ds-text-2);font-weight:600;font-size:var(--ds-fs-sm)}
+.tsb-month:hover{background:var(--ds-surface-2)}
+.tsb-month.is-active{background:var(--ds-brand);border-color:var(--ds-brand);color:var(--ds-on-brand)}
+.tsb-month:focus-visible{outline:3px solid var(--ds-focus);outline-offset:2px}
+.tsb-division-pick{max-width:320px}
+.tsb-division-pick>span{display:inline-flex;align-items:center;gap:var(--ds-s-1)}
+
+/* The viewer's own place */
+.tsb-me{display:flex;flex-direction:column;gap:var(--ds-s-2);padding:var(--ds-s-4);border-radius:var(--ds-r-lg);background:var(--ds-brand-soft);border:1px solid var(--ds-line);color:var(--ds-text)}
+.tsb-me b{font-size:var(--ds-fs-lg)}
+.tsb-me small{color:var(--ds-text-2);font-size:var(--ds-fs-sm)}
+.tsb-me.is-top{background:var(--ds-warn-bg)}
+.tsb-me.is-empty{background:var(--ds-surface-2)}
+
+/* Lists */
+.tsb-boards{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-4)}
+.tsb-list h3{margin:0 0 var(--ds-s-3);font-size:var(--ds-fs-md)}
+.tsb-empty{margin:0;font-size:var(--ds-fs-sm)}
+.tsb-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.tsb-row{display:flex;align-items:center;gap:var(--ds-s-3);padding:var(--ds-s-3);border-radius:var(--ds-r-md);border:1px solid var(--ds-line-soft);background:var(--ds-surface)}
+.tsb-row.is-me{border-color:var(--ds-brand);box-shadow:var(--ds-focus-ring)}
+.tsb-rank{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);color:var(--ds-text-2);font-weight:700;font-variant-numeric:tabular-nums}
+.tsb-who{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.tsb-name{font-size:var(--ds-fs-base);line-height:var(--ds-lh-tight);overflow-wrap:anywhere}
+.tsb-details{color:var(--ds-text-muted);font-size:var(--ds-fs-sm)}
+.tsb-you,.tsb-hidden{display:inline-flex;margin-left:var(--ds-s-2);padding:1px var(--ds-s-2);border-radius:var(--ds-r-pill);font-size:var(--ds-fs-2xs);font-weight:700;vertical-align:middle}
+.tsb-you{background:var(--ds-brand);color:var(--ds-on-brand)}
+.tsb-hidden{background:var(--ds-neutral-bg);color:var(--ds-neutral-fg)}
+.tsb-bar{display:block;height:8px;border-radius:var(--ds-r-pill);background:var(--ds-surface-3);overflow:hidden}
+.tsb-bar i{display:block;height:100%;border-radius:inherit;background:var(--ds-brand);min-width:4px}
+.tsb-amount{flex-shrink:0;font-weight:700;font-size:var(--ds-fs-sm);font-variant-numeric:tabular-nums;color:var(--ds-text)}
+
+/* Gold, silver and bronze for the first three places */
+.tsb-row.is-gold{background:var(--ds-warn-bg);border-color:var(--ds-gold)}
+.tsb-row.is-gold .tsb-rank{background:var(--ds-gold);color:var(--ds-navy)}
+.tsb-row.is-gold .tsb-bar i{background:var(--ds-gold)}
+.tsb-row.is-silver{background:var(--ds-neutral-bg);border-color:var(--ds-line-strong)}
+.tsb-row.is-silver .tsb-rank{background:var(--ds-line-strong);color:var(--ds-navy)}
+.tsb-row.is-silver .tsb-bar i{background:var(--ds-neutral-fg)}
+.tsb-row.is-bronze{background:var(--ds-orange-bg);border-color:var(--ds-orange-fg)}
+.tsb-row.is-bronze .tsb-rank{background:var(--ds-orange-fg);color:var(--ds-on-accent)}
+.tsb-row.is-bronze .tsb-bar i{background:var(--ds-orange-fg)}
+
+.tsb-note{margin:0;font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
+
+@media (min-width:900px){
+  .tsb-head{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .tsb-boards{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:no-preference){
+  .tsb-bar i{transition:width .4s ease}
+}
