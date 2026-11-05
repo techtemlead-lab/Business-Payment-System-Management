@@ -39,6 +39,11 @@ if (config('madina.backups_enabled')) {
         ->onFailure(fn () => Log::critical('Scheduled backup clean-up failed. Check free disk space on the backup volume.'));
 }
 
+// Birthday greetings for dealers and sub-dealers. Each SMS costs money, so this only
+// sends when the owner turns on "Send birthday SMS"; a partner is greeted at most once a year.
+Schedule::command('partners:birthday-sms')->dailyAt('09:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled birthday SMS run failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 
