@@ -80,7 +80,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_status_choice', [], 'bn'), $e->errors()['status'][0]);
-            $this->assertSame('অনুমোদিত, আটক বা প্রত্যাখ্যাত বেছে নিন।', $e->errors()['status'][0]);
+            $this->assertSame('অনুমোদন, আটকে রাখা বা নামঞ্জুর: একটি বেছে নিন।', $e->errors()['status'][0]);
         }
 
         // English locale
@@ -90,7 +90,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_order_status_choice', [], 'en'), $e->errors()['status'][0]);
-            $this->assertSame('Choose approved, held or rejected.', $e->errors()['status'][0]);
+            $this->assertSame('Choose approve, hold or reject.', $e->errors()['status'][0]);
         }
 
         // Now approve the order
@@ -148,7 +148,7 @@ class AdversarialM1LocaleTest extends TestCase
             $this->fail('Expected ValidationException');
         } catch (ValidationException $e) {
             $this->assertSame(__('portal.err_shipment_approve_first', [], 'bn'), $e->errors()['shipment'][0]);
-            $this->assertSame('ডিসপ্যাচের আগে অর্ডার অনুমোদন করুন।', $e->errors()['shipment'][0]);
+            $this->assertSame('মাল পাঠানোর আগে অর্ডার অনুমোদন করুন।', $e->errors()['shipment'][0]);
         }
 
         // English unapproved dispatch error

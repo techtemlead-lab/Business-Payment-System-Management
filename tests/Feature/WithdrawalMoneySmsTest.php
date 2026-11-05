@@ -118,7 +118,7 @@ class WithdrawalMoneySmsTest extends TestCase
 
         $sent = config('madina.sms.sent');
         $this->assertSame('withdrawal.paid', $sent[0]['event'] ?? null);
-        $this->assertStringContainsString('পরিশোধ', $sent[0]['message'] ?? '');
+        $this->assertStringContainsString('পাঠানো হয়েছে', $sent[0]['message'] ?? '');
         $this->assertDatabaseHas('withdrawals', ['id' => $id, 'status' => 'paid']);
     }
 

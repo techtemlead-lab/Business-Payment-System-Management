@@ -183,7 +183,7 @@ class CommissionSettlementTest extends TestCase
         $claim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id);
 
         $this->assertFalse($claim['success']);
-        $this->assertStringContainsString('maintenance', $claim['message']);
+        $this->assertStringContainsString('rank-keeping', $claim['message']);
         $this->assertDatabaseCount('rank_incentive_awards', 0);
     }
 

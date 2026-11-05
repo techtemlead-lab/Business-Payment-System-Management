@@ -127,7 +127,7 @@ class SharedPreviewPortalTest extends TestCase
             ->withUnencryptedCookie(PortalHost::PreviewCookie, 'dealer')
             ->get('/login')
             ->assertOk()
-            ->assertSee('Owner Sign In');
+            ->assertSee('Owner log in');
     }
 
     public function test_public_preview_path_clears_the_cookie_and_keeps_the_page(): void
@@ -201,10 +201,10 @@ class SharedPreviewPortalTest extends TestCase
     public static function portalSignIns(): array
     {
         return [
-            'owner' => ['sadmin', 'super_admin', 'Owner Sign In'],
-            'staff' => ['manage', 'editor', 'Staff Sign In'],
+            'owner' => ['sadmin', 'super_admin', 'Owner log in'],
+            'staff' => ['manage', 'editor', 'Staff log in'],
             'dealer' => ['dealer', 'dealer', 'Account Login'],
-            'sub-dealer' => ['subdealer', 'sub_dealer', 'Sub-dealer Sign In'],
+            'sub-dealer' => ['subdealer', 'sub_dealer', 'Sub-dealer log in'],
         ];
     }
 
