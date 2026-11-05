@@ -5429,7 +5429,6 @@ return [
     'deliv_sum_oldest' => 'Oldest waiting order',
     'col_booked_units_hint' => 'Units on approved orders not sent yet, for the whole company',
     'stock_free_to_sell' => 'Free to sell (company): :count',
-<<<<<<< HEAD
     'sce_f_about_hero_lead' => 'About page: top text',
     'sce_f_about_hero_title' => 'About page: top title',
     'sce_f_about_link_subtitle' => '"About us" link: small text',
@@ -5613,7 +5612,6 @@ return [
     'team_summary_bought' => 'Bought this month',
     'team_summary_quiet' => 'No purchase in 60 days',
     'team_summary_quiet_hint' => 'A call or a visit may help them start again.',
-=======
     'cert_company_line' => 'Made from company records. Bangladesh.',
     'cert_income_title' => 'Income certificate for :year',
     'cert_income_lead' => 'This is to certify that :name (code :code, :role) earned the commission below from the company in :year, from confirmed product orders.',
@@ -5634,7 +5632,6 @@ return [
     'download_income_certificate' => 'Income certificate (PDF)',
     'download_rank_certificate' => 'Rank certificate (PDF)',
     'cert_year_label' => 'Year',
->>>>>>> origin/mlm/certificates
     'ph_greeting' => 'Assalamu alaikum,',
     'ph_tap_for_balance' => 'Tap to see balance',
     'ph_commission_month' => 'Commission this month',
