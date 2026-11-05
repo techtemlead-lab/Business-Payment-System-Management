@@ -41,7 +41,9 @@
     @endif
     <div>
         <strong>{{ __('site.share_product_partner_headline', ['name' => $sharePartner->name]) }}</strong>
-        <p style="margin:4px 0 0;">{{ __('site.share_product_partner_contact', ['name' => $sharePartner->name, 'phone' => $sharePartner->phone ?: '—']) }}</p>
+        @if(!empty($social['partner']['phone']))
+            <p style="margin:4px 0 0;">{{ __('site.share_product_partner_contact', ['name' => $sharePartner->name, 'phone' => $social['partner']['phone']]) }}</p>
+        @endif
     </div>
 </div>
 @endif

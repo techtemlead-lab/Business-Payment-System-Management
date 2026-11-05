@@ -7,11 +7,22 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreOrderRequest extends FormRequest
 {
+    /**
+     * Fields that would let a partner name a seller. Dealers and sub-dealers buy
+     * only from the company; the office picks the company branch at dispatch.
+     *
+     * @var list<string>
+     */
+    public const SellerFields = ['seller_id', 'seller_user_id', 'seller_code', 'dealer_id', 'supplier_id', 'sponsor_id', 'upline_id', 'branch_id', 'fulfillment_branch_id'];
+
     public function authorize(): bool
     {
         return $this->user()?->status === 'active' && in_array($this->user()?->role, ['dealer', 'sub_dealer'], true);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         return [
@@ -26,6 +37,18 @@ class StoreOrderRequest extends FormRequest
             'channel' => 'nullable|required_with:reference|in:bKash,Nagad,Rocket,Bank',
             'amount' => ['nullable', 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
             'proof' => 'nullable|required_with:reference|'.PaymentProof::Rules,
+            ...array_fill_keys(self::SellerFields, 'prohibited'),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return array_combine(
+            array_map(fn (string $field): string => $field.'.prohibited', self::SellerFields),
+            array_fill(0, count(self::SellerFields), __('portal.order_val_company_only_seller')),
+        );
     }
 }

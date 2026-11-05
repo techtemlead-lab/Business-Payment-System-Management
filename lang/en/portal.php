@@ -4484,7 +4484,7 @@ return [
     'tour_subdealer_step_sponsor_title' => 'Your dealer',
     'tour_subdealer_step_sponsor_loc' => 'Your dealer\'s card on the dashboard',
     'tour_subdealer_step_sponsor_body' => 'Your lead dealer\'s name and phone number, with one-click call and WhatsApp buttons.',
-    'tour_subdealer_step_sponsor_action' => 'Contact your dealer directly about stock, urgent product questions, or delivery.',
+    'tour_subdealer_step_sponsor_action' => 'Your dealer can guide you, but you buy goods only from the company. Place every order from the Buy products page.',
     'tour_subdealer_step_sponsor_tip' => 'Tap the WhatsApp button to chat with your dealer right away.',
 
     'tour_subdealer_step_metrics_title' => 'Today\'s Retail Sales & Earnings',
@@ -6077,4 +6077,6 @@ return [
     'ops_warn_sms_login_code_switched_off' => 'The SMS sign-in code is switched off. Before going live, turn on SMS and every feature that was switched off for testing.',
     'ops_warn_accounts_missing_mobile' => 'Some active accounts have no valid mobile number, so they cannot get a sign-in code. Add a number to each one.',
     'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
+    'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
+    'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
 ];
