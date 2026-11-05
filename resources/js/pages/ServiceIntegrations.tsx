@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { PlugZap } from 'lucide-react';
 import Shell from '../components/Shell';
-import { Badge, Row } from '../components/UI';
+import { Badge, Row, humanize } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 type Provider = Row & { key: string; label: string; fields: string[]; enabled: boolean };
@@ -10,9 +10,6 @@ type Group = { label: string; description: string; providers: Record<string, Pro
 
 const secretFields = new Set(['api_key', 'api_secret', 'app_key', 'app_secret', 'password', 'username', 'client_secret', 'store_password']);
 
-function fieldLabel(name: string): string {
-    return name.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
-}
 
 function ProviderForm({ group, provider, version, canEdit }: { group: string; provider: Provider; version: number; canEdit: boolean }) {
     const translate = useT();
@@ -66,7 +63,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                 </select>
             </label>
             {provider.fields.filter(field => field !== 'enabled').map(field => (
-                <label key={field}>{fieldLabel(field)}
+                <label key={field}>{translate('portal', `si_field_${field}`) === `si_field_${field}` ? humanize(field) : translate('portal', `si_field_${field}`)}
                     {field === 'mode' ? (
                         <select value={String(form.data[field] ?? 'sandbox')} onChange={e => form.setData(field, e.target.value)} disabled={!canEdit}>
                             <option value="sandbox">{translate('portal', 'si_mode_sandbox')}</option>

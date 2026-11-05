@@ -6,7 +6,7 @@ import {
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
 import { ProfilePhoto } from './ProfilePhoto';
-import { Badge, money, type Row, number } from './UI';
+import { Badge, humanize, money, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
 
@@ -588,7 +588,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
 }
 
 function labelRole(role: string, translate?: (group: string, key: string) => string) {
-    const fallback = String(role || '').replaceAll('_', ' ');
+    const fallback = humanize(String(role || ''));
     if (!translate || !role) {
         return fallback;
     }
