@@ -19,8 +19,8 @@
             <p class="muted" style="margin:0 0 4px;">{{ __('site.share_refer_eyebrow') }}</p>
             <h1 class="ref-page-title" style="margin:0;">{{ $partner->name }}</h1>
             <p style="margin:8px 0 0;"><b>{{ __('site.share_refer_code_label') }}:</b> {{ $code }}</p>
-            @if($partner->phone)
-                <p style="margin:4px 0 0;"><b>{{ __('site.share_refer_phone_label') }}:</b> {{ $partner->phone }}</p>
+            @if(!empty($social['partner']['phone']))
+                <p style="margin:4px 0 0;"><b>{{ __('site.share_refer_phone_label') }}:</b> {{ $social['partner']['phone'] }}</p>
             @endif
         </div>
     </div>

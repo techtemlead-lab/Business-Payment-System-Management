@@ -4484,7 +4484,7 @@ return [
     'tour_subdealer_step_sponsor_title' => 'Your Sponsor Dealer',
     'tour_subdealer_step_sponsor_loc' => 'Dealer Sponsor card on the dashboard',
     'tour_subdealer_step_sponsor_body' => 'Your lead dealer\'s name and phone number, with one-click call and WhatsApp buttons.',
-    'tour_subdealer_step_sponsor_action' => 'Contact your dealer directly about stock, urgent product questions, or delivery.',
+    'tour_subdealer_step_sponsor_action' => 'Your dealer can guide you, but you buy goods only from the company. Place every order from the Buy products page.',
     'tour_subdealer_step_sponsor_tip' => 'Tap the WhatsApp button to chat with your sponsor right away.',
 
     'tour_subdealer_step_metrics_title' => 'Today\'s Retail Sales & Earnings',
@@ -5935,4 +5935,6 @@ return [
     'office_today_payments' => 'Payments waiting',
     'office_today_withdrawals' => 'Withdrawals waiting',
     'ops_col_created_at' => 'Date',
+    'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
+    'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
 ];

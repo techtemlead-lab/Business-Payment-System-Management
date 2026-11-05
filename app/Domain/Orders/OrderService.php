@@ -293,6 +293,7 @@ class OrderService
 
     public function dispatch(User $actor, Order $order, array $data): void
     {
+        $this->branches->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
         $this->assertNotOwnOrder($actor, $order);
         DB::transaction(function () use ($actor, $order, $data): void {

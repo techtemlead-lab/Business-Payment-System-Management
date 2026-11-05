@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
+use App\Support\SocialShareMeta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,6 +21,7 @@ class PublicReferralJoinTest extends TestCase
             'refer_code' => 'REF-PARTNER-01',
             'dealer_code' => 'REF-PARTNER-01',
             'phone' => '01710000011',
+            'directory_visible' => true,
             'profile' => [
                 'photo_url' => '/storage/partner-photos/1/demo.jpg',
                 'avatar_url' => '/storage/partner-photos/1/demo.jpg',
@@ -35,6 +37,35 @@ class PublicReferralJoinTest extends TestCase
             ->assertSee('og:image', false)
             ->assertSee('/contact?referred_by=REF-PARTNER-01', false)
             ->assertSee((string) $dealer->phone, false);
+    }
+
+    public function test_join_link_and_share_card_hide_phone_of_dealer_hidden_from_directory(): void
+    {
+        $dealer = User::factory()->dealer()->create([
+            'status' => 'active',
+            'name' => 'Private Partner',
+            'refer_code' => 'REF-PRIVATE-01',
+            'dealer_code' => 'REF-PRIVATE-01',
+            'phone' => '01710000099',
+            'directory_visible' => false,
+        ]);
+
+        $this->onPortal('public')
+            ->get('/join/REF-PRIVATE-01')
+            ->assertOk()
+            ->assertSee('Private Partner', false)
+            ->assertSee('og:title', false)
+            ->assertDontSee('01710000099', false);
+
+        $product = Product::factory()->create(['active' => true]);
+
+        $this->onPortal('public')
+            ->get('/products/'.$product->id.'?ref=REF-PRIVATE-01')
+            ->assertOk()
+            ->assertSee('Private Partner', false)
+            ->assertDontSee('01710000099', false);
+
+        $this->assertNull(SocialShareMeta::referral($dealer)['partner']['phone']);
     }
 
     public function test_contact_page_prefills_referred_by_from_query(): void

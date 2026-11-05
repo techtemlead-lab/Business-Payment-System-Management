@@ -71,6 +71,48 @@ class PartnerAgreementTest extends TestCase
                 ->where('data.agreement.versions.1.version', 1));
     }
 
+    public function test_each_owner_edit_is_a_new_version_with_who_and_when_and_old_text_stays_viewable(): void
+    {
+        $owner = User::factory()->staff('super_admin')->create(['name' => 'Owner One']);
+        $secondOwner = User::factory()->staff('chairman')->create(['name' => 'Owner Two']);
+        $first = PartnerAgreementVersion::query()->sole();
+
+        $this->travelTo(now()->setDate(2026, 11, 1)->setTime(10, 0));
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/agreement/publish', [
+            'body_bn' => 'দ্বিতীয় সংস্করণ। মাল কিনবেন শুধু কোম্পানি থেকে।',
+            'body_en' => 'Second version. Goods are bought only from the company.',
+        ])->assertSessionHasNoErrors();
+
+        $this->travelTo(now()->setDate(2026, 11, 3)->setTime(15, 30));
+        $this->actingAs($secondOwner)->onPortal('sadmin')->post('/commands/agreement/publish', [
+            'body_bn' => 'তৃতীয় সংস্করণ। সব অর্ডারের টাকা আগে দিতে হবে।',
+            'body_en' => 'Third version. Every order is paid in full first.',
+        ])->assertSessionHasNoErrors();
+        $this->travelBack();
+
+        $versions = PartnerAgreementVersion::query()->orderBy('version')->get();
+        $this->assertSame([1, 2, 3], $versions->pluck('version')->all());
+        $this->assertSame($first->body_en, $versions[0]->body_en, 'Version 1 text is kept unchanged.');
+        $this->assertSame($owner->id, $versions[1]->published_by);
+        $this->assertSame('2026-11-01 10:00', $versions[1]->published_at->format('Y-m-d H:i'));
+        $this->assertSame($secondOwner->id, $versions[2]->published_by);
+        $this->assertSame('2026-11-03 15:30', $versions[2]->published_at->format('Y-m-d H:i'));
+        $this->assertFalse(app(PartnerAgreement::class)->setting()['required'], 'Publishing text never turns the must-accept switch on.');
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/agreement')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.agreement.can_edit', true)
+                ->where('data.agreement.setting.required', false)
+                ->has('data.agreement.versions', 3)
+                ->where('data.agreement.versions.0.published_by', 'Owner Two')
+                ->where('data.agreement.versions.0.body_en', 'Third version. Every order is paid in full first.')
+                ->where('data.agreement.versions.1.published_by', 'Owner One')
+                ->where('data.agreement.versions.1.body_en', 'Second version. Goods are bought only from the company.')
+                ->where('data.agreement.versions.2.body_en', $first->body_en)
+                ->whereNot('data.agreement.versions.1.published_at', null));
+    }
+
     public function test_published_versions_cannot_be_edited_or_removed(): void
     {
         $first = PartnerAgreementVersion::query()->sole();
