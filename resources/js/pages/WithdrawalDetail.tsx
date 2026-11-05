@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote } from 'lucide-react';
 import Shell from '../components/Shell';
-import { Row, Badge, ActionForm, money, date } from '../components/UI';
+import { Row, Badge, ActionForm, money, date, FormErrors } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
@@ -438,7 +438,7 @@ export default function WithdrawalDetail({ withdrawal: w, events = [] }: { withd
                         <label>{translate('portal', 'wd_upload_receipt')}<input required type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
                         <label>{translate('portal', 'wd_payment_note')}<textarea required maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
-                        {Object.keys(form.errors).length > 0 && <div className="error">{Object.values(form.errors).join(' ')}</div>}
+                        <FormErrors errors={form.errors}/>
                         <button disabled={form.processing} className="button dark">
                             <Upload size={17} />{form.processing ? translate('portal', 'wd_recording') : translate('portal', 'wd_record_payment')}
                         </button>

@@ -1,6 +1,6 @@
 import {useState} from 'react';
 import {useForm, usePage} from '@inertiajs/react';
-import {label, type Row} from './UI';
+import {label, FormErrors, type Row} from './UI';
 import {useT} from '../shared/i18n/t';
 
 const actions = ['view', 'create', 'edit', 'approve'];
@@ -42,7 +42,7 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
         }}>{[...new Set(staffRoles as string[])].filter(role=>role!=='super_admin').map(role=><option value={role} key={role}>{roles.find(item=>item.key===role)?.name??label(role, translate)}</option>)}</select></label>}
         <Matrix modules={visible} value={form.data.permissions} change={value=>form.setData('permissions',value)}/>
         <label>{translate('portal', 'sa_reason')}<textarea required minLength={5} maxLength={1000} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>
-        {Object.keys(form.errors).length>0&&<div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}
+        <FormErrors errors={form.errors}/>
         <button className="button dark" disabled={form.processing}>{form.processing?translate('portal', 'saving'):mode==='role'?translate('portal', 'sa_save_role'):translate('portal', 'sa_save_staff')}</button>
     </form>;
 }

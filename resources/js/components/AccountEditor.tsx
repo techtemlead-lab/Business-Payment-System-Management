@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
-import { Row, label } from './UI';
+import { Row, label, FormErrors } from './UI';
 import PartnerCommissionOverride from './PartnerCommissionOverride';
 import PartnerBenefitControls from './PartnerBenefitControls';
 import AccountPasswordManager from './AccountPasswordManager';
@@ -161,7 +161,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 {account.role === 'dealer' && <label>{translate('portal', 'acct_directory_visibility')}<select value={form.data.directory_visible} onChange={event => form.setData('directory_visible', event.target.value)}><option value="0">{translate('portal', 'acct_private')}</option><option value="1">{translate('portal', 'acct_publish_contact')}</option></select></label>}
             </div>
             <label>{translate('portal', 'acct_correction_reason')}<textarea required maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
-            {Object.keys(form.errors).length > 0 && <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}
+            <FormErrors errors={form.errors}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
         </form>
         {canKyc && isPartner && (

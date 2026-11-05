@@ -84,7 +84,26 @@ export function Empty({title,body}:{title?:string,body?:string}) {
  const translate=useT();
  return <div className="empty"><Inbox size={30}/><h3>{title??translate('portal','empty_default_title')}</h3><p>{body??translate('portal','empty_default_body')}</p></div>;
 }
-export function Flash(){const {flash,errors}=usePage<any>().props;return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
+/*
+ * Forms that show their own error box (often inside a dialog) register here so the
+ * page-level Flash does not print the same validation message a second time.
+ */
+let formErrorOwners=0;
+const formErrorListeners=new Set<()=>void>();
+const notifyFormErrorOwners=()=>formErrorListeners.forEach(listener=>listener());
+function useFormErrorsOwned(){
+ const [owned,setOwned]=useState(formErrorOwners>0);
+ useEffect(()=>{const update=()=>setOwned(formErrorOwners>0);formErrorListeners.add(update);update();return ()=>{formErrorListeners.delete(update)}},[]);
+ return owned;
+}
+/** Error box for a form; while visible, the page Flash stays quiet about validation errors. */
+export function FormErrors({errors,className='error'}:{errors:Record<string,unknown>|undefined,className?:string}){
+ const messages=Object.values(errors??{}).filter(Boolean).map(String);
+ const visible=messages.length>0;
+ useEffect(()=>{if(!visible)return undefined;formErrorOwners++;notifyFormErrorOwners();return ()=>{formErrorOwners--;notifyFormErrorOwners()}},[visible]);
+ return visible?<div className={className} role="alert">{messages.join(' ')}</div>:null;
+}
+export function Flash(){const {flash,errors}=usePage<any>().props;const owned=useFormErrorsOwned();return <>{flash?.success&&<div className="success" role="status">{flash.success}</div>}{!owned&&Object.keys(errors??{}).length>0&&<div className="error" role="alert">{Object.values(errors).join(' ')}</div>}</>}
 function rowSearchText(value:unknown,depth=0):string{
  if(value==null||depth>2)return '';
  if(typeof value==='string'||typeof value==='number')return String(value);

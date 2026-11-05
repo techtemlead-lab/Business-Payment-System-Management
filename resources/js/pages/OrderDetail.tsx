@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { Row, Table, Badge, money, date, label, ActionForm, DateInput } from '../components/UI';
+import { Row, Table, Badge, money, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 
@@ -16,15 +16,15 @@ function DispatchForm({ order }: { order: Row }) {
     }}>
         <p className="muted">{translate('portal', 'dispatch_hint')}</p>
         <div className="form-grid">
-            <label>{translate('portal', 'courier')}<input required value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
-            <label>{translate('portal', 'tracking_reference')}<input required value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
+            <label>{translate('portal', 'courier')}<input required aria-label={translate('portal', 'courier')} value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
+            <label>{translate('portal', 'tracking_reference')}<input required aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
             <label>{translate('portal', 'estimated_delivery')}<DateInput value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
         </div>
         {form.data.items.map((item: Row, index: number) => <label key={item.line_id}>
             {order.lines.find((line: Row) => line.id === item.line_id)?.name}
             <input type="number" min="0" step="1" value={item.quantity} onChange={event => form.setData('items', form.data.items.map((other: Row, otherIndex: number) => index === otherIndex ? { ...other, quantity: Number(event.target.value) } : other))} />
         </label>)}
-        {Object.keys(form.errors).length > 0 && <div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}
+        <FormErrors errors={form.errors}/>
         <button className="button dark" disabled={form.processing}>{translate('portal', 'record_dispatch')}</button>
     </form>;
 }
