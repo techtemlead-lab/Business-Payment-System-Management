@@ -188,7 +188,7 @@ final class CommissionService
             $proposedTotal += $test;
             $name = __('portal.rule_name_'.$key);
             if ($name === 'portal.rule_name_'.$key) {
-                $name = ucwords(str_replace('_', ' ', $key));
+                $name = ucfirst(str_replace('_', ' ', $key));
             }
             $slices[] = ['key' => $key, 'name' => $name, 'baseline_pct' => (float) $rate,
                 'simulated_pct' => (float) $proposed[$key], 'baseline_amount' => $base / 100, 'simulated_amount' => $test / 100, 'delta_amount' => ($test - $base) / 100];

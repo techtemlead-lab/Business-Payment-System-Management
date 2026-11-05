@@ -2,13 +2,18 @@ import React, { useState } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import { FileSpreadsheet, Download } from 'lucide-react';
 import Shell from '../components/Shell';
-import { Badge, Pagination, Row, Table, money } from '../components/UI';
+import { Badge, Pagination, Row, Table, humanize, money } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 
-const title = (value: string) => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
 
 export default function DataImports({ types, batches, preview, openingLocked, templateBase, startup }: Row) {
     const translate = useT();
+    const translated = (key: string, value: string) => {
+        const localized = translate('portal', key);
+        return localized === key ? humanize(value) : localized;
+    };
+    const typeTitle = (value: string) => translated(`imp_type_opt_${value}`, value);
+    const title = (value: string) => translated(`imp_field_${value}`, value);
     const { auth, staffActions } = usePage<any>().props;
     usePoll(10000, { only: ['batches', 'preview'] });
     const [mode, setMode] = useState(startup?.mode === 'fresh' ? 'zero' : 'import');
@@ -53,7 +58,7 @@ export default function DataImports({ types, batches, preview, openingLocked, te
                 upload.post('/commands/operations/imports/preview', { forceFormData: true, preserveScroll: true });
             }}>
                 <label>{translate('portal','imp_type')}<select value={upload.data.type} onChange={event => { upload.setData('type', event.target.value); upload.setData('file', null); }}>
-                    {types.map((type: Row) => <option key={type.key} value={type.key}>{title(type.key)}</option>)}
+                    {types.map((type: Row) => <option key={type.key} value={type.key}>{typeTitle(type.key)}</option>)}
                 </select></label>
                 <a className="button" href={templateBase + upload.data.type}><Download size={16} aria-hidden="true" /> {translate('portal','imp_download_template')}</a>
                 <label>{translate('portal','imp_source_ref')}<input required minLength={5} maxLength={150} value={upload.data.source_reference} onChange={event => upload.setData('source_reference', event.target.value)} placeholder={translate('portal','imp_source_ph')} /></label>
@@ -67,7 +72,7 @@ export default function DataImports({ types, batches, preview, openingLocked, te
         </section>}
         {preview && <section className="panel">
             <h2>{translate('portal','imp_preview_title')} <Badge status={preview.status} /></h2>
-            <p><strong>{preview.filename}</strong> · {title(preview.type)} · {preview.source_reference}</p>
+            <p><strong>{preview.filename}</strong> · {typeTitle(preview.type)} · {preview.source_reference}</p>
             {preview.status === 'queued' && <p className="notice" role="status">{translate('portal','imp_queued')}</p>}
             {preview.status === 'failed' && <p className="error" role="alert">{preview.review_reason}</p>}
             <div className="profile-grid">
@@ -101,7 +106,7 @@ export default function DataImports({ types, batches, preview, openingLocked, te
         </section>}
         <section className="panel"><h2>{translate('portal','imp_history_title')}</h2>
             <Table rows={batches.data} columns={[
-                { key: 'filename', title: translate('portal','imp_col_workbook') }, { key: 'type', title: translate('portal','imp_col_type'), render: row => title(row.type) },
+                { key: 'filename', title: translate('portal','imp_col_workbook') }, { key: 'type', title: translate('portal','imp_col_type'), render: row => typeTitle(row.type) },
                 { key: 'status', title: translate('portal','enquiry_status_label'), render: row => <Badge status={row.status} /> },
                 { key: 'source_reference', title: translate('portal','imp_col_source') }, { key: 'created_at', title: translate('portal','imp_col_uploaded') },
                 { key: 'details', title: translate('portal','imp_col_review'), render: row => <Link className="button small" href={'?batch=' + row.id} preserveScroll>{translate('portal','imp_view')}</Link> },
