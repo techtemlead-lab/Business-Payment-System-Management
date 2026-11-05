@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
@@ -141,6 +142,7 @@ class CommandController extends Controller
                 'refer_code' => 'nullable|string|max:40',
                 'phone' => 'required|string|max:30',
                 'email' => 'required|email|max:254',
+                'phone_share_reason' => 'nullable|string|max:500',
                 'extra_contact' => 'nullable|string|max:80',
                 'pharmacy' => 'nullable|string|max:150',
                 'shop_name' => 'nullable|string|max:150',
@@ -181,7 +183,8 @@ class CommandController extends Controller
             'dealer_code' => $isPartner ? ['required', 'string', 'max:40', 'unique:users,dealer_code'] : ['nullable', 'string', 'max:40', 'unique:users,dealer_code'],
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:254|unique:users,email',
-            'phone' => 'nullable|string|max:30',
+            'phone' => 'required|string|max:30',
+            'phone_share_reason' => 'nullable|string|max:500',
             'division' => 'nullable|string|max:80',
             'district' => 'nullable|string|max:80',
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -221,6 +224,9 @@ class CommandController extends Controller
         }
         $d['profile'] = $profileData;
         unset($d['permissions']);
+        $phoneCheck = app(AccountPhoneRules::class)->check($r->user(), $d['phone'], null, $d['phone_share_reason'] ?? null);
+        unset($d['phone_share_reason']);
+        $d = [...$d, ...$phoneCheck];
         if (! empty($d['nid'])) {
             $this->permit($r, 'identity_write');
         }
@@ -230,7 +236,7 @@ class CommandController extends Controller
         if (($d['directory_visible'] ?? false) && $d['role'] !== 'dealer') {
             throw ValidationException::withMessages(['directory_visible' => __('portal.cmd_val_directory_dealer_only')]);
         }
-        $u = DB::transaction(function () use ($r, $d, $isPartner) {
+        $u = DB::transaction(function () use ($r, $d, $isPartner, $phoneCheck) {
             CommissionWallet::lock();
             $role = $d['role'];
             $dealerCode = $isPartner ? trim((string) $d['dealer_code']) : ($d['dealer_code'] ?? null);
@@ -253,6 +259,7 @@ class CommandController extends Controller
                 'dealer_code' => $dealerCode,
                 'reason' => $reason,
             ]);
+            app(AccountPhoneRules::class)->recordShare($r->user(), $u, $phoneCheck);
 
             return $u;
         });
@@ -280,7 +287,7 @@ class CommandController extends Controller
             $this->permit($r, 'identity_write');
         }
         $isPartner = in_array($user->role, ['dealer', 'sub_dealer'], true);
-        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'nullable|string|max:30', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
+        $d = $r->validate(['status' => 'sometimes|in:active,suspended', 'name' => 'sometimes|required|string|max:150', 'dealer_code' => 'sometimes|nullable|string|max:40|unique:users,dealer_code,'.$user->id, 'phone' => 'sometimes|required|string|max:30', 'phone_share_reason' => 'sometimes|nullable|string|max:500', 'division' => 'nullable|string|max:80', 'district' => 'nullable|string|max:80', 'place_code' => [$isPartner ? 'sometimes' : 'prohibited', 'nullable', 'string', 'max:32'], 'latitude' => 'sometimes|nullable|numeric|between:-90,90', 'longitude' => 'sometimes|nullable|numeric|between:-180,180', 'sponsor_id' => 'sometimes|nullable|integer|exists:users,id', 'directory_visible' => 'sometimes|boolean', 'reason' => 'required|string|max:1000',
             'permissions' => [Rule::prohibitedIf($r->user()->role !== 'super_admin' || ! in_array($user->role, ['employee', 'sr'], true)), 'sometimes', 'nullable', 'array'],
             'permissions.*' => ['string', Rule::in(config($user->role === 'sr' ? 'madina.roles.sr' : 'madina.roles.super_admin'))],
             'profile' => 'sometimes|array:name_bn,father_name,mother_name,village,post_office,upazila,union,pharmacy,shop_name,area_code', 'profile.name_bn' => 'nullable|string|max:150', 'profile.father_name' => 'nullable|string|max:150', 'profile.mother_name' => 'nullable|string|max:150', 'profile.village' => 'nullable|string|max:150', 'profile.post_office' => 'nullable|string|max:150', 'profile.upazila' => 'nullable|string|max:150', 'profile.union' => 'nullable|string|max:150', 'profile.pharmacy' => 'nullable|string|max:150', 'profile.shop_name' => 'nullable|string|max:150', 'profile.area_code' => 'nullable|string|max:80', 'nid' => 'sometimes|nullable|string|max:30']);
@@ -318,6 +325,18 @@ class CommandController extends Controller
             $d['profile'] = array_merge($existing, $incoming);
         }
         unset($d['permissions']);
+        $phoneCheck = null;
+        if (array_key_exists('phone', $d)) {
+            $phones = app(AccountPhoneRules::class);
+            $newPhone = $phones->normalize($d['phone']);
+            if (PhoneIdentity::normalize($newPhone) === PhoneIdentity::normalize((string) $user->phone)) {
+                $d['phone'] = $newPhone;
+            } else {
+                $phoneCheck = $phones->check($r->user(), $newPhone, $user->id, $d['phone_share_reason'] ?? null);
+                $d = [...$d, ...$phoneCheck];
+            }
+        }
+        unset($d['phone_share_reason']);
         $placeCode = isset($d['place_code']) ? trim((string) $d['place_code']) : '';
         unset($d['place_code']);
         if ($isPartner && $placeCode !== '') {
@@ -331,7 +350,7 @@ class CommandController extends Controller
         $sponsorChange = null;
         $directoryChange = null;
         $phoneChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange, $phoneCheck) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
@@ -340,7 +359,7 @@ class CommandController extends Controller
             $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
             $previousDirectoryVisible = (bool) $locked->directory_visible;
             $previousPhone = (string) $locked->phone;
-            if ($isPartner && array_key_exists('phone', $d) && $previousPhone !== '' && $previousPhone !== (string) $d['phone']) {
+            if ($isPartner && array_key_exists('phone', $d) && $previousPhone !== '' && PhoneIdentity::normalize($previousPhone) !== PhoneIdentity::normalize((string) $d['phone'])) {
                 $phoneChange = ['old_phone' => $previousPhone, 'user_id' => $locked->id];
             }
 
@@ -372,6 +391,9 @@ class CommandController extends Controller
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
             Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
+            if ($phoneCheck !== null) {
+                app(AccountPhoneRules::class)->recordShare($r->user(), $locked, $phoneCheck);
+            }
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
                 $statusChange = [
                     'from' => $previousStatus,

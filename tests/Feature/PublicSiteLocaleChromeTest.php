@@ -127,7 +127,7 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertOk()
             ->assertSee('প্রায়শই জিজ্ঞাসিত প্রশ্ন', false)
             ->assertSee('মদিনা পণ্য কোথায় কিনব?', false)
-            ->assertSee('এখনও সাহায্য দরকার? যোগাযোগ করুন', false)
+            ->assertSee('এখনো সাহায্য দরকার? যোগাযোগ করুন', false)
             ->assertDontSee('Frequently Asked Questions', false)
             ->assertDontSee('Where can I buy Madina products?', false);
 

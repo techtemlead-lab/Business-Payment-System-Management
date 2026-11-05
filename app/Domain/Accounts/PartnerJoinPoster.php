@@ -44,7 +44,7 @@ final class PartnerJoinPoster
         $roleKey = 'acct_role_'.$user->role;
         $roleLabel = __('portal.'.$roleKey, [], $locale);
         if ($roleLabel === 'portal.'.$roleKey) {
-            $roleLabel = str_replace('_', ' ', (string) $user->role);
+            $roleLabel = ucfirst(str_replace('_', ' ', (string) $user->role));
         }
         $issued = now('Asia/Dhaka')->format('d M Y');
 
