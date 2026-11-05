@@ -56,6 +56,7 @@ return function (string $portal): void {
     Route::post('/commands/orders/{order}/payments', [CommandController::class, 'claim'])->middleware('throttle:10,1');
     Route::post('/commands/orders/{order}/shipments/{shipment}/delivered', [CommandController::class, 'delivered']);
     Route::post('/commands/claims/{claim}/verify', [CommandController::class, 'verify']);
+    Route::post('/commands/orders/{order}/refund', [CommandController::class, 'refund'])->middleware('throttle:10,1');
     Route::post('/commands/accounts', [CommandController::class, 'account']);
     Route::patch('/commands/accounts/{user}', [CommandController::class, 'accountUpdate']);
     Route::post('/commands/accounts/{user}/benefit-controls', [CommandController::class, 'benefitControls']);
