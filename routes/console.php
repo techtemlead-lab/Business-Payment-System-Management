@@ -27,7 +27,13 @@ Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->on
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));
+    // Old local backups are deleted so the disk does not fill up; the newest few are always kept.
+    Schedule::command('app:backup-prune')->dailyAt('04:00')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer()
+        ->onFailure(fn () => Log::critical('Scheduled backup clean-up failed. Check free disk space on the backup volume.'));
 }
+
+// Failed background jobs are kept for a week to investigate, then removed.
+Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 
 if (! in_array(config('queue.default'), ['sync', 'null'], true)) {
     Schedule::command('queue:monitor '.config('queue.default').':default,imports --max=1000')->everyFiveMinutes()->withoutOverlapping()->onOneServer()
