@@ -45,8 +45,8 @@ export const MANAGEMENT_SECTIONS = [
     'orders', 'order', 'deliveries', 'dues', 'sub-dealer-orders',
     'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
     'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
-    'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports',
-    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin',
+    'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
+    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
     'training',
 ];
 
@@ -73,7 +73,8 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'partnerships',
-    employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin',
+    employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
+    messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training',
 };
 
@@ -192,7 +193,11 @@ export function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     const { capabilities, role, ownerPortal } = ctx;
     const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
-    if (capabilities.includes('accounts') || ownerPortal) items.add('support-admin');
+    if (capabilities.includes('accounts') || ownerPortal) {
+        items.add('support-admin');
+        items.add('agreement');
+    }
+    if (capabilities.includes('partner_chat') || ownerPortal) items.add('partner-messages');
     if (capabilities.includes('field_sales')) items.add('field-sales');
     if (capabilities.includes('staff_admin')) items.add('staff-operations');
     if (capabilities.includes('payroll')) items.add('payroll');
@@ -204,7 +209,10 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
             'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
-    if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) items.add('reports');
+    if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
+        items.add('reports');
+        items.add('top-sellers');
+    }
     if (role === 'super_admin') items.add('access-management');
     if (capabilities.some((cap) => ['content', 'catalog'].includes(cap))) items.add('video-marketing');
     if (capabilities.includes('accounts')) {
@@ -234,7 +242,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -245,6 +253,9 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         if (controls.dealer_ranks_enabled === false) {
             items.delete('ranks');
         }
+        if (controls.top_sellers_enabled === false) {
+            items.delete('top-sellers');
+        }
         if (controls.dealer_orders_enabled === false) {
             items.delete('orders');
             items.delete('purchase');
@@ -254,13 +265,16 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'help', 'training']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
         }
         if (controls.subdealer_salary_enabled === false) {
             items.delete('salary');
+        }
+        if (controls.top_sellers_enabled === false) {
+            items.delete('top-sellers');
         }
         if (controls.subdealer_deliveries_enabled === false) {
             items.delete('deliveries');
@@ -332,11 +346,11 @@ function staffNavigation(staffAvailable: Set<string>): {
                 'employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management',
             ])),
             mother('reports', 'nav_module_reports', pick(staffAvailable, [
-                'reports', 'financial-reports', 'dashboards', 'data-imports',
+                'reports', 'top-sellers', 'financial-reports', 'dashboards', 'data-imports',
             ])),
             mother('learning', 'nav_module_learning', pick(staffAvailable, ['training'])),
             mother('settings', 'nav_module_settings', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin',
+                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages',
             ])),
             mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
         ]),
@@ -394,21 +408,21 @@ export function buildDomainMothers(input: {
     if (!staff) {
         if (role === 'dealer') {
             return compactMothers([
-                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
         if (role === 'sub_dealer') {
             return compactMothers([
-                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview'])),
+                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'circulars', 'help'])),
+                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
         }
         return compactMothers([

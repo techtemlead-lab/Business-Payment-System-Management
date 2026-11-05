@@ -2,8 +2,10 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Support\PartnerChat;
 use App\Domain\Support\SupportTickets;
 use App\Domain\Support\UserManual;
+use App\Models\User;
 
 /**
  * Help: the user manual, support tickets and the support desk.
@@ -15,6 +17,8 @@ final class SupportSection implements WorkspaceSection
         return match ($context->section) {
             'help' => $this->help($context),
             'support-admin' => $this->supportDesk($context),
+            'messages' => ['chat' => app(PartnerChat::class)->partnerThread($context->user)],
+            'partner-messages' => $this->officeChat($context),
             default => [],
         };
     }
@@ -34,6 +38,34 @@ final class SupportSection implements WorkspaceSection
         $props['manual_sections'] = app(UserManual::class)->chaptersFor($user, $manualQuery);
         $props['support_tickets'] = app(SupportTickets::class)->forUser($user);
         $props['support_categories'] = SupportTickets::Categories;
+
+        return $props;
+    }
+
+    /**
+     * The office chat inbox, and the chosen partner's thread when ?with=<partner id> is given.
+     *
+     * @return array<string, mixed>
+     */
+    private function officeChat(SectionContext $context): array
+    {
+        $request = $context->request;
+        abort_unless(PartnerChat::canAnswer($context->user), 403);
+        $chat = app(PartnerChat::class);
+        // Open the chosen chat first, so it is already marked read when the inbox list is built.
+        $thread = null;
+        if ($request->filled('with')) {
+            $partnerId = (int) $request->validate(['with' => 'required|integer'])['with'];
+            $partner = User::query()->whereKey($partnerId)->whereIn('role', ['dealer', 'sub_dealer'])->firstOrFail();
+            $thread = $chat->officeThread($context->user, $partner);
+        }
+        $props = [
+            'chat_inbox' => $chat->inbox(
+                $request->filled('q') ? (string) $request->input('q') : null,
+                $request->input('status') === 'unread',
+            ),
+            'chat_thread' => $thread,
+        ];
 
         return $props;
     }
