@@ -98,7 +98,7 @@ return [
     'max' => 'Max',
     'any' => 'Any',
     'in_stock_only' => 'In-stock products only',
-    'apply_filters' => 'Apply Filters',
+    'apply_filters' => 'Apply filters',
     'clear_filters' => 'Clear Filters',
     'products_found' => ':count Products Found',
     'products_found_for' => ':count Products Found for “:query”',
@@ -119,7 +119,7 @@ return [
     'product_preview' => 'Product Preview',
     'in_stock' => 'In Stock',
     'low_stock' => 'Low Stock',
-    'out_of_stock' => 'Awaiting Stock',
+    'out_of_stock' => 'Out of stock',
     'ordering_paused' => 'Ordering paused',
     'mrp' => 'MRP',
     'retail_price' => 'Retail price',
@@ -185,7 +185,7 @@ We collect only the information we need to run the website, answer questions and
 • Technical records: time, IP address and basic browser details, used for login safety, stopping misuse and keeping an activity log.
 
 3. Partner Network & Accounts
-Company staff open and manage dealer and sub-dealer accounts after checking them — there is no public self-registration; nobody can sign up by themselves. Keep your login details private. Inside the company, each staff member sees only the records they need for their job.
+Company staff open and manage dealer and sub-dealer accounts after checking them — nobody can open an account on their own. Keep your login details private. Inside the company, each staff member sees only the records they need for their job.
 
 4. Payments & Transaction IDs (TrxID)
 When you send a payment (for example bKash, Nagad, Rocket or bank transfer), we save the amount, the company account you paid to, the TrxID and the payment screenshot, so the accounts team can check it against company records. A false, repeated or changed TrxID can lead to the payment being rejected, your account being checked, or other action under company rules.
@@ -229,7 +229,7 @@ This website shares company information, health product details, helpful article
 Only company staff open dealer and sub-dealer accounts, after checking documents and the area:
 • Your login (phone, email or dealer code) is only for you. Keep your password safe and turn on two-step login when it is offered.
 • Do not give false information about your area, level or link with the company.
-• The company may stop or close your panel access for breaking the rules, false claims or bad conduct.
+• The company may stop or close your panel access for breaking the rules, giving false information or bad conduct.
 
 4. Orders, Payments & TrxID
 The company checks dealer orders and payments:
@@ -292,16 +292,16 @@ Questions about these terms, partnership rules or the website:
     'about_vision_title' => 'Our Vision',
     'about_vision' => 'To bring chemical-free natural herbal and food products to every home in Bangladesh, and to be a dependable mother company for dealers, sub-dealers and health partners who build a steady income by selling genuine products.',
     'about_objectives_title' => 'Core Objectives',
-    'about_obj1_title' => 'Authentic Wellness',
+    'about_obj1_title' => 'Genuine Products',
     'about_obj1_desc' => 'Supply safe, checked unani medicines and food supplements, with clear quality standards and product documentation for every SKU in the catalog.',
-    'about_obj2_title' => 'Empowered Partners',
+    'about_obj2_title' => 'Strong Partners',
     'about_obj2_desc' => 'Support authorized dealers and sub-dealers with fair area terms, product training, their own dealer panels and business advice from the company.',
     'about_obj3_title' => 'Care Within Reach',
     'about_obj3_desc' => 'Connect village and city people with nearby dealer shops, plus physiotherapy and natural health advice where company services run.',
     'about_obj4_title' => 'Honest Operations',
-    'about_obj4_desc' => 'Staff check every product request, payment and delivery, so records stay clear from head office to every dealer.',
+    'about_obj4_desc' => 'Staff check every order, payment and delivery, so records stay clear from head office to every dealer.',
     'about_network_title' => 'Dealer & Sub-dealer Network',
-    'about_network' => 'Madina is the parent company of a dealer network run by company staff. Dealer and sub-dealer accounts are opened only after the company checks the application—there is no public self-registration. Approved partners order products from their own panels, send payment proof for checking, and sell to customers on approved terms. This keeps stock, prices and customer trust the same from the Pirganj head office to local shops across Bangladesh.',
+    'about_network' => 'Madina is the parent company of a dealer network run by company staff. Dealer and sub-dealer accounts are opened only after the company checks the application—nobody can open an account on their own. Approved partners order products from their own panels, pay in full and send a payment screenshot for checking, and sell to customers on approved terms. This keeps stock, prices and customer trust the same from the Pirganj head office to local shops across Bangladesh.',
     'about_btn_products' => 'Explore Products',
     'about_btn_dealers' => 'Find a Dealer',
     'about_btn_contact' => 'Contact Head Office',
@@ -381,7 +381,7 @@ Questions about these terms, partnership rules or the website:
     'faq_item1_question' => 'Where can I buy Madina products?',
     'faq_item1_answer' => 'Buy from an authorized dealer in our Dealer Directory, or contact the company to find a dealer near you.',
     'faq_item2_question' => 'How do I become a dealer or sub-dealer?',
-    'faq_item2_answer' => 'Send a dealer enquiry from the Contact page. Company staff check applications and open accounts for approved partners — there is no public self-registration.',
+    'faq_item2_answer' => 'Send a dealer enquiry from the Contact page. Company staff check applications and open accounts for approved partners — nobody can open an account on their own.',
     'faq_item3_question' => 'Do you offer home delivery from this website?',
     'faq_item3_answer' => 'This website only shares information. Orders and deliveries go through authorized dealer and sub-dealer panels after company approval.',
     'faq_item4_question' => 'How can I verify an authorized dealer?',
@@ -392,18 +392,18 @@ Questions about these terms, partnership rules or the website:
     'partnership_hero_title' => 'Become an Authorized Madina Partner',
     'partnership_hero_lead' => 'Join our dealer and sub-dealer network across the country. Build a trusted health product business with company products, training and area support.',
     'partnership_why_title' => 'Why partner with Madina',
-    'partnership_benefit1_title' => 'Trusted product range',
+    'partnership_benefit1_title' => 'Trusted products',
     'partnership_benefit1_desc' => 'Sell genuine natural health, unani and wellness products with clear quality standards.',
     'partnership_benefit2_title' => 'Easy start',
     'partnership_benefit2_desc' => 'Company staff check your application, open your account and help you set up your area.',
-    'partnership_benefit3_title' => 'Partner store panel',
+    'partnership_benefit3_title' => 'Your own panel',
     'partnership_benefit3_desc' => 'Use your own dealer or sub-dealer panel to see orders, deliveries, payments and earnings.',
     'partnership_benefit4_title' => 'Local market support',
     'partnership_benefit4_desc' => 'Serve people near you as an authorized seller of a known health brand.',
     'partnership_steps_title' => 'How to apply',
     'partnership_step1_title' => 'Share your details',
     'partnership_step1_desc' => 'Send a dealer enquiry with your district, experience and the type of partner you want to be.',
-    'partnership_step2_title' => 'Company review',
+    'partnership_step2_title' => 'Company check',
     'partnership_step2_desc' => 'Our team checks your area, documents and whether you fit the Madina network.',
     'partnership_step3_title' => 'Account opening',
     'partnership_step3_desc' => 'Approved partners get their login from company staff — you do not make your own password to sign up.',
