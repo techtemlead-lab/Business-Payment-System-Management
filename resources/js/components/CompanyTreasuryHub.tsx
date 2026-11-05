@@ -81,6 +81,7 @@ interface RetainedFundDetails {
     management_area?: RetainedFundRow[];
     override_reserves?: RetainedFundRow[];
     settlement_reserves?: RetainedFundRow[];
+    company_profit?: RetainedFundRow[];
     marketing_fund?: RetainedFundRow[];
     car_bike_fund?: RetainedFundRow[];
     benefits_fund?: RetainedFundRow[];
@@ -269,6 +270,7 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
     const benefitsRows = details.benefits_fund || [];
     const overrideRows = details.override_reserves || [];
     const settlementRows = details.settlement_reserves || [];
+    const companyProfitRows = details.company_profit || [];
     const marketingRows = details.marketing_fund || [];
     const carBikeRows = details.car_bike_fund || [];
 
@@ -659,6 +661,12 @@ export default function CompanyTreasuryHub({ flow, allocations_by_category, rece
                                     title: translate('portal', 'tr_detail_settlement'),
                                     hint: translate('portal', 'tr_detail_settlement_hint'),
                                     rows: settlementRows,
+                                },
+                                {
+                                    id: 'company-profit',
+                                    title: translate('portal', 'tr_detail_company_profit'),
+                                    hint: translate('portal', 'tr_detail_company_profit_hint'),
+                                    rows: companyProfitRows,
                                 },
                             ]}
                         />

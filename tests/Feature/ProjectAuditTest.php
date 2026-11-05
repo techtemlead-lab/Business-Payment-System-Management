@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -99,7 +100,8 @@ class ProjectAuditTest extends TestCase
         $product = Product::factory()->create(['stock' => 3, 'low_stock_at' => 2]);
         $service = app(OrderService::class);
         $order = $service->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 3]], 'idempotency_key' => (string) Str::uuid()]);
-        $service->decision($admin, $order, 'approved', 'Approved credit sale', true);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        $service->decision($admin, $order->fresh(), 'approved', 'Paid in full');
         $line = $order->lines()->first();
 
         foreach ([2, 1] as $quantity) {
@@ -178,11 +180,12 @@ class ProjectAuditTest extends TestCase
                 'period' => '2026-09',
                 'amount' => '36.00',
                 'count' => 1,
-            ]).__('portal.flash_salary_pool_reserve_extra', ['amount' => '24.00']));
+            ]).__('portal.flash_salary_profit_extra', ['amount' => '24.00']));
         $this->assertDatabaseHas('commission_settlement_payouts', ['user_id' => $buyer->id, 'kind' => 'salary', 'amount' => '36.00']);
+        // No dealer in the buyer's division qualified, so the dealer pool goes to company profit.
         $this->assertDatabaseHas('commission_allocations', [
             'order_id' => $order->id,
-            'category' => 'dealer_salary_settlement_reserve',
+            'category' => 'company_profit_fund',
             'status' => 'reserved',
             'amount' => '24.00',
         ]);

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -70,7 +71,7 @@ class CommerceWorkflowTest extends TestCase
         foreach ([
             '/', '/orders', '/treasury',
             '/operations/financial-reports', '/operations/payment-accounts',
-            '/operations/financial-readiness', '/operations/dues-adjustments',
+            '/operations/financial-readiness',
             '/operations/policy-schedules', '/operations/reserve-payouts',
             '/operations/commission-holds', '/operations/data-imports',
             '/operations/service-integrations',
@@ -102,6 +103,7 @@ class CommerceWorkflowTest extends TestCase
             'channel' => 'Bank',
             'reference' => 'PORTAL-HOST-RECEIPT',
             'amount' => '100.00',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
         ])->assertCreated()->json('data.id');
 
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');

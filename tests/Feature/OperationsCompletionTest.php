@@ -90,7 +90,7 @@ class OperationsCompletionTest extends TestCase
         $this->assertNotSame('BANK-123456', DB::table('payment_accounts')->value('account_number'));
         $buyer = User::factory()->create();
         $product = Product::factory()->create();
-        $payload = ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'REAL-REFERENCE', 'amount' => '10', 'channel' => 'Bank'];
+        $payload = ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'REAL-REFERENCE', 'amount' => '10', 'channel' => 'Bank', 'proof' => UploadedFile::fake()->image('payment-proof.jpg')];
         $this->actingAs($buyer)->postJson('/api/v1/orders', $payload)->assertUnprocessable()->assertJsonValidationErrors('payment_account_id');
         $this->postJson('/api/v1/orders', [...$payload, 'payment_account_id' => $id])->assertCreated();
         $claim = DB::table('payment_claims')->first();

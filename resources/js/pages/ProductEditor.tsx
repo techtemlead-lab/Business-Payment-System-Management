@@ -197,7 +197,7 @@ export default function ProductEditor({
   <label>{translate('portal','pe_mrp')}<input required type="number" min="0.01" step="0.01" disabled={!pricing} value={form.data.mrp} onChange={e=>handleMrpChange(e.target.value)}/></label>
   <div className="pe-discount">
    <div className="ed-head is-flush pe-label-row">
-    <label className="pe-discount-label">{translate('portal','pe_dealer_discount')} <span className="pe-cap tone-ok">(সর্বোচ্চ ৫০%)</span></label>
+    <label className="pe-discount-label">{translate('portal','pe_dealer_discount')} <span className="pe-cap tone-ok">({translate('portal', 'pe_cap_max', { pct: '50' })})</span></label>
     <div className="ed-row is-tight is-wrap">
      {[20,25,30,35,40,50].map(pct=>(
       <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleDiscountChange(String(pct));}} className={`ed-chip${discountPct===String(pct)?' is-active':''}`}>
@@ -209,7 +209,7 @@ export default function ProductEditor({
    <input type="number" min="0" max={isOwner ? 100 : 50} step="0.5" disabled={!pricing} placeholder={translate('portal','pe_discount_ph')} value={discountPct} onChange={e=>handleDiscountChange(e.target.value)}/>
    {!isOwner && parseFloat(discountPct) > 50 && (
     <div className="pe-warning tone-danger" role="alert">
-     ⚠️ ডিলারদের কমিশন দেওয়ার সর্বোচ্চ সীমা ৫০%। এর বেশি কমিশন শুধুমাত্র ওনার কর্তৃক অনুমোদিত।
+     ⚠️ {translate('portal', 'pe_dealer_cap_warning')}
     </div>
    )}
   </div>
@@ -234,7 +234,7 @@ export default function ProductEditor({
    </div>
    <div className="pe-discount is-divided">
     <div className="ed-head is-flush pe-label-row">
-     <label className="pe-discount-label tone-info">{translate('portal','pe_sub_dealer_discount')} <span className="pe-cap tone-info">(সর্বোচ্চ ৪০%)</span></label>
+     <label className="pe-discount-label tone-info">{translate('portal','pe_sub_dealer_discount')} <span className="pe-cap tone-info">({translate('portal', 'pe_cap_max', { pct: '40' })})</span></label>
      <div className="ed-row is-tight is-wrap">
       {[20,25,30,35,40].map(pct=>(
        <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleSubDealerDiscountChange(String(pct));}} className={`ed-chip is-info${subDealerDiscountPct===String(pct)?' is-active':''}`}>
@@ -246,7 +246,7 @@ export default function ProductEditor({
     <input type="number" min="0" max={isOwner ? 100 : 40} step="0.5" disabled={!pricing} placeholder={translate('portal','pe_discount_ph')} value={subDealerDiscountPct} onChange={e=>handleSubDealerDiscountChange(e.target.value)}/>
     {!isOwner && parseFloat(subDealerDiscountPct) > 40 && (
      <div className="pe-warning tone-danger" role="alert">
-      ⚠️ সাব-ডিলারদের কমিশন দেওয়ার সর্বোচ্চ সীমা ৪০%। এর বেশি কমিশন শুধুমাত্র ওনার কর্তৃক অনুমোদিত।
+      ⚠️ {translate('portal', 'pe_sub_dealer_cap_warning')}
      </div>
     )}
    </div>

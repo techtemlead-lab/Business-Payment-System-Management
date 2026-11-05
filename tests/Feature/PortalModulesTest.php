@@ -149,7 +149,7 @@ class PortalModulesTest extends TestCase
     public function test_partner_nav_is_grouped_into_mother_modules(): void
     {
         $this->assertSame(['overview'], PortalCatalog::nav('dealer')['home']);
-        $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries', 'dues'], PortalCatalog::nav('dealer')['commerce']);
+        $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries'], PortalCatalog::nav('dealer')['commerce']);
         $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
         $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);
         $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
@@ -158,7 +158,7 @@ class PortalModulesTest extends TestCase
         $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
         $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('manage')['subdealer_directory']);
         $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('sadmin')['subdealer_directory']);
-        $this->assertSame(['orders', 'deliveries', 'dues'], PortalCatalog::nav('manage')['fulfillment']);
+        $this->assertSame(['orders', 'deliveries'], PortalCatalog::nav('manage')['fulfillment']);
         $this->assertSame(['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'], PortalCatalog::nav('manage')['products']);
         $this->assertSame(['audit', 'support-admin'], PortalCatalog::nav('manage')['system']);
     }

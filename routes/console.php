@@ -19,6 +19,11 @@ Schedule::command('finance:release-matured')->everyFifteenMinutes()->withoutOver
 Schedule::command('finance:release-quota-holds')->everyFifteenMinutes()->withoutOverlapping(60)->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled area-quota hold release failed.'));
 
+// Auto-approval (on by default): settles closed months and pays earned rank rewards
+// for every item the owner left automatic. Car and bike rewards are never automatic.
+Schedule::command('finance:auto-approve')->hourly()->withoutOverlapping(120)->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled automatic payout approval failed.'));
+
 if (config('madina.backups_enabled')) {
     Schedule::command('app:backup')->dailyAt('02:00')->timezone('Asia/Dhaka')->withoutOverlapping(120)->onOneServer()
         ->onFailure(fn () => Log::critical('Scheduled application backup failed. Review backup status before handover.'));

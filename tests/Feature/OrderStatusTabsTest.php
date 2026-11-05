@@ -84,21 +84,10 @@ class OrderStatusTabsTest extends TestCase
                 ->where('data.withdrawal_status_counts', ['requested' => 1, 'paid' => 1]));
     }
 
-    public function test_dues_summary_totals_what_is_owed_and_how_old_it_is(): void
+    public function test_the_dues_page_is_retired_on_every_portal(): void
     {
-        $owner = User::factory()->staff()->create();
-        $dealer = User::factory()->dealer()->create();
-        $this->order($dealer, 'approved')->forceFill(['created_at' => now()->subDays(75)])->save();
-        $this->order($dealer, 'delivered')->forceFill(['paid' => '40.00', 'created_at' => now()->subDays(10)])->save();
-        $this->order($dealer, 'submitted');
-
-        $this->actingAs($owner)->onPortal('sadmin')->get('/dues')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('data.dues_summary.outstanding', '160.00')
-                ->where('data.dues_summary.orders', 2)
-                ->where('data.dues_summary.over_60', '100.00')
-                ->where('data.dues_summary.oldest_days', 75));
+        $this->actingAs(User::factory()->staff()->create())->onPortal('sadmin')->get('/dues')->assertNotFound();
+        $this->actingAs(User::factory()->dealer()->create())->onPortal('dealer')->get('/dues')->assertNotFound();
     }
 
     public function test_delivery_summary_counts_orders_and_units_still_to_send(): void

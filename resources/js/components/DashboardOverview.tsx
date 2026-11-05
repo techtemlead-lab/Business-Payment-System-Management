@@ -372,19 +372,19 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
     const commerce = !staff || caps.includes('orders') || caps.includes('finance');
     const snapshot = home.snapshot ?? {};
     const pending = Number(snapshot.pending_review ?? 0);
-    const dues = Number(snapshot.dues ?? 0);
+    // Goods go out only after full payment, so the owner watches payments waiting to be checked — not dues.
+    const paymentsToCheck = Number((home.work_queue ?? []).find((item: WorkItem) => item.key === 'payments_to_check')?.count ?? 0);
     const kpis = [
         { key: 'today', label: translate('portal', 'admin_stat_orders_today'), value: number(snapshot.orders_today ?? 0), href: `${base}/orders?period=today`, icon: ShoppingBag, tone: '', show: commerce },
         { key: 'review', label: translate('portal', 'admin_stat_awaiting_review'), value: number(pending), href: `${base}/orders?status=submitted`, icon: ListChecks, tone: pending > 0 ? 'warn' : '', show: commerce },
         { key: 'partners', label: translate('portal', 'admin_stat_partner_accounts'), value: number(snapshot.partner_accounts ?? 0), href: `${base}/accounts`, icon: Users, tone: '', show: caps.includes('accounts') || !staff },
         { key: 'purchases', label: translate('portal', 'admin_stat_approved_purchases'), value: money(snapshot.purchases), href: `${base}/orders?status=approved`, icon: Coins, tone: '', show: commerce },
-        { key: 'dues', label: translate('portal', 'admin_stat_outstanding_dues'), value: money(snapshot.dues), href: `${base}/dues`, icon: Wallet, tone: dues > 0 ? 'danger' : '', show: commerce },
+        { key: 'payments', label: translate('portal', 'admin_stat_payments_to_check'), value: number(paymentsToCheck), href: `${base}/payments?status=pending`, icon: Wallet, tone: paymentsToCheck > 0 ? 'warn' : '', show: commerce && caps.includes('finance') },
     ].filter((kpi) => kpi.show);
     const cards = [
         { route: 'catalog', name: translate('portal', 'admin_tile_catalog'), description: translate('portal', 'admin_tile_catalog_hint'), icon: Package, show: true },
         { route: 'orders', name: translate('portal', 'admin_tile_orders'), description: translate('portal', 'admin_tile_orders_hint'), icon: ShoppingBag, show: commerce },
         { route: 'deliveries', name: translate('portal', 'admin_tile_deliveries'), description: translate('portal', 'admin_tile_deliveries_hint'), icon: Truck, show: commerce },
-        { route: 'dues', name: translate('portal', 'admin_tile_dues'), description: translate('portal', 'admin_tile_dues_hint'), icon: Wallet, show: commerce },
         { route: 'accounts', name: translate('portal', 'admin_tile_accounts'), description: translate('portal', 'admin_tile_accounts_hint'), icon: Users, show: caps.includes('accounts') },
         { route: 'partnerships', name: translate('portal', 'admin_tile_partnerships'), description: translate('portal', 'admin_tile_partnerships_hint'), icon: Users, show: caps.includes('accounts') },
         { route: 'inventory', name: translate('portal', 'admin_tile_inventory'), description: translate('portal', 'admin_tile_inventory_hint'), icon: Package, show: caps.includes('inventory') },

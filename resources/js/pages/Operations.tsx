@@ -179,14 +179,52 @@ function Reports({salesOnly=false}:{salesOnly?:boolean}) {
         setTo(iso(dhaka));
     };
     return <section className="panel"><h2>{translate('portal','ops_download_reports')}</h2><p>{translate('portal','ops_download_reports_hint')}</p><form className="action-form" action={root+'/reports'} method="get">
-        <label>{translate('portal','ops_report')}<select required name="type">{(salesOnly?['orders','dues','payroll']:['orders','products','product-summary','category-summary','district-summary','dues','dues-aging','due-adjustments','commissions','settlements','payroll','withdrawals','ledger','rewards','rank-achievements','rank-incentives','refunds']).map(t=><option key={t} value={t}>{reportName(t)}</option>)}</select></label>
+        <label>{translate('portal','ops_report')}<select required name="type">{(salesOnly?['orders','payroll']:['orders','products','product-summary','category-summary','district-summary','commissions','settlements','payroll','withdrawals','ledger','rewards','rank-achievements','rank-incentives','refunds']).map(t=><option key={t} value={t}>{reportName(t)}</option>)}</select></label>
         <label>{translate('portal','ops_period')}<select value={period} onChange={e=>choosePeriod(e.target.value)}><option value="day">{translate('portal','ops_period_day')}</option><option value="week">{translate('portal','ops_period_week')}</option><option value="month">{translate('portal','ops_period_month')}</option><option value="last_month">{translate('portal','ops_period_last_month')}</option><option value="custom">{translate('portal','ops_period_custom')}</option></select></label>
         <label>{translate('portal','date_from')}<DateInput name="from" required value={from} onChange={e=>{setFrom(e.target.value);setPeriod('custom');}}/></label><label>{translate('portal','ops_through')}<DateInput name="to" required min={from} value={to} onChange={e=>{setTo(e.target.value);setPeriod('custom');}}/></label>
         <label>{translate('portal','ops_format')}<select name="format"><option value="xlsx">{translate('portal','ops_format_xlsx')}</option><option value="pdf">{translate('portal','ops_format_pdf')}</option></select></label><button className="button dark">{translate('portal','ops_download_report')}</button>
     </form></section>;
 }
 
-export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],adjustableOrders=[],withdrawalSetting,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
+/**
+ * Auto-approval for payouts. On by default while the company is small: salary,
+ * rank royalty and rank rewards are paid as soon as the rules are met. When the
+ * owner turns it off, each item can stay automatic or wait for approval.
+ * Car and bike rewards always wait for a person.
+ */
+function AutoApprovalPanel({setting,root}:{setting:Row,root:string}){
+    const translate=useT();
+    const {portal,staffActions}=usePage<any>().props;
+    const action=root+'/settings/auto-approval';
+    const items:string[]=['salary','royalty','rank_incentive'];
+    const form=useForm<Row>({enabled:Boolean(setting.enabled),items:{...(setting.items||{})},version:setting.version??0,reason:''});
+    const canEdit=!((portal==='manage'||portal==='sadmin')&&!actionAllowed(action,staffActions,'post'));
+    const setItem=(item:string,value:boolean)=>form.setData('items',{...form.data.items,[item]:value});
+    return <section className="panel auto-approval-panel">
+        <div className="panel-heading"><div><h2>{translate('portal','aa_title')}</h2><p>{translate('portal','aa_body')}</p></div></div>
+        <form onSubmit={e=>{e.preventDefault();form.post(action,{preserveScroll:true,onSuccess:()=>form.setData('reason','')});}}>
+            <label className="aa-switch">
+                <input type="checkbox" role="switch" checked={form.data.enabled} disabled={!canEdit} onChange={e=>form.setData('enabled',e.target.checked)}/>
+                <span><b>{translate('portal','aa_master')}</b><small>{translate('portal',form.data.enabled?'aa_master_on':'aa_master_off')}</small></span>
+            </label>
+            <fieldset className="aa-items" disabled={form.data.enabled||!canEdit}>
+                <legend>{translate('portal','aa_items_legend')}</legend>
+                {items.map(item=><label key={item} className="aa-item">
+                    <input type="checkbox" checked={form.data.enabled||Boolean(form.data.items?.[item])} onChange={e=>setItem(item,e.target.checked)}/>
+                    <span>{translate('portal',`aa_item_${item}`)}</span>
+                    <small>{form.data.enabled||form.data.items?.[item]?translate('portal','aa_state_auto'):translate('portal','aa_state_manual')}</small>
+                </label>)}
+                <p className="aa-note">{translate('portal','aa_car_bike_note')}</p>
+            </fieldset>
+            {canEdit&&<>
+                <label className="aa-reason">{translate('portal','change_reason_label')}<textarea rows={2} required value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>
+                {Object.values(form.errors).map(error=><span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
+                <button className="button dark" disabled={form.processing}>{form.processing?translate('portal','saving'):translate('portal','save_changes')}</button>
+            </>}
+        </form>
+    </section>;
+}
+export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],adjustableOrders=[],withdrawalSetting,autoApproval,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const sectionTitle=translate('portal', sectionTitleKeys[section] ?? section);
@@ -256,7 +294,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {section==='video-marketing'&&<section className="panel"><h2>{translate('portal','ops_promote_video')}</h2><p>{translate('portal','ops_promote_video_body')} <Link className="text-link" href="/catalog">{translate('portal','product_management')}</Link>. {translate('portal','ops_promote_video_hide')}</p>{videoProducts.length===0&&<p className="muted">{translate('portal','ops_no_product_videos')}</p>}</section>}
         {section==='access-management'&&<StaffAccessEditor modules={permissionModules} staff={staffAccess} roles={customRoles} presets={rolePresets}/>}
         {section==='dues-adjustments'&&<section className="panel"><h2>{translate('portal','ops_credit_notes')}</h2><p>{translate('portal','ops_credit_notes_body')}</p><form method="get" className="action-form"><label>{translate('portal','ops_find_order')}<input type="search" name="q" placeholder={translate('portal','ops_order_number')}/></label><button className="button">{translate('portal','ops_search_orders')}</button></form>{adjustableOrders.length===0?<Empty title={translate('portal','ops_no_adjustable_orders')} body={translate('portal','ops_no_adjustable_orders_body')}/>:<><label>{translate('portal','orders')}<select value={selectedOrder} onChange={e=>setAdjustmentOrder(e.target.value)}>{adjustableOrders.map((order:Row)=><option key={order.id} value={order.id}>{order.name}</option>)}</select></label><p className="muted">{translate('portal','ops_credit_notes_review')}</p></>}</section>}
-        {section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
+        {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
         {section==='policy-schedules'&&<p>{translate('portal','ops_policy_schedules_hint')}</p>}
         {section==='payroll'&&<p>{translate('portal','ops_payroll_hint')}</p>}
         {section==='reserve-payouts'&&<p>{translate('portal','ops_reserve_payouts_hint')}</p>}

@@ -26,7 +26,7 @@ use Inertia\Response;
 
 class OperationsController extends Controller
 {
-    public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing'];
+    public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'finance-settings', 'access-management', 'video-marketing'];
 
     public function index(Request $request, string $section): Response|JsonResponse
     {
@@ -126,6 +126,7 @@ class OperationsController extends Controller
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
+            $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);

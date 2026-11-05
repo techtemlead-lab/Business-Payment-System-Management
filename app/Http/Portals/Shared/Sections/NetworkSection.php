@@ -2,9 +2,12 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Commissions\CommissionQualification;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
+use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -13,6 +16,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class NetworkSection implements WorkspaceSection
 {
+    /** Order statuses that count as a completed purchase (the goods were approved for release). */
+    private const PurchaseStatuses = ['approved', 'partially_dispatched', 'dispatched', 'delivered'];
+
+    /** Commission statuses that count as money earned, held or already paid; reversals are left out. */
+    private const EarnedStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
+
     public function data(SectionContext $context, array $data): array
     {
         $props = [];
@@ -49,6 +58,7 @@ final class NetworkSection implements WorkspaceSection
             $props['dealers'] = $this->networkDealerNodes(
                 User::query()->whereIn('id', $networkIds),
                 maskPhone: false,
+                viewer: $user,
             );
             $props['dealers_truncated'] = false;
         }
@@ -86,12 +96,18 @@ final class NetworkSection implements WorkspaceSection
     /**
      * @return list<array<string, mixed>>
      */
-    private function networkDealerNodes(Builder $query, bool $maskPhone): array
+    private function networkDealerNodes(Builder $query, bool $maskPhone, ?User $viewer = null): array
     {
-        return $query
+        $partners = $query
             ->with(['rank', 'sponsor:id,name,dealer_code'])
-            ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at'])
-            ->map(function (User $dealer) use ($maskPhone): array {
+            ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at']);
+        $ids = $partners->pluck('id')->all();
+        $sales = $this->salesByPartner($ids);
+        $sponsorEarned = $this->sponsorEarnedByPartner($ids);
+        $viewerEarned = $viewer ? $this->viewerEarnedByPartner($viewer, $ids) : [];
+
+        return $partners
+            ->map(function (User $dealer) use ($maskPhone, $sales, $sponsorEarned, $viewerEarned, $viewer): array {
                 $phone = (string) ($dealer->phone ?? '');
                 if ($maskPhone && $phone !== '') {
                     $digits = preg_replace('/\D+/', '', $phone) ?: '';
@@ -112,9 +128,102 @@ final class NetworkSection implements WorkspaceSection
                     'rank' => $dealer->rank?->current_rank ?? 'dealer',
                     'lifetime_purchases' => (float) ($dealer->rank?->lifetime_purchase_total ?? 0),
                     'created_at' => $dealer->created_at?->toIso8601String(),
+                    'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),
+                    'sales_month' => Money::decimal($sales[$dealer->id]['month'] ?? 0),
+                    'sponsor_earned' => Money::decimal($sponsorEarned[$dealer->id] ?? 0),
+                    ...($viewer ? [
+                        'viewer_earned' => Money::decimal(array_sum($viewerEarned[$dealer->id] ?? [])),
+                        'viewer_earned_by_type' => collect($viewerEarned[$dealer->id] ?? [])
+                            ->map(fn (int $cents, string $category): array => ['category' => $category, 'amount' => Money::decimal($cents)])
+                            ->values()
+                            ->all(),
+                    ] : []),
                 ];
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Completed purchase value per partner, all time and in the current business month, in cents.
+     *
+     * Counted from orders so both figures always agree; the rank's lifetime total only moves
+     * once payouts are live and is kept for rank progress.
+     *
+     * @param  list<int>  $ids
+     * @return array<int, array{total: int, month: int}>
+     */
+    private function salesByPartner(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $timezone = (string) config('madina.business_timezone', config('app.timezone'));
+        $monthStartUtc = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth(), $timezone)->utc();
+
+        return DB::table('orders')
+            ->whereIn('user_id', $ids)
+            ->whereIn('status', self::PurchaseStatuses)
+            ->groupBy('user_id')
+            ->selectRaw('user_id, COALESCE(SUM(total), 0) AS total, COALESCE(SUM(CASE WHEN created_at >= ? THEN total ELSE 0 END), 0) AS month', [$monthStartUtc])
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(int) $row->user_id => [
+                'total' => Money::cents((string) $row->total),
+                'month' => Money::cents((string) $row->month),
+            ]])
+            ->all();
+    }
+
+    /**
+     * What each partner's direct referrer has earned from that partner's purchases, in cents.
+     *
+     * @param  list<int>  $ids
+     * @return array<int, int>
+     */
+    private function sponsorEarnedByPartner(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('commission_allocations')
+            ->join('orders', 'orders.id', '=', 'commission_allocations.order_id')
+            ->join('users AS buyers', 'buyers.id', '=', 'orders.user_id')
+            ->whereIn('orders.user_id', $ids)
+            ->whereColumn('commission_allocations.user_id', 'buyers.sponsor_id')
+            ->whereIn('commission_allocations.status', self::EarnedStatuses)
+            ->groupBy('orders.user_id')
+            ->selectRaw('orders.user_id AS buyer_id, COALESCE(SUM(commission_allocations.amount), 0) AS earned')
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [(int) $row->buyer_id => Money::cents((string) $row->earned)])
+            ->all();
+    }
+
+    /**
+     * What the viewer has earned from each partner's purchases, split by commission type, in cents.
+     *
+     * @param  list<int>  $ids
+     * @return array<int, array<string, int>>
+     */
+    private function viewerEarnedByPartner(User $viewer, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $earned = [];
+        DB::table('commission_allocations')
+            ->join('orders', 'orders.id', '=', 'commission_allocations.order_id')
+            ->whereIn('orders.user_id', $ids)
+            ->where('commission_allocations.user_id', $viewer->id)
+            ->whereIn('commission_allocations.status', self::EarnedStatuses)
+            ->groupBy('orders.user_id', 'commission_allocations.category')
+            ->orderBy('commission_allocations.category')
+            ->selectRaw('orders.user_id AS buyer_id, commission_allocations.category, COALESCE(SUM(commission_allocations.amount), 0) AS earned')
+            ->get()
+            ->each(function (object $row) use (&$earned): void {
+                $earned[(int) $row->buyer_id][(string) $row->category] = Money::cents((string) $row->earned);
+            });
+
+        return $earned;
     }
 }

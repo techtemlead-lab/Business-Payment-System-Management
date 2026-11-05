@@ -51,6 +51,7 @@ final class FinanceSection implements WorkspaceSection
                 'payment_claims.status',
                 'payment_claims.reason',
                 'payment_claims.created_at',
+                DB::raw('(payment_claims.proof_path IS NOT NULL) AS has_proof'),
                 'orders.number',
                 'orders.total',
                 'orders.paid',

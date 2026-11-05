@@ -210,11 +210,17 @@ class FinanceOperationsController extends Controller
     public function receipt(Request $request, string $kind, string $id): Response
     {
         $table = match ($kind) {
-            'payroll' => 'payroll_entries', 'reserve' => 'reserve_disbursements', 'recovery' => 'reserve_recoveries', 'opening' => 'financial_verifications', default => abort(404)
+            'payroll' => 'payroll_entries', 'reserve' => 'reserve_disbursements', 'recovery' => 'reserve_recoveries', 'opening' => 'financial_verifications',
+            'payment' => 'payment_claims', default => abort(404)
         };
         $row = DB::table($table)->where('id', $id)->first();
         abort_unless($row && ($request->user()->allows('finance') || ($kind === 'payroll' && $row->staff_id === $request->user()->id)), 404);
-        $path = $kind === 'opening' ? $row->evidence_path : $row->receipt_path;
+        // Payment proof is the dealer's screenshot of the transfer, checked by finance before approval.
+        $path = match ($kind) {
+            'opening' => $row->evidence_path,
+            'payment' => $row->proof_path,
+            default => $row->receipt_path,
+        };
         abort_unless($path && Storage::disk('local')->exists($path), 404);
         Audit::record($request->user()->id, $kind.'.receipt_downloaded', $id);
 

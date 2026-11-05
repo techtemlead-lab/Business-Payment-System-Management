@@ -165,10 +165,17 @@ export function sectionHref(base: string, item: string): string {
     return `${base}/${path}`;
 }
 
+/**
+ * Sections switched off by a business rule. Goods are no longer given on
+ * credit — dealers pay in full before an order is approved — so the dues list
+ * and due adjustments are gone from every menu.
+ */
+export const RetiredSections = new Set(['dues', 'dues-adjustments']);
+
 export function pick(available: Set<string>, items: string[]): string[] {
     return items.filter((item) => {
         const section = resolveNavLink(item).section;
-        return available.has(section);
+        return available.has(section) && !RetiredSections.has(section) && !RetiredSections.has(item);
     });
 }
 

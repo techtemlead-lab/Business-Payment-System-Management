@@ -57,6 +57,7 @@ class BusinessPolicyDecisionsTest extends TestCase
     private function approve(Order $order): User
     {
         $actor = User::factory()->staff('finance')->create();
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($actor)->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'allow_credit' => true, 'reason' => 'Approve the current financial terms'])->assertOk();
 
         return $actor;
@@ -180,6 +181,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $order = $this->purchase(User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]));
         $before = $order->commission_policy_snapshot;
         $finance = User::factory()->staff('finance')->create();
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'allow_credit' => true, 'reason' => 'Attempt unfunded approval'])->assertUnprocessable()->assertJsonValidationErrors('funding');
         $this->assertSame('submitted', $order->fresh()->status);
         $this->assertSame($before, $order->fresh()->commission_policy_snapshot);
@@ -193,6 +195,7 @@ class BusinessPolicyDecisionsTest extends TestCase
             $sponsor = User::factory()->dealer()->create();
             $this->recipientSchedule($sponsor, $rule);
             $order = $this->purchase(User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]));
+            $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
             $this->actingAs(User::factory()->staff('finance')->create())->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'allow_credit' => true, 'reason' => 'Attempt a funding deficit'])->assertUnprocessable()->assertJsonValidationErrors('funding');
             $this->assertSame('submitted', $order->fresh()->status);
         }
@@ -215,6 +218,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $second = User::factory()->dealer()->create();
         $inactive = User::factory()->dealer()->create(['status' => 'suspended', 'sponsor_id' => $second->id]);
         $order = $this->purchase(User::factory()->dealer()->create(['sponsor_id' => $inactive->id]));
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs(User::factory()->staff('finance')->create())->postJson('/api/v1/orders/'.$order->id.'/decision', ['status' => 'approved', 'allow_credit' => true, 'reason' => 'Attempt a repeated recipient', 'referral_replacement_1' => $second->id])->assertUnprocessable()->assertJsonValidationErrors('replacement');
         $this->assertSame('submitted', $order->fresh()->status);
     }
@@ -233,6 +237,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $normal->id, 'user_id' => $inactive->id, 'category' => 'direct_referral', 'status' => 'held', 'amount' => '10.00']);
         $manual = $this->purchase($buyer);
         $finance = User::factory()->staff('finance')->create();
+        $manual->forceFill(['paid' => $manual->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$manual->id.'/decision', ['status' => 'approved', 'allow_credit' => true, 'reason' => 'Explicitly replace inactive sponsor', 'referral_replacement_1' => $fourth->id])->assertOk();
         $this->postEarnings($manual);
         $this->assertDatabaseHas('commission_allocations', ['order_id' => $manual->id, 'user_id' => $fourth->id, 'category' => 'direct_referral', 'amount' => '10.00']);

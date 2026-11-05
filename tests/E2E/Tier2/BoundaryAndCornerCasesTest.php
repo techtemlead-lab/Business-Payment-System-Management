@@ -7,6 +7,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Models\BranchProductStock;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -164,6 +165,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-NEG-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '-50.00',
         ]);
 
@@ -186,6 +188,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-ZERO-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '0.00',
         ]);
 
@@ -209,6 +212,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-OVER-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '1000.00',
         ]);
 
@@ -233,6 +237,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $first = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => $ref,
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
         $first->assertCreated();
@@ -241,6 +246,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $second = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => $ref,
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
         $second->assertStatus(422);
@@ -264,6 +270,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Nagad',
             'reference' => 'TXN-CLO-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
 
@@ -321,6 +328,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $lineId = $orderRes->json('data.lines.0.id');
 
         // Approve order
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',
@@ -358,6 +366,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for stock test',
@@ -396,6 +405,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
 
         // Approve first time
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'First approval',
@@ -403,6 +413,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         ])->assertOk();
 
         // Second approval attempt should fail
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $second = $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Duplicate approval attempt',
@@ -432,8 +443,9 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
             'allow_credit' => false,
         ]);
 
+        // No goods on credit: an unpaid order is refused with a "pay in full first" message.
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['allow_credit']);
+        $response->assertJsonValidationErrors(['status']);
     }
 
     public function test_order_decision_rejects_invalid_status_value(): void
@@ -500,6 +512,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',

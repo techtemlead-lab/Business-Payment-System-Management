@@ -20,6 +20,7 @@ use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\Money;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -171,19 +172,17 @@ class OrderService
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit, $replacements): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_already_decided')]);
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
+            // No goods on credit: a dealer pays the full amount (and the payment is
+            // verified) before an order can be approved. $allowCredit is ignored.
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
-                if (! $allowCredit || ! $actor->allows('finance')) {
-                    throw ValidationException::withMessages(['allow_credit' => __('portal.err_order_credit_auth')]);
-                }
-                $changes['credit_authorized_by'] = $actor->id;
-                $changes['credit_authorized_at'] = now();
+                throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
@@ -299,6 +298,10 @@ class OrderService
             }
             if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_approve_first')]);
+            }
+            // Second line of defence for older credit orders: goods go out only once fully paid.
+            if (Money::cents($locked->outstanding()) > 0) {
+                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             $fulfillmentBranch = $this->branches->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
             $orderLines = $locked->lines()->whereIn('id', array_column($data['items'], 'line_id'))->get()->keyBy('id');
@@ -468,10 +471,14 @@ class OrderService
             throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
         }
 
+        // Proof of payment (screenshot or PDF) — required by the request rules for new claims.
+        $proof = ($data['proof'] ?? null) instanceof UploadedFile ? app(PaymentProof::class)->store($data['proof']) : null;
+        DB::afterRollBack(fn () => app(PaymentProof::class)->discard($proof));
+
         try {
             return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
                 'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode(['encrypted' => encrypt($account)], JSON_THROW_ON_ERROR) : null,
-                'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
+                'reference' => $reference, 'amount' => Money::decimal($amount), ...($proof ?? []), 'created_at' => now(), 'updated_at' => now()]);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
                 throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
@@ -489,7 +496,13 @@ class OrderService
 
     private function hash(array $data): string
     {
-        return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+        // An attached payment screenshot counts by its content, so retrying with the same file is the same request.
+        $comparable = array_map(
+            fn (mixed $value): mixed => $value instanceof UploadedFile ? 'file:'.hash_file('sha256', $value->getRealPath()) : $value,
+            $data,
+        );
+
+        return hash('sha256', json_encode($comparable, JSON_THROW_ON_ERROR));
     }
 
     /**

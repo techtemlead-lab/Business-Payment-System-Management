@@ -243,6 +243,7 @@ export default function ProductPurchaseMatrix({
         channel: 'Bank',
         amount: '',
         note: '',
+        proof: null as File | null,
     });
 
     const submitOrder = (e: React.FormEvent) => {
@@ -260,12 +261,13 @@ export default function ProductPurchaseMatrix({
             channel: f.data.channel,
             amount: f.data.amount,
             note: f.data.note,
+            proof: f.data.proof,
         }));
 
         f.post('/commands/orders', {
             onSuccess: () => {
                 setCart([]);
-                f.reset('reference', 'amount', 'note');
+                f.reset('reference', 'amount', 'note', 'proof');
             },
         });
     };
@@ -517,22 +519,22 @@ export default function ProductPurchaseMatrix({
 
                                 {hasDiscount && (
                                     <div>
-                                        <small className="ppm-sel-label">কমিশন ছাড়</small>
+                                        <small className="ppm-sel-label">{translate('portal', 'ppm_commission_discount')}</small>
                                         <span className="ppm-save">
-                                            {discountPct}% ({money(unitSavings)} সাশ্রয়)
+                                            {translate('portal', 'ppm_discount_saving', { pct: String(discountPct), amount: money(unitSavings) })}
                                         </span>
                                     </div>
                                 )}
 
                                 <div>
-                                    <small className="ppm-sel-label">ক্রয় দর / বক্স</small>
+                                    <small className="ppm-sel-label">{translate('portal', 'ppm_price_per_box')}</small>
                                     <strong className="ppm-sel-price">
                                         {money(unitPrice)}
                                     </strong>
                                 </div>
 
                                 <div className="ppm-sel-total">
-                                    <small className="ppm-sel-label">লাইন মোট ({quantity} বক্স)</small>
+                                    <small className="ppm-sel-label">{translate('portal', 'ppm_line_total', { qty: String(quantity) })}</small>
                                     <strong className="ppm-sel-price is-lg">
                                         {money(currentLineTotal)}
                                     </strong>
@@ -557,8 +559,8 @@ export default function ProductPurchaseMatrix({
                         </h3>
                         <p className="hub-sub">
                             {cart.length > 0
-                                ? `${cart.length} টি প্রোডাক্ট অর্ডার তালিকায় যোগ করা হয়েছে। পরিমাণ পরিবর্তন করতে পারেন।`
-                                : 'এখনো কোনো প্রোডাক্ট যোগ করা হয়নি। উপরের ফর্ম থেকে প্রোডাক্ট যোগ করুন।'}
+                                ? translate('portal', 'ppm_cart_count', { count: String(cart.length) })
+                                : translate('portal', 'ppm_cart_empty_hint')}
                         </p>
                     </div>
                     {cart.length > 0 && (
@@ -614,7 +616,7 @@ export default function ProductPurchaseMatrix({
                                             <td className="ops-center">
                                                 {lineDiscount > 0 ? (
                                                     <span className="hub-pill tone-ok">
-                                                        {number(lineDiscount)}% ছাড়
+                                                        {translate('portal', 'pct_off', { pct: String(lineDiscount) })}
                                                     </span>
                                                 ) : (
                                                     <span className="ops-faint ops-fs-2xs">—</span>
@@ -668,8 +670,8 @@ export default function ProductPurchaseMatrix({
                 ) : (
                     <div className="hub-empty ppm-empty">
                         <ShoppingBag size={32} />
-                        <p className="ops-semibold">অর্ডারের তালিকা বর্তমানে খালি</p>
-                        <small className="ops-muted">উপরে ক্যাটাগরি, সাব-ক্যাটাগরি এবং প্রোডাক্ট সিলেক্ট করে '+ অর্ডারে যোগ করুন' বাটনে ক্লিক করুন।</small>
+                        <p className="ops-semibold">{translate('portal', 'ppm_cart_empty_title')}</p>
+                        <small className="ops-muted">{translate('portal', 'ppm_cart_empty_body')}</small>
                     </div>
                 )}
 
@@ -679,9 +681,9 @@ export default function ProductPurchaseMatrix({
                         {/* Summary Metrics Bar */}
                         <div className="ppm-summary">
                             <div>
-                                <small className="ppm-sum-label">মোট আইটেম ও ইউনিট</small>
+                                <small className="ppm-sum-label">{translate('portal', 'ppm_items_and_units')}</small>
                                 <strong className="ppm-sum-value">
-                                    {number(cartSummary.itemsCount)} আইটেম ({cartSummary.totalQty} বক্স)
+                                    {translate('portal', 'ppm_items_boxes', { items: String(cartSummary.itemsCount), qty: String(cartSummary.totalQty) })}
                                 </strong>
                             </div>
 
@@ -695,7 +697,7 @@ export default function ProductPurchaseMatrix({
                             <div>
                                 <small className="ppm-sum-label is-ok">{translate('portal', 'b2b_total_savings')}</small>
                                 <strong className="ppm-sum-value is-ok">
-                                    {money(cartSummary.totalSavings)} ({cartSummary.overallDiscountPct}% কমিশন)
+                                    {translate('portal', 'ppm_total_saving', { amount: money(cartSummary.totalSavings), pct: String(cartSummary.overallDiscountPct) })}
                                 </strong>
                             </div>
 
@@ -710,7 +712,7 @@ export default function ProductPurchaseMatrix({
                         {/* Payment & Submission */}
                         <form onSubmit={submitOrder} className="action-form">
                             <h4 className="ppm-pay-title">
-                                পেমেন্ট ও পারচেজ রিকোয়েস্ট নিশ্চিতকরণ
+                                {translate('portal', 'ppm_confirm_title')}
                             </h4>
 
                             <div className="form-grid">
@@ -749,14 +751,14 @@ export default function ProductPurchaseMatrix({
                                 <label>
                                     {translate('portal', 'transaction_reference')}
                                     <input
-                                        placeholder="ট্রানজেকশন আইডি / রেফারেন্স"
+                                        placeholder={translate('portal', 'transaction_reference_placeholder')}
                                         value={f.data.reference}
                                         onChange={e => f.setData('reference', e.target.value)}
                                     />
                                 </label>
 
                                 <label>
-                                    {translate('portal', 'claimed_payment_amount')} (ঐচ্ছিক)
+                                    {translate('portal', 'claimed_payment_amount')} ({translate('portal', 'optional_label')})
                                     <input
                                         type="number"
                                         min="0"
@@ -766,13 +768,25 @@ export default function ProductPurchaseMatrix({
                                         onChange={e => f.setData('amount', e.target.value)}
                                     />
                                 </label>
+
+                                <label>
+                                    {translate('portal', 'payment_proof_label')}
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                                        required={f.data.reference.trim() !== ''}
+                                        onChange={e => f.setData('proof', e.target.files?.[0] ?? null)}
+                                    />
+                                    <small className="field-hint">{translate('portal', 'payment_proof_hint')}</small>
+                                    {f.errors.proof && <span className="field-error" role="alert">{f.errors.proof}</span>}
+                                </label>
                             </div>
 
                             <label>
                                 {translate('portal', 'note')}
                                 <textarea
                                     rows={2}
-                                    placeholder="ডেলিভারি বা বিশেষ কোনো নির্দেশনা থাকলে লিখুন..."
+                                    placeholder={translate('portal', 'order_note_placeholder')}
                                     value={f.data.note}
                                     onChange={e => f.setData('note', e.target.value)}
                                 />

@@ -7,6 +7,7 @@ use App\Domain\Pricing\ProductPricing;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -97,6 +98,7 @@ class BackendApiTest extends TestCase
         $id = $this->actingAs($owner)->postJson('/api/v1/orders', [
             'items' => [['product_id' => $product->id, 'quantity' => 2]], 'idempotency_key' => (string) Str::uuid(),
             'channel' => 'Bank', 'reference' => 'API-PAY-1', 'amount' => '280.00',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
         ])->assertCreated()->json('data.id');
         $claim = DB::table('payment_claims')->where('order_id', $id)->value('id');
 

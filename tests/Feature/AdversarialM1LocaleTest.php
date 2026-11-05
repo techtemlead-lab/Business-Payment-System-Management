@@ -6,6 +6,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -93,7 +94,8 @@ class AdversarialM1LocaleTest extends TestCase
         }
 
         // Now approve the order
-        app(OrderService::class)->decision($admin, $order, 'approved', 'Authorized', true);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Paid in full');
 
         // Bengali already decided message
         app()->setLocale('bn');
@@ -181,7 +183,8 @@ class AdversarialM1LocaleTest extends TestCase
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
             'idempotency_key' => (string) Str::uuid(),
         ]);
-        app(OrderService::class)->decision($admin, $order, 'approved', 'Authorized', true);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Paid in full');
         $line = $order->lines()->first();
 
         // 1. Accept-Language: bn

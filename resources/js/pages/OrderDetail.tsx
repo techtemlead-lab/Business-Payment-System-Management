@@ -150,13 +150,13 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ] },
                 ...(collectionAccounts.length ? [{name:'payment_account_id',label:translate('portal','company_collection_account'),required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
                 { name: 'reference', label: translate('portal', 'transaction_reference'), required: true }, { name: 'amount', label: translate('portal', 'claimed_amount_bdt'), type: 'number', required: true },
+                { name: 'proof', label: translate('portal', 'payment_proof_label'), type: 'file', required: true, accept: 'image/jpeg,image/png,image/webp,application/pdf', hint: translate('portal', 'payment_proof_hint') },
             ]} submit={translate('portal', 'submit_for_verification')} />
         </section>}
         {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">
             <h2>{translate('portal', 'review_this_order')}</h2><p className="muted">{translate('portal', 'review_this_order_hint')}</p>{replacementSlots.length>0&&<div className="notice"><p>{translate('portal', 'replacement_hint')}</p><form method="get"><label>{translate('portal', 'find_replacement_partners')}<input name="replacement_q" type="search"/></label><button className="button small">{translate('portal', 'find_partners')}</button></form></div>}
             <ActionForm action={`/commands/orders/${order.id}/decision`} fields={[
                 { name: 'status', label: translate('portal', 'decision'), required: true, options: ['approved', 'held', 'rejected'].map(value => ({ value, label: label(value, translate) })) },
-                ...(capabilities.includes('finance') ? [{ name: 'allow_credit', label: translate('portal', 'credit_authorization'), value: '0', options: [{ value: '0', label: translate('portal', 'full_payment_required') }, { value: '1', label: translate('portal', 'authorize_credit') }] }] : []),
                 ...replacementSlots.map((slot:Row)=>({name:`referral_replacement_${slot.generation}`,label:translate('portal','replacement_for_generation',{generation:String(slot.generation),name:String(slot.name)}),options:replacementCandidates.map((person:Row)=>({value:String(person.id),label:`${person.name} · ${person.dealer_code??translate('portal','col_partner')}`}))})),
                 { name: 'reason', label: translate('portal', 'decision_reason'), type: 'textarea', required: true },
             ]} submit={translate('portal', 'record_decision')} />

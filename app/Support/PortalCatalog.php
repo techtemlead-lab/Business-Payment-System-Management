@@ -6,6 +6,13 @@ use App\Models\User;
 
 final class PortalCatalog
 {
+    /**
+     * Sections switched off by a business rule. Goods are no longer given on
+     * credit — a dealer pays in full before an order is approved — so the dues
+     * list is gone from every portal (its address returns 404).
+     */
+    public const RetiredSections = ['dues'];
+
     /** @return array<string, mixed> */
     public static function definition(string $portal): array
     {
@@ -18,7 +25,7 @@ final class PortalCatalog
     /** @return list<string> */
     public static function sections(string $portal): array
     {
-        return self::definition($portal)['sections'] ?? [];
+        return array_values(array_diff(self::definition($portal)['sections'] ?? [], self::RetiredSections));
     }
 
     /** @return array<string, string> */
@@ -35,7 +42,10 @@ final class PortalCatalog
     /** @return array<string, list<string>> */
     public static function nav(string $portal): array
     {
-        return self::definition($portal)['nav'] ?? [];
+        return array_map(
+            fn (array $items): array => array_values(array_diff($items, self::RetiredSections)),
+            self::definition($portal)['nav'] ?? [],
+        );
     }
 
     /**

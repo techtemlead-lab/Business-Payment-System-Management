@@ -3160,3 +3160,4 @@ html[data-theme="dark"] .app-shell .order-status-tab.is-active b{background:rgba
   .app-shell .admin-kpis>.admin-kpi:last-child:nth-child(odd){grid-column:1/-1}
   .app-shell .admin-kpis.list-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+.app-shell .field-hint{display:block;margin-top:2px;font-size:var(--ds-fs-xs);font-weight:400;color:var(--ds-text-muted)}

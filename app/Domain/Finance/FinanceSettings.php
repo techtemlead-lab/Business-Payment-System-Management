@@ -11,6 +11,67 @@ use Illuminate\Validation\ValidationException;
 
 final class FinanceSettings
 {
+    /**
+     * Payouts the system can approve on its own once the rules are met.
+     * Car and bike rewards are deliberately absent: they always need a person.
+     */
+    public const AutoApprovalItems = ['salary', 'royalty', 'rank_incentive'];
+
+    /**
+     * Auto-approval: on by default while the company is small. When the owner
+     * turns it off, each item can still be left automatic or sent for approval.
+     *
+     * @return array{enabled: bool, items: array<string, bool>, version: int}
+     */
+    public function autoApproval(): array
+    {
+        $row = DB::table('business_settings')->where('key', 'auto_approval')->first();
+        $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
+        $items = [];
+        foreach (self::AutoApprovalItems as $item) {
+            $items[$item] = (bool) ($stored['items'][$item] ?? true);
+        }
+
+        return ['enabled' => (bool) ($stored['enabled'] ?? true), 'items' => $items, 'version' => $row?->version ?? 0];
+    }
+
+    /** True when this payout should go through without anyone approving it. */
+    public function isAutoApproved(string $item): bool
+    {
+        if (! in_array($item, self::AutoApprovalItems, true)) {
+            return false;
+        }
+        $setting = $this->autoApproval();
+
+        return $setting['enabled'] || $setting['items'][$item];
+    }
+
+    /** @param array<string, mixed> $items */
+    public function saveAutoApproval(User $actor, bool $enabled, array $items, int $version, string $reason): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $items, $version, $reason): void {
+            CommissionWallet::lock();
+            abort_unless($actor->fresh()->canAct('finance', 'edit'), 403);
+            $before = $this->autoApproval();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
+            }
+            $clean = [];
+            foreach (self::AutoApprovalItems as $item) {
+                $clean[$item] = filter_var($items[$item] ?? false, FILTER_VALIDATE_BOOLEAN);
+            }
+            $after = ['enabled' => $enabled, 'items' => $clean];
+            $stored = DB::table('business_settings')->where('key', 'auto_approval')->first();
+            DB::table('business_settings')->updateOrInsert(['key' => 'auto_approval'], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
+                'updated_by' => $actor->id, 'created_at' => $stored?->created_at ?? now(), 'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'finance.auto_approval_changed', 'auto_approval', [
+                'before' => ['enabled' => $before['enabled'], 'items' => $before['items']], 'after' => $after, 'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
     /** @return array{amount: string, version: int} */
     public function withdrawalMinimum(): array
     {

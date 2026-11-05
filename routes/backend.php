@@ -96,9 +96,9 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
 /** Both the Inertia screens and independently developed clients use these services. */
 $operations = function (): void {
     $completion = ModuleCompletionController::class;
-    Route::post('/orders/{order}/due-adjustments', [$completion, 'adjustment']);
-    Route::post('/due-adjustments/{id}/review', [$completion, 'reviewAdjustment'])->whereNumber('id');
+    // Due adjustments retired: goods are no longer given on credit.
     Route::post('/settings/withdrawal-minimum', [$completion, 'minimum']);
+    Route::post('/settings/auto-approval', [$completion, 'autoApproval']);
     Route::post('/staff/roles', [$completion, 'role']);
     Route::post('/staff/action-permissions', [$completion, 'staffAccess']);
     Route::post('/marketing/homepage-video', [$completion, 'homepageVideo']);

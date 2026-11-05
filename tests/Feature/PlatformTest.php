@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -107,7 +108,8 @@ class PlatformTest extends TestCase
         $p = $this->product();
         $o = $this->order($u, $p);
         $s = app(OrderService::class);
-        $s->decision($admin, $o, 'approved', 'Confirmed credit sale', true);
+        DB::table('orders')->where('id', $o->id)->update(['paid' => $o->total]);
+        $s->decision($admin, $o->fresh(), 'approved', 'Paid in full');
         $line = $o->lines()->first();
         $data = ['courier' => 'Test', 'tracking' => 'TRACK-1', 'idempotency_key' => (string) Str::uuid(), 'items' => [['line_id' => $line->id, 'quantity' => 2]]];
         $this->actingAs($admin)->post('/commands/orders/'.$o->id.'/dispatch', $data)->assertRedirect();
@@ -171,7 +173,7 @@ class PlatformTest extends TestCase
     public function test_customer_supplied_payment_amount_cannot_overpay_order(): void
     {
         $p = $this->product();
-        $this->actingAs($this->user())->post('/commands/orders', ['items' => [['product_id' => $p->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'TEST', 'channel' => 'Bank', 'amount' => '900.00'])->assertSessionHasErrors('amount');
+        $this->actingAs($this->user())->post('/commands/orders', ['items' => [['product_id' => $p->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'TEST', 'channel' => 'Bank', 'amount' => '900.00', 'proof' => UploadedFile::fake()->image('payment-proof.jpg')])->assertSessionHasErrors('amount');
         $this->assertDatabaseCount('orders', 0);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Shipment;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use ReflectionClass;
 use Tests\TestCase;
@@ -208,6 +209,7 @@ class AdversarialMilestone2OpenApiAndModelsTest extends TestCase
             'channel' => 'bKash',
             'reference' => 'BKASH-'.Str::upper(Str::random(8)),
             'amount' => '500.00',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
         ];
 
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$order->id}/payments", $claimPayload);
