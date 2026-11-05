@@ -5328,4 +5328,10 @@ return [
     'event_payment_verified' => 'পেমেন্ট যাচাই হয়েছে',
     'event_payment_rejected' => 'পেমেন্ট নামঞ্জুর',
     'event_shipment_delivered' => 'ডেলিভারি হয়েছে',
+    'report_area_unknown' => 'এলাকা দেওয়া হয়নি',
+    'ops_report_district_summary' => 'জেলাভিত্তিক বিক্রি',
+    'ops_export_name_district_summary' => 'জেলাভিত্তিক বিক্রি',
+    'ops_export_note_district_summary' => 'পার্টনারের বিভাগ ও জেলা অনুযায়ী নিশ্চিত অর্ডারের হিসাব।',
+    'rpt_col_division' => 'বিভাগ',
+    'rpt_col_partner_count' => 'পার্টনার সংখ্যা',
 ];

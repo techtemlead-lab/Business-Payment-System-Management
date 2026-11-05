@@ -5328,4 +5328,10 @@ return [
     'event_payment_verified' => 'Payment verified',
     'event_payment_rejected' => 'Payment rejected',
     'event_shipment_delivered' => 'Delivered',
+    'report_area_unknown' => 'Area not set',
+    'ops_report_district_summary' => 'District-wise sales',
+    'ops_export_name_district_summary' => 'District-wise sales',
+    'ops_export_note_district_summary' => 'Confirmed orders grouped by the partner\x27s division and district.',
+    'rpt_col_division' => 'Division',
+    'rpt_col_partner_count' => 'Partners',
 ];
