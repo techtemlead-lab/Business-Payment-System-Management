@@ -161,8 +161,10 @@ final class CommissionsSection implements WorkspaceSection
             ->filter(fn ($rank) => ($volumeByUser[$rank->user_id] ?? 0) >= $minSalaryCents)
             ->values();
 
-        $qualifiedRankLeaders = $rankCandidates->map(function ($rank) use ($currentMonth, $qualification, $volumeByUser) {
-            $eval = $qualification->paidAs($rank->user_id, $currentMonth);
+        // One batch evaluation for every leader instead of a policy, volume, rank and user lookup per leader.
+        $paidAsByUser = $qualification->paidAsFor($rankCandidates->pluck('user_id')->all(), $currentMonth);
+        $qualifiedRankLeaders = $rankCandidates->map(function ($rank) use ($paidAsByUser, $volumeByUser) {
+            $eval = $paidAsByUser[(int) $rank->user_id];
 
             return [
                 'id' => $rank->id,

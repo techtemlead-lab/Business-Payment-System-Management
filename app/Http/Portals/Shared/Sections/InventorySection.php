@@ -22,8 +22,7 @@ final class InventorySection implements WorkspaceSection
         $user = $context->user;
         $props = [];
         $branchOps = app(BranchOperations::class);
-        $preferredBranch = $branchOps->preferredBranch($user);
-        $props['branches'] = $branchOps->branchesFor($user);
+        ['preferred' => $preferredBranch, 'branches' => $props['branches']] = $branchOps->branchChoices($user);
         $props['active_branch_id'] = $preferredBranch?->id;
         $props['active_branch'] = $preferredBranch?->summary();
         $props['delivery_points'] = $branchOps->deliveryPoints();
