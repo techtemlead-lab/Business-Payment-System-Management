@@ -37,13 +37,14 @@ class CompanyAccessTest extends TestCase
 
     public function test_correct_credentials_do_not_cross_company_and_dealer_login(): void
     {
-        $staff = User::factory()->create(['role' => 'finance', 'password' => 'StaffPassword12345']);
+        $staff = User::factory()->create(['role' => 'finance', 'password' => 'StaffPassword12345', 'phone' => '01711000099']);
         $dealer = User::factory()->create(['role' => 'dealer', 'password' => 'DealerPassword12345']);
         $this->post('/company/login', ['email' => $dealer->email, 'password' => 'DealerPassword12345'])->assertSessionHasErrors('email');
         $this->assertGuest();
         $this->post('/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertSessionHasErrors('email');
         $this->assertGuest();
-        $this->post('/company/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertRedirect('/');
+        $this->post('/company/login', ['email' => $staff->email, 'password' => 'StaffPassword12345'])->assertRedirect('/login/otp');
+        $this->onPortal('manage')->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
         $this->assertAuthenticatedAs($staff);
         $this->get('/company')->assertInertia(fn (Assert $p) => $p->where('portalBase', '')->where('portal', 'manage'));
         $this->get('/workspace/orders?q=TEST')->assertOk();

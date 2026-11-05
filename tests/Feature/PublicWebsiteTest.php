@@ -70,8 +70,9 @@ class PublicWebsiteTest extends TestCase
             ->assertSee('&lt;script&gt;alert(&quot;lead&quot;)&lt;/script&gt;', false)
             ->assertDontSee('<script>alert("lead")</script>', false);
         $this->get('/login')->assertOk()->assertSee('Account Login')->assertSee('/madina-header-logo.png')->assertDontSee('/register');
-        $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345']);
-        $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/');
+        $u = User::factory()->create(['status' => 'active', 'password' => 'TestPassword12345', 'phone' => '01711000066']);
+        $this->post('/login', ['email' => $u->email, 'password' => 'TestPassword12345'])->assertRedirect('/login/otp');
+        $this->onPortal('dealer')->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
         $this->assertAuthenticatedAs($u);
     }
 

@@ -14,6 +14,7 @@ class LoginLocalePersistenceTest extends TestCase
     {
         $finance = User::factory()->staff('finance')->create([
             'locale' => 'en',
+            'phone' => '01711000077',
             'password' => 'SyntheticPassword123',
         ]);
 
@@ -26,7 +27,8 @@ class LoginLocalePersistenceTest extends TestCase
                 'email' => $finance->email,
                 'password' => 'SyntheticPassword123',
             ])
-            ->assertRedirect('/');
+            ->assertRedirect('/login/otp');
+        $this->onPortal('manage')->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
 
         $this->assertSame('bn', $finance->fresh()->locale);
 

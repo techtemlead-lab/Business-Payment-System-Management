@@ -95,6 +95,7 @@ class SecurityHardeningTest extends TestCase
     {
         Config::set('madina.preview_mode', false);
         Config::set('madina.totp.enabled', true);
+        Config::set('madina.login_otp.enabled', false);
 
         $staff = User::factory()->create([
             'role' => 'finance',
@@ -112,6 +113,7 @@ class SecurityHardeningTest extends TestCase
     {
         Config::set('madina.preview_mode', false);
         Config::set('madina.totp.enabled', true);
+        Config::set('madina.login_otp.enabled', false);
         $totp = app(TotpAuthenticator::class);
         $secret = $totp->generateSecret();
 
@@ -137,6 +139,7 @@ class SecurityHardeningTest extends TestCase
     {
         Config::set('madina.preview_mode', false);
         Config::set('madina.totp.enabled', true);
+        Config::set('madina.login_otp.enabled', false);
         $secret = app(TotpAuthenticator::class)->generateSecret();
         $staff = User::factory()->create([
             'role' => 'finance',
@@ -162,6 +165,7 @@ class SecurityHardeningTest extends TestCase
     {
         Config::set('madina.preview_mode', true);
         Config::set('madina.totp.enabled', true);
+        Config::set('madina.login_otp.enabled', false);
         $totp = app(TotpAuthenticator::class);
         $secret = $totp->generateSecret();
 

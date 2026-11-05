@@ -36,7 +36,8 @@ class PhoneLoginTest extends TestCase
     {
         $u = User::factory()->create(['role' => 'finance', 'phone' => '+880 (10) 0000-0001', 'password' => 'SyntheticPassword123']);
         foreach (['01000000001', '+8801000000001', '008801000000001', '010 0000 0001'] as $phone) {
-            $this->post('/company/login', ['email' => $phone, 'password' => 'SyntheticPassword123'])->assertRedirect('/');
+            $this->post('/company/login', ['email' => $phone, 'password' => 'SyntheticPassword123'])->assertRedirect('/login/otp');
+            $this->completePartnerOtp('manage');
             $this->assertAuthenticatedAs($u);
             $this->post('/logout');
         }

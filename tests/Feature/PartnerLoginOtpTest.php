@@ -43,7 +43,7 @@ class PartnerLoginOtpTest extends TestCase
         $this->assertAuthenticatedAs($dealer);
     }
 
-    public function test_partner_without_mobile_skips_otp(): void
+    public function test_partner_without_mobile_is_stopped_with_a_clear_message(): void
     {
         $dealer = User::factory()->create([
             'role' => 'dealer',
@@ -54,12 +54,12 @@ class PartnerLoginOtpTest extends TestCase
 
         $this->onPortal('dealer')
             ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
-            ->assertRedirect('/');
-        $this->assertAuthenticatedAs($dealer);
+            ->assertSessionHasErrors(['email' => __('auth_ui.otp_no_phone')]);
+        $this->assertGuest();
         $this->assertSame([], config('madina.sms.sent'));
     }
 
-    public function test_staff_login_never_requires_otp(): void
+    public function test_staff_login_also_requires_the_sms_code(): void
     {
         $staff = User::factory()->create([
             'role' => 'finance',
@@ -70,9 +70,11 @@ class PartnerLoginOtpTest extends TestCase
 
         $this->onPortal('manage')
             ->post('/login', ['email' => $staff->email, 'password' => 'SyntheticPassword123'])
-            ->assertRedirect('/');
+            ->assertRedirect('/login/otp');
+        $this->assertGuest();
+        $this->onPortal('manage')->get('/login/otp')->assertOk()->assertSee('444', false);
+        $this->onPortal('manage')->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
         $this->assertAuthenticatedAs($staff);
-        $this->assertSame([], config('madina.sms.sent'));
     }
 
     public function test_wrong_otp_is_rejected(): void

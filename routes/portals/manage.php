@@ -18,10 +18,14 @@ Route::post('/locale', [LocaleController::class, 'update'])->middleware('throttl
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', fn () => view('company.auth', ['mode' => 'login', 'ownerPortal' => false]))->name('company.login');
     Route::get('/login/2fa', [AuthController::class, 'showTotp']);
+    Route::get('/login/otp', [AuthController::class, 'showOtp'])->middleware('throttle:30,1,login-otp-showOtp');
+    Route::get('/login/captcha', [AuthController::class, 'captcha'])->middleware('throttle:30,1,login-captcha');
     Route::get('/forgot-password', fn () => view('company.auth', ['mode' => 'forgot', 'ownerPortal' => false]))->name('company.password.request');
     Route::get('/reset-password/{token}', fn (string $token) => view('company.auth', ['mode' => 'reset', 'token' => $token, 'email' => request('email'), 'ownerPortal' => false]))->name('company.password.reset');
-    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('/login/2fa', [AuthController::class, 'verifyTotp'])->middleware('throttle:5,1');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1,login');
+    Route::post('/login/2fa', [AuthController::class, 'verifyTotp'])->middleware('throttle:5,1,login-totp');
+    Route::post('/login/otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:5,1,login-otp-verifyOtp');
+    Route::post('/login/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:3,1,login-otp-resend');
     Route::post('/forgot-password', [AuthController::class, 'forgot'])->middleware('throttle:3,1');
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });
