@@ -254,7 +254,8 @@ class ModuleCompletionTest extends TestCase
         $file = $response->baseResponse->getFile()->getPathname();
         $zip = new \ZipArchive;
         $zip->open($file);
-        $this->assertStringContainsString('4000.00', $zip->getFromName('xl/worksheets/sheet1.xml'));
+        // Money cells are numeric so the total can be summed in Excel.
+        $this->assertStringContainsString('<v>4000</v>', $zip->getFromName('xl/worksheets/sheet1.xml'));
         $zip->close();
         unlink($file);
     }

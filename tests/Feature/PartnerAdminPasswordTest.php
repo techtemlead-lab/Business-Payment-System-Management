@@ -127,6 +127,39 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertSame('CustomAdminPass999!', $partner->adminVisiblePassword());
     }
 
+    public function test_account_manager_sees_password_status_but_not_the_password(): void
+    {
+        $manager = User::factory()->staff('account_manager')->create();
+        $partner = User::factory()->dealer()->create([
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'TempPassword123!',
+        ]);
+
+        $this->actingAs($manager)->onPortal('manage')
+            ->getJson('/commands/accounts/'.$partner->id.'/password-status')
+            ->assertOk()
+            ->assertJsonPath('data.can_reveal', false)
+            ->assertJsonPath('data.password', null);
+
+        $this->assertDatabaseMissing('audit_events', ['actor_id' => $manager->id, 'action' => 'account.password_revealed']);
+    }
+
+    public function test_owner_password_reveal_is_audited(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $partner = User::factory()->dealer()->create([
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'TempPassword123!',
+        ]);
+
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->getJson('/commands/accounts/'.$partner->id.'/password-status')
+            ->assertOk()
+            ->assertJsonPath('data.password', 'TempPassword123!');
+
+        $this->assertDatabaseHas('audit_events', ['actor_id' => $owner->id, 'action' => 'account.password_revealed', 'subject' => (string) $partner->id]);
+    }
+
     public function test_password_status_is_forbidden_for_non_accounts_staff(): void
     {
         $finance = User::factory()->staff('finance')->create();

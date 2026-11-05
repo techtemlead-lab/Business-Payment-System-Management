@@ -238,20 +238,20 @@ export default function CatalogTaxonomyHub({
     };
 
     return (
-        <div data-tour="catalog-taxonomy-hub" style={{ display: 'grid', gap: 20 }}>
-            <section className="panel" style={{ borderLeft: '4px solid #006837' }}>
-                <div className="panel-heading" style={{ alignItems: 'flex-start' }}>
+        <div data-tour="catalog-taxonomy-hub" className="hub">
+            <section className="panel ctx-banner">
+                <div className="panel-heading is-top">
                     <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#006837', textTransform: 'uppercase' }}>
+                        <div className="ctx-eyebrow">
                             <FolderTree size={15} /> {translate('portal', 'cms_taxonomy_badge')}
                         </div>
-                        <h2 style={{ margin: '6px 0' }}>{translate('portal', 'cms_taxonomy_heading')}</h2>
-                        <p className="muted" style={{ margin: 0, maxWidth: 680 }}>
+                        <h2 className="ctx-title">{translate('portal', 'cms_taxonomy_heading')}</h2>
+                        <p className="muted ctx-lead">
                             {translate('portal', 'cms_taxonomy_hint')}
                         </p>
                     </div>
                     {canManage && (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="ops-row is-wrap">
                             <button type="button" className="button dark" onClick={openCreateCategory}>
                                 <Plus size={16} /> {translate('portal', 'cms_add_category')}
                             </button>
@@ -269,7 +269,7 @@ export default function CatalogTaxonomyHub({
             <section className="panel">
                 <div className="panel-heading">
                     <div>
-                        <h2><Layers size={16} style={{ marginRight: 6 }} />{translate('portal', 'cms_categories_title')}</h2>
+                        <h2><Layers size={16} className="ctx-h-icon" />{translate('portal', 'cms_categories_title')}</h2>
                         <p className="muted">{translate('portal', 'cms_categories_hint')}</p>
                     </div>
                     <span className="badge">{categories.length}</span>
@@ -369,7 +369,7 @@ export default function CatalogTaxonomyHub({
             <section className="panel">
                 <div className="panel-heading">
                     <div>
-                        <h2><Ruler size={16} style={{ marginRight: 6 }} />{translate('portal', 'cms_units_title')}</h2>
+                        <h2><Ruler size={16} className="ctx-h-icon" />{translate('portal', 'cms_units_title')}</h2>
                         <p className="muted">{translate('portal', 'cms_units_hint')}</p>
                     </div>
                     <span className="badge">{units.length}</span>
@@ -431,7 +431,7 @@ export default function CatalogTaxonomyHub({
                             {translate('portal', 'cms_fld_sort')}
                             <input type="number" min={0} value={categoryForm.data.sort_order} onChange={(e) => categoryForm.setData('sort_order', Number(e.target.value))} />
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label className="hub-choice">
                             <input type="checkbox" checked={!!categoryForm.data.is_active} onChange={(e) => categoryForm.setData('is_active', e.target.checked)} />
                             {translate('portal', 'cms_fld_active')}
                         </label>
@@ -475,7 +475,7 @@ export default function CatalogTaxonomyHub({
                             {translate('portal', 'cms_fld_sort')}
                             <input type="number" min={0} value={subcategoryForm.data.sort_order} onChange={(e) => subcategoryForm.setData('sort_order', Number(e.target.value))} />
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label className="hub-choice">
                             <input type="checkbox" checked={!!subcategoryForm.data.is_active} onChange={(e) => subcategoryForm.setData('is_active', e.target.checked)} />
                             {translate('portal', 'cms_fld_active')}
                         </label>
@@ -506,7 +506,7 @@ export default function CatalogTaxonomyHub({
                             {translate('portal', 'cms_fld_sort')}
                             <input type="number" min={0} value={unitForm.data.sort_order} onChange={(e) => unitForm.setData('sort_order', Number(e.target.value))} />
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label className="hub-choice">
                             <input type="checkbox" checked={!!unitForm.data.is_active} onChange={(e) => unitForm.setData('is_active', e.target.checked)} />
                             {translate('portal', 'cms_fld_active')}
                         </label>

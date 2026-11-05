@@ -99,11 +99,16 @@ final class PartnerKycDocuments
             'size_bytes' => (int) $file->getSize(),
         ]);
 
-        if ($kind === 'photo') {
+        if ($kind === 'photo' && in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
             $publicRelative = 'partner-photos/'.$partner->id.'/'.$id.'.'.$extension;
             Storage::disk('public')->put($publicRelative, Storage::disk('local')->get($path));
             $url = Storage::disk('public')->url($publicRelative);
             $profile = is_array($partner->profile) ? $partner->profile : [];
+            $previousUrl = is_string($profile['photo_url'] ?? null) ? $profile['photo_url'] : null;
+            $previousPrefix = Storage::disk('public')->url('partner-photos/'.$partner->id.'/');
+            if ($previousUrl !== null && str_starts_with($previousUrl, $previousPrefix)) {
+                Storage::disk('public')->delete('partner-photos/'.$partner->id.'/'.basename($previousUrl));
+            }
             $profile['photo_url'] = $url;
             $profile['avatar_url'] = $url;
             $partner->forceFill(['profile' => $profile])->save();

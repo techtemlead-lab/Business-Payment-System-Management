@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap">
 @if(app()->getLocale() === 'bn')
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap">
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
 @endif
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>

@@ -50,7 +50,7 @@ class PartnerBenefitControlsTest extends TestCase
                 'reason' => 'Owner override for Bangla flash coverage',
             ])
             ->assertRedirect()
-            ->assertSessionHas('success', 'Rahim Dealer-এর জন্য শর্তহীন বেনিফিট কন্ট্রোল সংরক্ষণ হয়েছে।');
+            ->assertSessionHas('success', __('portal.pbc_saved', ['name' => 'Rahim Dealer'], 'bn'));
     }
 
     public function test_unconditional_rank_royalty_forces_paid_as_rank_without_volume(): void

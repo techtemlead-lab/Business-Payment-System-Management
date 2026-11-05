@@ -1,8 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from '@inertiajs/react';
-import { Trophy, ShieldCheck, AlertCircle, ChevronRight, Eye, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
-import { money, date } from './UI';
+import { ShieldCheck, Eye } from 'lucide-react';
+import { money, Table } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useEscape } from '../shared/useEscape';
+
+/** A positive policy amount, or null when the policy does not set one. */
+function policyAmount(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
 
 interface LegBreakdown {
     leg_user_id: number;
@@ -41,15 +51,23 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     const translate = useT();
     const [activeTab, setActiveTab] = useState<'bike' | 'car'>('bike');
     const [selectedCandidate, setSelectedCandidate] = useState<MilestoneRecord | null>(null);
+    useEscape(selectedCandidate !== null, () => setSelectedCandidate(null));
 
-    const bikeTarget = Number(rule_params.bike_target || 5000000);
-    const bikeCap = Number(rule_params.bike_leg_cap || 800000);
-    const carTarget = Number(rule_params.car_target || 250000000);
-    const carCap = Number(rule_params.car_leg_cap || 20000000);
+    const notSet = translate('portal', 'policy_value_not_set');
+    const moneyOrNotSet = (amount: number | null) => amount === null ? notSet : money(amount);
+    const bikeTarget = policyAmount(rule_params?.bike_target);
+    const bikeCap = policyAmount(rule_params?.bike_leg_cap);
+    const carTarget = policyAmount(rule_params?.car_target);
+    const carCap = policyAmount(rule_params?.car_leg_cap);
 
     const currentMilestones = activeTab === 'bike' ? bike_milestones : car_milestones;
     const currentTarget = activeTab === 'bike' ? bikeTarget : carTarget;
     const currentCap = activeTab === 'bike' ? bikeCap : carCap;
+    const progressPct = (m: MilestoneRecord) => currentTarget === null
+        ? null
+        : Math.min(100, ((Number(m.qualifying_volume) || 0) / currentTarget) * 100);
+    const reachedTarget = (m: MilestoneRecord) => !!m.achieved_at
+        || (currentTarget !== null && (Number(m.qualifying_volume) || 0) >= currentTarget);
     const rewardTitle = activeTab === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car');
     const rewardPrize = activeTab === 'bike' ? translate('portal', 'rw_prize_bike') : translate('portal', 'rw_prize_car');
 
@@ -67,297 +85,250 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     }, [selectedCandidate]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="hub">
             {/* Top Anti-Whale Architecture Banner */}
-            <div style={{
-                background: '#ffffff',
-                border: '1.5px solid #006837',
-                borderRadius: 12,
-                padding: '20px 24px',
-                boxShadow: '0 4px 14px rgba(0, 104, 55, 0.06)'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div className="panel rw-banner">
+                <div className="hub-row is-between is-top">
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#047857' }}>
+                        <div className="hub-flag tone-brand">
                             <ShieldCheck size={18} /> {translate('portal', 'rw_badge')}
                         </div>
-                        <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '6px 0 4px 0' }}>
+                        <h2 className="hub-title is-lg">
                             {translate('portal', 'rw_heading')}
                         </h2>
-                        <p style={{ fontSize: 13, color: '#64748b', maxWidth: 740, lineHeight: 1.5, margin: 0 }}>
-                            {translate('portal', 'rw_intro')}
+                        <p className="hub-sub rw-intro">
+                            {translate('portal', 'rw_intro_live', { bike_cap: moneyOrNotSet(bikeCap), car_cap: moneyOrNotSet(carCap) })}
                         </p>
                     </div>
 
                     {/* Mode Toggle Switch */}
-                    <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 4 }}>
+                    <div className="hub-seg">
                         <button
                             type="button"
                             onClick={() => { setActiveTab('bike'); setSelectedCandidate(null); }}
-                            style={{
-                                padding: '8px 16px',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                borderRadius: 6,
-                                background: activeTab === 'bike' ? '#ffffff' : 'transparent',
-                                color: activeTab === 'bike' ? '#006837' : '#64748b',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                boxShadow: activeTab === 'bike' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-                            }}
+                            className={activeTab === 'bike' ? 'is-active' : undefined}
                         >
-                            {translate('portal', 'rw_tab_bike')}
+                            {translate('portal', 'rw_title_bike')}
                         </button>
                         <button
                             type="button"
                             onClick={() => { setActiveTab('car'); setSelectedCandidate(null); }}
-                            style={{
-                                padding: '8px 16px',
-                                fontSize: 13,
-                                fontWeight: 700,
-                                borderRadius: 6,
-                                background: activeTab === 'car' ? '#ffffff' : 'transparent',
-                                color: activeTab === 'car' ? '#006837' : '#64748b',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                boxShadow: activeTab === 'car' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
-                            }}
+                            className={activeTab === 'car' ? 'is-active' : undefined}
                         >
-                            {translate('portal', 'rw_tab_car')}
+                            {translate('portal', 'rw_title_car')}
                         </button>
                     </div>
                 </div>
 
                 {/* Fund Rules Snapshot */}
-                <div style={{
-                    marginTop: 18,
-                    paddingTop: 16,
-                    borderTop: '1px solid #e2e8f0',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: 14
-                }}>
-                    <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{translate('portal', 'rw_kpi_target')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{money(currentTarget)}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{translate('portal', 'rw_kpi_target_hint')}</div>
+                <div className="hub-grid rw-rules">
+                    <div className="hub-well">
+                        <div className="hub-label">{translate('portal', 'rw_kpi_target')}</div>
+                        <div className={`hub-value${currentTarget === null ? ' tone-warn' : ''}`}>{moneyOrNotSet(currentTarget)}</div>
+                        <div className="hub-hint">{translate('portal', 'rw_kpi_target_hint')}</div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>{translate('portal', 'rw_kpi_cap')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#006837', marginTop: 2 }}>{money(currentCap)}</div>
-                        <div style={{ fontSize: 11, color: '#059669' }}>{translate('portal', 'rw_kpi_cap_hint')}</div>
+                    <div className="hub-well tone-brand">
+                        <div className="hub-label">{translate('portal', 'rw_kpi_cap')}</div>
+                        <div className={`hub-value${currentCap === null ? ' tone-warn' : ''}`}>{moneyOrNotSet(currentCap)}</div>
+                        <div className="hub-hint">{translate('portal', 'rw_kpi_cap_hint')}</div>
                     </div>
 
-                    <div style={{ background: '#f8fafc', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>{translate('portal', 'rw_kpi_legs')}</div>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: '#1d4ed8', marginTop: 2 }}>
-                            {translate('portal', 'rw_kpi_legs_value', { count: String(Math.ceil(currentTarget / currentCap)) })}
+                    <div className="hub-well tone-info">
+                        <div className="hub-label">{translate('portal', 'rw_kpi_legs')}</div>
+                        <div className="hub-value">
+                            {currentTarget === null || currentCap === null
+                                ? notSet
+                                : translate('portal', 'rw_kpi_legs_value', { count: String(Math.ceil(currentTarget / currentCap)) })}
                         </div>
-                        <div style={{ fontSize: 11, color: '#3b82f6' }}>{translate('portal', 'rw_kpi_legs_hint')}</div>
+                        <div className="hub-hint">{translate('portal', 'rw_kpi_legs_hint')}</div>
                     </div>
 
-                    <div style={{ background: '#f0fdf4', border: '1px solid #a7f3d0', padding: '10px 14px', borderRadius: 8 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>{translate('portal', 'rw_kpi_reward')}</div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#006837', marginTop: 2 }}>{rewardPrize}</div>
+                    <div className="hub-well is-tinted tone-ok">
+                        <div className="hub-label">{translate('portal', 'rw_kpi_reward')}</div>
+                        <div className="hub-value is-sm tone-brand">{rewardPrize}</div>
                     </div>
                 </div>
             </div>
 
             {/* Candidate Progress Table */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="panel table-panel">
+                <div className="panel-heading">
                     <div>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                        <h3 className="hub-title">
                             {translate('portal', 'rw_leaderboard', { title: rewardTitle })}
                         </h3>
-                        <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0 0' }}>
+                        <p className="hub-sub">
                             {translate('portal', 'rw_leaderboard_hint')}
                         </p>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#006837' }}>
+                    <span className="hub-label tone-brand">
                         {translate('portal', 'rw_registered', { count: String(currentMilestones.length) })}
                     </span>
                 </div>
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_dealer')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_code')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_qual')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_progress')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_target')}</th>
-                            <th style={{ padding: '12px 16px' }}>{translate('portal', 'rw_col_status')}</th>
-                            <th style={{ padding: '12px 16px', textAlign: 'right' }}>{translate('portal', 'rw_col_branches')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentMilestones.length > 0 ? (
-                            currentMilestones.map(m => {
-                                const qualVal = Number(m.qualifying_volume) || 0;
-                                const pct = Math.min(100, (qualVal / currentTarget) * 100);
-                                const isAchieved = !!m.achieved_at || qualVal >= currentTarget;
+                <Table
+                    columns={[
+                        {
+                            key: 'dealer',
+                            header: translate('portal', 'rw_col_dealer'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => m.user?.name || '',
+                            render: (m: MilestoneRecord) => (
+                                <div>
+                                    <div className="hub-strong">{m.user?.name || translate('portal', 'rw_partner')}</div>
+                                    <div className="cell-sub">
+                                        {m.user?.phone || translate('portal', 'rw_no_phone')} {m.user?.district ? `• ${m.user.district}` : ''}
+                                    </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'dealer_code',
+                            header: translate('portal', 'rw_col_code'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => m.user?.dealer_code || '',
+                            render: (m: MilestoneRecord) => <span className="hub-strong">{m.user?.dealer_code || '—'}</span>,
+                        },
+                        {
+                            key: 'qualifying_volume',
+                            header: translate('portal', 'rw_col_qual'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: (m: MilestoneRecord) => Number(m.qualifying_volume) || 0,
+                            render: (m: MilestoneRecord) => (
+                                <span className="hub-strong tone-brand">
+                                    {money(Number(m.qualifying_volume) || 0)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'progress',
+                            header: translate('portal', 'rw_col_progress'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => progressPct(m) ?? -1,
+                            render: (m: MilestoneRecord) => {
+                                const progress = progressPct(m);
+                                if (progress === null) {
+                                    return <span className="hub-label tone-warn">{notSet}</span>;
+                                }
+                                const pct = progress;
+                                const isAchieved = reachedTarget(m);
                                 return (
-                                    <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{m.user?.name || translate('portal', 'rw_partner')}</div>
-                                            <div style={{ fontSize: 11, color: '#64748b' }}>
-                                                {m.user?.phone || translate('portal', 'rw_no_phone')} {m.user?.district ? `• ${m.user.district}` : ''}
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{m.user?.dealer_code || '—'}</td>
-                                        <td style={{ padding: '12px 16px', fontWeight: 800, color: '#006837' }}>
-                                            {money(qualVal)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', width: 220 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <div style={{ flex: 1, height: 8, background: '#e2e8f0', borderRadius: 4, overflow: 'hidden' }}>
-                                                    <div style={{
-                                                        height: '100%',
-                                                        width: `${pct}%`,
-                                                        background: isAchieved ? '#059669' : '#006837',
-                                                        borderRadius: 4
-                                                    }} />
-                                                </div>
-                                                <span style={{ fontSize: 11, fontWeight: 700, color: isAchieved ? '#059669' : '#475569', minWidth: 42 }}>
-                                                    {pct.toFixed(1)}%
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', color: '#64748b' }}>
-                                            {money(currentTarget)}
-                                        </td>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 4,
-                                                background: m.is_claimed ? '#ecfdf5' : isAchieved ? '#eff6ff' : '#f1f5f9',
-                                                color: m.is_claimed ? '#047857' : isAchieved ? '#1d4ed8' : '#64748b',
-                                                border: `1px solid ${m.is_claimed ? '#a7f3d0' : isAchieved ? '#bfdbfe' : '#cbd5e1'}`
-                                            }}>
-                                                {m.is_claimed ? translate('portal', 'rw_claimed') : isAchieved ? translate('portal', 'rw_achieved') : translate('portal', 'rw_in_progress')}
-                                            </span>
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                                            <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                                                {isAchieved && !m.is_claimed && (
-                                                    <Link
-                                                        href="/operations/reserve-payouts"
-                                                        className="button small"
-                                                        style={{ fontSize: 11, padding: '4px 10px' }}
-                                                    >
-                                                        {translate('portal', 'rw_record_payout')}
-                                                    </Link>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSelectedCandidate(m)}
-                                                    style={{
-                                                        fontSize: 11,
-                                                        fontWeight: 600,
-                                                        padding: '4px 10px',
-                                                        background: '#f8fafc',
-                                                        border: '1px solid #cbd5e1',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: 4
-                                                    }}
-                                                >
-                                                    <Eye size={12} /> {translate('portal', 'rw_inspect')}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <div className="rw-progress">
+                                        <div className="hub-progress">
+                                            <div
+                                                className={isAchieved ? 'tone-ok' : undefined}
+                                                style={{ width: `${pct}%` }}
+                                            />
+                                        </div>
+                                        <span className={`rw-pct${isAchieved ? ' tone-ok' : ''}`}>
+                                            {pct.toFixed(1)}%
+                                        </span>
+                                    </div>
                                 );
-                            })
-                        ) : (
-                            <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '36px 0', color: '#94a3b8' }}>
-                                    {translate('portal', 'rw_empty')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                            },
+                        },
+                        {
+                            key: 'target_volume',
+                            header: translate('portal', 'rw_col_target'),
+                            sortable: true,
+                            align: 'right',
+                            sortValue: () => currentTarget ?? -1,
+                            render: () => <span className="muted">{moneyOrNotSet(currentTarget)}</span>,
+                        },
+                        {
+                            key: 'status',
+                            header: translate('portal', 'rw_col_status'),
+                            sortable: true,
+                            sortValue: (m: MilestoneRecord) => m.is_claimed ? 'claimed' : reachedTarget(m) ? 'achieved' : 'in_progress',
+                            render: (m: MilestoneRecord) => {
+                                const isAchieved = reachedTarget(m);
+                                return (
+                                    <span className={`badge ${m.is_claimed ? 'tone-ok' : isAchieved ? 'tone-info' : 'tone-neutral'}`}>
+                                        {m.is_claimed ? translate('portal', 'rw_claimed') : isAchieved ? translate('portal', 'rw_achieved') : translate('portal', 'rw_in_progress')}
+                                    </span>
+                                );
+                            },
+                        },
+                        {
+                            key: 'actions',
+                            header: translate('portal', 'rw_col_branches'),
+                            align: 'right',
+                            render: (m: MilestoneRecord) => {
+                                const isAchieved = reachedTarget(m);
+                                return (
+                                    <div className="hub-row is-end">
+                                        {isAchieved && !m.is_claimed && (
+                                            <Link
+                                                href="/operations/reserve-payouts"
+                                                className="button small"
+                                            >
+                                                {translate('portal', 'rw_record_payout')}
+                                            </Link>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedCandidate(m)}
+                                            className="button small"
+                                        >
+                                            <Eye size={12} /> {translate('portal', 'rw_inspect')}
+                                        </button>
+                                    </div>
+                                );
+                            },
+                        },
+                    ]}
+                    data={currentMilestones}
+                    searchPlaceholder={translate('portal', 'search')}
+                    pageSize={15}
+                    emptyMessage={translate('portal', 'rw_empty')}
+                />
             </div>
 
             {/* Anti-Whale Branch Inspection Modal */}
             {selectedCandidate && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 9999, padding: 16
-                }}>
-                    <div style={{
-                        background: '#ffffff',
-                        borderRadius: 12,
-                        maxWidth: 620,
-                        width: '100%',
-                        padding: 24,
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-                        maxHeight: '90vh',
-                        overflowY: 'auto'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="hub-overlay">
+                    <div className="hub-dialog is-wide" role="dialog" aria-modal="true">
+                        <div className="hub-dialog-head">
                             <div>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#047857' }}>
+                                <div className="hub-label tone-ok">
                                     {translate('portal', 'rw_audit_badge')}
                                 </div>
-                                <h3 style={{ fontSize: 18, fontWeight: 800, margin: '4px 0 2px 0', color: '#0f172a' }}>
+                                <h3 className="hub-title is-lg">
                                     {selectedCandidate.user?.name} ({selectedCandidate.user?.dealer_code})
                                 </h3>
-                                <div style={{ fontSize: 12, color: '#64748b' }}>
-                                    {selectedCandidate.milestone_type === 'bike' ? translate('portal', 'rw_milestone_bike') : translate('portal', 'rw_milestone_car')}
+                                <div className="hub-hint">
+                                    {selectedCandidate.milestone_type === 'bike' ? translate('portal', 'rw_title_bike') : translate('portal', 'rw_title_car')}
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setSelectedCandidate(null)}
-                                style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer' }}
+                                className="icon-button"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <div style={{
-                            margin: '16px 0',
-                            padding: 12,
-                            background: '#f8fafc',
-                            borderRadius: 8,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            fontSize: 12
-                        }}>
+                        <div className="hub-well hub-row is-between rw-summary">
                             <div>
-                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_qual_vol')} </span>
-                                <b style={{ color: '#006837' }}>{money(selectedCandidate.qualifying_volume)}</b>
+                                <span className="muted">{translate('portal', 'rw_qual_vol')} </span>
+                                <b className="tone-brand">{money(selectedCandidate.qualifying_volume)}</b>
                             </div>
                             <div>
-                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_branch_cap')} </span>
-                                <b>{money(currentCap)}</b>
+                                <span className="muted">{translate('portal', 'rw_branch_cap')} </span>
+                                <b>{moneyOrNotSet(currentCap)}</b>
                             </div>
                             <div>
-                                <span style={{ color: '#64748b' }}>{translate('portal', 'rw_target')} </span>
-                                <b>{money(currentTarget)}</b>
+                                <span className="muted">{translate('portal', 'rw_target')} </span>
+                                <b>{moneyOrNotSet(currentTarget)}</b>
                             </div>
                         </div>
 
                         {/* Frontline Legs List */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                        <div className="rw-legs">
+                            <div className="hub-label">
                                 {translate('portal', 'rw_legs_heading', { count: String(legs.length) })}
                             </div>
 
@@ -367,78 +338,58 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                                     const capped = Number(leg.capped_volume) || 0;
                                     const excess = Number(leg.excess_volume) || 0;
                                     const isCapped = excess > 0;
-                                    const capPct = Math.min(100, (capped / currentCap) * 100);
+                                    const capPct = currentCap === null ? 0 : Math.min(100, (capped / currentCap) * 100);
 
                                     return (
-                                        <div key={idx} style={{
-                                            border: `1px solid ${isCapped ? '#fde68a' : '#e2e8f0'}`,
-                                            background: isCapped ? '#fffbeb' : '#ffffff',
-                                            borderRadius: 8,
-                                            padding: 12
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
+                                        <div key={idx} className={`hub-tile rw-leg${isCapped ? ' is-tinted tone-warn' : ''}`}>
+                                            <div className="hub-row is-between">
+                                                <div className="hub-strong">
                                                     {translate('portal', 'rw_branch_n', { n: String(idx + 1), name: leg.leg_user_name || translate('portal', 'rw_partner_id', { id: String(leg.leg_user_id) }) })}
                                                 </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <span style={{ fontSize: 12, fontWeight: 800, color: '#006837' }}>
+                                                <div>
+                                                    <span className="hub-strong tone-brand">
                                                         {money(capped)}
                                                     </span>
-                                                    <span style={{ fontSize: 11, color: '#64748b' }}> qualifying</span>
+                                                    <span className="muted"> {translate('portal', 'rw_qualifying')}</span>
                                                 </div>
                                             </div>
 
                                             {/* Stacked Progress Bar */}
-                                            <div style={{ width: '100%', height: 10, background: '#e2e8f0', borderRadius: 5, overflow: 'hidden', marginTop: 8, display: 'flex' }}>
-                                                <div style={{
-                                                    width: `${capPct}%`,
-                                                    background: '#006837',
-                                                    height: '100%'
-                                                }} />
+                                            <div className="hub-progress is-lg">
+                                                <div style={{ width: `${capPct}%` }} />
                                                 {isCapped && (
-                                                    <div style={{
-                                                        width: `${Math.min(100 - capPct, 25)}%`,
-                                                        background: '#d97706',
-                                                        height: '100%',
-                                                        opacity: 0.8
-                                                    }} />
+                                                    <div
+                                                        className="tone-warn is-faded"
+                                                        style={{ width: `${Math.min(100 - capPct, 25)}%` }}
+                                                    />
                                                 )}
                                             </div>
 
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b', marginTop: 6 }}>
+                                            <div className="hub-row is-between rw-leg-foot">
                                                 <span>{translate('portal', 'rw_raw_leg')} <b>{money(raw)}</b></span>
                                                 {isCapped ? (
-                                                    <span style={{ color: '#b45309', fontWeight: 600 }}>
-                                                        {translate('portal', 'rw_truncated', { excess: money(excess), cap: money(currentCap) })}
+                                                    <span className="hub-strong tone-warn">
+                                                        {translate('portal', 'rw_truncated', { excess: money(excess), cap: moneyOrNotSet(currentCap) })}
                                                     </span>
                                                 ) : (
-                                                    <span style={{ color: '#047857' }}>{translate('portal', 'rw_full_qualifies')}</span>
+                                                    <span className="tone-ok">{translate('portal', 'rw_full_qualifies')}</span>
                                                 )}
                                             </div>
                                         </div>
                                     );
                                 })
                             ) : (
-                                <div style={{ textAlign: 'center', padding: '24px 0', color: '#94a3b8', fontSize: 13 }}>
+                                <div className="hub-empty is-plain">
                                     {translate('portal', 'rw_no_legs')}
                                 </div>
                             )}
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
+                        <div className="hub-row is-end hub-dialog-foot">
                             <button
                                 type="button"
                                 onClick={() => setSelectedCandidate(null)}
-                                style={{
-                                    padding: '8px 18px',
-                                    background: '#006837',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    borderRadius: 6,
-                                    fontWeight: 700,
-                                    fontSize: 12,
-                                    cursor: 'pointer'
-                                }}
+                                className="button small dark"
                             >
                                 {translate('portal', 'rw_close')}
                             </button>

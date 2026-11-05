@@ -1,11 +1,41 @@
-function dateFormatter(): Intl.DateTimeFormat {
-    const locale = typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('bn')
-        ? 'bn-BD'
-        : 'en-GB';
+const BANGLA_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
 
-    return new Intl.DateTimeFormat(locale, {
-        day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka',
-    });
+/**
+ * True when the page is rendered in Bangla (`<html lang="bn">`), the single
+ * source of truth for locale-aware digits in dates, money and counts.
+ */
+export function isBanglaDocument(): boolean {
+    return typeof document !== 'undefined' && document.documentElement.lang.toLowerCase().startsWith('bn');
+}
+
+/**
+ * Swap Latin digits for Bangla digits when the page is in Bangla.
+ */
+export function localizeDigits(text: string): string {
+    return isBanglaDocument() ? text.replace(/[0-9]/g, digit => BANGLA_DIGITS[Number(digit)]) : text;
+}
+
+function dateFormatter(withTime = false): Intl.DateTimeFormat {
+    const locale = isBanglaDocument() ? 'bn-BD' : 'en-GB';
+
+    return new Intl.DateTimeFormat(locale, withTime
+        ? { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Dhaka' }
+        : { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dhaka' });
+}
+
+function parseBusinessTimestamp(value: string): Date | null {
+    let timestamp = value.trim().replace(' ', 'T');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(timestamp)) {
+        timestamp += 'T00:00:00Z';
+    } else if (timestamp.includes('T')) {
+        timestamp = timestamp.replace(/([+-]\d{2})(\d{2})$/, '$1:$2').replace(/([+-]\d{2})$/, '$1:00');
+        if (!/(Z|[+-]\d{2}:\d{2})$/i.test(timestamp)) {
+            timestamp += 'Z';
+        }
+    }
+    const parsed = new Date(timestamp);
+
+    return Number.isNaN(parsed.valueOf()) ? null : parsed;
 }
 
 /**
@@ -69,16 +99,38 @@ export function businessDate(value?: string | null): string {
     if (!value) {
         return '—';
     }
-    let timestamp = value.trim().replace(' ', 'T');
-    if (/^\d{4}-\d{2}-\d{2}$/.test(timestamp)) {
-        timestamp += 'T00:00:00Z';
-    } else if (timestamp.includes('T')) {
-        timestamp = timestamp.replace(/([+-]\d{2})(\d{2})$/, '$1:$2').replace(/([+-]\d{2})$/, '$1:00');
-        if (!/(Z|[+-]\d{2}:\d{2})$/i.test(timestamp)) {
-            timestamp += 'Z';
-        }
-    }
-    const parsed = new Date(timestamp);
+    const parsed = parseBusinessTimestamp(String(value));
 
-    return Number.isNaN(parsed.valueOf()) ? '—' : dateFormatter().format(parsed);
+    return parsed ? dateFormatter().format(parsed) : '—';
+}
+
+/**
+ * Month name and year for "YYYY-MM" values (e.g. salary or target months): "Nov 2026".
+ */
+export function businessMonth(value?: string | null): string {
+    const text = String(value ?? '').trim();
+    const match = text.match(/^(\d{4})-(\d{2})$/);
+    if (!match) {
+        return text || '—';
+    }
+
+    return new Intl.DateTimeFormat(isBanglaDocument() ? 'bn-BD' : 'en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1)));
+}
+
+/**
+ * Date plus Dhaka clock time (e.g. "5 Nov 2026, 3:42 pm") for ledger, payment
+ * and audit rows. Date-only values have no time, so they show the date alone.
+ */
+export function businessDateTime(value?: string | null): string {
+    if (!value) {
+        return '—';
+    }
+    const text = String(value).trim();
+    const parsed = parseBusinessTimestamp(text);
+    if (!parsed) {
+        return '—';
+    }
+
+    return dateFormatter(!/^\d{4}-\d{2}-\d{2}$/.test(text)).format(parsed);
 }

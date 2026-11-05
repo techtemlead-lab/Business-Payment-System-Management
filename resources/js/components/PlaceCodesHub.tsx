@@ -145,22 +145,22 @@ function ManagementReferralPanel({ settings }: { settings: ManagementReferralSet
     };
 
     return (
-        <section className="panel" style={{ marginTop: 16, marginBottom: 16, borderLeft: '4px solid #b45309' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <section className="panel pch-mgmt">
+            <div className="ops-row is-between is-top is-wrap is-wide">
                 <div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#b45309', textTransform: 'uppercase' }}>
+                    <div className="pch-eyebrow tone-warn">
                         <Landmark size={15} /> {translate('portal', 'pc_mgmt_title')}
                     </div>
-                    <p className="muted" style={{ margin: '8px 0 0', maxWidth: 720 }}>{translate('portal', 'pc_mgmt_body')}</p>
+                    <p className="muted pch-lead">{translate('portal', 'pc_mgmt_body')}</p>
                 </div>
-                <div style={{ minWidth: 180 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>{translate('portal', 'pc_mgmt_code')}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{settings.place_code || '—'}</div>
-                    <div className="muted" style={{ fontSize: 13 }}>{settings.place_name || translate('portal', 'pc_mgmt_missing')}</div>
+                <div className="pch-code">
+                    <div className="hub-label">{translate('portal', 'pc_mgmt_code')}</div>
+                    <div className="ops-figure is-sm">{settings.place_code || '—'}</div>
+                    <div className="muted ops-fs-sm">{settings.place_name || translate('portal', 'pc_mgmt_missing')}</div>
                 </div>
             </div>
             {settings.can_manage ? (
-                <form onSubmit={save} style={{ marginTop: 16, display: 'grid', gap: 10 }}>
+                <form onSubmit={save} className="pch-form">
                     {settings.options.length > 0 && (
                         <label>
                             {translate('portal', 'pc_mgmt_place')}
@@ -172,15 +172,15 @@ function ManagementReferralPanel({ settings }: { settings: ManagementReferralSet
                             {form.errors.place_code_id && <span className="field-error">{form.errors.place_code_id}</span>}
                         </label>
                     )}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label className="hub-choice">
                         <input type="checkbox" checked={form.data.enabled} onChange={(e) => form.setData('enabled', e.target.checked)} />
                         {translate('portal', 'pc_mgmt_enabled')}
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label className="hub-choice">
                         <input type="checkbox" checked={form.data.auto_blank_reference} onChange={(e) => form.setData('auto_blank_reference', e.target.checked)} />
                         {translate('portal', 'pc_mgmt_auto')}
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label className="hub-choice">
                         <input type="checkbox" checked={form.data.route_referral_slices} onChange={(e) => form.setData('route_referral_slices', e.target.checked)} />
                         {translate('portal', 'pc_mgmt_route')}
                     </label>
@@ -190,11 +190,11 @@ function ManagementReferralPanel({ settings }: { settings: ManagementReferralSet
                     </div>
                 </form>
             ) : (
-                <div style={{ marginTop: 14, display: 'grid', gap: 4, fontSize: 14 }}>
+                <div className="pch-readonly">
                     <div>{translate('portal', 'pc_mgmt_enabled')}: <b>{flag(settings.enabled)}</b></div>
                     <div>{translate('portal', 'pc_mgmt_auto')}: <b>{flag(settings.auto_blank_reference)}</b></div>
                     <div>{translate('portal', 'pc_mgmt_route')}: <b>{flag(settings.route_referral_slices)}</b></div>
-                    <p className="muted" style={{ margin: '6px 0 0' }}>{translate('portal', 'pc_mgmt_readonly')}</p>
+                    <p className="muted pch-readonly-note">{translate('portal', 'pc_mgmt_readonly')}</p>
                 </div>
             )}
         </section>
@@ -328,14 +328,14 @@ export default function PlaceCodesHub({
 
     return (
         <div className="place-codes-hub">
-            <section className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #0f766e' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <section className="panel pch-hero">
+                <div className="ops-row is-between is-top is-wrap is-wide">
                     <div>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#0f766e', textTransform: 'uppercase' }}>
+                        <div className="pch-eyebrow tone-teal">
                             <Hash size={15} /> {translate('portal', 'pc_badge')}
                         </div>
-                        <h2 style={{ margin: '6px 0' }}>{translate('portal', 'pc_heading', { level: level_label })}</h2>
-                        <p className="muted" style={{ margin: 0, maxWidth: 640 }}>
+                        <h2 className="pch-title">{translate('portal', 'pc_heading', { level: level_label })}</h2>
+                        <p className="muted pch-lead is-flush">
                             {translate('portal', 'pc_hint')}
                         </p>
                     </div>
@@ -345,13 +345,12 @@ export default function PlaceCodesHub({
                 </div>
             </section>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            <div className="ops-row is-wrap ops-mb-4">
                 {submodules.map((item) => (
                     <Link
                         key={item.key}
                         href={item.href}
                         className={`button small ${level === item.key ? 'dark' : ''}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     >
                         {levelIcons[item.key]}
                         {item.label}
@@ -360,13 +359,13 @@ export default function PlaceCodesHub({
             </div>
 
             {searchable && (
-                <form onSubmit={handleSearch} className="panel" style={{ marginBottom: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <Search size={18} color="#64748b" />
+                <form onSubmit={handleSearch} className="panel pch-search">
+                    <Search size={18} className="ops-muted" />
                     <input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder={translate('portal', 'pc_search_ph', { level: levelName })}
-                        style={{ flex: 1, border: 0, outline: 'none', fontSize: 15, background: 'transparent' }}
+                        className="pch-search-input"
                     />
                     <button type="submit" className="button small dark">{translate('portal', 'pc_search')}</button>
                 </form>
@@ -379,7 +378,7 @@ export default function PlaceCodesHub({
                         list_no: ((places.current_page ?? 1) - 1) * (places.per_page ?? places.data.length) + index + 1,
                     }))}
                     columns={[
-                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b style={{ fontVariantNumeric: 'tabular-nums' }}>{displayPlace(r.code) === '—' ? 'MNHC-' : displayPlace(r.code)}</b> },
+                        { key: 'code', title: translate('portal', 'pc_col_code'), render: (r) => <b className="ops-tabular">{displayPlace(r.code) === '—' ? 'MNHC-' : displayPlace(r.code)}</b> },
                         { key: 'name', title: translate('portal', 'pc_col_name'), render: (r) => `${r.list_no}. ${displayPlace(r.name)}` },
                         {
                             key: 'parent_name',
@@ -400,7 +399,7 @@ export default function PlaceCodesHub({
                             key: 'action',
                             title: '',
                             render: (r) => (
-                                <span style={{ display: 'inline-flex', gap: 10 }}>
+                                <span className="ops-row is-inline is-loose">
                                     <button type="button" className="text-link" onClick={() => openEdit(r as PlaceRow)}>
                                         {translate('portal', 'pc_edit')}
                                     </button>
@@ -491,7 +490,7 @@ export default function PlaceCodesHub({
                                 {editForm.errors.base_place_id && <span className="field-error">{editForm.errors.base_place_id}</span>}
                             </label>
                         )}
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label className="hub-choice">
                             <input type="checkbox" checked={editForm.data.is_active} onChange={(e) => editForm.setData('is_active', e.target.checked)} />
                             {translate('portal', 'pc_fld_active')}
                         </label>

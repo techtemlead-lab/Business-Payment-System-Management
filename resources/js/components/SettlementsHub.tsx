@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import {
-    Calendar, CheckCircle2, Clock, DollarSign, Award, ShieldAlert,
-    ArrowUpRight, Play, RefreshCw, AlertCircle, FileText, ChevronRight, UserCheck
-} from 'lucide-react';
-import { money, date } from './UI';
+import { Calendar, CheckCircle2, Clock, Play, RefreshCw } from 'lucide-react';
+import { money, date, Table, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
+
+type LeaderRank = 'mo' | 'am' | 'sm' | 'me';
+
+/** A money-moving action that waits for the finance user to say yes. */
+interface PendingConfirmation {
+    message: string;
+    run: () => void;
+}
 
 interface SettlementState {
     current_month: string;
+    /** One-time rank bonus amounts from the live commission policy; null when not set. */
+    rank_incentives?: Partial<Record<LeaderRank, string | number | null>>;
     salary_pool_pending: number;
     dealer_salary_pool_pending: number;
     sub_dealer_salary_pending: number;
@@ -48,30 +55,52 @@ interface SettlementState {
 
 export default function SettlementsHub({ state }: { state: SettlementState }) {
     const translate = useT();
-    const { flash, financeActive, staffActions } = usePage<any>().props;
+    const { financeActive, staffActions } = usePage<any>().props;
     const [selectedMonth, setSelectedMonth] = useState(state.current_month || new Date().toISOString().slice(0, 7));
     const [processingSalary, setProcessingSalary] = useState(false);
     const [processingRank, setProcessingRank] = useState(false);
     const [processingMatured, setProcessingMatured] = useState(false);
     const [claimingIncentive, setClaimingIncentive] = useState<number | null>(null);
+    const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+
+    const incentiveFor = (rank: string): number | null => {
+        const amount = state.rank_incentives?.[rank as LeaderRank];
+        if (amount === null || amount === undefined || amount === '') {
+            return null;
+        }
+        const parsed = Number(amount);
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+    const incentiveSummary = (['mo', 'am', 'sm', 'me'] as LeaderRank[])
+        .map(rank => {
+            const amount = incentiveFor(rank);
+            return `${rank.toUpperCase()} ${amount === null ? translate('portal', 'policy_value_not_set') : money(amount)}`;
+        })
+        .join(' · ');
+
+    const confirmThen = (message: string, run: () => void) => setPendingConfirmation({ message, run });
+
+    const handleConfirmed = () => {
+        const confirmation = pendingConfirmation;
+        setPendingConfirmation(null);
+        confirmation?.run();
+    };
 
     const handleSettleSalary = () => {
-        if (!confirm(translate('portal', 'st_confirm_salary', { month: selectedMonth }))) {
-            return;
-        }
-        setProcessingSalary(true);
-        router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
-            onFinish: () => setProcessingSalary(false)
+        confirmThen(translate('portal', 'st_confirm_salary', { month: selectedMonth }), () => {
+            setProcessingSalary(true);
+            router.post('/commands/commissions/settle-salary', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+                onFinish: () => setProcessingSalary(false)
+            });
         });
     };
 
     const handleSettleRank = () => {
-        if (!confirm(translate('portal', 'st_confirm_rank', { month: selectedMonth }))) {
-            return;
-        }
-        setProcessingRank(true);
-        router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
-            onFinish: () => setProcessingRank(false)
+        confirmThen(translate('portal', 'st_confirm_rank', { month: selectedMonth }), () => {
+            setProcessingRank(true);
+            router.post('/commands/commissions/settle-rank-royalty', { period_month: selectedMonth, request_key: crypto.randomUUID() }, {
+                onFinish: () => setProcessingRank(false)
+            });
         });
     };
 
@@ -83,88 +112,49 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
     };
 
     const handleClaimIncentive = (userId: number, leaderName: string, rank: string) => {
-        if (!confirm(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }))) {
-            return;
-        }
-        setClaimingIncentive(userId);
-        router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
-            onFinish: () => setClaimingIncentive(null)
+        confirmThen(translate('portal', 'st_confirm_incentive', { name: leaderName, rank: rank.toUpperCase() }), () => {
+            setClaimingIncentive(userId);
+            router.post(`/commands/commissions/claim-incentive/${userId}`, { request_key: crypto.randomUUID() }, {
+                onFinish: () => setClaimingIncentive(null)
+            });
         });
     };
 
     return (
-        <div className="settlements-hub" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="settlements-hub hub">
             {/* Top Operational Bar */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                        width: '44px',
-                        height: '44px',
-                        borderRadius: '10px',
-                        background: '#eff6ff',
-                        color: '#2563eb',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
+            <div className="panel hub-row is-between">
+                <div className="hub-media">
+                    <div className="hub-icon tone-info">
                         <Calendar size={24} />
                     </div>
                     <div>
-                        <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>{translate('portal', 'st_heading')}</h2>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_sub')}</p>
+                        <h2 className="hub-title is-lg">{translate('portal', 'st_heading')}</h2>
+                        <p className="hub-sub">{translate('portal', 'st_sub')}</p>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="hub-row">
+                    <label className="hub-inline-field">
                         {translate('portal', 'st_period')}
                         <input
                             type="month"
                             value={selectedMonth}
                             onChange={e => {setSelectedMonth(e.target.value);router.get('/settlements',{period_month:e.target.value},{preserveScroll:true});}}
-                            style={{
-                                padding: '6px 12px',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                color: '#1e293b'
-                            }}
                         />
                     </label>
                 </div>
             </div>
 
             {/* Cooling-off Maturation Banner */}
-            <div style={{
-                background: '#f8fafc',
-                border: '1px solid #cbd5e1',
-                borderRadius: '12px',
-                padding: '18px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Clock size={22} color="#0284c7" />
+            <div className="panel is-soft hub-row is-between">
+                <div className="hub-media">
+                    <Clock size={22} className="tone-info" />
                     <div>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                        <div className="hub-strong">
                             {translate('portal', 'st_cooling_title', { amount: money(state.maturing_amount), count: String(state.maturing_count) })}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>
+                        <div className="hub-hint">
                             {translate('portal', 'st_cooling_hint')}
                         </div>
                     </div>
@@ -172,22 +162,9 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
                 <button
                     type="button"
-                    className="button small"
+                    className="button small dark"
                     disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingMatured || state.maturing_count === 0}
                     onClick={handleReleaseMatured}
-                    style={{
-                        background: '#0284c7',
-                        color: '#ffffff',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        cursor: state.maturing_count === 0 ? 'not-allowed' : 'pointer',
-                        opacity: state.maturing_count === 0 ? 0.6 : 1,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}
                 >
                     <RefreshCw size={15} className={processingMatured ? 'spin' : ''} />
                     {processingMatured ? translate('portal', 'st_releasing') : translate('portal', 'st_release')}
@@ -195,383 +172,310 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
             </div>
 
             {/* Two Main Settlement Cards: Salary Pool & Rank Royalty Pool */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+            <div className="hub-grid is-xwide">
 
                 {/* 1. Dealer Monthly Salary Pool (2%) */}
-                <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '22px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                }}>
+                <div className="panel hub-col">
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                        <div className="panel-heading is-top">
                             <div>
-                                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#10b981', textTransform: 'uppercase' }}>
+                                <span className="hub-label tone-ok">
                                     {translate('portal', 'st_salary_badge')}
                                 </span>
-                                <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0 0', color: '#0f172a' }}>
+                                <h3 className="hub-title">
                                     {translate('portal', 'st_salary_title')}
                                 </h3>
                             </div>
-                            <span style={{
-                                background: '#ecfdf5',
-                                color: '#059669',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                fontWeight: 700
-                            }}>
+                            <span className="hub-pill tone-ok">
                                 {translate('portal', 'st_policy_rates')}
                             </span>
                         </div>
 
-                        <div style={{
-                            background: '#f8fafc',
-                            border: '1px solid #f1f5f9',
-                            borderRadius: '8px',
-                            padding: '14px',
-                            marginBottom: '16px'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_dealer_pool')}</span>
-                                <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.dealer_salary_pool_pending)}</b>
+                        <div className="hub-ledger">
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_dealer_pool')}</span>
+                                <b>{money(state.dealer_salary_pool_pending)}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_dealers_threshold')}</span>
-                                <b style={{ fontSize: '14px', color: '#10b981' }}>{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</b>
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_dealers_threshold')}</span>
+                                <b className="tone-ok">{translate('portal', 'st_dealers_count', { count: String(state.qualified_salary_dealers_count) })}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_sub_reserved')}</span>
-                                <b style={{ fontSize: '14px', color: '#2563eb' }}>
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_sub_reserved')}</span>
+                                <b className="tone-info">
                                     {money(state.sub_dealer_salary_pending)}
                                 </b>
                             </div>
                         </div>
 
-                        <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
+                        <div className="hub-note">
                             {translate('portal', 'st_salary_hint')}
                         </div>
 
                         {state.qualified_salary_dealers.length > 0 && (
-                            <div style={{ marginBottom: '16px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_dealer')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_code')}</th>
-                                            <th style={{ padding: '6px 10px', textAlign: 'right' }}>{translate('portal', 'st_col_volume')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {state.qualified_salary_dealers.map(d => (
-                                            <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                <td style={{ padding: '6px 10px', fontWeight: 600 }}>{d.name}</td>
-                                                <td style={{ padding: '6px 10px', color: '#64748b' }}>{d.dealer_code}</td>
-                                                <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: '#10b981' }}>{money(d.monthly_volume)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="hub-spaced">
+                                <Table
+                                    tools={false}
+                                    rows={state.qualified_salary_dealers}
+                                    columns={[
+                                        {
+                                            key: 'name',
+                                            title: translate('portal', 'st_col_dealer'),
+                                            sortable: true,
+                                            render: d => <span className="hub-strong">{d.name}</span>,
+                                        },
+                                        {
+                                            key: 'dealer_code',
+                                            title: translate('portal', 'st_col_code'),
+                                            sortable: true,
+                                            render: d => <span className="muted">{d.dealer_code}</span>,
+                                        },
+                                        {
+                                            key: 'monthly_volume',
+                                            title: translate('portal', 'st_col_volume'),
+                                            align: 'right',
+                                            sortable: true,
+                                            sortValue: d => Number(d.monthly_volume) || 0,
+                                            render: d => <b className="tone-ok">{money(d.monthly_volume)}</b>,
+                                        },
+                                    ]}
+                                />
                             </div>
                         )}
                     </div>
 
                     <button
                         type="button"
+                        className="button dark hub-block"
                         disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingSalary}
                         onClick={handleSettleSalary}
-                        style={{
-                            width: '100%',
-                            background: '#10b981',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '10px 18px',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                        }}
                     >
-                        <Play size={16} fill="#ffffff" />
+                        <Play size={16} fill="currentColor" />
                         {processingSalary ? translate('portal', 'st_executing') : translate('portal', 'st_settle_salary', { month: selectedMonth })}
                     </button>
                 </div>
 
                 {/* 2. Leadership Rank Royalty Pool (4%) */}
-                <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    padding: '22px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                }}>
+                <div className="panel hub-col">
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                        <div className="panel-heading is-top">
                             <div>
-                                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em', color: '#8b5cf6', textTransform: 'uppercase' }}>
+                                <span className="hub-label tone-violet">
                                     {translate('portal', 'st_rank_badge')}
                                 </span>
-                                <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '4px 0 0', color: '#0f172a' }}>
+                                <h3 className="hub-title">
                                     {translate('portal', 'st_rank_title')}
                                 </h3>
                             </div>
-                            <span style={{
-                                background: '#f5f3ff',
-                                color: '#7c3aed',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                fontWeight: 700
-                            }}>
+                            <span className="hub-pill tone-violet">
                                 {translate('portal', 'st_policy_rates')}
                             </span>
                         </div>
 
-                        <div style={{
-                            background: '#f8fafc',
-                            border: '1px solid #f1f5f9',
-                            borderRadius: '8px',
-                            padding: '14px',
-                            marginBottom: '16px'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_royalty_pool')}</span>
-                                <b style={{ fontSize: '15px', color: '#0f172a' }}>{money(state.rank_pool_pending)}</b>
+                        <div className="hub-ledger">
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_royalty_pool')}</span>
+                                <b>{money(state.rank_pool_pending)}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_tier_alloc')}</span>
-                                <b style={{ fontSize: '14px', color: '#7c3aed' }}>{translate('portal', 'st_policy_weights')}</b>
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_tier_alloc')}</span>
+                                <b className="tone-violet">{translate('portal', 'st_policy_weights')}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: '13px', color: '#64748b' }}>{translate('portal', 'st_active_leaders')}</span>
-                                <b style={{ fontSize: '14px', color: '#0f172a' }}>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</b>
+                            <div className="hub-ledger-row">
+                                <span>{translate('portal', 'st_active_leaders')}</span>
+                                <b>{translate('portal', 'st_leaders_count', { count: String(state.qualified_rank_leaders_count) })}</b>
                             </div>
                         </div>
 
-                        <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5, marginBottom: '16px' }}>
+                        <div className="hub-note">
                             {translate('portal', 'st_rank_hint')}
                         </div>
 
                         {state.qualified_rank_leaders.length > 0 && (
-                            <div style={{ marginBottom: '16px', maxHeight: '140px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-                                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ background: '#f1f5f9', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_leader')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_rank')}</th>
-                                            <th style={{ padding: '6px 10px' }}>{translate('portal', 'st_col_status')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {state.qualified_rank_leaders.map(l => (
-                                            <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                <td style={{ padding: '6px 10px', fontWeight: 600 }}>{l.name}</td>
-                                                <td style={{ padding: '6px 10px', textTransform: 'uppercase', fontWeight: 700, color: '#7c3aed' }}>{l.rank}</td>
-                                                <td style={{ padding: '6px 10px' }}>
-                                                    {l.is_qualified ? (
-                                                        <span style={{ color: '#059669', fontWeight: 600 }}>{translate('portal', 'st_active')}</span>
-                                                    ) : l.in_grace_period ? (
-                                                        <span style={{ color: '#d97706', fontWeight: 600 }}>{translate('portal', 'st_grace')}</span>
-                                                    ) : (
-                                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>{translate('portal', 'st_demoted')}</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="hub-spaced">
+                                <Table
+                                    tools={false}
+                                    rows={state.qualified_rank_leaders}
+                                    columns={[
+                                        {
+                                            key: 'name',
+                                            title: translate('portal', 'st_col_leader'),
+                                            sortable: true,
+                                            render: l => <span className="hub-strong">{l.name}</span>,
+                                        },
+                                        {
+                                            key: 'rank',
+                                            title: translate('portal', 'st_col_rank'),
+                                            sortable: true,
+                                            render: l => <span className="hub-strong hub-upper tone-violet">{l.rank}</span>,
+                                        },
+                                        {
+                                            key: 'status',
+                                            title: translate('portal', 'st_col_status'),
+                                            sortable: true,
+                                            sortValue: l => l.is_qualified ? 'active' : l.in_grace_period ? 'grace' : 'demoted',
+                                            render: l => l.is_qualified ? (
+                                                <span className="hub-strong tone-ok">{translate('portal', 'st_active')}</span>
+                                            ) : l.in_grace_period ? (
+                                                <span className="hub-strong tone-warn">{translate('portal', 'st_grace')}</span>
+                                            ) : (
+                                                <span className="hub-strong tone-danger">{translate('portal', 'st_demoted')}</span>
+                                            ),
+                                        },
+                                    ]}
+                                />
                             </div>
                         )}
                     </div>
 
                     <button
                         type="button"
+                        className="button dark hub-block"
                         disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || processingRank}
                         onClick={handleSettleRank}
-                        style={{
-                            width: '100%',
-                            background: '#7c3aed',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '10px 18px',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px'
-                        }}
                     >
-                        <Play size={16} fill="#ffffff" />
+                        <Play size={16} fill="currentColor" />
                         {processingRank ? translate('portal', 'st_executing') : translate('portal', 'st_settle_rank', { month: selectedMonth })}
                     </button>
                 </div>
             </div>
 
             {/* One-Time Rank Incentives Table */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '24px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+            <div className="panel">
+                <div className="panel-heading">
                     <div>
-                        <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                        <h3 className="hub-title">
                             {translate('portal', 'st_incentive_title')}
                         </h3>
-                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-                            {translate('portal', 'st_incentive_hint')}
+                        <p className="hub-sub">
+                            {translate('portal', 'st_incentive_hint_live', { list: incentiveSummary })}
                         </p>
                     </div>
                 </div>
 
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_leader')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_dcode')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_achieved')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_incentive')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_claim')}</th>
-                                <th style={{ padding: '10px 14px', textAlign: 'right' }}>{translate('portal', 'st_col_action')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {state.qualified_rank_leaders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                                        {translate('portal', 'st_no_incentive')}
-                                    </td>
-                                </tr>
+                <Table
+                    tools={false}
+                    rows={state.qualified_rank_leaders}
+                    empty={translate('portal', 'st_no_incentive')}
+                    columns={[
+                        {
+                            key: 'name',
+                            title: translate('portal', 'st_col_leader'),
+                            sortable: true,
+                            render: l => <span className="hub-strong">{l.name}</span>,
+                        },
+                        {
+                            key: 'dealer_code',
+                            title: translate('portal', 'st_col_dcode'),
+                            sortable: true,
+                            render: l => <span className="muted">{l.dealer_code}</span>,
+                        },
+                        {
+                            key: 'rank',
+                            title: translate('portal', 'st_col_achieved'),
+                            sortable: true,
+                            render: l => (
+                                <span className="hub-pill hub-upper">
+                                    {l.rank}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'incentive',
+                            title: translate('portal', 'st_col_incentive'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: l => incentiveFor(l.rank) ?? -1,
+                            render: l => {
+                                const amount = incentiveFor(l.rank);
+                                return amount === null
+                                    ? <span className="hub-strong tone-warn">{translate('portal', 'policy_value_not_set')}</span>
+                                    : <b>{money(amount)}</b>;
+                            },
+                        },
+                        {
+                            key: 'status',
+                            title: translate('portal', 'st_col_claim'),
+                            sortable: true,
+                            render: l => l.one_time_incentive_paid ? (
+                                <span className="hub-inline hub-strong tone-ok">
+                                    <CheckCircle2 size={14} /> {translate('portal', 'st_paid')}
+                                </span>
                             ) : (
-                                state.qualified_rank_leaders.map(l => {
-                                    const incentiveAmounts: Record<string, number> = {
-                                        mo: 5000,
-                                        am: 15000,
-                                        sm: 50000,
-                                        me: 200000
-                                    };
-                                    const amount = incentiveAmounts[l.rank] || 5000;
-                                    return (
-                                        <tr key={l.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '10px 14px', fontWeight: 600 }}>{l.name}</td>
-                                            <td style={{ padding: '10px 14px', color: '#64748b' }}>{l.dealer_code}</td>
-                                            <td style={{ padding: '10px 14px' }}>
-                                                <span style={{
-                                                    background: '#f1f5f9',
-                                                    color: '#334155',
-                                                    padding: '3px 8px',
-                                                    borderRadius: '4px',
-                                                    fontWeight: 700,
-                                                    fontSize: '11px',
-                                                    textTransform: 'uppercase'
-                                                }}>
-                                                    {l.rank}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>
-                                                {money(amount)}
-                                            </td>
-                                            <td style={{ padding: '10px 14px' }}>
-                                                {l.one_time_incentive_paid ? (
-                                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600, fontSize: '12px' }}>
-                                                        <CheckCircle2 size={14} /> {translate('portal', 'st_paid')}
-                                                    </span>
-                                                ) : (
-                                                    <span style={{ color: '#d97706', fontWeight: 600, fontSize: '12px' }}>
-                                                        {translate('portal', 'st_pending_claim')}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                                                {l.one_time_incentive_paid ? (
-                                                    <span style={{ color: '#94a3b8', fontSize: '12px' }}>{translate('portal', 'st_settled')}</span>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        className="button small"
-                                                        disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id}
-                                                        onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
-                                                        style={{
-                                                            background: '#0f172a',
-                                                            color: '#ffffff',
-                                                            padding: '4px 10px',
-                                                            fontSize: '11px',
-                                                            fontWeight: 600,
-                                                            borderRadius: '4px',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                <span className="hub-strong tone-warn">
+                                    {translate('portal', 'st_pending_claim')}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'action',
+                            title: translate('portal', 'st_col_action'),
+                            align: 'right',
+                            sortable: false,
+                            render: l => l.one_time_incentive_paid ? (
+                                <span className="muted">{translate('portal', 'st_settled')}</span>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="button small dark"
+                                    disabled={!(staffActions?.finance?.approve ?? true) || !financeActive || claimingIncentive === l.user_id || incentiveFor(l.rank) === null}
+                                    onClick={() => handleClaimIncentive(l.user_id, l.name, l.rank)}
+                                >
+                                    {claimingIncentive === l.user_id ? translate('portal', 'st_claiming') : translate('portal', 'st_approve_pay')}
+                                </button>
+                            ),
+                        },
+                    ]}
+                />
             </div>
 
             {/* Settled Journal Audit Trail */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '24px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-            }}>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, margin: '0 0 14px', color: '#0f172a' }}>
+            <div className="panel">
+                <h3 className="hub-title hub-spaced">
                     {translate('portal', 'st_journal_title')}
                 </h3>
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_date')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_event')}</th>
-                                <th style={{ padding: '10px 14px' }}>{translate('portal', 'st_col_desc')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {state.settled_history.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>
-                                        {translate('portal', 'st_no_journal')}
-                                    </td>
-                                </tr>
-                            ) : (
-                                state.settled_history.map(entry => (
-                                    <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '10px 14px', color: '#64748b' }}>{date(entry.created_at)}</td>
-                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 600, color: '#2563eb' }}>{entry.event_key}</td>
-                                        <td style={{ padding: '10px 14px', color: '#0f172a' }}>{entry.description}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <Table
+                    tools={false}
+                    rows={state.settled_history}
+                    empty={translate('portal', 'st_no_journal')}
+                    columns={[
+                        {
+                            key: 'created_at',
+                            title: translate('portal', 'st_col_date'),
+                            sortable: true,
+                            render: entry => <span className="muted">{date(entry.created_at)}</span>,
+                        },
+                        {
+                            key: 'event_key',
+                            title: translate('portal', 'st_col_event'),
+                            sortable: true,
+                            render: entry => <span className="hub-mono hub-strong tone-info">{entry.event_key}</span>,
+                        },
+                        {
+                            key: 'description',
+                            title: translate('portal', 'st_col_desc'),
+                            sortable: true,
+                            render: entry => <span>{entry.description}</span>,
+                        },
+                    ]}
+                />
             </div>
+
+            {pendingConfirmation && (
+                <Modal title={translate('portal', 'st_confirm_title')} onClose={() => setPendingConfirmation(null)}>
+                    <p className="st-confirm">
+                        {pendingConfirmation.message}
+                    </p>
+                    <div className="hub-row is-end">
+                        <button type="button" className="button small light" onClick={() => setPendingConfirmation(null)}>
+                            {translate('portal', 'cancel')}
+                        </button>
+                        <button type="button" className="button small dark" onClick={handleConfirmed}>
+                            {translate('portal', 'st_confirm_yes')}
+                        </button>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 }

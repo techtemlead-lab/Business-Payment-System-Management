@@ -78,6 +78,13 @@ final class PortalHost
      */
     public static function allowsSharedPreview(): bool
     {
+        // A production install with a missing APP_DOMAIN must not silently reopen
+        // the loopback preview switcher.
+        $app = app();
+        if ($app instanceof Application && $app->environment('production')) {
+            return false;
+        }
+
         return self::domain() === 'localhost' || app()->environment('local', 'testing');
     }
 

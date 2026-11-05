@@ -7,6 +7,7 @@ use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -130,6 +131,31 @@ class SecurityHardeningTest extends TestCase
         $code = $this->currentTotpCode($secret);
         $this->onPortal('manage')->post('/login/2fa', ['code' => $code])->assertRedirect('/');
         $this->assertAuthenticatedAs($staff);
+    }
+
+    public function test_totp_guesses_are_limited_per_account_even_after_signing_in_again(): void
+    {
+        Config::set('madina.preview_mode', false);
+        Config::set('madina.totp.enabled', true);
+        $secret = app(TotpAuthenticator::class)->generateSecret();
+        $staff = User::factory()->create([
+            'role' => 'finance',
+            'status' => 'active',
+            'password' => 'SyntheticPassword123',
+            'totp_secret' => $secret,
+            'totp_confirmed_at' => now(),
+        ]);
+
+        for ($round = 0; $round < 5; $round++) {
+            $this->withoutMiddleware(ThrottleRequests::class);
+            $this->onPortal('manage')->post('/login', ['email' => $staff->email, 'password' => 'SyntheticPassword123']);
+            $this->onPortal('manage')->post('/login/2fa', ['code' => '000000'])->assertSessionHasErrors('code');
+        }
+
+        $this->onPortal('manage')->post('/login', ['email' => $staff->email, 'password' => 'SyntheticPassword123']);
+        $this->onPortal('manage')->post('/login/2fa', ['code' => $this->currentTotpCode($secret)])
+            ->assertSessionHasErrors('code');
+        $this->assertGuest();
     }
 
     public function test_preview_mode_skips_totp_challenge_even_when_enrolled(): void

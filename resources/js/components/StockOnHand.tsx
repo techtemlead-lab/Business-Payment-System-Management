@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { Empty, money, date } from './UI';
+import { Empty, money, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
 
 type StockProduct = {
@@ -28,6 +28,8 @@ type StockProduct = {
     low_stock_at?: number;
     is_stock_paused?: boolean;
 };
+
+type ProductStockRow = StockProduct;
 
 type SortKey = 'name' | 'sku' | 'available' | 'expires' | 'mrp';
 
@@ -206,76 +208,138 @@ export default function StockOnHand({
                     <option value="mrp">{translate('portal', 'stock_sort_mrp')}</option>
                 </select>
             </div>
-            {rows.length === 0 ? <Empty title={translate('portal', 'stock_no_matches')} body={translate('portal', 'stock_filter_hint')} /> : (
-                <div className="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>{translate('portal', 'col_product')}</th>
-                                {showBranch && <th>{translate('portal', 'col_branch')}</th>}
-                                <th>{translate('portal', 'col_sku')}</th>
-                                <th>{translate('portal', 'col_category')}</th>
-                                <th>{translate('portal', 'col_subcategory')}</th>
-                                <th>{translate('portal', 'col_unit')}</th>
-                                <th>{translate('portal', 'col_mrp')}</th>
-                                {showCost && <th>{translate('portal', 'col_cost')}</th>}
-                                <th>{translate('portal', 'col_dealer_commission')}</th>
-                                <th>{translate('portal', 'col_subdealer_commission')}</th>
-                                <th>{translate('portal', 'col_expiry')}</th>
-                                <th>{translate('portal', 'available_units')}</th>
-                                <th>{translate('portal', 'branch_stock_value')}</th>
-                                <th>{translate('portal', 'col_reorder')}</th>
-                                <th>{translate('portal', 'low_stock_threshold')}</th>
-                                <th>{translate('portal', 'one_click_stock')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((product) => {
-                                const onHand = availableUnits(product);
-                                const low = Number(product.low_stock_at ?? 0);
-                                const paused = Boolean(product.is_stock_paused);
-
-                                return (
-                                    <tr key={product.row_key ?? product.id}>
-                                        <td>{displayName(product)}</td>
-                                        {showBranch && <td>{product.branch_name || '—'}</td>}
-                                        <td>{product.sku}</td>
-                                        <td>{product.category || '—'}</td>
-                                        <td>{product.sub_category || '—'}</td>
-                                        <td>{product.unit || '—'}</td>
-                                        <td>{product.mrp != null && product.mrp !== '' ? money(product.mrp) : '—'}</td>
-                                        {showCost && <td>{product.cost_price != null && product.cost_price !== '' ? money(product.cost_price) : '—'}</td>}
-                                        <td><RateCell percent={product.dealer_discount_pct} price={product.dealer_price} /></td>
-                                        <td><RateCell percent={product.sub_dealer_discount_pct} price={product.sub_dealer_price} /></td>
-                                        <td>{product.expires_on ? date(product.expires_on) : '—'}</td>
-                                        <td>
-                                            <b className={onHand <= low ? 'text-amber' : ''}>
-                                                {onHand}
-                                                {product.company_stock != null && product.company_stock !== onHand ? (
-                                                    <small className="cell-sub">{translate('portal', 'branch_company_total', { count: String(product.company_stock) })}</small>
-                                                ) : null}
-                                            </b>
-                                        </td>
-                                        <td>{money(onHand * Number(product.mrp || 0))}</td>
-                                        <td>{onHand <= 0 ? translate('portal', 'stock_level_out') : onHand <= low ? translate('portal', 'stock_level_low') : translate('portal', 'stock_level_ok')}</td>
-                                        <td>{product.low_stock_at ?? '—'}</td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className={`button small ${paused ? 'stock-resume' : 'stock-pause'}`}
-                                                disabled={!canToggle}
-                                                onClick={() => router.post(`/commands/products/${product.id}/toggle-stock`, {}, { preserveScroll: true })}
-                                            >
-                                                {paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            <Table
+                rows={rows}
+                tools={false}
+                pageSize={25}
+                columns={[
+                    {
+                        key: 'product',
+                        title: translate('portal', 'col_product'),
+                        sortable: true,
+                        sortValue: (p: ProductStockRow) => displayName(p),
+                        render: (p: ProductStockRow) => (
+                            <>
+                                {displayName(p)}
+                                <small className="cell-sub">
+                                    {[p.sku, [p.category, p.sub_category].filter(Boolean).join(' › '), p.unit].filter(Boolean).join(' · ')}
+                                </small>
+                            </>
+                        ),
+                    },
+                    ...(showBranch ? [{
+                        key: 'branch',
+                        title: translate('portal', 'col_branch'),
+                        sortable: true,
+                        sortValue: (p: ProductStockRow) => p.branch_name || '',
+                        render: (p: ProductStockRow) => p.branch_name || '—',
+                    }] : []),
+                    {
+                        key: 'mrp',
+                        title: translate('portal', 'col_mrp'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => Number(p.mrp) || 0,
+                        render: (p: ProductStockRow) => p.mrp != null && p.mrp !== '' ? money(p.mrp) : '—',
+                    },
+                    ...(showCost ? [{
+                        key: 'cost',
+                        title: translate('portal', 'col_cost'),
+                        sortable: true,
+                        align: 'right' as const,
+                        sortValue: (p: ProductStockRow) => Number(p.cost_price) || 0,
+                        render: (p: ProductStockRow) => p.cost_price != null && p.cost_price !== '' ? money(p.cost_price) : '—',
+                    }] : []),
+                    {
+                        key: 'dealer_price',
+                        title: translate('portal', 'col_dealer_commission'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => Number(p.dealer_price) || 0,
+                        render: (p: ProductStockRow) => <RateCell percent={p.dealer_discount_pct} price={p.dealer_price} />,
+                    },
+                    {
+                        key: 'subdealer_price',
+                        title: translate('portal', 'col_subdealer_commission'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => Number(p.sub_dealer_price) || 0,
+                        render: (p: ProductStockRow) => <RateCell percent={p.sub_dealer_discount_pct} price={p.sub_dealer_price} />,
+                    },
+                    {
+                        key: 'expiry',
+                        title: translate('portal', 'col_expiry'),
+                        sortable: true,
+                        sortValue: (p: ProductStockRow) => p.expires_on || '',
+                        render: (p: ProductStockRow) => p.expires_on ? date(p.expires_on) : '—',
+                    },
+                    {
+                        key: 'available_units',
+                        title: translate('portal', 'available_units'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => availableUnits(p),
+                        render: (p: ProductStockRow) => {
+                            const onHand = availableUnits(p);
+                            const low = Number(p.low_stock_at ?? 0);
+                            return (
+                                <b className={onHand <= low ? 'text-amber' : ''}>
+                                    {onHand}
+                                    {p.company_stock != null && p.company_stock !== onHand ? (
+                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: String(p.company_stock) })}</small>
+                                    ) : null}
+                                </b>
+                            );
+                        },
+                    },
+                    {
+                        key: 'stock_value',
+                        title: translate('portal', 'branch_stock_value'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => availableUnits(p) * Number(p.mrp || 0),
+                        render: (p: ProductStockRow) => money(availableUnits(p) * Number(p.mrp || 0)),
+                    },
+                    {
+                        key: 'reorder',
+                        title: translate('portal', 'col_reorder'),
+                        sortable: true,
+                        render: (p: ProductStockRow) => {
+                            const onHand = availableUnits(p);
+                            const low = Number(p.low_stock_at ?? 0);
+                            return onHand <= 0 ? translate('portal', 'stock_level_out') : onHand <= low ? translate('portal', 'stock_level_low') : translate('portal', 'stock_level_ok');
+                        },
+                    },
+                    {
+                        key: 'low_stock_at',
+                        title: translate('portal', 'low_stock_threshold'),
+                        sortable: true,
+                        align: 'right',
+                        sortValue: (p: ProductStockRow) => Number(p.low_stock_at) || 0,
+                        render: (p: ProductStockRow) => p.low_stock_at ?? '—',
+                    },
+                    {
+                        key: 'action',
+                        title: translate('portal', 'one_click_stock'),
+                        align: 'center',
+                        render: (p: ProductStockRow) => {
+                            const paused = Boolean(p.is_stock_paused);
+                            return (
+                                <button
+                                    type="button"
+                                    className={`button small ${paused ? 'stock-resume' : 'stock-pause'}`}
+                                    disabled={!canToggle}
+                                    onClick={() => router.post(`/commands/products/${p.id}/toggle-stock`, {}, { preserveScroll: true })}
+                                >
+                                    {paused ? translate('portal', 'resume_ordering') : translate('portal', 'pause_ordering')}
+                                </button>
+                            );
+                        },
+                    },
+                ]}
+                empty={translate('portal', 'stock_no_matches')}
+                emptyBody={translate('portal', 'stock_filter_hint')}
+            />
         </section>
     );
 }

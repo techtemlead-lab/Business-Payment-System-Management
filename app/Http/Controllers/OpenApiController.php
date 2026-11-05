@@ -54,9 +54,9 @@ class OpenApiController extends Controller
                         'type' => 'object',
                         'properties' => [
                             'id' => ['type' => 'string', 'format' => 'uuid'],
-                            'order_number' => ['type' => 'string'],
+                            'number' => ['type' => 'string'],
                             'total' => ['type' => 'string', 'example' => '12500.00'],
-                            'status' => ['type' => 'string', 'enum' => ['pending', 'approved', 'dispatched', 'delivered', 'cancelled']],
+                            'status' => ['type' => 'string', 'enum' => ['submitted', 'held', 'approved', 'partially_dispatched', 'dispatched', 'delivered', 'rejected', 'cancelled']],
                             'created_at' => ['type' => 'string', 'format' => 'date-time'],
                         ],
                     ],
@@ -153,7 +153,7 @@ class OpenApiController extends Controller
                         'summary' => 'Request Payout / Commission Withdrawal (Idempotent)',
                         'tags' => ['Payouts'],
                         'responses' => [
-                            '200' => ['description' => 'Withdrawal requested or returned from idempotency key.'],
+                            '201' => ['description' => 'Withdrawal requested or returned from idempotency key.'],
                             '422' => ['description' => 'Validation failure (minimum amount, insufficient balance, or clawback debt)'],
                         ],
                     ],

@@ -20,6 +20,7 @@ import {
     List
 } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
+import { notify } from '../shared/notify';
 
 interface Slide {
     image: string;
@@ -442,15 +443,15 @@ function Field({
     const displayLabel = localizedLabel === fieldLabelKey ? label : localizedLabel;
 
     return (
-        <label style={{ display: 'block', gridColumn: span2 ? '1 / -1' : undefined }}>
-            <span style={{ fontWeight: 600, fontSize: 13, display: 'block', marginBottom: 6 }}>{displayLabel}</span>
+        <label className={span2 ? 'ed-block hub-span-all' : 'ed-block'}>
+            <span className="ed-label">{displayLabel}</span>
             {multiline ? (
                 <textarea
                     rows={rows}
                     value={value || ''}
                     placeholder={placeholder}
                     onChange={e => onChange(fieldKey, e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontFamily: 'inherit', fontSize: 13 }}
+                    className="ed-input"
                 />
             ) : (
                 <input
@@ -458,16 +459,26 @@ function Field({
                     value={value || ''}
                     placeholder={placeholder}
                     onChange={e => onChange(fieldKey, e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                    className="ed-input"
                 />
             )}
             {placeholder ? (
-                <small style={{ color: '#94a3b8', display: 'block', marginTop: 4, fontSize: 11 }}>
+                <small className="ed-hint ed-mt-xs">
                     {translate('portal', 'sce_default_placeholder', { value: placeholder })}
                 </small>
             ) : null}
         </label>
     );
+}
+
+/**
+ * Splits a translated sentence on its :placeholders and shows each given value in bold.
+ */
+function withBoldValues(sentence: string, values: Record<string, string>): React.ReactNode[] {
+    return sentence.split(/(:[a-z_]+)/).map((part, index) => {
+        const name = part.startsWith(':') ? part.slice(1) : '';
+        return name && name in values ? <strong key={index}>{values[name]}</strong> : part;
+    });
 }
 
 interface CategoryItem {
@@ -625,7 +636,7 @@ function CategoryManager({
 
             handleFieldChange(index, 'icon', payload.url);
         } catch (error) {
-            alert(error instanceof Error ? error.message : translate('portal', 'sce_category_image_upload_failed'));
+            notify(error instanceof Error ? error.message : translate('portal', 'sce_category_image_upload_failed'), 'error');
         } finally {
             setUploadingIdx(null);
         }
@@ -707,7 +718,7 @@ function CategoryManager({
     const handleLoadFromProducts = () => {
         const catalogCats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
         if (catalogCats.length === 0) {
-            alert(translate('portal', 'cms_alert_no_product_categories'));
+            notify(translate('portal', 'cms_alert_no_product_categories'), 'error');
             return;
         }
 
@@ -745,56 +756,36 @@ function CategoryManager({
     };
 
     return (
-        <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
+        <div className="ed-card is-soft">
             {/* Header & Controls Toolbar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div className="ed-head">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#2e3192' }}>
+                    <div className="ed-row is-loose">
+                        <h4 className="ed-subtitle is-flush">
                             {translate('portal', 'sce_featured_categories_manager')}
                         </h4>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: '#e2e8f0', color: '#334155' }}>
+                        <span className="hub-pill">
                             {translate('portal', items.length === 1 ? 'sce_category_count_one' : 'sce_category_count_many', { count: String(items.length) })}
                         </span>
                     </div>
-                    <small style={{ color: '#64748b', display: 'block', marginTop: 3 }}>
+                    <small className="ed-meta is-block">
                         {translate('portal', 'sce_featured_categories_manager_hint')}
                     </small>
                 </div>
 
                 {/* Mode Switcher */}
-                <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: 6, padding: 2 }}>
+                <div className="hub-seg">
                     <button
                         type="button"
                         onClick={() => setMode('visual')}
-                        style={{
-                            padding: '5px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            borderRadius: 4,
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: mode === 'visual' ? '#ffffff' : 'transparent',
-                            color: mode === 'visual' ? '#0f172a' : '#64748b',
-                            boxShadow: mode === 'visual' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                        }}
+                        className={mode === 'visual' ? 'is-active' : undefined}
                     >
                         🎨 {translate('portal', 'sce_visual_builder')}
                     </button>
                     <button
                         type="button"
                         onClick={() => setMode('text')}
-                        style={{
-                            padding: '5px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            borderRadius: 4,
-                            border: 'none',
-                            cursor: 'pointer',
-                            background: mode === 'text' ? '#ffffff' : 'transparent',
-                            color: mode === 'text' ? '#0f172a' : '#64748b',
-                            boxShadow: mode === 'text' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                        }}
+                        className={mode === 'text' ? 'is-active' : undefined}
                     >
                         📝 {translate('portal', 'sce_raw_text_mode')}
                     </button>
@@ -802,13 +793,12 @@ function CategoryManager({
             </div>
 
             {/* Quick Action Freedom Bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, padding: '10px 14px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 6, marginBottom: 16 }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="ed-toolbar">
+                <div className="ed-row is-wrap">
                     <button
                         type="button"
                         onClick={handleAddItem}
-                        className="button small"
-                        style={{ background: '#006837', color: '#ffffff', border: 'none', fontSize: 12, fontWeight: 700, padding: '7px 14px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                        className="button small dark"
                     >
                         <Plus size={15} /> {translate('portal', 'sce_add_new_category')}
                     </button>
@@ -816,28 +806,25 @@ function CategoryManager({
                         <button
                             type="button"
                             onClick={handleLoadFromProducts}
-                            className="button small"
-                            style={{ background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
+                            className="button small light"
                         >
                             ⚡ {translate('portal', 'sce_load_from_products', { count: String(products.length) })}
                         </button>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="ed-row is-wrap">
                     <button
                         type="button"
                         onClick={handleReset}
-                        className="button small"
-                        style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
+                        className="button small tone-info"
                     >
                         ↺ {translate('portal', 'sce_reset_reference_defaults')}
                     </button>
                     <button
                         type="button"
                         onClick={handleClearAll}
-                        className="button small"
-                        style={{ background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer' }}
+                        className="button small danger"
                     >
                         🗑️ {translate('portal', 'sce_clear_all')}
                     </button>
@@ -848,31 +835,31 @@ function CategoryManager({
             {mode === 'visual' && (
                 <div>
                     {items.length === 0 ? (
-                        <div style={{ padding: '36px 20px', textAlign: 'center', background: '#fff', borderRadius: 8, border: '2px dashed #cbd5e1' }}>
-                            <div style={{ fontSize: 24, marginBottom: 8 }}>🏷️</div>
-                            <strong style={{ fontSize: 15, color: '#334155', display: 'block' }}>{translate('portal', 'cms_no_categories_yet')}</strong>
-                            <p style={{ margin: '4px 0 16px', fontSize: 13, color: '#64748b' }}>
-                                Add your first category using the button below, or reset to the 18 reference defaults.
+                        <div className="ed-empty">
+                            <div className="ed-empty-icon">🏷️</div>
+                            <strong className="ed-strong is-lg is-block">{translate('portal', 'cms_no_categories_yet')}</strong>
+                            <p className="ed-desc ed-mb">
+                                {translate('portal', 'sce_no_categories_hint')}
                             </p>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+                            <div className="ed-row is-loose is-center">
                                 <button
                                     type="button"
                                     onClick={handleAddItem}
-                                    style={{ background: '#006837', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                                    className="button small dark"
                                 >
-                                    <Plus size={16} /> Add First Category
+                                    <Plus size={16} /> {translate('portal', 'sce_add_first_category')}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleReset}
-                                    style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                    className="button small"
                                 >
-                                    ↺ Restore Reference Defaults
+                                    ↺ {translate('portal', 'sce_restore_reference_defaults')}
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div className="ed-stack">
                             {items.map((item, idx) => {
                                 const isImage = (item.icon || '').startsWith('http') || (item.icon || '').startsWith('/') || /\.(png|jpe?g|svg|webp|gif)/i.test(item.icon || '');
                                 const isPickerOpen = pickerOpenIdx === idx;
@@ -880,34 +867,19 @@ function CategoryManager({
                                 return (
                                     <div
                                         key={item.id || idx}
-                                        style={{
-                                            background: '#ffffff',
-                                            border: '1px solid #cbd5e1',
-                                            borderRadius: 8,
-                                            padding: 14,
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                                            transition: 'border-color 0.2s ease',
-                                        }}
+                                        className="ed-card"
                                     >
                                         {/* Card Top Bar */}
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div className="ed-head is-ruled">
+                                            <div className="ed-row is-loose">
                                                 {/* Reorder Buttons */}
-                                                <div style={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
+                                                <div className="ed-row is-tight">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleMoveUp(idx)}
                                                         disabled={idx === 0}
                                                         title={translate('portal', 'sce_move_category_up')}
-                                                        style={{
-                                                            padding: '3px 6px',
-                                                            borderRadius: 4,
-                                                            border: '1px solid #cbd5e1',
-                                                            background: idx === 0 ? '#f8fafc' : '#fff',
-                                                            color: idx === 0 ? '#94a3b8' : '#334155',
-                                                            cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                                            fontSize: 11,
-                                                        }}
+                                                        className={`ed-icon-btn is-sm${idx === 0 ? ' is-disabled' : ''}`}
                                                     >
                                                         ▲
                                                     </button>
@@ -916,50 +888,30 @@ function CategoryManager({
                                                         onClick={() => handleMoveDown(idx)}
                                                         disabled={idx === items.length - 1}
                                                         title={translate('portal', 'sce_move_category_down')}
-                                                        style={{
-                                                            padding: '3px 6px',
-                                                            borderRadius: 4,
-                                                            border: '1px solid #cbd5e1',
-                                                            background: idx === items.length - 1 ? '#f8fafc' : '#fff',
-                                                            color: idx === items.length - 1 ? '#94a3b8' : '#334155',
-                                                            cursor: idx === items.length - 1 ? 'not-allowed' : 'pointer',
-                                                            fontSize: 11,
-                                                        }}
+                                                        className={`ed-icon-btn is-sm${idx === items.length - 1 ? ' is-disabled' : ''}`}
                                                     >
                                                         ▼
                                                     </button>
                                                 </div>
 
                                                 {/* Item Number */}
-                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '2px 7px', borderRadius: 4 }}>
+                                                <span className="hub-pill">
                                                     #{idx + 1}
                                                 </span>
 
                                                 {/* Live Icon / Image Preview */}
                                                 <div
-                                                    style={{
-                                                        width: 32,
-                                                        height: 32,
-                                                        borderRadius: 6,
-                                                        background: '#f0fdf4',
-                                                        border: '1px solid #bbf7d0',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        fontSize: 16,
-                                                        color: '#006837',
-                                                        flexShrink: 0,
-                                                    }}
+                                                    className="ed-icon tone-ok"
                                                 >
                                                     {isImage ? (
-                                                        <img src={item.icon} alt={item.name} style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                                                        <img src={item.icon} alt={item.name} className="ed-icon-img" />
                                                     ) : (
                                                         <i className={`fa-solid ${item.icon || 'fa-tag'}`} aria-hidden="true" />
                                                     )}
                                                 </div>
 
-                                                <strong style={{ fontSize: 14, color: '#0f172a' }}>
-                                                    {item.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{translate('portal', 'sce_untitled_category')}</span>}
+                                                <strong className="ed-strong">
+                                                    {item.name || <span className="ed-placeholder">{translate('portal', 'sce_untitled_category')}</span>}
                                                 </strong>
 
                                                 {/* Active Products Count & Status Pill */}
@@ -967,12 +919,12 @@ function CategoryManager({
                                                     (() => {
                                                         const count = products.filter(p => (p.category || '').trim().toLowerCase() === item.name.trim().toLowerCase()).length;
                                                         return count > 0 ? (
-                                                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#dcfce7', color: '#166534' }}>
-                                                                ✓ {count} active {count === 1 ? 'product' : 'products'}
+                                                            <span className="hub-pill tone-ok">
+                                                                ✓ {translate('portal', count === 1 ? 'sce_active_product_count_one' : 'sce_active_product_count_many', { count: String(count) })}
                                                             </span>
                                                         ) : (
-                                                            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10, background: '#fef3c7', color: '#92400e' }} title="No active products currently match this category">
-                                                                ⚠️ 0 catalog products
+                                                            <span className="hub-pill tone-warn" title={translate('portal', 'sce_no_active_products_in_category')}>
+                                                                ⚠️ {translate('portal', 'sce_zero_catalog_products')}
                                                             </span>
                                                         );
                                                     })()
@@ -980,7 +932,7 @@ function CategoryManager({
 
                                                 {/* Badge Indicator Pill */}
                                                 {item.badge && (
-                                                    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 10, background: '#fee2e2', color: '#991b1b', textTransform: 'uppercase' }}>
+                                                    <span className="hub-pill tone-danger">
                                                         ★ {item.badge}
                                                     </span>
                                                 )}
@@ -990,29 +942,17 @@ function CategoryManager({
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveItem(idx)}
-                                                style={{
-                                                    padding: '5px 10px',
-                                                    borderRadius: 6,
-                                                    background: '#fee2e2',
-                                                    color: '#991b1b',
-                                                    border: '1px solid #fecaca',
-                                                    fontSize: 12,
-                                                    fontWeight: 600,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 4,
-                                                }}
+                                                className="button small danger"
                                             >
-                                                <Trash2 size={13} /> Remove
+                                                <Trash2 size={13} /> {translate('portal', 'sce_remove')}
                                             </button>
                                         </div>
 
                                         {/* Card Input Fields */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                                        <div className="ed-grid is-sm">
                                             {/* Category Name */}
-                                            <label style={{ display: 'block' }}>
-                                                <span style={{ fontSize: 11, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                                            <label className="ed-block">
+                                                <span className="ed-label">
                                                     {translate('portal', 'sce_category_name')}
                                                 </span>
                                                 <input
@@ -1020,29 +960,20 @@ function CategoryManager({
                                                     value={item.name}
                                                     placeholder={translate('portal', 'sce_category_name_ph')}
                                                     onChange={e => handleFieldChange(idx, 'name', e.target.value)}
-                                                    style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
+                                                    className="ed-input is-sm"
                                                 />
                                             </label>
 
                                             {/* Icon Field & Quick Picker Toggle */}
-                                            <label style={{ display: 'block' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                                            <label className="ed-block">
+                                                <div className="ed-head is-sm">
+                                                    <span className="ed-label is-inline">
                                                         {translate('portal', 'sce_icon_label')}
                                                     </span>
                                                     <button
                                                         type="button"
                                                         onClick={() => setPickerOpenIdx(isPickerOpen ? null : idx)}
-                                                        style={{
-                                                            border: 'none',
-                                                            background: isPickerOpen ? '#006837' : '#e0f2fe',
-                                                            color: isPickerOpen ? '#fff' : '#0369a1',
-                                                            fontSize: 10,
-                                                            fontWeight: 700,
-                                                            padding: '2px 7px',
-                                                            borderRadius: 4,
-                                                            cursor: 'pointer',
-                                                        }}
+                                                        className={`ed-mini ${isPickerOpen ? 'is-active' : 'tone-info'}`}
                                                     >
                                                         {isPickerOpen ? translate('portal', 'sce_close_picker') : translate('portal', 'sce_pick_icon')}
                                                     </button>
@@ -1052,23 +983,11 @@ function CategoryManager({
                                                     value={item.icon}
                                                     placeholder={translate('portal', 'sce_icon_ph')}
                                                     onChange={e => handleFieldChange(idx, 'icon', e.target.value)}
-                                                    style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
+                                                    className="ed-input is-sm"
                                                 />
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                                                <div className="ed-row is-wrap ed-mt-sm">
                                                     <label
-                                                        style={{
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: 6,
-                                                            padding: '6px 10px',
-                                                            borderRadius: 6,
-                                                            border: '1px solid #bbf7d0',
-                                                            background: uploadingIdx === idx ? '#ecfdf5' : '#f0fdf4',
-                                                            color: '#166534',
-                                                            fontSize: 11,
-                                                            fontWeight: 700,
-                                                            cursor: uploadingIdx === idx ? 'wait' : 'pointer',
-                                                        }}
+                                                        className={`button small light${uploadingIdx === idx ? ' ed-busy' : ''}`}
                                                     >
                                                         <Image size={13} />
                                                         {uploadingIdx === idx
@@ -1078,7 +997,7 @@ function CategoryManager({
                                                             type="file"
                                                             accept="image/png,image/jpeg,image/webp"
                                                             disabled={uploadingIdx === idx}
-                                                            style={{ display: 'none' }}
+                                                            className="ed-hidden"
                                                             onChange={e => {
                                                                 const file = e.target.files?.[0] ?? null;
                                                                 e.target.value = '';
@@ -1086,16 +1005,16 @@ function CategoryManager({
                                                             }}
                                                         />
                                                     </label>
-                                                    <small style={{ color: '#64748b', fontSize: 10, lineHeight: 1.4 }}>
+                                                    <small className="ed-meta">
                                                         {translate('portal', 'sce_category_image_hint')}
                                                     </small>
                                                 </div>
                                             </label>
 
                                             {/* Destination Link */}
-                                            <label style={{ display: 'block' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                                            <label className="ed-block">
+                                                <div className="ed-head is-sm">
+                                                    <span className="ed-label is-inline">
                                                         {translate('portal', 'sce_target_url_optional')}
                                                     </span>
                                                     <button
@@ -1104,16 +1023,7 @@ function CategoryManager({
                                                             const autoLink = `/products?category=${encodeURIComponent(item.name.trim())}`;
                                                             handleFieldChange(idx, 'link', autoLink);
                                                         }}
-                                                        style={{
-                                                            border: 'none',
-                                                            background: '#f1f5f9',
-                                                            color: '#475569',
-                                                            fontSize: 10,
-                                                            fontWeight: 600,
-                                                            padding: '2px 6px',
-                                                            borderRadius: 4,
-                                                            cursor: 'pointer',
-                                                        }}
+                                                        className="ed-mini"
                                                     >
                                                         {translate('portal', 'sce_auto_catalog')}
                                                     </button>
@@ -1123,32 +1033,23 @@ function CategoryManager({
                                                     value={item.link}
                                                     placeholder={`/products?category=${encodeURIComponent(item.name || translate('portal', 'sce_category_fallback'))}`}
                                                     onChange={e => handleFieldChange(idx, 'link', e.target.value)}
-                                                    style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
+                                                    className="ed-input is-sm"
                                                 />
                                             </label>
 
                                             {/* Promotional Badge */}
-                                            <label style={{ display: 'block' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                                            <label className="ed-block">
+                                                <div className="ed-head is-sm">
+                                                    <span className="ed-label is-inline">
                                                         {translate('portal', 'sce_promotional_badge_optional')}
                                                     </span>
-                                                    <div style={{ display: 'flex', gap: 3 }}>
+                                                    <div className="ed-row is-tight">
                                                         {['HOT', 'NEW', 'POPULAR', ''].map(tag => (
                                                             <button
                                                                 key={tag || 'none'}
                                                                 type="button"
                                                                 onClick={() => handleFieldChange(idx, 'badge', tag)}
-                                                                style={{
-                                                                    border: 'none',
-                                                                    background: item.badge === tag ? '#006837' : '#f1f5f9',
-                                                                    color: item.badge === tag ? '#fff' : '#475569',
-                                                                    fontSize: 9,
-                                                                    fontWeight: 700,
-                                                                    padding: '1px 5px',
-                                                                    borderRadius: 3,
-                                                                    cursor: 'pointer',
-                                                                }}
+                                                                className={`ed-mini${item.badge === tag ? ' is-active' : ''}`}
                                                             >
                                                                 {tag || translate('portal', 'sce_clear')}
                                                             </button>
@@ -1160,7 +1061,7 @@ function CategoryManager({
                                                     value={item.badge || ''}
                                                     placeholder={translate('portal', 'sce_badge_ph')}
                                                     onChange={e => handleFieldChange(idx, 'badge', e.target.value)}
-                                                    style={{ width: '100%', padding: '7px 9px', border: '1px solid #cbd5e1', borderRadius: 5, fontSize: 12 }}
+                                                    className="ed-input is-sm"
                                                 />
                                             </label>
                                         </div>
@@ -1168,30 +1069,24 @@ function CategoryManager({
                                         {/* Dropdown Icon Selector (Opens inline if toggled) */}
                                         {isPickerOpen && (
                                             <div
-                                                style={{
-                                                    marginTop: 12,
-                                                    padding: 12,
-                                                    background: '#f8fafc',
-                                                    border: '1.5px solid #006837',
-                                                    borderRadius: 8,
-                                                }}
+                                                className="ed-picker"
                                             >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                                    <strong style={{ fontSize: 12, color: '#006837' }}>
+                                                <div className="ed-head is-sm">
+                                                    <strong className="ed-strong is-sm tone-ok">
                                                         {translate('portal', 'sce_select_icon_for', { name: item.name || translate('portal', 'sce_category_fallback') })}
                                                     </strong>
-                                                    <span style={{ fontSize: 11, color: '#64748b' }}>
+                                                    <span className="ed-meta">
                                                         {translate('portal', 'cms_click_icon_apply')}
                                                     </span>
                                                 </div>
 
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                <div className="ed-stack">
                                                     {POPULAR_CATEGORY_ICONS.map(group => (
                                                         <div key={group.groupKey}>
-                                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', marginBottom: 6, borderBottom: '1px solid #e2e8f0', paddingBottom: 2 }}>
+                                                            <div className="ed-group-label">
                                                                 {translate('portal', group.groupKey)}
                                                             </div>
-                                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                                                            <div className="ed-grid is-xs">
                                                                 {group.icons.map(ic => (
                                                                     <button
                                                                         key={ic.icon}
@@ -1200,22 +1095,10 @@ function CategoryManager({
                                                                             handleFieldChange(idx, 'icon', ic.icon);
                                                                             setPickerOpenIdx(null);
                                                                         }}
-                                                                        style={{
-                                                                            padding: '6px 8px',
-                                                                            background: item.icon === ic.icon ? '#dcfce7' : '#ffffff',
-                                                                            border: `1px solid ${item.icon === ic.icon ? '#15803d' : '#e2e8f0'}`,
-                                                                            borderRadius: 6,
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: 8,
-                                                                            fontSize: 11,
-                                                                            color: item.icon === ic.icon ? '#15803d' : '#334155',
-                                                                            cursor: 'pointer',
-                                                                            textAlign: 'left',
-                                                                        }}
+                                                                        className={`ed-option${item.icon === ic.icon ? ' is-active' : ''}`}
                                                                     >
-                                                                        <i className={`fa-solid ${ic.icon}`} style={{ fontSize: 14, width: 16, textAlign: 'center' }} />
-                                                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                        <i className={`fa-solid ${ic.icon} ed-picker-icon`} />
+                                                                        <span className="ed-truncate">
                                                                             {translate('portal', ic.labelKey)}
                                                                         </span>
                                                                     </button>
@@ -1231,25 +1114,11 @@ function CategoryManager({
                             })}
 
                             {/* Bottom Add Category Button */}
-                            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+                            <div className="ed-row is-center ed-mt-sm">
                                 <button
                                     type="button"
                                     onClick={handleAddItem}
-                                    style={{
-                                        background: '#ffffff',
-                                        color: '#006837',
-                                        border: '1.5px dashed #006837',
-                                        padding: '10px 24px',
-                                        borderRadius: 8,
-                                        fontSize: 13,
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        width: '100%',
-                                        justifyContent: 'center',
-                                    }}
+                                    className="ed-add tone-ok"
                                 >
                                     <Plus size={16} /> {translate('portal', 'sce_add_another_category')}
                                 </button>
@@ -1262,7 +1131,7 @@ function CategoryManager({
             {/* Raw Text / Bulk Editor Mode */}
             {mode === 'text' && (
                 <div>
-                    <div style={{ marginBottom: 8, fontSize: 12, color: '#64748b' }}>
+                    <div className="ed-desc is-sm ed-mb-sm">
                         {translate('portal', 'sce_raw_categories_format_prefix')}{' '}
                         <code>{translate('portal', 'sce_raw_categories_format_code')}</code>
                     </div>
@@ -1271,18 +1140,9 @@ function CategoryManager({
                         value={rawValue}
                         placeholder={defaultValue}
                         onChange={e => onChange(e.target.value)}
-                        style={{
-                            width: '100%',
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            lineHeight: 1.6,
-                            padding: '10px 12px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                            background: '#fff',
-                        }}
+                        className="ed-input is-sm is-mono"
                     />
-                    <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                    <small className="ed-meta is-block">
                         {translate('portal', 'sce_raw_categories_tip')}
                     </small>
                 </div>
@@ -1341,7 +1201,7 @@ function ShortcutsManager({
 
     const handleRemove = (index: number) => {
         const target = shortcuts[index];
-        const name = target?.title?.trim() || `Shortcut #${index + 1}`;
+        const name = target?.title?.trim() || translate('portal', 'sce_shortcut_number', { number: String(index + 1) });
         if (window.confirm(translate('portal', 'cms_confirm_remove_named', { name }))) {
             const next = shortcuts.filter((_, idx) => idx !== index);
             onChange(next);
@@ -1387,55 +1247,25 @@ function ShortcutsManager({
     return (
         <div>
             {/* Section Visibility Switch */}
-            <div style={{
-                padding: '16px 20px',
-                background: enabled ? '#ecfdf5' : '#f8fafc',
-                border: `1.5px solid ${enabled ? '#10b981' : '#cbd5e1'}`,
-                borderRadius: 10,
-                marginBottom: 20,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: '50%',
-                        background: enabled ? '#d1fae5' : '#f1f5f9',
-                        color: enabled ? '#006837' : '#64748b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        flexShrink: 0
-                    }}>
+            <div className={`ed-switch-banner${enabled ? ' is-on tone-ok' : ''}`}>
+                <div className="ed-row is-loose">
+                    <div className="ed-switch-icon">
                         {enabled ? '✓' : '✕'}
                     </div>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <strong style={{ fontSize: 15, color: enabled ? '#065f46' : '#334155' }}>
+                        <div className="ed-row">
+                            <strong className="ed-strong is-lg">
                                 {translate('portal', 'sce_shortcuts_section_status', {
                                     state: enabled
                                         ? translate('portal', 'sce_section_active_visible')
                                         : translate('portal', 'sce_section_hidden'),
                                 })}
                             </strong>
-                            <span style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                borderRadius: 12,
-                                background: enabled ? '#006837' : '#64748b',
-                                color: '#fff'
-                            }}>
+                            <span className="ed-state-pill">
                                 {enabled ? translate('portal', 'sce_enabled') : translate('portal', 'sce_disabled')}
                             </span>
                         </div>
-                        <p style={{ margin: '3px 0 0', fontSize: 13, color: '#475569' }}>
+                        <p className="ed-desc">
                             {enabled
                                 ? translate('portal', 'sce_shortcuts_enabled_hint')
                                 : translate('portal', 'sce_shortcuts_disabled_hint')}
@@ -1446,17 +1276,7 @@ function ShortcutsManager({
                     <button
                         type="button"
                         onClick={() => onToggleEnabled(!enabled)}
-                        style={{
-                            padding: '9px 18px',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            background: enabled ? '#fee2e2' : '#006837',
-                            color: enabled ? '#991b1b' : '#ffffff',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
-                        }}
+                        className={`button ${enabled ? 'danger' : 'dark'}`}
                     >
                         {enabled
                             ? translate('portal', 'sce_disable_hide_section')
@@ -1466,58 +1286,37 @@ function ShortcutsManager({
             </div>
 
             {/* Action Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
+            <div className="ed-head">
+                <div className="ed-row is-loose">
+                    <h3 className="ed-title is-flush">
                         {translate('portal', 'sce_shortcuts_heading', { count: String(shortcuts.length) })}
                     </h3>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                    <span className="ed-desc is-sm">
                         {translate('portal', 'sce_shortcuts_manage_hint')}
                     </span>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className="ed-row">
                     <button
                         type="button"
                         onClick={handleAdd}
-                        style={{
-                            background: '#006837',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '8px 14px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
+                        className="button small dark"
                     >
-                        <Plus size={14} /> + Add Shortcut
+                        <Plus size={14} /> {translate('portal', 'sce_add_shortcut')}
                     </button>
                     <button
                         type="button"
                         onClick={handleReset}
-                        style={{
-                            background: '#f1f5f9',
-                            color: '#475569',
-                            border: '1px solid #cbd5e1',
-                            padding: '8px 12px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                        }}
+                        className="button small"
                     >
-                        Reset to 5 Defaults
+                        {translate('portal', 'sce_reset_five_shortcuts')}
                     </button>
                 </div>
             </div>
 
             {/* List of Shortcuts */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="ed-stack">
                 {shortcuts.map((sc, idx) => {
-                    const defSc = defaultShortcuts[idx] || { title: 'Quick Link', subtitle: 'Description', icon: 'fa-seedling', link: '/products' };
+                    const defSc = defaultShortcuts[idx] || { title: translate('portal', 'sce_shortcut_fallback_title'), subtitle: translate('portal', 'sce_shortcut_fallback_subtitle'), icon: 'fa-seedling', link: '/products' };
                     const isPickerOpen = pickerOpenIdx === idx;
                     const isImg = (sc.icon || '').startsWith('/') || (sc.icon || '').startsWith('http');
                     const cleanIconClass = (sc.icon || defSc.icon).startsWith('fa-') ? (sc.icon || defSc.icon) : `fa-${sc.icon || defSc.icon}`;
@@ -1525,55 +1324,30 @@ function ShortcutsManager({
                     return (
                         <div
                             key={sc.id || idx}
-                            style={{
-                                padding: 16,
-                                border: '1px solid #e2e8f0',
-                                borderRadius: 10,
-                                background: '#fff',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                            }}
+                            className="ed-card"
                         >
                             {/* Card Header */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <span style={{
-                                        background: '#2e3192',
-                                        color: '#fff',
-                                        fontSize: 11,
-                                        fontWeight: 800,
-                                        width: 22,
-                                        height: 22,
-                                        borderRadius: '50%',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
+                            <div className="ed-head is-ruled">
+                                <div className="ed-row is-loose">
+                                    <span className="hub-step">
                                         {idx + 1}
                                     </span>
-                                    <strong style={{ fontSize: 14, color: '#0f172a' }}>
-                                        {sc.title || defSc.title || `Shortcut #${idx + 1}`}
+                                    <strong className="ed-strong">
+                                        {sc.title || defSc.title || translate('portal', 'sce_shortcut_number', { number: String(idx + 1) })}
                                     </strong>
                                     {sc.subtitle && (
-                                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                                        <span className="ed-desc is-sm">
                                             — {sc.subtitle}
                                         </span>
                                     )}
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <div className="ed-row is-tight">
                                     <button
                                         type="button"
                                         disabled={idx === 0}
                                         onClick={() => handleMoveUp(idx)}
                                         title={translate('portal', 'sce_move_up')}
-                                        style={{
-                                            border: '1px solid #cbd5e1',
-                                            background: idx === 0 ? '#f8fafc' : '#fff',
-                                            color: idx === 0 ? '#cbd5e1' : '#334155',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: idx === 0 ? 'not-allowed' : 'pointer'
-                                        }}
+                                        className={`ed-icon-btn is-sm${idx === 0 ? ' is-disabled' : ''}`}
                                     >
                                         ↑
                                     </button>
@@ -1582,15 +1356,7 @@ function ShortcutsManager({
                                         disabled={idx === shortcuts.length - 1}
                                         onClick={() => handleMoveDown(idx)}
                                         title={translate('portal', 'sce_move_down')}
-                                        style={{
-                                            border: '1px solid #cbd5e1',
-                                            background: idx === shortcuts.length - 1 ? '#f8fafc' : '#fff',
-                                            color: idx === shortcuts.length - 1 ? '#cbd5e1' : '#334155',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: idx === shortcuts.length - 1 ? 'not-allowed' : 'pointer'
-                                        }}
+                                        className={`ed-icon-btn is-sm${idx === shortcuts.length - 1 ? ' is-disabled' : ''}`}
                                     >
                                         ↓
                                     </button>
@@ -1598,16 +1364,7 @@ function ShortcutsManager({
                                         type="button"
                                         onClick={() => handleRemove(idx)}
                                         title={translate('portal', 'sce_delete_shortcut')}
-                                        style={{
-                                            border: '1px solid #fecaca',
-                                            background: '#fef2f2',
-                                            color: '#dc2626',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: 'pointer',
-                                            fontWeight: 700
-                                        }}
+                                        className="button small danger"
                                     >
                                         ✕
                                     </button>
@@ -1615,58 +1372,49 @@ function ShortcutsManager({
                             </div>
 
                             {/* Card Body Grid */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                            <div className="ed-grid is-md">
                                 {/* Title */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Title
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_title')}
                                     </label>
                                     <input
                                         type="text"
                                         value={sc.title}
                                         placeholder={defSc.title}
                                         onChange={e => handleFieldChange(idx, 'title', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Placeholder: {defSc.title}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSc.title ?? '') })}</small>
                                 </div>
 
                                 {/* Subtitle */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Subtitle / Caption
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_subtitle_caption')}
                                     </label>
                                     <input
                                         type="text"
                                         value={sc.subtitle}
                                         placeholder={defSc.subtitle}
                                         onChange={e => handleFieldChange(idx, 'subtitle', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Placeholder: {defSc.subtitle}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSc.subtitle ?? '') })}</small>
                                 </div>
 
                                 {/* Icon */}
                                 <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
-                                            Icon (FontAwesome or Image URL)
+                                    <div className="ed-head is-sm">
+                                        <label className="ed-label is-inline">
+                                            {translate('portal', 'sce_icon_fa_or_image')}
                                         </label>
                                         <button
                                             type="button"
                                             onClick={() => setPickerOpenIdx(isPickerOpen ? null : idx)}
-                                            style={{
-                                                border: 'none',
-                                                background: isPickerOpen ? '#006837' : '#e0f2fe',
-                                                color: isPickerOpen ? '#fff' : '#0369a1',
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 4,
-                                                cursor: 'pointer',
-                                            }}
+                                            className={`ed-mini ${isPickerOpen ? 'is-active' : 'tone-info'}`}
                                         >
-                                            {isPickerOpen ? '✕ Close' : '🎨 Pick Icon'}
+                                            {isPickerOpen ? `✕ ${translate('portal', 'sce_close')}` : `🎨 ${translate('portal', 'sce_pick_icon')}`}
                                         </button>
                                     </div>
                                     <input
@@ -1674,38 +1422,29 @@ function ShortcutsManager({
                                         value={sc.icon}
                                         placeholder={defSc.icon}
                                         onChange={e => handleFieldChange(idx, 'icon', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>Placeholder: {defSc.icon}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSc.icon ?? '') })}</small>
                                 </div>
 
                                 {/* Link */}
                                 <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
-                                            Target Link
+                                    <div className="ed-head is-sm">
+                                        <label className="ed-label is-inline">
+                                            {translate('portal', 'sce_target_link')}
                                         </label>
-                                        <div style={{ display: 'flex', gap: 3 }}>
+                                        <div className="ed-row is-tight">
                                             {[
-                                                { label: 'Products', url: '/products' },
-                                                { label: 'Dealers', url: '/dealers' },
-                                                { label: 'About', url: '/about' },
-                                                { label: 'Complaint', url: '/contact?topic=complaint' },
+                                                { label: translate('portal', 'sce_link_preset_products'), url: '/products' },
+                                                { label: translate('portal', 'sce_link_preset_dealers'), url: '/dealers' },
+                                                { label: translate('portal', 'sce_link_preset_about'), url: '/about' },
+                                                { label: translate('portal', 'sce_link_preset_complaint'), url: '/contact?topic=complaint' },
                                             ].map(preset => (
                                                 <button
-                                                    key={preset.label}
+                                                    key={preset.url}
                                                     type="button"
                                                     onClick={() => handleFieldChange(idx, 'link', preset.url)}
-                                                    style={{
-                                                        border: 'none',
-                                                        background: '#f1f5f9',
-                                                        color: '#475569',
-                                                        fontSize: 9,
-                                                        fontWeight: 600,
-                                                        padding: '1px 5px',
-                                                        borderRadius: 3,
-                                                        cursor: 'pointer'
-                                                    }}
+                                                    className="ed-mini"
                                                 >
                                                     {preset.label}
                                                 </button>
@@ -1717,9 +1456,9 @@ function ShortcutsManager({
                                         value={sc.link}
                                         placeholder={defSc.link}
                                         onChange={e => handleFieldChange(idx, 'link', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8', fontSize: 11 }}>
+                                    <small className="ed-hint">
                                         {translate('portal', 'sce_default_placeholder', { value: defSc.link })}
                                     </small>
                                 </div>
@@ -1727,12 +1466,12 @@ function ShortcutsManager({
 
                             {/* Icon Picker Popdown */}
                             {isPickerOpen && (
-                                <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', border: '1.5px solid #006837', borderRadius: 8 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <strong style={{ fontSize: 12, color: '#006837' }}>{translate('portal', 'sce_choose_icon')}</strong>
-                                        <span style={{ fontSize: 11, color: '#64748b' }}>{translate('portal', 'cms_click_icon_apply_short')}</span>
+                                <div className="ed-picker">
+                                    <div className="ed-head is-sm">
+                                        <strong className="ed-strong is-sm tone-ok">{translate('portal', 'sce_choose_icon')}</strong>
+                                        <span className="ed-meta">{translate('portal', 'cms_click_icon_apply_short')}</span>
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+                                    <div className="ed-grid is-xs">
                                         {POPULAR_SHORTCUT_ICONS.map(ic => (
                                             <button
                                                 key={ic.icon}
@@ -1741,22 +1480,10 @@ function ShortcutsManager({
                                                     handleFieldChange(idx, 'icon', ic.icon);
                                                     setPickerOpenIdx(null);
                                                 }}
-                                                style={{
-                                                    padding: '6px 8px',
-                                                    background: sc.icon === ic.icon ? '#dcfce7' : '#ffffff',
-                                                    border: `1px solid ${sc.icon === ic.icon ? '#15803d' : '#e2e8f0'}`,
-                                                    borderRadius: 6,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 8,
-                                                    fontSize: 11,
-                                                    color: sc.icon === ic.icon ? '#15803d' : '#334155',
-                                                    cursor: 'pointer',
-                                                    textAlign: 'left',
-                                                }}
+                                                className={`ed-option${sc.icon === ic.icon ? ' is-active' : ''}`}
                                             >
-                                                <i className={`fa-solid ${ic.icon}`} style={{ fontSize: 14, width: 16, textAlign: 'center' }} />
-                                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <i className={`fa-solid ${ic.icon} ed-picker-icon`} />
+                                                <span className="ed-truncate">
                                                     {translate('portal', ic.labelKey)}
                                                 </span>
                                             </button>
@@ -1766,32 +1493,22 @@ function ShortcutsManager({
                             )}
 
                             {/* Live Card Preview Box */}
-                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                                    Homepage Live Card Preview:
+                            <div className="ed-foot ed-head is-flush">
+                                <span className="ed-kicker">
+                                    {translate('portal', 'sce_homepage_card_preview')}
                                 </span>
-                                <div style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 12,
-                                    padding: '10px 16px',
-                                    background: '#ffffff',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: 8,
-                                    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-                                    minWidth: 220
-                                }}>
+                                <div className="ed-preview-chip">
                                     {isImg ? (
-                                        <img src={sc.icon} alt={sc.title} style={{ width: 26, height: 26, objectFit: 'contain' }} />
+                                        <img src={sc.icon} alt={sc.title} className="ed-icon-img is-lg" />
                                     ) : (
-                                        <i className={`fa-solid ${cleanIconClass}`} style={{ fontSize: 24, color: '#f34c20' }} />
+                                        <i className={`fa-solid ${cleanIconClass} ed-preview-icon`} />
                                     )}
                                     <div>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#011627', lineHeight: 1.2 }}>
+                                        <div className="ed-strong">
                                             {sc.title || defSc.title}
                                         </div>
                                         {(sc.subtitle || defSc.subtitle) && (
-                                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+                                            <div className="ed-meta">
                                                 {sc.subtitle || defSc.subtitle}
                                             </div>
                                         )}
@@ -1804,27 +1521,13 @@ function ShortcutsManager({
             </div>
 
             {/* Bottom Add Shortcut Button */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+            <div className="ed-row is-center ed-mt">
                 <button
                     type="button"
                     onClick={handleAdd}
-                    style={{
-                        background: '#ffffff',
-                        color: '#006837',
-                        border: '1.5px dashed #006837',
-                        padding: '10px 24px',
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        width: '100%',
-                        justifyContent: 'center',
-                    }}
+                    className="ed-add tone-ok"
                 >
-                    <Plus size={16} /> + Add Another Feature Shortcut Card
+                    <Plus size={16} /> {translate('portal', 'sce_add_another_shortcut_card')}
                 </button>
             </div>
         </div>
@@ -1923,7 +1626,7 @@ export function CampaignOffersManager({
 
     const handleRemove = (index: number) => {
         const target = cards[index];
-        const name = target?.title?.trim() || `Offer Card #${index + 1}`;
+        const name = target?.title?.trim() || translate('portal', 'sce_offer_card_number', { number: String(index + 1) });
         if (window.confirm(translate('portal', 'cms_confirm_remove_promo', { name }))) {
             const next = cards.filter((_, idx) => idx !== index);
             onChange(next);
@@ -2094,7 +1797,7 @@ export function CampaignOffersManager({
     const handleAddBundleItem = (cardIndex: number) => {
         const prodId = bundleSelectedProds[cardIndex];
         if (!prodId) {
-            alert(translate('portal', 'cms_alert_select_product'));
+            notify(translate('portal', 'cms_alert_select_product'), 'error');
             return;
         }
         const p = products.find(prod => String(prod.id) === prodId);
@@ -2104,7 +1807,7 @@ export function CampaignOffersManager({
         const existingItems = target.bundle_items || [];
 
         if (existingItems.some(item => String(item.product_id) === String(p.id))) {
-            alert(translate('portal', 'cms_alert_already_in_package', { name: p.name }));
+            notify(translate('portal', 'cms_alert_already_in_package', { name: p.name }), 'error');
             return;
         }
 
@@ -2164,10 +1867,10 @@ export function CampaignOffersManager({
                 const diff = numM - numP;
                 handleFieldChange(index, 'save', `Save ${diff.toLocaleString()} Tk`);
             } else {
-                alert(translate('portal', 'cms_alert_mrp_gt_offer'));
+                notify(translate('portal', 'cms_alert_mrp_gt_offer'), 'error');
             }
         } else {
-            alert(translate('portal', 'cms_alert_enter_prices'));
+            notify(translate('portal', 'cms_alert_enter_prices'), 'error');
         }
     };
 
@@ -2180,55 +1883,25 @@ export function CampaignOffersManager({
     return (
         <div>
             {/* Master Visibility Switch */}
-            <div style={{
-                padding: '16px 20px',
-                background: enabled ? '#ecfdf5' : '#f8fafc',
-                border: `1.5px solid ${enabled ? '#10b981' : '#cbd5e1'}`,
-                borderRadius: 10,
-                marginBottom: 24,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                flexWrap: 'wrap'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                    <div style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: '50%',
-                        background: enabled ? '#d1fae5' : '#f1f5f9',
-                        color: enabled ? '#006837' : '#64748b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 18,
-                        fontWeight: 700,
-                        flexShrink: 0
-                    }}>
+            <div className={`ed-switch-banner ed-mb-lg${enabled ? ' is-on tone-ok' : ''}`}>
+                <div className="ed-row is-loose is-top">
+                    <div className="ed-switch-icon">
                         {enabled ? '✓' : '✕'}
                     </div>
                     <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <strong style={{ fontSize: 15, color: enabled ? '#065f46' : '#334155' }}>
+                        <div className="ed-row">
+                            <strong className="ed-strong is-lg">
                                 {translate('portal', 'sce_campaign_section_status', {
                                     state: enabled
                                         ? translate('portal', 'sce_section_active_visible')
                                         : translate('portal', 'sce_section_hidden'),
                                 })}
                             </strong>
-                            <span style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '2px 8px',
-                                borderRadius: 12,
-                                background: enabled ? '#006837' : '#64748b',
-                                color: '#fff'
-                            }}>
+                            <span className="ed-state-pill">
                                 {enabled ? translate('portal', 'sce_enabled') : translate('portal', 'sce_disabled')}
                             </span>
                         </div>
-                        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>
+                        <p className="ed-desc">
                             {enabled
                                 ? translate('portal', 'sce_campaign_enabled_hint', { count: String(cards.length) })
                                 : translate('portal', 'sce_campaign_disabled_hint')}
@@ -2239,21 +1912,7 @@ export function CampaignOffersManager({
                     <button
                         type="button"
                         onClick={() => onToggleEnabled(!enabled)}
-                        style={{
-                            padding: '10px 20px',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            background: enabled ? '#fee2e2' : '#006837',
-                            color: enabled ? '#991b1b' : '#ffffff',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
-                            transition: 'all 0.2s ease'
-                        }}
+                        className={`button ${enabled ? 'danger' : 'dark'}`}
                     >
                         {enabled
                             ? translate('portal', 'sce_disable_hide_section')
@@ -2263,136 +1922,103 @@ export function CampaignOffersManager({
             </div>
 
             {/* Header Titles */}
-            <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc', marginBottom: 24 }}>
-                <h4 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>
+            <div className="ed-card is-soft ed-mb-lg">
+                <h4 className="ed-subtitle">
                     {translate('portal', 'sce_section_headings_banner')}
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                <div className="ed-grid is-md">
                     <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                            Section Badge Label
+                        <label className="ed-label">
+                            {translate('portal', 'sce_section_badge_label')}
                         </label>
                         <input
                             type="text"
                             value={badge}
                             placeholder={defaultBadge}
                             onChange={e => onUpdateHeaderField('campaign_badge', e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                            className="ed-input"
                         />
-                        <small style={{ color: '#94a3b8' }}>Placeholder: {defaultBadge}</small>
+                        <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defaultBadge ?? '') })}</small>
                     </div>
                     <div>
-                        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                            Section Main Title
+                        <label className="ed-label">
+                            {translate('portal', 'sce_section_main_title')}
                         </label>
                         <input
                             type="text"
                             value={title}
                             placeholder={defaultTitle}
                             onChange={e => onUpdateHeaderField('campaign_title', e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                            className="ed-input"
                         />
-                        <small style={{ color: '#94a3b8' }}>Placeholder: {defaultTitle}</small>
+                        <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defaultTitle ?? '') })}</small>
                     </div>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                            Section Subtitle / Description
+                    <div className="hub-span-all">
+                        <label className="ed-label">
+                            {translate('portal', 'sce_section_subtitle_description')}
                         </label>
                         <input
                             type="text"
                             value={subtitle}
                             placeholder={defaultSubtitle}
                             onChange={e => onUpdateHeaderField('campaign_subtitle', e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                            className="ed-input"
                         />
-                        <small style={{ color: '#94a3b8' }}>Placeholder: {defaultSubtitle}</small>
+                        <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defaultSubtitle ?? '') })}</small>
                     </div>
                 </div>
             </div>
 
             {/* Action Bar for Offers */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div className="ed-head">
                 <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>
-                        Promotional Offer Cards ({cards.length} Cards)
+                    <h3 className="ed-title is-flush">
+                        {translate('portal', 'sce_offer_cards_heading', { count: String(cards.length) })}
                     </h3>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>
-                        Add unlimited single product offers or multi-product bundle packages from your catalog.
+                    <span className="ed-desc is-sm">
+                        {translate('portal', 'sce_offer_cards_hint')}
                     </span>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="ed-row is-wrap">
                     <button
                         type="button"
                         onClick={handleAddSingle}
-                        style={{
-                            background: '#006837',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
+                        className="button small dark"
                     >
-                        <Plus size={15} /> + Add Single Product Offer
+                        <Plus size={15} /> {translate('portal', 'sce_add_single_offer')}
                     </button>
                     <button
                         type="button"
                         onClick={handleAddBundle}
-                        style={{
-                            background: '#0284c7',
-                            color: '#fff',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
+                        className="button small dark"
                     >
-                        <Plus size={15} /> + Add Group / Package Bundle
+                        <Plus size={15} /> {translate('portal', 'sce_add_package_offer')}
                     </button>
                     <button
                         type="button"
                         onClick={handleReset}
-                        style={{
-                            background: '#f1f5f9',
-                            color: '#475569',
-                            border: '1px solid #cbd5e1',
-                            padding: '8px 12px',
-                            borderRadius: 6,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                        }}
+                        className="button small"
                     >
-                        Reset to Defaults
+                        {translate('portal', 'sce_reset_to_defaults')}
                     </button>
                 </div>
             </div>
 
             {/* Offer Cards List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="ed-stack is-loose">
                 {cards.map((card, idx) => {
                     const isHighlight = card.highlight === '1' || card.highlight === true;
                     const cardType: 'single' | 'bundle' = card.type || (card.bundle_items && card.bundle_items.length > 0 ? 'bundle' : 'single');
                     const defCard = defaultCards[idx] || {
-                        tag: cardType === 'bundle' ? 'Package Deal' : 'Special Offer',
-                        title: cardType === 'bundle' ? 'Promotional Wellness Package' : 'Single Product Special Offer',
+                        tag: cardType === 'bundle' ? translate('portal', 'sce_offer_fallback_tag_package') : translate('portal', 'sce_offer_fallback_tag_single'),
+                        title: cardType === 'bundle' ? translate('portal', 'sce_offer_fallback_title_package') : translate('portal', 'sce_offer_fallback_title_single'),
                         desc: '',
                         feat1: '',
                         feat2: '',
                         price: '',
                         mrp: '',
                         save: '',
-                        btn: cardType === 'bundle' ? 'View Package' : 'View Offer',
+                        btn: cardType === 'bundle' ? translate('portal', 'sce_offer_fallback_btn_package') : translate('portal', 'sce_offer_fallback_btn_single'),
                         link: '/products',
                         image: '',
                         highlight: '0'
@@ -2417,102 +2043,51 @@ export function CampaignOffersManager({
                     return (
                         <div
                             key={card.id || idx}
-                            style={{
-                                padding: 20,
-                                border: isHighlight ? '2px solid #006837' : (cardType === 'bundle' ? '1.5px solid #bae6fd' : '1px solid #e2e8f0'),
-                                borderRadius: 10,
-                                background: isHighlight
-                                    ? 'linear-gradient(180deg, #ffffff 0%, #f6fbf8 100%)'
-                                    : (cardType === 'bundle' ? 'linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%)' : '#ffffff'),
-                                boxShadow: isHighlight ? '0 4px 14px rgba(0, 104, 55, 0.08)' : '0 2px 6px rgba(0,0,0,0.04)',
-                            }}
+                            className={`ed-card is-lg${isHighlight ? ' is-brand' : cardType === 'bundle' ? ' is-info' : ''}`}
                         >
                             {/* Card Top Control Bar */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 10, borderBottom: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 10 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                    <span style={{
-                                        background: cardType === 'bundle' ? '#0284c7' : (isHighlight ? '#006837' : '#2e3192'),
-                                        color: '#fff',
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        width: 26,
-                                        height: 26,
-                                        borderRadius: '50%',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
+                            <div className="ed-head is-ruled">
+                                <div className="ed-row is-loose is-wrap">
+                                    <span className={`hub-step ${cardType === 'bundle' ? 'tone-info' : isHighlight ? 'tone-ok' : 'tone-brand'}`}>
                                         {idx + 1}
                                     </span>
-                                    <strong style={{ fontSize: 15, color: '#011627' }}>
-                                        {card.title || defCard.title || `Offer Card #${idx + 1}`}
+                                    <strong className="ed-strong is-lg">
+                                        {card.title || defCard.title || translate('portal', 'sce_offer_card_number', { number: String(idx + 1) })}
                                     </strong>
 
                                     {/* Mode Indicator & Switcher */}
-                                    <div style={{ display: 'inline-flex', background: '#f1f5f9', borderRadius: 20, padding: 2, border: '1px solid #cbd5e1' }}>
+                                    <div className="hub-seg">
                                         <button
                                             type="button"
                                             onClick={() => handleSwitchCardType(idx, 'single')}
-                                            style={{
-                                                padding: '2px 10px',
-                                                borderRadius: 18,
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                background: cardType === 'single' ? '#006837' : 'transparent',
-                                                color: cardType === 'single' ? '#fff' : '#64748b',
-                                                transition: 'all 0.15s ease'
-                                            }}
+                                            className={cardType === 'single' ? 'is-active' : undefined}
                                         >
-                                            🏷️ Single Product
+                                            🏷️ {translate('portal', 'sce_single_product')}
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => handleSwitchCardType(idx, 'bundle')}
-                                            style={{
-                                                padding: '2px 10px',
-                                                borderRadius: 18,
-                                                fontSize: 11,
-                                                fontWeight: 700,
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                background: cardType === 'bundle' ? '#0284c7' : 'transparent',
-                                                color: cardType === 'bundle' ? '#fff' : '#64748b',
-                                                transition: 'all 0.15s ease'
-                                            }}
+                                            className={cardType === 'bundle' ? 'is-active' : undefined}
                                         >
-                                            📦 Group Package Bundle
+                                            📦 {translate('portal', 'sce_package_bundle')}
                                         </button>
                                     </div>
 
                                     {isHighlight && (
-                                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12, background: '#dcfce7', color: '#15803d' }}>
-                                            ★ HIGHLIGHTED
+                                        <span className="hub-pill tone-ok">
+                                            ★ {translate('portal', 'sce_highlighted_badge')}
                                         </span>
                                     )}
                                 </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div className="ed-row">
                                     {/* Highlight Toggle Button */}
                                     <button
                                         type="button"
                                         onClick={() => handleFieldChange(idx, 'highlight', isHighlight ? '0' : '1')}
-                                        style={{
-                                            border: `1px solid ${isHighlight ? '#15803d' : '#cbd5e1'}`,
-                                            background: isHighlight ? '#006837' : '#f8fafc',
-                                            color: isHighlight ? '#ffffff' : '#475569',
-                                            padding: '4px 10px',
-                                            borderRadius: 5,
-                                            fontSize: 11,
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 4
-                                        }}
+                                        className={`button small${isHighlight ? ' dark' : ''}`}
                                     >
-                                        ★ {isHighlight ? 'Highlighted (Active)' : 'Set as Highlighted'}
+                                        ★ {isHighlight ? translate('portal', 'sce_highlighted_active') : translate('portal', 'sce_set_highlighted')}
                                     </button>
 
                                     {/* Reorder Buttons */}
@@ -2521,15 +2096,7 @@ export function CampaignOffersManager({
                                         disabled={idx === 0}
                                         onClick={() => handleMoveUp(idx)}
                                         title={translate('portal', 'sce_move_up')}
-                                        style={{
-                                            border: '1px solid #cbd5e1',
-                                            background: idx === 0 ? '#f8fafc' : '#fff',
-                                            color: idx === 0 ? '#cbd5e1' : '#334155',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: idx === 0 ? 'not-allowed' : 'pointer'
-                                        }}
+                                        className={`ed-icon-btn is-sm${idx === 0 ? ' is-disabled' : ''}`}
                                     >
                                         ↑
                                     </button>
@@ -2538,15 +2105,7 @@ export function CampaignOffersManager({
                                         disabled={idx === cards.length - 1}
                                         onClick={() => handleMoveDown(idx)}
                                         title={translate('portal', 'sce_move_down')}
-                                        style={{
-                                            border: '1px solid #cbd5e1',
-                                            background: idx === cards.length - 1 ? '#f8fafc' : '#fff',
-                                            color: idx === cards.length - 1 ? '#cbd5e1' : '#334155',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: idx === cards.length - 1 ? 'not-allowed' : 'pointer'
-                                        }}
+                                        className={`ed-icon-btn is-sm${idx === cards.length - 1 ? ' is-disabled' : ''}`}
                                     >
                                         ↓
                                     </button>
@@ -2554,74 +2113,56 @@ export function CampaignOffersManager({
                                         type="button"
                                         onClick={() => handleRemove(idx)}
                                         title={translate('portal', 'sce_delete_offer_card')}
-                                        style={{
-                                            border: '1px solid #fecaca',
-                                            background: '#fef2f2',
-                                            color: '#dc2626',
-                                            padding: '4px 8px',
-                                            borderRadius: 4,
-                                            fontSize: 12,
-                                            cursor: 'pointer',
-                                            fontWeight: 700
-                                        }}
+                                        className="button small danger"
                                     >
-                                        ✕ Delete
+                                        ✕ {translate('portal', 'sce_delete')}
                                     </button>
                                 </div>
                             </div>
 
                             {/* MODE A: SINGLE PRODUCT OFFER CONFIGURATION */}
                             {cardType === 'single' && (
-                                <div style={{ marginBottom: 20 }}>
+                                <div>
                                     {/* Catalog Product Selection Bar */}
-                                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 8 }}>
-                                            <span style={{ fontSize: 13, fontWeight: 700, color: '#006837' }}>
-                                                🏷️ Select Existing Catalog Product to Feature:
+                                    <div className="ed-callout tone-ok ed-mb">
+                                        <div className="ed-head is-sm">
+                                            <span className="ed-strong tone-ok">
+                                                🏷️ {translate('portal', 'sce_select_catalog_product_to_feature')}
                                             </span>
                                             {card.product_id && (
                                                 <button
                                                     type="button"
                                                     onClick={() => handleFieldChange(idx, 'product_id', '')}
-                                                    style={{
-                                                        border: 'none',
-                                                        background: '#fee2e2',
-                                                        color: '#991b1b',
-                                                        fontSize: 11,
-                                                        fontWeight: 700,
-                                                        padding: '3px 8px',
-                                                        borderRadius: 4,
-                                                        cursor: 'pointer',
-                                                    }}
+                                                    className="ed-mini tone-danger"
                                                 >
-                                                    ✕ Disconnect Product
+                                                    ✕ {translate('portal', 'sce_disconnect_product')}
                                                 </button>
                                             )}
                                         </div>
                                         <select
                                             value={card.product_id || ''}
                                             onChange={e => handleProductSelect(idx, e.target.value)}
-                                            style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13, background: '#fff' }}
+                                            className="ed-input"
                                         >
-                                            <option value="">-- Choose Existing Product from Catalog --</option>
+                                            <option value="">{translate('portal', 'sce_choose_catalog_product')}</option>
                                             {products.map(p => (
                                                 <option key={p.id} value={p.id}>
-                                                    #{p.id}: {p.name} (MRP: {p.mrp} Tk) {p.sku ? `[SKU: ${p.sku}]` : ''} — Category: {p.category}
+                                                    #{p.id}: {p.name} {translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} {p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — {translate('portal', 'sce_option_category', { category: String(p.category ?? '') })}
                                                 </option>
                                             ))}
                                         </select>
 
                                         {/* Product Base Details & Promotional Discount Rate Setting */}
                                         {linkedProduct ? (
-                                            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #bbf7d0' }}>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
-                                                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_regular_retail_mrp')}</span>
-                                                        <strong style={{ fontSize: 14, color: '#0f172a' }}>৳ {linkedMrp.toLocaleString()}</strong>
+                                            <div className="ed-foot">
+                                                <div className="ed-grid is-sm ed-mb">
+                                                    <div className="ed-stat">
+                                                        <span className="ed-meta is-block">{translate('portal', 'sce_regular_retail_mrp')}</span>
+                                                        <strong className="ed-strong">৳ {linkedMrp.toLocaleString()}</strong>
                                                     </div>
-                                                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_base_dealer_catalog_price')}</span>
-                                                        <strong style={{ fontSize: 14, color: '#475569' }}>
+                                                    <div className="ed-stat">
+                                                        <span className="ed-meta is-block">{translate('portal', 'sce_base_dealer_catalog_price')}</span>
+                                                        <strong className="ed-strong">
                                                             {linkedDealerPrice > 0
                                                                 ? translate('portal', 'sce_dealer_price_with_off', {
                                                                     price: linkedDealerPrice.toLocaleString(),
@@ -2630,48 +2171,39 @@ export function CampaignOffersManager({
                                                                 : translate('portal', 'sce_standard_mrp')}
                                                         </strong>
                                                     </div>
-                                                    <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                                                        <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>{translate('portal', 'sce_product_sku_code')}</span>
-                                                        <strong style={{ fontSize: 13, color: '#334155' }}>{linkedProduct.sku || `#${linkedProduct.id}`}</strong>
+                                                    <div className="ed-stat">
+                                                        <span className="ed-meta is-block">{translate('portal', 'sce_product_sku_code')}</span>
+                                                        <strong className="ed-strong">{linkedProduct.sku || `#${linkedProduct.id}`}</strong>
                                                     </div>
                                                 </div>
 
                                                 {/* Promotional Discount % Input & Quick Presets */}
-                                                <div style={{ background: '#ffffff', padding: '12px 14px', borderRadius: 8, border: '1.5px solid #10b981' }}>
-                                                    <label style={{ fontSize: 13, fontWeight: 700, color: '#065f46', display: 'block', marginBottom: 6 }}>
+                                                <div className="ed-card is-compact is-accent">
+                                                    <label className="ed-label tone-ok">
                                                         ⚡ {translate('portal', 'sce_set_promo_discount_pct')}
                                                     </label>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <div className="ed-row is-loose is-wrap">
+                                                        <div className="ed-row is-tight">
                                                             <input
                                                                 type="number"
                                                                 min={1}
                                                                 max={99}
                                                                 value={card.promo_discount_pct ?? 60}
                                                                 onChange={e => handlePromoDiscountChange(idx, e.target.value)}
-                                                                style={{ width: 80, padding: '7px 10px', border: '1.5px solid #006837', borderRadius: 6, fontSize: 14, fontWeight: 700, color: '#006837' }}
+                                                                className="ed-input ed-pct tone-ok"
                                                             />
-                                                            <strong style={{ fontSize: 15, color: '#006837' }}>%</strong>
+                                                            <strong className="ed-strong is-lg tone-ok">%</strong>
                                                         </div>
 
                                                         {/* Quick Presets */}
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                                            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{translate('portal', 'sce_quick_presets')}</span>
+                                                        <div className="ed-row is-wrap">
+                                                            <span className="ed-label is-inline">{translate('portal', 'sce_quick_presets')}</span>
                                                             {[30, 40, 50, 60, 70].map(pct => (
                                                                 <button
                                                                     key={pct}
                                                                     type="button"
                                                                     onClick={() => handlePromoDiscountChange(idx, pct)}
-                                                                    style={{
-                                                                        padding: '4px 10px',
-                                                                        borderRadius: 4,
-                                                                        fontSize: 11,
-                                                                        fontWeight: 700,
-                                                                        border: `1px solid ${currentPromoDiscountPct === pct ? '#006837' : '#cbd5e1'}`,
-                                                                        background: currentPromoDiscountPct === pct ? '#006837' : '#f8fafc',
-                                                                        color: currentPromoDiscountPct === pct ? '#ffffff' : '#334155',
-                                                                        cursor: 'pointer'
-                                                                    }}
+                                                                    className={`ed-chip${currentPromoDiscountPct === pct ? ' is-active' : ''}`}
                                                                 >
                                                                     {pct}%
                                                                 </button>
@@ -2681,39 +2213,43 @@ export function CampaignOffersManager({
                                                 </div>
                                             </div>
                                         ) : (
-                                            <small style={{ color: '#64748b', display: 'block', marginTop: 6 }}>
-                                                Select a catalog product to automatically sync real retail MRP, apply promotional dealer discount, and calculate system cash price.
+                                            <small className="ed-meta is-block">
+                                                {translate('portal', 'sce_select_product_auto_price_hint')}
                                             </small>
                                         )}
                                     </div>
 
                                     {/* Financial Breakdown & Accounting Rule Card */}
                                     {card.product_id && linkedMrp > 0 && (
-                                        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 8, padding: '12px 16px', marginBottom: 14 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: '#15803d', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    💰 Offer Price & Discount Summary:
+                                        <div className="ed-callout tone-ok ed-mb">
+                                            <div className="ed-head is-sm">
+                                                <span className="ed-strong ed-row">
+                                                    💰 {translate('portal', 'sce_offer_price_summary')}
                                                 </span>
-                                                <span style={{ fontSize: 11, background: '#16a34a', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
-                                                    {currentPromoDiscountPct}% Offer Discount Active
+                                                <span className="hub-pill tone-ok">
+                                                    {translate('portal', 'sce_offer_discount_active', { pct: String(currentPromoDiscountPct) })}
                                                 </span>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 8 }}>
-                                                <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #bbf7d0' }}>
-                                                    <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Regular Retail MRP</span>
-                                                    <strong style={{ fontSize: 14, color: '#334155' }}>৳ {linkedMrp.toLocaleString()}</strong>
+                                            <div className="ed-grid is-xs ed-mb-sm">
+                                                <div className="ed-stat">
+                                                    <span className="ed-meta is-block">{translate('portal', 'sce_regular_mrp_heading')}</span>
+                                                    <strong className="ed-strong">৳ {linkedMrp.toLocaleString()}</strong>
                                                 </div>
-                                                <div style={{ background: '#ecfdf5', padding: '8px 12px', borderRadius: 6, border: '1.5px solid #86efac' }}>
-                                                    <span style={{ fontSize: 11, color: '#065f46', display: 'block' }}>Offer Price (Payable)</span>
-                                                    <strong style={{ fontSize: 15, color: '#006837' }}>৳ {parsePrice(card.price).toLocaleString()}</strong>
+                                                <div className="ed-stat is-tinted">
+                                                    <span className="ed-meta is-block tone-ok">{translate('portal', 'sce_offer_price_payable')}</span>
+                                                    <strong className="ed-strong is-lg tone-ok">৳ {parsePrice(card.price).toLocaleString()}</strong>
                                                 </div>
-                                                <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: 6, border: '1px solid #fecaca' }}>
-                                                    <span style={{ fontSize: 11, color: '#991b1b', display: 'block' }}>Dealer Profit / Savings</span>
-                                                    <strong style={{ fontSize: 14, color: '#dc2626' }}>৳ {parsePrice(card.save).toLocaleString()}</strong>
+                                                <div className="ed-stat is-tinted tone-danger">
+                                                    <span className="ed-meta is-block tone-danger">{translate('portal', 'sce_dealer_profit_savings')}</span>
+                                                    <strong className="ed-strong tone-danger">৳ {parsePrice(card.save).toLocaleString()}</strong>
                                                 </div>
                                             </div>
-                                            <p style={{ margin: 0, fontSize: 11, color: '#166534', lineHeight: 1.4 }}>
-                                                ℹ️ <strong>Pricing rule:</strong> This <strong>{currentPromoDiscountPct}%</strong> offer discount applies instead of the regular dealer price while listed here. The dealer pays <strong>৳{parsePrice(card.price).toLocaleString()}</strong> per unit. Removing this offer restores the regular product price.
+                                            <p className="ed-desc is-sm is-flush">
+                                                ℹ️ <strong>{translate('portal', 'sce_pricing_rule_label')}</strong>{' '}
+                                                {withBoldValues(translate('portal', 'sce_pricing_rule_body'), {
+                                                    pct: `${currentPromoDiscountPct}%`,
+                                                    price: `৳${parsePrice(card.price).toLocaleString()}`,
+                                                })}
                                             </p>
                                         </div>
                                     )}
@@ -2722,123 +2258,101 @@ export function CampaignOffersManager({
 
                             {/* MODE B: GROUP / PACKAGE BUNDLE CONFIGURATION */}
                             {cardType === 'bundle' && (
-                                <div style={{ marginBottom: 20 }}>
+                                <div>
                                     {/* Bundle Multi-Product Picker */}
-                                    <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 14, marginBottom: 14 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                                    <div className="ed-callout tone-info ed-mb">
+                                        <div className="ed-head is-sm">
                                             <div>
-                                                <strong style={{ fontSize: 14, color: '#0369a1', display: 'block' }}>
-                                                    📦 Curate Multi-Product Bundle Package ({bundleItems.length} Products Included)
+                                                <strong className="ed-strong tone-info is-block">
+                                                    📦 {translate('portal', 'sce_build_package_heading', { count: String(bundleItems.length) })}
                                                 </strong>
-                                                <span style={{ fontSize: 11, color: '#64748b' }}>
-                                                    Select existing catalog products to combine into this promotional package.
+                                                <span className="ed-meta">
+                                                    {translate('portal', 'sce_build_package_hint')}
                                                 </span>
                                             </div>
                                         </div>
 
                                         {/* Product Add Bar */}
-                                        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                                        <div className="ed-row is-wrap ed-mb">
                                             <select
                                                 value={bundleSelectedProds[idx] || ''}
                                                 onChange={e => setBundleSelectedProds(prev => ({ ...prev, [idx]: e.target.value }))}
-                                                style={{ flex: 1, minWidth: 260, padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13, background: '#fff' }}
+                                                className="ed-input is-grow"
                                             >
-                                                <option value="">-- Choose Existing Product from Catalog to Add to Package --</option>
+                                                <option value="">{translate('portal', 'sce_choose_product_for_package')}</option>
                                                 {products.map(p => (
                                                     <option key={p.id} value={p.id}>
-                                                        #{p.id}: {p.name} (MRP: {p.mrp} Tk) {p.sku ? `[SKU: ${p.sku}]` : ''} — {p.category}
+                                                        #{p.id}: {p.name} {translate('portal', 'sce_option_mrp_tk', { mrp: String(p.mrp) })} {p.sku ? translate('portal', 'sce_option_sku', { sku: String(p.sku) }) : ''} — {p.category}
                                                     </option>
                                                 ))}
                                             </select>
                                             <button
                                                 type="button"
                                                 onClick={() => handleAddBundleItem(idx)}
-                                                style={{
-                                                    background: '#0284c7',
-                                                    color: '#fff',
-                                                    border: 'none',
-                                                    padding: '8px 14px',
-                                                    borderRadius: 6,
-                                                    fontSize: 12,
-                                                    fontWeight: 700,
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 6,
-                                                    whiteSpace: 'nowrap'
-                                                }}
+                                                className="button small dark"
                                             >
-                                                <Plus size={14} /> Add Product to Bundle
+                                                <Plus size={14} /> {translate('portal', 'sce_add_product_to_package')}
                                             </button>
                                         </div>
 
                                         {/* Table of Bundled Items */}
                                         {bundleItems.length === 0 ? (
-                                            <div style={{ padding: 16, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 6, textAlign: 'center', color: '#64748b', fontSize: 13 }}>
-                                                No products added to this bundle yet. Select products from the dropdown above to create this package.
+                                            <div className="ed-empty is-sm">
+                                                {translate('portal', 'sce_package_empty')}
                                             </div>
                                         ) : (
-                                            <div style={{ border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden', background: '#fff', marginBottom: 12 }}>
-                                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                            <div className="ed-table-wrap">
+                                                <table className="ed-table">
                                                     <thead>
-                                                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #cbd5e1', textAlign: 'left', color: '#475569' }}>
-                                                            <th style={{ padding: '8px 10px', width: 30 }}>#</th>
-                                                            <th style={{ padding: '8px 10px' }}>Product Name</th>
-                                                            <th style={{ padding: '8px 10px', width: 120 }}>List price</th>
+                                                        <tr>
+                                                            <th className="ed-col-xs">#</th>
+                                                            <th>{translate('portal', 'sce_col_product_name')}</th>
+                                                            <th className="ed-col-md">{translate('portal', 'sce_col_list_price')}</th>
                                                             {bundleMode === 'itemized' && (
                                                                 <>
-                                                                    <th style={{ padding: '8px 10px', width: 110 }}>Item Discount %</th>
-                                                                    <th style={{ padding: '8px 10px', width: 120 }}>Effective Price</th>
+                                                                    <th className="ed-col-md">{translate('portal', 'sce_col_item_discount_pct')}</th>
+                                                                    <th className="ed-col-md">{translate('portal', 'sce_col_final_price')}</th>
                                                                 </>
                                                             )}
-                                                            <th style={{ padding: '8px 10px', textAlign: 'right', width: 90 }}>Action</th>
+                                                            <th className="is-num ed-col-sm">{translate('portal', 'sce_col_action')}</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
                                                         {bundleItems.map((it, itemIdx) => (
-                                                            <tr key={itemIdx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                                <td style={{ padding: '8px 10px', color: '#64748b' }}>{itemIdx + 1}</td>
-                                                                <td style={{ padding: '8px 10px' }}>
-                                                                    <strong style={{ color: '#0f172a', display: 'block' }}>{it.name}</strong>
-                                                                    {it.sku && <span style={{ fontSize: 11, color: '#64748b' }}>SKU: {it.sku}</span>}
+                                                            <tr key={itemIdx}>
+                                                                <td className="ed-meta">{itemIdx + 1}</td>
+                                                                <td>
+                                                                    <strong className="ed-strong is-block">{it.name}</strong>
+                                                                    {it.sku && <span className="ed-meta">{translate('portal', 'sce_sku_value', { sku: String(it.sku) })}</span>}
                                                                 </td>
-                                                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>৳ {parsePrice(it.mrp).toLocaleString()}</td>
+                                                                <td className="is-strong">৳ {parsePrice(it.mrp).toLocaleString()}</td>
                                                                 {bundleMode === 'itemized' && (
                                                                     <>
-                                                                        <td style={{ padding: '8px 10px' }}>
-                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                        <td>
+                                                                            <div className="ed-row is-tight">
                                                                                 <input
                                                                                     type="number"
                                                                                     min={0}
                                                                                     max={99}
                                                                                     value={it.custom_discount_pct ?? bundlePct}
                                                                                     onChange={e => handleItemizedDiscountChange(idx, itemIdx, parseFloat(e.target.value) || 0)}
-                                                                                    style={{ width: 55, padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                                    className="ed-input ed-pct"
                                                                                 />
                                                                                 <span>%</span>
                                                                             </div>
                                                                         </td>
-                                                                        <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0284c7' }}>
+                                                                        <td className="is-strong tone-info">
                                                                             ৳ {parsePrice(it.item_price).toLocaleString()}
                                                                         </td>
                                                                     </>
                                                                 )}
-                                                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                                                                <td className="is-num">
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleRemoveBundleItem(idx, itemIdx)}
-                                                                        style={{
-                                                                            border: 'none',
-                                                                            background: '#fee2e2',
-                                                                            color: '#dc2626',
-                                                                            padding: '4px 8px',
-                                                                            borderRadius: 4,
-                                                                            fontSize: 11,
-                                                                            fontWeight: 700,
-                                                                            cursor: 'pointer'
-                                                                        }}
+                                                                        className="button small danger"
                                                                     >
-                                                                        ✕ Remove
+                                                                        ✕ {translate('portal', 'sce_remove')}
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -2850,66 +2364,57 @@ export function CampaignOffersManager({
 
                                         {/* Bundle Discount Mode & Controls */}
                                         {bundleItems.length > 0 && (
-                                            <div style={{ background: '#ffffff', padding: 12, borderRadius: 6, border: '1px solid #bae6fd' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0369a1' }}>
-                                                        Package Discount Calculation Mode:
+                                            <div className="ed-card is-compact">
+                                                <div className="ed-head is-sm">
+                                                    <span className="ed-label is-inline tone-info">
+                                                        {translate('portal', 'sce_package_discount_mode')}
                                                     </span>
-                                                    <div style={{ display: 'flex', gap: 12 }}>
-                                                        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontWeight: bundleMode === 'total' ? 700 : 500 }}>
+                                                    <div className="ed-row is-loose">
+                                                        <label className={`ed-choice${bundleMode === 'total' ? ' is-active' : ''}`}>
                                                             <input
                                                                 type="radio"
                                                                 name={`bundle_mode_${idx}`}
                                                                 checked={bundleMode === 'total'}
                                                                 onChange={() => recalculateBundleCard(idx, bundleItems, 'total', bundlePct)}
                                                             />
-                                                            Flat Discount on Combined Total MRP
+                                                            {translate('portal', 'sce_package_mode_total')}
                                                         </label>
-                                                        <label style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontWeight: bundleMode === 'itemized' ? 700 : 500 }}>
+                                                        <label className={`ed-choice${bundleMode === 'itemized' ? ' is-active' : ''}`}>
                                                             <input
                                                                 type="radio"
                                                                 name={`bundle_mode_${idx}`}
                                                                 checked={bundleMode === 'itemized'}
                                                                 onChange={() => recalculateBundleCard(idx, bundleItems, 'itemized', bundlePct)}
                                                             />
-                                                            Itemized Per-Product %
+                                                            {translate('portal', 'sce_package_mode_itemized')}
                                                         </label>
                                                     </div>
                                                 </div>
 
                                                 {bundleMode === 'total' && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                                                        <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>Flat Package Discount %:</span>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                    <div className="ed-row is-loose is-wrap">
+                                                        <span className="ed-label is-inline">{translate('portal', 'sce_package_flat_discount_pct')}</span>
+                                                        <div className="ed-row is-tight">
                                                             <input
                                                                 type="number"
                                                                 min={1}
                                                                 max={99}
                                                                 value={card.bundle_discount_pct ?? 35}
                                                                 onChange={e => recalculateBundleCard(idx, bundleItems, 'total', e.target.value)}
-                                                                style={{ width: 75, padding: '6px 8px', border: '1.5px solid #0284c7', borderRadius: 4, fontSize: 13, fontWeight: 700, color: '#0284c7' }}
+                                                                className="ed-input ed-pct tone-info"
                                                             />
-                                                            <strong style={{ fontSize: 14, color: '#0284c7' }}>%</strong>
+                                                            <strong className="ed-strong tone-info">%</strong>
                                                         </div>
 
                                                         {/* Presets */}
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                                                            <span style={{ fontSize: 11, color: '#64748b' }}>Presets:</span>
+                                                        <div className="ed-row is-wrap">
+                                                            <span className="ed-meta">{translate('portal', 'sce_quick_presets')}</span>
                                                             {[20, 25, 30, 35, 40, 50].map(pct => (
                                                                 <button
                                                                     key={pct}
                                                                     type="button"
                                                                     onClick={() => recalculateBundleCard(idx, bundleItems, 'total', pct)}
-                                                                    style={{
-                                                                        padding: '3px 8px',
-                                                                        borderRadius: 4,
-                                                                        fontSize: 11,
-                                                                        fontWeight: 700,
-                                                                        border: `1px solid ${bundlePct === pct ? '#0284c7' : '#cbd5e1'}`,
-                                                                        background: bundlePct === pct ? '#0284c7' : '#f8fafc',
-                                                                        color: bundlePct === pct ? '#ffffff' : '#334155',
-                                                                        cursor: 'pointer'
-                                                                    }}
+                                                                    className={`ed-chip is-info${bundlePct === pct ? ' is-active' : ''}`}
                                                                 >
                                                                     {pct}%
                                                                 </button>
@@ -2923,31 +2428,34 @@ export function CampaignOffersManager({
 
                                     {/* Bundle Financial Transparency Card */}
                                     {bundleItems.length > 0 && totalBundleMrp > 0 && (
-                                        <div style={{ background: '#f0f9ff', border: '1.5px solid #7dd3fc', borderRadius: 8, padding: '12px 16px', marginBottom: 14 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 700, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                    📦 Package Price & Savings Summary:
+                                        <div className="ed-callout tone-info ed-mb">
+                                            <div className="ed-head is-sm">
+                                                <span className="ed-strong ed-row">
+                                                    📦 {translate('portal', 'sce_package_price_summary')}
                                                 </span>
-                                                <span style={{ fontSize: 11, background: '#0284c7', color: '#fff', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>
-                                                    {bundleItems.length} Products Included
+                                                <span className="hub-pill tone-info">
+                                                    {translate('portal', 'sce_products_included_count', { count: String(bundleItems.length) })}
                                                 </span>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 8 }}>
-                                                <div style={{ background: '#fff', padding: '8px 12px', borderRadius: 6, border: '1px solid #bae6fd' }}>
-                                                    <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Total Combined MRP</span>
-                                                    <strong style={{ fontSize: 14, color: '#334155' }}>৳ {totalBundleMrp.toLocaleString()}</strong>
+                                            <div className="ed-grid is-xs ed-mb-sm">
+                                                <div className="ed-stat">
+                                                    <span className="ed-meta is-block">{translate('portal', 'sce_total_combined_mrp')}</span>
+                                                    <strong className="ed-strong">৳ {totalBundleMrp.toLocaleString()}</strong>
                                                 </div>
-                                                <div style={{ background: '#e0f2fe', padding: '8px 12px', borderRadius: 6, border: '1.5px solid #7dd3fc' }}>
-                                                    <span style={{ fontSize: 11, color: '#075985', display: 'block' }}>Package Offer Price</span>
-                                                    <strong style={{ fontSize: 15, color: '#0369a1' }}>৳ {effectiveBundlePrice.toLocaleString()}</strong>
+                                                <div className="ed-stat is-tinted">
+                                                    <span className="ed-meta is-block tone-info">{translate('portal', 'sce_package_offer_price')}</span>
+                                                    <strong className="ed-strong is-lg tone-info">৳ {effectiveBundlePrice.toLocaleString()}</strong>
                                                 </div>
-                                                <div style={{ background: '#fef2f2', padding: '8px 12px', borderRadius: 6, border: '1px solid #fecaca' }}>
-                                                    <span style={{ fontSize: 11, color: '#991b1b', display: 'block' }}>Total Package Savings</span>
-                                                    <strong style={{ fontSize: 14, color: '#dc2626' }}>৳ {effectiveBundleSave.toLocaleString()} ({effectiveBundleDiscountPct}%)</strong>
+                                                <div className="ed-stat is-tinted tone-danger">
+                                                    <span className="ed-meta is-block tone-danger">{translate('portal', 'sce_total_package_savings')}</span>
+                                                    <strong className="ed-strong tone-danger">৳ {effectiveBundleSave.toLocaleString()} ({effectiveBundleDiscountPct}%)</strong>
                                                 </div>
                                             </div>
-                                            <p style={{ margin: 0, fontSize: 11, color: '#075985', lineHeight: 1.4 }}>
-                                                ℹ️ <strong>Package pricing:</strong> When ordered, this package charges <strong>৳{effectiveBundlePrice.toLocaleString()}</strong> as a single bundle price. Individual product prices in the product list remain unchanged.
+                                            <p className="ed-desc is-sm is-flush">
+                                                ℹ️ <strong>{translate('portal', 'sce_package_pricing_label')}</strong>{' '}
+                                                {withBoldValues(translate('portal', 'sce_package_pricing_body'), {
+                                                    price: `৳${effectiveBundlePrice.toLocaleString()}`,
+                                                })}
                                             </p>
                                         </div>
                                     )}
@@ -2955,133 +2463,124 @@ export function CampaignOffersManager({
                             )}
 
                             {/* Card Content Grid (Common Fields) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
+                            <div className="ed-grid is-md">
                                 {/* Tag */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Promotional Tag / Badge
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_tag_badge')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.tag}
                                         placeholder={defCard.tag}
                                         onChange={e => handleFieldChange(idx, 'tag', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.tag}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.tag ?? '') })}</small>
                                 </div>
 
                                 {/* Title */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Offer Title
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_title')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.title}
                                         placeholder={defCard.title}
                                         onChange={e => handleFieldChange(idx, 'title', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.title}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.title ?? '') })}</small>
                                 </div>
 
                                 {/* Description */}
-                                <div style={{ gridColumn: '1 / -1' }}>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Offer Description
+                                <div className="hub-span-all">
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_description')}
                                     </label>
                                     <textarea
                                         rows={2}
                                         value={card.desc}
                                         placeholder={defCard.desc}
                                         onChange={e => handleFieldChange(idx, 'desc', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.desc}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.desc ?? '') })}</small>
                                 </div>
 
                                 {/* Bullet 1 */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Checklist Feature 1
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_feature_1')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.feat1}
                                         placeholder={defCard.feat1}
                                         onChange={e => handleFieldChange(idx, 'feat1', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.feat1}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.feat1 ?? '') })}</small>
                                 </div>
 
                                 {/* Bullet 2 */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Checklist Feature 2
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_feature_2')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.feat2}
                                         placeholder={defCard.feat2}
                                         onChange={e => handleFieldChange(idx, 'feat2', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.feat2}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.feat2 ?? '') })}</small>
                                 </div>
 
                                 {/* Offer Price */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Offer Price (e.g. 20,000 Tk)
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_price_example')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.price}
                                         placeholder={defCard.price}
                                         onChange={e => handleFieldChange(idx, 'price', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.price}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.price ?? '') })}</small>
                                 </div>
 
                                 {/* MRP */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Regular MRP (e.g. 30,000 Tk)
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_mrp_example')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.mrp}
                                         placeholder={defCard.mrp}
                                         onChange={e => handleFieldChange(idx, 'mrp', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.mrp}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.mrp ?? '') })}</small>
                                 </div>
 
                                 {/* Save Badge */}
                                 <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
-                                            Save Badge (e.g. Save 10,000 Tk)
+                                    <div className="ed-head is-sm">
+                                        <label className="ed-label is-inline">
+                                            {translate('portal', 'sce_offer_save_badge_example')}
                                         </label>
                                         <button
                                             type="button"
                                             onClick={() => handleAutoCalculateSave(idx)}
-                                            style={{
-                                                border: 'none',
-                                                background: '#ecfdf5',
-                                                color: '#065f46',
-                                                fontSize: 10,
-                                                fontWeight: 700,
-                                                padding: '2px 7px',
-                                                borderRadius: 4,
-                                                cursor: 'pointer',
-                                            }}
+                                            className="ed-mini tone-ok"
                                         >
-                                            ⚡ Calculate
+                                            ⚡ {translate('portal', 'sce_calculate')}
                                         </button>
                                     </div>
                                     <input
@@ -3089,138 +2588,112 @@ export function CampaignOffersManager({
                                         value={card.save}
                                         placeholder={defCard.save}
                                         onChange={e => handleFieldChange(idx, 'save', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.save}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.save ?? '') })}</small>
                                 </div>
 
                                 {/* Action Button */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Action Button Text
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_button_text')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.btn}
                                         placeholder={defCard.btn}
                                         onChange={e => handleFieldChange(idx, 'btn', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.btn}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.btn ?? '') })}</small>
                                 </div>
 
                                 {/* Destination Link */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Destination Link
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_destination_link')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.link}
                                         placeholder={defCard.link}
                                         onChange={e => handleFieldChange(idx, 'link', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Placeholder: {defCard.link}</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defCard.link ?? '') })}</small>
                                 </div>
 
                                 {/* Offer Image */}
                                 <div>
-                                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#334155' }}>
-                                        Offer Image URL (Optional)
+                                    <label className="ed-label">
+                                        {translate('portal', 'sce_offer_image_url_optional')}
                                     </label>
                                     <input
                                         type="text"
                                         value={card.image}
                                         placeholder="/branding/madina-side-banner-1.jpg"
                                         onChange={e => handleFieldChange(idx, 'image', e.target.value)}
-                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                        className="ed-input"
                                     />
-                                    <small style={{ color: '#94a3b8' }}>Leave blank if no thumbnail is needed.</small>
+                                    <small className="ed-hint">{translate('portal', 'sce_offer_image_blank_hint')}</small>
                                 </div>
                             </div>
 
                             {/* Live Card Preview */}
-                            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px dashed #e2e8f0' }}>
-                                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 10 }}>
-                                    Card Live Homepage Preview:
+                            <div className="ed-foot">
+                                <span className="ed-kicker ed-mb-sm">
+                                    {translate('portal', 'sce_homepage_card_preview')}
                                 </span>
-                                <div style={{
-                                    maxWidth: 380,
-                                    border: isHighlight ? '1.5px solid #006837' : (cardType === 'bundle' ? '1.5px solid #0284c7' : '1px solid #e2e8f0'),
-                                    borderRadius: 12,
-                                    padding: 18,
-                                    background: isHighlight
-                                        ? 'linear-gradient(180deg, #fff, #f6fbf8)'
-                                        : (cardType === 'bundle' ? 'linear-gradient(180deg, #fff, #f0f9ff)' : '#fff'),
-                                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-                                    position: 'relative'
-                                }}>
+                                <div className={`ed-preview-card${isHighlight ? ' is-brand' : cardType === 'bundle' ? ' is-info' : ''}`}>
                                     {card.image && (
-                                        <div style={{ height: 110, borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
-                                            <img src={card.image} alt={card.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <div className="ed-thumb">
+                                            <img src={card.image} alt={card.title} />
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
-                                        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#011627' }}>
+                                    <div className="ed-head is-top is-sm">
+                                        <h4 className="ed-title is-flush is-sm">
                                             {card.title || defCard.title}
                                         </h4>
-                                        <span style={{
-                                            fontSize: 10,
-                                            fontWeight: 700,
-                                            background: cardType === 'bundle' ? '#0284c7' : (isHighlight ? '#006837' : '#2e3192'),
-                                            color: '#fff',
-                                            padding: '2px 8px',
-                                            borderRadius: 12,
-                                            whiteSpace: 'nowrap'
-                                        }}>
+                                        <span className={`ed-state-pill ${cardType === 'bundle' ? 'tone-info' : isHighlight ? 'tone-ok' : 'tone-brand'}`}>
                                             {card.tag || defCard.tag}
                                         </span>
                                     </div>
-                                    <p style={{ margin: '0 0 10px', fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>
+                                    <p className="ed-desc is-sm is-flush ed-mb-sm">
                                         {card.desc || defCard.desc}
                                     </p>
 
                                     {/* Bundle items preview pill in card */}
                                     {cardType === 'bundle' && bundleItems.length > 0 && (
-                                        <div style={{
-                                            padding: '6px 8px',
-                                            background: '#e0f2fe',
-                                            border: '1px dashed #7dd3fc',
-                                            borderRadius: 6,
-                                            fontSize: 10,
-                                            color: '#075985',
-                                            marginBottom: 10
-                                        }}>
-                                            <strong>📦 Package Includes ({bundleItems.length} Products):</strong>
-                                            <div style={{ marginTop: 3 }}>
+                                        <div className="ed-callout tone-info is-sm ed-mb-sm">
+                                            <strong>📦 {translate('portal', 'sce_package_includes', { count: String(bundleItems.length) })}</strong>
+                                            <div className="ed-mt-xs">
                                                 {bundleItems.map(it => it.name).join(' • ')}
                                             </div>
                                         </div>
                                     )}
 
-                                    <div style={{ fontSize: 11, color: '#475569', display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                                    <div className="ed-checklist">
                                         {(card.feat1 || defCard.feat1) && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <i className="fa-solid fa-circle-check" style={{ color: '#006837', fontSize: 11 }} /> {card.feat1 || defCard.feat1}
+                                            <span className="ed-row">
+                                                <i className="fa-solid fa-circle-check tone-ok" /> {card.feat1 || defCard.feat1}
                                             </span>
                                         )}
                                         {(card.feat2 || defCard.feat2) && (
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <i className="fa-solid fa-circle-check" style={{ color: '#006837', fontSize: 11 }} /> {card.feat2 || defCard.feat2}
+                                            <span className="ed-row">
+                                                <i className="fa-solid fa-circle-check tone-ok" /> {card.feat2 || defCard.feat2}
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                        <strong style={{ fontSize: 16, color: '#006837' }}>{card.price || defCard.price}</strong>
-                                        {(card.mrp || defCard.mrp) && <del style={{ fontSize: 11, color: '#94a3b8' }}>{card.mrp || defCard.mrp}</del>}
+                                    <div className="ed-row ed-mb">
+                                        <strong className="ed-strong is-lg tone-ok">{card.price || defCard.price}</strong>
+                                        {(card.mrp || defCard.mrp) && <del className="ed-hint">{card.mrp || defCard.mrp}</del>}
                                         {(card.save || defCard.save) && (
-                                            <span style={{ fontSize: 10, fontWeight: 700, background: '#fef2f2', color: '#ef4444', padding: '1px 6px', borderRadius: 4 }}>
+                                            <span className="hub-pill tone-danger">
                                                 {card.save || defCard.save}
                                             </span>
                                         )}
                                     </div>
-                                    <div style={{ background: '#f34c20', color: '#fff', textAlign: 'center', padding: '7px 12px', borderRadius: 6, fontSize: 12, fontWeight: 700 }}>
+                                    <div className="ed-preview-cta">
                                         {card.btn || defCard.btn} →
                                     </div>
                                 </div>
@@ -3231,46 +2704,20 @@ export function CampaignOffersManager({
             </div>
 
             {/* Bottom Add Card Actions */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12, marginTop: 20 }}>
+            <div className="ed-grid is-md ed-mt">
                 <button
                     type="button"
                     onClick={handleAddSingle}
-                    style={{
-                        background: '#ffffff',
-                        color: '#006837',
-                        border: '1.5px dashed #006837',
-                        padding: '12px 20px',
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        justifyContent: 'center',
-                    }}
+                    className="ed-add tone-ok"
                 >
-                    <Plus size={16} /> + Add Another Single Product Offer
+                    <Plus size={16} /> {translate('portal', 'sce_add_another_single_offer')}
                 </button>
                 <button
                     type="button"
                     onClick={handleAddBundle}
-                    style={{
-                        background: '#ffffff',
-                        color: '#0284c7',
-                        border: '1.5px dashed #0284c7',
-                        padding: '12px 20px',
-                        borderRadius: 8,
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        justifyContent: 'center',
-                    }}
+                    className="ed-add tone-info"
                 >
-                    <Plus size={16} /> + Add Another Group / Package Bundle
+                    <Plus size={16} /> {translate('portal', 'sce_add_another_package_offer')}
                 </button>
             </div>
         </div>
@@ -3335,41 +2782,23 @@ export function FeaturedProductsManager({
     const catalogFeatured = products.filter(p => p.featured);
 
     return (
-        <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: 24, marginBottom: 28 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+        <div className="ed-card is-soft is-lg ed-mb-lg">
+            <div className="ed-head">
                 <div>
-                    <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: '#011627', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Package size={20} color="#006837" /> Featured Products Showcase Section
+                    <h3 className="ed-title is-flush ed-row">
+                        <Package size={20} className="icon-ok" /> {translate('portal', 'sce_featured_products_section')}
                     </h3>
-                    <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                        Configure product showcase on the public homepage with interactive category tabs and smart marketing badges.
+                    <p className="ed-desc">
+                        {translate('portal', 'sce_featured_products_section_hint')}
                     </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="ed-row is-loose">
                     <button
                         type="button"
                         onClick={() => updateField('featured_products_enabled', isEnabled ? '0' : '1')}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            background: isEnabled ? '#ecfdf5' : '#f8fafc',
-                            color: isEnabled ? '#065f46' : '#64748b',
-                            padding: '7px 14px',
-                            borderRadius: 20,
-                            border: `1.5px solid ${isEnabled ? '#10b981' : '#cbd5e1'}`,
-                            transition: 'all 0.15s ease'
-                        }}
+                        className={`ed-toggle${isEnabled ? ' is-on' : ''}`}
                     >
-                        <span style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: isEnabled ? '#10b981' : '#94a3b8'
-                        }} />
+                        <span className="ed-dot" />
                         {isEnabled
                             ? translate('portal', 'sce_section_active')
                             : translate('portal', 'sce_section_hidden_short')}
@@ -3377,27 +2806,9 @@ export function FeaturedProductsManager({
                     <button
                         type="button"
                         onClick={() => updateField('featured_products_tabs_enabled', isTabsEnabled ? '0' : '1')}
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            background: isTabsEnabled ? '#ecfdf5' : '#f8fafc',
-                            color: isTabsEnabled ? '#065f46' : '#64748b',
-                            padding: '7px 14px',
-                            borderRadius: 20,
-                            border: `1.5px solid ${isTabsEnabled ? '#10b981' : '#cbd5e1'}`,
-                            transition: 'all 0.15s ease'
-                        }}
+                        className={`ed-toggle${isTabsEnabled ? ' is-on' : ''}`}
                     >
-                        <span style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: isTabsEnabled ? '#10b981' : '#94a3b8'
-                        }} />
+                        <span className="ed-dot" />
                         {isTabsEnabled
                             ? translate('portal', 'sce_filter_tabs_on')
                             : translate('portal', 'sce_filter_tabs_off')}
@@ -3406,7 +2817,7 @@ export function FeaturedProductsManager({
             </div>
 
             {/* General Section Labels */}
-            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+            <div className="form-grid ed-grid is-md ed-mb">
                 <Field
                     label="Section Badge (Pill)"
                     fieldKey="featured_products_badge"
@@ -3452,98 +2863,50 @@ export function FeaturedProductsManager({
             </div>
 
             {/* Showcase Selection Mode */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 18, marginBottom: 20 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 10 }}>
+            <div className="ed-card ed-mb">
+                <div className="ed-strong ed-mb-sm">
                     {translate('portal', 'sce_product_mode')}
                 </div>
-                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                <div className="ed-row is-loose is-wrap">
                     <button
                         type="button"
                         onClick={() => updateField('featured_products_mode', 'auto')}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '10px 18px',
-                            border: `1.5px solid ${mode === 'auto' ? '#006837' : '#cbd5e1'}`,
-                            borderRadius: 8,
-                            background: mode === 'auto' ? '#f0fdf4' : '#fff',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: mode === 'auto' ? '#006837' : '#334155',
-                            boxShadow: mode === 'auto' ? '0 1px 3px rgba(0,104,55,0.08)' : 'none',
-                            textAlign: 'left'
-                        }}
+                        className={`ed-mode${mode === 'auto' ? ' is-active' : ''}`}
                     >
-                        <span style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            border: `2px solid ${mode === 'auto' ? '#006837' : '#94a3b8'}`,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#fff',
-                            flexShrink: 0
-                        }}>
-                            {mode === 'auto' && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#006837' }} />}
+                        <span className="ed-radio">
+                            {mode === 'auto' && <span className="ed-dot" />}
                         </span>
-                        <span>⚡ Automatic (Display Active Featured Products from Catalog)</span>
+                        <span>⚡ {translate('portal', 'sce_featured_mode_auto')}</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => updateField('featured_products_mode', 'curated')}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            padding: '10px 18px',
-                            border: `1.5px solid ${mode === 'curated' ? '#006837' : '#cbd5e1'}`,
-                            borderRadius: 8,
-                            background: mode === 'curated' ? '#f0fdf4' : '#fff',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: mode === 'curated' ? '#006837' : '#334155',
-                            boxShadow: mode === 'curated' ? '0 1px 3px rgba(0,104,55,0.08)' : 'none',
-                            textAlign: 'left'
-                        }}
+                        className={`ed-mode${mode === 'curated' ? ' is-active' : ''}`}
                     >
-                        <span style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: '50%',
-                            border: `2px solid ${mode === 'curated' ? '#006837' : '#94a3b8'}`,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: '#fff',
-                            flexShrink: 0
-                        }}>
-                            {mode === 'curated' && <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#006837' }} />}
+                        <span className="ed-radio">
+                            {mode === 'curated' && <span className="ed-dot" />}
                         </span>
-                        <span>✨ Curated (Hand-Pick & Customize Specific Showcase Products)</span>
+                        <span>✨ {translate('portal', 'sce_featured_mode_curated')}</span>
                     </button>
                 </div>
 
                 {mode === 'auto' && (
-                    <div style={{ marginTop: 14, padding: '12px 16px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, color: '#475569' }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4, color: '#0f172a' }}>
-                            ℹ️ Current Catalog Featured Products ({catalogFeatured.length} active):
+                    <div className="ed-well ed-mt">
+                        <div className="ed-strong ed-mb-xs">
+                            ℹ️ {translate('portal', 'sce_catalog_featured_heading', { count: String(catalogFeatured.length) })}
                         </div>
                         {catalogFeatured.length > 0 ? (
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                            <div className="ed-row is-wrap ed-mt-sm">
                                 {catalogFeatured.map(p => (
-                                    <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: 16, fontSize: 11, fontWeight: 600 }}>
-                                        ★ {p.name} [{p.category}] — {p.mrp} Tk
+                                    <span key={p.id} className="hub-pill tone-ok">
+                                        ★ {p.name} [{p.category}] — {translate('portal', 'sce_amount_tk', { amount: String(p.mrp) })}
                                     </span>
                                 ))}
                             </div>
                         ) : (
-                            <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>
-                                No products are currently flagged as "Featured" in the catalog. All active products will be displayed by default. You can edit any product in the Catalog tab to mark it as Featured.
+                            <div className="ed-placeholder">
+                                {translate('portal', 'sce_catalog_featured_empty')}
                             </div>
                         )}
                     </div>
@@ -3552,44 +2915,32 @@ export function FeaturedProductsManager({
 
             {/* Curated Products List */}
             {mode === 'curated' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                            Curated Showcase Products ({items.length})
+                <div className="ed-stack">
+                    <div className="ed-head is-flush">
+                        <span className="ed-strong">
+                            {translate('portal', 'sce_curated_products_heading', { count: String(items.length) })}
                         </span>
                         <button
                             type="button"
                             onClick={handleAddItem}
-                            style={{
-                                background: '#006837',
-                                color: '#fff',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: 6,
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6
-                            }}
+                            className="button small dark"
                         >
-                            <Plus size={14} /> Add Product to Showcase
+                            <Plus size={14} /> {translate('portal', 'sce_add_product_to_showcase')}
                         </button>
                     </div>
 
                     {items.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '36px 20px', background: '#fff', borderRadius: 8, border: '1.5px dashed #cbd5e1' }}>
-                            <Package size={32} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
-                            <p style={{ margin: '0 0 12px', fontSize: 13, color: '#64748b' }}>
-                                No curated showcase products selected yet.
+                        <div className="ed-empty">
+                            <Package size={32} className="ed-empty-icon icon-muted" />
+                            <p className="ed-desc is-flush ed-mb">
+                                {translate('portal', 'sce_curated_products_empty')}
                             </p>
                             <button
                                 type="button"
                                 onClick={handleAddItem}
-                                style={{ background: '#006837', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                                className="button small dark"
                             >
-                                + Add First Showcase Product
+                                {translate('portal', 'sce_add_first_showcase_product')}
                             </button>
                         </div>
                     ) : (
@@ -3598,32 +2949,23 @@ export function FeaturedProductsManager({
                             return (
                                 <div
                                     key={item.id || idx}
-                                    style={{
-                                        background: '#fff',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: 10,
-                                        padding: 16,
-                                        display: 'grid',
-                                        gridTemplateColumns: 'minmax(0, 1fr) auto',
-                                        gap: 16,
-                                        alignItems: 'center'
-                                    }}
+                                    className="ed-card ed-item-row"
                                 >
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                                    <div className="ed-grid is-md">
                                         {/* Product Selector */}
-                                        <label style={{ display: 'block' }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                                        <label className="ed-block">
+                                            <span className="ed-label">
                                                 {translate('portal', 'sce_select_product', { n: String(idx + 1) })}
                                             </span>
                                             <select
                                                 value={item.product_id}
                                                 onChange={e => handleUpdateItem(idx, { product_id: e.target.value })}
-                                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12, background: '#fff' }}
+                                                className="ed-input is-sm"
                                             >
                                                 <option value="">{translate('portal', 'sce_choose_product')}</option>
                                                 {products.map(p => (
                                                     <option key={p.id} value={p.id}>
-                                                        {p.name} [{p.category}] — {p.mrp} Tk {p.stock !== undefined ? translate('portal', 'sce_stock_label', { count: String(p.stock) }) : ''}
+                                                        {p.name} [{p.category}] — {translate('portal', 'sce_amount_tk', { amount: String(p.mrp) })} {p.stock !== undefined ? translate('portal', 'sce_stock_label', { count: String(p.stock) }) : ''}
                                                     </option>
                                                 ))}
                                             </select>
@@ -3631,25 +2973,17 @@ export function FeaturedProductsManager({
 
                                         {/* Marketing Badge */}
                                         <div>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                                            <span className="ed-label">
                                                 {translate('portal', 'sce_marketing_badge')}
                                             </span>
-                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                                            <div className="ed-row is-wrap ed-mb-sm">
                                                 {quickBadges.map(qb => (
                                                     <button
                                                         key={qb.label}
                                                         type="button"
                                                         onClick={() => handleUpdateItem(idx, { marketing_badge: qb.label })}
-                                                        style={{
-                                                            fontSize: 10,
-                                                            fontWeight: 700,
-                                                            padding: '2px 8px',
-                                                            borderRadius: 12,
-                                                            border: item.marketing_badge === qb.label ? `2px solid ${qb.bg}` : '1px solid #cbd5e1',
-                                                            background: item.marketing_badge === qb.label ? qb.bg : '#f8fafc',
-                                                            color: item.marketing_badge === qb.label ? qb.text : '#475569',
-                                                            cursor: 'pointer'
-                                                        }}
+                                                        className="ed-chip"
+                                                        style={item.marketing_badge === qb.label ? { borderColor: qb.bg, background: qb.bg, color: qb.text } : undefined}
                                                     >
                                                         {qb.label}
                                                     </button>
@@ -3658,44 +2992,44 @@ export function FeaturedProductsManager({
                                                     <button
                                                         type="button"
                                                         onClick={() => handleUpdateItem(idx, { marketing_badge: '' })}
-                                                        style={{ fontSize: 10, padding: '2px 6px', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 12, cursor: 'pointer' }}
+                                                        className="ed-mini tone-danger"
                                                     >
-                                                        Clear
+                                                        {translate('portal', 'sce_clear')}
                                                     </button>
                                                 )}
                                             </div>
                                             <input
                                                 type="text"
-                                                placeholder="Or type custom badge..."
+                                                placeholder={translate('portal', 'sce_custom_badge_ph')}
                                                 value={item.marketing_badge || ''}
                                                 onChange={e => handleUpdateItem(idx, { marketing_badge: e.target.value })}
-                                                style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                                                className="ed-input is-sm"
                                             />
                                         </div>
 
                                         {/* Optional Title Override */}
-                                        <label style={{ display: 'block' }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                                                Title Override (Optional)
+                                        <label className="ed-block">
+                                            <span className="ed-label">
+                                                {translate('portal', 'sce_title_override_optional')}
                                             </span>
                                             <input
                                                 type="text"
-                                                placeholder={selectedProd ? selectedProd.name : 'Leave blank to use product name'}
+                                                placeholder={selectedProd ? selectedProd.name : translate('portal', 'sce_title_override_ph')}
                                                 value={item.override_title || ''}
                                                 onChange={e => handleUpdateItem(idx, { override_title: e.target.value })}
-                                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                                                className="ed-input is-sm"
                                             />
                                         </label>
                                     </div>
 
                                     {/* Action buttons (Move Up, Move Down, Delete) */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', gap: 4 }}>
+                                    <div className="ed-stack is-tight is-center">
+                                        <div className="ed-row is-tight">
                                             <button
                                                 type="button"
                                                 disabled={idx === 0}
                                                 onClick={() => handleMoveItem(idx, 'up')}
-                                                style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #cbd5e1', background: '#fff', cursor: idx === 0 ? 'not-allowed' : 'pointer', opacity: idx === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                className={`ed-icon-btn is-sm${idx === 0 ? ' is-disabled' : ''}`}
                                                 title={translate('portal', 'sce_move_up')}
                                             >
                                                 ↑
@@ -3704,7 +3038,7 @@ export function FeaturedProductsManager({
                                                 type="button"
                                                 disabled={idx === items.length - 1}
                                                 onClick={() => handleMoveItem(idx, 'down')}
-                                                style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #cbd5e1', background: '#fff', cursor: idx === items.length - 1 ? 'not-allowed' : 'pointer', opacity: idx === items.length - 1 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                className={`ed-icon-btn is-sm${idx === items.length - 1 ? ' is-disabled' : ''}`}
                                                 title={translate('portal', 'sce_move_down')}
                                             >
                                                 ↓
@@ -3713,7 +3047,7 @@ export function FeaturedProductsManager({
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveItem(idx)}
-                                            style={{ width: 28, height: 28, borderRadius: 4, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            className="ed-icon-btn tone-danger"
                                             title={translate('portal', 'sce_remove_from_showcase')}
                                         >
                                             <Trash2 size={14} />
@@ -3770,7 +3104,7 @@ function MobileSearchCategoriesManager({
         const trimmed = newName.trim();
         if (!trimmed) return;
         if (lines.some((l) => l.split('|')[0].trim().toLowerCase() === trimmed.toLowerCase())) {
-            alert(translate('portal', 'cms_alert_nav_dup', { name: trimmed }));
+            notify(translate('portal', 'cms_alert_nav_dup', { name: trimmed }), 'error');
             return;
         }
         emitLines([...lines, trimmed]);
@@ -3798,7 +3132,7 @@ function MobileSearchCategoriesManager({
     const handleSyncFeatured = () => {
         const names = featuredCategoriesRaw.split(/\r?\n/).map((l) => l.split('|')[0].trim()).filter(Boolean);
         if (names.length === 0) {
-            alert(translate('portal', 'cms_alert_no_featured'));
+            notify(translate('portal', 'cms_alert_no_featured'), 'error');
             return;
         }
         emitLines(Array.from(new Set(names)));
@@ -3807,60 +3141,43 @@ function MobileSearchCategoriesManager({
     const handleSyncProducts = () => {
         const cats = Array.from(new Set((products || []).map((p) => p.category).filter(Boolean))).sort();
         if (cats.length === 0) {
-            alert(translate('portal', 'cms_alert_no_categories'));
+            notify(translate('portal', 'cms_alert_no_categories'), 'error');
             return;
         }
         emitLines(cats);
     };
 
     return (
-        <div style={{
-            gridColumn: '1 / -1',
-            marginTop: 8,
-            padding: 20,
-            borderRadius: 12,
-            border: `1.5px solid ${isOn ? '#bbf7d0' : '#e2e8f0'}`,
-            background: isOn ? '#f0fdf4' : '#f8fafc',
-        }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div className={`ed-card is-lg hub-span-all ed-mt-sm${isOn ? ' is-on' : ' is-soft'}`}>
+            <div className="ed-head">
                 <div>
-                    <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#011627' }}>
+                    <h4 className="ed-title is-flush">
                         {translate('portal', 'cms_mobile_search_categories_title')}
                     </h4>
-                    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b', lineHeight: 1.5, maxWidth: 640 }}>
+                    <p className="ed-desc is-sm">
                         {translate('portal', 'cms_mobile_search_categories_hint')}
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={() => onChange('mobile_search_categories_enabled', isOn ? '0' : '1')}
-                    style={{
-                        alignSelf: 'flex-start',
-                        border: 0,
-                        borderRadius: 8,
-                        padding: '8px 14px',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        background: isOn ? '#006837' : '#64748b',
-                        color: '#fff',
-                    }}
+                    className={`button small ${isOn ? 'dark' : 'is-off'}`}
                 >
                     {isOn ? translate('portal', 'cms_mobile_search_categories_on') : translate('portal', 'cms_mobile_search_categories_off')}
                 </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+            <div className="ed-grid is-md ed-mb">
+                <label className="ed-field">
                     {translate('portal', 'cms_mobile_search_categories_heading')}
                     <input
                         value={heading}
                         onChange={(e) => onChange('mobile_search_categories_heading', e.target.value)}
                         placeholder={translate('portal', 'cms_mobile_search_categories_heading_ph')}
-                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 500 }}
+                        className="ed-input"
                     />
                 </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, fontWeight: 600, color: '#334155' }}>
+                <label className="ed-field">
                     {translate('portal', 'cms_mobile_search_categories_limit')}
                     <input
                         type="number"
@@ -3868,12 +3185,12 @@ function MobileSearchCategoriesManager({
                         max={24}
                         value={limit || '6'}
                         onChange={(e) => onChange('mobile_search_categories_limit', e.target.value)}
-                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontWeight: 500, maxWidth: 120 }}
+                        className="ed-input is-narrow"
                     />
                 </label>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div className="ed-row is-wrap ed-mb">
                 <button type="button" className="button small" onClick={handleSyncFeatured}>
                     {translate('portal', 'cms_mobile_search_sync_featured')}
                 </button>
@@ -3883,20 +3200,19 @@ function MobileSearchCategoriesManager({
                 {lines.length > 0 && (
                     <button
                         type="button"
-                        className="button small"
+                        className="button small danger"
                         onClick={() => {
                             if (window.confirm(translate('portal', 'cms_mobile_search_clear_confirm'))) {
                                 emitLines([]);
                             }
                         }}
-                        style={{ color: '#b91c1c' }}
                     >
                         {translate('portal', 'cms_mobile_search_clear')}
                     </button>
                 )}
             </div>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div className="ed-row ed-mb">
                 <input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
@@ -3907,7 +3223,7 @@ function MobileSearchCategoriesManager({
                         }
                     }}
                     placeholder={translate('portal', 'cms_mobile_search_add_ph')}
-                    style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
+                    className="ed-input is-grow"
                 />
                 <button type="button" className="button small dark" onClick={handleAdd}>
                     <Plus size={14} /> {translate('portal', 'cms_mobile_search_add')}
@@ -3915,34 +3231,26 @@ function MobileSearchCategoriesManager({
             </div>
 
             {lines.length === 0 ? (
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                <p className="ed-desc is-sm is-flush">
                     {translate('portal', 'cms_mobile_search_empty')}
                 </p>
             ) : (
-                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+                <ul className="ed-list">
                     {lines.map((line, index) => {
                         const name = line.split('|')[0].trim();
                         return (
                             <li
                                 key={`${name}-${index}`}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    padding: '10px 12px',
-                                    borderRadius: 8,
-                                    background: '#fff',
-                                    border: '1px solid #e2e8f0',
-                                }}
+                                className="ed-list-item"
                             >
-                                <strong style={{ flex: 1, fontSize: 13 }}>{name}</strong>
-                                <button type="button" className="button small" onClick={() => handleMove(index, 'up')} disabled={index === 0} aria-label="Move up">
+                                <strong className="ed-strong ed-grow">{name}</strong>
+                                <button type="button" className="button small" onClick={() => handleMove(index, 'up')} disabled={index === 0} aria-label={translate('portal', 'sce_move_up')}>
                                     <ArrowUp size={14} />
                                 </button>
-                                <button type="button" className="button small" onClick={() => handleMove(index, 'down')} disabled={index === lines.length - 1} aria-label="Move down">
+                                <button type="button" className="button small" onClick={() => handleMove(index, 'down')} disabled={index === lines.length - 1} aria-label={translate('portal', 'sce_move_down')}>
                                     <ArrowDown size={14} />
                                 </button>
-                                <button type="button" className="button small" onClick={() => handleRemove(index)} aria-label="Remove">
+                                <button type="button" className="button small" onClick={() => handleRemove(index)} aria-label={translate('portal', 'sce_remove')}>
                                     <Trash2 size={14} />
                                 </button>
                             </li>
@@ -3987,7 +3295,7 @@ function HeaderNavCategoriesManager({
         if (!trimmed) return;
         const currentList = isCustomized ? activeCategories : [...DEFAULT_NAV_CATEGORIES];
         if (currentList.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
-            alert(translate('portal', 'cms_alert_nav_dup', { name: trimmed }));
+            notify(translate('portal', 'cms_alert_nav_dup', { name: trimmed }), 'error');
             return;
         }
         const updated = [...currentList, trimmed];
@@ -4044,7 +3352,7 @@ function HeaderNavCategoriesManager({
     const handleSyncFeatured = () => {
         const names = featuredCategoriesRaw.split(/\r?\n/).map(l => l.split('|')[0].trim()).filter(Boolean);
         if (names.length === 0) {
-            alert(translate('portal', 'cms_alert_no_featured'));
+            notify(translate('portal', 'cms_alert_no_featured'), 'error');
             return;
         }
         const unique = Array.from(new Set(names));
@@ -4053,12 +3361,12 @@ function HeaderNavCategoriesManager({
 
     const handleSyncProducts = () => {
         if (!products || products.length === 0) {
-            alert(translate('portal', 'cms_alert_no_products'));
+            notify(translate('portal', 'cms_alert_no_products'), 'error');
             return;
         }
         const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean))).sort();
         if (cats.length === 0) {
-            alert(translate('portal', 'cms_alert_no_categories'));
+            notify(translate('portal', 'cms_alert_no_categories'), 'error');
             return;
         }
         onChange(cats.join('\n'));
@@ -4075,90 +3383,43 @@ function HeaderNavCategoriesManager({
     };
 
     return (
-        <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
-            borderRadius: 12,
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-            gridColumn: '1 / -1',
-            marginTop: 10
-        }}>
+        <div className="ed-card is-lg hub-span-all ed-mt-sm">
             {/* Header / Title */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 18 }}>
+            <div className="ed-head is-top">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: '#eff6ff',
-                            color: '#2563eb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
+                    <div className="ed-row is-loose">
+                        <div className="ed-icon tone-info">
                             <Tag size={18} />
                         </div>
-                        <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#011627' }}>
-                            Upper Category Navigation Bar
+                        <h4 className="ed-title is-flush">
+                            {translate('portal', 'sce_nav_bar_heading')}
                         </h4>
-                        <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '3px 10px',
-                            borderRadius: 12,
-                            background: isCustomized ? '#dcfce7' : '#f1f5f9',
-                            color: isCustomized ? '#15803d' : '#64748b',
-                            border: `1px solid ${isCustomized ? '#86efac' : '#cbd5e1'}`
-                        }}>
-                            {isCustomized ? `CUSTOM ACTIVE (${activeCategories.length} OPTIONS)` : 'DEFAULT PLACEHOLDERS (8 OPTIONS)'}
+                        <span className={`hub-pill${isCustomized ? ' tone-ok' : ''}`}>
+                            {isCustomized
+                                ? translate('portal', 'sce_nav_custom_active', { count: String(activeCategories.length) })
+                                : translate('portal', 'sce_nav_default_placeholders')}
                         </span>
                     </div>
-                    <p style={{ margin: '6px 0 0', fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-                        This horizontal category bar appears directly beneath the main header search area on desktop and within the mobile navigation drawer. You can add new category links, rename existing ones, change order, or remove items.
+                    <p className="ed-desc">
+                        {translate('portal', 'sce_nav_bar_hint')}
                     </p>
                 </div>
 
                 {/* Quick Action Buttons */}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="ed-row is-wrap">
                     <button
                         type="button"
                         onClick={handleResetDefaults}
-                        style={{
-                            background: '#f8fafc',
-                            color: '#334155',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
-                        title="Restore the 8 reference category placeholders"
+                        className="button small"
+                        title={translate('portal', 'sce_nav_reset_eight_title')}
                     >
-                        <RotateCcw size={13} /> Reset 8 Placeholders
+                        <RotateCcw size={13} /> {translate('portal', 'sce_nav_reset_eight')}
                     </button>
                     {isCustomized && (
                         <button
                             type="button"
                             onClick={handleClearToPlaceholders}
-                            style={{
-                                background: '#fff1f2',
-                                color: '#e11d48',
-                                border: '1px solid #fecdd3',
-                                borderRadius: 6,
-                                padding: '6px 12px',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6
-                            }}
+                            className="button small danger"
                             title={translate('portal', 'sce_clear_custom_list_title')}
                         >
                             <Trash2 size={13} /> {translate('portal', 'sce_clear_custom_list')}
@@ -4167,19 +3428,7 @@ function HeaderNavCategoriesManager({
                     <button
                         type="button"
                         onClick={handleToggleBulkMode}
-                        style={{
-                            background: bulkMode ? '#2563eb' : '#eff6ff',
-                            color: bulkMode ? '#ffffff' : '#1d4ed8',
-                            border: `1px solid ${bulkMode ? '#1d4ed8' : '#bfdbfe'}`,
-                            borderRadius: 6,
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
+                        className={`button small ${bulkMode ? 'dark' : 'tone-info'}`}
                     >
                         <List size={13} /> {bulkMode ? translate('portal', 'sce_exit_bulk') : translate('portal', 'sce_bulk_edit')}
                     </button>
@@ -4188,18 +3437,7 @@ function HeaderNavCategoriesManager({
 
             {/* Notice / Status description */}
             {!isCustomized && (
-                <div style={{
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    background: '#f8fafc',
-                    border: '1px dashed #cbd5e1',
-                    marginBottom: 16,
-                    fontSize: 12.5,
-                    color: '#475569',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
-                }}>
+                <div className="ed-note">
                     <span>
                         {translate('portal', 'sce_nav_defaults_notice')}
                     </span>
@@ -4207,55 +3445,22 @@ function HeaderNavCategoriesManager({
             )}
 
             {/* Add New Category Box */}
-            <div style={{
-                display: 'flex',
-                gap: 10,
-                marginBottom: 20,
-                background: '#f8fafc',
-                padding: '12px 14px',
-                borderRadius: 8,
-                border: '1px solid #e2e8f0',
-                alignItems: 'center',
-                flexWrap: 'wrap'
-            }}>
-                <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
+            <div className="ed-toolbar is-soft">
+                <div className="ed-search">
                     <input
                         type="text"
                         value={newCategoryName}
                         onChange={e => setNewCategoryName(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={translate('portal', 'sce_add_category_ph')}
-                        style={{
-                            width: '100%',
-                            padding: '9px 14px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                            fontSize: 13,
-                            color: '#011627',
-                            outline: 'none',
-                            background: '#ffffff',
-                            boxSizing: 'border-box'
-                        }}
+                        className="ed-input"
                     />
                 </div>
                 <button
                     type="button"
                     onClick={handleAdd}
                     disabled={!newCategoryName.trim()}
-                    style={{
-                        background: newCategoryName.trim() ? '#006837' : '#94a3b8',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: 6,
-                        padding: '9px 18px',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: newCategoryName.trim() ? 'pointer' : 'not-allowed',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        transition: 'background 0.15s ease'
-                    }}
+                    className={`button dark${newCategoryName.trim() ? '' : ' is-disabled'}`}
                 >
                     <Plus size={15} /> {translate('portal', 'sce_add_option')}
                 </button>
@@ -4263,26 +3468,17 @@ function HeaderNavCategoriesManager({
 
             {/* Visual Cards vs Bulk Text Mode */}
             {bulkMode ? (
-                <div style={{ marginBottom: 16 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                <div className="ed-mb">
+                    <label className="ed-label">
                         {translate('portal', 'sce_bulk_edit')}
                     </label>
                     <textarea
                         rows={8}
                         value={bulkInput}
                         onChange={e => setBulkInput(e.target.value)}
-                        style={{
-                            width: '100%',
-                            fontFamily: 'monospace',
-                            fontSize: 13,
-                            lineHeight: 1.5,
-                            padding: '12px',
-                            borderRadius: 6,
-                            border: '1px solid #cbd5e1',
-                            boxSizing: 'border-box'
-                        }}
+                        className="ed-input is-mono"
                     />
-                    <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
+                    <div className="ed-row is-loose ed-mt-sm">
                         <button
                             type="button"
                             onClick={() => {
@@ -4290,73 +3486,28 @@ function HeaderNavCategoriesManager({
                                 onChange(parsed.join('\n'));
                                 setBulkMode(false);
                             }}
-                            style={{
-                                background: '#2563eb',
-                                color: '#fff',
-                                padding: '8px 16px',
-                                borderRadius: 6,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                border: 'none'
-                            }}
+                            className="button small dark"
                         >
-                            Apply & Return to Cards
+                            {translate('portal', 'sce_apply_return_to_cards')}
                         </button>
                         <button
                             type="button"
                             onClick={() => setBulkMode(false)}
-                            style={{
-                                background: '#f1f5f9',
-                                color: '#475569',
-                                padding: '8px 14px',
-                                borderRadius: 6,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                border: '1px solid #cbd5e1'
-                            }}
+                            className="button small"
                         >
-                            Cancel
+                            {translate('portal', 'sce_cancel')}
                         </button>
                     </div>
                 </div>
             ) : (
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                    gap: 10,
-                    marginBottom: 18
-                }}>
+                <div className="ed-grid is-list ed-mb">
                     {activeCategories.map((category, idx) => (
                         <div
                             key={idx}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                padding: '8px 10px',
-                                background: '#f8fafc',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: 8,
-                                transition: 'border-color 0.15s ease'
-                            }}
+                            className="ed-chip-row"
                         >
                             {/* Position Index Badge */}
-                            <span style={{
-                                fontSize: 11,
-                                fontWeight: 800,
-                                color: '#64748b',
-                                background: '#ffffff',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: 4,
-                                width: 26,
-                                height: 26,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                            }}>
+                            <span className="ed-index">
                                 #{idx + 1}
                             </span>
 
@@ -4365,19 +3516,7 @@ function HeaderNavCategoriesManager({
                                 type="text"
                                 value={category}
                                 onChange={e => handleEdit(idx, e.target.value)}
-                                style={{
-                                    flex: 1,
-                                    minWidth: 0,
-                                    fontSize: 12.5,
-                                    fontWeight: 600,
-                                    color: '#011627',
-                                    border: '1px solid transparent',
-                                    borderRadius: 4,
-                                    padding: '4px 6px',
-                                    background: 'transparent',
-                                    outline: 'none',
-                                    transition: 'border-color 0.15s, background 0.15s'
-                                }}
+                                className="ed-inline-input"
                                 onFocus={e => {
                                     e.currentTarget.style.border = '1px solid #3b82f6';
                                     e.currentTarget.style.background = '#ffffff';
@@ -4389,24 +3528,12 @@ function HeaderNavCategoriesManager({
                             />
 
                             {/* Move Up / Move Down buttons */}
-                            <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                            <div className="ed-row is-tight">
                                 <button
                                     type="button"
                                     onClick={() => handleMove(idx, 'up')}
                                     disabled={idx === 0}
-                                    style={{
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: 4,
-                                        border: '1px solid #e2e8f0',
-                                        background: idx === 0 ? '#f1f5f9' : '#ffffff',
-                                        color: idx === 0 ? '#cbd5e1' : '#475569',
-                                        cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 0
-                                    }}
+                                    className={`ed-icon-btn is-sm${idx === 0 ? ' is-disabled' : ''}`}
                                     title={translate('portal', 'sce_move_left_up')}
                                 >
                                     <ArrowUp size={12} />
@@ -4415,19 +3542,7 @@ function HeaderNavCategoriesManager({
                                     type="button"
                                     onClick={() => handleMove(idx, 'down')}
                                     disabled={idx === activeCategories.length - 1}
-                                    style={{
-                                        width: 24,
-                                        height: 24,
-                                        borderRadius: 4,
-                                        border: '1px solid #e2e8f0',
-                                        background: idx === activeCategories.length - 1 ? '#f1f5f9' : '#ffffff',
-                                        color: idx === activeCategories.length - 1 ? '#cbd5e1' : '#475569',
-                                        cursor: idx === activeCategories.length - 1 ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        padding: 0
-                                    }}
+                                    className={`ed-icon-btn is-sm${idx === activeCategories.length - 1 ? ' is-disabled' : ''}`}
                                     title={translate('portal', 'sce_move_right_down')}
                                 >
                                     <ArrowDown size={12} />
@@ -4438,22 +3553,8 @@ function HeaderNavCategoriesManager({
                             <button
                                 type="button"
                                 onClick={() => handleRemove(idx)}
-                                style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 4,
-                                    border: '1px solid #fee2e2',
-                                    background: '#fff1f2',
-                                    color: '#e11d48',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                    padding: 0,
-                                    transition: 'background 0.15s, color 0.15s'
-                                }}
-                                title={`Remove "${category}"`}
+                                className="ed-icon-btn is-sm tone-danger"
+                                title={translate('portal', 'sce_remove_named', { name: category })}
                             >
                                 <Trash2 size={13} />
                             </button>
@@ -4463,97 +3564,49 @@ function HeaderNavCategoriesManager({
             )}
 
             {/* Sync Helpers */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div className="ed-row is-wrap ed-mb">
                 <button
                     type="button"
                     onClick={handleSyncFeatured}
-                    style={{
-                        background: '#f0fdf4',
-                        color: '#166534',
-                        border: '1px solid #bbf7d0',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: '6px 12px',
-                        borderRadius: 6,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6
-                    }}
+                    className="button small light"
                 >
-                    <Sparkles size={13} /> Sync from Featured Categories
+                    <Sparkles size={13} /> {translate('portal', 'sce_sync_from_featured_categories')}
                 </button>
                 {products && products.length > 0 && (
                     <button
                         type="button"
                         onClick={handleSyncProducts}
-                        style={{
-                            background: '#eff6ff',
-                            color: '#1e40af',
-                            border: '1px solid #bfdbfe',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
+                        className="button small tone-info"
                     >
-                        <Package size={13} /> Load from Active Products ({products.length} catalog items)
+                        <Package size={13} /> {translate('portal', 'sce_nav_load_from_products', { count: String(products.length) })}
                     </button>
                 )}
             </div>
 
             {/* Live Storefront Bar Preview */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: 8,
-                padding: '14px 18px',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.03)'
-            }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
-                        <strong style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#475569' }}>
-                            Storefront Navigation Bar Live Preview
+            <div className="ed-card">
+                <div className="ed-head is-sm">
+                    <div className="ed-row">
+                        <span className="ed-dot tone-ok"></span>
+                        <strong className="ed-kicker">
+                            {translate('portal', 'sce_nav_preview_heading')}
                         </strong>
                     </div>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>
-                        Shows how it renders directly beneath the search bar
+                    <span className="ed-meta">
+                        {translate('portal', 'sce_nav_preview_hint')}
                     </span>
                 </div>
 
-                <div style={{
-                    background: '#ffffff',
-                    border: '1px solid #dce1e8',
-                    borderRadius: 6,
-                    padding: '0 16px',
-                    minHeight: 46,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    overflowX: 'auto',
-                    scrollbarWidth: 'thin'
-                }}>
+                <div className="ed-nav-preview">
                     {activeCategories.length === 0 ? (
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+                        <span className="ed-placeholder">
                             {translate('portal', 'cms_no_categories_selected')}
                         </span>
                     ) : (
                         activeCategories.map((cat, i) => (
                             <span
                                 key={i}
-                                style={{
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    color: '#011627',
-                                    whiteSpace: 'nowrap',
-                                    cursor: 'default',
-                                    padding: '8px 0'
-                                }}
+                                className="ed-nav-preview-item"
                             >
                                 {cat}
                             </span>
@@ -5036,49 +4089,49 @@ export default function SiteCustomizationEditor({
 
     return (
         <div className="site-customization-container">
-            <div className="panel" style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 15 }}>
+            <div className="panel">
+                <div className="ed-head is-flush">
                     <div>
-                        <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0 }}>
-                            <SlidersHorizontal size={22} color="#2e3192" /> {translate('portal', 'cms_heading')}
+                        <h2 className="ed-row is-loose">
+                            <SlidersHorizontal size={22} className="icon-brand" /> {translate('portal', 'cms_heading')}
                         </h2>
-                        <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 13 }}>
+                        <p className="ed-desc">
                             {translate('portal', 'cms_heading_hint')}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <a href={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/` : '/'} target="_blank" rel="noopener noreferrer" className="button small" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div className="ed-row is-loose">
+                        <a href={typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname.replace(/^(manage|sadmin|dealer|subdealer)\./, '')}${window.location.port ? ':' + window.location.port : ''}/` : '/'} target="_blank" rel="noopener noreferrer" className="button small">
                             <ExternalLink size={14} /> {translate('portal', 'cms_preview_live')}
                         </a>
-                        <button type="button" onClick={handleResetAll} className="button small" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button type="button" onClick={handleResetAll} className="button small danger">
                             <RotateCcw size={14} /> {translate('portal', 'cms_reset_all')}
                         </button>
                     </div>
                 </div>
 
                 {/* Relocation guidance banner */}
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Package size={20} color="#15803d" />
-                        <span style={{ fontSize: 13, color: '#166534', fontWeight: 500 }}>
+                <div className="ed-callout tone-ok ed-head is-flush ed-mt">
+                    <div className="ed-row is-loose">
+                        <Package size={20} className="icon-ok" />
+                        <span className="ed-body tone-ok">
                             {translate('portal', 'cms_product_banner')}
                         </span>
                     </div>
-                    <a href="/catalog?tab=offers" className="button small dark" style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+                    <a href="/catalog?tab=offers" className="button small dark">
                         {translate('portal', 'cms_product_mgmt')}
                     </a>
                 </div>
 
-                <div style={{ marginTop: 18, padding: 16, borderRadius: 12, border: '1px solid #dbe4f0', background: 'linear-gradient(180deg,#f8fafc,#fff)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <div className="ed-card is-soft ed-mt">
+                    <div className="ed-head">
                         <div>
-                            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{translate('portal', 'cms_visibility_title')}</h3>
-                            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                            <h3 className="ed-title is-flush">{translate('portal', 'cms_visibility_title')}</h3>
+                            <p className="ed-desc is-sm">
                                 {translate('portal', 'cms_visibility_hint')}
                             </p>
                         </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                    <div className="ed-grid is-sm">
                         {(websitePages.length > 0 ? websitePages : [
                             { key: 'home', slug: '/', label: translate('portal', 'website_page_home'), toggleable: false, enabled: true, flag: null },
                             ...pageFlags.map((flag) => ({
@@ -5093,20 +4146,19 @@ export default function SiteCustomizationEditor({
                             const flag = page.flag as typeof pageFlags[number] | null | undefined;
                             const on = page.toggleable === false ? true : (flag ? form.data.customization[flag] !== '0' : page.enabled !== false);
                             return (
-                                <div key={page.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', background: on ? '#fff' : '#f8fafc' }}>
-                                    <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>{page.label}</div>
-                                        <div style={{ fontSize: 10, color: '#94a3b8' }}>{page.slug}</div>
+                                <div key={page.key} className={`ed-toggle-row${on ? ' is-on' : ''}`}>
+                                    <div className="ed-shrink">
+                                        <div className="ed-strong is-sm hub-capital">{page.label}</div>
+                                        <div className="ed-hint">{page.slug}</div>
                                     </div>
                                     {page.toggleable === false || !flag ? (
-                                        <span style={{ fontSize: 10, fontWeight: 700, color: '#15803d' }}>{translate('portal', 'cms_always_on')}</span>
+                                        <span className="ed-label is-inline tone-ok">{translate('portal', 'cms_always_on')}</span>
                                     ) : (
                                         <button
                                             type="button"
-                                            className={`button small ${on ? 'dark' : ''}`}
                                             aria-pressed={on}
                                             onClick={() => updateField(flag, on ? '0' : '1')}
-                                            style={{ fontSize: 11, minWidth: 72 }}
+                                            className={`button small ed-toggle-btn ${on ? 'dark' : ''}`}
                                         >
                                             {on ? translate('portal', 'cms_on') : translate('portal', 'cms_off')}
                                         </button>
@@ -5115,7 +4167,7 @@ export default function SiteCustomizationEditor({
                             );
                         })}
                     </div>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                    <div className="ed-row is-wrap ed-mt">
                         {websitePages.filter((page) => page.toggleable === false || (page.flag ? form.data.customization[page.flag as typeof pageFlags[number]] !== '0' : page.enabled)).map((page) => (
                             <a
                                 key={`preview-${page.slug}`}
@@ -5123,7 +4175,6 @@ export default function SiteCustomizationEditor({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="button small"
-                                style={{ fontSize: 11 }}
                             >
                                 {translate('portal', 'cms_preview_page', { label: page.label })}
                             </a>
@@ -5131,7 +4182,7 @@ export default function SiteCustomizationEditor({
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 18, borderBottom: '1px solid #e2e8f0', overflowX: 'auto', paddingBottom: 8 }}>
+                <div className="ed-tabs">
                     {[
                         { id: 'header', labelKey: 'cms_tab_header', icon: Layout },
                         { id: 'banners', labelKey: 'cms_tab_banners', icon: Image },
@@ -5148,7 +4199,6 @@ export default function SiteCustomizationEditor({
                                 type="button"
                                 onClick={() => setTab(t.id as any)}
                                 className={`button small ${active ? 'dark' : ''}`}
-                                style={{ display: 'flex', alignItems: 'center', gap: 7, borderRadius: 6, whiteSpace: 'nowrap' }}
                             >
                                 <Icon size={15} />
                                 <span>{translate('portal', t.labelKey)}</span>
@@ -5159,12 +4209,12 @@ export default function SiteCustomizationEditor({
             </div>
 
             <form onSubmit={handleSubmit}>
-                <div className="panel" style={{ padding: 28 }}>
+                <div className="panel">
                     {/* TAB 1: HEADER & TOP BAR */}
                     {tab === 'header' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>{translate('portal', 'cms_header_title')}</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <h3 className="ed-title">{translate('portal', 'cms_header_title')}</h3>
+                            <div className="form-grid ed-grid">
                                 <Field label="Top Company Bar Text" fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
                                 <Field label="Search Input Placeholder" fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
                                 <Field label="Product Catalogue Link Label" fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
@@ -5205,46 +4255,46 @@ export default function SiteCustomizationEditor({
                     {/* TAB 2: SLIDER & BANNERS */}
                     {tab === 'banners' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>{translate('portal', 'cms_banners_title')}</h3>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 30 }}>
+                            <h3 className="ed-title">{translate('portal', 'cms_banners_title')}</h3>
+                            <div className="ed-stack is-loose ed-mb-lg">
                                 {(form.data.customization.slides || []).map((slide, idx) => {
                                     const defSlide = defaults.slides?.[idx] || { image: '', link: '', alt: '' };
                                     return (
-                                        <div key={idx} style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
-                                            <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#2e3192' }}>Slide #{idx + 1}</h4>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14 }}>
+                                        <div key={idx} className="ed-card is-soft">
+                                            <h4 className="ed-subtitle">{translate('portal', 'sce_slide_number', { number: String(idx + 1) })}</h4>
+                                            <div className="ed-grid is-md">
                                                 <label>
-                                                    <span style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Image URL</span>
+                                                    <span className="ed-label">{translate('portal', 'sce_image_url')}</span>
                                                     <input
                                                         type="text"
                                                         value={slide.image}
                                                         placeholder={defSlide.image}
                                                         onChange={e => updateSlide(idx, 'image', e.target.value)}
-                                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                                        className="ed-input"
                                                     />
-                                                    <small style={{ color: '#94a3b8', display: 'block', marginTop: 2 }}>Placeholder: {defSlide.image}</small>
+                                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSlide.image ?? '') })}</small>
                                                 </label>
                                                 <label>
-                                                    <span style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Target Link</span>
+                                                    <span className="ed-label">{translate('portal', 'sce_target_link')}</span>
                                                     <input
                                                         type="text"
                                                         value={slide.link}
                                                         placeholder={defSlide.link}
                                                         onChange={e => updateSlide(idx, 'link', e.target.value)}
-                                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                                        className="ed-input"
                                                     />
-                                                    <small style={{ color: '#94a3b8', display: 'block', marginTop: 2 }}>Placeholder: {defSlide.link}</small>
+                                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSlide.link ?? '') })}</small>
                                                 </label>
                                                 <label>
-                                                    <span style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Alt / Caption</span>
+                                                    <span className="ed-label">{translate('portal', 'sce_alt_caption')}</span>
                                                     <input
                                                         type="text"
                                                         value={slide.alt}
                                                         placeholder={defSlide.alt}
                                                         onChange={e => updateSlide(idx, 'alt', e.target.value)}
-                                                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }}
+                                                        className="ed-input"
                                                     />
-                                                    <small style={{ color: '#94a3b8', display: 'block', marginTop: 2 }}>Placeholder: {defSlide.alt}</small>
+                                                    <small className="ed-hint">{translate('portal', 'sce_default_placeholder', { value: String(defSlide.alt ?? '') })}</small>
                                                 </label>
                                             </div>
                                         </div>
@@ -5252,51 +4302,51 @@ export default function SiteCustomizationEditor({
                                 })}
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Side Promotional Banners (Mini-Carousels)</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 24 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_side_banners_heading')}</h3>
+                            <div className="ed-grid is-lg">
                                 {/* Side Banner 1 (Top) */}
-                                <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
-                                    <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#2e3192' }}>Top Side Card (Mini-Carousel Slides)</h4>
-                                    <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>Configure multiple rotating slides for the top side promotion card.</p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                <div className="ed-card is-soft">
+                                    <h4 className="ed-subtitle">{translate('portal', 'sce_side_top_card_heading')}</h4>
+                                    <p className="ed-desc is-sm is-flush ed-mb">{translate('portal', 'sce_side_top_card_hint')}</p>
+                                    <div className="ed-stack">
                                         {((form.data.customization.side_banner_1_slides || defaults.side_banner_1_slides) || []).map((slide, idx) => {
                                             const defSlide = defaults.side_banner_1_slides?.[idx] || { image: '', link: '', alt: '' };
                                             return (
-                                                <div key={idx} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
-                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>Top Card Slide #{idx + 1}</span>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                                                <div key={idx} className="ed-card is-compact">
+                                                    <span className="ed-label">{translate('portal', 'sce_side_top_slide_number', { number: String(idx + 1) })}</span>
+                                                    <div className="ed-grid is-sm">
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Image URL</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_image_url')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.image}
                                                                 placeholder={defSlide.image}
                                                                 onChange={e => updateSideSlide(1, idx, 'image', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.image}</small>
+                                                            <small className="ed-hint">{defSlide.image}</small>
                                                         </label>
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Target Link</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_target_link')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.link}
                                                                 placeholder={defSlide.link}
                                                                 onChange={e => updateSideSlide(1, idx, 'link', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.link}</small>
+                                                            <small className="ed-hint">{defSlide.link}</small>
                                                         </label>
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Alt Text</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_alt_text')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.alt}
                                                                 placeholder={defSlide.alt}
                                                                 onChange={e => updateSideSlide(1, idx, 'alt', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.alt}</small>
+                                                            <small className="ed-hint">{defSlide.alt}</small>
                                                         </label>
                                                     </div>
                                                 </div>
@@ -5306,48 +4356,48 @@ export default function SiteCustomizationEditor({
                                 </div>
 
                                 {/* Side Banner 2 (Bottom) */}
-                                <div style={{ padding: 18, border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc' }}>
-                                    <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700, color: '#2e3192' }}>Bottom Side Card (Mini-Carousel Slides)</h4>
-                                    <p style={{ margin: '0 0 14px', fontSize: 12, color: '#64748b' }}>Configure multiple rotating slides for the bottom side promotion card.</p>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                <div className="ed-card is-soft">
+                                    <h4 className="ed-subtitle">{translate('portal', 'sce_side_bottom_card_heading')}</h4>
+                                    <p className="ed-desc is-sm is-flush ed-mb">{translate('portal', 'sce_side_bottom_card_hint')}</p>
+                                    <div className="ed-stack">
                                         {((form.data.customization.side_banner_2_slides || defaults.side_banner_2_slides) || []).map((slide, idx) => {
                                             const defSlide = defaults.side_banner_2_slides?.[idx] || { image: '', link: '', alt: '' };
                                             return (
-                                                <div key={idx} style={{ padding: 12, border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff' }}>
-                                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 8 }}>Bottom Card Slide #{idx + 1}</span>
-                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                                                <div key={idx} className="ed-card is-compact">
+                                                    <span className="ed-label">{translate('portal', 'sce_side_bottom_slide_number', { number: String(idx + 1) })}</span>
+                                                    <div className="ed-grid is-sm">
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Image URL</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_image_url')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.image}
                                                                 placeholder={defSlide.image}
                                                                 onChange={e => updateSideSlide(2, idx, 'image', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.image}</small>
+                                                            <small className="ed-hint">{defSlide.image}</small>
                                                         </label>
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Target Link</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_target_link')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.link}
                                                                 placeholder={defSlide.link}
                                                                 onChange={e => updateSideSlide(2, idx, 'link', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.link}</small>
+                                                            <small className="ed-hint">{defSlide.link}</small>
                                                         </label>
                                                         <label>
-                                                            <span style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 2 }}>Alt Text</span>
+                                                            <span className="ed-label">{translate('portal', 'sce_alt_text')}</span>
                                                             <input
                                                                 type="text"
                                                                 value={slide.alt}
                                                                 placeholder={defSlide.alt}
                                                                 onChange={e => updateSideSlide(2, idx, 'alt', e.target.value)}
-                                                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 12 }}
+                                                                className="ed-input is-sm"
                                                             />
-                                                            <small style={{ color: '#94a3b8', display: 'block', fontSize: 10, marginTop: 2 }}>{defSlide.alt}</small>
+                                                            <small className="ed-hint">{defSlide.alt}</small>
                                                         </label>
                                                     </div>
                                                 </div>
@@ -5374,68 +4424,38 @@ export default function SiteCustomizationEditor({
                     {tab === 'catalog' && (
                         <div>
                             {/* SECTION: FEATURED CATEGORIES SECTION */}
-                            <div style={{ marginBottom: 32, paddingBottom: 28, borderBottom: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+                            <div className="ed-divided">
+                                <div className="ed-head">
                                     <div>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#011627' }}>Featured Categories Grid Section</h3>
-                                        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                                            Configure category cards, icons, links, and homepage visibility.
+                                        <h3 className="ed-title is-flush">{translate('portal', 'sce_featured_categories_grid_heading')}</h3>
+                                        <p className="ed-desc">
+                                            {translate('portal', 'sce_featured_categories_grid_hint')}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Section Visibility Master Control */}
-                                <div style={{
-                                    padding: '16px 20px',
-                                    background: form.data.customization.featured_categories_enabled !== '0' ? '#ecfdf5' : '#f8fafc',
-                                    border: `1.5px solid ${form.data.customization.featured_categories_enabled !== '0' ? '#10b981' : '#cbd5e1'}`,
-                                    borderRadius: 10,
-                                    marginBottom: 20,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    gap: 16,
-                                    flexWrap: 'wrap'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                                        <div style={{
-                                            width: 38,
-                                            height: 38,
-                                            borderRadius: '50%',
-                                            background: form.data.customization.featured_categories_enabled !== '0' ? '#d1fae5' : '#f1f5f9',
-                                            color: form.data.customization.featured_categories_enabled !== '0' ? '#006837' : '#64748b',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: 18,
-                                            fontWeight: 700,
-                                            flexShrink: 0
-                                        }}>
+                                <div className={`ed-switch-banner${form.data.customization.featured_categories_enabled !== '0' ? ' is-on tone-ok' : ''}`}>
+                                    <div className="ed-row is-loose is-top">
+                                        <div className="ed-switch-icon">
                                             {form.data.customization.featured_categories_enabled !== '0' ? '✓' : '✕'}
                                         </div>
                                         <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <strong style={{ fontSize: 15, color: form.data.customization.featured_categories_enabled !== '0' ? '#065f46' : '#334155' }}>
+                                            <div className="ed-row">
+                                                <strong className="ed-strong is-lg">
                                                     {translate('portal', 'sce_featured_categories_section_status', {
                                                         state: form.data.customization.featured_categories_enabled !== '0'
                                                             ? translate('portal', 'sce_section_active_visible')
                                                             : translate('portal', 'sce_section_hidden'),
                                                     })}
                                                 </strong>
-                                                <span style={{
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    padding: '2px 8px',
-                                                    borderRadius: 12,
-                                                    background: form.data.customization.featured_categories_enabled !== '0' ? '#006837' : '#64748b',
-                                                    color: '#fff'
-                                                }}>
+                                                <span className="ed-state-pill">
                                                     {form.data.customization.featured_categories_enabled !== '0'
                                                         ? translate('portal', 'sce_enabled')
                                                         : translate('portal', 'sce_disabled')}
                                                 </span>
                                             </div>
-                                            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#475569' }}>
+                                            <p className="ed-desc">
                                                 {form.data.customization.featured_categories_enabled !== '0'
                                                     ? translate('portal', 'sce_featured_categories_enabled_hint')
                                                     : translate('portal', 'sce_featured_categories_disabled_hint')}
@@ -5446,21 +4466,7 @@ export default function SiteCustomizationEditor({
                                         <button
                                             type="button"
                                             onClick={() => updateField('featured_categories_enabled', form.data.customization.featured_categories_enabled !== '0' ? '0' : '1')}
-                                            style={{
-                                                padding: '10px 20px',
-                                                borderRadius: 8,
-                                                fontSize: 13,
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                border: 'none',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: 8,
-                                                background: form.data.customization.featured_categories_enabled !== '0' ? '#fee2e2' : '#006837',
-                                                color: form.data.customization.featured_categories_enabled !== '0' ? '#991b1b' : '#ffffff',
-                                                boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
-                                                transition: 'all 0.2s ease'
-                                            }}
+                                            className={`button ${form.data.customization.featured_categories_enabled !== '0' ? 'danger' : 'dark'}`}
                                         >
                                             {form.data.customization.featured_categories_enabled !== '0'
                                                 ? translate('portal', 'sce_disable_hide_section')
@@ -5469,7 +4475,7 @@ export default function SiteCustomizationEditor({
                                     </div>
                                 </div>
 
-                                <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 20 }}>
+                                <div className="form-grid ed-grid ed-mb">
                                     <Field label="Section Heading Title" fieldKey="featured_categories_title" value={form.data.customization.featured_categories_title} placeholder={defaults.featured_categories_title} onChange={updateField} />
                                     <Field label="Section Subtitle" fieldKey="featured_categories_subtitle" value={form.data.customization.featured_categories_subtitle} placeholder={defaults.featured_categories_subtitle} onChange={updateField} />
                                 </div>
@@ -5482,8 +4488,8 @@ export default function SiteCustomizationEditor({
                                 />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Dealer Network Banner & Scrolling Ticker</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_dealer_banner_ticker_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Homepage Scrolling Ticker Text" fieldKey="announcement_text" value={form.data.customization.announcement_text} placeholder={defaults.announcement_text} onChange={updateField} span2 />
                                 <Field label="Authorized Dealer Network Banner Title" fieldKey="dealer_banner_title" value={form.data.customization.dealer_banner_title} placeholder={defaults.dealer_banner_title} onChange={updateField} />
                                 <Field label="Dealer Banner Subtitle" fieldKey="dealer_banner_subtitle" value={form.data.customization.dealer_banner_subtitle} placeholder={defaults.dealer_banner_subtitle} onChange={updateField} />
@@ -5497,8 +4503,8 @@ export default function SiteCustomizationEditor({
                                 updateField={updateField}
                             />
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Product Catalog Page (/products) Labels</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_catalog_page_labels_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Categories Filter Title" fieldKey="catalog_categories_title" value={form.data.customization.catalog_categories_title} placeholder={defaults.catalog_categories_title} onChange={updateField} />
                                 <Field label="All Products Radio Label" fieldKey="catalog_all_products_label" value={form.data.customization.catalog_all_products_label} placeholder={defaults.catalog_all_products_label} onChange={updateField} />
                                 <Field label="Price Range Filter Title" fieldKey="catalog_price_title" value={form.data.customization.catalog_price_title} placeholder={defaults.catalog_price_title} onChange={updateField} />
@@ -5511,8 +4517,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Catalog Empty State Button Text" fieldKey="catalog_empty_btn" value={form.data.customization.catalog_empty_btn} placeholder={defaults.catalog_empty_btn} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Product Card & Product Details Page</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_product_card_details_heading')}</h3>
+                            <div className="form-grid ed-grid">
                                 <Field label="In Stock Badge Label" fieldKey="product_in_stock_label" value={form.data.customization.product_in_stock_label} placeholder={defaults.product_in_stock_label} onChange={updateField} />
                                 <Field label="Awaiting Stock Badge Label" fieldKey="product_out_of_stock_label" value={form.data.customization.product_out_of_stock_label} placeholder={defaults.product_out_of_stock_label} onChange={updateField} />
                                 <Field label="Share Label" fieldKey="product_share_label" value={form.data.customization.product_share_label} placeholder={defaults.product_share_label} onChange={updateField} />
@@ -5526,105 +4532,84 @@ export default function SiteCustomizationEditor({
                     {/* TAB 6: ABOUT, CONTACT & DEALERS PAGES */}
                     {tab === 'pages' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Homepage Company Introduction</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_company_intro_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Company Introduction Title" fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
                                 <Field label="Company Introduction Text" fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
                             </div>
 
                             {/* Brand Trust, Video Showcase & Testimonials Toggle Controls */}
-                            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 28 }}>
-                                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6, color: '#011627' }}>
-                                    Corporate Brand Trust & Engagement Sections (Homepage)
+                            <div className="ed-card is-soft is-lg ed-mb-lg">
+                                <h3 className="ed-title is-tight">
+                                    {translate('portal', 'sce_brand_trust_sections_heading')}
                                 </h3>
-                                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>
-                                    Enable or disable trust and media sections on the public homepage. If disabled by admin, the section will not appear on the website.
+                                <p className="ed-desc ed-mb">
+                                    {translate('portal', 'sce_brand_trust_sections_hint')}
                                 </p>
 
                                 {/* 1. Core Brand Commitments & Trust Pillars */}
-                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                <div className="ed-card ed-mb">
+                                    <div className="ed-head">
                                         <div>
-                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>1. Core Brand Commitments & Trust Pillars</strong>
-                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays the 4 key commitments (Authentic herbs, GMP quality, 64-district network, Dedicated support).</p>
+                                            <strong className="ed-strong">{translate('portal', 'sce_trust_pillars_heading')}</strong>
+                                            <p className="ed-desc is-sm">{translate('portal', 'sce_trust_pillars_hint')}</p>
                                         </div>
                                         <button
                                             type="button"
                                             className={`button small ${form.data.customization.trust_pillars_enabled !== '0' ? 'dark' : ''}`}
-                                            style={{
-                                                background: form.data.customization.trust_pillars_enabled !== '0' ? '#047857' : '#f1f5f9',
-                                                color: form.data.customization.trust_pillars_enabled !== '0' ? '#ffffff' : '#64748b',
-                                                borderColor: form.data.customization.trust_pillars_enabled !== '0' ? '#047857' : '#cbd5e1',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                            }}
                                             onClick={() => updateField('trust_pillars_enabled', form.data.customization.trust_pillars_enabled !== '0' ? '0' : '1')}
                                         >
-                                            {form.data.customization.trust_pillars_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                            {form.data.customization.trust_pillars_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
                                         </button>
                                     </div>
                                     <Field label="Trust Pillars Section Title" fieldKey="trust_pillars_title" value={form.data.customization.trust_pillars_title} placeholder={defaults.trust_pillars_title} onChange={updateField} />
                                 </div>
 
                                 {/* 2. Video Gallery & Demonstrations */}
-                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                <div className="ed-card ed-mb">
+                                    <div className="ed-head">
                                         <div>
-                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>2. Brand & Product Video Showcase</strong>
-                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays video tutorials, extraction processes and herbal application demonstrations.</p>
+                                            <strong className="ed-strong">{translate('portal', 'sce_video_showcase_heading')}</strong>
+                                            <p className="ed-desc is-sm">{translate('portal', 'sce_video_showcase_hint')}</p>
                                         </div>
                                         <button
                                             type="button"
                                             className={`button small ${form.data.customization.video_gallery_enabled !== '0' ? 'dark' : ''}`}
-                                            style={{
-                                                background: form.data.customization.video_gallery_enabled !== '0' ? '#047857' : '#f1f5f9',
-                                                color: form.data.customization.video_gallery_enabled !== '0' ? '#ffffff' : '#64748b',
-                                                borderColor: form.data.customization.video_gallery_enabled !== '0' ? '#047857' : '#cbd5e1',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                            }}
                                             onClick={() => updateField('video_gallery_enabled', form.data.customization.video_gallery_enabled !== '0' ? '0' : '1')}
                                         >
-                                            {form.data.customization.video_gallery_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                            {form.data.customization.video_gallery_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
                                         </button>
                                     </div>
-                                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                                    <div className="form-grid ed-grid is-md">
                                         <Field label="Video Showcase Title" fieldKey="video_gallery_title" value={form.data.customization.video_gallery_title} placeholder={defaults.video_gallery_title} onChange={updateField} />
                                         <Field label="Video Showcase Subtitle" fieldKey="video_gallery_subtitle" value={form.data.customization.video_gallery_subtitle} placeholder={defaults.video_gallery_subtitle} onChange={updateField} />
                                     </div>
                                 </div>
 
                                 {/* 3. Customer & Partner Testimonials */}
-                                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                                <div className="ed-card">
+                                    <div className="ed-head">
                                         <div>
-                                            <strong style={{ fontSize: 14, color: '#0f172a' }}>3. Customer & Partner Testimonials</strong>
-                                            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#64748b' }}>Displays authentic reviews from verified clients and authorized dealers across Bangladesh.</p>
+                                            <strong className="ed-strong">{translate('portal', 'sce_testimonials_heading')}</strong>
+                                            <p className="ed-desc is-sm">{translate('portal', 'sce_testimonials_hint')}</p>
                                         </div>
                                         <button
                                             type="button"
                                             className={`button small ${form.data.customization.testimonials_section_enabled !== '0' ? 'dark' : ''}`}
-                                            style={{
-                                                background: form.data.customization.testimonials_section_enabled !== '0' ? '#047857' : '#f1f5f9',
-                                                color: form.data.customization.testimonials_section_enabled !== '0' ? '#ffffff' : '#64748b',
-                                                borderColor: form.data.customization.testimonials_section_enabled !== '0' ? '#047857' : '#cbd5e1',
-                                                fontSize: 12,
-                                                fontWeight: 600,
-                                            }}
                                             onClick={() => updateField('testimonials_section_enabled', form.data.customization.testimonials_section_enabled !== '0' ? '0' : '1')}
                                         >
-                                            {form.data.customization.testimonials_section_enabled !== '0' ? '✓ সক্রিয় (Enabled)' : '✕ নিষ্ক্রিয় (Disabled)'}
+                                            {form.data.customization.testimonials_section_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
                                         </button>
                                     </div>
-                                    <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+                                    <div className="form-grid ed-grid is-md">
                                         <Field label="Testimonials Section Title" fieldKey="testimonials_title" value={form.data.customization.testimonials_title} placeholder={defaults.testimonials_title} onChange={updateField} />
                                         <Field label="Testimonials Section Subtitle" fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
                                     </div>
                                 </div>
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>About Us Page (/about)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_about_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="About Page Hero Title" fieldKey="about_hero_title" value={form.data.customization.about_hero_title} placeholder={defaults.about_hero_title} onChange={updateField} />
                                 <Field label="About Page Hero Lead" fieldKey="about_hero_lead" value={form.data.customization.about_hero_lead} placeholder={defaults.about_hero_lead} onChange={updateField} multiline rows={3} span2 />
                                 <Field label="Company History Title" fieldKey="about_history_title" value={form.data.customization.about_history_title} placeholder={defaults.about_history_title} onChange={updateField} />
@@ -5651,8 +4636,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Button 3 (Contact Head Office)" fieldKey="about_btn_contact" value={form.data.customization.about_btn_contact} placeholder={defaults.about_btn_contact} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Contact Us Page (/contact) & Map Location</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_contact_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Contact Page Heading" fieldKey="contact_title" value={form.data.customization.contact_title} placeholder={defaults.contact_title} onChange={updateField} />
                                 <Field label="Contact Company Title" fieldKey="contact_company_title" value={form.data.customization.contact_company_title} placeholder={defaults.contact_company_title} onChange={updateField} />
                                 <Field label="Contact Intro Description" fieldKey="contact_company_desc" value={form.data.customization.contact_company_desc} placeholder={defaults.contact_company_desc} onChange={updateField} span2 />
@@ -5680,8 +4665,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Map Directions Button Text" fieldKey="map_directions_text" value={form.data.customization.map_directions_text} placeholder={defaults.map_directions_text} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Dealer Directory Page (/dealers)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_dealer_directory_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Directory Main Title" fieldKey="directory_title" value={form.data.customization.directory_title} placeholder={defaults.directory_title} onChange={updateField} />
                                 <Field label="Directory Subtitle" fieldKey="directory_subtitle" value={form.data.customization.directory_subtitle} placeholder={defaults.directory_subtitle} onChange={updateField} />
                                 <Field label="GPS Current Location Button Text" fieldKey="directory_gps_btn" value={form.data.customization.directory_gps_btn} placeholder={defaults.directory_gps_btn} onChange={updateField} span2 />
@@ -5689,22 +4674,22 @@ export default function SiteCustomizationEditor({
                                 <Field label="Directory Empty Results Description" fieldKey="directory_empty_desc" value={form.data.customization.directory_empty_desc} placeholder={defaults.directory_empty_desc} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Partnership Page (/partnership)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_partnership_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Hero Title" fieldKey="partnership_hero_title" value={form.data.customization.partnership_hero_title} placeholder={defaults.partnership_hero_title} onChange={updateField} />
                                 <Field label="Hero Lead" fieldKey="partnership_hero_lead" value={form.data.customization.partnership_hero_lead} placeholder={defaults.partnership_hero_lead} onChange={updateField} multiline rows={2} />
                                 <Field label="Why Partner Heading" fieldKey="partnership_why_title" value={form.data.customization.partnership_why_title} placeholder={defaults.partnership_why_title} onChange={updateField} span2 />
                                 {[1, 2, 3, 4].map((i) => (
                                     <React.Fragment key={`pb-${i}`}>
-                                        <Field label={`Benefit ${i} Title`} fieldKey={`partnership_benefit${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
-                                        <Field label={`Benefit ${i} Description`} fieldKey={`partnership_benefit${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_benefit_title', { number: String(i) })} fieldKey={`partnership_benefit${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_title`]} placeholder={(defaults as any)[`partnership_benefit${i}_title`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_benefit_description', { number: String(i) })} fieldKey={`partnership_benefit${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_benefit${i}_desc`]} placeholder={(defaults as any)[`partnership_benefit${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="Steps Heading" fieldKey="partnership_steps_title" value={form.data.customization.partnership_steps_title} placeholder={defaults.partnership_steps_title} onChange={updateField} span2 />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`ps-${i}`}>
-                                        <Field label={`Step ${i} Title`} fieldKey={`partnership_step${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
-                                        <Field label={`Step ${i} Description`} fieldKey={`partnership_step${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_step_title', { number: String(i) })} fieldKey={`partnership_step${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_title`]} placeholder={(defaults as any)[`partnership_step${i}_title`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_step_description', { number: String(i) })} fieldKey={`partnership_step${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`partnership_step${i}_desc`]} placeholder={(defaults as any)[`partnership_step${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Title" fieldKey="partnership_cta_title" value={form.data.customization.partnership_cta_title} placeholder={defaults.partnership_cta_title} onChange={updateField} />
@@ -5713,63 +4698,62 @@ export default function SiteCustomizationEditor({
                                 <Field label="CTA Link" fieldKey="partnership_cta_link" value={form.data.customization.partnership_cta_link} placeholder={defaults.partnership_cta_link} onChange={updateField} span2 />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Services Page (/services)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_services_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Hero Title" fieldKey="services_hero_title" value={form.data.customization.services_hero_title} placeholder={defaults.services_hero_title} onChange={updateField} />
                                 <Field label="Hero Lead" fieldKey="services_hero_lead" value={form.data.customization.services_hero_lead} placeholder={defaults.services_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`svc-${i}`}>
-                                        <Field label={`Service ${i} Title`} fieldKey={`services_card${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
-                                        <Field label={`Service ${i} Description`} fieldKey={`services_card${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_service_title', { number: String(i) })} fieldKey={`services_card${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_title`]} placeholder={(defaults as any)[`services_card${i}_title`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_service_description', { number: String(i) })} fieldKey={`services_card${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`services_card${i}_desc`]} placeholder={(defaults as any)[`services_card${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Button" fieldKey="services_cta_btn" value={form.data.customization.services_cta_btn} placeholder={defaults.services_cta_btn} onChange={updateField} />
                                 <Field label="CTA Link" fieldKey="services_cta_link" value={form.data.customization.services_cta_link} placeholder={defaults.services_cta_link} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Quality Page (/quality)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_quality_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Hero Title" fieldKey="quality_hero_title" value={form.data.customization.quality_hero_title} placeholder={defaults.quality_hero_title} onChange={updateField} />
                                 <Field label="Hero Lead" fieldKey="quality_hero_lead" value={form.data.customization.quality_hero_lead} placeholder={defaults.quality_hero_lead} onChange={updateField} multiline rows={2} />
                                 {[1, 2, 3].map((i) => (
                                     <React.Fragment key={`q-${i}`}>
-                                        <Field label={`Pillar ${i} Title`} fieldKey={`quality_pillar${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
-                                        <Field label={`Pillar ${i} Description`} fieldKey={`quality_pillar${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_pillar_title', { number: String(i) })} fieldKey={`quality_pillar${i}_title` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_title`]} placeholder={(defaults as any)[`quality_pillar${i}_title`]} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_pillar_description', { number: String(i) })} fieldKey={`quality_pillar${i}_desc` as keyof CustomizationData} value={(form.data.customization as any)[`quality_pillar${i}_desc`]} placeholder={(defaults as any)[`quality_pillar${i}_desc`]} onChange={updateField} />
                                     </React.Fragment>
                                 ))}
                                 <Field label="CTA Button" fieldKey="quality_cta_btn" value={form.data.customization.quality_cta_btn} placeholder={defaults.quality_cta_btn} onChange={updateField} />
                                 <Field label="CTA Link" fieldKey="quality_cta_link" value={form.data.customization.quality_cta_link} placeholder={defaults.quality_cta_link} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>FAQ Page (/faq)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 16 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_faq_page_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb">
                                 <Field label="FAQ Hero Title" fieldKey="faq_hero_title" value={form.data.customization.faq_hero_title} placeholder={defaults.faq_hero_title} onChange={updateField} />
                                 <Field label="FAQ Hero Lead" fieldKey="faq_hero_lead" value={form.data.customization.faq_hero_lead} placeholder={defaults.faq_hero_lead} onChange={updateField} multiline rows={2} />
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+                            <div className="ed-stack ed-mb-lg">
                                 {(form.data.customization.faq_items || []).map((item, idx) => (
-                                    <div key={`faq-${idx}`} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, background: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                                            <strong style={{ fontSize: 13 }}>Question #{idx + 1}</strong>
+                                    <div key={`faq-${idx}`} className="ed-card is-soft">
+                                        <div className="ed-head is-sm">
+                                            <strong className="ed-strong">{translate('portal', 'sce_question_number', { number: String(idx + 1) })}</strong>
                                             <button
                                                 type="button"
-                                                className="button small"
-                                                style={{ color: '#ef4444' }}
+                                                className="button small danger"
                                                 onClick={() => {
                                                     const next = [...(form.data.customization.faq_items || [])];
                                                     next.splice(idx, 1);
                                                     form.setData('customization', { ...form.data.customization, faq_items: next });
                                                 }}
                                             >
-                                                <Trash2 size={14} /> Remove
+                                                <Trash2 size={14} /> {translate('portal', 'sce_remove')}
                                             </button>
                                         </div>
-                                        <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
-                                            <label style={{ fontSize: 12, fontWeight: 600 }}>
-                                                Question
+                                        <div className="form-grid ed-grid is-single">
+                                            <label className="ed-label is-inline">
+                                                {translate('portal', 'sce_question')}
                                                 <input
                                                     value={item.question || ''}
-                                                    placeholder={defaults.faq_items?.[idx]?.question || 'Question'}
+                                                    placeholder={defaults.faq_items?.[idx]?.question || translate('portal', 'sce_question')}
                                                     onChange={(e) => {
                                                         const next = [...(form.data.customization.faq_items || [])];
                                                         next[idx] = { ...next[idx], question: e.target.value };
@@ -5777,12 +4761,12 @@ export default function SiteCustomizationEditor({
                                                     }}
                                                 />
                                             </label>
-                                            <label style={{ fontSize: 12, fontWeight: 600 }}>
-                                                Answer
+                                            <label className="ed-label is-inline">
+                                                {translate('portal', 'sce_answer')}
                                                 <textarea
                                                     rows={3}
                                                     value={item.answer || ''}
-                                                    placeholder={defaults.faq_items?.[idx]?.answer || 'Answer'}
+                                                    placeholder={defaults.faq_items?.[idx]?.answer || translate('portal', 'sce_answer')}
                                                     onChange={(e) => {
                                                         const next = [...(form.data.customization.faq_items || [])];
                                                         next[idx] = { ...next[idx], answer: e.target.value };
@@ -5801,12 +4785,12 @@ export default function SiteCustomizationEditor({
                                         faq_items: [...(form.data.customization.faq_items || []), { question: '', answer: '' }],
                                     })}
                                 >
-                                    <Plus size={14} /> Add FAQ Item
+                                    <Plus size={14} /> {translate('portal', 'sce_add_faq_item')}
                                 </button>
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Privacy & Terms (/privacy, /terms)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_privacy_terms_heading')}</h3>
+                            <div className="form-grid ed-grid">
                                 <Field label="Privacy Title" fieldKey="privacy_hero_title" value={form.data.customization.privacy_hero_title} placeholder={defaults.privacy_hero_title} onChange={updateField} />
                                 <Field label="Privacy Lead" fieldKey="privacy_hero_lead" value={form.data.customization.privacy_hero_lead} placeholder={defaults.privacy_hero_lead} onChange={updateField} multiline rows={2} />
                                 <Field label="Privacy Body" fieldKey="privacy_body" value={form.data.customization.privacy_body} placeholder={defaults.privacy_body} onChange={updateField} multiline rows={6} span2 />
@@ -5823,8 +4807,8 @@ export default function SiteCustomizationEditor({
                     {/* TAB 7: FOOTER, DIALOGS & AUTH */}
                     {tab === 'footer' && (
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Column 1: Support Boxes & Direct Contact</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_footer_column_1_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Column 1 Heading" fieldKey="footer_support_heading" value={form.data.customization.footer_support_heading} placeholder={defaults.footer_support_heading} onChange={updateField} />
                                 <Field label="Support Box 1 Title" fieldKey="footer_support_title" value={form.data.customization.footer_support_title} placeholder={defaults.footer_support_title} onChange={updateField} />
                                 <Field label="Support Box 1 Subtitle" fieldKey="footer_support_subtitle" value={form.data.customization.footer_support_subtitle} placeholder={defaults.footer_support_subtitle} onChange={updateField} />
@@ -5841,8 +4825,8 @@ export default function SiteCustomizationEditor({
                                 <Field label="Footer Physical Address" fieldKey="footer_address" value={form.data.customization.footer_address} placeholder={defaults.footer_address} onChange={updateField} span2 />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Column 2: Navigation Links (About Us Column)</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_footer_column_2_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Column 2 Heading" fieldKey="footer_about_heading" value={form.data.customization.footer_about_heading} placeholder={defaults.footer_about_heading} onChange={updateField} span2 />
 
                                 <Field label="Footer Link 1 Text" fieldKey="footer_link_about" value={form.data.customization.footer_link_about} placeholder={defaults.footer_link_about} onChange={updateField} />
@@ -5858,16 +4842,16 @@ export default function SiteCustomizationEditor({
                                 <Field label="Footer Link 6 Target URL" fieldKey="footer_link_dealer_apply_url" value={form.data.customization.footer_link_dealer_apply_url} placeholder={defaults.footer_link_dealer_apply_url} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Column 3: Stay Connected & Brand Identity</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_footer_column_3_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Column 3 Heading" fieldKey="footer_stay_connected_heading" value={form.data.customization.footer_stay_connected_heading} placeholder={defaults.footer_stay_connected_heading} onChange={updateField} />
                                 <Field label="Footer Logo Image URL" fieldKey="footer_logo_url" value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={updateField} />
                                 <Field label="Footer Brand Title" fieldKey="footer_about_title" value={form.data.customization.footer_about_title} placeholder={defaults.footer_about_title} onChange={updateField} />
                                 <Field label="Footer Brand Description" fieldKey="footer_about_desc" value={form.data.customization.footer_about_desc} placeholder={defaults.footer_about_desc} onChange={updateField} />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Social Media Channels & WhatsApp Chat</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 28 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_social_media_heading')}</h3>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Facebook Page URL" fieldKey="social_facebook" value={form.data.customization.social_facebook} placeholder={defaults.social_facebook} onChange={updateField} />
                                 <Field label="YouTube Channel URL" fieldKey="social_youtube" value={form.data.customization.social_youtube} placeholder={defaults.social_youtube} onChange={updateField} />
                                 <Field label="LinkedIn Page URL" fieldKey="social_linkedin" value={form.data.customization.social_linkedin} placeholder={defaults.social_linkedin} onChange={updateField} />
@@ -5879,14 +4863,14 @@ export default function SiteCustomizationEditor({
                                 <Field label="Telegram Channel / Link (Optional)" fieldKey="social_telegram" value={form.data.customization.social_telegram} placeholder={defaults.social_telegram || 'https://t.me/...'} onChange={updateField} />
                             </div>
 
-                            <div className="form-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))',gap:20,marginBottom:28}}>
+                            <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label="Google Play App Link (optional)" fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
                                 <Field label="Apple App Store Link (optional)" fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
                                 <Field label="Copyright Notice" fieldKey="copyright_text" value={form.data.customization.copyright_text} placeholder={defaults.copyright_text} onChange={updateField} span2 />
                             </div>
 
-                            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#011627' }}>Support & Partner Access</h3>
-                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+                            <h3 className="ed-title">{translate('portal', 'sce_support_partner_access_heading')}</h3>
+                            <div className="form-grid ed-grid">
                                 <Field label="Floating Chat Button Label" fieldKey="floating_chat_label" value={form.data.customization.floating_chat_label} placeholder={defaults.floating_chat_label} onChange={updateField} />
 
 
@@ -5899,12 +4883,11 @@ export default function SiteCustomizationEditor({
                         </div>
                     )}
 
-                    <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                    <div className="ed-actions">
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="button dark"
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', fontSize: 14 }}
+                            className="button dark ed-lg"
                         >
                             <Save size={16} />
                             <span>{form.processing ? translate('portal', 'cms_saving') : translate('portal', 'cms_save')}</span>

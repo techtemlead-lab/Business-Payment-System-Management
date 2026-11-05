@@ -747,7 +747,10 @@ class SiteCustomizationTest extends TestCase
         $url = $response->json('url');
         $this->assertIsString($url);
         $this->assertStringStartsWith('/branding/category-icons/', $url);
-        $this->assertFileExists(public_path(ltrim($url, '/')));
+        $uploaded = public_path(ltrim($url, '/'));
+        $this->assertFileExists($uploaded);
+        // The icon is written to the real public folder; do not leave test files behind.
+        unlink($uploaded);
 
         $dealer = User::factory()->create(['role' => 'dealer']);
         $this->actingAs($dealer)->postJson('/commands/customization/category-icon', [

@@ -55,7 +55,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
             }));
             form.post('/commands/operations/integrations/providers', { preserveScroll: true });
         }}>
-            <div className="profile-grid" style={{ marginBottom: 12 }}>
+            <div className="profile-grid ops-mb-3">
                 <div><strong>{provider.label}</strong><p className="muted">{translate('portal', 'si_provider_key')}: {provider.key}</p></div>
                 <div><Badge status={provider.enabled ? 'active' : 'inactive'} /></div>
             </div>
@@ -95,7 +95,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                 <textarea required minLength={5} maxLength={1000} rows={2} value={String(form.data.reason)} onChange={e => form.setData('reason', e.target.value)} disabled={!canEdit} />
             </label>
             {Object.keys(form.errors).length > 0 && <div role="alert" className="error">{Object.values(form.errors).join(' ')}</div>}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <div className="ops-row is-wrap">
                 <button className="button dark" disabled={!canEdit || form.processing}>{form.processing ? translate('portal', 'si_saving') : translate('portal', 'si_save_provider')}</button>
                 {group === 'sms' && provider.enabled && (
                     <button type="button" className="button" disabled={balanceBusy} onClick={checkBalance}>
@@ -103,7 +103,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                     </button>
                 )}
             </div>
-            {balanceMsg && <p className="muted" style={{ marginTop: 10 }}>{translate('portal', 'si_sms_balance')}: {balanceMsg}</p>}
+            {balanceMsg && <p className="muted ops-mt-3">{translate('portal', 'si_sms_balance')}: {balanceMsg}</p>}
         </form>
     );
 }
@@ -159,7 +159,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ch
 
                 <section className="panel">
                     <h2>{translate('portal', 'si_external_title')}</h2>
-                    <div className="import-options" style={{ marginBottom: 16 }}>
+                    <div className="import-options ops-mb-4">
                         {Object.entries(integrations.groups).map(([key, item]) => (
                             <label key={key} className="import-choice">
                                 <input type="radio" name="integration-group" checked={groupKey === key} onChange={() => setGroupKey(key)} />
@@ -170,7 +170,7 @@ export default function ServiceIntegrations({ integrations, startup, canEdit, ch
                     {group && <>
                         <p>{group.description}</p>
                         {Object.values(group.providers).map(provider => (
-                            <section className="panel narrow-panel" key={provider.key} style={{ marginTop: 16 }}>
+                            <section className="panel narrow-panel ops-mt-4" key={provider.key}>
                                 <ProviderForm group={groupKey} provider={provider} version={integrations.version} canEdit={canEdit} />
                             </section>
                         ))}

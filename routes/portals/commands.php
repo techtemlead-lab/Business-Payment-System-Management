@@ -81,8 +81,8 @@ return function (string $portal): void {
     Route::post('/commands/enquiries/{id}', [CommandController::class, 'enquiry']);
     Route::post('/commands/feedback', [CommandController::class, 'storeSiteFeedback'])->middleware('throttle:8,1');
     Route::post('/commands/feedback/{id}', [CommandController::class, 'moderateSiteFeedback']);
-    Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review']);
-    Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle']);
+    Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review'])->whereUuid('id');
+    Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
     Route::post('/commands/commissions/rules', [CommandController::class, 'updateCommissionRules']);
     Route::post('/commands/commissions/settle-salary', [CommandController::class, 'settleSalaryPool']);

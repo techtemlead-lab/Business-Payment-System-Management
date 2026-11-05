@@ -45,7 +45,7 @@ class CircularPublishNotificationsTest extends TestCase
         $this->assertDatabaseHas('account_notices', [
             'user_id' => $enDealer->id,
             'title' => 'New training circular',
-            'body' => 'A new training circular was published: April field training. Open Circulars in your partner portal to read it.',
+            'body' => __('portal.notice_circular_published_body', ['kind' => __('portal.circular_kind_training', [], 'en'), 'title' => 'April field training'], 'en'),
         ]);
         $this->assertDatabaseHas('account_notices', [
             'user_id' => $bnSub->id,
@@ -119,7 +119,7 @@ class CircularPublishNotificationsTest extends TestCase
         $this->assertDatabaseHas('account_notices', [
             'user_id' => $dealer->id,
             'title' => 'New company notice',
-            'body' => 'A new company notice was published: Company notice B. Open Circulars in your partner portal to read it.',
+            'body' => __('portal.notice_circular_published_body', ['kind' => __('portal.circular_kind_notice', [], 'en'), 'title' => 'Company notice B'], 'en'),
         ]);
     }
 }

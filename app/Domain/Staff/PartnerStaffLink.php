@@ -21,9 +21,13 @@ final class PartnerStaffLink
             throw ValidationException::withMessages(['linked_staff_role' => __('portal.err_perm_staff_role')]);
         }
 
+        $overrides = array_values(array_unique(array_map('strval', $permissionOverrides)));
+        $granted = $overrides !== [] ? $overrides : $this->capabilitiesForRole($staffRole);
+        $this->assertActorMayGrant($actor, $granted);
+
         $partner->forceFill([
             'linked_staff_role' => $staffRole,
-            'linked_staff_permissions' => $permissionOverrides !== [] ? array_values($permissionOverrides) : null,
+            'linked_staff_permissions' => $overrides !== [] ? $overrides : null,
             'staff_linked_at' => now(),
         ])->save();
 
@@ -90,9 +94,35 @@ final class PartnerStaffLink
             return [];
         }
         if (is_array($user->linked_staff_permissions) && $user->linked_staff_permissions !== []) {
-            return array_values(array_unique(array_map('strval', $user->linked_staff_permissions)));
+            $granted = array_values(array_unique(array_map('strval', $user->linked_staff_permissions)));
+        } else {
+            $granted = $this->capabilitiesForRole((string) $user->linked_staff_role);
         }
-        $role = (string) $user->linked_staff_role;
+
+        $granted = array_values(array_intersect($granted, self::knownCapabilities()));
+
+        return array_values(array_diff($granted, self::OwnerOnlyCapabilities));
+    }
+
+    /**
+     * Capabilities that only the company owner may hold. A dealer or sub-dealer
+     * with a linked staff desk must never approve money movement or manage staff.
+     */
+    public const OwnerOnlyCapabilities = ['finance', 'payroll', 'staff_admin', 'identity_write', 'audit'];
+
+    /**
+     * @return list<string>
+     */
+    public static function knownCapabilities(): array
+    {
+        return array_values((array) config('madina.roles.super_admin', []));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function capabilitiesForRole(string $role): array
+    {
         if (str_starts_with($role, 'custom_')) {
             $saved = DB::table('staff_roles')->where('key', $role)->value('permissions');
             $decoded = is_string($saved) ? json_decode($saved, true) : [];
@@ -101,5 +131,23 @@ final class PartnerStaffLink
         }
 
         return array_values(config('madina.roles.'.$role, config('madina.roles.employee', [])));
+    }
+
+    /**
+     * @param  list<string>  $granted
+     */
+    private function assertActorMayGrant(User $actor, array $granted): void
+    {
+        $unknown = array_diff($granted, self::knownCapabilities());
+        $ownerOnly = array_intersect($granted, self::OwnerOnlyCapabilities);
+        $beyondActor = $actor->role === 'super_admin' ? [] : array_diff($granted, $actor->capabilities());
+
+        if ($unknown !== [] || $ownerOnly !== [] || $beyondActor !== []) {
+            throw ValidationException::withMessages([
+                'permissions' => __('portal.err_staff_link_capability', [
+                    'items' => implode(', ', array_values(array_unique([...$unknown, ...$ownerOnly, ...$beyondActor]))),
+                ]),
+            ]);
+        }
     }
 }

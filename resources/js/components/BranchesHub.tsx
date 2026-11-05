@@ -123,7 +123,7 @@ export default function BranchesHub({
 
     return (
         <div data-tour="branches-hub">
-            <div className="toolbar-end" style={{ gap: 8 }}>
+            <div className="toolbar-end ops-row is-end">
                 <Link href="/branch-performance" className="button">
                     {translate('portal', 'branch_performance')}
                 </Link>
@@ -135,7 +135,7 @@ export default function BranchesHub({
                 )}
             </div>
 
-            <p className="muted" style={{ margin: '0 0 10px' }}>{translate('portal', 'branch_view_all_hint')}</p>
+            <p className="muted brh-hint">{translate('portal', 'branch_view_all_hint')}</p>
             <section className="panel branches-register">
                 <div className="panel-heading">
                     <div>
@@ -155,7 +155,7 @@ export default function BranchesHub({
                                     <b>{r.name}</b>
                                     <small className="cell-sub">{r.code}</small>
                                     {Number(active_branch_id) === Number(r.id) && (
-                                        <span className="badge" style={{ marginLeft: 8 }}>{translate('portal', 'branch_active_badge')}</span>
+                                        <span className="badge brh-active-badge">{translate('portal', 'branch_active_badge')}</span>
                                     )}
                                 </>
                             ),
@@ -165,7 +165,7 @@ export default function BranchesHub({
                             title: translate('portal', 'label_location'),
                             render: (r: BranchRow) => (
                                 <>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <span className="ops-row is-inline is-tight">
                                         <MapPin size={14} /> {location(r)}
                                     </span>
                                     {r.address && <small className="cell-sub">{r.address}</small>}
@@ -176,7 +176,7 @@ export default function BranchesHub({
                             key: 'flags',
                             title: translate('portal', 'branch_roles'),
                             render: (r: BranchRow) => (
-                                <div className="inline-actions" style={{ flexWrap: 'wrap', gap: 6 }}>
+                                <div className="inline-actions brh-roles">
                                     {r.is_stock_hub && <span className="badge"><Store size={12} /> {translate('portal', 'branch_stock_hub')}</span>}
                                     {r.is_delivery_point && <span className="badge"><Truck size={12} /> {translate('portal', 'branch_delivery_point')}</span>}
                                     {!r.is_active && <Badge status="suspended" />}
@@ -217,7 +217,7 @@ export default function BranchesHub({
                             key: 'staff',
                             title: translate('portal', 'branch_staff'),
                             render: (r: BranchRow) => (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <span className="ops-row is-inline is-tight">
                                     <Users size={14} /> {(r.staff || []).length}
                                 </span>
                             ),
@@ -323,8 +323,8 @@ export default function BranchesHub({
                         </div>
                     </form>
                     {(editRow.staff || []).length > 0 && (
-                        <div style={{ marginTop: 16 }}>
-                            <h3 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Building2 size={16} /> {translate('portal', 'branch_staff')}</h3>
+                        <div className="ops-mt-4">
+                            <h3 className="ops-row is-snug"><Building2 size={16} /> {translate('portal', 'branch_staff')}</h3>
                             <Table
                                 rows={editRow.staff || []}
                                 columns={[

@@ -1,9 +1,10 @@
 import {useState, useEffect, useMemo} from 'react';
 import {Head,Link,router,useForm,usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
-import {type Row} from '../components/UI';
+import {money, type Row} from '../components/UI';
 import {useT} from '../shared/i18n/t';
 import {isPastBusinessDate} from '../business-date';
+import {skuPrefix, suggestSku} from '../shared/sku';
 
 type CatalogSubcategory = {id:number;name:string};
 type CatalogCategory = {id:number;name:string;subcategories:CatalogSubcategory[]};
@@ -176,17 +177,15 @@ export default function ProductEditor({
  const subComputedPct = mrpNum > 0 && subDealerPriceNum > 0 && subDealerPriceNum <= mrpNum ? Math.round(((mrpNum - subDealerPriceNum) / mrpNum) * 100) : (parseFloat(subDealerDiscountPct) || 0);
 
  const generateSku = () => {
-  const prefix = selectedCategoryName ? selectedCategoryName.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() : 'PRD';
-  const namePart = form.data.name ? form.data.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() : 'ITEM';
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  form.setData('sku', `${prefix || 'PRD'}-${namePart || 'ITEM'}-${rand}`);
+  const prefix = `${skuPrefix(selectedCategoryName, 'PRD', 3)}${skuPrefix(form.data.name, '', 3)}`;
+  form.setData('sku', suggestSku(prefix));
  };
 
  function save(event:React.FormEvent){event.preventDefault();form.transform(data=>{const payload:Row={reason:data.reason,version:data.version,_method:p?'patch':'post'};if(catalog){for(const key of ['name','sku','category','sub_category','strength','description','unit','active','featured','image','remove_image','video_source','youtube_url','vimeo_url','external_video_url','video','product_category_id','product_subcategory_id','product_unit_id'])payload[key]=data[key];if(supports_product_expiry)payload.expires_on=data.expires_on||null;payload.category=selectedCategoryName||data.category;payload.sub_category=selectedSubcategoryName||data.sub_category;payload.unit=selectedUnitName||data.unit;}if(pricing)for(const key of ['mrp','dealer_price','dealer_discount_pct','sub_dealer_price','sub_dealer_discount_pct'])payload[key]=data[key];if(pricing&&cost)payload.cost_price=data.cost_price;if(inventory)payload.low_stock_at=data.low_stock_at;return payload;});form.post(p?`/commands/products/${p.id}`:'/commands/products',{forceFormData:true,onSuccess:()=>form.reset('reason','image','video','remove_image')});}
  const stockLabel = p ? (typeof p.stock === 'number' ? translate('portal','pe_units_in_stock',{count:String(p.stock)}) : (p.stock_status === 'out_of_stock' ? translate('portal','pe_awaiting_stock') : (p.stock_status === 'low_stock' ? translate('portal','pe_low_stock') : translate('portal','pe_in_stock')))) : '';
  const inStock = p ? (typeof p.stock === 'number' ? p.stock > 0 : p.stock_status !== 'out_of_stock') : false;
- return <Shell section="catalog"><Head title={p?translate('portal','pe_title_details'):translate('portal','pe_title_add')}/><Link href="/catalog" className="text-link">{translate('portal','pe_registry')}</Link><div className="registry-heading"><div><h2>{p?.name??translate('portal','pe_heading_add')}</h2><p>{p?`${p.sku} · ${stockLabel}`:translate('portal','pe_create_hint')}</p></div><div style={{display:'flex',gap:8,alignItems:'center'}}>{p&&inventory&&<button type="button" className="button small" style={{background:inStock?'#fef2f2':'#ecfdf5',color:inStock?'#b91c1c':'#047857',borderColor:inStock?'#fecaca':'#a7f3d0',fontWeight:600,display:'inline-flex',alignItems:'center',gap:5}} onClick={()=>router.post(`/commands/products/${p.id}/toggle-stock`,{},{preserveScroll:true})}>{inStock?translate('portal','pe_toggle_out'):translate('portal','pe_toggle_in')}</button>}{p?.active&&<a href={`${publicBase||''}/products/${p.id}`} className="button small" target="_blank" rel="noreferrer">{translate('portal','pe_view_public')}</a>}</div></div>
- <form onSubmit={save} className="registry-layout"><div><section className="panel"><h2>{translate('portal','pe_info_title')}</h2><div className="form-grid"><label>{translate('portal','pe_name')}<input required disabled={!catalog} value={form.data.name} maxLength={150} onChange={e=>form.setData('name',e.target.value)}/></label><label><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}><span>{translate('portal','pe_sku')}</span>{!form.data.sku&&catalog&&<button type="button" onClick={generateSku} className="text-link" style={{fontSize:11,background:'none',border:'none',color:'#006837',fontWeight:600,cursor:'pointer'}}>⚡ Auto SKU</button>}</div><input required disabled={!catalog} value={form.data.sku} maxLength={60} onChange={e=>form.setData('sku',e.target.value)}/></label><label><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}><span>{translate('portal','pe_category')}</span><a href="/website" target="_blank" rel="noreferrer" className="text-link" style={{fontSize:11,fontWeight:500}}>{translate('portal','pe_manage_categories')}</a></div><select required disabled={!catalog} value={form.data.product_category_id} onChange={e=>setCategorySelection(e.target.value)}><option value="">{translate('portal','pe_category_select')}</option>{catalog_categories.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}</select>{catalog_categories.length===0&&<small className="muted">{translate('portal','pe_cms_categories_empty')}</small>}</label><label><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}><span>{translate('portal','pe_sub_category')}</span></div><select required disabled={!catalog||!form.data.product_category_id} value={form.data.product_subcategory_id} onChange={e=>setSubcategorySelection(e.target.value)}><option value="">{form.data.product_category_id?translate('portal','pe_sub_category_select'):translate('portal','b2b_select_category_first')}</option>{subcategoryOptions.map(sc=><option key={sc.id} value={String(sc.id)}>{sc.name}</option>)}</select></label><label>{translate('portal','pe_strength')}<input disabled={!catalog} value={form.data.strength} placeholder={translate('portal','pe_strength_ph')} maxLength={100} onChange={e=>form.setData('strength',e.target.value)}/><small className="muted">{translate('portal','pe_strength_hint')}</small></label><label>{translate('portal','pe_unit')}<select required disabled={!catalog} value={form.data.product_unit_id} onChange={e=>setUnitSelection(e.target.value)}><option value="">{translate('portal','pe_unit_select')}</option>{catalog_units.map(u=><option key={u.id} value={String(u.id)}>{u.name}</option>)}</select>{catalog_units.length===0&&<small className="muted">{translate('portal','pe_cms_units_empty')}</small>}</label>{supports_product_expiry&&<label>{translate('portal','pe_expires_on')}<input type="date" disabled={!catalog} value={form.data.expires_on||''} onChange={e=>form.setData('expires_on',e.target.value)}/>{isPastBusinessDate(form.data.expires_on)&&<span className="field-error" role="alert">{translate('portal','err_stock_expiry_past')}</span>}<small className="muted">{translate('portal','pe_expires_on_hint')}</small></label>}</div><label>{translate('portal','pe_description')}<textarea rows={5} disabled={!catalog} maxLength={3000} value={form.data.description} onChange={e=>form.setData('description',e.target.value)}/></label></section>
+ return <Shell section="catalog"><Head title={p?translate('portal','pe_title_details'):translate('portal','pe_title_add')}/><Link href="/catalog" className="text-link">{translate('portal','pe_registry')}</Link><div className="registry-heading"><div><h2>{p?.name??translate('portal','pe_heading_add')}</h2><p>{p?`${p.sku} · ${stockLabel}`:translate('portal','pe_create_hint')}</p></div><div className="ed-row">{p&&inventory&&<button type="button" className={`button small ${inStock?'danger':'light'}`} onClick={()=>router.post(`/commands/products/${p.id}/toggle-stock`,{},{preserveScroll:true})}>{inStock?translate('portal','pe_toggle_out'):translate('portal','pe_toggle_in')}</button>}{p?.active&&<a href={`${publicBase||''}/products/${p.id}`} className="button small" target="_blank" rel="noreferrer">{translate('portal','pe_view_public')}</a>}</div></div>
+ <form onSubmit={save} className="registry-layout"><div><section className="panel"><h2>{translate('portal','pe_info_title')}</h2><div className="form-grid"><label>{translate('portal','pe_name')}<input required disabled={!catalog} value={form.data.name} maxLength={150} onChange={e=>form.setData('name',e.target.value)}/></label><label><div className="ed-head is-flush pe-label-row"><span>{translate('portal','pe_sku')}</span>{!form.data.sku&&catalog&&<button type="button" onClick={generateSku} className="text-link pe-label-action">⚡ {translate('portal','pe_auto_sku')}</button>}</div><input required disabled={!catalog} value={form.data.sku} maxLength={60} onChange={e=>form.setData('sku',e.target.value)}/></label><label><div className="ed-head is-flush pe-label-row"><span>{translate('portal','pe_category')}</span><a href="/website" target="_blank" rel="noreferrer" className="text-link pe-label-action">{translate('portal','pe_manage_categories')}</a></div><select required disabled={!catalog} value={form.data.product_category_id} onChange={e=>setCategorySelection(e.target.value)}><option value="">{translate('portal','pe_category_select')}</option>{catalog_categories.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}</select>{catalog_categories.length===0&&<small className="muted">{translate('portal','pe_cms_categories_empty')}</small>}</label><label><div className="ed-head is-flush pe-label-row"><span>{translate('portal','pe_sub_category')}</span></div><select required disabled={!catalog||!form.data.product_category_id} value={form.data.product_subcategory_id} onChange={e=>setSubcategorySelection(e.target.value)}><option value="">{form.data.product_category_id?translate('portal','pe_sub_category_select'):translate('portal','b2b_select_category_first')}</option>{subcategoryOptions.map(sc=><option key={sc.id} value={String(sc.id)}>{sc.name}</option>)}</select></label><label>{translate('portal','pe_strength')}<input disabled={!catalog} value={form.data.strength} placeholder={translate('portal','pe_strength_ph')} maxLength={100} onChange={e=>form.setData('strength',e.target.value)}/><small className="muted">{translate('portal','pe_strength_hint')}</small></label><label>{translate('portal','pe_unit')}<select required disabled={!catalog} value={form.data.product_unit_id} onChange={e=>setUnitSelection(e.target.value)}><option value="">{translate('portal','pe_unit_select')}</option>{catalog_units.map(u=><option key={u.id} value={String(u.id)}>{u.name}</option>)}</select>{catalog_units.length===0&&<small className="muted">{translate('portal','pe_cms_units_empty')}</small>}</label>{supports_product_expiry&&<label>{translate('portal','pe_expires_on')}<input type="date" disabled={!catalog} value={form.data.expires_on||''} onChange={e=>form.setData('expires_on',e.target.value)}/>{isPastBusinessDate(form.data.expires_on)&&<span className="field-error" role="alert">{translate('portal','err_stock_expiry_past')}</span>}<small className="muted">{translate('portal','pe_expires_on_hint')}</small></label>}</div><label>{translate('portal','pe_description')}<textarea rows={5} disabled={!catalog} maxLength={3000} value={form.data.description} onChange={e=>form.setData('description',e.target.value)}/></label></section>
  <section className="panel"><h2>{translate('portal','pe_photo_title')}</h2>{p?.image_url&&<img className="registry-photo" src={p.image_url} alt={p.name}/>}<label>{translate('portal','pe_upload_photo')}<input type="file" disabled={!catalog} accept="image/jpeg,image/png,image/webp" onChange={e=>form.setData('image',e.target.files?.[0]??null)}/></label><p className="muted">{translate('portal','pe_photo_hint')}</p>{p?.image_url&&catalog&&<label className="registry-checkbox"><input type="checkbox" checked={form.data.remove_image} onChange={e=>form.setData('remove_image',e.target.checked)}/>{translate('portal','pe_remove_photo')}</label>}</section>
  <section className="panel"><h2>{translate('portal','pe_video_title')}</h2><fieldset className="registry-video-options" disabled={!catalog}><legend>{translate('portal','pe_video_source')}</legend>{[['none','pe_video_none'],['youtube','pe_video_youtube'],['vimeo','pe_video_vimeo'],['url','pe_video_direct'],['upload','pe_video_upload']].map(([value,name])=><label key={value}><input type="radio" name="video_source" value={value} checked={form.data.video_source===value} onChange={()=>{form.setData('video_source',value);form.setData('video',null);}}/>{translate('portal',name)}</label>)}</fieldset>
  {form.data.video_source==='youtube'&&<label>{translate('portal','pe_youtube_url')}<input type="url" disabled={!catalog} required value={form.data.youtube_url} placeholder="https://www.youtube.com/watch?v=..." onChange={e=>form.setData('youtube_url',e.target.value)}/></label>}
@@ -196,12 +195,12 @@ export default function ProductEditor({
  {p?.video_url&&<video className="registry-video" controls preload="metadata" src={p.video_url} aria-label={translate('portal','pe_current_video')}/>}{p?.video_embed_url&&<a className="text-link" href={p.video_embed_url} target="_blank" rel="noreferrer">{translate('portal','pe_view_youtube')}</a>}</section></div>
  <div><section className="panel"><h2>{translate('portal','pe_prices_title')}</h2>
   <label>{translate('portal','pe_mrp')}<input required type="number" min="0.01" step="0.01" disabled={!pricing} value={form.data.mrp} onChange={e=>handleMrpChange(e.target.value)}/></label>
-  <div style={{marginTop:8,marginBottom:8}}>
-   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-    <label style={{margin:0,fontSize:13,fontWeight:600,color:'#374151'}}>{translate('portal','pe_dealer_discount')} <span style={{fontSize:11,color:'#059669',fontWeight:700}}>(সর্বোচ্চ ৫০%)</span></label>
-    <div style={{display:'flex',gap:4}}>
+  <div className="pe-discount">
+   <div className="ed-head is-flush pe-label-row">
+    <label className="pe-discount-label">{translate('portal','pe_dealer_discount')} <span className="pe-cap tone-ok">(সর্বোচ্চ ৫০%)</span></label>
+    <div className="ed-row is-tight is-wrap">
      {[20,25,30,35,40,50].map(pct=>(
-      <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleDiscountChange(String(pct));}} style={{padding:'2px 7px',fontSize:11,fontWeight:600,borderRadius:4,border:discountPct===String(pct)?'1px solid #059669':'1px solid #d1d5db',background:discountPct===String(pct)?'#ecfdf5':'#f9fafb',color:discountPct===String(pct)?'#047857':'#4b5563',cursor:'pointer'}}>
+      <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleDiscountChange(String(pct));}} className={`ed-chip${discountPct===String(pct)?' is-active':''}`}>
        {pct}%
       </button>
      ))}
@@ -209,36 +208,36 @@ export default function ProductEditor({
    </div>
    <input type="number" min="0" max={isOwner ? 100 : 50} step="0.5" disabled={!pricing} placeholder={translate('portal','pe_discount_ph')} value={discountPct} onChange={e=>handleDiscountChange(e.target.value)}/>
    {!isOwner && parseFloat(discountPct) > 50 && (
-    <div style={{color:'#b91c1c',fontSize:11,marginTop:4,fontWeight:600}}>
+    <div className="pe-warning tone-danger" role="alert">
      ⚠️ ডিলারদের কমিশন দেওয়ার সর্বোচ্চ সীমা ৫০%। এর বেশি কমিশন শুধুমাত্র ওনার কর্তৃক অনুমোদিত।
     </div>
    )}
   </div>
    <label>{translate('portal','pe_dealer_price_cash')}<input type="number" min="0.01" step="0.01" disabled={!pricing} value={form.data.dealer_price} onChange={e=>handleDealerPriceChange(e.target.value)}/></label>
-   <div style={{background:'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',border:'1px solid #a7f3d0',borderRadius:8,padding:'12px',marginTop:12,marginBottom:12}}>
-    <div style={{fontSize:11,fontWeight:700,color:'#047857',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+   <div className="pe-split tone-ok">
+    <div className="pe-split-head">
      <span>{translate('portal','pe_cash_in_title')}</span>
-     <span style={{background:'#dcfce7',color:'#15803d',padding:'1px 6px',borderRadius:4,fontSize:10,fontWeight:700}}>{translate('portal','pe_discount_badge',{pct:String(computedPct)})}</span>
+     <span className="hub-pill">{translate('portal','pe_discount_badge',{pct:String(computedPct)})}</span>
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-     <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #d1fae5'}}>
-      <div style={{fontSize:11,color:'#065f46'}}>{translate('portal','pe_dealer_price')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#065f46'}}>৳ {dealerPriceNum>0?dealerPriceNum.toFixed(2):'0.00'}</div>
-      <div style={{fontSize:10,color:'#047857'}}>{translate('portal','pe_collected')}</div>
+    <div className="pe-split-grid">
+     <div className="pe-split-cell">
+      <div className="ed-meta">{translate('portal','pe_dealer_price')}</div>
+      <div className="pe-split-value">{money(dealerPriceNum>0?dealerPriceNum:0)}</div>
+      <div className="ed-meta">{translate('portal','pe_collected')}</div>
      </div>
-     <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #fef3c7'}}>
-      <div style={{fontSize:11,color:'#92400e'}}>{translate('portal','pe_deducted')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#b45309'}}>৳ {savingsNum>0?savingsNum.toFixed(2):'0.00'}</div>
-      <div style={{fontSize:10,color:'#b45309'}}>{translate('portal','pe_margin')}</div>
+     <div className="pe-split-cell tone-warn">
+      <div className="ed-meta">{translate('portal','pe_deducted')}</div>
+      <div className="pe-split-value">{money(savingsNum>0?savingsNum:0)}</div>
+      <div className="ed-meta">{translate('portal','pe_margin')}</div>
      </div>
     </div>
    </div>
-   <div style={{marginTop:16,marginBottom:8,paddingTop:12,borderTop:'1px dashed #cbd5e1'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-     <label style={{margin:0,fontSize:13,fontWeight:600,color:'#1e40af'}}>{translate('portal','pe_sub_dealer_discount')} <span style={{fontSize:11,color:'#2563eb',fontWeight:700}}>(সর্বোচ্চ ৪০%)</span></label>
-     <div style={{display:'flex',gap:4}}>
+   <div className="pe-discount is-divided">
+    <div className="ed-head is-flush pe-label-row">
+     <label className="pe-discount-label tone-info">{translate('portal','pe_sub_dealer_discount')} <span className="pe-cap tone-info">(সর্বোচ্চ ৪০%)</span></label>
+     <div className="ed-row is-tight is-wrap">
       {[20,25,30,35,40].map(pct=>(
-       <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleSubDealerDiscountChange(String(pct));}} style={{padding:'2px 7px',fontSize:11,fontWeight:600,borderRadius:4,border:subDealerDiscountPct===String(pct)?'1px solid #2563eb':'1px solid #d1d5db',background:subDealerDiscountPct===String(pct)?'#eff6ff':'#f9fafb',color:subDealerDiscountPct===String(pct)?'#1d4ed8':'#4b5563',cursor:'pointer'}}>
+       <button key={pct} type="button" disabled={!pricing} onClick={()=>{handleSubDealerDiscountChange(String(pct));}} className={`ed-chip is-info${subDealerDiscountPct===String(pct)?' is-active':''}`}>
         {pct}%
        </button>
       ))}
@@ -246,42 +245,41 @@ export default function ProductEditor({
     </div>
     <input type="number" min="0" max={isOwner ? 100 : 40} step="0.5" disabled={!pricing} placeholder={translate('portal','pe_discount_ph')} value={subDealerDiscountPct} onChange={e=>handleSubDealerDiscountChange(e.target.value)}/>
     {!isOwner && parseFloat(subDealerDiscountPct) > 40 && (
-     <div style={{color:'#b91c1c',fontSize:11,marginTop:4,fontWeight:600}}>
+     <div className="pe-warning tone-danger" role="alert">
       ⚠️ সাব-ডিলারদের কমিশন দেওয়ার সর্বোচ্চ সীমা ৪০%। এর বেশি কমিশন শুধুমাত্র ওনার কর্তৃক অনুমোদিত।
      </div>
     )}
    </div>
    <label>{translate('portal','pe_sub_dealer_price_cash')}<input type="number" min="0.01" step="0.01" disabled={!pricing} value={form.data.sub_dealer_price} onChange={e=>handleSubDealerPriceChange(e.target.value)}/><small>{translate('portal','pe_sub_dealer_price_hint')}</small></label>
-   <div style={{background:'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',border:'1px solid #bfdbfe',borderRadius:8,padding:'12px',marginTop:12,marginBottom:12}}>
-    <div style={{fontSize:11,fontWeight:700,color:'#1d4ed8',textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+   <div className="pe-split tone-info">
+    <div className="pe-split-head">
      <span>{translate('portal','pe_sub_dealer_box_title')}</span>
-     <span style={{background:'#dbeafe',color:'#1e40af',padding:'1px 6px',borderRadius:4,fontSize:10,fontWeight:700}}>{translate('portal','pe_sub_dealer_discount_badge',{pct:String(subComputedPct)})}</span>
+     <span className="hub-pill">{translate('portal','pe_sub_dealer_discount_badge',{pct:String(subComputedPct)})}</span>
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-     <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #bfdbfe'}}>
-      <div style={{fontSize:11,color:'#1e40af'}}>{translate('portal','pe_sub_dealer_price')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#1e40af'}}>৳ {subDealerPriceNum>0?subDealerPriceNum.toFixed(2):'0.00'}</div>
-      <div style={{fontSize:10,color:'#2563eb'}}>{translate('portal','pe_collected')}</div>
+    <div className="pe-split-grid">
+     <div className="pe-split-cell">
+      <div className="ed-meta">{translate('portal','pe_sub_dealer_price')}</div>
+      <div className="pe-split-value">{money(subDealerPriceNum>0?subDealerPriceNum:0)}</div>
+      <div className="ed-meta">{translate('portal','pe_collected')}</div>
      </div>
-     <div style={{background:'#ffffff',padding:'8px',borderRadius:6,border:'1px solid #fed7aa'}}>
-      <div style={{fontSize:11,color:'#9a3412'}}>{translate('portal','pe_deducted')}</div>
-      <div style={{fontSize:15,fontWeight:800,color:'#c2410c'}}>৳ {subSavingsNum>0?subSavingsNum.toFixed(2):'0.00'}</div>
-      <div style={{fontSize:10,color:'#c2410c'}}>{translate('portal','pe_sub_dealer_margin')}</div>
+     <div className="pe-split-cell tone-orange">
+      <div className="ed-meta">{translate('portal','pe_deducted')}</div>
+      <div className="pe-split-value">{money(subSavingsNum>0?subSavingsNum:0)}</div>
+      <div className="ed-meta">{translate('portal','pe_sub_dealer_margin')}</div>
      </div>
     </div>
    </div>
   {cost&&<label>{translate('portal','pe_cost')}<input type="number" min="0" step="0.01" disabled={!pricing} value={form.data.cost_price} onChange={e=>form.setData('cost_price',e.target.value)}/></label>}<label>{translate('portal','pe_low_stock_at')}<input type="number" min="0" max="100000" step="1" disabled={!inventory} value={form.data.low_stock_at} onChange={e=>form.setData('low_stock_at',e.target.value)}/></label><label>{translate('portal','pe_publication')}<select aria-label={translate('portal','pe_publication')} disabled={!catalog} value={form.data.active} onChange={e=>form.setData('active',e.target.value)}><option value="0">{translate('portal','pe_draft_hidden')}</option><option value="1">{translate('portal','pe_published')}</option></select></label><label>{translate('portal','pe_homepage')}<select aria-label={translate('portal','pe_homepage')} disabled={!catalog} value={form.data.featured} onChange={e=>form.setData('featured',e.target.value)}><option value="0">{translate('portal','pe_standard')}</option><option value="1">{translate('portal','pe_featured')}</option></select></label><p className="muted">{translate('portal','pe_stock_note')}</p></section>
  {editable&&<section className="panel"><h2>{translate('portal','pe_save_title')}</h2><label>{translate('portal','pe_change_reason')}<textarea required minLength={5} maxLength={1000} rows={3} value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>{form.progress&&<progress max={100} value={form.progress.percentage} aria-label={translate('portal','pe_upload_progress')}/>}{Object.keys(form.errors).length>0&&<div className="error" role="alert">{Object.values(form.errors).join(' ')}</div>}<button type="submit" className="button dark" disabled={form.processing}>{form.processing?translate('portal','pe_saving'):p?translate('portal','pe_save_product'):translate('portal','pe_create_product')}</button></section>}
  {p && catalog && (
-  <section className="panel" style={{ marginTop: 20, borderColor: '#fecaca', background: '#fff5f5' }}>
-   <h2 style={{ color: '#991b1b', fontSize: 15, margin: '0 0 8px' }}>{translate('portal','pe_delete_title')}</h2>
-   <p style={{ fontSize: 12, color: '#7f1d1d', margin: '0 0 14px' }}>
+  <section className="panel pe-danger-zone tone-danger">
+   <h2 className="pe-danger-title">{translate('portal','pe_delete_title')}</h2>
+   <p className="pe-danger-body">
     {translate('portal','pe_delete_body')}
    </p>
    <button
     type="button"
-    className="button small"
-    style={{ background: '#ef4444', color: '#fff', border: 'none' }}
+    className="button small pe-danger-button"
     onClick={() => {
      const reason = window.prompt(translate('portal','delete_product_prompt',{name:String(p.name)}));
      if (reason !== null && reason.trim().length >= 3) {

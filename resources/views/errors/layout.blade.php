@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/reference/fontawesome-local.css">
     <link rel="stylesheet" href="/reference/instrument-sans-local.css">
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/reference-home.css'])
 </head>
 <body class="ref-home locale-{{ app()->getLocale() }} ref-error-page">

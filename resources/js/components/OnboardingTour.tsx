@@ -826,7 +826,7 @@ export default function OnboardingTour({
                                     <>
                                         <div className="reader-header">
                                             <div>
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                                                <div className="ops-row ops-mb-1">
                                                     <span className="reader-eyebrow">
                                                         {translate('portal', 'help_manual_title')} · {activeChapter.key.replaceAll('_', ' ')}
                                                     </span>
@@ -854,21 +854,21 @@ export default function OnboardingTour({
                                         </div>
 
                                         {activeChapter.purpose && (
-                                            <div className="help-manual-callout help-manual-purpose" style={{ margin: '14px 0' }}>
-                                                <Info size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                            <div className="help-manual-callout help-manual-purpose otr-callout">
+                                                <Info size={18} className="callout-icon-col" />
                                                 <div>
-                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_purpose')}</strong>
-                                                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>{activeChapter.purpose}</p>
+                                                    <strong className="ops-block ops-mb-1">{translate('portal', 'help_manual_purpose')}</strong>
+                                                    <p className="ops-m-0 ops-fs-sm">{activeChapter.purpose}</p>
                                                 </div>
                                             </div>
                                         )}
 
                                         {activeChapter.why && (
-                                            <div className="help-manual-callout help-manual-why" style={{ margin: '14px 0' }}>
-                                                <Compass size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                            <div className="help-manual-callout help-manual-why otr-callout">
+                                                <Compass size={18} className="callout-icon-col" />
                                                 <div>
-                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_why')}</strong>
-                                                    <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>{activeChapter.why}</p>
+                                                    <strong className="ops-block ops-mb-1">{translate('portal', 'help_manual_why')}</strong>
+                                                    <p className="ops-m-0 ops-fs-sm">{activeChapter.why}</p>
                                                 </div>
                                             </div>
                                         )}
@@ -886,11 +886,11 @@ export default function OnboardingTour({
                                         </div>
 
                                         {activeChapter.outcomes && activeChapter.outcomes.length > 0 && (
-                                            <div className="help-manual-callout help-manual-outcomes" style={{ margin: '14px 0' }}>
-                                                <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                            <div className="help-manual-callout help-manual-outcomes otr-callout">
+                                                <CheckCircle2 size={18} className="callout-icon-col" />
                                                 <div>
-                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_outcomes')}</strong>
-                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                    <strong className="ops-block ops-mb-1">{translate('portal', 'help_manual_outcomes')}</strong>
+                                                    <ul className="ops-list">
                                                         {activeChapter.outcomes.map((out, oIdx) => (
                                                             <li key={oIdx}>{out}</li>
                                                         ))}
@@ -900,11 +900,11 @@ export default function OnboardingTour({
                                         )}
 
                                         {activeChapter.rules && activeChapter.rules.length > 0 && (
-                                            <div className="help-manual-callout help-manual-rules" style={{ margin: '14px 0' }}>
-                                                <FileText size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                            <div className="help-manual-callout help-manual-rules otr-callout">
+                                                <FileText size={18} className="callout-icon-col" />
                                                 <div>
-                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_rules')}</strong>
-                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                    <strong className="ops-block ops-mb-1">{translate('portal', 'help_manual_rules')}</strong>
+                                                    <ul className="ops-list">
                                                         {activeChapter.rules.map((rule, rIdx) => (
                                                             <li key={rIdx}>{rule}</li>
                                                         ))}
@@ -930,11 +930,11 @@ export default function OnboardingTour({
                                         )}
 
                                         {activeChapter.warnings && activeChapter.warnings.length > 0 && (
-                                            <div className="help-manual-callout help-manual-warnings" style={{ margin: '14px 0' }}>
-                                                <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+                                            <div className="help-manual-callout help-manual-warnings otr-callout">
+                                                <AlertTriangle size={18} className="callout-icon-col" />
                                                 <div>
-                                                    <strong style={{ display: 'block', marginBottom: 4 }}>{translate('portal', 'help_manual_warnings')}</strong>
-                                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, lineHeight: 1.55 }}>
+                                                    <strong className="ops-block ops-mb-1">{translate('portal', 'help_manual_warnings')}</strong>
+                                                    <ul className="ops-list">
                                                         {activeChapter.warnings.map((warn, wIdx) => (
                                                             <li key={wIdx}>{warn}</li>
                                                         ))}
@@ -944,13 +944,13 @@ export default function OnboardingTour({
                                         )}
 
                                         {activeChapter.faqs && activeChapter.faqs.length > 0 && (
-                                            <div style={{ marginTop: 16 }}>
-                                                <h4 style={{ margin: '0 0 10px', fontSize: 14 }}>{translate('portal', 'help_manual_faqs')}</h4>
-                                                <div style={{ display: 'grid', gap: 8 }}>
+                                            <div className="ops-mt-4">
+                                                <h4 className="ops-m-0 ops-mb-3 ops-fs-base">{translate('portal', 'help_manual_faqs')}</h4>
+                                                <div className="ops-stack is-snug">
                                                     {activeChapter.faqs.map((faq, fIdx) => (
-                                                        <div key={fIdx} style={{ padding: 12, border: '1px solid var(--border, #e2e8f0)', borderRadius: 10, background: 'var(--panel-bg, #f8fafc)' }}>
-                                                            <strong style={{ display: 'block', fontSize: 13, marginBottom: 4, color: 'var(--text-primary, #0f172a)' }}>{faq.q}</strong>
-                                                            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary, #475569)', lineHeight: 1.5 }}>{faq.a}</p>
+                                                        <div key={fIdx} className="ops-card is-soft is-tight">
+                                                            <strong className="ops-block ops-fs-sm ops-mb-1 ops-text">{faq.q}</strong>
+                                                            <p className="ops-m-0 ops-fs-xs ops-text-2">{faq.a}</p>
                                                         </div>
                                                     ))}
                                                 </div>

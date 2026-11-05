@@ -167,7 +167,7 @@ export default function LuxuryProductCard({
                 <div className="luxury-price-block">
                     <div className="luxury-price-val">
                         <span className="currency">৳</span>
-                        <span>{money(primaryPrice).replace(/^[^\d]+/, '')}</span>
+                        <span>{money(primaryPrice, { symbol: false })}</span>
                     </div>
 
                     <div className="luxury-price-label">{priceLabel}</div>
@@ -175,7 +175,7 @@ export default function LuxuryProductCard({
                     {hasDiscount && (
                         <div className="luxury-mrp-row">
                             <span>MRP</span>
-                            <span className="mrp-crossed">৳ {money(mrpNum).replace(/^[^\d]+/, '')}</span>
+                            <span className="mrp-crossed">{money(mrpNum)}</span>
                             {discountPct > 0 && (
                                 <span className="luxury-discount-pill">
                                     {translate('portal', 'pct_off', { pct: String(discountPct) }) || `-${discountPct}%`}

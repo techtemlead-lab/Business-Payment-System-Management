@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
-import {
-    Wallet, DollarSign, CheckCircle2, XCircle, Clock, AlertTriangle,
-    FileText, ArrowUpRight, Upload, ShieldCheck, Download, Search,
-    Filter, ChevronRight, UserCheck
-} from 'lucide-react';
-import { money, date } from './UI';
+import { Search } from 'lucide-react';
+import { money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useEscape } from '../shared/useEscape';
+
+type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
 interface WithdrawalRecord {
     id: string;
@@ -15,36 +14,64 @@ interface WithdrawalRecord {
     dealer_code: string;
     phone: string;
     amount: string | number;
-    withheld_amount?: string | number;
+    withheld_amount?: string | number | null;
     net_amount?: string | number | null;
     channel: string;
-    destination: string;
-    status: 'requested' | 'approved' | 'paid' | 'rejected';
+    destination_masked: string | null;
+    status: WithdrawalStatus;
     reason: string | null;
     payment_reference: string | null;
     paid_at: string | null;
-    receipt_path: string | null;
     created_at: string;
 }
 
-interface PayoutsHubProps {
-    withdrawals: {
-        data: WithdrawalRecord[];
-        current_page: number;
-        last_page: number;
-        total: number;
-        links: Array<{ url: string | null; label: string; active: boolean }>;
-    };
-    tdsRate: number;
+interface WithdrawalPage extends Row {
+    data: WithdrawalRecord[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    prev_page_url: string | null;
+    next_page_url: string | null;
 }
 
-export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: PayoutsHubProps) {
-    const translate = useT();
-    const { auth, flash } = usePage<any>().props;
-    const currentUser = auth.user;
+/** Totals over every request that matches the search, not only the visible page. */
+interface PayoutTotals {
+    requested_count: number;
+    requested_amount: string | number;
+    approved_count: number;
+    approved_amount: string | number;
+    paid_count: number;
+    paid_amount: string | number;
+    paid_withheld_amount: string | number;
+}
 
-    const [filterStatus, setFilterStatus] = useState<string>('all');
-    const [searchQuery, setSearchQuery] = useState('');
+interface PayoutsHubProps {
+    withdrawals: WithdrawalPage;
+    tdsRate: number;
+    totals?: PayoutTotals;
+}
+
+const statusTabs: Array<'all' | WithdrawalStatus> = ['all', 'requested', 'approved', 'paid', 'rejected'];
+
+const emptyTotals: PayoutTotals = {
+    requested_count: 0,
+    requested_amount: 0,
+    approved_count: 0,
+    approved_amount: 0,
+    paid_count: 0,
+    paid_amount: 0,
+    paid_withheld_amount: 0,
+};
+
+export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals }: PayoutsHubProps) {
+    const translate = useT();
+    const { portalBase, filters, data: pageData } = usePage<any>().props;
+    const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
+    const activeSearch = String(filters?.q ?? '');
+    const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
+
+    const [searchQuery, setSearchQuery] = useState(activeSearch);
+    useEffect(() => setSearchQuery(activeSearch), [activeSearch]);
 
     // Modal states
     const [reviewModalRecord, setReviewModalRecord] = useState<WithdrawalRecord | null>(null);
@@ -53,36 +80,30 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
     const [processingReview, setProcessingReview] = useState(false);
 
     const [settleModalRecord, setSettleModalRecord] = useState<WithdrawalRecord | null>(null);
+    useEscape(reviewModalRecord !== null, () => setReviewModalRecord(null));
+    useEscape(settleModalRecord !== null, () => setSettleModalRecord(null));
     const [paymentReference, setPaymentReference] = useState('');
     const [paidAt, setPaidAt] = useState(() => new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
     const [settleNote, setSettleNote] = useState('');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
 
-    // Calculate aggregated metrics
-    const records = withdrawals.data || [];
-    const pendingRecords = records.filter(r => r.status === 'requested');
-    const approvedRecords = records.filter(r => r.status === 'approved');
-    const paidRecords = records.filter(r => r.status === 'paid');
+    const records = withdrawals?.data ?? [];
 
-    const totalPendingAmount = pendingRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalApprovedAmount = approvedRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalPaidAmount = paidRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-    const totalTdsWithheld = paidRecords.reduce((sum,w)=>sum+Number(w.withheld_amount??0),0);
-
-    // Filtered records
-    const displayedRecords = records.filter(r => {
-        if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            const matchName = r.user_name?.toLowerCase().includes(q);
-            const matchCode = r.dealer_code?.toLowerCase().includes(q);
-            const matchRef = r.payment_reference?.toLowerCase().includes(q);
-            const matchPhone = r.phone?.includes(q);
-            return matchName || matchCode || matchRef || matchPhone;
-        }
-        return true;
-    });
+    /** Search and status run on the server so every page and the totals agree. */
+    const applyFilters = (next: { q?: string; status?: string }) => {
+        const status = next.status ?? activeStatus;
+        const query = {
+            q: (next.q ?? activeSearch).trim(),
+            status: status === 'all' ? '' : status,
+        };
+        router.get(
+            `${portalBase ?? ''}/payouts-hub`,
+            Object.fromEntries(Object.entries(query).filter(([, value]) => value)),
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
         setReviewModalRecord(record);
@@ -135,353 +156,293 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="hub">
             {/* Top Operational Notice */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px'
-            }}>
+            <div className="panel hub-row is-between">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{
-                            background: '#ecfdf5',
-                            color: '#047857',
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            textTransform: 'uppercase'
-                        }}>
+                    <div className="hub-kicker">
+                        <span className="hub-pill tone-ok">
                             {translate('portal', 'pay_badge')}
                         </span>
-                        <span style={{ fontSize: '13px', color: '#64748b' }}>
+                        <span className="hub-hint">
                             {translate('portal', 'pay_withholding', { rate: tdsRate.toFixed(2) })}
                         </span>
                     </div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+                    <h2 className="hub-title is-lg">
                         {translate('portal', 'pay_heading')}
                     </h2>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+                    <p className="hub-sub">
                         {translate('portal', 'pay_heading_hint')}
                     </p>
                 </div>
             </div>
 
             {/* Metrics Overview Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_pending')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>
-                        ৳{totalPendingAmount.toLocaleString()}
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_pending_hint', { count: String(pendingRecords.length) })}
-                    </span>
+            <div className="hub-grid">
+                <div className="metric tone-warn">
+                    <span>{translate('portal', 'pay_kpi_pending')}</span>
+                    <strong>
+                        {money(summary.requested_amount)}
+                    </strong>
+                    <small>
+                        {translate('portal', 'pay_kpi_pending_hint', { count: String(summary.requested_count) })}
+                    </small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_approved')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '6px' }}>
-                        ৳{totalApprovedAmount.toLocaleString()}
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_approved_hint', { count: String(approvedRecords.length) })}
-                    </span>
+                <div className="metric tone-info">
+                    <span>{translate('portal', 'pay_kpi_approved')}</span>
+                    <strong>
+                        {money(summary.approved_amount)}
+                    </strong>
+                    <small>
+                        {translate('portal', 'pay_kpi_approved_hint', { count: String(summary.approved_count) })}
+                    </small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_settled')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#047857', marginTop: '6px' }}>
-                        ৳{totalPaidAmount.toLocaleString()}
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        {translate('portal', 'pay_kpi_settled_hint', { count: String(paidRecords.length) })}
-                    </span>
+                <div className="metric tone-ok">
+                    <span>{translate('portal', 'pay_kpi_settled')}</span>
+                    <strong>
+                        {money(summary.paid_amount)}
+                    </strong>
+                    <small>
+                        {translate('portal', 'pay_kpi_settled_hint', { count: String(summary.paid_count) })}
+                    </small>
                 </div>
 
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{translate('portal', 'pay_kpi_withheld')}</span>
-                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#475569', marginTop: '6px' }}>
-                        ৳{totalTdsWithheld.toLocaleString()}
-                    </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>
+                <div className="metric">
+                    <span>{translate('portal', 'pay_kpi_withheld')}</span>
+                    <strong>
+                        {money(summary.paid_withheld_amount)}
+                    </strong>
+                    <small>
                         {translate('portal', 'pay_kpi_withheld_hint')}
-                    </span>
+                    </small>
                 </div>
             </div>
 
             {/* Filter & Search Bar */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                padding: '16px 20px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px'
-            }}>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {['all', 'requested', 'approved', 'paid', 'rejected'].map(st => (
+            <div className="panel hub-row is-between">
+                <div className="hub-seg">
+                    {statusTabs.map(st => (
                         <button
                             key={st}
                             type="button"
-                            onClick={() => setFilterStatus(st)}
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                fontWeight: filterStatus === st ? 700 : 500,
-                                background: filterStatus === st ? '#0f172a' : '#f1f5f9',
-                                color: filterStatus === st ? '#ffffff' : '#475569',
-                                border: 'none',
-                                cursor: 'pointer',
-                                textTransform: 'capitalize'
-                            }}
+                            aria-pressed={activeStatus === st}
+                            onClick={() => applyFilters({ status: st })}
+                            className="hub-capital"
                         >
                             {st === 'all' ? translate('portal', 'pay_filter_all') : translate('portal', `pay_status_${st}`)}
                         </button>
                     ))}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, maxWidth: '320px' }}>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: '#f8fafc',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '6px',
-                        padding: '6px 12px',
-                        width: '100%'
-                    }}>
-                        <Search size={16} color="#64748b" />
+                <form
+                    role="search"
+                    onSubmit={(e) => { e.preventDefault(); applyFilters({ q: searchQuery }); }}
+                    className="pay-search"
+                >
+                    <div className="search-input">
+                        <Search size={16} />
                         <input
-                            type="text"
+                            type="search"
+                            aria-label={translate('portal', 'pay_search_ph')}
                             placeholder={translate('portal', 'pay_search_ph')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            style={{
-                                border: 'none',
-                                background: 'transparent',
-                                outline: 'none',
-                                fontSize: '13px',
-                                width: '100%'
-                            }}
                         />
                     </div>
-                </div>
+                    <button type="submit" className="button small dark">{translate('portal', 'search')}</button>
+                    {hasActiveFilters && (
+                        <button
+                            type="button"
+                            className="text-link"
+                            onClick={() => { setSearchQuery(''); applyFilters({ q: '', status: 'all' }); }}
+                        >
+                            {translate('portal', 'clear')}
+                        </button>
+                    )}
+                </form>
             </div>
 
             {/* Withdrawals Table */}
-            <div style={{
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '12px',
-                overflow: 'hidden'
-            }}>
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                        <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
-                                <th style={{ padding: '12px 20px', fontWeight: 600 }}>{translate('portal', 'pay_col_partner')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_date')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_method')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_gross')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_withholding')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_net')}</th>
-                                <th style={{ padding: '12px 16px', fontWeight: 600 }}>{translate('portal', 'pay_col_status')}</th>
-                                <th style={{ padding: '12px 20px', fontWeight: 600, textAlign: 'right' }}>{translate('portal', 'pay_col_actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {displayedRecords.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                                        {translate('portal', 'pay_empty')}
-                                    </td>
-                                </tr>
-                            ) : (
-                                displayedRecords.map(w => {
-                                    const gross = Number(w.amount) || 0;
-                                    const tds = Number(w.withheld_amount??0);
-                                    const net = Number(w.net_amount??gross);
+            <div className="panel table-panel">
+                <Table
+                    tools={false}
+                    rows={records}
+                    empty={translate('portal', 'pay_empty')}
+                    columns={[
+                        {
+                            key: 'user_name',
+                            title: translate('portal', 'pay_col_partner'),
+                            sortable: true,
+                            sortValue: (w: WithdrawalRecord) => w.user_name,
+                            render: (w: WithdrawalRecord) => (
+                                <div>
+                                    <div className="hub-strong">{w.user_name}</div>
+                                    <div className="cell-sub">
+                                        {w.dealer_code} · {w.phone}
+                                    </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            key: 'created_at',
+                            title: translate('portal', 'pay_col_date'),
+                            sortable: true,
+                            render: (w: WithdrawalRecord) => date(w.created_at),
+                        },
+                        {
+                            key: 'channel',
+                            title: translate('portal', 'pay_col_method'),
+                            sortable: true,
+                            render: (w: WithdrawalRecord) => <span className="hub-strong">{w.channel}</span>,
+                        },
+                        {
+                            key: 'destination_masked',
+                            title: translate('portal', 'wd_destination'),
+                            sortable: true,
+                            render: (w: WithdrawalRecord) => (
+                                <span className="hub-mono">
+                                    {w.destination_masked || '—'}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'payment_reference',
+                            title: translate('portal', 'col_reference'),
+                            sortable: true,
+                            render: (w: WithdrawalRecord) => w.payment_reference ? (
+                                <span className="hub-strong tone-teal">{w.payment_reference}</span>
+                            ) : '—',
+                        },
+                        {
+                            key: 'amount',
+                            title: translate('portal', 'pay_col_gross'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: (w: WithdrawalRecord) => Number(w.amount) || 0,
+                            render: (w: WithdrawalRecord) => (
+                                <span className="hub-strong">
+                                    {money(w.amount)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'withheld_amount',
+                            title: translate('portal', 'pay_col_withholding'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: (w: WithdrawalRecord) => Number(w.withheld_amount ?? 0),
+                            render: (w: WithdrawalRecord) => (
+                                <span className="tone-danger">
+                                    -{money(w.withheld_amount ?? 0)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'net_amount',
+                            title: translate('portal', 'pay_col_net'),
+                            align: 'right',
+                            sortable: true,
+                            sortValue: (w: WithdrawalRecord) => Number(w.net_amount ?? w.amount),
+                            render: (w: WithdrawalRecord) => (
+                                <b className="tone-ok">
+                                    {money(w.net_amount ?? w.amount)}
+                                </b>
+                            ),
+                        },
+                        {
+                            key: 'status',
+                            title: translate('portal', 'pay_col_status'),
+                            sortable: true,
+                            render: (w: WithdrawalRecord) => (
+                                <span className={`badge hub-capital ${w.status}`}>
+                                    {translate('portal', `pay_status_${w.status}`)}
+                                </span>
+                            ),
+                        },
+                        {
+                            key: 'actions',
+                            title: translate('portal', 'pay_col_actions'),
+                            align: 'right',
+                            sortable: false,
+                            render: (w: WithdrawalRecord) => (
+                                <div className="hub-row is-end">
+                                    {w.status === 'requested' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenReview(w)}
+                                            className="button small dark"
+                                        >
+                                            {translate('portal', 'pay_review')}
+                                        </button>
+                                    )}
 
-                                    return (
-                                        <tr key={w.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                            <td style={{ padding: '12px 20px' }}>
-                                                <div style={{ fontWeight: 700, color: '#0f172a' }}>{w.user_name}</div>
-                                                <div style={{ fontSize: '11px', color: '#64748b' }}>
-                                                    {w.dealer_code} · {w.phone}
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', color: '#475569' }}>
-                                                {date(w.created_at)}
-                                            </td>
-                                            <td style={{ padding: '12px 16px' }}>
-                                                <span style={{ fontWeight: 600, color: '#334155' }}>{w.channel}</span>
-                                            </td>
-                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                                                ৳{gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '12px 16px', textAlign: 'right', color: '#dc2626' }}>
-                                                -৳{tds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#047857' }}>
-                                                ৳{net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td style={{ padding: '12px 16px' }}>
-                                                <span style={{
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    padding: '3px 8px',
-                                                    borderRadius: '4px',
-                                                    fontSize: '11px',
-                                                    fontWeight: 700,
-                                                    textTransform: 'uppercase',
-                                                    background:
-                                                        w.status === 'paid' ? '#dcfce7' :
-                                                        w.status === 'approved' ? '#e0f2fe' :
-                                                        w.status === 'rejected' ? '#fee2e2' : '#fef3c7',
-                                                    color:
-                                                        w.status === 'paid' ? '#15803d' :
-                                                        w.status === 'approved' ? '#0369a1' :
-                                                        w.status === 'rejected' ? '#b91c1c' : '#b45309'
-                                                }}>
-                                                    {translate('portal', `pay_status_${w.status}`)}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '12px 20px', textAlign: 'right' }}>
-                                                <div style={{ display: 'inline-flex', gap: '8px' }}>
-                                                    {w.status === 'requested' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenReview(w)}
-                                                            style={{
-                                                                background: '#0f172a',
-                                                                color: '#ffffff',
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                padding: '6px 12px',
-                                                                fontSize: '12px',
-                                                                fontWeight: 600,
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            {translate('portal', 'pay_review')}
-                                                        </button>
-                                                    )}
+                                    {w.status === 'approved' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenSettle(w)}
+                                            className="button small dark"
+                                        >
+                                            {translate('portal', 'pay_record_payout')}
+                                        </button>
+                                    )}
 
-                                                    {w.status === 'approved' && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleOpenSettle(w)}
-                                                            style={{
-                                                                background: '#047857',
-                                                                color: '#ffffff',
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                padding: '6px 12px',
-                                                                fontSize: '12px',
-                                                                fontWeight: 600,
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            {translate('portal', 'pay_record_payout')}
-                                                        </button>
-                                                    )}
+                                    {w.status === 'paid' && (
+                                        <a
+                                            href={`/withdrawals/${w.id}`}
+                                            className="text-link"
+                                        >
+                                            {translate('portal', 'pay_details')}
+                                        </a>
+                                    )}
 
-                                                    {w.status === 'paid' && (
-                                                        <a
-                                                            href={`/withdrawals/${w.id}`}
-                                                            style={{
-                                                                color: '#0284c7',
-                                                                fontSize: '12px',
-                                                                fontWeight: 600,
-                                                                textDecoration: 'none',
-                                                                display: 'inline-flex',
-                                                                alignItems: 'center',
-                                                                gap: '4px'
-                                                            }}
-                                                        >
-                                                            {translate('portal', 'pay_details')}
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                    {w.status === 'rejected' && w.reason && (
+                                        <span className="pay-reason" title={w.reason}>
+                                            {w.reason}
+                                        </span>
+                                    )}
+                                </div>
+                            ),
+                        },
+                    ]}
+                />
+                <Pagination page={withdrawals} />
             </div>
 
             {/* Review Modal */}
             {reviewModalRecord && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '16px'
-                }}>
-                    <div style={{
-                        background: '#ffffff',
-                        borderRadius: '12px',
-                        width: '100%',
-                        maxWidth: '500px',
-                        padding: '24px',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'pay_review_title')}
                         </h3>
-                        <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                        <p className="hub-sub is-lead">
                             {translate('portal', 'pay_review_meta', { id: reviewModalRecord.id.slice(0, 8), name: reviewModalRecord.user_name, code: reviewModalRecord.dealer_code })}
                         </p>
 
-                        <div style={{
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            padding: '12px 16px',
-                            marginBottom: '16px'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px' }}>
+                        <div className="hub-ledger">
+                            <div className="hub-ledger-row">
 <span>{translate('portal', 'pay_gross_amount')}</span>
-                                <b>৳{Number(reviewModalRecord.amount).toLocaleString()}</b>
+                                <b>{money(reviewModalRecord.amount)}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '4px', color: '#dc2626' }}>
+                            <div className="hub-ledger-row tone-danger">
 <span>{translate('portal', 'pay_recorded_withholding')}</span>
-                                <b>-৳{Number(reviewModalRecord.withheld_amount??0).toLocaleString()}</b>
+                                <b>-{money(reviewModalRecord.withheld_amount ?? 0)}</b>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: '#047857', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
+                            <div className="hub-ledger-row is-total tone-ok">
 <span>{translate('portal', 'pay_net_approved')}</span>
-                                <b>৳{Number(reviewModalRecord.net_amount??reviewModalRecord.amount).toLocaleString()}</b>
+                                <b>{money(reviewModalRecord.net_amount ?? reviewModalRecord.amount)}</b>
                             </div>
                         </div>
 
                         <form onSubmit={handleSubmitReview}>
-                            <div style={{ marginBottom: '16px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                            <div className="hub-field">
+                                <label>
                                     {translate('portal', 'pay_decision')}
                                 </label>
-                                <div style={{ display: 'flex', gap: '16px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                <div className="hub-row is-loose">
+                                    <label className="hub-choice">
                                         <input
                                             type="radio"
                                             name="decision"
@@ -491,7 +452,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                         />
                                         {translate('portal', 'pay_approve')}
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                    <label className="hub-choice">
                                         <input
                                             type="radio"
                                             name="decision"
@@ -504,8 +465,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                            <div className="hub-field is-last">
+                                <label>
                                     {translate('portal', 'pay_verify_note')}
                                 </label>
                                 <textarea
@@ -514,46 +475,21 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                     value={reviewReason}
                                     onChange={(e) => setReviewReason(e.target.value)}
                                     placeholder={reviewDecision === 'approved' ? translate('portal', 'pay_ph_approve') : translate('portal', 'pay_ph_reject')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '13px'
-                                    }}
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <div className="hub-row is-end">
                                 <button
                                     type="button"
                                     onClick={() => setReviewModalRecord(null)}
-                                    style={{
-                                        background: '#f1f5f9',
-                                        color: '#475569',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '8px 16px',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="button"
                                 >
                                     {translate('portal', 'pay_cancel')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={processingReview}
-                                    style={{
-                                        background: reviewDecision === 'approved' ? '#047857' : '#dc2626',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '8px 16px',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
+                                    className={`button ${reviewDecision === 'approved' ? 'dark' : 'danger'}`}
                                 >
                                     {processingReview ? translate('portal', 'pay_submitting') : (reviewDecision === 'approved' ? translate('portal', 'pay_confirm_approval') : translate('portal', 'pay_confirm_rejection'))}
                                 </button>
@@ -565,46 +501,22 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
 
             {/* Settlement Modal */}
             {settleModalRecord && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(15, 23, 42, 0.65)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000,
-                    padding: '16px'
-                }}>
-                    <div style={{
-                        background: '#ffffff',
-                        borderRadius: '12px',
-                        width: '100%',
-                        maxWidth: '520px',
-                        padding: '24px',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-                    }}>
-                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                <div className="hub-overlay">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
+                        <h3 className="hub-title is-lg">
                             {translate('portal', 'pay_settle_title')}
                         </h3>
-                        <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
-                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: `৳${Number(settleModalRecord.net_amount??settleModalRecord.amount).toLocaleString()}` })}
+                        <p className="hub-sub is-lead">
+                            {translate('portal', 'pay_settle_meta', { name: settleModalRecord.user_name, channel: settleModalRecord.channel, amount: money(settleModalRecord.net_amount ?? settleModalRecord.amount) })}
                         </p>
 
-                        <div style={{
-                            background: '#eff6ff',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '8px',
-                            padding: '10px 14px',
-                            fontSize: '12px',
-                            color: '#1e40af',
-                            marginBottom: '16px'
-                        }}>
-                            <b>{translate('portal', 'pay_sod')}</b> {translate('portal', 'pay_sod_body')}
+                        <div className="portal-notice portal-notice-info">
+                            <span><b>{translate('portal', 'pay_sod')}</b> {translate('portal', 'pay_sod_body')}</span>
                         </div>
 
                         <form onSubmit={handleSubmitSettle}>
-                            <div style={{ marginBottom: '14px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                            <div className="hub-field">
+                                <label>
                                     {translate('portal', 'pay_fld_reference')}
                                 </label>
                                 <input
@@ -613,18 +525,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                     placeholder={translate('portal', 'pay_ph_reference')}
                                     value={paymentReference}
                                     onChange={(e) => setPaymentReference(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '13px'
-                                    }}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: '14px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                            <div className="hub-field">
+                                <label>
                                     {translate('portal', 'pay_fld_paid_at')}
                                 </label>
                                 <input
@@ -632,18 +537,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                     required
                                     value={paidAt}
                                     onChange={(e) => setPaidAt(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '13px'
-                                    }}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: '14px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                            <div className="hub-field">
+                                <label>
                                     {translate('portal', 'pay_fld_receipt')}
                                 </label>
                                 <input
@@ -651,18 +549,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                     required
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '13px'
-                                    }}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '4px' }}>
+                            <div className="hub-field is-last">
+                                <label>
                                     {translate('portal', 'pay_fld_notes')}
                                 </label>
                                 <textarea
@@ -671,46 +562,21 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0 }: Payo
                                     placeholder={translate('portal', 'pay_ph_notes')}
                                     value={settleNote}
                                     onChange={(e) => setSettleNote(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        borderRadius: '6px',
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: '13px'
-                                    }}
                                 />
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <div className="hub-row is-end">
                                 <button
                                     type="button"
                                     onClick={() => setSettleModalRecord(null)}
-                                    style={{
-                                        background: '#f1f5f9',
-                                        color: '#475569',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '8px 16px',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="button"
                                 >
                                     {translate('portal', 'pay_cancel')}
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={processingSettle}
-                                    style={{
-                                        background: '#047857',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '8px 16px',
-                                        fontSize: '13px',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                    }}
+                                    className="button dark"
                                 >
                                     {processingSettle ? translate('portal', 'pay_recording') : translate('portal', 'pay_record_ledger')}
                                 </button>

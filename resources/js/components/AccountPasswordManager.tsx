@@ -5,6 +5,7 @@ import type { Row } from './UI';
 type PasswordStatus = {
     managed_by: string;
     can_reveal: boolean;
+    owner_only?: boolean;
     password: string | null;
 };
 
@@ -174,138 +175,43 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
     const isReady = !loading && status !== null;
 
     return (
-        <section
-            className="panel"
-            style={{
-                marginTop: 20,
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                overflow: 'hidden',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
-                background: '#ffffff',
-            }}
-        >
-            <div
-                style={{
-                    padding: '16px 20px',
-                    borderBottom: '1px solid #f1f5f9',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 12,
-                    background: '#f8fafc',
-                }}
-            >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div
-                        style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 10,
-                            background: '#eff6ff',
-                            color: '#2563eb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 18,
-                        }}
-                    >
+        <section className="panel pw-panel">
+            <div className="pw-head hub-row is-between">
+                <div className="hub-media">
+                    <div className="hub-icon tone-info">
                         🔑
                     </div>
                     <div>
-                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+                        <h3 className="hub-title">
                             {translate('portal', 'acct_password_title')}
                         </h3>
-                        <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748b' }}>
+                        <p className="hub-sub">
                             {translate('portal', 'acct_password_hint')}
                         </p>
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="hub-row">
                     {currentPlainPassword ? (
-                        <span
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '4px 10px',
-                                borderRadius: 9999,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: '#ecfdf5',
-                                color: '#065f46',
-                                border: '1px solid #a7f3d0',
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: 7,
-                                    height: 7,
-                                    borderRadius: '50%',
-                                    background: '#10b981',
-                                }}
-                            />
+                        <span className="badge tone-ok">
                             {translate('portal', 'acct_password_status_synced')}
                         </span>
                     ) : (
-                        <span
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '4px 10px',
-                                borderRadius: 9999,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: '#fffbeb',
-                                color: '#92400e',
-                                border: '1px solid #fde68a',
-                            }}
-                        >
-                            <span
-                                style={{
-                                    width: 7,
-                                    height: 7,
-                                    borderRadius: '50%',
-                                    background: '#f59e0b',
-                                }}
-                            />
+                        <span className="badge tone-warn">
                             {translate('portal', 'acct_password_status_unset')}
                         </span>
                     )}
                 </div>
             </div>
 
-            <div style={{ padding: '20px' }}>
+            <div className="pw-body">
                 {error && (
-                    <div
-                        role="alert"
-                        style={{
-                            marginBottom: 16,
-                            padding: '10px 14px',
-                            background: '#fef2f2',
-                            color: '#991b1b',
-                            borderRadius: 8,
-                            border: '1px solid #fecaca',
-                            fontSize: 13,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}
-                    >
+                    <div role="alert" className="error hub-alert">
                         <span>{error}</span>
                         <button
                             type="button"
                             onClick={() => setError('')}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#991b1b',
-                                cursor: 'pointer',
-                                fontWeight: 700,
-                            }}
+                            className="hub-dismiss"
                         >
                             ✕
                         </button>
@@ -313,32 +219,12 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 )}
 
                 {successMessage && (
-                    <div
-                        role="status"
-                        style={{
-                            marginBottom: 16,
-                            padding: '10px 14px',
-                            background: '#ecfdf5',
-                            color: '#065f46',
-                            borderRadius: 8,
-                            border: '1px solid #a7f3d0',
-                            fontSize: 13,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}
-                    >
+                    <div role="status" className="success hub-alert">
                         <span>✓ {successMessage}</span>
                         <button
                             type="button"
                             onClick={() => setSuccessMessage('')}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#065f46',
-                                cursor: 'pointer',
-                                fontWeight: 700,
-                            }}
+                            className="hub-dismiss"
                         >
                             ✕
                         </button>
@@ -346,78 +232,29 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 )}
 
                 {loading ? (
-                    <div style={{ padding: '20px 0', textAlign: 'center', color: '#64748b' }}>
-                        <span style={{ fontSize: 13 }}>⏳ {translate('portal', 'loading') || 'Loading password status...'}</span>
+                    <div className="hub-loading">
+                        <span>⏳ {translate('portal', 'loading') || 'Loading password status...'}</span>
                     </div>
                 ) : currentPlainPassword ? (
-                    <div
-                        style={{
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 10,
-                            padding: '16px 18px',
-                            marginBottom: 18,
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                gap: 12,
-                            }}
-                        >
+                    <div className="hub-tile is-soft pw-box">
+                        <div className="hub-row is-between">
                             <div>
-                                <span
-                                    style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.05em',
-                                        color: '#64748b',
-                                        display: 'block',
-                                        marginBottom: 6,
-                                    }}
-                                >
+                                <span className="hub-label pw-secret-label">
                                     {translate('portal', 'acct_password_current')}
                                 </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <strong
-                                        style={{
-                                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                                            fontSize: 18,
-                                            letterSpacing: visible ? '0.05em' : '0.2em',
-                                            color: '#0f172a',
-                                            userSelect: 'all',
-                                            background: '#ffffff',
-                                            padding: '6px 12px',
-                                            borderRadius: 6,
-                                            border: '1px solid #cbd5e1',
-                                            minWidth: 180,
-                                            display: 'inline-block',
-                                        }}
-                                    >
+                                <div className="hub-row">
+                                    <strong className={`pw-secret${visible ? '' : ' is-masked'}`}>
                                         {visible ? currentPlainPassword : '••••••••••••••••'}
                                     </strong>
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div className="hub-row">
                                 {/* Show/Hide Toggle */}
                                 <button
                                     type="button"
                                     className="button"
                                     onClick={() => setVisible((prev) => !prev)}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        fontSize: 13,
-                                        padding: '7px 14px',
-                                        borderRadius: 8,
-                                        cursor: 'pointer',
-                                    }}
                                 >
                                     <span>{visible ? '👁️‍🗨️' : '👁️'}</span>
                                     <span>
@@ -431,21 +268,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                                 <button
                                     type="button"
                                     onClick={() => copyToClipboard(currentPlainPassword)}
-                                    style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        fontSize: 13,
-                                        fontWeight: 700,
-                                        padding: '7px 16px',
-                                        borderRadius: 8,
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        background: copied ? '#059669' : '#0f172a',
-                                        color: '#ffffff',
-                                        border: copied ? '1px solid #047857' : '1px solid #0f172a',
-                                        boxShadow: copied ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none',
-                                    }}
+                                    className={`button dark${copied ? ' pw-copied' : ''}`}
                                 >
                                     <span>{copied ? '✓' : '📋'}</span>
                                     <span>
@@ -457,69 +280,30 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                             </div>
                         </div>
 
-                        <p
-                            style={{
-                                margin: '14px 0 0 0',
-                                fontSize: 12,
-                                color: '#475569',
-                                borderTop: '1px dashed #e2e8f0',
-                                paddingTop: 10,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                            }}
-                        >
-                            <span style={{ fontSize: 14 }}>ℹ️</span>
+                        <p className="pw-note">
+                            <span>ℹ️</span>
                             <span>{translate('portal', 'acct_password_instructions')}</span>
                         </p>
                     </div>
                 ) : (
-                    <div
-                        style={{
-                            background: '#f8fafc',
-                            border: '1px dashed #cbd5e1',
-                            borderRadius: 10,
-                            padding: '16px 18px',
-                            marginBottom: 18,
-                            color: '#64748b',
-                            fontSize: 13,
-                        }}
-                    >
-                        <p style={{ margin: 0, lineHeight: 1.5 }}>
-                            ⚠️ {translate('portal', 'acct_password_self_changed')}
+                    <div className="hub-empty pw-box">
+                        <p>
+                            {status?.owner_only
+                                ? <>🔒 {translate('portal', 'acct_password_owner_only')}</>
+                                : <>⚠️ {translate('portal', 'acct_password_self_changed')}</>}
                         </p>
                     </div>
                 )}
 
                 {/* Reset Actions Section */}
-                <div
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: 12,
-                        borderTop: '1px solid #f1f5f9',
-                        paddingTop: 16,
-                    }}
-                >
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <div className="pw-actions hub-row is-between">
+                    <div className="hub-row">
                         {/* Auto-Generate Button */}
                         <button
                             type="button"
                             className="button dark"
                             disabled={busy}
                             onClick={() => handleReset()}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '8px 16px',
-                                borderRadius: 8,
-                                fontWeight: 700,
-                                fontSize: 13,
-                                cursor: busy ? 'not-allowed' : 'pointer',
-                            }}
                         >
                             <span>{busy ? '⏳' : '⚡'}</span>
                             <span>
@@ -535,15 +319,6 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                             className="button"
                             disabled={busy}
                             onClick={() => setShowCustom((prev) => !prev)}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '8px 14px',
-                                borderRadius: 8,
-                                fontSize: 13,
-                                cursor: 'pointer',
-                            }}
                         >
                             <span>✏️</span>
                             <span>{translate('portal', 'acct_password_reset_custom')}</span>
@@ -554,14 +329,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                         type="button"
                         onClick={() => loadPasswordStatus()}
                         disabled={loading || busy}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#64748b',
-                            fontSize: 12,
-                            cursor: 'pointer',
-                            textDecoration: 'underline',
-                        }}
+                        className="hub-quiet"
                     >
                         🔄 {translate('portal', 'refresh') || 'Refresh'}
                     </button>
@@ -569,56 +337,22 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
 
                 {/* Custom Password Input Area */}
                 {showCustom && (
-                    <div
-                        style={{
-                            marginTop: 14,
-                            padding: '14px 16px',
-                            background: '#f1f5f9',
-                            borderRadius: 8,
-                            border: '1px solid #e2e8f0',
-                        }}
-                    >
-                        <label
-                            style={{
-                                display: 'block',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                color: '#334155',
-                                marginBottom: 6,
-                            }}
-                        >
+                    <div className="pw-custom">
+                        <label>
                             {translate('portal', 'acct_password_custom_label')}
                         </label>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative', flex: '1 1 240px' }}>
+                        <div className="hub-row">
+                            <div className="pw-input-wrap">
                                 <input
                                     type={customVisible ? 'text' : 'password'}
                                     value={customPassword}
                                     onChange={(e) => setCustomPassword(e.target.value)}
                                     placeholder={translate('portal', 'acct_password_custom_ph')}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 36px 8px 12px',
-                                        borderRadius: 6,
-                                        border: '1px solid #cbd5e1',
-                                        fontSize: 13,
-                                        fontFamily: 'ui-monospace, monospace',
-                                    }}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setCustomVisible((prev) => !prev)}
-                                    style={{
-                                        position: 'absolute',
-                                        right: 8,
-                                        top: '50%',
-                                        transform: 'translateY(-50%)',
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        fontSize: 14,
-                                        padding: 2,
-                                    }}
+                                    className="pw-eye"
                                 >
                                     {customVisible ? '👁️‍🗨️' : '👁️'}
                                 </button>
@@ -629,12 +363,6 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                                 className="button dark"
                                 disabled={busy || customPassword.trim().length < 8}
                                 onClick={() => handleReset(customPassword)}
-                                style={{
-                                    padding: '8px 16px',
-                                    borderRadius: 6,
-                                    fontWeight: 700,
-                                    fontSize: 13,
-                                }}
                             >
                                 {busy
                                     ? translate('portal', 'acct_password_resetting')
@@ -648,16 +376,11 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                                     setShowCustom(false);
                                     setCustomPassword('');
                                 }}
-                                style={{
-                                    padding: '8px 12px',
-                                    borderRadius: 6,
-                                    fontSize: 13,
-                                }}
                             >
                                 {translate('portal', 'cancel') || 'Cancel'}
                             </button>
                         </div>
-                        <small style={{ display: 'block', marginTop: 6, color: '#64748b', fontSize: 11 }}>
+                        <small className="hub-hint">
                             {translate('portal', 'acct_password_custom_ph')}
                         </small>
                     </div>

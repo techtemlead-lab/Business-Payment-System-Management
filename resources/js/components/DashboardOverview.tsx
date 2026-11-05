@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
-    Phone, MessageCircle,
+    Phone, MessageCircle, ListChecks, BarChart3,
 } from 'lucide-react';
 import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, money, type Row } from './UI';
@@ -58,7 +58,8 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
     const encodedText = encodeURIComponent(shareText);
     const whatsappHref = `https://wa.me/?text=${encodedText}`;
     const facebookHref = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-    const messengerHref = `https://www.facebook.com/dialog/send?link=${encodedUrl}&app_id=0&redirect_uri=${encodedUrl}`;
+    // Messenger has no web share URL without a registered app id; the app link works on phones.
+    const messengerHref = `fb-messenger://share/?link=${encodedUrl}`;
     const telegramHref = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
     const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
     const xHref = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(translate('portal', 'share_join_text', { code: String(referral.code) }))}`;
@@ -149,7 +150,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <ProfilePhoto src={profile.photo_url} initial={profile.initial || '?'} />
                     <h2>{profile.name}</h2>
                     {profile.shop_name && <p className="partner-home-shop">{profile.shop_name}</p>}
-                    <small>{profile.dealer_code || '—'} · {String(profile.role || '').replaceAll('_', ' ')}</small>
+                    <small>{profile.dealer_code || '—'} · {labelRole(String(profile.role || ''), translate)}</small>
                     <Badge status={profile.status || 'active'} />
                     <dl>
                         <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
@@ -271,6 +272,98 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     );
 }
 
+type WorkItem = { key: string; count: number; section: string; query?: Record<string, string> };
+type TrendPoint = { date: string; orders: number; value: string };
+
+function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
+    const translate = useT();
+    if (items.length === 0) {
+        return null;
+    }
+    const open = items.filter((item) => item.count > 0);
+
+    return (
+        <section className="panel admin-work-queue" data-tour="admin-work-queue" aria-label={translate('portal', 'dash_work_title')}>
+            <div className="panel-heading">
+                <div>
+                    <h2>{translate('portal', 'dash_work_title')}</h2>
+                    <p>{open.length === 0 ? translate('portal', 'dash_work_all_clear') : translate('portal', 'dash_work_hint')}</p>
+                </div>
+                <ListChecks size={18} />
+            </div>
+            <ul>
+                {items.map((item) => {
+                    const query = item.query ? `?${new URLSearchParams(item.query).toString()}` : '';
+                    return (
+                        <li key={item.key} className={item.count > 0 ? 'has-work' : 'is-clear'}>
+                            <Link href={`${base}/${item.section}${query}`}>
+                                <strong>{item.count}</strong>
+                                <span>{translate('portal', `dash_work_${item.key}`)}</span>
+                                <ArrowUpRight size={14} aria-hidden="true" />
+                            </Link>
+                        </li>
+                    );
+                })}
+            </ul>
+        </section>
+    );
+}
+
+function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null }) {
+    const translate = useT();
+    if (points.length === 0) {
+        return null;
+    }
+    const values = points.map((point) => Number(point.value) || 0);
+    const peak = Math.max(...values, 1);
+    const totalOrders = points.reduce((sum, point) => sum + point.orders, 0);
+    const totalValue = values.reduce((sum, value) => sum + value, 0);
+    const width = 560;
+    const height = 140;
+    const gap = 6;
+    const barWidth = (width - gap * (points.length - 1)) / points.length;
+    const dayLabel = (iso: string) => {
+        const [year, monthPart, day] = iso.split('-').map(Number);
+        return new Date(year, monthPart - 1, day).toLocaleDateString(document.documentElement.lang === 'bn' ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'short' });
+    };
+
+    return (
+        <section className="panel admin-sales-trend" data-tour="admin-sales-trend">
+            <div className="panel-heading">
+                <div>
+                    <h2>{translate('portal', 'dash_trend_title')}</h2>
+                    <p>{translate('portal', 'dash_trend_hint', { orders: String(totalOrders), value: money(totalValue.toFixed(2)) })}</p>
+                </div>
+                <BarChart3 size={18} />
+            </div>
+            {month && (
+                <div className="admin-month-strip">
+                    <div><span>{translate('portal', 'dash_month_sales')}</span><strong>{money(month.sales)}</strong></div>
+                    <div><span>{translate('portal', 'dash_month_collected')}</span><strong>{money(month.collected)}</strong></div>
+                    <div><span>{translate('portal', 'dash_month_orders')}</span><strong>{month.orders}</strong></div>
+                </div>
+            )}
+            <svg className="admin-trend-chart" viewBox={`0 0 ${width} ${height + 22}`} role="img" aria-label={translate('portal', 'dash_trend_title')}>
+                {points.map((point, index) => {
+                    const value = values[index];
+                    const barHeight = value > 0 ? Math.max(3, (value / peak) * height) : 2;
+                    const x = index * (barWidth + gap);
+                    return (
+                        <g key={point.date}>
+                            <rect x={x} y={height - barHeight} width={barWidth} height={barHeight} rx={4} className={value > 0 ? 'bar' : 'bar empty'}>
+                                <title>{`${dayLabel(point.date)}: ${money(point.value)} · ${translate('portal', 'dash_trend_orders', { count: String(point.orders) })}`}</title>
+                            </rect>
+                            {(index % 2 === 0 || index === points.length - 1) && (
+                                <text x={x + barWidth / 2} y={height + 16} textAnchor="middle">{dayLabel(point.date)}</text>
+                            )}
+                        </g>
+                    );
+                })}
+            </svg>
+        </section>
+    );
+}
+
 function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
     const translate = useT();
@@ -306,7 +399,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                 <aside className="partner-home-profile compact">
                     <ProfilePhoto src={profile.photo_url || u.photo_url} initial={profile.initial || u.name?.[0] || '?'} upload />
                     <h2>{profile.name || u.name}</h2>
-                    <small>{labelRole(profile.role || u.role)}</small>
+                    <small>{labelRole(profile.role || u.role, translate)}</small>
                     <Badge status={profile.status || u.status} />
                     <dl>
                         <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
@@ -320,6 +413,11 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
                     <div><span>{translate('portal', 'admin_stat_approved_purchases')}</span><strong>{money(snapshot.purchases)}</strong></div>
                     <div><span>{translate('portal', 'admin_stat_outstanding_dues')}</span><strong>{money(snapshot.dues)}</strong></div>
                 </div>
+            </section>
+
+            <section className="admin-home-insights">
+                <WorkQueue items={home.work_queue ?? []} base={base} />
+                <SalesTrend points={home.trend ?? []} month={home.month ?? null} />
             </section>
 
             <section className="account-actions dense-actions" data-tour="admin-modules" aria-label={translate('portal', 'admin_modules')}>
@@ -353,7 +451,7 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
             {data.lowStock?.length > 0 && (
                 <section className="notice">
                     <h2>{translate('portal', 'low_stock_alerts')}</h2>
-                    <p>{data.lowStock.map((p: Row) => `${p.name} (${p.stock} left)`).join(' · ')}</p>
+                    <p>{data.lowStock.map((p: Row) => translate('portal', 'low_stock_left', { name: String(p.name), count: String(p.stock) })).join(' · ')}</p>
                     <Link href={`${base}/inventory`} className="text-link">{translate('portal', 'review_inventory')}</Link>
                 </section>
             )}
@@ -361,8 +459,15 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
     );
 }
 
-function labelRole(role: string) {
-    return String(role || '').replaceAll('_', ' ');
+function labelRole(role: string, translate?: (group: string, key: string) => string) {
+    const fallback = String(role || '').replaceAll('_', ' ');
+    if (!translate || !role) {
+        return fallback;
+    }
+    const key = `staff_role_${role}`;
+    const label = translate('portal', key);
+
+    return label === key ? fallback : label;
 }
 
 export default function DashboardOverview({ data, orders }: { data: Row; orders: React.ReactNode }) {
@@ -399,7 +504,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
                     <div>
                         <p>{translate('portal','dash_hello')}</p>
                         <h2>{u.name}</h2>
-                        <small>{u.dealer_code ?? translate('portal','company_staff')} · {labelRole(u.role)}</small>
+                        <small>{u.dealer_code ?? translate('portal','company_staff')} · {labelRole(u.role, translate)}</small>
                         <Badge status={u.status} />
                     </div>
                 </div>

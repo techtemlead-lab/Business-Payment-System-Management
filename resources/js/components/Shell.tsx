@@ -158,7 +158,7 @@ export default function Shell({ section, children, action }: { section: string; 
         ? translate('portal', 'owner_dashboard')
         : staff
             ? translate('portal', 'company_dashboard')
-            : translate('portal', 'my_account');
+            : translate('portal', portal === 'subdealer' ? 'subdealer_workspace' : 'dealer_workspace');
 
     const locationSearch = useMemo(() => {
         const pageUrl = String(page.url || '');

@@ -118,10 +118,11 @@ class PartnerOpsSuiteTest extends TestCase
             ->assertSee('Invoice', false)
             ->assertSee(__('portal.print_invoice'), false)
             ->assertSee(__('portal.share_invoice_whatsapp'), false)
-            ->assertSee(__('portal.share_messenger'), false)
+            ->assertSee(__('portal.share_facebook'), false)
             ->assertSee(__('portal.share_invoice_email'), false)
             ->assertSee(__('portal.share_invoice_sms'), false)
-            ->assertSee('facebook.com/dialog/send', false)
+            ->assertSee('facebook.com/sharer/sharer.php', false)
+            ->assertDontSee('app_id=0', false)
             ->assertSee('sms:?&body=', false)
             ->assertSee('wa.me/?text=', false);
     }
@@ -203,12 +204,15 @@ class PartnerOpsSuiteTest extends TestCase
         $this->assertSame('DEALER COPY', $payload['watermark_label']);
 
         $html = view('invoices.order-letter', $payload)->render();
-        $this->assertStringContainsString('Invoice', $html);
-        $this->assertStringContainsString('Marketed By:', $html);
-        $this->assertStringContainsString('Referred Dealer Code:', $html);
-        $this->assertStringContainsString('MRP Rate Bill', $html);
-        $this->assertStringContainsString('Customer Signature', $html);
-        $this->assertStringContainsString('Authority Signature', $html);
+        $this->assertStringContainsString(e(__('portal.inv_title')), $html);
+        $this->assertStringContainsString(e(__('portal.inv_marketed_by')).':', $html);
+        $this->assertStringContainsString(e(__('portal.inv_referred_code')).':', $html);
+        $this->assertStringContainsString(e(__('portal.inv_col_mrp_bill')), $html);
+        $this->assertStringContainsString(e(__('portal.inv_sign_customer')), $html);
+        $this->assertStringContainsString(e(__('portal.inv_sign_authority')), $html);
+        // Payment summary is printed: total, paid and due with lakh grouping.
+        $this->assertStringContainsString(e(__('portal.inv_due')), $html);
+        $this->assertStringContainsString(e(__('portal.inv_payment_status')), $html);
     }
 
     public function test_support_ticket_flow_and_tour_completion(): void

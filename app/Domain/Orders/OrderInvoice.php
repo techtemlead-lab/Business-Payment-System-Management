@@ -180,13 +180,31 @@ final class OrderInvoice
         ])->filter()->implode(', ');
 
         $designation = match ($buyer?->role) {
-            'dealer' => 'Dealer',
-            'sub_dealer' => 'Sub-dealer',
-            default => str_replace('_', ' ', (string) $buyer?->role),
+            'dealer' => __('portal.inv_role_dealer'),
+            'sub_dealer' => __('portal.inv_role_sub_dealer'),
+            default => Str::headline((string) $buyer?->role),
         };
 
         $tz = (string) config('madina.business_timezone', config('app.timezone'));
         $created = optional($order->created_at)?->timezone($tz);
+
+        $paidCents = Money::cents((string) $order->paid);
+        $dueCents = Money::cents($order->outstanding());
+        $paymentState = match (true) {
+            $dueCents === 0 => 'paid',
+            $paidCents > 0 => 'partial',
+            default => 'unpaid',
+        };
+        $payments = $order->receipts()
+            ->orderBy('created_at')
+            ->get(['channel', 'reference', 'amount', 'created_at'])
+            ->map(fn ($receipt) => [
+                'channel' => Str::headline((string) $receipt->channel),
+                'reference' => (string) $receipt->reference,
+                'amount' => Money::grouped((string) $receipt->amount),
+                'date' => optional($receipt->created_at)?->timezone($tz)->format('d/m/Y'),
+            ])
+            ->all();
 
         return [
             'company' => $company,
@@ -196,9 +214,16 @@ final class OrderInvoice
                 'created_at' => $created?->format('d/m/Y'),
                 'status' => $order->status,
                 'total' => Money::decimal(Money::cents((string) $order->total)),
-                'paid' => Money::decimal(Money::cents((string) $order->paid)),
+                'paid' => Money::decimal($paidCents),
                 'due' => $order->outstanding(),
+                'total_display' => Money::grouped((string) $order->total),
+                'paid_display' => Money::grouped(Money::decimal($paidCents)),
+                'credit_display' => Money::grouped((string) ($order->due_credit ?? '0.00')),
+                'due_display' => Money::grouped($order->outstanding()),
+                'payment_state' => $paymentState,
+                'payment_state_label' => __('portal.inv_payment_'.$paymentState),
             ],
+            'payments' => $payments,
             'buyer' => [
                 'name' => $buyer?->name,
                 'code' => $buyer?->dealer_code,
@@ -219,8 +244,8 @@ final class OrderInvoice
             ],
             'watermark' => $watermark,
             'watermark_label' => match ($watermark) {
-                'dealer' => 'DEALER COPY',
-                'sub_dealer' => 'SUB-DEALER COPY',
+                'dealer' => __('portal.inv_copy_dealer'),
+                'sub_dealer' => __('portal.inv_copy_sub_dealer'),
                 default => null,
             },
         ];
