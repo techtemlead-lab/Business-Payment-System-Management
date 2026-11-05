@@ -989,10 +989,12 @@ class CommandController extends Controller
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse
     {
         $this->permit($r, 'finance');
-        $data = $r->validate(['rules' => 'required|array']);
-        $policy->update($r->user(), $data['rules']);
+        $data = $r->validate(['rules' => 'required|array', 'reason' => 'nullable|string|max:500']);
+        $result = $policy->update($r->user(), $data['rules'], $data['reason'] ?? null);
 
-        return back()->with('success', __('portal.flash_commission_policy_updated'));
+        return back()->with('success', $result['status'] === 'pending'
+            ? __('portal.flash_commission_change_pending')
+            : __('portal.flash_commission_policy_updated'));
     }
 
     public function settleSalaryPool(Request $r, CommissionService $commissionService): RedirectResponse

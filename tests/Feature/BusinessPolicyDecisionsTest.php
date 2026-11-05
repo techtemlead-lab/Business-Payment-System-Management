@@ -49,7 +49,7 @@ class BusinessPolicyDecisionsTest extends TestCase
         $id = $this->actingAs(User::factory()->staff('finance')->create())->postJson('/api/v1/operations/policy-schedules', [
             'scope' => 'recipient', 'user_id' => $recipient->id, 'rules' => ['direct_referral' => $rule], 'effective_at' => now()->toIso8601String(), 'reason' => 'Agreed individual recipient policy',
         ])->assertOk()->json('data.id');
-        $this->actingAs(User::factory()->staff('finance')->create())->postJson('/api/v1/operations/policy-schedules/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Independent policy approval'])->assertOk();
+        $this->actingAs(User::factory()->staff('super_admin')->create())->postJson('/api/v1/operations/policy-schedules/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Independent policy approval'])->assertOk();
 
         return $id;
     }
@@ -109,13 +109,13 @@ class BusinessPolicyDecisionsTest extends TestCase
     {
         $buyer = User::factory()->dealer()->create();
         $order = $this->purchase($buyer);
-        $finance = User::factory()->staff('finance')->create();
-        app(CommissionPolicy::class)->update($finance, ['own_dealer_cashback' => ['percentage' => '4.00']]);
+        $owner = User::factory()->staff('super_admin')->create(); // The owner's own changes apply at once.
+        app(CommissionPolicy::class)->update($owner, ['own_dealer_cashback' => ['percentage' => '4.00']]);
         $this->approve($order);
         $snapshot = $order->fresh()->commission_policy_snapshot;
         $this->assertSame('approval', $snapshot['capture_event']);
         $this->assertSame('4.00', $snapshot['rules']['own_dealer_cashback']['percentage']);
-        app(CommissionPolicy::class)->update($finance, ['own_dealer_cashback' => ['percentage' => '3.00']]);
+        app(CommissionPolicy::class)->update($owner, ['own_dealer_cashback' => ['percentage' => '3.00']]);
         $this->postEarnings($order);
         app(CommissionPosting::class)->capture($order->fresh(), $buyer);
         $this->assertSame($snapshot, $order->fresh()->commission_policy_snapshot);
@@ -153,7 +153,7 @@ class BusinessPolicyDecisionsTest extends TestCase
     public function test_an_individual_can_receive_a_company_funded_rate_when_the_base_category_is_zero(): void
     {
         $sponsor = User::factory()->dealer()->create();
-        app(CommissionPolicy::class)->update(User::factory()->staff('finance')->create(), ['direct_referral' => ['percentage' => '0.00']]);
+        app(CommissionPolicy::class)->update(User::factory()->staff('super_admin')->create(), ['direct_referral' => ['percentage' => '0.00']]);
         $this->recipientSchedule($sponsor, ['percentage' => '2.00', 'funding_mode' => 'company']);
         $order = $this->purchase(User::factory()->dealer()->create(['sponsor_id' => $sponsor->id]));
         $this->approve($order);
@@ -207,9 +207,10 @@ class BusinessPolicyDecisionsTest extends TestCase
     {
         $editor = User::factory()->staff('employee')->create(['profile' => ['action_permissions' => ['finance' => ['view' => true, 'edit' => true]]]]);
         $viewer = User::factory()->staff('employee')->create(['profile' => ['action_permissions' => ['finance' => ['view' => true]]]]);
-        $this->actingAs($editor)->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '4.00']]])->assertOk();
+        $this->actingAs($editor)->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '4.00']]])->assertStatus(202)->assertJsonPath('meta.status', 'pending');
         $this->actingAs($viewer)->patchJson('/api/v1/finance/policy', ['rules' => ['own_dealer_cashback' => ['percentage' => '3.00']]])->assertForbidden();
-        $this->assertSame('4.00', app(CommissionPolicy::class)->snapshot()['rules']['own_dealer_cashback']['percentage']);
+        // The editor's change waits for the owner, so the live rate is unchanged.
+        $this->assertSame('5.00', app(CommissionPolicy::class)->snapshot()['rules']['own_dealer_cashback']['percentage']);
         $this->actingAs($editor)->patchJson('/api/v1/finance/policy', ['rules' => ['d2d_multitier' => ['parameters' => ['dynamic_compression' => true]]]])->assertUnprocessable();
     }
 

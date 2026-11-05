@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Commissions\PolicyChangeSummary;
 use App\Domain\Commissions\RecipientFunding;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\FinancialReadiness;
@@ -87,8 +88,12 @@ class OperationsController extends Controller
             }
         }
         if ($section === 'policy-schedules') {
+            // Changes waiting for the owner come first, with old → new values and who proposed them.
             $tables['policy_schedules'] = DB::table('commission_policy_schedules as s')->leftJoin('users as u', 'u.id', '=', 's.user_id')
-                ->select(['s.*', 'u.name'])->orderByDesc('s.id');
+                ->leftJoin('users as proposer', 'proposer.id', '=', 's.created_by')->leftJoin('users as reviewer', 'reviewer.id', '=', 's.reviewed_by')
+                ->select(['s.id', 's.status', 's.scope', 's.origin', 'u.name', 's.changes', 'proposer.name as proposed_by_name', 's.reason',
+                    's.effective_at', 's.expires_at', 'reviewer.name as reviewed_by_name', 's.reviewed_at', 's.review_reason', 's.created_by', 's.user_id'])
+                ->orderByRaw("CASE WHEN s.status = 'draft' THEN 0 ELSE 1 END")->orderByDesc('s.id');
             $data['policy'] = [...app(CommissionPolicy::class)->snapshot(), 'funding_sources' => RecipientFunding::Sources];
         }
         if ($section === 'reserve-payouts') {
@@ -136,7 +141,16 @@ class OperationsController extends Controller
             $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
         }
         foreach ($tables as $key => $query) {
-            $data['tables'][] = ['key' => $key, 'page' => $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString()];
+            $page = $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString();
+            if ($key === 'policy_schedules') {
+                $page->through(function (object $row): object {
+                    $changes = is_string($row->changes) ? json_decode($row->changes, true, flags: JSON_THROW_ON_ERROR) : [];
+                    $row->changes = PolicyChangeSummary::describe(is_array($changes) ? $changes : []);
+
+                    return $row;
+                });
+            }
+            $data['tables'][] = ['key' => $key, 'page' => $page];
         }
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Operations', $data);

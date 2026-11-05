@@ -268,7 +268,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
             if(row.status==='draft'&&![row.staff_id,row.prepared_by].includes(auth.user.id))actions.push(review(translate('portal','ops_review_payroll'),`${root}/payroll/${row.id}/review`,['approved','rejected']));
             if(row.status==='approved'&&![row.staff_id,row.approved_by].includes(auth.user.id))actions.push(payment(translate('portal','ops_record_salary_payment'),`${root}/payroll/${row.id}/pay`));
         }
-        if(tableKey==='policy_schedules')actions.push(review(translate('portal','ops_review_schedule'),`${root}/policy-schedules/${row.id}/review`,[...(row.status==='draft'&&row.created_by!==auth.user.id?['approved']:[]),...(['draft','approved'].includes(row.status)?['cancelled']:[])]));
+        if(tableKey==='policy_schedules'){const isOwner=auth.user.role==='super_admin';const isMine=row.created_by===auth.user.id;actions.push(review(translate('portal','ops_review_schedule'),`${root}/policy-schedules/${row.id}/review`,[...(row.status==='draft'&&isOwner&&!isMine?['approved','rejected']:[]),...(row.status==='draft'&&(isMine||isOwner||capabilities.includes('finance'))?['cancelled']:[]),...(row.status==='approved'&&isOwner&&row.origin!=='rule_edit'?['cancelled']:[])]));}
         if(tableKey==='reserve_requests'&&financeActive) {
             if(row.status==='requested'&&![row.created_by,row.user_id].includes(auth.user.id))actions.push(review(translate('portal','ops_review_reserve_request'),`${root}/reserves/${row.id}/review`,['approved','rejected']));
             if(row.program==='marketing'&&row.status==='approved') {
