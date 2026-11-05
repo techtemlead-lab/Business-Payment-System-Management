@@ -6,7 +6,7 @@ import {
     Phone, MessageCircle, ListChecks, BarChart3,
 } from 'lucide-react';
 import { ProfilePhoto } from './ProfilePhoto';
-import { Badge, money, type Row } from './UI';
+import { Badge, money, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 type ChartSlice = { key: string; label: string; value: string; cents: number; color: string };
@@ -297,7 +297,7 @@ function WorkQueue({ items, base }: { items: WorkItem[]; base: string }) {
                     return (
                         <li key={item.key} className={item.count > 0 ? 'has-work' : 'is-clear'}>
                             <Link href={`${base}/${item.section}${query}`}>
-                                <strong>{item.count}</strong>
+                                <strong>{number(item.count)}</strong>
                                 <span>{translate('portal', `dash_work_${item.key}`)}</span>
                                 <ArrowUpRight size={14} aria-hidden="true" />
                             </Link>

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Product;
+use App\Support\LocalDigits;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -185,6 +186,18 @@ class PublicSiteLocaleChromeTest extends TestCase
             ->assertOk()
             ->assertSee('Our Product Catalogue', false)
             ->assertSee('Find a Dealer', false);
+    }
+
+    public function test_bangla_public_pages_show_prices_and_year_in_bangla_digits(): void
+    {
+        $product = Product::factory()->create(['name' => 'Bangla Digits Product', 'mrp' => '1250.00', 'active' => true]);
+        $this->onPortal('public')->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $page = $this->onPortal('public')->get('/products/'.$product->id)->assertOk();
+
+        $page->assertSee('৳ ১,২৫০.০০', false)
+            ->assertDontSee('৳ 1,250.00', false)
+            ->assertSee('© '.LocalDigits::text(date('Y'), 'bn'), false);
     }
 
     public function test_bangla_locale_translates_homepage_trust_pillar_cards(): void

@@ -100,7 +100,7 @@
             <div>
                 <h3>{{ $chrome('contact_phone_title', $siteCustomization['contact_phone_title'] ?? null) }}</h3>
                 <p>
-                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['contact_phone'] ?? '+8801730532966') }}" style="color:#006837; font-weight:700; font-size:16px; text-decoration:none;">
+                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $siteCustomization['contact_phone'] ?? '+8801730532966') }}" class="ref-contact-link is-phone">
                         {{ $siteCustomization['contact_phone'] ?? '+8801730532966' }}
                     </a>
                     @php
@@ -110,7 +110,7 @@
                             : (app()->getLocale() === 'bn' ? (string) __('site.contact_phone_hours') : null);
                     @endphp
                     @if(filled($phoneHours))
-                    <br><small style="color:#64748b;">{{ $phoneHours }}</small>
+                    <br><small class="ref-contact-hours">{{ $phoneHours }}</small>
                     @endif
                 </p>
             </div>
@@ -122,7 +122,7 @@
             <div>
                 <h3>{{ $chrome('contact_email_title', $siteCustomization['contact_email_title'] ?? null) }}</h3>
                 <p>
-                    <a href="mailto:{{ $siteCustomization['contact_email'] ?? '' }}" style="color:#006837; font-weight:600; text-decoration:none;">
+                    <a href="mailto:{{ $siteCustomization['contact_email'] ?? '' }}" class="ref-contact-link">
                         {{ $siteCustomization['contact_email'] ?? '' }}
                     </a>
                 </p>
@@ -287,7 +287,7 @@
         <div class="ref-dealer-meta">
             <small class="ref-dealer-code"><i class="fa-solid fa-id-badge" aria-hidden="true"></i> {{ $dealer->dealer_code }}</small>
             @if(isset($dealer->distance_km) && $dealer->distance_km !== null)
-            <span class="ref-dealer-distance"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i> {{ __('site.directory_distance_km', ['km' => $dealer->distance_km]) }}</span>
+            <span class="ref-dealer-distance"><i class="fa-solid fa-location-arrow" aria-hidden="true"></i> {{ __('site.directory_distance_km', ['km' => \App\Support\LocalDigits::text($dealer->distance_km)]) }}</span>
             @endif
         </div>
         @if($dealer->phone)
@@ -307,7 +307,7 @@
 @if($dealers->hasPages())
 <nav class="ref-pagination" aria-label="{{ $chrome('directory_pagination_label') }}">
     @if($dealers->previousPageUrl())<a href="{{ $dealers->previousPageUrl() }}">{{ $chrome('directory_pagination_previous') }}</a>@endif
-    <span>{{ __('site.directory_pagination_page_of', ['page' => $dealers->currentPage(), 'pages' => $dealers->lastPage()]) }}</span>
+    <span>{{ __('site.directory_pagination_page_of', ['page' => \App\Support\LocalDigits::text($dealers->currentPage()), 'pages' => \App\Support\LocalDigits::text($dealers->lastPage())]) }}</span>
     @if($dealers->nextPageUrl())<a href="{{ $dealers->nextPageUrl() }}">{{ $chrome('directory_pagination_next') }}</a>@endif
 </nav>
 @endif

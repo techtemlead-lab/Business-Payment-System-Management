@@ -54,13 +54,13 @@
                             @checked($selectedRating === $i)
                             required
                         >
-                        <label class="ref-star-rating-option" for="feedback-rating-{{ $i }}" title="{{ __('site.feedback_rating_stars', ['count' => $i]) }}">
-                            <span class="ref-sr-only">{{ __('site.feedback_rating_stars', ['count' => $i]) }}</span>
+                        <label class="ref-star-rating-option" for="feedback-rating-{{ $i }}" title="{{ __('site.feedback_rating_stars', ['count' => \App\Support\LocalDigits::text($i)]) }}">
+                            <span class="ref-sr-only">{{ __('site.feedback_rating_stars', ['count' => \App\Support\LocalDigits::text($i)]) }}</span>
                             <span class="ref-star-rating-glyph" aria-hidden="true">★</span>
                         </label>
                     @endfor
                 </div>
-                <p class="ref-star-rating-caption" data-rating-caption>{{ __('site.feedback_rating_stars', ['count' => $selectedRating]) }}</p>
+                <p class="ref-star-rating-caption" data-rating-caption>{{ __('site.feedback_rating_stars', ['count' => \App\Support\LocalDigits::text($selectedRating)]) }}</p>
             </fieldset>
             @error('rating')<small class="ref-feedback-error">{{ $message }}</small>@enderror
 
@@ -82,7 +82,7 @@
     var caption = root.querySelector('[data-rating-caption]');
     var labels = {
         @for($i = 1; $i <= 5; $i++)
-            {{ $i }}: @json(__('site.feedback_rating_stars', ['count' => $i]))@if($i < 5),@endif
+            {{ $i }}: @json(__('site.feedback_rating_stars', ['count' => \App\Support\LocalDigits::text($i)]))@if($i < 5),@endif
         @endfor
     };
     root.querySelectorAll('.ref-star-rating-input').forEach(function (input) {

@@ -5,7 +5,7 @@ import {
     Lock, Mail, Phone, Key, AlertCircle, Sparkles, Filter, CheckCircle2,
     XCircle, Clock, ArrowRight, ShieldAlert, Award
 } from 'lucide-react';
-import { Table, Pagination, Badge, Empty, date, type Row } from './UI';
+import { Table, Pagination, Badge, Empty, date, type Row, number } from './UI';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 
@@ -175,7 +175,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                 <div className="metric emp-kpi">
                     <span>{translate('portal', 'emp_kpi_total')}</span>
                     <strong>
-                        {stats.total}
+                        {number(stats.total)}
                     </strong>
                     <small className="ops-faint">{translate('portal', 'emp_kpi_total_hint')}</small>
                 </div>
@@ -199,7 +199,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                 <div className="metric emp-kpi tone-info">
                     <span>{translate('portal', 'emp_kpi_perms')}</span>
                     <strong>
-                        {availablePermissions.length}
+                        {number(availablePermissions.length)}
                     </strong>
                     <small className="ops-faint">{translate('portal', 'emp_kpi_perms_hint')}</small>
                 </div>

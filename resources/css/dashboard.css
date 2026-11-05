@@ -42,7 +42,9 @@
   --ds-text:#0b1f33;
   --ds-text-2:#334155;
   --ds-text-muted:#5b6b7a;
-  --ds-text-faint:#7b8794;
+  /* Was #7b8794 (3.6:1 on white, 3.2:1 on tinted cells) — too light for the 10–11px hints and counts it colours.
+     #626e7b passes 4.5:1 on both and stays a step lighter than muted. */
+  --ds-text-faint:#626e7b;
 
   /* Sidebar (per audience below) */
   --ds-side-bg:#0b1f33;
@@ -972,9 +974,11 @@ dialog.portal-modal::backdrop{
   color: #6366f1; letter-spacing: .04em;
 }
 .help-toc-title { font-size: 13px; color: #0f172a; line-height: 1.35; font-weight: 700; }
+/* Two lines, not one: a single 220px line shows only about four Bangla words before the ellipsis. */
 .help-toc-snippet {
-  margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.4;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;
+  margin: 0; font-size: 11.5px; color: #64748b; line-height: 1.45;
+  overflow: hidden; max-width: 220px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
 }
 .help-toc-empty { padding: 30px 16px; text-align: center; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
@@ -3094,3 +3098,11 @@ html[data-theme="dark"] .app-shell .hub .button.danger:hover{background:var(--ds
 .app-shell .pw-input-wrap>input{padding-right:36px;font-family:ui-monospace,monospace}
 .app-shell .pw-eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:2px;border:0;background:none;font-size:14px;line-height:1;cursor:pointer}
 .app-shell .pw-custom>small{display:block;margin-top:6px}
+
+/* ---- Contrast fixes found by the per-page audit (light mode) ------------- */
+/* Each kept a hard-coded light colour that fell under 4.5:1 for its small text size. */
+.app-shell .policy-gate .eyebrow{color:var(--ds-orange-fg)}
+.app-shell .policy-gate p{color:#5f5844}
+.app-shell .notification small{color:var(--ds-text-muted)}
+.app-shell .help-toc-badge{color:#4f46e5}
+.app-shell .help-toc-snippet{color:var(--ds-text-muted)}

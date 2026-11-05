@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { Empty, money, date, Table, type TableColumn } from './UI';
+import { Empty, money, number, date, Table, type TableColumn } from './UI';
 import { useT } from '../shared/i18n/t';
+import { localizeDigits } from '../business-date';
 
 type StockProduct = {
     id: number;
@@ -57,7 +58,7 @@ function percentLabel(value?: string | null): string {
         ? String(amount)
         : amount.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 
-    return `${trimmed}%`;
+    return `${localizeDigits(trimmed)}%`;
 }
 
 function availableUnits(product: StockProduct): number {
@@ -284,9 +285,9 @@ export default function StockOnHand({
                             const low = Number(p.low_stock_at ?? 0);
                             return (
                                 <b className={onHand <= low ? 'text-amber' : ''}>
-                                    {onHand}
+                                    {number(onHand)}
                                     {p.company_stock != null && p.company_stock !== onHand ? (
-                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: String(p.company_stock) })}</small>
+                                        <small className="cell-sub">{translate('portal', 'branch_company_total', { count: number(p.company_stock) })}</small>
                                     ) : null}
                                 </b>
                             );
@@ -316,7 +317,7 @@ export default function StockOnHand({
                         sortable: true,
                         align: 'right',
                         sortValue: (p: ProductStockRow) => Number(p.low_stock_at) || 0,
-                        render: (p: ProductStockRow) => p.low_stock_at ?? '—',
+                        render: (p: ProductStockRow) => p.low_stock_at != null ? number(p.low_stock_at) : '—',
                     },
                     {
                         key: 'action',

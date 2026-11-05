@@ -19,7 +19,7 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { Badge, date, Empty, Table, type Row } from './UI';
+import { Badge, date, Empty, Table, type Row, number } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
 import { useT } from '../shared/i18n/t';
 
@@ -161,7 +161,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         <div className="help-toc-header">
                             <span>{translate('portal', 'help_manual_filter_all')}</span>
                             <span className="help-toc-count">
-                                {filtered.length} / {sections.length}
+                                {number(filtered.length)} / {number(sections.length)}
                             </span>
                         </div>
 

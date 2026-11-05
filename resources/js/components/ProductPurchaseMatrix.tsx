@@ -4,7 +4,7 @@ import {
     Plus, Trash2, ShoppingBag, ArrowRight, CheckCircle2,
     AlertCircle, Sparkles, Package, Layers, Info, Search, X
 } from 'lucide-react';
-import { money, type Row, Table } from './UI';
+import { money, type Row, Table, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface Props {
@@ -614,7 +614,7 @@ export default function ProductPurchaseMatrix({
                                             <td className="ops-center">
                                                 {lineDiscount > 0 ? (
                                                     <span className="hub-pill tone-ok">
-                                                        {lineDiscount}% ছাড়
+                                                        {number(lineDiscount)}% ছাড়
                                                     </span>
                                                 ) : (
                                                     <span className="ops-faint ops-fs-2xs">—</span>
@@ -681,7 +681,7 @@ export default function ProductPurchaseMatrix({
                             <div>
                                 <small className="ppm-sum-label">মোট আইটেম ও ইউনিট</small>
                                 <strong className="ppm-sum-value">
-                                    {cartSummary.itemsCount} আইটেম ({cartSummary.totalQty} বক্স)
+                                    {number(cartSummary.itemsCount)} আইটেম ({cartSummary.totalQty} বক্স)
                                 </strong>
                             </div>
 

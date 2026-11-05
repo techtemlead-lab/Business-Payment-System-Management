@@ -3573,3 +3573,27 @@ html[data-theme="dark"] .ref-home .ref-auth-submit{color:#04140f}
 @media(prefers-reduced-motion:reduce){
   .ref-home *,.ref-home *::before,.ref-home *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* ---- Contrast fixes found by the per-page audit (public site, light) -------
+   Brand orange #f34c20 carries white text at only 3.1–3.6:1. Text-bearing orange
+   uses the deeper #c93d15 (5.0:1); grey helper text moves from #94a3b8 (2.6:1).
+   Kept at the end of this file so it wins over the earlier component rules. */
+.ref-shop{background:#c93d15}
+.ref-location-btn{background:#c93d15}
+.ref-location-btn:hover{background:#a8330f}
+.ref-view-all-link{color:#c93d15}
+.ref-view-all-link:hover{color:#a8330f}
+.ref-req{color:#c93d15}
+.ref-badge-optional{color:#5b6b7a}
+.ref-field-hint{color:#64748b}
+.ref-header-links > a.ref-shop{background:#c93d15}
+.ref-locale-switch button.is-active{background:#c93d15;border-color:#c93d15}
+.ref-dealer-banner-btn{background:#c93d15}
+.ref-dealer-banner-btn:hover{background:#a8330f}
+.ref-auth-bottom a{color:#c93d15}
+/* Contact links and notes: were inline styles, which dark mode could not override. */
+.ref-contact-link{color:#006837;font-weight:600;text-decoration:none}
+.ref-contact-link.is-phone{font-weight:700;font-size:16px}
+.ref-contact-link:hover{text-decoration:underline}
+.ref-contact-hours,.ref-empty-note{color:#64748b}
+.ref-empty-note{font-size:14px;margin:0}

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Search, GitFork, Users, Award, ChevronRight, ChevronDown, Phone, MapPin, Calendar, DollarSign, ArrowUpRight, ShieldCheck, Filter, UserCheck, Eye, Download } from 'lucide-react';
-import { money, date, Table, type TableColumn } from './UI';
+import { money, date, Table, type TableColumn, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface DealerNode {
@@ -206,7 +206,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <Users size={16} /> {translate('portal','net_kpi_total')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {stats.total}
+                        {number(stats.total)}
                     </div>
                     <div className="hub-hint">{translate('portal','net_enrolled')}</div>
                 </div>
@@ -216,7 +216,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <Award size={16} /> {translate('portal','net_rank_mo')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {stats.moCount}
+                        {number(stats.moCount)}
                     </div>
                     <div className="hub-hint">{translate('portal','net_mo_hint')}</div>
                 </div>
@@ -226,7 +226,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                         <ShieldCheck size={16} /> {translate('portal','net_kpi_am')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {stats.amCount}
+                        {number(stats.amCount)}
                     </div>
                     <div className="hub-hint">{translate('portal','net_kpi_am_hint')}</div>
                 </div>
@@ -427,7 +427,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                         const directCount = (childrenMap[d.id] || []).length;
                                         return (
                                             <span className={`ntx-count${directCount > 0 ? ' tone-info' : ''}`}>
-                                                {directCount}
+                                                {number(directCount)}
                                             </span>
                                         );
                                     },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
-import { money, date, Table } from './UI';
+import { money, date, Table, number } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
 
@@ -170,7 +170,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 <div className="metric tone-ok">
                     <span>{translate('portal','rank_stat_mo')}</span>
                     <strong>
-                        {stats.mo_count}
+                        {number(stats.mo_count)}
                     </strong>
                     <small>{royaltyText(q.mo_share_pct)}</small>
                 </div>
@@ -178,7 +178,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 <div className="metric tone-info">
                     <span>{translate('portal','rank_stat_am')}</span>
                     <strong>
-                        {stats.am_count}
+                        {number(stats.am_count)}
                     </strong>
                     <small>{royaltyText(q.am_share_pct)}</small>
                 </div>
@@ -186,7 +186,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 <div className="metric tone-violet">
                     <span>{translate('portal','rank_stat_sm')}</span>
                     <strong>
-                        {stats.sm_count}
+                        {number(stats.sm_count)}
                     </strong>
                     <small>{royaltyText(q.sm_share_pct)}</small>
                 </div>
@@ -194,7 +194,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 <div className="metric tone-warn">
                     <span>{translate('portal','rank_stat_me')}</span>
                     <strong>
-                        {stats.me_count}
+                        {number(stats.me_count)}
                     </strong>
                     <small>{royaltyText(q.me_share_pct)}</small>
                 </div>
