@@ -5348,6 +5348,9 @@ return [
     'col_delivered_hint' => 'Quantity sent out of quantity ordered',
     'col_checked_by' => 'Checked by',
     'col_booked_units' => 'Booked for orders',
+    'admin_kpis_label' => 'Business at a glance',
+    'admin_kpi_open' => 'Open list',
+    'orders_tab_all' => 'All',
     'col_booked_units_hint' => 'Units on approved orders not sent yet, for the whole company',
     'stock_free_to_sell' => 'Free to sell (company): :count',
 ];

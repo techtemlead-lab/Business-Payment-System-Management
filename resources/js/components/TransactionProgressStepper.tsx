@@ -11,7 +11,7 @@ import {
     ShieldCheck,
     Radio,
 } from 'lucide-react';
-import { Row, date, money } from './UI';
+import { Row, date, money, label } from './UI';
 import { useT } from '../shared/i18n/t';
 
 export type OrderStatus =
@@ -570,7 +570,7 @@ export default function TransactionProgressStepper({
                 <div className="ops-caption">
                     <span>{t('current_status', 'Status')}: </span>
                     <strong className="ops-text hub-capital">
-                        {status.replaceAll('_', ' ')}
+                        {label(status, translate)}
                     </strong>
                 </div>
             </div>

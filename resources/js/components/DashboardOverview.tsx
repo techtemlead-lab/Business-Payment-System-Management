@@ -340,7 +340,7 @@ function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null
                 <div className="admin-month-strip">
                     <div><span>{translate('portal', 'dash_month_sales')}</span><strong>{money(month.sales)}</strong></div>
                     <div><span>{translate('portal', 'dash_month_collected')}</span><strong>{money(month.collected)}</strong></div>
-                    <div><span>{translate('portal', 'dash_month_orders')}</span><strong>{month.orders}</strong></div>
+                    <div><span>{translate('portal', 'dash_month_orders')}</span><strong>{number(month.orders)}</strong></div>
                 </div>
             )}
             <svg className="admin-trend-chart" viewBox={`0 0 ${width} ${height + 22}`} role="img" aria-label={translate('portal', 'dash_trend_title')}>
@@ -367,12 +367,19 @@ function SalesTrend({ points, month }: { points: TrendPoint[]; month: Row | null
 function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React.ReactNode }) {
     const { auth, portalBase: base } = usePage<any>().props;
     const translate = useT();
-    const u = auth.user;
     const caps: string[] = auth.capabilities;
     const staff = caps.length > 0;
     const commerce = !staff || caps.includes('orders') || caps.includes('finance');
-    const profile = home.profile ?? {};
     const snapshot = home.snapshot ?? {};
+    const pending = Number(snapshot.pending_review ?? 0);
+    const dues = Number(snapshot.dues ?? 0);
+    const kpis = [
+        { key: 'today', label: translate('portal', 'admin_stat_orders_today'), value: number(snapshot.orders_today ?? 0), href: `${base}/orders?period=today`, icon: ShoppingBag, tone: '', show: commerce },
+        { key: 'review', label: translate('portal', 'admin_stat_awaiting_review'), value: number(pending), href: `${base}/orders?status=submitted`, icon: ListChecks, tone: pending > 0 ? 'warn' : '', show: commerce },
+        { key: 'partners', label: translate('portal', 'admin_stat_partner_accounts'), value: number(snapshot.partner_accounts ?? 0), href: `${base}/accounts`, icon: Users, tone: '', show: caps.includes('accounts') || !staff },
+        { key: 'purchases', label: translate('portal', 'admin_stat_approved_purchases'), value: money(snapshot.purchases), href: `${base}/orders?status=approved`, icon: Coins, tone: '', show: commerce },
+        { key: 'dues', label: translate('portal', 'admin_stat_outstanding_dues'), value: money(snapshot.dues), href: `${base}/dues`, icon: Wallet, tone: dues > 0 ? 'danger' : '', show: commerce },
+    ].filter((kpi) => kpi.show);
     const cards = [
         { route: 'catalog', name: translate('portal', 'admin_tile_catalog'), description: translate('portal', 'admin_tile_catalog_hint'), icon: Package, show: true },
         { route: 'orders', name: translate('portal', 'admin_tile_orders'), description: translate('portal', 'admin_tile_orders_hint'), icon: ShoppingBag, show: commerce },
@@ -395,24 +402,19 @@ function AdminHome({ home, data, orders }: { home: Row; data: Row; orders: React
 
     return (
         <div className="admin-home">
-            <section className="admin-home-hero" data-tour="home-metrics">
-                <aside className="partner-home-profile compact">
-                    <ProfilePhoto src={profile.photo_url || u.photo_url} initial={profile.initial || u.name?.[0] || '?'} upload />
-                    <h2>{profile.name || u.name}</h2>
-                    <small>{labelRole(profile.role || u.role, translate)}</small>
-                    <Badge status={profile.status || u.status} />
-                    <dl>
-                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || u.email || '—'}</dd></div>
-                    </dl>
-                </aside>
-                <div className="admin-home-stats">
-                    <div><span>{translate('portal', 'admin_stat_orders_today')}</span><strong>{snapshot.orders_today ?? 0}</strong></div>
-                    <div><span>{translate('portal', 'admin_stat_awaiting_review')}</span><strong>{snapshot.pending_review ?? 0}</strong></div>
-                    <div><span>{translate('portal', 'admin_stat_partner_accounts')}</span><strong>{snapshot.partner_accounts ?? 0}</strong></div>
-                    <div><span>{translate('portal', 'admin_stat_approved_purchases')}</span><strong>{money(snapshot.purchases)}</strong></div>
-                    <div><span>{translate('portal', 'admin_stat_outstanding_dues')}</span><strong>{money(snapshot.dues)}</strong></div>
-                </div>
+            {/* Business figures first, each one a shortcut to the list behind it — the signed-in user's own details live in the account menu. */}
+            <section className="admin-kpis" data-tour="home-metrics" aria-label={translate('portal', 'admin_kpis_label')}>
+                {kpis.map((kpi) => {
+                    const Icon = kpi.icon;
+                    return (
+                        <Link key={kpi.key} href={kpi.href} className={`admin-kpi${kpi.tone ? ` tone-${kpi.tone}` : ''}`}>
+                            <span className="admin-kpi-icon" aria-hidden="true"><Icon size={18} /></span>
+                            <span className="admin-kpi-label">{kpi.label}</span>
+                            <strong className="admin-kpi-value">{kpi.value}</strong>
+                            <span className="admin-kpi-link">{translate('portal', 'admin_kpi_open')} <ArrowUpRight size={13} aria-hidden="true" /></span>
+                        </Link>
+                    );
+                })}
             </section>
 
             <section className="admin-home-insights">
