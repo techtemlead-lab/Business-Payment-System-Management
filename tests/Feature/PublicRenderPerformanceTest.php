@@ -53,6 +53,16 @@ class PublicRenderPerformanceTest extends TestCase
         $this->assertStringContainsString('rel="preload" as="image"', $html);
     }
 
+    public function test_bangla_pages_load_the_equal_width_digit_bangla_font(): void
+    {
+        $this->from('/')->post('/locale', ['locale' => 'bn'])->assertRedirect();
+
+        $html = $this->get('/')->assertOk()->getContent();
+
+        $this->assertStringContainsString('fonts.bunny.net/css?family=noto-sans-bengali', $html);
+        $this->assertStringNotContainsString('family=hind-siliguri', $html);
+    }
+
     public function test_public_layout_includes_progressive_first_paint_boot_shell(): void
     {
         $home = $this->get('/')->assertOk()->getContent();

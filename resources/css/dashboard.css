@@ -2,7 +2,7 @@
 @import './screens-editor.css';
 @import './screens-ops.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
-@import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
+@import url('https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap');
 
 /* =========================================================================
    Madina design tokens
@@ -77,8 +77,8 @@
   /* Spacing (4px grid) */
   --ds-s-1:4px; --ds-s-2:8px; --ds-s-3:12px; --ds-s-4:16px; --ds-s-5:20px; --ds-s-6:24px; --ds-s-8:32px; --ds-s-10:40px;
 
-  /* Type: Instrument Sans for Latin, Hind Siliguri for Bangla glyphs */
-  --ds-font:'Instrument Sans','Hind Siliguri','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;
+  /* Type: Instrument Sans for Latin, Noto Sans Bengali for Bangla. Noto's Bangla digits are all one width, so amounts line up in tables. */
+  --ds-font:'Instrument Sans','Noto Sans Bengali','Hind Siliguri',ui-sans-serif,system-ui,sans-serif;
   --ds-fs-2xs:11px; --ds-fs-xs:12px; --ds-fs-sm:13px; --ds-fs-base:14px; --ds-fs-md:16px; --ds-fs-lg:18px; --ds-fs-xl:21px; --ds-fs-2xl:24px; --ds-fs-3xl:30px;
   --ds-lh:1.5; --ds-lh-tight:1.25;
 
@@ -389,7 +389,6 @@ body{font-family:var(--ds-font);background:var(--ds-bg)}
 
 /* Audience portal themes + bilingual shell */
 :root{--portal-ink:#011627;--portal-accent:#ef4a23;--portal-brand:#2e3192;--portal-leaf:#377b5a;--portal-paper:#f4f7f5;--portal-gold:#c9a227}
-body.locale-bn,.locale-bn .app-shell,.locale-bn .company-auth{font-family:'Noto Sans Bengali','Instrument Sans',ui-sans-serif,system-ui,sans-serif}
 .dealer-shell .workspace{background:
   radial-gradient(1200px 420px at 8% -10%,#e8edff 0%,transparent 55%),
   radial-gradient(900px 360px at 100% 0%,#fff1ec 0%,transparent 50%),
@@ -2556,7 +2555,10 @@ html[data-theme="dark"] .app-shell .language-switcher button.active{background:v
 .app-shell .partner-home-metric-cards{gap:1px;background:var(--ds-line);border:1px solid var(--ds-line);border-radius:var(--ds-r-md);overflow:hidden}
 .app-shell .partner-home-metric-cards>div{border:0;border-radius:0;background:var(--ds-surface);padding:10px 12px}
 .app-shell .partner-home-metric-cards span{font-size:var(--ds-fs-xs);color:var(--ds-text-muted)}
-.app-shell .partner-home-metric-cards strong{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text)}
+.app-shell .partner-home-metric-cards strong{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text);overflow-wrap:anywhere}
+/* Three cards in a narrow panel leave ~100px each — too tight for lakh-size amounts. Drop to two columns there. */
+.app-shell .partner-home-metrics{container-type:inline-size}
+@container (max-width:420px){.app-shell .partner-home-metric-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.app-shell .partner-home-metric-cards>div:last-child:nth-child(odd){grid-column:1/-1}}
 .app-shell .partner-home-metric-cards small{font-size:var(--ds-fs-2xs);color:var(--ds-text-muted)}
 .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) :is(.partner-home-profile,.partner-home-metrics,.partner-home-targets,.partner-home-referral){background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);box-shadow:var(--ds-shadow-xs);padding:18px}
 .app-shell .partner-home-profile h2{font-size:var(--ds-fs-lg);font-weight:650;color:var(--ds-text)}

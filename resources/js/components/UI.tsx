@@ -29,12 +29,13 @@ function toAmount(value:unknown):number{
 }
 /**
  * Taka amount with lakh grouping ("৳ 1,23,456.00"); Bangla digits on Bangla pages.
- * Pass `{symbol:false}` when the ৳ sign is drawn separately.
+ * Pass `{symbol:false}` when the ৳ sign is drawn separately. The sign is joined
+ * with a no-break space so a narrow card never puts ৳ and the amount on two lines.
  */
 export const money=(value:unknown,{symbol=true}:{symbol?:boolean}={})=>{
  const rounded=Math.round(toAmount(value)*100)/100;
  const text=localizeDigits(moneyFormat.format(rounded===0?0:rounded));
- return symbol?`৳ ${text}`:text;
+ return symbol?`৳ ${text}`:text;
 };
 /**
  * Count or quantity with lakh grouping ("1,23,456"); Bangla digits on Bangla pages.
