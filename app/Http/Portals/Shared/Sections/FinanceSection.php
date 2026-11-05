@@ -8,6 +8,8 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\CommissionAllocation;
+use App\Support\Money;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -20,8 +22,8 @@ final class FinanceSection implements WorkspaceSection
     {
         return match ($context->section) {
             'payments' => $this->paymentClaims($context->request),
-            'ledger' => $this->ledger(),
-            'audit' => $this->auditLog(),
+            'ledger' => $this->ledger($context->request),
+            'audit' => $this->auditLog($context->request),
             'capital-flow', 'treasury' => $this->treasury($context),
             'benefits-fund' => $this->benefitsFund(),
             default => [],
@@ -92,14 +94,25 @@ final class FinanceSection implements WorkspaceSection
             $claims->where('payment_claims.created_at', '>=', $range['from'])
                 ->where('payment_claims.created_at', '<=', $range['until']);
         }
-        // Counts for the status tabs: every filter on screen except status itself.
-        $props['claim_status_counts'] = (clone $claims)
-            ->select('payment_claims.status')
-            ->selectRaw('COUNT(*) AS aggregate')
-            ->groupBy('payment_claims.status')
-            ->pluck('aggregate', 'status')
-            ->map(fn ($count): int => (int) $count)
+        // Counts for the status tabs and money totals for the whole filtered list (not only the
+        // page on screen): every filter except status itself, in one grouped query.
+        $groups = (clone $claims)
+            ->select('payment_claims.status', 'payment_claims.channel')
+            ->selectRaw('COUNT(*) AS aggregate, COALESCE(SUM(payment_claims.amount), 0) AS amount')
+            ->groupBy('payment_claims.status', 'payment_claims.channel')
+            ->get();
+        $props['claim_status_counts'] = $groups->groupBy('status')
+            ->map(fn ($rows): int => (int) $rows->sum('aggregate'))
             ->all();
+        $props['claim_totals'] = [
+            'by_status' => $groups->groupBy('status')->map(fn ($rows): array => [
+                'count' => (int) $rows->sum('aggregate'),
+                'amount' => Money::decimal($rows->sum(fn ($row): int => Money::cents((string) $row->amount))),
+            ])->all(),
+            'verified_by_channel' => $groups->where('status', 'verified')->groupBy('channel')->map(fn ($rows): string => Money::decimal(
+                $rows->sum(fn ($row): int => Money::cents((string) $row->amount)),
+            ))->all(),
+        ];
         $claimStatus = $request->string('status')->toString();
         if (in_array($claimStatus, ['pending', 'verified', 'rejected'], true)) {
             $claims->where('payment_claims.status', $claimStatus);
@@ -114,17 +127,39 @@ final class FinanceSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function ledger(): array
+    private function ledger(Request $request): array
     {
+        $entries = DB::table('journal_entries')->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id');
+        if ($request->filled('q')) {
+            $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
+            $entries->where(fn ($query) => $query->where('journal_entries.event_key', 'ilike', $term)
+                ->orWhere('journal_entries.description', 'ilike', $term)
+                ->orWhere('users.name', 'ilike', $term));
+        }
+        $this->whereCreatedIn($entries, 'journal_entries.created_at', $request);
+
         return [
-            'entries' => DB::table('journal_entries')
-                ->leftJoin('users', 'users.id', '=', 'journal_entries.actor_id')
+            'entries' => $entries
                 ->select('journal_entries.id', 'journal_entries.event_key', 'journal_entries.description', 'journal_entries.created_at', 'users.name as actor_name')
                 ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(debit), 0)'), 'debit')
                 ->selectSub(fn ($query) => $query->from('journal_lines')->whereColumn('journal_lines.entry_id', 'journal_entries.id')->selectRaw('coalesce(sum(credit), 0)'), 'credit')
                 ->orderByDesc('journal_entries.created_at')
-                ->paginate(20),
+                ->paginate(20)
+                ->withQueryString(),
         ];
+    }
+
+    /** Apply the on-screen period (today, this week, a day or custom dates) to a date column. */
+    private function whereCreatedIn(Builder $query, string $column, Request $request): void
+    {
+        $range = OrderListFilter::createdRange(
+            $request->string('period')->toString(),
+            $request->filled('from') ? $request->string('from')->toString() : null,
+            $request->filled('to') ? $request->string('to')->toString() : null,
+        );
+        if ($range !== null) {
+            $query->where($column, '>=', $range['from'])->where($column, '<=', $range['until']);
+        }
     }
 
     /**
@@ -132,10 +167,20 @@ final class FinanceSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function auditLog(): array
+    private function auditLog(Request $request): array
     {
+        $events = DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id');
+        if ($request->filled('q')) {
+            $term = '%'.addcslashes($request->string('q')->toString(), '%_\\').'%';
+            $events->where(fn ($query) => $query->where('audit_events.action', 'ilike', $term)
+                ->orWhere('audit_events.subject', 'ilike', $term)
+                ->orWhere('users.name', 'ilike', $term));
+        }
+        $this->whereCreatedIn($events, 'audit_events.created_at', $request);
+
         return [
-            'events' => DB::table('audit_events')->leftJoin('users', 'users.id', '=', 'actor_id')->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')->orderByDesc('audit_events.id')->paginate(25),
+            'events' => $events->select('audit_events.id', 'action', 'subject', 'audit_events.created_at', 'users.name')
+                ->orderByDesc('audit_events.id')->paginate(25)->withQueryString(),
         ];
     }
 

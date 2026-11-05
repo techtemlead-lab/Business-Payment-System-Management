@@ -36,6 +36,7 @@ final class OrdersSection implements WorkspaceSection
         ];
         if ($context->section === 'orders') {
             $props['order_status_counts'] = $this->statusCounts($context);
+            $props['order_totals'] = $this->listTotals($filteredOrders);
         }
         if ($context->section === 'dues') {
             $props['dues_summary'] = $this->duesSummary($filteredOrders);
@@ -45,6 +46,29 @@ final class OrdersSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    /**
+     * Grand totals for every order in the filtered list, not only the 12 on screen. Rejected and
+     * cancelled orders count as orders but add nothing to value or to pay.
+     *
+     * @return array{orders: int, value: string, paid: string, to_pay: string}
+     */
+    private function listTotals(Builder $filteredOrders): array
+    {
+        $open = "orders.status NOT IN ('rejected', 'cancelled')";
+        $row = (clone $filteredOrders)->toBase()->reorder()
+            ->selectRaw("COUNT(*) AS orders, COALESCE(SUM(CASE WHEN {$open} THEN orders.total ELSE 0 END), 0) AS value, "
+                .'COALESCE(SUM(orders.paid), 0) AS paid, '
+                ."COALESCE(SUM(CASE WHEN {$open} THEN GREATEST(orders.total - orders.due_credit - orders.paid, 0) ELSE 0 END), 0) AS to_pay")
+            ->first();
+
+        return [
+            'orders' => (int) $row->orders,
+            'value' => Money::decimal(Money::cents((string) $row->value)),
+            'paid' => Money::decimal(Money::cents((string) $row->paid)),
+            'to_pay' => Money::decimal(Money::cents((string) $row->to_pay)),
+        ];
     }
 
     /**

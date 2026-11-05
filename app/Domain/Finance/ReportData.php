@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds'];
+    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register'];
 
     /** Money still to collect on one order; never negative. */
     private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
@@ -54,6 +54,16 @@ final class ReportData
                 ['j.event_key', 'j.description', 'u.name', 'l.account', 'l.debit', 'l.credit', 'j.created_at'], ['debit', 'credit'], 'j.created_at', 'l.user_id'],
             'rewards' => [DB::table('reserve_disbursements as r')->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
+            // Every payment a partner sent with its TrxID, who checked it and when: the daily collection sheet.
+            'collections' => [DB::table('payment_claims as c')->join('orders as o', 'o.id', '=', 'c.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
+                ->leftJoin('users as checker', 'checker.id', '=', 'c.verified_by'),
+                ['c.created_at', 'o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'c.channel', 'c.reference', 'c.amount', 'c.status',
+                    DB::raw('checker.name AS checked_by'), DB::raw("CASE WHEN c.status <> 'pending' THEN c.updated_at END AS checked_at")],
+                ['amount'], 'c.created_at', 'o.user_id'],
+            // Tax cut (TDS) on money sent to partners, for the tax return.
+            'tds-register' => [DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id')->where('w.status', 'paid'),
+                ['w.paid_at', 'u.dealer_code', 'u.name', 'u.phone', 'u.role', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.payment_reference'],
+                ['amount', 'withheld_amount', 'net_amount'], 'w.paid_at', 'w.user_id'],
             'refunds' => [DB::table('commission_refunds as f')->join('orders as o', 'o.id', '=', 'f.order_id')->join('users as u', 'u.id', '=', 'o.user_id'),
                 ['f.id', 'o.number', 'u.name', 'f.reference', 'f.amount', 'f.reason', 'f.created_at'], ['amount'], 'f.created_at', 'o.user_id'],
         };

@@ -215,6 +215,8 @@ export default function StockOnHand({
                 rows={rows}
                 tools={false}
                 pageSize={25}
+                filename="stock-on-hand"
+                printable
                 columns={[
                     {
                         key: 'product',
@@ -319,7 +321,8 @@ export default function StockOnHand({
                         key: 'stock_value',
                         title: translate('portal', 'branch_stock_value'),
                         sortable: true,
-                        align: 'right',
+                        money: true,
+                        total: true,
                         sortValue: (p: ProductStockRow) => availableUnits(p) * Number(p.mrp || 0),
                         render: (p: ProductStockRow) => money(availableUnits(p) * Number(p.mrp || 0)),
                     },
