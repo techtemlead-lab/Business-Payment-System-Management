@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -61,6 +62,7 @@ final class NetworkSection implements WorkspaceSection
                 viewer: $user,
             );
             $props['dealers_truncated'] = false;
+            $props['team_summary'] = $this->teamSummary($user);
         }
         if ($request->filled('member_id')) {
             $member = $request->validate(['member_id' => 'required|integer'])['member_id'];
@@ -70,6 +72,42 @@ final class NetworkSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    /**
+     * The team at a glance, in one query: how many members, how many the dealer brought in
+     * directly, who joined this month, who bought this month, who joined over 60 days ago but has
+     * not bought in the last 60 days, and the team's confirmed purchases this month.
+     *
+     * @return array{members: int, direct: int, joined_this_month: int, bought_this_month: int, quiet_60_days: int, team_sales_month: string}
+     */
+    private function teamSummary(User $user): array
+    {
+        $tz = (string) config('madina.business_timezone', 'Asia/Dhaka');
+        $monthStart = CarbonImmutable::now($tz)->startOfMonth()->utc();
+        $sixtyDaysAgo = CarbonImmutable::now($tz)->startOfDay()->subDays(60)->utc();
+        $confirmed = "'".implode("','", OrderListFilter::Confirmed)."'";
+        $bought = fn (string $since): string => "EXISTS (SELECT 1 FROM orders o WHERE o.user_id = u.id AND o.status IN ({$confirmed}) AND o.created_at >= {$since})";
+        $row = DB::table('referral_tree_paths as p')
+            ->join('users as u', 'u.id', '=', 'p.descendant_id')
+            ->where('p.ancestor_id', $user->id)
+            ->where('p.depth', '>', 0)
+            ->selectRaw('COUNT(*) AS members')
+            ->selectRaw('COUNT(*) FILTER (WHERE p.depth = 1) AS direct')
+            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at >= ?) AS joined_this_month', [$monthStart])
+            ->selectRaw('COUNT(*) FILTER (WHERE '.$bought('?').') AS bought_this_month', [$monthStart])
+            ->selectRaw('COUNT(*) FILTER (WHERE u.created_at < ? AND NOT '.$bought('?').') AS quiet_60_days', [$sixtyDaysAgo, $sixtyDaysAgo])
+            ->selectRaw("COALESCE((SELECT SUM(o.total) FROM orders o JOIN referral_tree_paths t ON t.descendant_id = o.user_id WHERE t.ancestor_id = ? AND t.depth > 0 AND o.status IN ({$confirmed}) AND o.created_at >= ?), 0) AS team_sales_month", [$user->id, $monthStart])
+            ->first();
+
+        return [
+            'members' => (int) ($row->members ?? 0),
+            'direct' => (int) ($row->direct ?? 0),
+            'joined_this_month' => (int) ($row->joined_this_month ?? 0),
+            'bought_this_month' => (int) ($row->bought_this_month ?? 0),
+            'quiet_60_days' => (int) ($row->quiet_60_days ?? 0),
+            'team_sales_month' => Money::decimal(Money::cents((string) ($row->team_sales_month ?? '0'))),
+        ];
     }
 
     /**

@@ -5427,4 +5427,13 @@ return [
     'deliv_sum_oldest' => 'সবচেয়ে পুরনো অপেক্ষমাণ অর্ডার',
     'col_booked_units_hint' => 'অনুমোদিত অর্ডারের যে পরিমাণ এখনো পাঠানো হয়নি, পুরো কোম্পানির হিসাবে',
     'stock_free_to_sell' => 'বিক্রির জন্য খালি (কোম্পানি): :count',
+    'team_summary_title' => 'এক নজরে আমার টিম',
+    'team_summary_hint' => 'আপনার নিচের সবাই, এই মাসের হিসাব।',
+    'team_summary_members' => 'টিমের সদস্য',
+    'team_summary_direct' => 'আপনি নিজে এনেছেন :count জন',
+    'team_summary_joined' => 'এই মাসে যোগ দিয়েছেন',
+    'team_summary_sales' => 'এই মাসে টিমের কেনা',
+    'team_summary_bought' => 'এই মাসে কিনেছেন',
+    'team_summary_quiet' => '৬০ দিন কেনেননি',
+    'team_summary_quiet_hint' => 'একটা ফোন বা দেখা করলে আবার শুরু করতে পারেন।',
 ];
