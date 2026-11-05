@@ -39,7 +39,10 @@ final class FinanceSection implements WorkspaceSection
             ->join('orders', 'orders.id', '=', 'payment_claims.order_id')
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->leftJoin('company_branches', 'company_branches.id', '=', 'orders.fulfillment_branch_id')
+            ->leftJoin('users as checkers', 'checkers.id', '=', 'payment_claims.verified_by')
             ->select(
+                'checkers.name as checked_by',
+                'payment_claims.updated_at as checked_at',
                 'payment_claims.id',
                 'payment_claims.order_id',
                 'payment_claims.channel',

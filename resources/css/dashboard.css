@@ -2694,6 +2694,12 @@ html[data-theme="dark"] .app-shell select:not([multiple]):not([style*="backgroun
 .app-shell .table-wrap td:is([data-col=area],[data-col=branch],[data-col=partner],[data-col=user],[data-col=dealer],[data-col=name],[data-col=description],[data-col=reason],[data-col=message],[data-col=location]){min-width:112px}
 .app-shell .table-wrap td[data-col=reference]{overflow-wrap:anywhere;min-width:96px}
 .app-shell .table-wrap td .cell-sub{white-space:normal}
+/* Days-due marker on the Dues list: plain up to 30 days, amber after 30, red after 60, bold red after 90. */
+.app-shell .aging-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:var(--ds-fs-xs);font-weight:600;line-height:1.6;white-space:nowrap;color:var(--ds-text-muted)}
+.app-shell .aging-pill.is-30{background:var(--ds-warn-bg);color:var(--ds-warn-fg)}
+.app-shell .aging-pill:is(.is-60,.is-90){background:var(--ds-danger-bg);color:var(--ds-danger-fg)}
+.app-shell .aging-pill.is-90{font-weight:700}
+.app-shell .cell-sub.text-danger,.app-shell .text-danger{color:var(--ds-danger-fg)}
 /* Very wide tables (13+ columns) drop to a denser size before scrolling */
 .app-shell .table-wrap table:has(thead th:nth-child(13)) :is(th,td){padding-left:6px;padding-right:6px}
 .app-shell .table-wrap table:has(thead th:nth-child(13)) td{font-size:var(--ds-fs-xs)}

@@ -12,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'dues', 'due-adjustments', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds'];
+    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'dues', 'dues-aging', 'due-adjustments', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds'];
+
+    /** Money still to collect on one order; never negative. */
+    private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
 
     /** @return array{query: Builder, columns: list<string>, money: list<string>} */
     public function query(User $actor, string $type, string $from, string $to): array
@@ -24,9 +27,10 @@ final class ReportData
         }
         abort_unless($company || ($sales && in_array($type, ['orders', 'dues'], true)) || (! $actor->staff() && in_array($type, ['orders', 'dues', 'commissions', 'withdrawals'], true)) || $type === 'payroll', 403);
         [$query, $columns, $money, $date, $owner] = match ($type) {
-            'orders', 'dues' => [DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')
-                ->when($type === 'dues', fn ($q) => $q->whereRaw('o.paid < o.total-o.due_credit')->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])),
-                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'o.status', 'o.total', 'o.paid', 'o.due_credit', DB::raw('GREATEST(o.total-o.due_credit-o.paid, 0) AS outstanding'), 'o.created_at'], ['total', 'paid', 'due_credit', 'outstanding'], 'o.created_at', 'o.user_id'],
+            'orders', 'dues' => [$this->openDues(DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id'), $type === 'dues'),
+                ['o.number', 'u.dealer_code', 'u.name', 'u.phone', 'u.district', 'u.division', 'o.status', 'o.total', 'o.paid', 'o.due_credit', DB::raw(self::OutstandingSql.' AS outstanding'),
+                    ...($type === 'dues' ? [DB::raw($this->ageInDaysSql().' AS days_outstanding')] : []), 'o.created_at'], ['total', 'paid', 'due_credit', 'outstanding'], 'o.created_at', 'o.user_id'],
+            'dues-aging' => $this->duesAging(),
             'products' => [DB::table('order_lines as l')->join('orders as o', 'o.id', '=', 'l.order_id')->join('products as p', 'p.id', '=', 'l.product_id')->where('o.status', 'delivered'),
                 ['o.number', DB::raw('COALESCE(l.category_snapshot,p.category,'.$this->uncategorisedSql().') AS category'), 'l.sku', 'l.name', 'l.quantity', 'l.dispatched', 'l.unit_price', 'l.total', 'o.status'], ['unit_price', 'total'], 'o.created_at', 'o.user_id'],
             'product-summary', 'category-summary' => $this->salesSummary($type),
@@ -69,11 +73,12 @@ final class ReportData
             'product-summary' => 'sku',
             'category-summary' => 'category',
             'district-summary' => 'gross_sales',
+            'dues-aging' => 'outstanding',
             default => $date,
-        }, $type === 'district-summary' ? 'desc' : 'asc')->select($columns);
+        }, in_array($type, ['district-summary', 'dues-aging'], true) ? 'desc' : 'asc')->select($columns);
         $names = array_map(function ($column) use ($query): string {
             $sql = is_string($column) ? $column : $column->getValue($query->getGrammar());
-            if (preg_match('/\sAS\s+([a-z_]+)$/i', $sql, $match)) {
+            if (preg_match('/\sAS\s+([a-z0-9_]+)$/i', $sql, $match)) {
                 return $match[1];
             }
 
@@ -122,6 +127,47 @@ final class ReportData
         ];
 
         return [$query, $columns, ['gross_sales', 'paid', 'outstanding'], 'o.created_at', 'o.user_id'];
+    }
+
+    /**
+     * Unpaid balance per partner split by how old the order is (0–30, 31–60,
+     * 61–90 and over 90 days), the receivables ageing view Tally and ERPNext give.
+     *
+     * @return array{Builder, array<mixed>, list<string>, string, string}
+     */
+    private function duesAging(): array
+    {
+        $age = $this->ageInDaysSql();
+        $bucket = fn (string $condition, string $alias) => DB::raw('SUM(CASE WHEN '.$condition.' THEN '.self::OutstandingSql.' ELSE 0 END) AS '.$alias);
+        $query = $this->openDues(DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id'), true)
+            ->groupBy('u.id', 'u.dealer_code', 'u.name', 'u.phone', 'u.district');
+        $columns = [
+            'u.dealer_code', 'u.name', 'u.phone', 'u.district',
+            DB::raw('COUNT(o.id) AS order_count'),
+            DB::raw('SUM('.self::OutstandingSql.') AS outstanding'),
+            $bucket("{$age} <= 30", 'due_0_30'),
+            $bucket("{$age} BETWEEN 31 AND 60", 'due_31_60'),
+            $bucket("{$age} BETWEEN 61 AND 90", 'due_61_90'),
+            $bucket("{$age} > 90", 'due_over_90'),
+            DB::raw("MAX({$age}) AS days_outstanding"),
+        ];
+
+        return [$query, $columns, ['outstanding', 'due_0_30', 'due_31_60', 'due_61_90', 'due_over_90'], 'o.created_at', 'o.user_id'];
+    }
+
+    /** Confirmed orders that still have money to collect. */
+    private function openDues(Builder $query, bool $onlyOpen): Builder
+    {
+        return $query->when($onlyOpen, fn (Builder $q) => $q->whereRaw('o.paid < o.total-o.due_credit')
+            ->whereIn('o.status', ['approved', 'partially_dispatched', 'dispatched', 'delivered']));
+    }
+
+    /** Whole days since the order was placed, counted on Bangladesh calendar days. */
+    private function ageInDaysSql(): string
+    {
+        $today = DB::getPdo()->quote(now('Asia/Dhaka')->toDateString());
+
+        return "(DATE {$today} - DATE(o.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Dhaka'))";
     }
 
     private function uncategorisedSql(): string
