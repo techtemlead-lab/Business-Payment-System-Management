@@ -57,13 +57,19 @@ abstract class TestCase extends BaseTestCase
     {
         // Docker process variables have priority in dotenv. Set the test process
         // explicitly before bootstrap; never allow RefreshDatabase on the demo DB.
-        foreach (['DB_CONNECTION' => 'pgsql', 'DB_DATABASE' => 'madina_testing', 'APP_ENV' => 'testing', 'APP_URL' => 'http://example.test', 'APP_DOMAIN' => 'example.test', 'MAIL_MAILER' => 'array', 'SESSION_DRIVER' => 'array', 'CACHE_STORE' => 'array', 'QUEUE_CONNECTION' => 'sync'] as $key => $value) {
+        // MADINA_TEST_DATABASE lets two checkouts run tests at the same time without dropping
+        // each other's tables; it must still be a madina_testing* database.
+        $database = (string) (getenv('MADINA_TEST_DATABASE') ?: 'madina_testing');
+        if (! preg_match('/^madina_testing(_[a-z0-9]+)*$/D', $database)) {
+            throw new \RuntimeException('MADINA_TEST_DATABASE must be madina_testing or start with madina_testing_.');
+        }
+        foreach (['DB_CONNECTION' => 'pgsql', 'DB_DATABASE' => $database, 'APP_ENV' => 'testing', 'APP_URL' => 'http://example.test', 'APP_DOMAIN' => 'example.test', 'MAIL_MAILER' => 'array', 'SESSION_DRIVER' => 'array', 'CACHE_STORE' => 'array', 'QUEUE_CONNECTION' => 'sync'] as $key => $value) {
             putenv($key.'='.$value);
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
         }
         $app = parent::createApplication();
-        if ($app->make('config')->get('database.connections.pgsql.database') !== 'madina_testing') {
+        if ($app->make('config')->get('database.connections.pgsql.database') !== $database) {
             throw new \RuntimeException('Tests must use the isolated madina_testing database.');
         }
 
