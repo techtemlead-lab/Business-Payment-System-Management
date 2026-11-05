@@ -5,12 +5,18 @@ namespace App\Domain\Accounts;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Generator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 final class PartnerWalletStatement
 {
     /** @var list<string> */
     private const Accounts = ['wallet_liability', 'commission_held_liability'];
+
+    /** Journal key of the commissions credited for one order (order ids are UUIDs). */
+    private const OrderEvent = '/^commissions\.order\.([0-9a-f-]{36})$/i';
 
     /**
      * Build a partner wallet statement from liability journal lines.
@@ -92,6 +98,141 @@ final class PartnerWalletStatement
             'filters' => ['from' => $from, 'to' => $to],
             'lines' => array_reverse($lines),
         ];
+    }
+
+    /**
+     * The party ledger (পার্টির হিসাব) for one partner and date range: the
+     * opening balance, one line per money movement oldest first with its
+     * running balance, totals for the whole range and the closing balance.
+     * Lines are paged on the server; there is no row cap. A movement between
+     * held and available money inside one journal entry does not change the
+     * balance, so it is left out.
+     *
+     * @return array{
+     *   opening_balance: string,
+     *   closing_balance: string,
+     *   total_in: string,
+     *   total_out: string,
+     *   line_count: int,
+     *   lines: LengthAwarePaginator<int, array{entry_id: string, occurred_at: string, description: string, reference: ?string, order_id: ?string, withdrawal_id: ?string, money_in: string, money_out: string, balance: string}>
+     * }
+     */
+    public function ledger(User $user, string $from, string $to, int $perPage = 25): array
+    {
+        [$fromUtc, $toUtc] = $this->bounds($from, $to);
+        $opening = $this->openingBalanceCents($user->id, $fromUtc, null);
+        $totals = DB::query()->fromSub($this->ledgerEntries($user->id, $fromUtc, $toUtc), 'g')
+            ->selectRaw('COUNT(*) AS line_count')
+            ->selectRaw('COALESCE(SUM(GREATEST(g.net, 0)), 0) AS money_in')
+            ->selectRaw('COALESCE(SUM(GREATEST(-g.net, 0)), 0) AS money_out')
+            ->first();
+        $in = $this->signedCents((string) ($totals->money_in ?? '0'));
+        $out = $this->signedCents((string) ($totals->money_out ?? '0'));
+        $page = $this->ledgerLines($user->id, $fromUtc, $toUtc)->paginate($perPage)->withQueryString();
+        $page->setCollection(collect($this->ledgerRows($page->getCollection()->all(), $opening)));
+
+        return [
+            'opening_balance' => $this->signedDecimal($opening),
+            'closing_balance' => $this->signedDecimal($opening + $in - $out),
+            'total_in' => $this->signedDecimal($in),
+            'total_out' => $this->signedDecimal($out),
+            'line_count' => (int) ($totals->line_count ?? 0),
+            'lines' => $page,
+        ];
+    }
+
+    /**
+     * Every ledger line in the range, oldest first, for the Excel and PDF downloads.
+     *
+     * @return Generator<int, array{entry_id: string, occurred_at: string, description: string, reference: ?string, order_id: ?string, withdrawal_id: ?string, money_in: string, money_out: string, balance: string}>
+     */
+    public function ledgerLinesFor(User $user, string $from, string $to): Generator
+    {
+        [$fromUtc, $toUtc] = $this->bounds($from, $to);
+        $opening = $this->openingBalanceCents($user->id, $fromUtc, null);
+        foreach ($this->ledgerLines($user->id, $fromUtc, $toUtc)->lazy(500)->chunk(500) as $chunk) {
+            yield from $this->ledgerRows($chunk->all(), $opening);
+        }
+    }
+
+    /**
+     * Journal entries that moved this partner's money, one row each with the net change.
+     */
+    private function ledgerEntries(int $userId, ?CarbonImmutable $fromUtc, ?CarbonImmutable $toUtc): Builder
+    {
+        return DB::table('journal_lines as l')
+            ->join('journal_entries as j', 'j.id', '=', 'l.entry_id')
+            ->where('l.user_id', $userId)
+            ->whereIn('l.account', self::Accounts)
+            ->when($fromUtc, fn ($query) => $query->where('j.created_at', '>=', $fromUtc))
+            ->when($toUtc, fn ($query) => $query->where('j.created_at', '<', $toUtc))
+            ->groupBy('j.id', 'j.event_key', 'j.description', 'j.created_at')
+            ->havingRaw('SUM(l.credit) <> SUM(l.debit)')
+            ->select(['j.id as entry_id', 'j.event_key', 'j.description', 'j.created_at'])
+            ->selectRaw('SUM(l.credit) - SUM(l.debit) AS net');
+    }
+
+    /**
+     * Ledger entries oldest first with the change since the start of the range.
+     */
+    private function ledgerLines(int $userId, ?CarbonImmutable $fromUtc, ?CarbonImmutable $toUtc): Builder
+    {
+        return DB::query()->fromSub($this->ledgerEntries($userId, $fromUtc, $toUtc), 'g')
+            ->select('g.*')
+            ->selectRaw('SUM(g.net) OVER (ORDER BY g.created_at, g.entry_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running')
+            ->orderBy('g.created_at')
+            ->orderBy('g.entry_id');
+    }
+
+    /**
+     * Turns raw ledger entries into display lines, looking up order numbers in one query per batch.
+     *
+     * @param  list<object>  $entries
+     * @return list<array{entry_id: string, occurred_at: string, description: string, reference: ?string, order_id: ?string, withdrawal_id: ?string, money_in: string, money_out: string, balance: string}>
+     */
+    private function ledgerRows(array $entries, int $openingCents): array
+    {
+        $orderIds = [];
+        $refundIds = [];
+        foreach ($entries as $entry) {
+            if (preg_match(self::OrderEvent, (string) $entry->event_key, $match)) {
+                $orderIds[] = $match[1];
+            } elseif (preg_match('/^commissions\.reversal\.([0-9a-f-]{36})$/i', (string) $entry->event_key, $match)) {
+                $refundIds[] = $match[1];
+            }
+        }
+        $orders = $orderIds === [] ? collect() : DB::table('orders')->whereIn('id', array_unique($orderIds))->pluck('number', 'id');
+        $refunds = $refundIds === [] ? collect() : DB::table('commission_refunds as f')->join('orders as o', 'o.id', '=', 'f.order_id')
+            ->whereIn('f.id', array_unique($refundIds))->get(['f.id', 'o.id as order_id', 'o.number'])->keyBy('id');
+
+        return array_map(function (object $entry) use ($orders, $refunds, $openingCents): array {
+            $net = $this->signedCents((string) $entry->net);
+            $reference = null;
+            $orderId = null;
+            $withdrawalId = null;
+            if (preg_match(self::OrderEvent, (string) $entry->event_key, $match)) {
+                $orderId = $match[1];
+                $reference = $orders->get($orderId);
+            } elseif (preg_match('/^commissions\.reversal\.([0-9a-f-]{36})$/i', (string) $entry->event_key, $match) && $refunds->has($match[1])) {
+                $orderId = (string) $refunds->get($match[1])->order_id;
+                $reference = (string) $refunds->get($match[1])->number;
+            } elseif (preg_match('/^manual-payout:([0-9a-f-]{36})$/i', (string) $entry->event_key, $match)) {
+                $withdrawalId = $match[1];
+                $reference = 'WD-'.strtoupper(substr($match[1], 0, 8));
+            }
+
+            return [
+                'entry_id' => (string) $entry->entry_id,
+                'occurred_at' => CarbonImmutable::parse((string) $entry->created_at, 'UTC')->toIso8601String(),
+                'description' => (string) ($entry->description ?: $entry->event_key),
+                'reference' => $reference,
+                'order_id' => $orderId,
+                'withdrawal_id' => $withdrawalId,
+                'money_in' => Money::decimal(max($net, 0)),
+                'money_out' => Money::decimal(max(-$net, 0)),
+                'balance' => $this->signedDecimal($openingCents + $this->signedCents((string) $entry->running)),
+            ];
+        }, array_values($entries));
     }
 
     /**

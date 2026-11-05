@@ -204,6 +204,28 @@ class PortalQueryBudgetTest extends TestCase
             }));
     }
 
+    public function test_accounts_list_reads_rank_and_order_activity_without_a_query_per_dealer(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $this->rankLeaders(2);
+        foreach (User::where('role', 'dealer')->get() as $dealer) {
+            $this->order($dealer, 'delivered', total: '120.00');
+        }
+        $this->actingAs($owner)->onPortal('sadmin')->get('/accounts')->assertOk();
+
+        [$response, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/accounts'));
+        $response->assertOk();
+        $this->assertQueriesAtMost(20, $queries, 'accounts list');
+        $this->assertSame(1, $this->matching($queries, 'max(orders.created_at)'), 'Last order and month purchases should come from one grouped query.');
+
+        $this->rankLeaders(8);
+        foreach (User::where('role', 'dealer')->get() as $dealer) {
+            $this->order($dealer, 'approved', total: '80.00');
+        }
+        [, $moreQueries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/accounts'));
+        $this->assertCount(count($queries), $moreQueries, 'Accounts list queries must not grow with the number of dealers.');
+    }
+
     public function test_dashboard_filter_columns_are_indexed(): void
     {
         $indexes = collect(DB::select("select indexname from pg_indexes where schemaname = 'public'"))->pluck('indexname');

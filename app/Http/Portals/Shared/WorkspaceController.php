@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared;
 
+use App\Domain\Accounts\PartnerAccountList;
 use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
@@ -49,6 +50,7 @@ use App\Support\PortalCatalog;
 use App\Support\PortalHost;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -121,6 +123,7 @@ class WorkspaceController extends Controller
             'max_mrp' => 'nullable|numeric|min:0',
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
             'sort' => 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
+            ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -157,7 +160,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days'])]);
     }
 
     public function createAccount(Request $r): Response
