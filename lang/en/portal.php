@@ -5935,4 +5935,13 @@ return [
     'office_today_payments' => 'Payments waiting',
     'office_today_withdrawals' => 'Withdrawals waiting',
     'ops_col_created_at' => 'Date',
+    'err_wd_kyc_first' => 'Before your first withdrawal, the office must check your ID papers (NID or birth certificate). Please contact the office.',
+    'wd_kyc_needed_title' => 'ID papers needed first',
+    'wd_kyc_needed_body' => 'Before your first withdrawal, the office must check your ID papers (NID or birth certificate). Please bring or send them to the office. After that you can ask to withdraw money.',
+    'kyc_wd_title' => 'ID papers before the first withdrawal',
+    'kyc_wd_body' => 'When this is on, a dealer or sub-dealer cannot ask for their first withdrawal until the office has checked and saved their ID papers (NID front or birth certificate). People who have been paid before are not affected.',
+    'kyc_wd_switch' => 'Approved ID papers (NID/KYC) needed before the first withdrawal',
+    'kyc_wd_on' => 'On: first withdrawal waits until ID papers are checked.',
+    'kyc_wd_off' => 'Off: partners can withdraw without ID papers on file.',
+    'kyc_wd_owner_only' => 'Only the owner can change this.',
 ];
