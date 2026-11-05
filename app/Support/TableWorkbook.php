@@ -91,7 +91,9 @@ final class TableWorkbook
             foreach ($columns as $column) {
                 $value = $row[$column['key']] ?? null;
                 $type = $column['type'] ?? 'text';
-                if ($type === 'money') {
+                if ($type !== 'text' && ($value === null || $value === '')) {
+                    $cells[] = new StringCell('');
+                } elseif ($type === 'money') {
                     $cents = self::signedCents($value);
                     if (array_key_exists($column['key'], $totals)) {
                         $totals[$column['key']] += $cents;
