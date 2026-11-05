@@ -29,7 +29,7 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[] }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[] }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -139,6 +139,13 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         </div>
         {order.note && <div className="notice"><b>{translate('portal', 'order_note')}</b><p>{order.note}</p></div>}
         {order.decision_reason && <div className="notice"><b>{translate('portal', 'staff_decision')}</b><p>{order.decision_reason}</p></div>}
+        {refund && <section className="panel" data-testid="order-refund"><h2>{translate('portal', 'order_refund_recorded')}</h2><p>{translate('portal', 'order_refund_recorded_body', { amount: money(refund.amount), name: String(refund.refunded_by), date: date(refund.created_at) })}</p><p className="muted">{refund.reason}</p></section>}
+        {canRefund && !refund && <section className="panel narrow-panel"><h2>{translate('portal', 'order_refund_title')}</h2><p className="muted">{translate('portal', 'order_refund_hint')}</p>
+            <ActionForm action={`/commands/orders/${order.id}/refund`} fields={[
+                { name: 'amount', label: translate('portal', 'order_refund_amount'), type: 'number', required: true, value: String(order.paid) },
+                { name: 'reason', label: translate('portal', 'order_refund_reason'), type: 'textarea', required: true },
+            ]} submit={translate('portal', 'order_refund_submit')} />
+        </section>}
         {owner && open && outstanding !== '0.00' && <section className="panel narrow-panel">
             <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[

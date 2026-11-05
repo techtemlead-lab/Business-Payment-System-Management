@@ -80,12 +80,12 @@ final class SocialShareMeta
             $url .= (str_contains($url, '?') ? '&' : '?').'ref='.rawurlencode($code);
             $partnerPayload = [
                 'name' => (string) $partner->name,
-                'phone' => $partner->phone ? (string) $partner->phone : null,
+                'phone' => self::publicPhone($partner),
                 'photo' => self::partnerPhoto($partner),
                 'code' => $code,
             ];
-            $contactLine = $partner->phone
-                ? __('site.share_product_partner_contact', ['name' => $partner->name, 'phone' => $partner->phone])
+            $contactLine = $partnerPayload['phone'] !== null
+                ? __('site.share_product_partner_contact', ['name' => $partner->name, 'phone' => $partnerPayload['phone']])
                 : __('site.share_product_partner_name', ['name' => $partner->name]);
             $description = $contactLine.' '.$description;
             if ($partnerPayload['photo']) {
@@ -139,11 +139,26 @@ final class SocialShareMeta
             'site_name' => (string) config('app.name', 'Madina Natural Health Care'),
             'partner' => [
                 'name' => (string) $partner->name,
-                'phone' => $partner->phone ? (string) $partner->phone : null,
+                'phone' => self::publicPhone($partner),
                 'photo' => $photo,
                 'code' => $code,
             ],
         ];
+    }
+
+    /**
+     * The partner's phone number as it may appear on public pages and share cards.
+     * Partners hidden from the public dealer directory keep their number private.
+     */
+    public static function publicPhone(User $partner): ?string
+    {
+        if (! $partner->directory_visible) {
+            return null;
+        }
+
+        $phone = trim((string) $partner->phone);
+
+        return $phone === '' ? null : $phone;
     }
 
     public static function partnerPhoto(User $partner): ?string

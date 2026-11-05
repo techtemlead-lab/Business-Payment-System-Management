@@ -18,6 +18,7 @@ use App\Domain\Geography\ManagementReferral;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Orders\OrderRefund;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\PartnerStaffLink;
 use App\Domain\Staff\StaffPermissions;
@@ -28,6 +29,7 @@ use App\Http\Requests\Backend\ClaimPaymentRequest;
 use App\Http\Requests\Backend\ConfirmDeliveryRequest;
 use App\Http\Requests\Backend\DecideOrderRequest;
 use App\Http\Requests\Backend\DispatchOrderRequest;
+use App\Http\Requests\Backend\RefundOrderRequest;
 use App\Http\Requests\Backend\StoreOrderRequest;
 use App\Http\Requests\Backend\VerifyPaymentRequest;
 use App\Models\AreaDealerAssignment;
@@ -74,6 +76,15 @@ class CommandController extends Controller
         $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_decision'));
+    }
+
+    /** Send a paid, not-yet-dispatched order's money back to the dealer and reverse its commission. */
+    public function refund(RefundOrderRequest $r, Order $order, OrderRefund $refunds): RedirectResponse
+    {
+        $d = $r->validated();
+        $refunds->refund($r->user(), $order, (string) $d['amount'], $d['reason']);
+
+        return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_refunded'));
     }
 
     public function verify(VerifyPaymentRequest $r, int $claim, OrderService $s): RedirectResponse

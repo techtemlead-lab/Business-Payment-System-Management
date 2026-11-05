@@ -25,6 +25,8 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(/^\/commands\/branches\/\d+\/select$/.test(path))return true;
     if(path.startsWith('/commands/branches'))return any(['inventory','accounts'],method==='post'&&path==='/commands/branches'?'create':'edit');
     if(/\/decision$/.test(path))return any(['order_review'],'approve');
+    // Owners may refund without a staff matrix entry; the order page only shows this form when the server says canRefund.
+    if(/^\/commands\/orders\/[^/]+\/refund$/.test(path))return true;
     if(/\/dispatch$|\/delivered$/.test(path))return any(['inventory'],'edit');
     if(path.startsWith('/commands/claims')||path.startsWith('/commands/withdrawals'))return any(['finance'],'approve');
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');

@@ -266,6 +266,7 @@ final class BranchOperations
      */
     public function adjustStock(User $actor, array $data): Product
     {
+        $this->assertCompanyHandler($actor);
         abort_unless($actor->allows('inventory'), 403);
         $branch = $this->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
 
@@ -377,8 +378,24 @@ final class BranchOperations
         return $reasonCode !== '' ? $reasonCode : $reason;
     }
 
+    /**
+     * Goods are sold and moved only by the company. A dealer or sub-dealer acting
+     * as a partner can never send stock out of a branch, dispatch an order, or
+     * move stock to another partner; only company staff (or a partner signed in
+     * to a linked staff workspace, acting for the company) can.
+     */
+    public function assertCompanyHandler(User $actor): void
+    {
+        abort_if(
+            in_array($actor->role, ['dealer', 'sub_dealer'], true) && ! $actor->usingStaffWorkspace(),
+            403,
+            __('portal.err_partner_cannot_sell'),
+        );
+    }
+
     public function resolveWritableBranch(User $actor, ?int $branchId = null): CompanyBranch
     {
+        $this->assertCompanyHandler($actor);
         $id = $branchId ?: (int) $actor->active_branch_id;
         if ($id < 1) {
             $id = (int) CompanyBranch::query()->active()->orderBy('id')->value('id');

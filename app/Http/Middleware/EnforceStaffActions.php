@@ -61,6 +61,10 @@ class EnforceStaffActions
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
+        if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {
+            // The owners decided they may refund a paid order themselves; OrderRefund checks again.
+            return $next($request);
+        }
         if (in_array($controller, ['TrainingController', 'PartnerEventController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
@@ -137,7 +141,7 @@ class EnforceStaffActions
                 'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'revealPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
                 'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
-                'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
+                'decision' => [['order_review'], 'approve'], 'verify', 'refund' => [['finance'], 'approve'],
                 'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization' => [['content'], 'edit'],
                 'enquiry', 'moderateSiteFeedback' => [['content', 'accounts'], 'edit'],

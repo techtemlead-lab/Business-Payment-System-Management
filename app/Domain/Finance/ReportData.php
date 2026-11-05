@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register'];
+    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
 
     /** Money still to collect on one order; never negative. */
     private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
@@ -64,6 +64,11 @@ final class ReportData
             'tds-register' => [DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id')->where('w.status', 'paid'),
                 ['w.paid_at', 'u.dealer_code', 'u.name', 'u.phone', 'u.role', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.payment_reference'],
                 ['amount', 'withheld_amount', 'net_amount'], 'w.paid_at', 'w.user_id'],
+            // Money sent back to dealers for paid orders that were never sent out.
+            'order-refunds' => [DB::table('order_refunds as f')->join('orders as o', 'o.id', '=', 'f.order_id')->join('users as u', 'u.id', '=', 'f.user_id')
+                ->join('users as staff', 'staff.id', '=', 'f.refunded_by'),
+                ['f.created_at', 'o.number', 'u.dealer_code', 'u.name', 'u.phone', 'f.paid_before', 'f.amount', 'f.reason', DB::raw('staff.name AS refunded_by')],
+                ['paid_before', 'amount'], 'f.created_at', 'f.user_id'],
             'refunds' => [DB::table('commission_refunds as f')->join('orders as o', 'o.id', '=', 'f.order_id')->join('users as u', 'u.id', '=', 'o.user_id'),
                 ['f.id', 'o.number', 'u.name', 'f.reference', 'f.amount', 'f.reason', 'f.created_at'], ['amount'], 'f.created_at', 'o.user_id'],
         };
