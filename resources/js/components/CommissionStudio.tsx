@@ -38,7 +38,9 @@ interface RuleRecord {
 
 export default function CommissionStudio({ rules: initialRules, limits }: { rules: RuleRecord[]; limits?: PolicyLimits }) {
     const translate = useT();
-    const {staffActions, data: pageData} = usePage<any>().props;
+    const {staffActions, data: pageData, auth} = usePage<any>().props;
+    // Only the owner's own changes apply at once; everyone else's wait for the owner's approval.
+    const needsOwnerApproval = auth?.user?.role !== 'super_admin';
     const canEdit = staffActions?.finance?.edit ?? true;
     const policyLimits: PolicyLimits = limits ?? pageData?.policy_limits ?? {};
     const dealerCap = policyPercent(policyLimits.dealer_pool_cap_pct);
@@ -105,6 +107,12 @@ export default function CommissionStudio({ rules: initialRules, limits }: { rule
                             {isOverAllocated
                                 ? translate('portal','cs_review_limits')
                                 : translate('portal','cs_editable_hint')}
+                        </div>
+                        <div className="hub-sub">
+                            {needsOwnerApproval
+                                ? translate('portal','cs_owner_approval_needed')
+                                : translate('portal','cs_owner_applies_now')}{' '}
+                            <a className="text-link" href="/operations/policy-schedules">{translate('portal','cs_pending_changes_link')}</a>
                         </div>
                     </div>
 

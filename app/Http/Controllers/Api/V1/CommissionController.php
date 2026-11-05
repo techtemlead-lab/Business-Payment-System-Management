@@ -28,10 +28,15 @@ class CommissionController extends Controller
     public function updatePolicy(Request $request, CommissionPolicy $policy): JsonResponse
     {
         abort_unless($request->user()->allows('finance'), 403);
-        $data = $request->validate(['rules' => 'required|array']);
-        $policy->update($request->user(), $data['rules']);
+        $data = $request->validate(['rules' => 'required|array', 'reason' => 'nullable|string|max:500']);
+        $result = $policy->update($request->user(), $data['rules'], $data['reason'] ?? null);
 
-        return response()->json(['data' => $policy->snapshot()]);
+        // A pending change is accepted but not live yet: the returned rules are still the old ones.
+        return response()->json([
+            'data' => $policy->snapshot(),
+            'meta' => $result,
+            'message' => $result['status'] === 'pending' ? __('portal.flash_commission_change_pending') : __('portal.flash_commission_policy_updated'),
+        ], $result['status'] === 'pending' ? 202 : 200);
     }
 
     public function postOrder(Request $request, Order $order, CommissionService $service): JsonResponse

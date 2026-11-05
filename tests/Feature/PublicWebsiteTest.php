@@ -158,15 +158,15 @@ class PublicWebsiteTest extends TestCase
         $res->assertSee('Our Mission');
         $res->assertSee('Our Vision');
         $res->assertSee('Core Objectives');
-        $res->assertSee('Authentic Wellness:');
-        $res->assertSee('Empowered Partners:');
+        $res->assertSee('Genuine Products:');
+        $res->assertSee('Strong Partners:');
         $res->assertSee('Trade License 2026-00563');
         $res->assertSee('Thana Road, Pirganj 5470, Rangpur');
         $res->assertSee('staff-verified dealer and sub-dealer network');
         $res->assertSee('dependable mother company for dealers');
         $res->assertSee('Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka');
         $res->assertSee('Dealer &amp; Sub-dealer Network', false);
-        $res->assertSee('no public self-registration');
+        $res->assertSee('nobody can open an account on their own');
         $res->assertSee('product documentation for every SKU');
     }
 
@@ -189,7 +189,9 @@ class PublicWebsiteTest extends TestCase
         $terms->assertSee('Terms of Use');
         $terms->assertSee('1. Agreement to These Terms');
         $terms->assertSee('3. Partner Network Accounts');
-        $terms->assertSee('4. Orders, Payments &amp; TrxID Claims', false);
+        $terms->assertSee('4. Orders, Payments &amp; TrxID', false);
+        $terms->assertDontSee('TrxID Claims');
+        $terms->assertSee('paid in full before the company approves');
         $terms->assertSee('9. Contact');
         $terms->assertSee('Effective: October 2026');
         $terms->assertSee('Madina Natural Health Care · Operational policy', false);

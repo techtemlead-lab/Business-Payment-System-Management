@@ -98,7 +98,7 @@ class FinanceOperationsController extends Controller
 
     public function scheduleReview(Request $request, int $id, PolicyScheduling $schedules): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,cancelled', 'reason' => self::Reason]);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected,cancelled', 'reason' => self::Reason]);
         $schedules->review($request->user(), $id, $data['decision'], $data['reason']);
 
         return $this->done($request);

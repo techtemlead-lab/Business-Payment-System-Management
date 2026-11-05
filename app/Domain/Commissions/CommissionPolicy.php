@@ -144,17 +144,32 @@ final class CommissionPolicy
         return $base;
     }
 
-    /** @param array<string, mixed> $rules */
-    public function update(User $actor, array $rules): void
+    /** Only the company owner (Super Admin) approves commission rate changes (owner decision, 2026-11-05). */
+    public static function approves(User $actor): bool
+    {
+        return $actor->status === 'active' && $actor->role === 'super_admin';
+    }
+
+    /**
+     * Change commission rules. The owner's own change applies at once. Anyone else's change
+     * is saved as a pending change: the old rates stay in force until the owner approves it.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return array{status: 'applied'|'pending', schedule_id: ?int}
+     */
+    public function update(User $actor, array $rules, ?string $reason = null): array
     {
         abort_unless($actor->canAct('finance', 'edit'), 403);
         if ($rules === [] || array_diff_key($rules, self::defaults()) !== []) {
             throw ValidationException::withMessages(['rules' => __('portal.err_policy_unknown_keys')]);
         }
-        DB::transaction(function () use ($actor, $rules): void {
+
+        return DB::transaction(function () use ($actor, $rules, $reason): array {
             CommissionWallet::lock();
             CommissionRuleParameter::query()->orderBy('id')->lockForUpdate()->get();
-            $merged = $this->snapshot(false)['rules'];
+            $live = $this->snapshot(false);
+            $merged = $live['rules'];
+            $before = $merged;
             foreach ($rules as $key => $input) {
                 if (! is_array($input)) {
                     throw ValidationException::withMessages(['rules' => __('portal.err_policy_rule_object')]);
@@ -182,16 +197,70 @@ final class CommissionPolicy
                 $merged[$key] = array_replace($merged[$key], $data);
             }
             $this->validateSchedule($merged);
-            foreach (array_keys($rules) as $key) {
-                $row = CommissionRuleParameter::firstOrCreate(['rule_key' => $key], self::defaults()[$key]);
-                $row->update([...collect($merged[$key])->only(['percentage', 'amount_threshold', 'cap_limit', 'parameters', 'is_active'])->all(),
-                    'version' => $row->version + 1, 'updated_by' => $actor->id]);
-                $merged[$key]['version'] = $row->version;
+            $changes = PolicyChangeSummary::diff(array_intersect_key($before, $rules), array_intersect_key($merged, $rules));
+            if (! self::approves($actor)) {
+                if ($changes === []) {
+                    throw ValidationException::withMessages(['rules' => __('portal.err_policy_no_change')]);
+                }
+                $id = DB::table('commission_policy_schedules')->insertGetId([
+                    'scope' => 'global', 'user_id' => null, 'origin' => 'rule_edit',
+                    'rules' => json_encode($merged, JSON_THROW_ON_ERROR), 'changes' => json_encode($changes, JSON_THROW_ON_ERROR),
+                    'base_revision_id' => $live['revision_id'], 'effective_at' => now(), 'expires_at' => null,
+                    'reason' => $reason !== null && trim($reason) !== '' ? trim($reason) : __('portal.policy_change_default_reason'),
+                    'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now(),
+                ]);
+                Audit::record($actor->id, 'commissions.rules_change_proposed', (string) $id, [
+                    'rule_keys' => array_keys($changes),
+                    'changes' => $changes,
+                ]);
+                $this->tellOwners($actor, $changes);
+
+                return ['status' => 'pending', 'schedule_id' => $id];
             }
-            DB::table('commission_policy_revisions')->insert(['rules' => json_encode($merged, JSON_THROW_ON_ERROR),
-                'effective_at' => now(), 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'commissions.rules_updated', 'system', ['rule_keys' => array_keys($rules)]);
+
+            $this->apply($actor, $merged, array_keys($rules), null);
+            Audit::record($actor->id, 'commissions.rules_updated', 'system', [
+                'rule_keys' => array_keys($changes),
+                'changes' => $changes,
+                'proposed_by' => $actor->id,
+                'approved_by' => $actor->id,
+            ]);
+
+            return ['status' => 'applied', 'schedule_id' => null];
         }, 3);
+    }
+
+    /**
+     * Make rules live: bump the per-rule versions and write a new revision. The caller holds the
+     * commission lock and has validated the rules.
+     *
+     * @param  array<string, array<string, mixed>>  $merged
+     * @param  list<string>  $keys
+     */
+    public function apply(User $approver, array $merged, array $keys, ?int $scheduleId): void
+    {
+        foreach ($keys as $key) {
+            $row = CommissionRuleParameter::firstOrCreate(['rule_key' => $key], self::defaults()[$key]);
+            $row->update([...collect($merged[$key])->only(['percentage', 'amount_threshold', 'cap_limit', 'parameters', 'is_active'])->all(),
+                'version' => $row->version + 1, 'updated_by' => $approver->id]);
+            $merged[$key]['version'] = $row->version;
+        }
+        DB::table('commission_policy_revisions')->insert(['rules' => json_encode($merged, JSON_THROW_ON_ERROR), 'schedule_id' => $scheduleId,
+            'effective_at' => now(), 'created_by' => $approver->id, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    /** @param array<string, mixed> $changes */
+    private function tellOwners(User $actor, array $changes): void
+    {
+        $summary = PolicyChangeSummary::describe($changes);
+        foreach (User::query()->where('role', 'super_admin')->where('status', 'active')->get() as $owner) {
+            $locale = $owner->preferredLocale();
+            Audit::notice(
+                $owner->id,
+                __('portal.notice_policy_change_pending_title', [], $locale),
+                __('portal.notice_policy_change_pending_body', ['name' => $actor->name, 'summary' => $summary], $locale),
+            );
+        }
     }
 
     /** @param array<string, array<string, mixed>> $rules */

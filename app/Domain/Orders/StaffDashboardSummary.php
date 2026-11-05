@@ -22,7 +22,7 @@ final class StaffDashboardSummary
      * @return array{
      *     work_queue: list<array{key: string, count: int, section: string, query?: array<string, string>}>,
      *     trend: list<array{date: string, orders: int, value: string}>,
-     *     month: array{sales: string, collected: string, orders: int}|null
+     *     month: array{sales: string, collected: string, collected_today: string, orders: int}|null
      * }
      */
     public function for(User $viewer): array
@@ -122,17 +122,29 @@ final class StaffDashboardSummary
     }
 
     /**
-     * @return array{sales: string, collected: string, orders: int}
+     * Sales and money received this month. Money received today comes from the same
+     * receipts query, so the home screen's "today" card costs no extra query.
+     *
+     * @return array{sales: string, collected: string, collected_today: string, orders: int}
      */
     private function month(): array
     {
         $timezone = (string) config('madina.business_timezone', config('app.timezone', 'Asia/Dhaka'));
-        $from = CarbonImmutable::now($timezone)->startOfMonth()->utc();
+        $now = CarbonImmutable::now($timezone);
+        $from = $now->startOfMonth()->utc();
         $confirmed = Order::query()->whereIn('status', OrderListFilter::Confirmed)->where('created_at', '>=', $from);
+        $collected = DB::table('receipts')
+            ->where('created_at', '>=', $from)
+            ->selectRaw(
+                'COALESCE(SUM(amount), 0) AS month_total, COALESCE(SUM(amount) FILTER (WHERE created_at >= ?), 0) AS today_total',
+                [$now->startOfDay()->utc()],
+            )
+            ->first();
 
         return [
             'sales' => Money::decimal(Money::cents((string) ((clone $confirmed)->sum('total') ?: '0.00'))),
-            'collected' => Money::decimal(Money::cents((string) (DB::table('receipts')->where('created_at', '>=', $from)->sum('amount') ?: '0.00'))),
+            'collected' => Money::decimal(Money::cents((string) $collected->month_total)),
+            'collected_today' => Money::decimal(Money::cents((string) $collected->today_total)),
             'orders' => (clone $confirmed)->count(),
         ];
     }

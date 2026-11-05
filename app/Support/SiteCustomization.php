@@ -25,8 +25,22 @@ class SiteCustomization
     /** @var array<string, mixed>|null */
     private static ?array $requestMemo = null;
 
+    /** @var array<string, mixed>|null */
+    private static ?array $englishSiteCopy = null;
+
+    /**
+     * Factory text for the website editor and the public site.
+     *
+     * Text that also has a Bangla translation is read from lang/en/site.php,
+     * so the English default and the Bangla translation always describe the
+     * same thing. Old factory wording lives in SiteCustomizationRetiredDefaults.
+     *
+     * @return array<string, mixed>
+     */
     public static function defaults(): array
     {
+        $copy = static fn (string $siteKey): string => self::englishSiteCopy($siteKey);
+
         return [
             // Top Bar & Header Branding
             'top_bar_text' => 'Madina Natural Health Care',
@@ -45,7 +59,7 @@ class SiteCustomization
             'header_catalog_title' => 'Products',
             'header_network_title' => 'Dealer Network',
             'company_intro_title' => 'Madina Natural Health Care',
-            'company_intro_body' => 'Explore our company, our product range and the people connecting our products with communities across Bangladesh.',
+            'company_intro_body' => $copy('company_intro_body'),
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
             // Mobile search overlay — Popular Categories chips (admin-managed)
@@ -55,7 +69,7 @@ class SiteCustomization
             'mobile_search_categories_limit' => '6',
 
             // Announcement & Ticker
-            'announcement_text' => 'For product availability and dealership enquiries, please contact the company.',
+            'announcement_text' => $copy('announcement_text'),
 
             // Carousel Slides (1 to 5)
             // Carousel Slides (3 Dedicated Hero Banners)
@@ -78,10 +92,10 @@ class SiteCustomization
             ],
             'side_banner_1_image' => '/branding/madina-side-banner-1.jpg',
             'side_banner_1_link' => '/products',
-            'side_banner_1_alt' => 'Madina Premium Natural Care - 100% Pure Botanical Ingredients',
+            'side_banner_1_alt' => $copy('side_banner_1_alt'),
             'side_banner_2_image' => '/branding/madina-side-banner-2.jpg',
             'side_banner_2_link' => '/dealers',
-            'side_banner_2_alt' => 'Madina Authorized Dealer Network - Nationwide Distribution',
+            'side_banner_2_alt' => $copy('side_banner_2_alt'),
 
             // Quick Shortcuts
             'shortcuts_section_enabled' => '1',
@@ -97,7 +111,7 @@ class SiteCustomization
             'campaign_section_enabled' => '0',
             'campaign_badge' => 'SPECIAL CAMPAIGN & OFFERS',
             'campaign_title' => 'Special Discounts & Promotional Offers',
-            'campaign_subtitle' => 'Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.',
+            'campaign_subtitle' => 'Health packages for a short time, bulk offers for shop owners and seasonal discounts.',
             'campaign_cards' => [],
             // Retain legacy flat keys for backward compatibility
             'campaign_card1_product_id' => '',
@@ -131,14 +145,14 @@ class SiteCustomization
             'featured_categories_subtitle' => 'Explore products by category.',
             'featured_categories_items' => '',
             'dealer_banner_title' => 'Authorized Dealer Network',
-            'dealer_banner_subtitle' => 'Connect with an authorized local dealer for product information and purchase enquiries.',
+            'dealer_banner_subtitle' => $copy('dealer_banner_subtitle'),
             'dealer_banner_btn_text' => 'Find Nearest Dealer',
 
             // Featured Products Section
             'featured_products_enabled' => '1',
-            'featured_products_badge' => 'POPULAR SELECTION',
+            'featured_products_badge' => $copy('featured_products_badge'),
             'featured_products_title' => 'Featured Products',
-            'featured_products_subtitle' => 'Check & Get Your Desired Product!',
+            'featured_products_subtitle' => $copy('featured_products_subtitle'),
             'featured_products_view_all' => 'View All Products',
             'featured_products_view_all_link' => '/products',
             'featured_products_tabs_enabled' => '1',
@@ -167,8 +181,8 @@ class SiteCustomization
             // Brand Video Gallery Showcase (Toggleable by Admin)
             // Off by default until real company videos are configured — avoids placeholder embeds on a corporate site.
             'video_gallery_enabled' => '0',
-            'video_gallery_title' => 'Brand & Product Stories',
-            'video_gallery_subtitle' => 'Company stories, herbal process highlights and authentic product demonstrations.',
+            'video_gallery_title' => $copy('video_gallery_title'),
+            'video_gallery_subtitle' => $copy('video_gallery_subtitle'),
             'video_gallery_items' => [
                 ['title' => 'Herbal Care Guidance', 'subtitle' => 'Application guidance for Madina botanical care', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-top-skincare.jpg'],
                 ['title' => 'Natural Formulation Story', 'subtitle' => 'How Madina prepares botanical formulations', 'video_url' => '', 'video_embed_url' => '', 'thumbnail' => '/branding/madina-side-banner-1.jpg'],
@@ -176,30 +190,30 @@ class SiteCustomization
 
             // Homepage About
             'about_headline' => 'Natural Food, Medicine & Wellness Product Shop in Bangladesh',
-            'about_lead' => 'Licensed distributor of Holistic Nutracare herbal and nutrition products. Explore the collection and contact Madina Natural Health Care for product information and partnership enquiries.',
+            'about_lead' => 'Licensed distributor of Holistic Nutracare herbal and nutrition products. See our products, or contact Madina Natural Health Care about a product or about becoming a dealer.',
             'about_summary_title' => 'Read More',
-            'about_summary_body' => 'Our partner workspace brings product requests, deliveries, verified manual payments and company support together. Dealer accounts are created by authorized company staff.',
+            'about_summary_body' => 'Dealers order, pay, follow deliveries and get help from their own panel. Only company staff can open a dealer account.',
 
             // About Us Page (/about)
             'about_hero_title' => 'About Madina Natural Health Care',
-            'about_hero_lead' => 'Madina Natural Health Care is a licensed single-owner distributor (Trade License 2026-00563, Pirganj Municipality) headquartered on Thana Road, Pirganj 5470, Rangpur. We supply chemical-free herbal and Holistic Nutracare nutrition products through an authorized dealer and sub-dealer network serving communities across Bangladesh.',
+            'about_hero_lead' => $copy('about_hero_lead'),
             'about_history_title' => 'Company History',
-            'about_history' => 'Madina Natural Health Care was established under the ownership of Md Anowar Hossain as a licensed natural health distributor based in Pirganj, Rangpur. From a focused local operation we built a structured channel for Holistic Nutracare nutrition and herbal products manufactured from natural raw materials under modern process standards. Today the company links head office, authorized dealers and sub-dealers so authentic wellness products reach pharmacies, partner outlets and households nationwide, with warehouse support from Chaira, Moshorikhula, Hemayetpur, Savar, Dhaka.',
+            'about_history' => $copy('about_history'),
             'about_mission_title' => 'Our Mission',
-            'about_mission' => 'To protect public health by ensuring adulterant-free food and promoting the correct use of herbal products, while building a transparent, staff-verified dealer and sub-dealer network that equips local entrepreneurs with reliable inventory, fair commercial terms and accountable order and payment processes.',
+            'about_mission' => $copy('about_mission'),
             'about_vision_title' => 'Our Vision',
-            'about_vision' => 'To place chemical-free natural herbal and food products in every home in Bangladesh, and to be recognized as a dependable mother company for dealers, sub-dealers and community health partners who grow sustainable livelihoods through authentic wellness distribution.',
+            'about_vision' => $copy('about_vision'),
             'about_objectives_title' => 'Core Objectives',
-            'about_obj1_title' => 'Authentic Wellness',
-            'about_obj1_desc' => 'Supply safe, verified unani medicines and dietary supplements with clear quality standards and product documentation for every SKU in the catalog.',
-            'about_obj2_title' => 'Empowered Partners',
-            'about_obj2_desc' => 'Support authorized dealers and sub-dealers with fair territory terms, structured product training, dedicated partner portals and company-backed commercial guidance.',
-            'about_obj3_title' => 'Accessible Care',
-            'about_obj3_desc' => 'Connect rural and urban communities with nearby partner outlets and complementary physiotherapy and natural health guidance where company services operate.',
-            'about_obj4_title' => 'Transparent Operations',
-            'about_obj4_desc' => 'Maintain staff-audited product requests, manual payment verification, delivery records and distribution accountability from head office through the partner network.',
+            'about_obj1_title' => $copy('about_obj1_title'),
+            'about_obj1_desc' => $copy('about_obj1_desc'),
+            'about_obj2_title' => $copy('about_obj2_title'),
+            'about_obj2_desc' => $copy('about_obj2_desc'),
+            'about_obj3_title' => $copy('about_obj3_title'),
+            'about_obj3_desc' => $copy('about_obj3_desc'),
+            'about_obj4_title' => $copy('about_obj4_title'),
+            'about_obj4_desc' => $copy('about_obj4_desc'),
             'about_network_title' => 'Dealer & Sub-dealer Network',
-            'about_network' => 'Madina operates as the mother company for a staff-governed distribution network. Dealer and sub-dealer accounts are created only after company review—there is no public self-registration. Authorized partners place product requests through dedicated portals, submit manual payment evidence for verification, and serve end customers under approved commercial terms. This model keeps inventory, pricing discipline and customer trust aligned from Pirganj head office to local outlets across Bangladesh.',
+            'about_network' => $copy('about_network'),
             'about_btn_products' => 'Explore Products',
             'about_btn_dealers' => 'Find a Dealer',
             'about_btn_contact' => 'Contact Head Office',
@@ -214,9 +228,9 @@ class SiteCustomization
             'contact_email_title' => 'Official Email',
             'contact_email' => 'holisticnutracare@gmail.com',
             'contact_topic1_title' => 'Dealer Enquiries',
-            'contact_topic1_desc' => 'Dealer accounts are created by company staff after review.',
+            'contact_topic1_desc' => $copy('contact_topic1_desc'),
             'contact_topic2_title' => 'Products & Support',
-            'contact_topic2_desc' => 'Ask about availability, orders and your local dealer.',
+            'contact_topic2_desc' => $copy('contact_topic2_desc'),
             'contact_topic3_title' => 'Head Office',
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
@@ -232,9 +246,9 @@ class SiteCustomization
 
             // Dealer Directory Page (/dealers)
             'directory_title' => 'Dealer Directory',
-            'directory_subtitle' => 'Find a company-approved dealer point or search nearest dealers in your area.',
+            'directory_subtitle' => $copy('directory_subtitle'),
             'directory_gps_btn' => 'Find nearest dealers',
-            'directory_empty_title' => 'No published dealers in this area yet.',
+            'directory_empty_title' => $copy('directory_empty_title'),
             'directory_empty_desc' => 'Contact us for help finding a local dealer.',
 
             // Products Catalog Page (/products)
@@ -242,23 +256,23 @@ class SiteCustomization
             'catalog_all_products_label' => 'All Products',
             'catalog_price_title' => 'MRP Range',
             'catalog_instock_label' => 'In-stock products only',
-            'catalog_apply_filters_btn' => 'Apply Filters',
+            'catalog_apply_filters_btn' => $copy('apply_filters'),
             'catalog_clear_filters_btn' => 'Clear Filters',
             'catalog_sort_by_label' => 'Sort By',
             'catalog_empty_title' => 'No products found',
-            'catalog_empty_desc' => 'Try another search or clear your filters.',
+            'catalog_empty_desc' => $copy('catalog_empty_desc'),
             'catalog_empty_btn' => 'Browse All Products',
 
             // Product Cards & Product Details (/product/{slug})
             'product_in_stock_label' => 'In Stock',
-            'product_out_of_stock_label' => 'Awaiting Stock',
+            'product_out_of_stock_label' => $copy('out_of_stock'),
             'product_add_to_cart_btn' => 'Add to Cart',
             'product_buy_now_btn' => 'Buy Now',
             'product_share_label' => 'Share:',
             'product_save_btn' => 'Save',
             'product_compare_btn' => 'Add to Compare',
-            'product_payment_mode_label' => 'Cash / Manual Payment',
-            'product_purchase_note' => 'Partner product requests and manual payments are reviewed by company staff.',
+            'product_payment_mode_label' => 'bKash / Nagad / Rocket / bank',
+            'product_purchase_note' => 'Dealers pay the full order amount and send a payment screenshot. Goods are sent after the payment is checked.',
             'product_video_title' => 'Product Video',
             'product_tab_description' => 'Description',
             'product_tab_specification' => 'Specification',
@@ -299,8 +313,8 @@ class SiteCustomization
             'floating_cart_label' => 'CART',
             'floating_chat_label' => 'CHAT',
             'cart_dialog_title' => 'Your Cart',
-            'cart_dialog_btn' => 'Sign in to request products',
-            'cart_dialog_notice' => 'Product requests and payments are reviewed by company staff.',
+            'cart_dialog_btn' => 'Log in to order',
+            'cart_dialog_notice' => 'Pay the full amount and send a payment screenshot. Goods are sent after the payment is checked.',
             'compare_dialog_title' => 'Product Comparison',
             'compare_dialog_desc' => 'Select products to compare.',
 
@@ -333,149 +347,72 @@ class SiteCustomization
 
             // Partnership / Become a Dealer (/partnership)
             'partnership_hero_title' => 'Become an Authorized Madina Partner',
-            'partnership_hero_lead' => 'Join our nationwide dealer and sub-dealer network. Grow a trusted wellness business with company-backed products, training and territory support across Bangladesh.',
+            'partnership_hero_lead' => $copy('partnership_hero_lead'),
             'partnership_why_title' => 'Why partner with Madina',
-            'partnership_benefit1_title' => 'Trusted product range',
-            'partnership_benefit1_desc' => 'Offer authentic natural health, unani and wellness products with clear quality standards.',
-            'partnership_benefit2_title' => 'Structured onboarding',
-            'partnership_benefit2_desc' => 'Company staff review applications, create accounts and guide you through territory setup.',
-            'partnership_benefit3_title' => 'Partner workspace',
-            'partnership_benefit3_desc' => 'Use dedicated dealer and sub-dealer portals for orders, deliveries, dues and earnings visibility.',
+            'partnership_benefit1_title' => $copy('partnership_benefit1_title'),
+            'partnership_benefit1_desc' => $copy('partnership_benefit1_desc'),
+            'partnership_benefit2_title' => $copy('partnership_benefit2_title'),
+            'partnership_benefit2_desc' => $copy('partnership_benefit2_desc'),
+            'partnership_benefit3_title' => $copy('partnership_benefit3_title'),
+            'partnership_benefit3_desc' => $copy('partnership_benefit3_desc'),
             'partnership_benefit4_title' => 'Local market support',
-            'partnership_benefit4_desc' => 'Connect communities with nearby authorized points while representing a recognized wellness brand.',
+            'partnership_benefit4_desc' => $copy('partnership_benefit4_desc'),
             'partnership_steps_title' => 'How to apply',
             'partnership_step1_title' => 'Share your details',
-            'partnership_step1_desc' => 'Send a dealer enquiry with your district, experience and preferred partnership type.',
-            'partnership_step2_title' => 'Company review',
-            'partnership_step2_desc' => 'Our team reviews coverage, documents and fit for the Madina network.',
-            'partnership_step3_title' => 'Account activation',
-            'partnership_step3_desc' => 'Approved partners receive secure portal access from company staff — no self-registration passwords.',
+            'partnership_step1_desc' => $copy('partnership_step1_desc'),
+            'partnership_step2_title' => $copy('partnership_step2_title'),
+            'partnership_step2_desc' => $copy('partnership_step2_desc'),
+            'partnership_step3_title' => $copy('partnership_step3_title'),
+            'partnership_step3_desc' => $copy('partnership_step3_desc'),
             'partnership_cta_title' => 'Ready to grow with Madina?',
-            'partnership_cta_body' => 'Tell us about your location and goals. Approved partners are invited by the company after review.',
+            'partnership_cta_body' => $copy('partnership_cta_body'),
             'partnership_cta_btn' => 'Apply for Dealership',
             'partnership_cta_link' => '#partner-apply',
 
             // Services (/services)
             'services_hero_title' => 'Natural Health Care & Physiotherapy Services',
-            'services_hero_lead' => 'Madina supports community wellness through authentic products and care-focused services at our Natural Health Care and Physiotherapy Center.',
+            'services_hero_lead' => $copy('services_hero_lead'),
             'services_card1_title' => 'Natural health consultation',
-            'services_card1_desc' => 'Guidance on suitable wellness products and lifestyle support for everyday family health needs.',
+            'services_card1_desc' => $copy('services_card1_desc'),
             'services_card2_title' => 'Physiotherapy center',
-            'services_card2_desc' => 'Care-oriented physiotherapy support at our registered facility for mobility and recovery needs.',
-            'services_card3_title' => 'Partner product access',
-            'services_card3_desc' => 'Find authorized dealers for product availability, local advice and purchase enquiries nationwide.',
+            'services_card2_desc' => $copy('services_card2_desc'),
+            'services_card3_title' => $copy('services_card3_title'),
+            'services_card3_desc' => $copy('services_card3_desc'),
             'services_cta_btn' => 'Contact the Center',
             'services_cta_link' => '/contact',
 
             // Quality & Authenticity (/quality)
-            'quality_hero_title' => 'Quality & Authenticity Promise',
-            'quality_hero_lead' => 'We focus on reliable sourcing, clear product information and an authorized distribution network so customers receive genuine Madina wellness products.',
-            'quality_pillar1_title' => 'Verified product standards',
-            'quality_pillar1_desc' => 'Products are selected and presented with attention to safety, labeling clarity and consistent quality expectations.',
+            'quality_hero_title' => $copy('quality_hero_title'),
+            'quality_hero_lead' => $copy('quality_hero_lead'),
+            'quality_pillar1_title' => $copy('quality_pillar1_title'),
+            'quality_pillar1_desc' => $copy('quality_pillar1_desc'),
             'quality_pillar2_title' => 'Authorized partners only',
-            'quality_pillar2_desc' => 'Published dealers are company-approved points — helping communities avoid unofficial or counterfeit channels.',
-            'quality_pillar3_title' => 'Audited partner operations',
-            'quality_pillar3_desc' => 'Orders, deliveries and manual payment claims follow staff-reviewed workflows with activity trails.',
+            'quality_pillar2_desc' => $copy('quality_pillar2_desc'),
+            'quality_pillar3_title' => $copy('quality_pillar3_title'),
+            'quality_pillar3_desc' => $copy('quality_pillar3_desc'),
             'quality_cta_btn' => 'Browse Products',
             'quality_cta_link' => '/products',
 
             // FAQ (/faq)
             'faq_hero_title' => 'Frequently Asked Questions',
             'faq_hero_lead' => 'Quick answers about products, dealers, partnership and company support.',
-            'faq_items' => [
-                ['question' => 'Where can I buy Madina products?', 'answer' => 'Purchase through an authorized dealer listed in our Dealer Directory, or contact the company for help finding a nearby partner.'],
-                ['question' => 'How do I become a dealer or sub-dealer?', 'answer' => 'Submit a dealer enquiry on the Contact page. Company staff review applications and create approved partner accounts — there is no public self-registration with a shared password.'],
-                ['question' => 'Do you offer home delivery from this website?', 'answer' => 'The public website is informational. Partner product requests and deliveries are handled through authorized dealer and sub-dealer workspaces after company review.'],
-                ['question' => 'How can I verify an authorized dealer?', 'answer' => 'Use the Dealer Directory to find company-published dealers by division and district, or contact head office for confirmation.'],
-                ['question' => 'What should I do for product support or complaints?', 'answer' => 'Use the Contact form with the Support or Complaint topic, or call the published customer care number during service hours.'],
-            ],
+            'faq_items' => array_map(
+                static fn (int $item): array => [
+                    'question' => $copy('faq_item'.$item.'_question'),
+                    'answer' => $copy('faq_item'.$item.'_answer'),
+                ],
+                range(1, 5),
+            ),
 
             // Privacy (/privacy)
             'privacy_hero_title' => 'Privacy Policy',
-            'privacy_hero_lead' => 'How Madina Natural Health Care handles information from our public website, partner network accounts and payment operations — plain operational rules until counsel updates the CMS text.',
-            'privacy_body' => '1. Who We Are
-Madina Natural Health Care operates this public website and the related partner workspaces used by authorized dealers and sub-dealers across Bangladesh. This Privacy Policy explains, in practical terms, what information we collect, why we use it, and how you can contact us. It is an operational company policy and can be updated in the Website CMS; it is not a substitute for formal legal advice.
-
-2. Information We Collect
-We collect information needed to run the website, answer enquiries and operate the partner network:
-• Public contact forms: name, phone, email, district/division and message content.
-• Partner onboarding and accounts: legal name, trade/shop name, identity documents where required for verification, phone, email, shop address, territory details and payment collection details staff record for the account.
-• Orders and payments: product lines, quantities, delivery details, ledger notes, and payment claim references including mobile financial service or bank TrxID values submitted for reconciliation.
-• Technical logs: timestamps, IP address and basic browser details used for sign-in security, abuse prevention and audit trails.
-
-3. Partner Network & Accounts
-Dealer and sub-dealer accounts are created and maintained by company staff after review — there is no public self-registration with a shared password. Account holders are responsible for keeping login credentials private. Staff access inside company systems is limited by role so people only see records needed for their work.
-
-4. Payments & Transaction IDs (TrxID)
-When partners submit manual payment claims (for example bKash, Nagad, Rocket or bank transfer), we store the claimed amount, collection account details and the TrxID or reference number so accounts staff can verify the payment against company records. False, duplicate or altered TrxID claims may lead to claim rejection, account review or further action under company operating rules.
-
-5. How We Use Information
-We use collected information to:
-• Respond to customer care, product and partnership enquiries.
-• Verify, approve and support authorized dealer and sub-dealer accounts.
-• Process product requests, warehouse handling and delivery coordination.
-• Reconcile payment claims, maintain partner ledgers and process approved payouts where company policy allows.
-• Send operational notices such as circulars, catalog updates or service messages.
-• Keep audit records needed for security and internal financial control.
-
-6. Sharing & Third Parties
-We do not sell personal information. We do not rent or trade partner or customer lists. Limited details may be shared only when needed to complete operations — for example courier name/address/phone for delivery, payment references with banks or mobile financial services for verification, or information required by lawful authority requests. Internal access follows role-based permissions.
-
-7. Security Practices
-We protect accounts and records with industry-standard measures appropriate to this platform, including encrypted website connections, hashed passwords, optional two-factor authentication for partner logins, role-based access and activity logging for sensitive actions. No online system can promise perfect security; partners should protect their own devices and credentials.
-
-8. Retention & Your Access
-Account, order and payment records are kept while the relationship is active and for as long as company retention settings and ordinary business or accounting needs require. Authorized partners can download a JSON copy of their profile data from portal security settings (identity document numbers are omitted from that export). For other privacy questions, use the Contact page or the head-office details below.
-
-9. Cookies & Preferences
-We use essential session and security cookies, plus preference cookies such as language and theme. We do not run third-party advertising trackers on the public site.
-
-10. Updates & Contact
-We may revise this policy when operations or regulations change. The effective label on this page is updated when a new version is published in the CMS. For privacy questions or data requests, contact Madina Natural Health Care:
-• Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer care: +8801730532966 / 01723731877
-• Email: holisticnutracare@gmail.com
-• Or use the public Contact form',
+            'privacy_hero_lead' => $copy('privacy_hero_lead'),
+            'privacy_body' => $copy('privacy_body'),
 
             // Terms (/terms)
             'terms_hero_title' => 'Terms of Use',
-            'terms_hero_lead' => 'Operating rules for using the Madina Natural Health Care website, catalog and partner services — including accounts, orders and TrxID payment claims.',
-            'terms_body' => '1. Agreement to These Terms
-By using the Madina Natural Health Care public website, product catalog, dealer directory or authorized partner workspaces, you agree to follow these Terms of Use and related company operating rules. If you do not agree, please stop using the site and related services. Staff may replace this CMS text with counsel-approved wording before go-live without changing how the page is published.
-
-2. Company Website & Catalog
-This website shares company information, wellness product details, educational content and an authorized dealer directory. Catalog information and MRP figures are for public guidance. Retail purchases and wholesale supply run through authorized company channels and verified dealer or sub-dealer accounts — not through an open public checkout on this site.
-
-3. Partner Network Accounts
-Dealer and sub-dealer accounts are created only by company staff after documentation and territory review:
-• Login access (phone, email or dealer code) is personal. Protect passwords and enable two-factor authentication when offered.
-• Do not misrepresent your territory, tier or company affiliation.
-• The company may suspend or close portal access for policy breaches, fraudulent claims or abusive conduct.
-
-4. Orders, Payments & TrxID Claims
-Partner commerce follows company review workflows:
-• Portal order lines are commercial requests subject to stock and staff approval.
-• Manual payment claims must match real transfers. Submit accurate TrxID / transaction references and the correct company collection account. False, duplicate or collusive TrxID claims are treated as serious misconduct and may result in claim rejection, account termination and referral for further remedies.
-• Credit terms and wallet payouts require explicit company approval under published policy.
-
-5. Product & Wellness Information
-Catalog items may include unani medicines, nutrition supplements and herbal wellness products. Website content is informational and educational. It is not personal medical advice, diagnosis or a prescription. Seek qualified professional care when you need clinical guidance.
-
-6. Intellectual Property
-Trademarks, product names, logos, text, photography and site design belong to Madina Natural Health Care or its licensors (including Holistic Nutracare distribution marks where applicable). Do not copy, scrape or reuse them commercially without written permission.
-
-7. Availability
-We aim to keep the website and partner tools available, but services are provided as available. Maintenance windows, network issues or third-party outages may interrupt access without advance notice in every case.
-
-8. Governing Law
-These terms are governed by the laws of Bangladesh. Disputes about website use or partner operations should first be raised with the company for good-faith resolution; otherwise competent courts in Rangpur, Bangladesh have jurisdiction.
-
-9. Contact
-Questions about these terms, partnership rules or platform operations:
-• Head office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer care: +8801730532966 / 01723731877
-• Email: holisticnutracare@gmail.com
-• Or use the public Contact form',
+            'terms_hero_lead' => $copy('terms_hero_lead'),
+            'terms_body' => $copy('terms_body'),
 
             'legal_meta_effective' => 'Effective: October 2026',
             'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
@@ -581,6 +518,22 @@ Questions about these terms, partnership rules or platform operations:
         return $url;
     }
 
+    /**
+     * English website copy that has a Bangla twin in lang/bn/site.php.
+     */
+    private static function englishSiteCopy(string $siteKey): string
+    {
+        self::$englishSiteCopy ??= (array) trans('site', [], 'en');
+
+        return (string) (self::$englishSiteCopy[$siteKey] ?? '');
+    }
+
+    /**
+     * Saved editor values, without old factory text the owner never changed,
+     * so the editor shows today's default as the placeholder instead.
+     *
+     * @return array<string, mixed>
+     */
     public static function raw(): array
     {
         try {
@@ -590,10 +543,61 @@ Questions about these terms, partnership rules or platform operations:
             }
             $stored = json_decode($record->body, true);
 
-            return is_array($stored) ? $stored : [];
+            return is_array($stored) ? self::withoutRetiredDefaults($stored) : [];
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /**
+     * Saving the editor stores every field, including factory text the owner
+     * never touched. When that stored text is an old factory default, drop it
+     * so the current default (and its Bangla translation) is used. Text the
+     * owner wrote is never touched.
+     *
+     * @param  array<string, mixed>  $stored
+     * @return array<string, mixed>
+     */
+    private static function withoutRetiredDefaults(array $stored): array
+    {
+        foreach (SiteCustomizationRetiredDefaults::all() as $key => $retiredValues) {
+            if (! array_key_exists($key, $stored)) {
+                continue;
+            }
+            $value = $stored[$key];
+            if (is_array($value)) {
+                $value = self::normalizedFaqItems($value);
+            } elseif (is_scalar($value)) {
+                $value = trim((string) $value);
+            } else {
+                continue;
+            }
+            if (in_array($value, $retiredValues, true)) {
+                unset($stored[$key]);
+            }
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param  array<mixed>  $items
+     * @return list<array{question: string, answer: string}>
+     */
+    private static function normalizedFaqItems(array $items): array
+    {
+        $normalized = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $normalized[] = [
+                'question' => trim((string) ($item['question'] ?? '')),
+                'answer' => trim((string) ($item['answer'] ?? '')),
+            ];
+        }
+
+        return $normalized;
     }
 
     /**
@@ -710,6 +714,7 @@ Questions about these terms, partnership rules or platform operations:
             if (! is_array($stored)) {
                 return $defaults;
             }
+            $stored = self::withoutRetiredDefaults($stored);
 
             $merged = $defaults;
             foreach ($defaults as $key => $defaultVal) {
