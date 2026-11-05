@@ -48,7 +48,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'website')
                 ->where('translations.portal.cms_heading', 'ওয়েবসাইট ম্যানেজ')
-                ->where('translations.portal.cms_tab_pages', 'পাবলিক পেজ')
+                ->where('translations.portal.cms_tab_pages', 'পাবলিক পাতা')
                 ->where('translations.portal.cms_save', 'সাইট সেটিং সেভ'));
     }
 

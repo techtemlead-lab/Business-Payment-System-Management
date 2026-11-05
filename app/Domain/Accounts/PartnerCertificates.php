@@ -128,7 +128,7 @@ final class PartnerCertificates
         $key = 'portal.acct_role_'.$user->role;
         $label = __($key, [], $locale);
 
-        return $label === $key ? str_replace('_', ' ', (string) $user->role) : $label;
+        return $label === $key ? ucfirst(str_replace('_', ' ', (string) $user->role)) : $label;
     }
 
     private function render(User $user, string $body, string $title, string $fileName, string $format, string $locale): BinaryFileResponse

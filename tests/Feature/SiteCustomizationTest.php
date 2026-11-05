@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
+use App\Support\SiteCustomizationRetiredDefaults;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -798,5 +800,101 @@ class SiteCustomizationTest extends TestCase
 
         $this->assertSame([], SiteCustomization::getMobileSearchCategories());
         $this->get('/')->assertOk()->assertDontSee('id="refMobileSearchShortcuts"', false);
+    }
+
+    public function test_text_the_owner_saved_still_wins_over_the_new_defaults(): void
+    {
+        $this->outOfStockProduct();
+        SiteCustomization::save([
+            'catalog_apply_filters_btn' => 'Show my products',
+            'product_out_of_stock_label' => 'Coming back soon',
+            'partnership_benefit3_desc' => 'Our own words about the dealer panel.',
+        ]);
+
+        foreach (['en', 'bn'] as $locale) {
+            $this->post('/locale', ['locale' => $locale])->assertRedirect();
+            $this->get('/products')->assertOk()
+                ->assertSee('Show my products')
+                ->assertSee('Coming back soon')
+                ->assertDontSee(__('site.apply_filters', [], $locale));
+            $this->get('/partnership')->assertOk()
+                ->assertSee('Our own words about the dealer panel.');
+        }
+    }
+
+    public function test_old_factory_text_stored_by_an_earlier_save_shows_the_new_wording(): void
+    {
+        $this->outOfStockProduct();
+        $retired = SiteCustomizationRetiredDefaults::all();
+        $oldBenefit = $retired['partnership_benefit3_desc'][0];
+        $this->assertStringContainsString('dues', $oldBenefit);
+        DB::table('content_pages')->insert([
+            'slug' => 'frontend_customization',
+            'title' => 'Frontend Customization',
+            'body' => json_encode([
+                'catalog_apply_filters_btn' => 'Apply Filters',
+                'product_out_of_stock_label' => 'Awaiting Stock',
+                'partnership_benefit3_desc' => $oldBenefit,
+                'privacy_body' => $retired['privacy_body'][0],
+                'faq_items' => $retired['faq_items'][0],
+                'top_bar_text' => 'MADINA OWNER TOP BAR',
+            ], JSON_UNESCAPED_UNICODE),
+            'published' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        SiteCustomization::forgetCache();
+
+        $this->assertArrayNotHasKey('catalog_apply_filters_btn', SiteCustomization::raw());
+        $this->assertSame('MADINA OWNER TOP BAR', SiteCustomization::raw()['top_bar_text']);
+
+        $this->get('/products')->assertOk()
+            ->assertSee('Apply filters')
+            ->assertSee('Out of stock')
+            ->assertDontSee('Apply Filters')
+            ->assertDontSee('Awaiting Stock');
+        $this->get('/partnership')->assertOk()
+            ->assertSee(__('site.partnership_benefit3_desc', [], 'en'))
+            ->assertDontSee($oldBenefit);
+        $this->get('/privacy')->assertOk()->assertDontSee('payment claim');
+        $this->get('/faq')->assertOk()->assertDontSee('shared password');
+        $this->get('/')->assertOk()->assertSee('MADINA OWNER TOP BAR');
+
+        $this->post('/locale', ['locale' => 'bn'])->assertRedirect();
+        $this->get('/products')->assertOk()
+            ->assertSee('ফিল্টার করুন')
+            ->assertSee('স্টক নেই')
+            ->assertDontSee('Apply Filters')
+            ->assertDontSee('Awaiting Stock');
+        $this->get('/partnership')->assertOk()
+            ->assertSee(__('site.partnership_benefit3_desc', [], 'bn'))
+            ->assertDontSee($oldBenefit);
+        $this->get('/privacy')->assertOk()->assertDontSee('payment claim');
+    }
+
+    public function test_website_defaults_avoid_due_and_claim_wording(): void
+    {
+        $text = json_encode(SiteCustomization::defaults(), JSON_UNESCAPED_UNICODE);
+
+        foreach (['payment claim', 'dues', 'credit terms', 'ledger', 'reconcile', 'manual payment'] as $retiredWord) {
+            $this->assertStringNotContainsStringIgnoringCase($retiredWord, $text);
+        }
+        $this->assertStringNotContainsString('Awaiting Stock', $text);
+        $this->assertStringNotContainsString('Apply Filters', $text);
+        $this->assertSame(__('site.apply_filters', [], 'en'), SiteCustomization::defaults()['catalog_apply_filters_btn']);
+        $this->assertSame(__('site.out_of_stock', [], 'en'), SiteCustomization::defaults()['product_out_of_stock_label']);
+    }
+
+    private function outOfStockProduct(): Product
+    {
+        return Product::create([
+            'sku' => 'COPY-OUT-1',
+            'name' => 'Copy Check Product',
+            'category' => 'Care',
+            'mrp' => '120.00',
+            'dealer_price' => '80.00',
+            'stock' => 0,
+            'active' => true,
+        ]);
     }
 }

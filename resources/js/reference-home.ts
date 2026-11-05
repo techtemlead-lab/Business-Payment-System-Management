@@ -23,7 +23,7 @@ const siteUi: SiteUi = (() => {
     if (!node?.textContent) {
         return {
             in_stock: 'In Stock',
-            out_of_stock: 'Awaiting Stock',
+            out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
             product_link_copy_fallback: 'Copy the product link from your browser address bar.',
@@ -40,7 +40,7 @@ const siteUi: SiteUi = (() => {
     } catch {
         return {
             in_stock: 'In Stock',
-            out_of_stock: 'Awaiting Stock',
+            out_of_stock: 'Out of stock',
             low_stock: 'Low Stock',
             product_link_copied: 'Product link copied.',
             product_link_copy_fallback: 'Copy the product link from your browser address bar.',
