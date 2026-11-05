@@ -5,6 +5,7 @@ namespace Tests\E2E\Tier1;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\E2E\E2ETestCase;
@@ -141,6 +142,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'TXN-BANK-1001',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '300.00',
         ]);
 
@@ -165,6 +167,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'bKash',
             'reference' => 'BKASH-776655',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '200.00',
         ]);
 
@@ -189,6 +192,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'PARTIAL-001',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '300.00',
         ])->assertCreated();
 
@@ -196,6 +200,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Nagad',
             'reference' => 'PARTIAL-002',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '200.00',
         ])->assertCreated();
 
@@ -214,6 +219,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($dealer2)->postJson('/api/v1/orders/'.$order1->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'UNAUTHORIZED-TXN',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '100.00',
         ]);
 
@@ -231,6 +237,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => '',
             'reference' => '',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '0.00',
         ]);
 
@@ -253,6 +260,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'VERIFY-OK-01',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '500.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
@@ -280,6 +288,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'bKash',
             'reference' => 'FAKE-TXN-999',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '500.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
@@ -307,6 +316,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'ONCE-ONLY',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '500.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $order->id)->value('id');
@@ -337,6 +347,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'OVERPAY-TXN',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '600.00', // Exceeds 500.00
         ]);
 
@@ -354,6 +365,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $this->actingAs($dealer)->postJson('/api/v1/orders/'.$order->id.'/payments', [
             'channel' => 'Bank',
             'reference' => 'PEER-VERIFY',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '500.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $order->id)->value('id');

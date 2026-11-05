@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Backend;
 
+use App\Domain\Orders\PaymentProof;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreOrderRequest extends FormRequest
@@ -24,6 +25,7 @@ class StoreOrderRequest extends FormRequest
             'payment_account_id' => 'nullable|integer|exists:payment_accounts,id',
             'channel' => 'nullable|required_with:reference|in:bKash,Nagad,Rocket,Bank',
             'amount' => ['nullable', 'required_with:reference', 'regex:/^\d{1,9}(\.\d{1,2})?$/D'],
+            'proof' => 'nullable|required_with:reference|'.PaymentProof::Rules,
         ];
     }
 }

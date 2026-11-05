@@ -9,6 +9,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -137,6 +138,7 @@ class ProjectHardeningTest extends TestCase
             'channel' => 'bKash',
             'payment_account_id' => $accountId,
             'reference' => 'TRX-HARDEN-1',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '100.00',
         ])->assertCreated();
 
@@ -144,6 +146,7 @@ class ProjectHardeningTest extends TestCase
             'channel' => 'bKash',
             'payment_account_id' => $accountId,
             'reference' => 'TRX-HARDEN-1',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '100.00',
         ])->assertUnprocessable()->assertJsonValidationErrors(['reference']);
     }

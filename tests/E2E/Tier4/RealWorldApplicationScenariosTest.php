@@ -79,6 +79,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $this->actingAs($subGamma)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'PAY-GAMMA-01',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '3000.00',
         ])->assertCreated();
         $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');

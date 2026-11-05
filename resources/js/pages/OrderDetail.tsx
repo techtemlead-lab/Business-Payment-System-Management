@@ -150,6 +150,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 ] },
                 ...(collectionAccounts.length ? [{name:'payment_account_id',label:translate('portal','company_collection_account'),required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
                 { name: 'reference', label: translate('portal', 'transaction_reference'), required: true }, { name: 'amount', label: translate('portal', 'claimed_amount_bdt'), type: 'number', required: true },
+                { name: 'proof', label: translate('portal', 'payment_proof_label'), type: 'file', required: true, accept: 'image/jpeg,image/png,image/webp,application/pdf', hint: translate('portal', 'payment_proof_hint') },
             ]} submit={translate('portal', 'submit_for_verification')} />
         </section>}
         {capabilities.includes('order_review') && ['submitted', 'held'].includes(order.status) && <section className="panel narrow-panel">

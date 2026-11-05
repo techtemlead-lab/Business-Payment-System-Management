@@ -7,6 +7,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Models\BranchProductStock;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -164,6 +165,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-NEG-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '-50.00',
         ]);
 
@@ -186,6 +188,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-ZERO-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '0.00',
         ]);
 
@@ -209,6 +212,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'TXN-OVER-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '1000.00',
         ]);
 
@@ -233,6 +237,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $first = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => $ref,
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
         $first->assertCreated();
@@ -241,6 +246,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $second = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => $ref,
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
         $second->assertStatus(422);
@@ -264,6 +270,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $response = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Nagad',
             'reference' => 'TXN-CLO-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '50.00',
         ]);
 

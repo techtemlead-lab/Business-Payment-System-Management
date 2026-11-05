@@ -5,6 +5,7 @@ namespace Tests\E2E\Tier3;
 use App\Models\BranchProductStock;
 use App\Models\Order;
 use App\Models\Product;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\E2E\E2ETestCase;
@@ -62,6 +63,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $claimRes = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'IBBL-FT-'.Str::random(8),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '3500.00',
         ]);
         $claimRes->assertCreated();
@@ -228,6 +230,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $this->actingAs($subDealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'SUB-REF-PAY-01',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '3500.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
@@ -288,6 +291,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => 'BKASH-PART-01',
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '600.00',
         ]);
         $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
@@ -389,6 +393,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $claim1 = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'bKash',
             'reference' => 'BKASH-SPLIT-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '400.00',
         ]);
         $claim1->assertCreated();
@@ -408,6 +413,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $claim2 = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
             'channel' => 'Bank',
             'reference' => 'BANK-SPLIT-'.Str::random(6),
+            'proof' => UploadedFile::fake()->image('payment-proof.jpg'),
             'amount' => '600.00',
         ]);
         $claim2->assertCreated();

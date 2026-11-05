@@ -20,6 +20,7 @@ use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\Money;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -470,10 +471,14 @@ class OrderService
             throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
         }
 
+        // Proof of payment (screenshot or PDF) — required by the request rules for new claims.
+        $proof = ($data['proof'] ?? null) instanceof UploadedFile ? app(PaymentProof::class)->store($data['proof']) : null;
+        DB::afterRollBack(fn () => app(PaymentProof::class)->discard($proof));
+
         try {
             return DB::table('payment_claims')->insertGetId(['order_id' => $order->id, 'channel' => $data['channel'],
                 'payment_account_id' => $account['id'] ?? null, 'account_snapshot' => $account ? json_encode(['encrypted' => encrypt($account)], JSON_THROW_ON_ERROR) : null,
-                'reference' => $reference, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
+                'reference' => $reference, 'amount' => Money::decimal($amount), ...($proof ?? []), 'created_at' => now(), 'updated_at' => now()]);
         } catch (QueryException $exception) {
             if ($exception->getCode() === '23505') {
                 throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
@@ -491,7 +496,13 @@ class OrderService
 
     private function hash(array $data): string
     {
-        return hash('sha256', json_encode($data, JSON_THROW_ON_ERROR));
+        // An attached payment screenshot counts by its content, so retrying with the same file is the same request.
+        $comparable = array_map(
+            fn (mixed $value): mixed => $value instanceof UploadedFile ? 'file:'.hash_file('sha256', $value->getRealPath()) : $value,
+            $data,
+        );
+
+        return hash('sha256', json_encode($comparable, JSON_THROW_ON_ERROR));
     }
 
     /**

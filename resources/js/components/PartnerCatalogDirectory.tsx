@@ -59,7 +59,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         {translate('portal', 'b2b_catalog_list_title')}
                     </h2>
                     <p className="hub-sub">
-                        উপলব্ধ সকল পণ্যের বিবরণ, মাত্রা ও অনুমোদিত ক্রয় মূল্য। দ্রুত অর্ডার করতে 'প্রোডাক্ট পারচেজ' পেজ ব্যবহার করুন।
+                        {translate('portal', 'pcd_intro')}
                     </p>
                 </div>
                 <Link
@@ -76,7 +76,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                     <Search size={16} />
                     <input
                         type="text"
-                        placeholder="পণ্য বা ব্র্যান্ডের নাম, মাত্রা, SKU দিয়ে খুঁজুন..."
+                        placeholder={translate('portal', 'pcd_search_placeholder')}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -142,8 +142,8 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                 ) : (
                     <div className="ops-card ops-center pcd-empty">
                         <Package size={40} />
-                        <p className="pcd-empty-title">কোনো পণ্য পাওয়া যায়নি</p>
-                        <small>অনুসন্ধান পরিবর্তন করে পুনরায় চেষ্টা করুন।</small>
+                        <p className="pcd-empty-title">{translate('portal', 'pcd_empty_title')}</p>
+                        <small>{translate('portal', 'pcd_empty_body')}</small>
                     </div>
                 )
             ) : (
@@ -153,7 +153,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         columns={[
                             {
                                 key: 'name',
-                                title: 'পণ্যের বিবরণ ও মাত্রা (Specification)',
+                                title: translate('portal', 'pcd_col_specification'),
                                 sortable: true,
                                 sortValue: (p: Row) => p.name || '',
                                 render: (p: Row) => (
@@ -189,7 +189,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'category',
-                                title: 'ক্যাটাগরি ও সাব-ক্যাটাগরি',
+                                title: translate('portal', 'pcd_col_category'),
                                 sortable: true,
                                 sortValue: (p: Row) => p.category || '',
                                 render: (p: Row) => (
@@ -203,7 +203,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'unit',
-                                title: 'একক (Pack)',
+                                title: translate('portal', 'pcd_col_pack'),
                                 sortable: true,
                                 sortValue: (p: Row) => p.unit || '',
                                 render: (p: Row) => <span>{p.unit || 'Pack'}</span>,
@@ -218,7 +218,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'price',
-                                title: 'ক্রয় মূল্য (BDT)',
+                                title: translate('portal', 'pcd_col_price'),
                                 sortable: true,
                                 align: 'right',
                                 sortValue: (p: Row) => Number(p.price || p.mrp || 0),
@@ -234,7 +234,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                                             </div>
                                             {hasDiscount && (
                                                 <span className="pcd-off">
-                                                    {discountPct}% ছাড়
+                                                    {translate('portal', 'pct_off', { pct: String(discountPct) })}
                                                 </span>
                                             )}
                                         </div>
@@ -243,7 +243,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'stock',
-                                title: 'স্টক স্থিতি',
+                                title: translate('portal', 'pcd_col_stock'),
                                 sortable: true,
                                 align: 'center',
                                 sortValue: (p: Row) => Number(p.stock || 0),
@@ -258,7 +258,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                             },
                             {
                                 key: 'action',
-                                title: 'অ্যাকশন',
+                                title: translate('portal', 'pcd_col_action'),
                                 align: 'center',
                                 render: (p: Row) => (
                                     <Link
@@ -272,7 +272,7 @@ export default function PartnerCatalogDirectory({ products = [], categories = []
                         ]}
                         data={filteredProducts}
                         pageSize={15}
-                        emptyMessage="কোনো পণ্য পাওয়া যায়নি"
+                        emptyMessage={translate('portal', 'pcd_empty_title')}
                     />
                 </section>
             )}
