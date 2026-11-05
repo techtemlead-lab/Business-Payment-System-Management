@@ -74,6 +74,65 @@ final class FinanceSettings
         }, 3);
     }
 
+    /**
+     * Identity papers that count as "approved ID papers" for the first withdrawal.
+     * KYC documents have no separate approval step: only office staff allowed to
+     * handle identity papers can upload them, after checking the originals, so a
+     * National ID (front) or birth certificate on file is treated as approved.
+     */
+    public const ApprovedIdKinds = ['nid_front', 'birth_certificate'];
+
+    /**
+     * "Approved ID papers needed before the first withdrawal". Off by default.
+     *
+     * @return array{enabled: bool, version: int}
+     */
+    public function kycBeforeFirstWithdrawal(): array
+    {
+        $row = DB::table('business_settings')->where('key', 'kyc_before_first_withdrawal')->first();
+        $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
+
+        return ['enabled' => (bool) ($stored['enabled'] ?? false), 'version' => $row?->version ?? 0];
+    }
+
+    /**
+     * True when the setting is on, the partner has never had a withdrawal approved
+     * or paid, and no approved ID paper is on file yet.
+     */
+    public function needsKycBeforeWithdrawal(User $partner): bool
+    {
+        if (! in_array($partner->role, ['dealer', 'sub_dealer'], true) || ! $this->kycBeforeFirstWithdrawal()['enabled']) {
+            return false;
+        }
+        if (DB::table('withdrawals')->where('user_id', $partner->id)->whereIn('status', ['approved', 'paid'])->exists()) {
+            return false;
+        }
+
+        return ! DB::table('kyc_documents')->where('user_id', $partner->id)->whereIn('kind', self::ApprovedIdKinds)->exists();
+    }
+
+    public function saveKycBeforeFirstWithdrawal(User $actor, bool $enabled, int $version, string $reason): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version, $reason): void {
+            CommissionWallet::lock();
+            $fresh = $actor->fresh();
+            abort_unless($fresh->owner(), 403);
+            $before = $this->kycBeforeFirstWithdrawal();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
+            }
+            $after = ['enabled' => $enabled];
+            $stored = DB::table('business_settings')->where('key', 'kyc_before_first_withdrawal')->first();
+            DB::table('business_settings')->updateOrInsert(['key' => 'kyc_before_first_withdrawal'], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
+                'updated_by' => $actor->id, 'created_at' => $stored?->created_at ?? now(), 'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'finance.kyc_before_first_withdrawal_changed', 'kyc_before_first_withdrawal', [
+                'before' => ['enabled' => $before['enabled']], 'after' => $after, 'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
     /** @return array{amount: string, version: int} */
     public function withdrawalMinimum(): array
     {

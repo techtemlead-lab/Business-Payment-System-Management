@@ -123,6 +123,7 @@ class OperationsController extends Controller
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
+            $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->owner()];
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);
