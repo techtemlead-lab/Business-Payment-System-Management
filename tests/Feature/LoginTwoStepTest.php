@@ -295,8 +295,11 @@ class LoginTwoStepTest extends TestCase
         $this->assertMatchesRegularExpression('/^\d{6}$/', $code);
         $this->onPortal('dealer')->get('/login/otp')->assertOk()->assertSee($code);
 
+        // No request is made while the environment says "production": the trusted-host list
+        // that production sets up is static and would leak into later tests.
         $this->app['env'] = 'production';
         $this->assertFalse(app(LoginOtpChallenge::class)->showsCodeOnScreen());
+        $this->app['env'] = 'testing';
         $this->onPortal('dealer')->get('/login/otp')->assertOk()->assertDontSee($code);
     }
 }
