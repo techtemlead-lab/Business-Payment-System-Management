@@ -27,12 +27,12 @@ class ScheduledPolicyTest extends TestCase
     public function test_scheduled_global_rules_require_independent_approval_and_respect_effective_and_expiry_dates(): void
     {
         $admin = User::factory()->create(['role' => 'finance']);
-        $reviewer = User::factory()->create(['role' => 'finance']);
+        $reviewer = User::factory()->create(['role' => 'super_admin']);
         $data = ['scope' => 'global', 'rules' => ['own_dealer_cashback' => ['percentage' => '4.00']],
             'effective_at' => now()->addHour()->toIso8601String(), 'expires_at' => now()->addHours(2)->toIso8601String(), 'reason' => 'Approved future commission campaign'];
         $id = $this->actingAs($admin)->postJson('/api/v1/operations/policy-schedules', $data)->assertOk()->json('data.id');
         $url = '/api/v1/operations/policy-schedules/'.$id.'/review';
-        $this->postJson($url, ['decision' => 'approved', 'reason' => 'Reviewed campaign rules'])->assertUnprocessable();
+        $this->postJson($url, ['decision' => 'approved', 'reason' => 'Reviewed campaign rules'])->assertForbidden();
         $this->actingAs($reviewer)->postJson($url, ['decision' => 'approved', 'reason' => 'Reviewed campaign rules'])->assertOk();
         $this->assertSame('5.00', app(CommissionPolicy::class)->snapshot()['rules']['own_dealer_cashback']['percentage']);
         $this->travel(61)->minutes();
@@ -47,7 +47,7 @@ class ScheduledPolicyTest extends TestCase
     {
         $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
-        $reviewer = User::factory()->create(['role' => 'finance']);
+        $reviewer = User::factory()->create(['role' => 'super_admin']);
         $buyer = User::factory()->create();
         $other = User::factory()->create();
         $product = Product::factory()->create(['dealer_price' => '100.00']);
@@ -73,7 +73,7 @@ class ScheduledPolicyTest extends TestCase
         $admin = User::factory()->create(['role' => 'finance']);
         $id = $this->actingAs($admin)->postJson('/api/v1/operations/policy-schedules', ['scope' => 'recipient', 'user_id' => $sponsor->id,
             'rules' => ['direct_referral' => ['percentage' => '3.00']], 'effective_at' => now()->toIso8601String(), 'reason' => 'Recipient earning cap approved'])->assertOk()->json('data.id');
-        $this->actingAs(User::factory()->create(['role' => 'finance']))->postJson('/api/v1/operations/policy-schedules/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Independently reviewed rate cap'])->assertOk();
+        $this->actingAs(User::factory()->create(['role' => 'super_admin']))->postJson('/api/v1/operations/policy-schedules/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Independently reviewed rate cap'])->assertOk();
         $product = Product::factory()->create(['dealer_price' => '100.00']);
         $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
         $order->update(['status' => 'delivered', 'paid' => '100.00']);

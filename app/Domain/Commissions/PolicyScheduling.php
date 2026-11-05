@@ -48,46 +48,98 @@ final class PolicyScheduling
                     }
                     $rules[$key] = $validated;
                 }
+                $changes = array_map(fn (array $rule): array => ['before' => [], 'after' => $rule], $rules);
             } else {
-                $rules = $this->policies->compose($this->policies->snapshot(true, $buyer, $at)['rules'], $data['rules']);
+                $base = $this->policies->snapshot(true, $buyer, $at)['rules'];
+                $rules = $this->policies->compose($base, $data['rules']);
+                $changes = PolicyChangeSummary::diff(array_intersect_key($base, $data['rules']), array_intersect_key($rules, $data['rules']));
             }
             $id = DB::table('commission_policy_schedules')->insertGetId(['scope' => $data['scope'], 'user_id' => $buyer?->id,
-                'rules' => json_encode($rules, JSON_THROW_ON_ERROR), 'effective_at' => $at, 'expires_at' => empty($data['expires_at']) ? null : CarbonImmutable::parse($data['expires_at'])->utc(),
+                'rules' => json_encode($rules, JSON_THROW_ON_ERROR), 'changes' => json_encode($changes, JSON_THROW_ON_ERROR),
+                'effective_at' => $at, 'expires_at' => empty($data['expires_at']) ? null : CarbonImmutable::parse($data['expires_at'])->utc(),
                 'reason' => $data['reason'], 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'policy_schedule.proposed', (string) $id, ['scope' => $data['scope'], 'user_id' => $buyer?->id]);
+            Audit::record($actor->id, 'policy_schedule.proposed', (string) $id, ['scope' => $data['scope'], 'user_id' => $buyer?->id, 'changes' => $changes]);
 
             return $id;
         }, 3);
     }
 
+    /**
+     * Approve, reject or cancel a commission change.
+     *
+     * Approving or rejecting is for the owner (Super Admin) only, and never for the person who
+     * proposed it. A pending change can be withdrawn by its proposer or a finance approver; an
+     * approved one changes live rates when cancelled, so only the owner may cancel it.
+     */
     public function review(User $actor, int $id, string $decision, string $reason): void
     {
-        abort_unless($actor->canAct('finance', 'approve'), 403);
+        abort_unless($actor->canAct('finance', 'approve') || CommissionPolicy::approves($actor), 403);
         DB::transaction(function () use ($actor, $id, $decision, $reason): void {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->canAct('finance', 'approve'), 403);
+            $actor = $actor->fresh();
             $row = DB::table('commission_policy_schedules')->where('id', $id)->lockForUpdate()->first();
             abort_unless($row, 404);
+            $changes = is_string($row->changes ?? null) ? json_decode($row->changes, true, flags: JSON_THROW_ON_ERROR) : null;
+            $proposerId = (int) $row->created_by;
             if ($decision === 'cancelled') {
-                if (! in_array($row->status, ['draft', 'approved'], true)) {
+                if ($row->status === 'approved') {
+                    abort_unless(CommissionPolicy::approves($actor), 403, __('portal.err_policy_owner_only'));
+                    if ($row->origin === 'rule_edit') {
+                        // Already written into the live rules: undo it with a new change instead.
+                        throw ValidationException::withMessages(['schedule' => __('portal.err_policy_change_already_live')]);
+                    }
+                } elseif ($row->status === 'draft') {
+                    abort_unless($proposerId === (int) $actor->id || $actor->canAct('finance', 'approve') || CommissionPolicy::approves($actor), 403);
+                } else {
                     throw ValidationException::withMessages(['schedule' => __('portal.err_sched_closed')]);
                 }
-                DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'cancelled', 'updated_at' => now()]);
+                DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'cancelled', 'reviewed_by' => $actor->id,
+                    'reviewed_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
             } else {
-                if ($row->status !== 'draft' || $row->created_by === $actor->id || ($row->expires_at && CarbonImmutable::parse($row->expires_at)->isPast())) {
+                abort_unless(CommissionPolicy::approves($actor), 403, __('portal.err_policy_owner_only'));
+                if ($row->status !== 'draft' || $proposerId === (int) $actor->id || ($row->expires_at && CarbonImmutable::parse($row->expires_at)->isPast())) {
                     throw ValidationException::withMessages(['schedule' => __('portal.err_sched_separate_reviewer')]);
                 }
-                $rules = json_decode($row->rules, true, flags: JSON_THROW_ON_ERROR);
-                if ($row->scope !== 'recipient') {
-                    $this->policies->validateSchedule($rules);
-                }
-                DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now(), 'updated_at' => now()]);
-                if ($row->scope === 'global') {
-                    DB::table('commission_policy_revisions')->insert(['rules' => $row->rules, 'source' => 'scheduled', 'schedule_id' => $id,
-                        'effective_at' => $row->effective_at, 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+                if ($decision === 'rejected') {
+                    DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'rejected', 'reviewed_by' => $actor->id,
+                        'reviewed_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
+                } else {
+                    $this->approve($actor, $row);
+                    DB::table('commission_policy_schedules')->where('id', $id)->update(['status' => 'approved', 'approved_by' => $actor->id, 'approved_at' => now(),
+                        'reviewed_by' => $actor->id, 'reviewed_at' => now(), 'review_reason' => $reason, 'updated_at' => now()]);
                 }
             }
-            Audit::record($actor->id, 'policy_schedule.'.$decision, (string) $id, ['reason' => $reason]);
+            Audit::record($actor->id, 'policy_schedule.'.$decision, (string) $id, [
+                'reason' => $reason,
+                'scope' => $row->scope,
+                'origin' => $row->origin,
+                'proposed_by' => $proposerId,
+                'reviewed_by' => $actor->id,
+                'changes' => $changes,
+            ]);
         }, 3);
+    }
+
+    private function approve(User $actor, object $row): void
+    {
+        $rules = json_decode($row->rules, true, flags: JSON_THROW_ON_ERROR);
+        if ($row->scope !== 'recipient') {
+            $this->policies->validateSchedule($rules);
+        }
+        if ($row->origin === 'rule_edit') {
+            // The change was made against the rules live at that moment. If they have moved on
+            // since, approving would silently undo the newer change.
+            if ((int) ($row->base_revision_id ?? 0) !== (int) ($this->policies->snapshot(false)['revision_id'] ?? 0)) {
+                throw ValidationException::withMessages(['schedule' => __('portal.err_policy_change_stale')]);
+            }
+            $changes = json_decode((string) $row->changes, true, flags: JSON_THROW_ON_ERROR);
+            $this->policies->apply($actor, $rules, array_keys($changes), (int) $row->id);
+
+            return;
+        }
+        if ($row->scope === 'global') {
+            DB::table('commission_policy_revisions')->insert(['rules' => $row->rules, 'source' => 'scheduled', 'schedule_id' => $row->id,
+                'effective_at' => $row->effective_at, 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+        }
     }
 }
