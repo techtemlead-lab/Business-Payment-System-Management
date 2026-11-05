@@ -644,7 +644,7 @@ export default function OnboardingTour({
 
                             {/* Interactive Step Mini-Map (Clickable Dots) */}
                             {stepCount > 1 && (
-                                <div className="onboarding-step-dots" role="tablist" aria-label="Step Navigation">
+                                <div className="onboarding-step-dots" role="tablist" aria-label={translate('portal', 'aria_tour_steps')}>
                                     {steps.map((st, idx) => {
                                         const isCurrent = idx === stepIndex;
                                         const isCompleted = idx < stepIndex;
@@ -785,7 +785,7 @@ export default function OnboardingTour({
                         {/* Dual Column Layout: Chapter Sidebar + Rich Article Content */}
                         <div className="onboarding-manual-container">
                             {/* Chapter Index Sidebar */}
-                            <nav className="onboarding-manual-toc" aria-label="Manual Chapters">
+                            <nav className="onboarding-manual-toc" aria-label={translate('portal', 'aria_manual_chapters')}>
                                 <div className="toc-header">
                                     <span>{translate('portal', 'tour_manual_filter_all')}</span>
                                     <span className="chapter-count-badge">

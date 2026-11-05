@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { label, type Row, DateInput } from '../components/UI';
 import {
@@ -48,6 +48,8 @@ export default function AccountCreate({
     management_referral?: { place_code: string | null; enabled: boolean; auto_blank_reference: boolean } | null;
 }) {
     const translate = useT();
+    // Only owners may let an account share a mobile number another account already uses.
+    const isOwner = ['super_admin', 'md', 'chairman'].includes(String((usePage().props as any).auth?.user?.role ?? ''));
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement | null)?.content || '';
     const defaultRole = roles[0] || (intent === 'sub_dealer' ? 'sub_dealer' : intent === 'staff' ? 'employee' : 'dealer');
     const shellSection = intent === 'sub_dealer' ? 'sub-dealers' : intent === 'staff' ? 'employees' : 'accounts';
@@ -76,6 +78,7 @@ export default function AccountCreate({
         reference_code: '',
         refer_code: '',
         phone: '',
+        phone_share_reason: '',
         email: '',
         extra_contact: '',
         pharmacy: '',
@@ -330,6 +333,7 @@ export default function AccountCreate({
             // Empty refer_code falls back to dealer/sub-dealer code (admin may override).
             refer_code: (data.refer_code || data.dealer_code || '').trim(),
             phone: data.phone,
+            phone_share_reason: data.phone_share_reason,
             email: data.email,
             extra_contact: data.extra_contact,
             pharmacy: data.role === 'sub_dealer' ? (data.shop_name || data.pharmacy) : data.pharmacy,
@@ -442,7 +446,15 @@ export default function AccountCreate({
                             <div className="form-grid ops-mt-4">
                                 <label>{translate('portal','acct_full_name')}<input required value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} /></label>
                                 <label>{translate('portal','acct_email')}<input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} /></label>
-                                <label>{translate('portal','acct_phone')}<input value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} /></label>
+                                <label>{translate('portal','acct_phone')}<input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />{form.errors.phone && <span className="field-error">{form.errors.phone}</span>}</label>
+                                {isOwner && (
+                                    <label>
+                                        {translate('portal', 'acct_phone_share_reason')}
+                                        <input maxLength={500} value={form.data.phone_share_reason} onChange={(e) => form.setData('phone_share_reason', e.target.value)} />
+                                        <small className="ops-muted">{translate('portal', 'acct_phone_share_reason_hint')}</small>
+                                        {form.errors.phone_share_reason && <span className="field-error">{form.errors.phone_share_reason}</span>}
+                                    </label>
+                                )}
                             </div>
                         </section>
                     )}
@@ -693,6 +705,14 @@ export default function AccountCreate({
                                         <input required value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} placeholder={translate('portal', 'acct_phone_ph')} />
                                         {form.errors.phone && <span className="field-error">{form.errors.phone}</span>}
                                     </label>
+                                    {isOwner && (
+                                    <label>
+                                        {translate('portal', 'acct_phone_share_reason')}
+                                        <input maxLength={500} value={form.data.phone_share_reason} onChange={(e) => form.setData('phone_share_reason', e.target.value)} />
+                                        <small className="ops-muted">{translate('portal', 'acct_phone_share_reason_hint')}</small>
+                                        {form.errors.phone_share_reason && <span className="field-error">{form.errors.phone_share_reason}</span>}
+                                    </label>
+                                )}
                                     <label>
                                         {translate('portal','acct_email')}
                                         <input type="email" required value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
