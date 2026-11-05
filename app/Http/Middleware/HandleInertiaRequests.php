@@ -31,6 +31,11 @@ class HandleInertiaRequests extends Middleware
         $portalShell = in_array($portal, ['dealer', 'subdealer', 'manage', 'sadmin'], true);
 
         $payments = app(PaymentAccounts::class);
+        // navAttention and unreadNotices both show this number; count it once per request.
+        $unreadNoticeCount = null;
+        $unreadNotices = function () use ($u, &$unreadNoticeCount): int {
+            return $unreadNoticeCount ??= (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count();
+        };
 
         return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
@@ -64,7 +69,7 @@ class HandleInertiaRequests extends Middleware
             'staffActions' => fn () => ($u?->staff() || $u?->usingStaffWorkspace())
                 ? app(StaffPermissions::class)->matrix($u)
                 : [],
-            'navAttention' => function () use ($u) {
+            'navAttention' => function () use ($u, $unreadNotices) {
                 if (! $u) {
                     return [
                         'notifications' => 0,
@@ -77,7 +82,7 @@ class HandleInertiaRequests extends Middleware
                 $staffWorkspace = $u->staff() || $u->usingStaffWorkspace();
 
                 return [
-                    'notifications' => (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count(),
+                    'notifications' => $unreadNotices(),
                     'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts'))
                         ? (int) DB::table('enquiries')->where('status', 'new')->count()
                         : 0,
@@ -89,10 +94,8 @@ class HandleInertiaRequests extends Middleware
                         : 0,
                 ];
             },
-            // Kept for Shell fallbacks; value mirrors navAttention.notifications without a second query path when both resolve.
-            'unreadNotices' => fn () => $u
-                ? (int) DB::table('account_notices')->where('user_id', $u->id)->whereNull('read_at')->count()
-                : 0,
+            // Kept for Shell fallbacks; value mirrors navAttention.notifications and shares its single count.
+            'unreadNotices' => fn () => $u ? $unreadNotices() : 0,
             'tour' => fn () => ($u && $portalShell)
                 ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,
@@ -102,8 +105,7 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 }
 
-                $operations = app(BranchOperations::class);
-                $preferred = $operations->preferredBranch($u);
+                ['preferred' => $preferred, 'branches' => $branches] = app(BranchOperations::class)->branchChoices($u);
                 $viewAll = $request->session()->get(BranchOperations::SessionView) === 'all';
 
                 return [
@@ -112,7 +114,7 @@ class HandleInertiaRequests extends Middleware
                     'active_branch' => $viewAll
                         ? ['id' => null, 'code' => 'ALL', 'name' => __('portal.branch_view_all')]
                         : $preferred?->summary(),
-                    'branches' => $operations->branchesFor($u),
+                    'branches' => $branches,
                 ];
             },
         ];

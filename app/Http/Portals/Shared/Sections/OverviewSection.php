@@ -3,12 +3,11 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Accounts\PartnerDashboardHome;
+use App\Domain\Orders\OrderOverviewTotals;
 use App\Domain\Orders\StaffDashboardSummary;
 use App\Models\Product;
 use App\Models\User;
-use App\Support\Money;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Home screen: order totals, low stock, and the partner or staff home cards.
@@ -22,15 +21,16 @@ final class OverviewSection implements WorkspaceSection
         }
         $user = $context->user;
         $props = [];
-        $approved = (clone $context->orders)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered']);
-        $total = (string) (clone $approved)->sum('total');
-        $credits = (string) (clone $approved)->sum('due_credit');
-        $paid = (string) (clone $approved)->sum('paid');
-        $props['stats'] = ['order_count' => (clone $context->orders)->count(), 'purchases' => Money::decimal(Money::cents($total)),
-            'dues' => Money::decimal(Money::cents($total) - Money::cents($paid) - Money::cents($credits)),
-            'pending' => (clone $context->orders)->whereIn('status', ['submitted', 'held'])->count(),
-            'supply' => DB::table('order_lines')->whereIn('order_id', (clone $approved)->select('id'))->sum(DB::raw('quantity-dispatched')),
-            'accounts' => $user->allows('accounts') ? User::whereIn('role', ['dealer', 'sub_dealer'])->count() : null];
+        $startOfBusinessDay = CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc();
+        $totals = app(OrderOverviewTotals::class)->for($context->orders, $startOfBusinessDay);
+        $props['stats'] = [
+            'order_count' => $totals['order_count'],
+            'purchases' => $totals['purchases'],
+            'dues' => $totals['dues'],
+            'pending' => $totals['pending'],
+            'supply' => $totals['supply'],
+            'accounts' => $user->allows('accounts') ? $this->partnerAccountCount() : null,
+        ];
         $props['lowStock'] = $user->allows('inventory') ? Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->limit(5)->get(['id', 'name', 'stock', 'sku']) : [];
         if (in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $context->usingStaffWorkspace) {
             $props['partner_home'] = app(PartnerDashboardHome::class)->for($user);
@@ -49,9 +49,9 @@ final class OverviewSection implements WorkspaceSection
                         : (is_string($staffProfile['avatar_url'] ?? null) ? $staffProfile['avatar_url'] : null),
                 ],
                 'snapshot' => [
-                    'orders_today' => (clone $context->orders)->where('created_at', '>=', CarbonImmutable::now((string) config('madina.business_timezone', config('app.timezone')))->startOfDay()->utc())->count(),
-                    'pending_review' => (clone $context->orders)->whereIn('status', ['submitted', 'held'])->count(),
-                    'partner_accounts' => User::whereIn('role', ['dealer', 'sub_dealer'])->count(),
+                    'orders_today' => $totals['orders_placed_since'],
+                    'pending_review' => $totals['pending'],
+                    'partner_accounts' => $props['stats']['accounts'] ?? $this->partnerAccountCount(),
                     'purchases' => $props['stats']['purchases'],
                     'dues' => $props['stats']['dues'],
                 ],
@@ -60,5 +60,10 @@ final class OverviewSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    private function partnerAccountCount(): int
+    {
+        return User::whereIn('role', ['dealer', 'sub_dealer'])->count();
     }
 }

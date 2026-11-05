@@ -54,9 +54,21 @@ final class GuidePrerequisites
             $section = 'overview';
         }
 
+        // Every step asks the same two questions (which tours are done, has the
+        // partner ordered yet), so each is answered once for the whole checklist.
+        $completedTours = DB::table('tour_completions')
+            ->where('user_id', $user->id)
+            ->pluck('page_key')
+            ->map(fn ($pageKey): string => (string) $pageKey)
+            ->all();
+        $placedAnyOrder = null;
+        $hasOrders = function () use ($user, &$placedAnyOrder): bool {
+            return $placedAnyOrder ??= Order::query()->where('user_id', $user->id)->exists();
+        };
+
         $status = [];
         foreach ($path as $key) {
-            $status[$key] = $this->isSatisfied($user, $key);
+            $status[$key] = $this->isSatisfied($user, $key, $completedTours, $hasOrders);
         }
 
         $checklist = [];
@@ -105,36 +117,34 @@ final class GuidePrerequisites
         ];
     }
 
-    private function isSatisfied(User $user, string $key): bool
+    /**
+     * @param  list<string>  $completedTours  Page keys of the tours this partner finished.
+     * @param  \Closure(): bool  $hasOrders  Whether the partner placed any order, looked up at most once.
+     */
+    private function isSatisfied(User $user, string $key, array $completedTours, \Closure $hasOrders): bool
     {
+        $tourDone = fn (string $pageKey): bool => in_array($pageKey, $completedTours, true);
+
         return match ($key) {
             'overview' => true,
-            'profile' => $this->tourDone($user, 'overview')
-                || $this->tourDone($user, 'profile')
+            'profile' => $tourDone('overview')
+                || $tourDone('profile')
                 || filled($user->phone),
-            'catalog' => $this->tourDone($user, 'catalog')
-                || Order::query()->where('user_id', $user->id)->exists(),
-            'orders' => Order::query()->where('user_id', $user->id)->exists()
-                || $this->tourDone($user, 'orders'),
-            'earnings' => $this->tourDone($user, 'earnings')
+            'catalog' => $tourDone('catalog')
+                || $hasOrders(),
+            'orders' => $hasOrders()
+                || $tourDone('orders'),
+            'earnings' => $tourDone('earnings')
                 || DB::table('commission_allocations')->where('user_id', $user->id)->exists()
                 || Order::query()->where('user_id', $user->id)->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])->exists(),
-            'withdrawals' => $this->tourDone($user, 'earnings')
+            'withdrawals' => $tourDone('earnings')
                 || DB::table('withdrawals')->where('user_id', $user->id)->exists()
                 || (float) (DB::table('wallets')->where('user_id', $user->id)->value('available') ?? 0) > 0,
-            'full-report' => $this->tourDone($user, 'full-report')
-                || Order::query()->where('user_id', $user->id)->exists(),
+            'full-report' => $tourDone('full-report')
+                || $hasOrders(),
             'help' => true,
-            default => $this->tourDone($user, $key),
+            default => $tourDone($key),
         };
-    }
-
-    private function tourDone(User $user, string $pageKey): bool
-    {
-        return DB::table('tour_completions')
-            ->where('user_id', $user->id)
-            ->where('page_key', $pageKey)
-            ->exists();
     }
 
     private function title(string $key): string

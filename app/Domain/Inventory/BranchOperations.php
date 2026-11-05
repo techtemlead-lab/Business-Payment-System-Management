@@ -406,7 +406,31 @@ final class BranchOperations
 
     public function preferredBranch(User $actor): ?CompanyBranch
     {
+        return $this->preferredAmong($this->visibleBranches($actor), $actor);
+    }
+
+    /**
+     * The branch picker in one read of the branch list: the branch the actor
+     * works in and every branch they may switch to. Same values as calling
+     * preferredBranch() and branchesFor(), without loading the branches twice.
+     *
+     * @return array{preferred: ?CompanyBranch, branches: list<array<string, mixed>>}
+     */
+    public function branchChoices(User $actor): array
+    {
         $branches = $this->visibleBranches($actor);
+
+        return [
+            'preferred' => $this->preferredAmong($branches, $actor),
+            'branches' => $branches->map(fn (CompanyBranch $branch) => $branch->summary())->all(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, CompanyBranch>  $branches
+     */
+    private function preferredAmong(Collection $branches, User $actor): ?CompanyBranch
+    {
         if ($actor->active_branch_id) {
             $saved = $branches->firstWhere('id', (int) $actor->active_branch_id);
             if ($saved instanceof CompanyBranch) {

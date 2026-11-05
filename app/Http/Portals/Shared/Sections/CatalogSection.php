@@ -58,7 +58,9 @@ final class CatalogSection implements WorkspaceSection
         $products = (clone $productQuery)->limit($productLimit)->get();
         $revealStock = ! $context->isStaff || $user->allows('inventory');
         $revealDealerPrice = ! $context->isStaff || $user->allows('pricing') || $user->allows('orders') || $user->allows('finance');
-        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice) {
+        // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
+        $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
+        $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry) {
             $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
@@ -75,7 +77,7 @@ final class CatalogSection implements WorkspaceSection
             }
             if ($context->section === 'inventory') {
                 $base['register_name'] = $p->registerName();
-                $base['expires_on'] = Schema::hasColumn('products', 'expires_on') ? $p->expires_on?->toDateString() : null;
+                $base['expires_on'] = $supportsProductExpiry ? $p->expires_on?->toDateString() : null;
                 if ($revealDealerPrice) {
                     $base['dealer_price'] = $p->dealer_price;
                     $base['sub_dealer_price'] = $p->sub_dealer_price;
