@@ -52,4 +52,5 @@ return [
     'err_otp_expired' => 'The login code expired. Log in again to get a new code.',
     'err_otp_too_many' => 'Too many wrong codes. Log in again.',
     'err_otp_incorrect' => 'That login code is incorrect.',
+    'birthday_greeting' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
 ];
