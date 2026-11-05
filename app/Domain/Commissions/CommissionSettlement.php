@@ -87,26 +87,33 @@ final class CommissionSettlement
             $volumes = $this->qualification->monthlyVolumesFor($dealerIds, $month);
             $dealerNames = $dealers->pluck('name', 'id')->all();
             // Salary is shared within each division (বিভাগ): the dealer's division, resolved the same way an order resolves its buyer's.
-            $dealerDivisions = $kind === 'salary' ? $dealers->mapWithKeys(fn (User $dealer): array => [
-                (int) $dealer->id => $this->divisionOf($this->geography->forBuyer($dealer)),
-            ])->all() : [];
+            $dealerDivisions = $kind === 'salary' ? $this->dealerDivisions($dealers) : [];
             $divisionSummary = [];
             $toCompanyProfit = 0;
             $subDealerNames = [];
             /** @var array<string, array<int, array<string, mixed>>> */
             $paidAsByRules = [];
             $batchPolicies = $this->batchPolicies($funds);
+            $buyerGeographies = $kind === 'salary' ? $this->fundBuyerGeographies($funds, $batchPolicies) : [];
+            $partners = User::query()
+                ->whereIn('id', $funds->where('category', 'sub_dealer_salary')->pluck('user_id')->filter()->unique()->values())
+                ->get()
+                ->keyBy('id');
+            $partnerVolumes = $this->qualification->monthlyVolumesFor($partners
+                ->filter(fn (User $partner): bool => $partner->role === 'sub_dealer' && $partner->status === 'active' && ! array_key_exists($partner->id, $volumes))
+                ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
+            $payees = $dealers->keyBy('id')->union($partners)->all();
             foreach ($funds as $fund) {
-                [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies);
+                [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
                 $cents = Money::cents($fund->amount);
                 $shares = [];
                 if ($fund->category === 'sub_dealer_salary') {
-                    $partner = User::query()->find($fund->user_id);
+                    $partner = $fund->user_id !== null ? $partners->get($fund->user_id) : null;
                     if ($partner?->role === 'sub_dealer' && $partner->status === 'active') {
                         $shares[$partner->id] = $cents;
                         $subDealerNames[$partner->id] = $partner->name;
                         if (! array_key_exists($partner->id, $volumes)) {
-                            $volumes[$partner->id] = $this->qualification->monthlyVolume($partner->id, $month);
+                            $volumes[$partner->id] = $partnerVolumes[$partner->id] ?? 0;
                         }
                     }
                 } elseif ($kind === 'salary') {
@@ -136,7 +143,7 @@ final class CommissionSettlement
                 }
                 foreach ($shares as $id => $amount) {
                     if ($amount > 0) {
-                        $this->pay($fund, $id, $amount, $month, $kind);
+                        $this->pay($fund, $id, $amount, $month, $kind, $payees[$id] ?? null);
                         $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
                     }
                 }
@@ -297,10 +304,9 @@ final class CommissionSettlement
         }
         $dealers = User::query()->where('role', 'dealer')->where('status', 'active')->orderBy('id')->get();
         $volumes = $this->qualification->monthlyVolumesFor($dealers->pluck('id')->map(fn ($id): int => (int) $id)->all(), $month);
-        $dealerDivisions = $dealers->mapWithKeys(fn (User $dealer): array => [
-            (int) $dealer->id => $this->divisionOf($this->geography->forBuyer($dealer)),
-        ])->all();
+        $dealerDivisions = $this->dealerDivisions($dealers);
         $batchPolicies = $this->batchPolicies($funds);
+        $buyerGeographies = $this->fundBuyerGeographies($funds, $batchPolicies);
         $divisions = [];
         $shares = [];
         $shareDivision = [];
@@ -312,7 +318,7 @@ final class CommissionSettlement
 
                 continue;
             }
-            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies);
+            [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
             $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
             $fundShares = $this->divide($cents, $qualifiedIds);
             $divisions[$label]['pool'] = ($divisions[$label]['pool'] ?? 0) + $cents;
@@ -369,6 +375,57 @@ final class CommissionSettlement
     }
 
     /**
+     * Each dealer's division, resolved the same way an order resolves its buyer's.
+     *
+     * @param  Collection<int, User>  $dealers
+     * @return array<int, array{id: int|null, key: string|null, name: string|null}>
+     */
+    private function dealerDivisions(Collection $dealers): array
+    {
+        $geographies = $this->geography->forBuyers($dealers);
+
+        return $dealers->mapWithKeys(fn (User $dealer): array => [
+            (int) $dealer->id => $this->divisionOf($geographies[(int) $dealer->id]),
+        ])->all();
+    }
+
+    /**
+     * The order buyer's geography for every fund whose order kept no geography snapshot,
+     * loaded together instead of one fund at a time.
+     *
+     * @param  Collection<int, CommissionAllocation>  $funds
+     * @param  array<int|string, string|null>  $batchPolicies
+     * @return array<int|string, array<string, mixed>|null> order id => buyer geography
+     */
+    private function fundBuyerGeographies(Collection $funds, array $batchPolicies): array
+    {
+        $orderIds = $funds
+            ->filter(function (CommissionAllocation $fund) use ($batchPolicies): bool {
+                $source = $batchPolicies[$fund->order_id] ?? null;
+                $policy = $source ? json_decode((string) $source, true, 512, JSON_THROW_ON_ERROR) : null;
+
+                return $fund->order_id !== null && ($policy['geography'] ?? null) === null;
+            })
+            ->pluck('order_id')
+            ->unique()
+            ->values();
+        if ($orderIds->isEmpty()) {
+            return [];
+        }
+        $buyerIds = DB::table('orders')->whereIn('id', $orderIds)->pluck('user_id', 'id');
+        $buyers = User::query()->whereIn('id', $buyerIds->filter()->unique()->values())->get();
+        $geographies = $this->geography->forBuyers($buyers);
+
+        $byOrder = [];
+        foreach ($orderIds as $orderId) {
+            $buyerId = $buyerIds[$orderId] ?? null;
+            $byOrder[$orderId] = $buyerId !== null ? ($geographies[(int) $buyerId] ?? null) : null;
+        }
+
+        return $byOrder;
+    }
+
+    /**
      * The rules, division and qualifying dealers for one salary or royalty fund: dealers in the
      * fund's division who met the monthly volume (or have it waived) under the order's rules.
      *
@@ -376,15 +433,18 @@ final class CommissionSettlement
      * @param  array<int, array<string, mixed>>  $dealerDivisions
      * @param  array<int, int>  $volumes
      * @param  array<int|string, string|null>  $batchPolicies
+     * @param  array<int|string, array<string, mixed>|null>  $buyerGeographies  preloaded by fundBuyerGeographies()
      * @return array{0: array<string, mixed>, 1: array<string, mixed>|null, 2: list<int>}
      */
-    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies): array
+    private function fundQualifiers(CommissionAllocation $fund, string $kind, Collection $dealers, array $dealerDivisions, array $volumes, array $batchPolicies, array $buyerGeographies = []): array
     {
         $source = $batchPolicies[$fund->order_id] ?? null;
         $policy = $source ? json_decode((string) $source, true, 512, JSON_THROW_ON_ERROR) : null;
         $rules = $policy['rules'] ?? $this->policies->snapshot()['rules'];
         $minVolume = Money::cents((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']);
-        $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? $this->orderBuyerGeography($fund)) : null;
+        $fundDivision = $kind === 'salary' ? $this->divisionOf($policy['geography'] ?? (array_key_exists($fund->order_id, $buyerGeographies)
+            ? $buyerGeographies[$fund->order_id]
+            : $this->orderBuyerGeography($fund))) : null;
         $qualifiedIds = $dealers
             ->filter(fn (User $user): bool => ($kind !== 'salary' || $this->sameDivision($dealerDivisions[(int) $user->id] ?? null, $fundDivision))
                 && (PartnerBenefitControls::waivesSalaryVolume($user) || ($volumes[$user->id] ?? 0) >= $minVolume))
@@ -551,12 +611,13 @@ final class CommissionSettlement
         return $result;
     }
 
-    private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind): void
+    /** @param  User|null  $payee  the partner when already loaded, so a batch of payouts skips looking each one up */
+    private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
     {
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
             'refunded_basis' => DB::table('commission_batches')->where('order_id', $fund->order_id)->value('refunded_amount') ?? '0.00',
             'period_month' => $month, 'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()]);
-        $partner = User::find($userId);
+        $partner = $payee ?? User::find($userId);
         $locale = $partner?->preferredLocale() ?? app()->getLocale();
         $kindLabel = __('portal.settle_kind_'.$kind, [], $locale);
         $this->wallets->journal('commissions.settlement.'.$fund->id.'.'.$userId.'.'.$kind, __('portal.jr_commission_settlement', [
