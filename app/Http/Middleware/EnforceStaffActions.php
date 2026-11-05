@@ -69,6 +69,10 @@ class EnforceStaffActions
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
         }
+        if ($controller === 'CommandController' && in_array($method, ['resetPartnerPassword', 'revealPartnerPassword'], true) && $actor->owner()) {
+            // Owners reset and see passwords; PasswordAccess in the controller decides whose.
+            return $next($request);
+        }
         if ($controller === 'PartnerAgreementController' && $actor->owner()) {
             // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);

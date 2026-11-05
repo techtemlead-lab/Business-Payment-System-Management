@@ -41,6 +41,7 @@ return function (string $portal): void {
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
+    Route::post('/commands/owner/password-reset-notice', [AuthController::class, 'passwordResetNotice'])->middleware('throttle:5,1');
     Route::post('/commands/agreement/publish', [PartnerAgreementController::class, 'publish'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/setting', [PartnerAgreementController::class, 'setting'])->middleware('throttle:10,1');
     Route::post('/commands/agreement/accept', [PartnerAgreementController::class, 'accept'])->middleware('throttle:10,1');

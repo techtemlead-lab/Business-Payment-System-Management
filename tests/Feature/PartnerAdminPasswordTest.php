@@ -239,6 +239,69 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_md_and_chairman_without_accounts_permission_can_reset_and_see_dealer_passwords(): void
+    {
+        $dealer = User::factory()->dealer()->create([
+            'phone' => '01712345333',
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'DealerPass1!',
+        ]);
+        $subDealer = User::factory()->subDealer()->create([
+            'status' => 'active',
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'SubDealerPass1!',
+        ]);
+
+        foreach (['md', 'chairman'] as $role) {
+            $owner = User::factory()->staff($role)->create();
+            $this->assertFalse($owner->allows('accounts'));
+
+            $this->actingAs($owner)->onPortal('sadmin')->get('/accounts')->assertOk();
+            $this->actingAs($owner)->onPortal('sadmin')->get('/sub-dealers')->assertOk();
+            $this->actingAs($owner)->onPortal('sadmin')
+                ->getJson('/commands/accounts/'.$dealer->id.'/password-status')
+                ->assertOk()
+                ->assertJsonPath('data.can_reveal', true);
+            $this->actingAs($owner)->onPortal('sadmin')
+                ->postJson('/commands/accounts/'.$subDealer->id.'/reveal-password')
+                ->assertOk()
+                ->assertJsonPath('data.password', 'SubDealerPass1!');
+            $this->actingAs($owner)->onPortal('sadmin')
+                ->postJson('/commands/accounts/'.$dealer->id.'/reset-password', ['password' => 'OwnerChosen'.$role.'1!'])
+                ->assertOk()
+                ->assertJsonPath('data.password', 'OwnerChosen'.$role.'1!');
+        }
+    }
+
+    public function test_owners_never_reach_the_super_admin_or_their_own_password_and_md_chairman_stay_super_admin_only(): void
+    {
+        $superAdmin = User::factory()->staff('super_admin')->create();
+        $md = User::factory()->staff('md')->create(['admin_password_cipher' => 'MdPass1!']);
+        $chairman = User::factory()->staff('chairman')->create(['admin_password_cipher' => 'ChairPass1!']);
+        $access = app(PasswordAccess::class);
+
+        $this->assertFalse($access->canView($md, $chairman));
+        $this->assertFalse($access->canView($chairman, $md));
+        $this->assertFalse($access->canView($md, $superAdmin));
+        $this->assertFalse($access->canView($chairman, $superAdmin));
+        $this->assertFalse($access->canView($chairman, $chairman));
+        $this->assertTrue($access->canView($superAdmin, $md));
+
+        $this->actingAs($md)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$chairman->id.'/reveal-password')
+            ->assertForbidden();
+        $this->actingAs($chairman)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$superAdmin->id.'/reset-password')
+            ->assertForbidden();
+    }
+
+    public function test_staff_without_accounts_permission_still_cannot_open_the_account_list(): void
+    {
+        $finance = User::factory()->staff('finance')->create();
+
+        $this->actingAs($finance)->onPortal('manage')->get('/accounts')->assertForbidden();
+    }
+
     public function test_password_status_is_forbidden_for_non_accounts_staff(): void
     {
         $finance = User::factory()->staff('finance')->create();
