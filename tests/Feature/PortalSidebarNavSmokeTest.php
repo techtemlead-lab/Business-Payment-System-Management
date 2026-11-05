@@ -51,7 +51,7 @@ class PortalSidebarNavSmokeTest extends TestCase
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'catalog')
                 ->where('translations.portal.nav_module_catalog', 'Product list')
-                ->where('translations.portal.nav_module_stock', 'Stock')
+                ->where('translations.portal.nav_module_stock', 'Stock & godown')
                 ->where('translations.portal.nav_products', 'Products')
                 ->where('translations.portal.cms_taxonomy_tab', 'Categories & Units')
                 ->where('translations.portal.stock_action_product_in', 'Product In')
