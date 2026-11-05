@@ -5894,4 +5894,8 @@ return [
     'chat_pick_partner' => 'পড়তে ও উত্তর দিতে বাঁ পাশ থেকে একটি চ্যাট বেছে নিন।',
     'perm_partner_chat' => 'পার্টনার চ্যাট',
     'perm_partner_chat_hint' => 'ডিলার ও সাব-ডিলারদের মেসেজ পড়া ও উত্তর দেওয়া।',
+    'office_today_title' => 'আজকের ব্যবসা',
+    'office_today_received' => 'আজ জমা হওয়া টাকা',
+    'office_today_payments' => 'যাচাইয়ের অপেক্ষায় পেমেন্ট',
+    'office_today_withdrawals' => 'অপেক্ষায় থাকা টাকা তোলার আবেদন',
 ];

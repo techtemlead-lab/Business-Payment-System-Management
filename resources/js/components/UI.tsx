@@ -539,7 +539,7 @@ export function Table<T extends Row = any>({
    ))}
   </tr>
  )) : (
-  <tr>
+  <tr className="table-empty-row">
    <td colSpan={columns.length}>
     <Empty
      title={list.length ? translate('portal', 'table_no_matches') : emptyTitle}
@@ -645,7 +645,7 @@ export function Table<T extends Row = any>({
            cursor: isSortable ? 'pointer' : 'default',
            userSelect: isSortable ? 'none' : 'auto',
           }}
-          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.className ?? ''}`}
+          className={`${isSortable ? 'table-th-sortable' : ''} ${isSorted ? 'is-sorted' : ''} ${c.money || align === 'right' ? 'is-num' : ''} ${c.className ?? ''}`}
           onClick={() => handleHeaderClick(c.key, isSortable)}
           aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
          >
