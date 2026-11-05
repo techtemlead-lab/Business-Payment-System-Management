@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" href="/reference/favicon.png?v=8">
     <link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
     <link rel="stylesheet" href="/reference/fontawesome-local.css">
-    <link rel="stylesheet" href="/reference/instrument-sans-local.css">
+    <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/reference-home.css'])

@@ -23,10 +23,10 @@ final class PartnerDashboardHome
      * @return array{
      *   profile: array<string, mixed>,
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
-     *   chart: list<array{key: string, label: string, value: string, cents: int, color: string}>,
      *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
-     *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null
+     *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
+     *   wallet: array{available: string, pending_withdrawal: string}
      * }
      */
     public function for(User $user): array
@@ -62,24 +62,6 @@ final class PartnerDashboardHome
             ->where('created_at', '>=', $todayUtc)
             ->whereIn('status', $activeStatuses)
             ->sum('amount'));
-        $paidToday = Money::cents((string) DB::table('withdrawals')
-            ->where('user_id', $user->id)
-            ->where('status', 'paid')
-            ->where('paid_at', '>=', $todayUtc)
-            ->sum(DB::raw('COALESCE(net_amount, amount)')));
-        if ($paidToday === 0) {
-            $paidToday = Money::cents((string) Order::query()
-                ->where('user_id', $user->id)
-                ->where('created_at', '>=', $todayUtc)
-                ->sum('paid'));
-        }
-
-        $chart = [
-            ['key' => 'commission', 'label' => __('portal.today_commission'), 'value' => Money::decimal($commissionToday), 'cents' => $commissionToday, 'color' => '#ef4a23'],
-            ['key' => 'own', 'label' => __('portal.today_purchase'), 'value' => Money::decimal($ownSalesToday), 'cents' => $ownSalesToday, 'color' => '#2e3192'],
-            ['key' => 'paid', 'label' => __('portal.today_paid'), 'value' => Money::decimal($paidToday), 'cents' => $paidToday, 'color' => '#0f766e'],
-            ['key' => 'team', 'label' => __('portal.team_sales'), 'value' => Money::decimal($teamSalesToday), 'cents' => $teamSalesToday, 'color' => '#c9a227'],
-        ];
 
         return [
             'profile' => [
@@ -104,9 +86,7 @@ final class PartnerDashboardHome
                 'team_sales_today' => Money::decimal($teamSalesToday),
                 'commission_month' => Money::decimal($commissionMonth),
                 'commission_today' => Money::decimal($commissionToday),
-                'paid_today' => Money::decimal($paidToday),
             ],
-            'chart' => $chart,
             'targets' => $this->targets($user, $rules, $month),
             'referral' => $user->refer_code ? [
                 'code' => $user->refer_code,
@@ -114,6 +94,27 @@ final class PartnerDashboardHome
                 'qr_url' => '/referral-qr.svg',
             ] : null,
             'sponsor' => $this->sponsorCard($user),
+            // Shown behind a "tap to see balance" button on the home screen.
+            'wallet' => $this->walletSummary($user),
+        ];
+    }
+
+    /**
+     * Money ready to withdraw and money already asked for, in one query.
+     *
+     * @return array{available: string, pending_withdrawal: string}
+     */
+    private function walletSummary(User $user): array
+    {
+        $row = DB::query()->selectRaw(
+            '(SELECT available FROM wallets WHERE user_id = ?) AS available, '
+            ."(SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE user_id = ? AND status IN ('requested', 'approved', 'pending')) AS pending",
+            [$user->id, $user->id],
+        )->first();
+
+        return [
+            'available' => Money::decimal(Money::cents((string) ($row->available ?? '0'))),
+            'pending_withdrawal' => Money::decimal(Money::cents((string) ($row->pending ?? '0'))),
         ];
     }
 

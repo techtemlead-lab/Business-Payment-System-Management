@@ -472,3 +472,7 @@
 .app-shell .aa-item small{color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-note{margin:4px 0 0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-reason{display:grid;gap:4px;font-weight:600;font-size:var(--ds-fs-sm)}
+
+/* Payout desk: search, method and dates on one wrapping row. */
+.app-shell .pay-search{flex-wrap:wrap;max-width:none}
+.app-shell .pay-search>select{width:auto;min-height:36px;padding:6px 10px}
