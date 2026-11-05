@@ -281,6 +281,45 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                             </div>
                         </section>
 
+                        {/* Monthly top-sellers board (dealers and sub-dealers) */}
+                        <section className="panel">
+                            <div className="panel-heading">
+                                <div>
+                                    <h3 className="hub-title">
+                                        {translate('portal','dash_mgmt_top_sellers_title')}
+                                    </h3>
+                                    <p className="hub-sub">
+                                        {translate('portal','dash_mgmt_top_sellers_hint')}
+                                    </p>
+                                </div>
+                                <Sparkles size={20} className="text-muted" />
+                            </div>
+
+                            <div className="dmh-toggles tone-info">
+                                {[
+                                    { key: 'top_sellers_enabled', label: translate('portal','dash_mgmt_toggle_top_sellers'), desc: translate('portal','dash_mgmt_toggle_top_sellers_desc') },
+                                    { key: 'top_sellers_show_amounts', label: translate('portal','dash_mgmt_toggle_top_sellers_amounts'), desc: translate('portal','dash_mgmt_toggle_top_sellers_amounts_desc') },
+                                ].map(toggle => {
+                                    const active = Boolean(form.data.settings[toggle.key]);
+                                    return (
+                                        <div
+                                            key={toggle.key}
+                                            onClick={() => toggleBool(toggle.key)}
+                                            className={`dmh-toggle${active ? ' is-on' : ''}`}
+                                        >
+                                            <div>
+                                                <b>{toggle.label}</b>
+                                                <small>{toggle.desc}</small>
+                                            </div>
+                                            <span className="dmh-toggle-dot">
+                                                {active ? '●' : '○'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </section>
+
                         {/* Broadcast Announcement to Dealers */}
                         <section className="panel">
                             <div className="panel-heading">
