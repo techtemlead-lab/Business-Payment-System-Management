@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import { Building2, MapPin, Plus, Store, Truck, Users } from 'lucide-react';
-import { Badge, Modal, Table, Pagination, money, type Row } from './UI';
+import { Badge, Modal, Table, Pagination, label, money, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface BranchStaff {
@@ -367,7 +367,7 @@ export default function BranchesHub({
                             <select value={assignForm.data.user_id} onChange={(e) => assignForm.setData('user_id', e.target.value)} required>
                                 <option value="">{translate('portal', 'branch_pick_staff')}</option>
                                 {assignable_staff.map((staff) => (
-                                    <option key={staff.id} value={staff.id}>{staff.name} · {staff.role}</option>
+                                    <option key={staff.id} value={staff.id}>{staff.name} · {label(staff.role, translate)}</option>
                                 ))}
                             </select>
                         </label>

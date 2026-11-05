@@ -218,7 +218,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                                     </blockquote>
 
                                     {/* Quick In-Page Anchors */}
-                                    <nav className="help-article-anchors" aria-label="Article Outline">
+                                    <nav className="help-article-anchors" aria-label={translate('portal', 'aria_article_outline')}>
                                         <span className="anchors-label">{translate('portal', 'help_manual_quick_nav')}:</span>
                                         {active.purpose && <a href="#purpose">{translate('portal', 'help_manual_purpose')}</a>}
                                         {active.why && <a href="#why">{translate('portal', 'help_manual_why')}</a>}

@@ -89,13 +89,14 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertGuest();
         $this->assertDatabaseHas('audit_events', ['action' => 'login.failed', 'subject' => (string) $dealer->id]);
 
-        // The Super Admin can still get in to set up SMS; that sign-in is audited.
+        // The Super Admin is stopped too (owner decision, 2026-11-05): the owner switch or
+        // `madina:sms-login off` on the server turns the code step off when SMS is down.
         $owner = User::factory()->staff('super_admin')->create(['phone' => '01733334445', 'password' => 'SyntheticPassword123']);
         $this->onPortal('sadmin')
             ->post('/login', ['email' => $owner->email, 'password' => 'SyntheticPassword123'])
-            ->assertRedirect('/');
-        $this->assertAuthenticatedAs($owner);
-        $this->assertDatabaseHas('audit_events', ['action' => 'login.second_factor_bypassed', 'subject' => (string) $owner->id]);
+            ->assertSessionHasErrors(['email' => __('auth_ui.otp_sms_unavailable')]);
+        $this->assertGuest();
+        $this->assertDatabaseMissing('audit_events', ['action' => 'login.second_factor_bypassed']);
         $this->assertSame([], config('madina.sms.sent'));
     }
 

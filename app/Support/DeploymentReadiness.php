@@ -107,6 +107,16 @@ final class DeploymentReadiness
         if ($partnerOtp['enabled'] && in_array($smsDriver, ['log', 'array', 'null', ''], true) && ! $smsGatewayReady) {
             $warnings[] = 'login_otp_requires_real_sms_before_go_live';
         }
+        // Go-live: SMS and every feature switched off to save cost during testing must be back on.
+        if (! $partnerOtp['stored_enabled']) {
+            $warnings[] = 'sms_login_code_switched_off';
+        }
+        if ($checks['database'] && $this->accountsMissingMobile()) {
+            $warnings[] = 'accounts_missing_mobile';
+        }
+        if ($checks['database'] && $this->accountsSharingMobileWithoutApproval()) {
+            $warnings[] = 'accounts_sharing_mobile';
+        }
         if ($partnerOtp['preview_forced_off'] && $partnerOtp['stored_enabled']) {
             $warnings[] = 'partner_login_otp_forced_off_in_preview';
         }
@@ -539,5 +549,31 @@ final class DeploymentReadiness
 
             return false;
         }
+    }
+
+    /** Active accounts without a valid Bangladeshi mobile number cannot get a sign-in code. */
+    private function accountsMissingMobile(): bool
+    {
+        return DB::table('users')
+            ->where('status', 'active')
+            ->where(function ($query): void {
+                $query->whereNull('phone')
+                    ->orWhereRaw("regexp_replace(phone, '[^0-9]', '', 'g') !~ '^(?:88)?01[3-9][0-9]{8}$'");
+            })
+            ->exists();
+    }
+
+    /** Two accounts on one mobile number, where no owner approved sharing it. */
+    private function accountsSharingMobileWithoutApproval(): bool
+    {
+        return DB::table('users')
+            ->whereNotNull('phone')
+            ->whereRaw("phone ~ '^[0-9[:space:]()+.-]+$'")
+            ->selectRaw('('.PhoneIdentity::SQL.') as identity')
+            ->selectRaw('count(*) - count(phone_share_approved_by) as unapproved')
+            ->groupByRaw(PhoneIdentity::SQL)
+            ->havingRaw('count(*) > 1')
+            ->havingRaw('count(*) - count(phone_share_approved_by) > 1')
+            ->exists();
     }
 }
