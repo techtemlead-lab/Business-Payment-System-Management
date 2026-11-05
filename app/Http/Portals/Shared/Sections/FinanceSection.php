@@ -77,10 +77,6 @@ final class FinanceSection implements WorkspaceSection
         if ($request->filled('buyer_role')) {
             $claims->where('users.role', $request->string('buyer_role')->toString());
         }
-        $claimStatus = $request->string('status')->toString();
-        if (in_array($claimStatus, ['pending', 'verified', 'rejected'], true)) {
-            $claims->where('payment_claims.status', $claimStatus);
-        }
         $channel = $request->string('channel')->toString();
         if (in_array($channel, ['Bank', 'bKash', 'Nagad', 'Rocket'], true)) {
             $claims->where('payment_claims.channel', $channel);
@@ -93,6 +89,18 @@ final class FinanceSection implements WorkspaceSection
         if ($range !== null) {
             $claims->where('payment_claims.created_at', '>=', $range['from'])
                 ->where('payment_claims.created_at', '<=', $range['until']);
+        }
+        // Counts for the status tabs: every filter on screen except status itself.
+        $props['claim_status_counts'] = (clone $claims)
+            ->select('payment_claims.status')
+            ->selectRaw('COUNT(*) AS aggregate')
+            ->groupBy('payment_claims.status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
+        $claimStatus = $request->string('status')->toString();
+        if (in_array($claimStatus, ['pending', 'verified', 'rejected'], true)) {
+            $claims->where('payment_claims.status', $claimStatus);
         }
         $props['claims'] = $claims->orderByDesc('payment_claims.id')->paginate(20)->withQueryString();
 

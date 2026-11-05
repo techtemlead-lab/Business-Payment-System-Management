@@ -5351,6 +5351,13 @@ return [
     'admin_kpis_label' => 'ব্যবসার এক নজরে হিসাব',
     'admin_kpi_open' => 'তালিকা দেখুন',
     'orders_tab_all' => 'সব',
+    'dues_sum_total' => 'মোট বকেয়া',
+    'dues_sum_orders' => 'বকেয়া আছে এমন অর্ডার',
+    'dues_sum_over_60' => '৬০ দিনের বেশি পুরনো বকেয়া',
+    'dues_sum_oldest' => 'সবচেয়ে পুরনো বকেয়া',
+    'deliv_sum_orders' => 'পাঠানো বাকি অর্ডার',
+    'deliv_sum_units' => 'পাঠানো বাকি পরিমাণ',
+    'deliv_sum_oldest' => 'সবচেয়ে পুরনো অপেক্ষমাণ অর্ডার',
     'col_booked_units_hint' => 'অনুমোদিত অর্ডারের যে পরিমাণ এখনো পাঠানো হয়নি, পুরো কোম্পানির হিসাবে',
     'stock_free_to_sell' => 'বিক্রির জন্য খালি (কোম্পানি): :count',
 ];
