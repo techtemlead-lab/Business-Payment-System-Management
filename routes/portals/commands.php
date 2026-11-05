@@ -14,6 +14,7 @@ use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StockMovementExportController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,7 @@ return function (string $portal): void {
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
     Route::get('/exports/accounts', AccountListExportController::class)->middleware('throttle:5,1');
+    Route::get('/exports/stock-movements', StockMovementExportController::class)->middleware('throttle:5,1');
 
     Route::post('/commands/orders/{order}/decision', [CommandController::class, 'decision']);
     Route::post('/commands/orders/{order}/dispatch', [CommandController::class, 'dispatch']);

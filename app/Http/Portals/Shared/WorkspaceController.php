@@ -11,6 +11,7 @@ use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Finance\DueAdjustments;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
+use App\Domain\Inventory\StockMovementList;
 use App\Domain\Orders\OrderInvoice;
 use App\Domain\Orders\UplineReplacementOptions;
 use App\Domain\Pricing\ProductPricing;
@@ -124,6 +125,7 @@ class WorkspaceController extends Controller
             'availability' => 'nullable|in:published,draft,in_stock,out_of_stock',
             'sort' => 'nullable|in:name_asc,name_desc,price_asc,price_desc,newest,stock_asc,stock_desc',
             ...Arr::only(PartnerAccountList::rules(), ['division', 'district', 'rank', 'no_order_days']),
+            ...Arr::only(StockMovementList::rules(), ['product_id', 'movement']),
         ]);
         if ($staff && $section === 'sub-dealer-orders') {
             return redirect('/orders?'.http_build_query(array_filter([
@@ -160,7 +162,7 @@ class WorkspaceController extends Controller
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }
 
-        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days'])]);
+        return Inertia::render(PortalCatalog::page($portal), ['section' => $section, 'data' => $data, 'filters' => $r->only(['q', 'status', 'buyer_role', 'channel', 'category', 'sub_category', 'unit', 'min_mrp', 'max_mrp', 'availability', 'sort', 'period', 'from', 'to', 'division', 'district', 'rank', 'no_order_days', 'branch_id', 'product_id', 'movement'])]);
     }
 
     public function createAccount(Request $r): Response
