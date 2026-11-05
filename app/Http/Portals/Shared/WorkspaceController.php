@@ -35,6 +35,7 @@ use App\Http\Portals\Shared\Sections\SectionContext;
 use App\Http\Portals\Shared\Sections\SectionDates;
 use App\Http\Portals\Shared\Sections\SupportSection;
 use App\Http\Portals\Shared\Sections\TerritorySection;
+use App\Http\Portals\Shared\Sections\TrainingSection;
 use App\Http\Portals\Shared\Sections\WithdrawalsSection;
 use App\Http\Portals\Shared\Sections\WorkspaceSection;
 use App\Models\Order;
@@ -77,6 +78,7 @@ class WorkspaceController extends Controller
         FeedbackSection::class,
         CommissionsSection::class,
         TerritorySection::class,
+        TrainingSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

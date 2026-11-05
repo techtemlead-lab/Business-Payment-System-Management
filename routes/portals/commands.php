@@ -10,6 +10,7 @@ use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,12 @@ return function (string $portal): void {
     Route::post('/commands/stock', [CommandController::class, 'stock']);
     Route::post('/commands/policies', [CommandController::class, 'policy']);
     Route::post('/commands/content', [CommandController::class, 'content']);
+    Route::post('/commands/training', [TrainingController::class, 'store'])->middleware('throttle:30,1');
+    Route::post('/commands/training/reorder', [TrainingController::class, 'reorder'])->middleware('throttle:60,1');
+    Route::patch('/commands/training/{trainingItem}', [TrainingController::class, 'update'])->whereNumber('trainingItem')->middleware('throttle:30,1');
+    Route::post('/commands/training/{trainingItem}/publish', [TrainingController::class, 'publish'])->whereNumber('trainingItem');
+    Route::delete('/commands/training/{trainingItem}', [TrainingController::class, 'destroy'])->whereNumber('trainingItem');
+    Route::get('/training/{trainingItem}/pdf', [TrainingController::class, 'pdf'])->whereNumber('trainingItem')->middleware('throttle:60,1');
     Route::post('/commands/customization', [CommandController::class, 'customization']);
     Route::post('/commands/customization/category-icon', [CommandController::class, 'uploadCategoryIcon'])->middleware('throttle:30,1');
     Route::post('/commands/customization/reset', [CommandController::class, 'resetCustomization']);
