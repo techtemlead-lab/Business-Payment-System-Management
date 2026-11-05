@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 
 final class PortalHost
@@ -80,6 +81,7 @@ final class PortalHost
     {
         // A production install with a missing APP_DOMAIN must not silently reopen
         // the loopback preview switcher.
+        // Unit tests run on a bare container, which has no environment(): only check a real app.
         $app = app();
         if ($app instanceof Application && $app->environment('production')) {
             return false;

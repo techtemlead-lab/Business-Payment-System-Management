@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\RetainedFundLedger;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Geography\ManagementReferral;
@@ -209,8 +210,16 @@ final class FinanceSection implements WorkspaceSection
         $dealerCash = (float) ($collected['dealer'] ?? 0);
         $subDealerCash = (float) ($collected['sub_dealer'] ?? 0);
         $cash = $dealerCash + $subDealerCash;
+        // Leftovers of a settled salary or rank pool are saved as new rows (company profit or a
+        // reserve) while the pool row keeps its full amount, so counting both would count that
+        // money twice. Only original rows count toward what the commission pool handed out.
+        $original = fn ($query) => $query->whereRaw("(metadata->>'source_allocation_id') IS NULL");
         $allocated = CommissionAllocation::where('status', '!=', 'reversed')
             ->where('category', '!=', 'company_commission_benefits_fund')
+            ->where($original)
+            ->sum('amount');
+        $unclaimedToCompany = CommissionAllocation::where('status', '!=', 'reversed')
+            ->where('category', CommissionSettlement::CompanyProfitCategory)
             ->sum('amount');
         $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
         $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
@@ -233,6 +242,7 @@ final class FinanceSection implements WorkspaceSection
             'car_bike_fund' => (float) CommissionAllocation::where('category', 'car_bike_incentive_fund')->sum('amount'),
             'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
             'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
+            'unclaimed_to_company_profit' => (float) $unclaimedToCompany,
         ];
         $ownerBenefits = $user->owner() && $context->portal === 'sadmin';
         // Owner-only: purchase surplus after company share + commissions.
@@ -242,6 +252,7 @@ final class FinanceSection implements WorkspaceSection
             $props['flow']['owner_benefits_fund_visible'] = true;
         }
         $props['allocations_by_category'] = CommissionAllocation::where('status', '!=', 'reversed')
+            ->where($original)
             ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', 'company_commission_benefits_fund'))
             ->selectRaw('category, SUM(amount) AS total_amount, COUNT(*) AS count')->groupBy('category')->get();
         $props['recent_allocations'] = CommissionAllocation::with('user:id,name,dealer_code')

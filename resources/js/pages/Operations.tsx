@@ -23,7 +23,6 @@ const sectionTitleKeys:Record<string,string> = {
     'commission-holds':'commission_holds',
     'financial-readiness':'financial_readiness',
     'financial-reports':'financial_reports',
-    'dues-adjustments':'dues_adjustments',
     'finance-settings':'finance_settings',
     'access-management':'access_management',
     'video-marketing':'video_marketing',
@@ -224,7 +223,7 @@ function AutoApprovalPanel({setting,root}:{setting:Row,root:string}){
         </form>
     </section>;
 }
-export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],adjustableOrders=[],withdrawalSetting,autoApproval,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
+export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],withdrawalSetting,autoApproval,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const sectionTitle=translate('portal', sectionTitleKeys[section] ?? section);
@@ -232,8 +231,6 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
     const capabilities:string[]=auth.capabilities;
     const [selected,setSelected]=useState<Action|null>(null);
     const [account,setAccount]=useState<Row|null>(null);
-    const [adjustmentOrder,setAdjustmentOrder]=useState('');
-    const selectedOrder=adjustmentOrder||String(adjustableOrders[0]?.id??'');
     const yes=translate('portal','ops_fld_yes');
     const no=translate('portal','ops_fld_no');
     const choice=(name:string,title:string,values:string[],required=true):Field=>options(name,title,values,required,yes,no,translate);
@@ -246,7 +243,6 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
     const forms:Action[]=[];
     if(section==='finance-settings'&&withdrawalSetting)forms.push({title:translate('portal','ops_save_withdrawal_minimum'),action:root+'/settings/withdrawal-minimum',fields:[field('amount',translate('portal','ops_fld_min_withdrawal'),'number'),reason],defaults:{amount:withdrawalSetting.amount,version:withdrawalSetting.version}});
     if(section==='video-marketing')forms.push({title:translate('portal','ops_save_homepage_video'),action:root+'/marketing/homepage-video',fields:[choice('enabled',translate('portal','ops_fld_show_video'),['1','0'],true),choose(videoProducts,'product_id',translate('portal','ops_fld_product_video'),false),field('title',translate('portal','ops_fld_section_title')),field('description',translate('portal','ops_fld_introduction'),'textarea',false),reason],defaults:{...videoSetting,enabled:videoSetting.enabled?'1':'0',title:videoSetting.title??translate('portal','ops_video_title_default')}});
-    if(section==='dues-adjustments'&&selectedOrder)forms.push({title:translate('portal','ops_propose_due_adjustment'),action:`${root}/orders/${selectedOrder}/due-adjustments`,fields:[choice('kind',translate('portal','ops_fld_adjustment_type'),['credit','debit_correction']),field('amount',translate('portal','ops_fld_amount_bdt'),'number'),field('reference',translate('portal','ops_fld_credit_ref')),reason],defaults:{request_key:crypto.randomUUID()}});
     if(section==='staff-operations') {
         forms.push({title:translate('portal','ops_assign_territory'),action:root+'/staff/territories',fields:[choose(staff.filter((s:Row)=>s.field_sales),'staff_id',translate('portal','ops_fld_sales_rep')),choice('level',translate('portal','ops_fld_territory_level'),['division','district','upazila','union']),field('division',translate('portal','ops_fld_division')),field('district',translate('portal','ops_fld_district'),'text',false),field('upazila',translate('portal','ops_fld_upazila'),'text',false),field('union',translate('portal','ops_fld_union'),'text',false)]});
         forms.push({title:translate('portal','ops_set_monthly_target'),action:root+'/staff/targets',fields:[choose(staff.filter((s:Row)=>s.field_sales),'staff_id',translate('portal','ops_fld_sales_rep')),field('period_month',translate('portal','ops_fld_target_month'),'month'),field('target',translate('portal','ops_fld_sales_target'),'number'),field('bonus',translate('portal','ops_fld_bonus'),'number'),field('version',translate('portal','ops_fld_version_revise'),'number',false)]});
@@ -266,7 +262,6 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
     if(section==='payment-accounts')forms.push({title:account?translate('portal','ops_save_account_version'):translate('portal','ops_add_payment_account'),action:root+'/payment-accounts'+(account?'/'+account.id:''),fields:accountFields,defaults:account?{...account,collects_payments:account.collects_payments?'1':'0',pays_out:account.pays_out?'1':'0',is_active:account.is_active?'1':'0',_method:'patch'}:{collects_payments:'1',pays_out:'0',is_active:'1'}});
     const rowActions=(row:Row,tableKey:string)=> {
         const actions:Action[]=[];
-        if(tableKey==='due_adjustments'&&row.status==='requested'&&financeActive&&row.created_by!==auth.user.id)actions.push(review(translate('portal','ops_review_due_adjustment'),`${root}/due-adjustments/${row.id}/review`,['approved','rejected']));
         if(tableKey==='territories'&&row.is_active)actions.push({title:translate('portal','ops_remove_territory'),action:`${root}/staff/territories/${row.id}/remove`,fields:[reason]});
         if(tableKey==='dealer_applications'&&row.status==='pending'&&capabilities.includes('accounts')&&row.submitted_by!==auth.user.id)actions.push(review(translate('portal','ops_review_application'),`${root}/staff/applications/${row.id}/review`,['approved','rejected']));
         if(tableKey==='salary_register'&&section==='payroll'&&financeActive&&capabilities.includes('finance')) {
@@ -293,7 +288,6 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {!financeActive&&capabilities.includes('finance')&&<div className="notice"><p>{translate('portal','ops_preview_finance_notice')}</p></div>}
         {section==='video-marketing'&&<section className="panel"><h2>{translate('portal','ops_promote_video')}</h2><p>{translate('portal','ops_promote_video_body')} <Link className="text-link" href="/catalog">{translate('portal','product_management')}</Link>. {translate('portal','ops_promote_video_hide')}</p>{videoProducts.length===0&&<p className="muted">{translate('portal','ops_no_product_videos')}</p>}</section>}
         {section==='access-management'&&<StaffAccessEditor modules={permissionModules} staff={staffAccess} roles={customRoles} presets={rolePresets}/>}
-        {section==='dues-adjustments'&&<section className="panel"><h2>{translate('portal','ops_credit_notes')}</h2><p>{translate('portal','ops_credit_notes_body')}</p><form method="get" className="action-form"><label>{translate('portal','ops_find_order')}<input type="search" name="q" placeholder={translate('portal','ops_order_number')}/></label><button className="button">{translate('portal','ops_search_orders')}</button></form>{adjustableOrders.length===0?<Empty title={translate('portal','ops_no_adjustable_orders')} body={translate('portal','ops_no_adjustable_orders_body')}/>:<><label>{translate('portal','orders')}<select value={selectedOrder} onChange={e=>setAdjustmentOrder(e.target.value)}>{adjustableOrders.map((order:Row)=><option key={order.id} value={order.id}>{order.name}</option>)}</select></label><p className="muted">{translate('portal','ops_credit_notes_review')}</p></>}</section>}
         {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
         {section==='policy-schedules'&&<p>{translate('portal','ops_policy_schedules_hint')}</p>}
         {section==='payroll'&&<p>{translate('portal','ops_payroll_hint')}</p>}
