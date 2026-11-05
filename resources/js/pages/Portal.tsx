@@ -181,6 +181,7 @@ function OrderTotals({totals}:{totals:Row}){
   <div className="metric"><span>{translate('portal','order_totals_paid')}</span><strong>{money(totals.paid)}</strong></div>
   <div className="metric"><span>{translate('portal','order_totals_to_pay')}</span><strong>{money(totals.to_pay)}</strong></div>
  </div>;
+}
 /** A dealer's team at a glance: size, direct members, new joiners, who bought this month and who has gone quiet. */
 function TeamSummary({summary}:{summary:Row}){
  const translate=useT();
