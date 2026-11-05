@@ -1,8 +1,13 @@
 @import './theme-dark.css';
 @import './screens-editor.css';
 @import './screens-ops.css';
+@import './screens-partner-home.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
-@import url('https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap');
+@import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
+/* Bangla digits ০-৯ come from Noto Sans Bengali, where every digit has the same width, so
+   amounts line up in tables. All other letters use Hind Siliguri. */
+@font-face{font-family:'Madina Digits';font-style:normal;font-weight:100 500;font-display:swap;unicode-range:U+09E6-09EF;src:local('Noto Sans Bengali'),url('https://fonts.bunny.net/noto-sans-bengali/files/noto-sans-bengali-bengali-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Madina Digits';font-style:normal;font-weight:600 900;font-display:swap;unicode-range:U+09E6-09EF;src:local('Noto Sans Bengali Bold'),url('https://fonts.bunny.net/noto-sans-bengali/files/noto-sans-bengali-bengali-700-normal.woff2') format('woff2')}
 
 /* =========================================================================
    Madina design tokens
@@ -79,8 +84,8 @@
   /* Spacing (4px grid) */
   --ds-s-1:4px; --ds-s-2:8px; --ds-s-3:12px; --ds-s-4:16px; --ds-s-5:20px; --ds-s-6:24px; --ds-s-8:32px; --ds-s-10:40px;
 
-  /* Type: Instrument Sans for Latin, Noto Sans Bengali for Bangla. Noto's Bangla digits are all one width, so amounts line up in tables. */
-  --ds-font:'Instrument Sans','Noto Sans Bengali','Hind Siliguri',ui-sans-serif,system-ui,sans-serif;
+  /* Type: Hind Siliguri for Bangla and English, the face most Bangladeshi apps and sites use. Tables use tabular figures so amounts line up. */
+  --ds-font:'Madina Digits','Hind Siliguri','Noto Sans Bengali',ui-sans-serif,system-ui,sans-serif;
   --ds-fs-2xs:11px; --ds-fs-xs:12px; --ds-fs-sm:13px; --ds-fs-base:14px; --ds-fs-md:16px; --ds-fs-lg:18px; --ds-fs-xl:21px; --ds-fs-2xl:24px; --ds-fs-3xl:30px;
   --ds-lh:1.5; --ds-lh-tight:1.25;
 

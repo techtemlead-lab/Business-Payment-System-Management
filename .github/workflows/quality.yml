@@ -56,6 +56,8 @@ jobs:
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node --test tests/Unit/*.test.mjs
       - run: npm run build
+      # Every scheduled job definition must load (a typo here silently stops backups or payouts).
+      - run: php artisan schedule:list
       - run: php artisan test --compact --log-junit storage/test-results.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -72,4 +74,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker build --file Dockerfile.production --target app --tag madina-application:ci .
       - run: docker build --file Dockerfile.production --target web --tag madina-web:ci .
+      # The app image boots (config and view caches build) and ships the backup tools.
+      - run: >-
+          docker run --rm -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY="base64:$(openssl rand -base64 32)"
+          madina-application:ci sh -c 'php artisan --version && pg_dump --version && pg_restore --version && php -m | grep -qi "zend opcache"'
+      # The nginx configuration is valid ("app" is the PHP-FPM service name in compose).
+      - run: docker run --rm --add-host app:127.0.0.1 madina-web:ci nginx -t
 

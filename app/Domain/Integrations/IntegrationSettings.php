@@ -192,9 +192,38 @@ final class IntegrationSettings
                 'port' => $next['port'] ?? null,
                 'username' => $next['username'] ?? null,
                 'from_address' => $next['from_address'] ?? null,
+                'changes' => $this->publicChanges($current, $next),
                 'reason' => $reason,
             ]);
         }, 3);
+    }
+
+    /**
+     * Before and after values of every non-secret field that changed. Secret
+     * fields are reported only as changed, never with their values.
+     *
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     * @return array<string, array{before: mixed, after: mixed}|array{secret_changed: true}>
+     */
+    private function publicChanges(array $before, array $after): array
+    {
+        $changes = [];
+        foreach ($after as $field => $value) {
+            $previous = $before[$field] ?? null;
+            if (in_array($field, IntegrationCatalog::SecretFields, true)) {
+                if ((string) $previous !== (string) $value) {
+                    $changes[$field] = ['secret_changed' => true];
+                }
+
+                continue;
+            }
+            if ($previous !== $value) {
+                $changes[$field] = ['before' => $previous, 'after' => $value];
+            }
+        }
+
+        return $changes;
     }
 
     /** @return array{enabled: bool, map_embed_url:?string} */

@@ -157,6 +157,23 @@ class PayoutsHubAndSettlementsPropsTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('data.rank_policy.pool_pct', '4.00'));
     }
 
+    public function test_payouts_hub_filters_by_method_and_request_dates_with_matching_totals(): void
+    {
+        $this->withoutVite();
+        $owner = User::factory()->staff()->create();
+        $dealer = User::factory()->dealer()->create();
+        $this->insertWithdrawal($dealer, ['amount' => '100.00', 'status' => 'requested', 'channel' => 'bKash', 'created_at' => now()]);
+        $this->insertWithdrawal($dealer, ['amount' => '300.00', 'status' => 'requested', 'channel' => 'Nagad', 'created_at' => now()]);
+        $this->insertWithdrawal($dealer, ['amount' => '500.00', 'status' => 'requested', 'channel' => 'bKash', 'created_at' => now()->subMonths(3)]);
+
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?channel=bKash&period=month')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.withdrawals.total', 1)
+                ->where('data.withdrawals.data.0.channel', 'bKash')
+                ->where('data.payout_totals.requested_count', 1)
+                ->where('data.payout_totals.requested_amount', '100.00'));
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */
