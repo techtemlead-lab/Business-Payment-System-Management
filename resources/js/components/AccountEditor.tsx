@@ -42,9 +42,12 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     const isSubDealer = account.role === 'sub_dealer';
     const isStaff = !isPartner && account.role !== 'super_admin';
     const isOwner = ['super_admin', 'md', 'chairman'].includes(currentUser?.role);
-    // Mirrors PasswordAccess on the server: MD and Chairman passwords only by the Super Admin; other staff by owners or staff admins.
+    const staffActions = ((usePage().props as any).staffActions ?? {}) as Record<string, Record<string, boolean> | undefined>;
+    // Owners without the Accounts edit right open this only for the password box.
+    const canEditDetails = canAccounts && (staffActions.accounts?.edit ?? true);
+    // Mirrors PasswordAccess on the server: dealers and sub-dealers by owners or Accounts staff; MD and Chairman passwords only by the Super Admin; other staff by owners or staff admins.
     const canResetStaff = isStaff && account.id !== currentUser?.id && (isSuperAdmin || (!['md', 'chairman'].includes(account.role) && (isOwner || caps.includes('staff_admin'))));
-    const canManagePassword = (canAccounts && isPartner) || canResetStaff;
+    const canManagePassword = ((canAccounts || isOwner) && isPartner && account.id !== currentUser?.id) || canResetStaff;
     const form = useForm({
         name: account.name,
         dealer_code: account.dealer_code ?? '',
@@ -98,7 +101,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     }, [account.id, canKyc, isPartner, translate]);
 
     return <>
-        <form className="action-form" onSubmit={event => {
+        {canEditDetails && <form className="action-form" onSubmit={event => {
             event.preventDefault();
             form.transform((data) => {
                 const profile = { ...data.profile };
@@ -172,7 +175,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
             <label>{translate('portal', 'acct_correction_reason')}<textarea required maxLength={1000} value={form.data.reason} onChange={event => form.setData('reason', event.target.value)} /></label>
             <FormErrors errors={form.errors}/>
             <button className="button dark" disabled={form.processing}>{translate('portal', 'acct_save_correction')}</button>
-        </form>
+        </form>}
         {canKyc && isPartner && (
             <section className="panel aed-kyc">
                 <div className="panel-heading">
