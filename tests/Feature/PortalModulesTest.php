@@ -150,16 +150,16 @@ class PortalModulesTest extends TestCase
         $this->assertSame(['overview'], PortalCatalog::nav('dealer')['home']);
         $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries'], PortalCatalog::nav('dealer')['commerce']);
         $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
-        $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);
+        $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);
         $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
-        $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'share-feedback', 'help'], PortalCatalog::nav('subdealer')['account']);
+        $this->assertSame(['profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('subdealer')['account']);
         $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
         $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);
         $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('manage')['subdealer_directory']);
         $this->assertSame(['sub-dealers', 'sub-dealer-applications'], PortalCatalog::nav('sadmin')['subdealer_directory']);
         $this->assertSame(['orders', 'deliveries'], PortalCatalog::nav('manage')['fulfillment']);
         $this->assertSame(['catalog', 'inventory', 'branches', 'branch-performance', 'place-codes'], PortalCatalog::nav('manage')['products']);
-        $this->assertSame(['audit', 'support-admin'], PortalCatalog::nav('manage')['system']);
+        $this->assertSame(['audit', 'support-admin', 'agreement'], PortalCatalog::nav('manage')['system']);
     }
 
     public function test_mother_module_labels_are_available_in_english_and_bangla(): void
