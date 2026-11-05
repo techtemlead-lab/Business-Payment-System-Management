@@ -61,8 +61,8 @@ class EnforceStaffActions
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
-        if ($controller === 'TrainingController' && $actor->owner()) {
-            // Owners manage the partner training library; the controller checks again.
+        if (in_array($controller, ['TrainingController', 'PartnerEventController'], true) && $actor->owner()) {
+            // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
         }
         if ($controller === 'PartnerAgreementController' && $actor->owner()) {
@@ -130,7 +130,7 @@ class EnforceStaffActions
                 'dispatch', 'delivered' => [['inventory'], 'edit'], default => [['orders'], 'create'],
             },
             'CommandController' => match ($method) {
-                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
+                'account' => [['accounts'], 'create'], 'accountUpdate', 'invite', 'resetPartnerPassword', 'revealPartnerPassword', 'saveDashboardSettings', 'resetDashboardSettings' => [['accounts'], 'edit'],
                 'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify' => [['finance'], 'approve'],
@@ -146,7 +146,7 @@ class EnforceStaffActions
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
-            'TrainingController' => [['content'], $method === 'store' ? 'create' : 'edit'],
+            'TrainingController', 'PartnerEventController' => [['content'], $method === 'store' ? 'create' : 'edit'],
             'IntegrationSettingsController' => [['finance'], 'edit'],
             'IdentityLookupController' => [['accounts'], 'view'],
             'PlaceCodeController' => [['accounts'], match ($method) {

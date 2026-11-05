@@ -297,6 +297,7 @@ final class PortalHost
     private static function isCredentialPath(string $path): bool
     {
         return in_array($path, ['/login', '/forgot-password', '/reset-password', '/logout'], true)
+            || str_starts_with($path, '/login/')
             || str_starts_with($path, '/reset-password/')
             || $path === '/security'
             || str_starts_with($path, '/security/');

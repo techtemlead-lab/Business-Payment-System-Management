@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
 use App\Domain\Security\SecuritySettings;
@@ -29,44 +30,108 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AuthController extends Controller
 {
+    /** How long a sign-in may wait at the SMS code step before the person has to start again. */
+    private const PendingLoginSeconds = 900;
+
     public function login(Request $r): Response
     {
         $portal = PortalHost::current($r);
         abort_unless(is_string($portal) && $portal !== 'public', 404);
 
-        return $this->authenticate($r, $portal);
+        try {
+            return $this->authenticate($r, $portal);
+        } catch (ValidationException $exception) {
+            // "Back" would be the captcha picture, the last page the browser loaded, so return to the form.
+            throw $exception->redirectTo(url('/login'));
+        }
     }
 
-    public function showOtp(Request $r): View|Response
+    /** A fresh captcha picture; every request replaces the previous one. */
+    public function captcha(Request $r, LoginCaptcha $captcha): Response
     {
         $portal = PortalHost::current($r);
-        abort_unless(is_string($portal) && in_array($portal, ['dealer', 'subdealer'], true), 404);
-        if (! $r->session()->has('pending_login_id')) {
+        abort_unless(is_string($portal) && $portal !== 'public', 404);
+        abort_unless(function_exists('imagecreatetruecolor'), 503);
+
+        return response($captcha->png($captcha->issue($r)), 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    public function showOtp(Request $r, LoginOtpChallenge $otp): View|Response
+    {
+        $portal = PortalHost::current($r);
+        abort_unless(is_string($portal) && $portal !== 'public', 404);
+        $user = $this->pendingLoginUser($r, $portal);
+        if (! $user) {
             return redirect('/login');
         }
+        $data = [
+            'mode' => 'otp',
+            'phoneHint' => substr((string) preg_replace('/\D+/', '', (string) $user->phone), -3),
+            'resendWait' => $otp->resendWait($user, $portal),
+            'devCode' => $otp->showsCodeOnScreen() ? $r->session()->get('login_otp_dev_code') : null,
+        ];
 
-        return view('reference.auth', ['mode' => 'otp', 'portal' => $portal]);
+        return in_array($portal, ['manage', 'sadmin'], true)
+            ? view('company.auth', [...$data, 'ownerPortal' => $portal === 'sadmin'])
+            : view('reference.auth', [...$data, 'portal' => $portal]);
     }
 
-    public function verifyOtp(Request $r, LoginOtpChallenge $otp): Response
+    public function verifyOtp(Request $r, LoginOtpChallenge $otp, SecuritySettings $security): Response
     {
         $portal = PortalHost::current($r);
-        abort_unless(is_string($portal) && in_array($portal, ['dealer', 'subdealer'], true), 404);
-        $pendingId = $r->session()->get('pending_login_id');
-        if (! (is_int($pendingId) || (is_string($pendingId) && ctype_digit($pendingId)))) {
-            return redirect('/login');
+        abort_unless(is_string($portal) && $portal !== 'public', 404);
+        $user = $this->pendingLoginUser($r, $portal);
+        if (! $user) {
+            $this->forgetPendingLogin($r);
+
+            return redirect('/login')->withErrors(['email' => __('portal.flash_otp_sign_in_again')]);
         }
         $data = $r->validate(['code' => 'required|digits:6']);
-        $user = User::query()->whereKey((int) $pendingId)->where('status', 'active')->first();
-        if (! $user || PortalHost::forUser($user) !== $portal) {
-            $r->session()->forget(['pending_login_id', 'pending_login_portal']);
+        try {
+            $otp->verify($user, $portal, $data['code']);
+        } catch (ValidationException $exception) {
+            $this->recordFailedLogin($r, $portal, 'otp_incorrect', $user);
+            if (RateLimiter::tooManyAttempts('login-otp-fail|'.$user->id, LoginOtpChallenge::WrongCodesPerHour)) {
+                $otp->forget($user, $portal);
+                $this->forgetPendingLogin($r);
+                Audit::record(null, 'login.otp_locked', (string) $user->id, ['portal' => $portal, 'ip' => $r->ip()]);
+            }
 
-            throw ValidationException::withMessages(['code' => __('portal.flash_otp_sign_in_again')]);
+            throw $exception;
         }
-        $otp->verify($user, $portal, $data['code']);
-        $r->session()->forget(['pending_login_id', 'pending_login_portal']);
+        $this->forgetPendingLogin($r);
 
-        return $this->completeLogin($r, $user);
+        return $this->afterSecondFactor($r, $user, $portal, 'sms', $security);
+    }
+
+    public function resendOtp(Request $r, LoginOtpChallenge $otp): Response
+    {
+        $portal = PortalHost::current($r);
+        abort_unless(is_string($portal) && $portal !== 'public', 404);
+        $user = $this->pendingLoginUser($r, $portal);
+        if (! $user) {
+            $this->forgetPendingLogin($r);
+
+            return redirect('/login')->withErrors(['email' => __('portal.flash_otp_sign_in_again')]);
+        }
+        $result = $otp->issue($user, $portal);
+        if (! $result['sent']) {
+            $message = match ($result['reason']) {
+                'cooldown' => __('sms.err_otp_resend_wait', ['seconds' => (string) $result['retry_after']]),
+                'limit' => __('sms.err_otp_send_limit', ['minutes' => (string) max(1, (int) ceil($result['retry_after'] / 60))]),
+                default => __('sms.err_otp_send_failed'),
+            };
+
+            return redirect('/login/otp')->withErrors(['code' => $message]);
+        }
+        $this->rememberDevCode($r, $result['code']);
+        Audit::record(null, 'login.otp_resent', (string) $user->id, ['portal' => $portal, 'ip' => $r->ip()]);
+
+        return redirect('/login/otp')->with('success', __('portal.flash_otp_sent'));
     }
 
     public function showTotp(Request $r): View|Response
@@ -117,9 +182,8 @@ class AuthController extends Controller
         $secret = (string) $user->totp_secret;
         if ($totp->verify($secret, $code)) {
             RateLimiter::clear($attemptKey);
-            $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
 
-            return $this->completeLogin($r, $user);
+            return $this->completeLogin($r, $user, $this->totpMethod($r));
         }
         $recovery = is_array($user->totp_recovery_codes) ? $user->totp_recovery_codes : [];
         $normalized = Str::upper(str_replace(' ', '', $code));
@@ -138,15 +202,27 @@ class AuthController extends Controller
         RateLimiter::clear($attemptKey);
         unset($recovery[$matchIndex]);
         $user->forceFill(['totp_recovery_codes' => array_values($recovery)])->save();
-        $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
         Audit::record($user->id, 'security.totp_recovery_used', 'account');
 
-        return $this->completeLogin($r, $user);
+        return $this->completeLogin($r, $user, $this->totpMethod($r));
+    }
+
+    /** The second-step record for the audit log once the authenticator code is also accepted. */
+    private function totpMethod(Request $r): string
+    {
+        $method = $r->session()->pull('pending_login_method', 'none');
+        $r->session()->forget(['pending_totp_id', 'pending_totp_portal']);
+
+        return (is_string($method) ? $method : 'none').'+totp';
     }
 
     private function authenticate(Request $r, string $portal): Response
     {
-        $data = $r->validate(['email' => 'required|string|max:254', 'password' => 'required|string|max:200'], [], ['email' => 'e-mail, phone number, or dealer code']);
+        $data = $r->validate([
+            'email' => 'required|string|max:254',
+            'password' => 'required|string|max:200',
+            'captcha' => 'required|string|max:20',
+        ], [], ['email' => 'e-mail, phone number, or dealer code', 'captcha' => __('auth_ui.captcha_label')]);
         $identity = trim($data['email']);
         $isEmail = filter_var($identity, FILTER_VALIDATE_EMAIL) !== false;
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
@@ -156,8 +232,19 @@ class AuthController extends Controller
         $accountKey = 'login-account|'.$rateLimiterIdentity;
         if (RateLimiter::tooManyAttempts($key, 5) || RateLimiter::tooManyAttempts($accountKey, 20)) {
             $seconds = max(RateLimiter::availableIn($key), RateLimiter::tooManyAttempts($accountKey, 20) ? RateLimiter::availableIn($accountKey) : 0);
+            $this->recordFailedLogin($r, $portal, 'locked', null, $identity);
             throw ValidationException::withMessages([
                 'email' => __('portal.flash_too_many_attempts_seconds', ['seconds' => $seconds]),
+            ]);
+        }
+        // The captcha is checked before the password, so a wrong picture answer says nothing about the password.
+        $captchaResult = app(LoginCaptcha::class)->check($r, $data['captcha']);
+        if ($captchaResult !== 'ok') {
+            RateLimiter::hit($key, 60);
+            RateLimiter::hit($accountKey, 3600);
+            $this->recordFailedLogin($r, $portal, 'captcha_'.$captchaResult, null, $identity);
+            throw ValidationException::withMessages([
+                'captcha' => $captchaResult === 'wrong' ? __('auth_ui.captcha_wrong') : __('auth_ui.captcha_expired'),
             ]);
         }
         $query = User::where('status', 'active');
@@ -176,22 +263,53 @@ class AuthController extends Controller
         if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
             RateLimiter::hit($key, 60);
             RateLimiter::hit($accountKey, 3600);
+            $this->recordFailedLogin($r, $portal, 'bad_credentials', $candidate, $identity);
             throw ValidationException::withMessages(['email' => __('portal.flash_bad_credentials')]);
         }
         RateLimiter::clear($key);
         RateLimiter::clear($accountKey);
 
         $otp = app(LoginOtpChallenge::class);
-        if ($otp->requiredFor($candidate) && $otp->issue($candidate, $portal)) {
+        $security = app(SecuritySettings::class);
+        $decision = $otp->decide($candidate);
+        if (in_array($decision, ['no_phone', 'unavailable'], true)) {
+            // The Super Admin is the one person who can add a mobile number or set up SMS,
+            // so only that account may continue without a code — and every such sign-in is audited.
+            if ($candidate->role === 'super_admin') {
+                Audit::record($candidate->id, 'login.second_factor_bypassed', (string) $candidate->id, ['portal' => $portal, 'reason' => $decision, 'ip' => $r->ip()]);
+
+                return $this->afterSecondFactor($r, $candidate, $portal, 'bypass_'.$decision, $security);
+            }
+            $this->recordFailedLogin($r, $portal, $decision, $candidate, $identity);
+            throw ValidationException::withMessages([
+                'email' => $decision === 'no_phone' ? __('auth_ui.otp_no_phone') : __('auth_ui.otp_sms_unavailable'),
+            ]);
+        }
+        if ($decision === 'send') {
+            $result = $otp->issue($candidate, $portal);
+            if (! $result['sent'] && $result['reason'] !== 'cooldown') {
+                $this->recordFailedLogin($r, $portal, 'sms_'.$result['reason'], $candidate, $identity);
+                throw ValidationException::withMessages(['email' => $result['reason'] === 'limit'
+                    ? __('sms.err_otp_send_limit', ['minutes' => (string) max(1, (int) ceil($result['retry_after'] / 60))])
+                    : __('sms.err_otp_send_failed')]);
+            }
             $r->session()->put([
                 'pending_login_id' => $candidate->id,
                 'pending_login_portal' => $portal,
+                'pending_login_at' => now()->getTimestamp(),
             ]);
+            $this->rememberDevCode($r, $result['code']);
 
+            // During the resend cooldown the code sent moments ago is still valid, so just ask for it.
             return redirect('/login/otp')->with('success', __('portal.flash_otp_sent'));
         }
 
-        $security = app(SecuritySettings::class);
+        return $this->afterSecondFactor($r, $candidate, $portal, $security->previewMode() ? 'off_trial_mode' : 'off_by_owner', $security);
+    }
+
+    /** Staff who also turned on an authenticator app are asked for it as well; everyone else is signed in. */
+    private function afterSecondFactor(Request $r, User $candidate, string $portal, string $method, SecuritySettings $security): Response
+    {
         if (
             $security->totpChallengesEnabled()
             && in_array($portal, ['manage', 'sadmin'], true)
@@ -200,24 +318,75 @@ class AuthController extends Controller
             $r->session()->put([
                 'pending_totp_id' => $candidate->id,
                 'pending_totp_portal' => $portal,
+                'pending_login_method' => $method,
             ]);
 
             return redirect('/login/2fa')->with('success', __('portal.flash_totp_required'));
         }
 
-        return $this->completeLogin($r, $candidate);
+        return $this->completeLogin($r, $candidate, $method);
     }
 
-    private function completeLogin(Request $r, User $candidate): Response
+    /** The account waiting for its SMS code in this browser, if that sign-in is still fresh. */
+    private function pendingLoginUser(Request $r, string $portal): ?User
+    {
+        $pendingId = $r->session()->get('pending_login_id');
+        $startedAt = (int) $r->session()->get('pending_login_at', 0);
+        if (! (is_int($pendingId) || (is_string($pendingId) && ctype_digit($pendingId)))
+            || $r->session()->get('pending_login_portal') !== $portal
+            || $startedAt < now()->getTimestamp() - self::PendingLoginSeconds) {
+            return null;
+        }
+        $user = User::query()->whereKey((int) $pendingId)->where('status', 'active')->first();
+
+        return $user && PortalHost::forUser($user) === $portal ? $user : null;
+    }
+
+    private function forgetPendingLogin(Request $r): void
+    {
+        $r->session()->forget(['pending_login_id', 'pending_login_portal', 'pending_login_at', 'login_otp_dev_code']);
+    }
+
+    /** Developer machines only: keep the code in the session so the code page can show it. */
+    private function rememberDevCode(Request $r, ?string $code): void
+    {
+        if ($code !== null) {
+            $r->session()->put('login_otp_dev_code', $code);
+        }
+    }
+
+    /**
+     * Audit a failed sign-in. The typed username is masked, because people sometimes type
+     * their password into the username box.
+     */
+    private function recordFailedLogin(Request $r, string $portal, string $reason, ?User $user, ?string $identity = null): void
+    {
+        $masked = null;
+        if (is_string($identity) && $identity !== '') {
+            $masked = mb_substr($identity, 0, 3).str_repeat('*', max(0, min(8, mb_strlen($identity) - 3)));
+        }
+        Audit::record(null, 'login.failed', $user ? (string) $user->id : 'unknown', array_filter([
+            'portal' => $portal,
+            'reason' => $reason,
+            'username' => $user ? null : $masked,
+            'ip' => $r->ip(),
+        ], fn ($value) => $value !== null));
+    }
+
+    private function completeLogin(Request $r, User $candidate, string $method = 'sms'): Response
     {
         Auth::login($candidate);
         $r->session()->regenerate();
         $r->session()->put('session_fingerprint', hash('sha256', (string) $r->userAgent()));
         $this->persistLoginLocale($r);
-        Audit::record($r->user()->id, 'login', 'account');
+        Audit::record($r->user()->id, 'login', 'account', [
+            'portal' => PortalHost::current($r),
+            'second_step' => $method,
+            'ip' => $r->ip(),
+        ]);
         $intended = $r->session()->pull('url.intended');
         $path = is_string($intended) ? parse_url($intended, PHP_URL_PATH) : null;
-        if (is_string($intended) && is_string($path) && ! in_array($path, ['/login', '/login/otp', '/login/2fa'], true) && parse_url($intended, PHP_URL_HOST) === $r->getHost() && $this->routeExists($intended)) {
+        if (is_string($intended) && is_string($path) && $path !== '/login' && ! str_starts_with($path, '/login/') && parse_url($intended, PHP_URL_HOST) === $r->getHost() && $this->routeExists($intended)) {
             return redirect($intended);
         }
 

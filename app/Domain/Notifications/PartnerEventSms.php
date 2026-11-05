@@ -92,11 +92,12 @@ final class PartnerEventSms
 
                 return false;
             }
+            // Login codes and passwords are never written to a log file, on any server.
             Log::channel((string) config('madina.sms.log_channel', 'stack'))->info('partner.event.sms', [
                 'user_id' => $userId,
                 'phone' => $phone,
                 'event' => $event,
-                'message' => $message,
+                'message' => $secret ? '[hidden: contains a code or password]' : $message,
             ]);
             if ($driver === 'array') {
                 $bag = config('madina.sms.sent', []);

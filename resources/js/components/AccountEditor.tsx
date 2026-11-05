@@ -41,7 +41,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
     const isPartner = ['dealer', 'sub_dealer'].includes(account.role);
     const isSubDealer = account.role === 'sub_dealer';
     const isStaff = !isPartner && account.role !== 'super_admin';
-    const canManagePassword = canAccounts && (isPartner || (isStaff && isSuperAdmin));
+    const isOwner = ['super_admin', 'md', 'chairman'].includes(currentUser?.role);
+    // Mirrors PasswordAccess on the server: MD and Chairman passwords only by the Super Admin; other staff by owners or staff admins.
+    const canResetStaff = isStaff && account.id !== currentUser?.id && (isSuperAdmin || (!['md', 'chairman'].includes(account.role) && (isOwner || caps.includes('staff_admin'))));
+    const canManagePassword = (canAccounts && isPartner) || canResetStaff;
     const form = useForm({
         name: account.name,
         dealer_code: account.dealer_code ?? '',

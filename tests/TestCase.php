@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Finance\FinancialReadiness;
 use App\Models\PlaceCode;
 use App\Models\User;
@@ -9,6 +10,7 @@ use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -99,8 +101,47 @@ abstract class TestCase extends BaseTestCase
             }
         }
         url()->forceRootUrl($root);
+        $parameters = $this->solveLoginCaptcha($method, $uri, $parameters);
 
         return parent::call($method, $uri, $parameters, $cookies, $files, $server, $content);
+    }
+
+    /**
+     * Sign-in posts that do not mention the captcha get a solved one, so tests about other
+     * sign-in rules stay short. Captcha tests pass their own "captcha" value and are left alone.
+     *
+     * @param  array<string, mixed>  $parameters
+     * @return array<string, mixed>
+     */
+    private function solveLoginCaptcha(string $method, string $uri, array $parameters): array
+    {
+        $path = parse_url($uri, PHP_URL_PATH);
+        if (strtoupper($method) !== 'POST' || ! is_string($path) || ! preg_match('#/login$#', $path) || array_key_exists('captcha', $parameters)) {
+            return $parameters;
+        }
+        $this->app['session']->put(LoginCaptcha::SessionKey, ['text' => 'TEST7', 'expires_at' => now()->addMinutes(3)->getTimestamp()]);
+
+        return [...$parameters, 'captcha' => 'TEST7'];
+    }
+
+    /** The newest SMS sign-in code sent through the array SMS driver. */
+    protected function lastLoginCode(): ?string
+    {
+        $sent = array_values(array_filter((array) config('madina.sms.sent', []), fn (array $sms): bool => ($sms['event'] ?? null) === 'login.otp'));
+        $last = end($sent);
+
+        return is_array($last) && preg_match('/(\d{6})/', (string) $last['message'], $matches) ? $matches[1] : null;
+    }
+
+    /** Sign in through the real form: password and captcha, then the SMS code. */
+    protected function signInThroughForm(string $portal, string $username, string $password): TestResponse
+    {
+        $response = $this->onPortal($portal)->post('/login', ['email' => $username, 'password' => $password]);
+        if ($response->headers->get('Location') !== PortalHost::url($portal, '/login/otp')) {
+            return $response;
+        }
+
+        return $this->onPortal($portal)->post('/login/otp', ['code' => (string) $this->lastLoginCode()]);
     }
 
     protected function onPortal(string $portal): static

@@ -6,6 +6,7 @@ use App\Http\Controllers\CommandController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
+use App\Http\Controllers\PartnerEventController;
 use App\Http\Controllers\PlaceCodeController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductRegistryController;
@@ -59,6 +60,7 @@ return function (string $portal): void {
     Route::post('/commands/accounts/{user}/invite', [CommandController::class, 'invite'])->middleware('throttle:3,1');
     Route::get('/commands/accounts/{user}/password-status', [CommandController::class, 'partnerPasswordStatus'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/reset-password', [CommandController::class, 'resetPartnerPassword'])->middleware('throttle:10,1');
+    Route::post('/commands/accounts/{user}/reveal-password', [CommandController::class, 'revealPartnerPassword'])->middleware('throttle:20,1,password-reveal');
     Route::get('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'kycDocuments'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/kyc-documents', [CommandController::class, 'storeKycDocument'])->middleware('throttle:20,1');
     Route::get('/commands/accounts/{user}/kyc-documents/{document}', [CommandController::class, 'downloadKycDocument'])->middleware('throttle:60,1');
@@ -88,6 +90,11 @@ return function (string $portal): void {
     Route::post('/commands/training/{trainingItem}/publish', [TrainingController::class, 'publish'])->whereNumber('trainingItem');
     Route::delete('/commands/training/{trainingItem}', [TrainingController::class, 'destroy'])->whereNumber('trainingItem');
     Route::get('/training/{trainingItem}/pdf', [TrainingController::class, 'pdf'])->whereNumber('trainingItem')->middleware('throttle:60,1');
+    Route::post('/commands/events', [PartnerEventController::class, 'store'])->middleware('throttle:30,1');
+    Route::patch('/commands/events/{partnerEvent}', [PartnerEventController::class, 'update'])->whereNumber('partnerEvent')->middleware('throttle:30,1');
+    Route::post('/commands/events/{partnerEvent}/publish', [PartnerEventController::class, 'publish'])->whereNumber('partnerEvent')->middleware('throttle:20,1');
+    Route::post('/commands/events/{partnerEvent}/cancel', [PartnerEventController::class, 'cancel'])->whereNumber('partnerEvent')->middleware('throttle:20,1');
+    Route::delete('/commands/events/{partnerEvent}', [PartnerEventController::class, 'destroy'])->whereNumber('partnerEvent');
     Route::post('/commands/customization', [CommandController::class, 'customization']);
     Route::post('/commands/customization/category-icon', [CommandController::class, 'uploadCategoryIcon'])->middleware('throttle:30,1');
     Route::post('/commands/customization/reset', [CommandController::class, 'resetCustomization']);

@@ -6,6 +6,7 @@ use App\Domain\Accounts\PartnerAccountProvisioning;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
+use App\Domain\Accounts\PasswordAccess;
 use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
@@ -38,6 +39,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\Money;
+use App\Support\PhoneIdentity;
 use App\Support\SiteCustomization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -877,44 +879,56 @@ class CommandController extends Controller
         return back()->with('success', __('portal.acct_invite_flash'));
     }
 
-    public function partnerPasswordStatus(Request $r, User $user): JsonResponse
+    /**
+     * Whether a password can be reset or shown. This never returns the password itself:
+     * the owner has to press "Show password", and that request is what gets audited.
+     */
+    public function partnerPasswordStatus(Request $r, User $user, PasswordAccess $access): JsonResponse
     {
-        $this->permit($r, 'accounts');
-        abort_if($user->role === 'super_admin', 403);
-        abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
-        $isManageable = in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff();
-        abort_unless($isManageable, 404);
-
-        // Company policy keeps partner passwords viewable by management, but only
-        // owners (Super Admin, MD, Chairman) may see the actual value. Account
-        // staff can still reset it. Every reveal is written to the audit log.
-        $visible = $r->user()->owner() ? $user->adminVisiblePassword() : null;
-        if ($visible !== null) {
-            Audit::record($r->user()->id, 'account.password_revealed', (string) $user->id, []);
-        }
+        abort_unless($access->canReset($r->user(), $user), 403);
 
         return response()->json([
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
-                'can_reveal' => $visible !== null,
-                'owner_only' => ! $r->user()->owner(),
+                'can_reveal' => $access->canView($r->user(), $user) && $user->adminVisiblePassword() !== null,
+                'owner_only' => ! $access->canView($r->user(), $user),
+                'password' => null,
+            ],
+        ]);
+    }
+
+    /** Owners only: show the real password. Every view is audited with who, when and from where. */
+    public function revealPartnerPassword(Request $r, User $user, PasswordAccess $access): JsonResponse
+    {
+        abort_unless($access->canView($r->user(), $user), 403, __('portal.acct_password_owner_only'));
+        $visible = $user->adminVisiblePassword();
+        abort_if($visible === null, 404, __('portal.acct_password_self_changed'));
+        Audit::record($r->user()->id, 'account.password_revealed', (string) $user->id, [
+            'role' => $user->role,
+            'dealer_code' => $user->dealer_code,
+            'ip' => $r->ip(),
+        ]);
+
+        return response()->json([
+            'data' => [
+                'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
+                'can_reveal' => true,
+                'owner_only' => false,
                 'password' => $visible,
             ],
         ]);
     }
 
-    public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms): RedirectResponse|JsonResponse
+    public function resetPartnerPassword(Request $r, User $user, AccountCreatedSms $sms, PasswordAccess $access): RedirectResponse|JsonResponse
     {
-        $this->permit($r, 'accounts');
-        abort_if($user->role === 'super_admin', 403);
-        abort_if($user->staff() && $r->user()->role !== 'super_admin', 403);
-        $isManageable = in_array($user->role, ['dealer', 'sub_dealer'], true) || $user->staff();
-        abort_unless($isManageable, 404);
+        abort_unless($access->canReset($r->user(), $user), 403);
         abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
 
-        // Only owners may choose or see the new password. Other account staff can reset it, but
-        // the new password goes only to the partner by SMS, so staff cannot sign in as the partner.
-        $ownerActor = $r->user()->owner();
+        // Only owners may choose or see the new password. Other authorised staff can reset it, but
+        // the new password goes only to the account holder by SMS, so staff cannot sign in as them.
+        $ownerActor = $access->canView($r->user(), $user);
+        // A reset nobody can read would lock the person out: without an owner the new password only goes by SMS.
+        abort_unless($ownerActor || PhoneIdentity::normalize((string) $user->phone) !== null, 422, __('portal.acct_password_reset_needs_phone'));
         $custom = $ownerActor ? $r->input('password') : null;
         if (is_string($custom) && trim($custom) !== '') {
             $r->validate([
@@ -925,17 +939,20 @@ class CommandController extends Controller
             $plainPassword = 'Md'.Str::upper(Str::random(2)).random_int(100000, 999999).'!';
         }
 
-        DB::transaction(function () use ($r, $user, $plainPassword): void {
+        DB::transaction(function () use ($r, $user, $plainPassword, $ownerActor): void {
             $user->storeAdminManagedPassword($plainPassword);
             $user->forceFill(['remember_token' => Str::random(60)])->save();
             DB::table('sessions')->where('user_id', $user->id)->delete();
             Audit::record($r->user()->id, 'account.password_reset_by_admin', (string) $user->id, [
                 'role' => $user->role,
                 'dealer_code' => $user->dealer_code,
+                'new_password_shown_to_actor' => $ownerActor,
+                'chosen_by_actor' => $ownerActor && is_string($r->input('password')) && trim((string) $r->input('password')) !== '',
+                'ip' => $r->ip(),
             ]);
         });
 
-        if (filled($user->phone) && in_array($user->role, ['dealer', 'sub_dealer'], true)) {
+        if (filled($user->phone)) {
             $sms->sendPasswordReset($user->fresh(), $plainPassword);
         }
 

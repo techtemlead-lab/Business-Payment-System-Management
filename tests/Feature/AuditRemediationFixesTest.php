@@ -63,7 +63,7 @@ class AuditRemediationFixesTest extends TestCase
             ->assertSee(__('site.error_back_home'), false);
     }
 
-    public function test_login_otp_is_skipped_when_sms_gateway_is_unconfigured(): void
+    public function test_login_is_stopped_when_sms_gateway_is_unconfigured_except_for_the_super_admin(): void
     {
         Config::set('madina.preview_mode', false);
         Config::set('madina.login_otp.enabled', true);
@@ -81,11 +81,21 @@ class AuditRemediationFixesTest extends TestCase
         ]);
 
         $this->assertFalse($challenge->requiredFor($dealer));
+        $this->assertSame('unavailable', $challenge->decide($dealer));
 
         $this->onPortal('dealer')
             ->post('/login', ['email' => $dealer->email, 'password' => 'SyntheticPassword123'])
+            ->assertSessionHasErrors(['email' => __('auth_ui.otp_sms_unavailable')]);
+        $this->assertGuest();
+        $this->assertDatabaseHas('audit_events', ['action' => 'login.failed', 'subject' => (string) $dealer->id]);
+
+        // The Super Admin can still get in to set up SMS; that sign-in is audited.
+        $owner = User::factory()->staff('super_admin')->create(['phone' => '01733334445', 'password' => 'SyntheticPassword123']);
+        $this->onPortal('sadmin')
+            ->post('/login', ['email' => $owner->email, 'password' => 'SyntheticPassword123'])
             ->assertRedirect('/');
-        $this->assertAuthenticatedAs($dealer);
+        $this->assertAuthenticatedAs($owner);
+        $this->assertDatabaseHas('audit_events', ['action' => 'login.second_factor_bypassed', 'subject' => (string) $owner->id]);
         $this->assertSame([], config('madina.sms.sent'));
     }
 

@@ -74,13 +74,14 @@ class BusinessPolicyDecisionsTest extends TestCase
         $address = 1;
         foreach (['super_admin' => 'sadmin', 'md' => 'sadmin', 'chairman' => 'sadmin', 'finance' => 'manage', 'sr' => 'manage', 'dealer' => 'dealer', 'sub_dealer' => 'subdealer'] as $role => $portal) {
             $this->withServerVariables(['REMOTE_ADDR' => '192.0.2.'.$address++]);
-            $user = User::factory()->create(['role' => $role, 'password' => 'SyntheticPassword123']);
+            $user = User::factory()->create(['role' => $role, 'password' => 'SyntheticPassword123', 'phone' => '0171100000'.$address]);
             $data = ['email' => $user->email, 'password' => 'SyntheticPassword123'];
             foreach (array_diff(['sadmin', 'manage', 'dealer', 'subdealer'], [$portal]) as $wrongPortal) {
                 $this->onPortal($wrongPortal)->post('/login', $data)->assertSessionHasErrors('email');
                 $this->assertGuest();
             }
-            $this->onPortal($portal)->post('/login', $data)->assertRedirect('/');
+            $this->onPortal($portal)->post('/login', $data)->assertRedirect('/login/otp');
+            $this->onPortal($portal)->post('/login/otp', ['code' => $this->lastLoginCode()])->assertRedirect('/');
             $this->assertAuthenticatedAs($user);
             $this->post('/logout')->assertRedirect('/login');
         }
