@@ -2,6 +2,7 @@
 
 namespace App\Domain\Integrations;
 
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -40,9 +41,9 @@ final class PaymentGatewayClient
 
             return $this->requireMatchingAmount($result, $expectedAmount);
         } catch (\Throwable $exception) {
-            Log::warning('payment.gateway_lookup_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
+            Log::warning('payment.gateway_lookup_failed', ['provider' => $provider, 'error' => RedactedError::message($exception)]);
 
-            return ['checked' => true, 'matched' => false, 'provider' => $provider, 'message' => __('portal.si_pay_lookup_failed', ['error' => $exception->getMessage()]), 'amount' => null, 'raw' => null];
+            return ['checked' => true, 'matched' => false, 'provider' => $provider, 'message' => __('portal.si_pay_lookup_failed', ['error' => RedactedError::message($exception)]), 'amount' => null, 'raw' => null];
         }
     }
 

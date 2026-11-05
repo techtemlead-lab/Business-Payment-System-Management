@@ -3,6 +3,7 @@
 namespace App\Domain\Identity;
 
 use App\Domain\Integrations\IntegrationSettings;
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -75,7 +76,7 @@ final class BdrisLookup
                     'date_of_birth' => $dob,
                 ]);
         } catch (\Throwable $exception) {
-            Log::warning('bdris.lookup_failed', ['message' => $exception->getMessage()]);
+            Log::warning('bdris.lookup_failed', ['message' => RedactedError::message($exception)]);
 
             return [
                 'success' => false,

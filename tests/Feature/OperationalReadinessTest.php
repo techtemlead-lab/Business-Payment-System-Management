@@ -585,9 +585,13 @@ class OperationalReadinessTest extends TestCase
         config(['madina.backup_password' => str_repeat('Private-backup-secret-', 3)]);
         Storage::disk('local')->put('test-evidence/receipt.txt', 'Synthetic receipt evidence');
         Storage::disk('public')->put('test-media/logo.txt', 'Synthetic logo media');
+        Storage::fake('backups-offsite');
+        config(['madina.backup_offsite_disk' => 'backups-offsite']);
         $this->artisan('app:backup')->assertSuccessful();
         $backups = Storage::disk('backups')->allFiles();
         $this->assertCount(1, $backups);
+        // The verified archive is also copied to the off-site disk, byte for byte.
+        $this->assertSame(Storage::disk('backups')->get($backups[0]), Storage::disk('backups-offsite')->get($backups[0]));
         $zip = new ZipArchive;
         $this->assertTrue($zip->open(Storage::disk('backups')->path($backups[0])) === true);
         $zip->setPassword(config('madina.backup_password'));

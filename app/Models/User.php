@@ -231,8 +231,17 @@ class User extends Authenticatable implements HasLocalePreference
         $this->forceFill([
             'password' => $plainPassword,
             'password_managed_by' => self::PasswordManagedByAdmin,
-            'admin_password_cipher' => $plainPassword,
+            'admin_password_cipher' => $this->recoverablePasswordCopy($plainPassword),
         ])->save();
+    }
+
+    /**
+     * The encrypted copy owners may reveal. Nobody can reveal a Super Admin
+     * password, so none is kept for that account.
+     */
+    public function recoverablePasswordCopy(string $plainPassword): ?string
+    {
+        return $this->role === 'super_admin' ? null : $plainPassword;
     }
 
     public function markPasswordSelfManaged(): void

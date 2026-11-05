@@ -11,6 +11,11 @@ return [
     'backups_enabled' => env('MADINA_BACKUPS_ENABLED', false),
     'backup_password' => env('MADINA_BACKUP_PASSWORD'),
     'backup_disk' => env('MADINA_BACKUP_DISK', 'backups'),
+    // A second disk on another machine (a mounted network or object-storage volume). Empty = no off-site copy.
+    'backup_offsite_disk' => env('MADINA_BACKUP_OFFSITE_DISK', ''),
+    // app:backup-prune deletes local backups older than this, but always keeps the newest few.
+    'backup_retention_days' => (int) env('MADINA_BACKUP_RETENTION_DAYS', 14),
+    'backup_keep_minimum' => (int) env('MADINA_BACKUP_KEEP_MINIMUM', 7),
     'trusted_proxies' => env('TRUSTED_PROXIES', ''),
     // Prefer /public/build over Vite HMR. Stale public/hot points CSS/JS at :5173, which CSP
     // blocks on port-forwarded Cloud Agent browsers and blanks public pages.

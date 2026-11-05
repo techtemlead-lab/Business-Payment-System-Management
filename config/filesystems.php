@@ -34,6 +34,13 @@ return [
             'visibility' => 'private', 'throw' => true,
         ],
 
+        // Off-site backup copy: point MADINA_BACKUP_OFFSITE_PATH at a volume mounted from another
+        // machine, then set MADINA_BACKUP_OFFSITE_DISK=backups-offsite.
+        'backups-offsite' => [
+            'driver' => 'local', 'root' => env('MADINA_BACKUP_OFFSITE_PATH', storage_path('app/private/backups-offsite')),
+            'visibility' => 'private', 'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

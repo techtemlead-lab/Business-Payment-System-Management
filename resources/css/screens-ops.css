@@ -483,3 +483,6 @@
 .pay-total-channels b{color:var(--ds-text,#0b1f33);font-variant-numeric:tabular-nums}
 .order-totals{padding:16px 23px 0;margin:0}
 .order-totals .metric strong{font-variant-numeric:tabular-nums}
+/* Payout desk: search, method and dates on one wrapping row. */
+.app-shell .pay-search{flex-wrap:wrap;max-width:none}
+.app-shell .pay-search>select{width:auto;min-height:36px;padding:6px 10px}
