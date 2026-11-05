@@ -33,7 +33,7 @@ class PublicController extends Controller
         $request->validate(['q' => 'nullable|string|max:100', 'district' => 'nullable|string|max:80',
             'division' => 'nullable|string|max:80', 'category' => 'nullable|string|max:100',
             'page' => 'nullable|integer|min:1', 'sort' => 'nullable|in:name,price_asc,price_desc', 'in_stock' => 'nullable|in:0,1',
-            'min_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/', 'max_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/',
+            'min_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D', 'max_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D',
             'lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180']);
         if ($page === 'products') {
             return $this->catalog($request);

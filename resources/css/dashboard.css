@@ -3166,3 +3166,12 @@ html[data-theme="dark"] .app-shell .order-status-tab.is-active b{background:rgba
   .app-shell .admin-kpis.list-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 .app-shell .field-hint{display:block;margin-top:2px;font-size:var(--ds-fs-xs);font-weight:400;color:var(--ds-text-muted)}
+
+/* Placeholder while an office screen downloads (React.lazy in Portal.tsx). */
+.section-loading{display:flex;flex-direction:column;gap:12px;padding:24px;border:1px solid var(--ds-line);border-radius:16px;background:var(--ds-surface);margin-bottom:20px}
+.section-loading-bar,.section-loading-block{display:block;border-radius:8px;background:linear-gradient(90deg,var(--ds-surface-3) 0%,var(--ds-surface-2) 50%,var(--ds-surface-3) 100%);background-size:200% 100%;animation:section-loading-shimmer 1.2s ease-in-out infinite}
+.section-loading-bar{height:18px;width:42%}
+.section-loading-bar.short{width:24%;height:12px}
+.section-loading-block{height:220px;width:100%}
+@keyframes section-loading-shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media (prefers-reduced-motion:reduce){.section-loading-bar,.section-loading-block{animation:none}}

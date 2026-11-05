@@ -12,7 +12,6 @@ use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
 use App\Models\CommissionAllocation;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
@@ -115,14 +114,6 @@ class OperationsController extends Controller
             $data['deploymentStatus'] = app(DeploymentReadiness::class)->inspect(app()->isProduction());
             $data['startupMode'] = app(IntegrationSettings::class)->startupMode();
             $tables['opening_reviews'] = DB::table('financial_verifications')->select(['id', 'fingerprint', 'source_reference', 'created_by', 'verified_by', 'verified_at', 'created_at'])->orderByDesc('id');
-        }
-        if ($section === 'dues-adjustments') {
-            $data['adjustableOrders'] = Order::with('user:id,name')->whereIn('status', ['approved', 'partially_dispatched', 'dispatched', 'delivered'])
-                ->when($request->filled('q'), fn ($q) => $q->where('number', 'ilike', '%'.$request->string('q').'%'))->orderByDesc('created_at')->limit(100)->get()
-                ->map(fn ($order) => ['id' => $order->id, 'name' => $order->number.' · '.$order->user->name.' · due BDT '.$order->outstanding(), 'due_credit' => $order->due_credit])->all();
-            $tables['due_adjustments'] = DB::table('due_adjustments as a')->join('orders as o', 'o.id', '=', 'a.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
-                ->join('users as c', 'c.id', '=', 'a.created_by')->leftJoin('users as r', 'r.id', '=', 'a.reviewed_by')
-                ->select(['a.*', 'o.number', 'u.name', 'c.name as prepared_by_name', 'r.name as reviewed_by_name'])->orderByDesc('a.id');
         }
         if ($section === 'finance-settings') {
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();

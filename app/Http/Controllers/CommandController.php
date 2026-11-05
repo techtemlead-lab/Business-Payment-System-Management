@@ -317,7 +317,8 @@ class CommandController extends Controller
         $statusChange = null;
         $sponsorChange = null;
         $directoryChange = null;
-        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange) {
+        $phoneChange = null;
+        DB::transaction(function () use ($r, $user, $d, $partners, $isPartner, $placeCode, &$statusChange, &$sponsorChange, &$directoryChange, &$phoneChange) {
             CommissionWallet::lock();
             $reason = $d['reason'];
             unset($d['reason']);
@@ -325,6 +326,10 @@ class CommandController extends Controller
             $previousStatus = (string) $locked->status;
             $previousSponsorId = $locked->sponsor_id !== null ? (int) $locked->sponsor_id : null;
             $previousDirectoryVisible = (bool) $locked->directory_visible;
+            $previousPhone = (string) $locked->phone;
+            if ($isPartner && array_key_exists('phone', $d) && $previousPhone !== '' && $previousPhone !== (string) $d['phone']) {
+                $phoneChange = ['old_phone' => $previousPhone, 'user_id' => $locked->id];
+            }
 
             if (array_key_exists('sponsor_id', $d) && (int) $locked->sponsor_id !== (int) ($d['sponsor_id'] ?? null)) {
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
@@ -373,6 +378,17 @@ class CommandController extends Controller
                 }
             }
         });
+        if (is_array($phoneChange)) {
+            // Tell the old number, so a dealer notices at once if someone moved their account to another phone.
+            $partner = User::find($phoneChange['user_id']);
+            if ($partner) {
+                app(PartnerEventSms::class)->sendToPhone(
+                    $phoneChange['old_phone'],
+                    'account.phone_changed',
+                    __('sms.account_phone_changed', ['code' => $partner->dealer_code ?? $partner->name], $partner->preferredLocale()),
+                );
+            }
+        }
         if (is_array($statusChange)) {
             $partner = User::find($statusChange['user_id']);
             if ($partner) {
@@ -494,7 +510,7 @@ class CommandController extends Controller
         $this->permit($r, 'catalog');
         abort_unless($r->user()->role === 'super_admin', 403);
         $d = $r->validate(['name' => 'required|string|max:150', 'sku' => 'required|string|max:60|unique:products', 'category' => 'required|string|max:100', 'description' => 'nullable|string|max:3000',
-            'mrp' => 'required|regex:/^\d{1,8}(\.\d{1,2})?$/', 'dealer_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/', 'unit' => 'required|string|max:30']);
+            'mrp' => 'required|regex:/^\d{1,8}(\.\d{1,2})?$/D', 'dealer_price' => 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D', 'unit' => 'required|string|max:30']);
         if (Money::cents($d['mrp']) <= 0 || (isset($d['dealer_price']) && (Money::cents($d['dealer_price']) <= 0 || Money::cents($d['dealer_price']) > Money::cents($d['mrp'])))) {
             throw ValidationException::withMessages(['mrp' => __('portal.cmd_val_mrp_prices')]);
         }
@@ -870,7 +886,7 @@ class CommandController extends Controller
             'data' => [
                 'managed_by' => $user->password_managed_by ?: User::PasswordManagedByAdmin,
                 'can_reveal' => $visible !== null,
-                'owner_only' => $visible === null && ! $r->user()->owner() && $user->adminVisiblePassword() !== null,
+                'owner_only' => ! $r->user()->owner(),
                 'password' => $visible,
             ],
         ]);
@@ -885,7 +901,10 @@ class CommandController extends Controller
         abort_unless($isManageable, 404);
         abort_unless($user->status === 'active', 422, __('portal.acct_password_inactive'));
 
-        $custom = $r->input('password');
+        // Only owners may choose or see the new password. Other account staff can reset it, but
+        // the new password goes only to the partner by SMS, so staff cannot sign in as the partner.
+        $ownerActor = $r->user()->owner();
+        $custom = $ownerActor ? $r->input('password') : null;
         if (is_string($custom) && trim($custom) !== '') {
             $r->validate([
                 'password' => ['required', 'string', 'min:8', 'max:64'],
@@ -913,16 +932,17 @@ class CommandController extends Controller
             return response()->json([
                 'data' => [
                     'managed_by' => User::PasswordManagedByAdmin,
-                    'can_reveal' => true,
-                    'password' => $plainPassword,
+                    'can_reveal' => $ownerActor,
+                    'owner_only' => ! $ownerActor,
+                    'password' => $ownerActor ? $plainPassword : null,
                 ],
                 'message' => __('portal.acct_password_reset_flash'),
             ]);
         }
 
-        return back()->with('success', __('portal.acct_password_reset_flash_with_password', [
-            'password' => $plainPassword,
-        ]));
+        return back()->with('success', $ownerActor
+            ? __('portal.acct_password_reset_flash_with_password', ['password' => $plainPassword])
+            : __('portal.acct_password_reset_flash'));
     }
 
     public function kycDocuments(Request $r, User $user, PartnerKycDocuments $documents): JsonResponse

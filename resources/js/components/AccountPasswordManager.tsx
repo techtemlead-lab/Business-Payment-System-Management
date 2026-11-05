@@ -313,8 +313,8 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                             </span>
                         </button>
 
-                        {/* Custom Password Toggle Button */}
-                        <button
+                        {/* Only owners may choose a password; for other staff it is sent to the partner by SMS. */}
+                        {!status?.owner_only && <button
                             type="button"
                             className="button"
                             disabled={busy}
@@ -322,7 +322,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                         >
                             <span>✏️</span>
                             <span>{translate('portal', 'acct_password_reset_custom')}</span>
-                        </button>
+                        </button>}
                     </div>
 
                     <button
@@ -336,7 +336,7 @@ export default function AccountPasswordManager({ account, canManage }: AccountPa
                 </div>
 
                 {/* Custom Password Input Area */}
-                {showCustom && (
+                {showCustom && !status?.owner_only && (
                     <div className="pw-custom">
                         <label>
                             {translate('portal', 'acct_password_custom_label')}
