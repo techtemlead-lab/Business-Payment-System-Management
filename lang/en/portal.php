@@ -5898,4 +5898,11 @@ return [
     'office_today_received' => 'Money received today',
     'office_today_payments' => 'Payments waiting',
     'office_today_withdrawals' => 'Withdrawals waiting',
+    'acct_val_phone_taken_owner' => 'Another account already uses this mobile number. To allow it anyway, write the reason in “Why share this number”.',
+    'acct_val_phone_share_reason_long' => 'Keep the reason under 500 characters.',
+    'acct_phone_share_reason' => 'Why share this number (owners only)',
+    'acct_phone_share_reason_hint' => 'Fill this only if another account already uses this number and you want to allow it. The reason is saved in the activity log.',
+    'ops_warn_sms_login_code_switched_off' => 'The SMS sign-in code is switched off. Before going live, turn on SMS and every feature that was switched off for testing.',
+    'ops_warn_accounts_missing_mobile' => 'Some active accounts have no valid mobile number, so they cannot get a sign-in code. Add a number to each one.',
+    'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
 ];
