@@ -41,9 +41,10 @@ final class OrderInvoice
 
     public function assertVisible(User $actor, Order $order): void
     {
-        if ($actor->owner() || $actor->staff()) {
+        if ($actor->owner() || ($actor->staff() && ($actor->allows('orders') || $actor->allows('finance')))) {
             return;
         }
+        abort_if($actor->staff(), 403);
         abort_unless((int) $order->user_id === (int) $actor->id, 404);
     }
 

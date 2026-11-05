@@ -80,6 +80,19 @@ class AutoApprovalTest extends TestCase
         $this->assertDatabaseMissing('commission_allocations', ['category' => 'dealer_monthly_salary_pool', 'status' => 'pending']);
     }
 
+    public function test_the_scheduled_run_leaves_months_older_than_two_for_a_person(): void
+    {
+        $dealer = User::factory()->create(['division' => 'Rangpur']);
+        $this->purchase($dealer, '10000.00', '20000.00');
+        // September's salary is still unpaid in January: too old for the automatic run.
+        $this->travelTo(now()->setDate(2027, 1, 5)->setTime(1, 0));
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+
+        $this->assertDatabaseCount('commission_settlement_payouts', 0);
+        $this->assertDatabaseHas('commission_allocations', ['category' => 'dealer_monthly_salary_pool', 'status' => 'pending']);
+    }
+
     public function test_the_scheduled_run_leaves_salary_alone_when_it_needs_approval(): void
     {
         $owner = User::factory()->staff()->create();

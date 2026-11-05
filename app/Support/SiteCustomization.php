@@ -1405,13 +1405,16 @@ Questions about these terms, partnership rules or platform operations:
             $parts = array_map('trim', explode('|', $line));
             $name = $parts[0] ?? '';
             $icon = $parts[1] ?? 'fa-tag';
-            $link = $parts[2] ?? ('/products?category='.urlencode($name));
+            $link = $parts[2] ?? '';
+            if (! SafeSiteUrl::isSafeLink($link)) {
+                $link = '/products?category='.urlencode($name);
+            }
             $badge = $parts[3] ?? '';
             if ($name !== '') {
-                $isImage = (bool) preg_match('/\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i', $icon)
+                $isImage = SafeSiteUrl::isSafeImage($icon) && ((bool) preg_match('/\.(png|jpe?g|svg|webp|gif)(\?.*)?$/i', $icon)
                     || str_starts_with($icon, '/')
                     || str_starts_with($icon, 'http://')
-                    || str_starts_with($icon, 'https://');
+                    || str_starts_with($icon, 'https://'));
 
                 $resolvedIcon = ! $isImage ? ($icon ?: 'fa-tag') : 'fa-tag';
 
@@ -1484,7 +1487,7 @@ Questions about these terms, partnership rules or platform operations:
                     continue;
                 }
                 $link = $parts[1] ?? '';
-                if ($link === '' || ! str_starts_with($link, '/')) {
+                if (! str_starts_with($link, '/') || str_starts_with($link, '//') || ! SafeSiteUrl::isSafeLink($link)) {
                     $link = '/products?category='.urlencode($name);
                 }
                 $items[] = [

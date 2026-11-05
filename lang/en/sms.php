@@ -37,6 +37,7 @@ return [
     'area_dealer_removed' => 'Madina: you are no longer the area dealer for :zone.',
     'account_suspended' => 'Madina: your partner account was suspended. :reason Contact company support if you need help.',
     'account_reactivated' => 'Madina: your partner account is active again. You can log in to your panel.',
+    'account_phone_changed' => 'Madina: the mobile number on account :code was changed to a new number. If you did not ask for this, call the company now.',
     'kyc_document_uploaded' => 'Madina: a :kind document was added to your partner account.',
     'staff_territory_assigned' => 'Madina: you were given the :level area :territory. See notices in the staff panel.',
     'staff_territory_removed' => 'Madina: your :level area :territory was removed. See notices in the staff panel.',

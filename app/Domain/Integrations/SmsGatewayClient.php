@@ -2,6 +2,7 @@
 
 namespace App\Domain\Integrations;
 
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -30,7 +31,7 @@ final class SmsGatewayClient
                     return ['sent' => true, 'provider' => $provider, 'message' => __('portal.si_sms_accepted', ['provider' => $provider])];
                 }
             } catch (\Throwable $exception) {
-                Log::warning('sms.gateway_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
+                Log::warning('sms.gateway_failed', ['provider' => $provider, 'error' => RedactedError::message($exception)]);
             }
         }
 
@@ -96,7 +97,7 @@ final class SmsGatewayClient
                     ];
                 }
             } catch (\Throwable $exception) {
-                Log::warning('sms.balance_failed', ['provider' => $key, 'error' => $exception->getMessage()]);
+                Log::warning('sms.balance_failed', ['provider' => $key, 'error' => RedactedError::message($exception)]);
             }
         }
 

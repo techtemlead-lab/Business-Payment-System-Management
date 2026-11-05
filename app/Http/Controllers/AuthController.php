@@ -152,8 +152,10 @@ class AuthController extends Controller
         $phone = $isEmail ? null : PhoneIdentity::normalize($identity);
         $rateLimiterIdentity = $isEmail ? Str::lower($identity) : ($phone ?? Str::upper($identity));
         $key = $rateLimiterIdentity.'|'.$r->ip();
-        if (RateLimiter::tooManyAttempts($key, 5)) {
-            $seconds = RateLimiter::availableIn($key);
+        // A second, account-wide limit stops password guessing spread over many IP addresses.
+        $accountKey = 'login-account|'.$rateLimiterIdentity;
+        if (RateLimiter::tooManyAttempts($key, 5) || RateLimiter::tooManyAttempts($accountKey, 20)) {
+            $seconds = max(RateLimiter::availableIn($key), RateLimiter::tooManyAttempts($accountKey, 20) ? RateLimiter::availableIn($accountKey) : 0);
             throw ValidationException::withMessages([
                 'email' => __('portal.flash_too_many_attempts_seconds', ['seconds' => $seconds]),
             ]);
@@ -173,9 +175,11 @@ class AuthController extends Controller
         $candidate = $matches->count() === 1 ? $matches->first() : null;
         if (! $candidate || PortalHost::forUser($candidate) !== $portal || ! Auth::validate(['email' => $candidate->email, 'password' => $data['password'], 'status' => 'active'])) {
             RateLimiter::hit($key, 60);
+            RateLimiter::hit($accountKey, 3600);
             throw ValidationException::withMessages(['email' => __('portal.flash_bad_credentials')]);
         }
         RateLimiter::clear($key);
+        RateLimiter::clear($accountKey);
 
         $otp = app(LoginOtpChallenge::class);
         if ($otp->requiredFor($candidate) && $otp->issue($candidate, $portal)) {

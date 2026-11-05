@@ -34,17 +34,25 @@ services:
     ports: ["127.0.0.1:8095:80"]
     depends_on: [app]
     restart: unless-stopped
+    # Uploaded partner and staff photos are served straight from the shared storage volume.
+    volumes:
+      - application-storage:/var/www/html/storage:ro
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/up"]
+      # The app only answers its own domain in production, so send that Host header.
+      test: ["CMD", "wget", "--quiet", "--spider", "--header=Host: ${APP_DOMAIN:-localhost}", "http://127.0.0.1/up"]
       interval: 30s
       timeout: 10s
       retries: 3
   queue:
     <<: *application
     command: ["php", "-d", "max_execution_time=0", "artisan", "queue:work", "--queue=imports,default", "--sleep=3", "--tries=1", "--timeout=1800", "--max-time=3600"]
+    # A deploy waits for a running import to finish (up to its 30-minute timeout) instead of killing it.
+    stop_grace_period: 31m
   scheduler:
     <<: *application
     command: ["php", "-d", "max_execution_time=0", "artisan", "schedule:work", "--no-interaction"]
+    # Lets a running backup or settlement finish before the container stops.
+    stop_grace_period: 20m
   db:
     image: postgres:16-bookworm
     environment:

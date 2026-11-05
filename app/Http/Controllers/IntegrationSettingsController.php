@@ -19,6 +19,7 @@ class IntegrationSettingsController extends Controller
             'integrations' => $integrations->snapshot(false),
             'startup' => $integrations->startupMode(),
             'canEdit' => $actor->canAct('finance', 'edit') || $actor->role === 'super_admin',
+            'ownerOnlyGroups' => $actor->role === 'super_admin' ? [] : IntegrationSettings::OwnerOnlyGroups,
             'channelHint' => __('portal.si_channel_hint'),
         ];
 

@@ -6,6 +6,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
@@ -67,6 +68,7 @@ class VerifyApplicationBackup extends Command
             if ($dumpHeader !== 'PGDMP') {
                 throw new \RuntimeException('The database dump format is invalid.');
             }
+            $this->assertRestorable($zip);
             Cache::put('operations:verified-backup', ['file' => $name, 'verified_at' => now()->utc()->toIso8601String()], now()->addHours(30));
             $this->info('Backup decrypted and every file hash verified. Keep the password and APP_KEY in a separate secret store.');
 
@@ -79,6 +81,40 @@ class VerifyApplicationBackup extends Command
             return self::FAILURE;
         } finally {
             $zip->close();
+        }
+    }
+
+    /**
+     * Reads the dump's table of contents with pg_restore, which fails on a
+     * truncated or corrupt dump even when its file hash matches.
+     */
+    private function assertRestorable(ZipArchive $zip): void
+    {
+        $probe = Process::timeout(30)->run(['pg_restore', '--version']);
+        if (! $probe->successful()) {
+            if (app()->isProduction()) {
+                throw new \RuntimeException('pg_restore is not installed, so the backup cannot be checked.');
+            }
+            $this->warn('pg_restore is not installed here; skipped the restore check.');
+
+            return;
+        }
+        $copy = tempnam(sys_get_temp_dir(), 'madina-restore-check-');
+        try {
+            $source = $zip->getStream('database.dump');
+            $target = fopen($copy, 'wb');
+            if ($source === false || $target === false) {
+                throw new \RuntimeException('Cannot read the database dump for the restore check.');
+            }
+            stream_copy_to_stream($source, $target);
+            fclose($source);
+            fclose($target);
+            $listing = Process::timeout(300)->run(['pg_restore', '--list', $copy]);
+            if (! $listing->successful() || ! str_contains($listing->output(), 'TABLE DATA')) {
+                throw new \RuntimeException('pg_restore cannot read the database dump.');
+            }
+        } finally {
+            @unlink($copy);
         }
     }
 
