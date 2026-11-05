@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Accounts\PasswordAccess;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -48,6 +50,11 @@ class PartnerAdminPasswordTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.can_reveal', true)
             ->assertJsonPath('data.managed_by', User::PasswordManagedByAdmin)
+            ->assertJsonPath('data.password', null);
+
+        $this->actingAs($admin)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->assertOk()
             ->assertJsonPath('data.password', $partner->adminVisiblePassword());
     }
 
@@ -72,7 +79,7 @@ class PartnerAdminPasswordTest extends TestCase
         $this->assertTrue(Hash::check('PartnerOwnedPass1', $partner->password));
 
         $this->actingAs($admin)->onPortal('sadmin')
-            ->getJson('/commands/accounts/'.$partner->id.'/password-status')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
             ->assertOk()
             ->assertJsonPath('data.can_reveal', true)
             ->assertJsonPath('data.password', 'PartnerOwnedPass1');
@@ -152,12 +159,84 @@ class PartnerAdminPasswordTest extends TestCase
             'admin_password_cipher' => 'TempPassword123!',
         ]);
 
+        // Opening the panel shows nothing and records nothing.
         $this->actingAs($owner)->onPortal('sadmin')
             ->getJson('/commands/accounts/'.$partner->id.'/password-status')
             ->assertOk()
+            ->assertJsonPath('data.can_reveal', true)
+            ->assertJsonPath('data.password', null);
+        $this->assertDatabaseMissing('audit_events', ['action' => 'account.password_revealed']);
+
+        // Pressing "Show password" does, with who and from where.
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->assertOk()
             ->assertJsonPath('data.password', 'TempPassword123!');
 
-        $this->assertDatabaseHas('audit_events', ['actor_id' => $owner->id, 'action' => 'account.password_revealed', 'subject' => (string) $partner->id]);
+        $event = DB::table('audit_events')->where('action', 'account.password_revealed')->first();
+        $this->assertSame($owner->id, (int) $event->actor_id);
+        $this->assertSame((string) $partner->id, $event->subject);
+        $this->assertNotNull($event->created_at);
+        $this->assertArrayHasKey('ip', json_decode($event->metadata, true));
+    }
+
+    public function test_only_owners_can_reveal_and_staff_resets_are_audited_without_showing_the_password(): void
+    {
+        $manager = User::factory()->staff('account_manager')->create();
+        $partner = User::factory()->dealer()->create([
+            'phone' => '01712345111',
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'TempPassword123!',
+        ]);
+
+        $this->actingAs($manager)->onPortal('manage')
+            ->postJson('/commands/accounts/'.$partner->id.'/reveal-password')
+            ->assertForbidden();
+
+        $this->actingAs($manager)->onPortal('manage')
+            ->postJson('/commands/accounts/'.$partner->id.'/reset-password')
+            ->assertOk()
+            ->assertJsonPath('data.password', null);
+        $event = DB::table('audit_events')->where('action', 'account.password_reset_by_admin')->first();
+        $this->assertSame($manager->id, (int) $event->actor_id);
+        $this->assertFalse(json_decode($event->metadata, true)['new_password_shown_to_actor']);
+        $this->assertDatabaseMissing('audit_events', ['action' => 'account.password_revealed']);
+    }
+
+    public function test_staff_reset_without_a_phone_is_refused_when_nobody_could_read_the_new_password(): void
+    {
+        $manager = User::factory()->staff('account_manager')->create();
+        $partner = User::factory()->dealer()->create(['phone' => null]);
+
+        $this->actingAs($manager)->onPortal('manage')
+            ->postJson('/commands/accounts/'.$partner->id.'/reset-password')
+            ->assertStatus(422);
+    }
+
+    public function test_md_can_reset_and_view_staff_but_not_the_super_admin_md_or_chairman(): void
+    {
+        $md = User::factory()->staff('md')->create(['profile' => ['action_permissions' => ['accounts' => ['view' => true, 'create' => true, 'edit' => true]]]]);
+        $employee = User::factory()->staff('finance')->create([
+            'phone' => '01712345222',
+            'password_managed_by' => User::PasswordManagedByAdmin,
+            'admin_password_cipher' => 'StaffInitialPass1!',
+        ]);
+        $chairman = User::factory()->staff('chairman')->create(['admin_password_cipher' => 'ChairPass1!']);
+        $superAdmin = User::factory()->staff('super_admin')->create();
+
+        $access = app(PasswordAccess::class);
+        $this->assertTrue($access->canReset($md, $employee));
+        $this->assertTrue($access->canView($md, $employee));
+        $this->assertFalse($access->canReset($md, $chairman));
+        $this->assertFalse($access->canView($md, $chairman));
+        $this->assertFalse($access->canReset($md, $superAdmin));
+        $this->assertFalse($access->canReset($md, $md));
+        $this->assertTrue($access->canReset($superAdmin, $chairman));
+        $this->assertFalse($access->canReset($superAdmin, $superAdmin));
+
+        $this->actingAs($superAdmin)->onPortal('sadmin')
+            ->postJson('/commands/accounts/'.$superAdmin->id.'/reveal-password')
+            ->assertForbidden();
     }
 
     public function test_password_status_is_forbidden_for_non_accounts_staff(): void
@@ -181,7 +260,7 @@ class PartnerAdminPasswordTest extends TestCase
 
         // Superadmin CAN view staff password
         $this->actingAs($admin)->onPortal('sadmin')
-            ->getJson('/commands/accounts/'.$employee->id.'/password-status')
+            ->postJson('/commands/accounts/'.$employee->id.'/reveal-password')
             ->assertOk()
             ->assertJsonPath('data.can_reveal', true)
             ->assertJsonPath('data.password', 'StaffInitialPass1!');
