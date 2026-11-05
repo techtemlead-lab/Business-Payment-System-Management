@@ -79,7 +79,11 @@ final class PortalCatalog
         if ($section === 'benefits-fund') {
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
-        if (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['enquiries', 'feedback'], true)) {
+        if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'agreement') {
+            // Owners edit the agreement; staff who manage accounts see who accepted it.
+            // A dealer working in the staff desk still reads their own agreement there.
+            abort_unless($user->owner() || $user->allows('accounts') || in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['enquiries', 'feedback'], true)) {
             abort_unless($user->allows('content') || $user->allows('accounts'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
