@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CommissionRuleSeeder::class,
+            // Starter training lessons, saved as drafts until staff publish them.
+            TrainingItemSeeder::class,
             // Place codes are never seeded by default — admins create Management,
             // divisions, and all lower levels in the Place codes panel.
             // Optional full Bangladesh registry:

@@ -1,0 +1,45 @@
+/* =========================================================================
+   Training library and meetings calendar for partners and office staff.
+   Mobile first: one column of cards, two or three on wider screens.
+   Colours, spacing and radii come from the --ds tokens.
+   ========================================================================= */
+.training-hub{display:flex;flex-direction:column;gap:var(--ds-s-4)}
+.training-intro h2{margin:0}
+.training-intro p{margin:var(--ds-s-1) 0 0}
+.training-intro .panel-heading{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:var(--ds-s-3)}
+
+.training-topic>h2{font-size:var(--ds-fs-md);margin:0 0 var(--ds-s-3);color:var(--ds-text)}
+.training-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-3)}
+@media (min-width:720px){.training-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1180px){.training-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.training-card{display:flex;flex-direction:column;gap:var(--ds-s-2);background:var(--ds-surface);border:1px solid var(--ds-line);border-radius:var(--ds-r-lg);padding:var(--ds-s-4);box-shadow:var(--ds-shadow-xs);min-width:0}
+.training-card h3{margin:0;font-size:var(--ds-fs-base);line-height:1.35;color:var(--ds-text);overflow-wrap:anywhere}
+.training-card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--ds-s-2)}
+.training-type{display:inline-flex;align-items:center;gap:6px;font-size:var(--ds-fs-xs);font-weight:600;color:var(--ds-text-muted)}
+.training-type.is-video{color:var(--ds-brand-text)}
+.training-type.is-pdf{color:var(--ds-danger-fg)}
+.training-type.is-article{color:var(--ds-info-fg)}
+.training-new{display:inline-flex;align-items:center;padding:2px 10px;border-radius:var(--ds-r-pill);background:var(--ds-warn-bg);color:var(--ds-warn-fg);font-size:var(--ds-fs-2xs);font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.training-alt-title{margin:0;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
+.training-summary{margin:0;font-size:var(--ds-fs-sm);color:var(--ds-text-2);line-height:1.5}
+
+.training-video{position:relative;aspect-ratio:16/9;border-radius:var(--ds-r-md);overflow:hidden;background:var(--ds-surface-3)}
+.training-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.training-video.is-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--ds-s-2);padding:var(--ds-s-3);text-align:center}
+.training-video.is-idle small{font-size:var(--ds-fs-2xs);color:var(--ds-text-muted)}
+.training-play{display:inline-flex;align-items:center;gap:var(--ds-s-2);min-height:44px;padding:var(--ds-s-2) var(--ds-s-4);border:0;border-radius:var(--ds-r-pill);background:var(--ds-brand);color:var(--ds-on-brand);font:inherit;font-weight:700;cursor:pointer}
+.training-play:focus-visible{outline:3px solid var(--ds-focus-ring);outline-offset:2px}
+
+.training-pdf{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.training-article summary{cursor:pointer;font-weight:600;color:var(--ds-brand-text);min-height:32px;display:flex;align-items:center}
+.training-article-body{margin-top:var(--ds-s-2);padding:var(--ds-s-3);border-radius:var(--ds-r-md);background:var(--ds-surface-2);white-space:pre-line;font-size:var(--ds-fs-sm);line-height:1.6;color:var(--ds-text);overflow-wrap:anywhere}
+
+.training-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:var(--ds-s-2);border-top:1px solid var(--ds-line-soft)}
+.training-chip{display:inline-flex;align-items:center;padding:2px 10px;border-radius:var(--ds-r-pill);background:var(--ds-neutral-bg);color:var(--ds-neutral-fg);font-size:var(--ds-fs-2xs);font-weight:600}
+.training-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.training-actions .button.small{display:inline-flex;align-items:center;gap:6px}
+.training-delete{color:var(--ds-danger-fg)}
+
+.training-form-row{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-3)}
+@media (min-width:640px){.training-form-row{grid-template-columns:repeat(3,minmax(0,1fr))}}
