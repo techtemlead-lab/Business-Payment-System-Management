@@ -321,6 +321,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $lineId = $orderRes->json('data.lines.0.id');
 
         // Approve order
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',
@@ -358,6 +359,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for stock test',
@@ -396,6 +398,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
 
         // Approve first time
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'First approval',
@@ -403,6 +406,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         ])->assertOk();
 
         // Second approval attempt should fail
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $second = $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Duplicate approval attempt',
@@ -432,8 +436,9 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
             'allow_credit' => false,
         ]);
 
+        // No goods on credit: an unpaid order is refused with a "pay in full first" message.
         $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['allow_credit']);
+        $response->assertJsonValidationErrors(['status']);
     }
 
     public function test_order_decision_rejects_invalid_status_value(): void
@@ -500,6 +505,7 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',

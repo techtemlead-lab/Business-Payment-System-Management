@@ -58,11 +58,26 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $lineId = $orderRes->json('data.lines.0.id');
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'submitted', 'total' => '3500.00']);
 
-        // 2. Staff approves order with authorized credit
+        // 2. No goods on credit: the partner pays the full amount first...
+        $claimRes = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
+            'channel' => 'Bank',
+            'reference' => 'IBBL-FT-'.Str::random(8),
+            'amount' => '3500.00',
+        ]);
+        $claimRes->assertCreated();
+        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
+
+        // ...finance staff verify the payment...
+        $verifyRes = $this->actingAs($financeStaff)->postJson("/api/v1/claims/{$claimId}/verify", [
+            'approve' => true,
+            'reason' => 'Credited to corporate bank account IBBL-099',
+        ]);
+        $verifyRes->assertOk();
+
+        // ...and only then is the order approved.
         $approvalRes = $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
-            'reason' => 'Approved on corporate wholesale credit terms',
-            'allow_credit' => true,
+            'reason' => 'Approved after full payment was verified',
         ]);
         $approvalRes->assertOk();
         $this->assertDatabaseHas('orders', ['id' => $orderId, 'status' => 'approved']);
@@ -110,22 +125,6 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         ]);
         $delivered2->assertOk();
         $this->assertDatabaseHas('shipments', ['id' => $shipment2Id, 'status' => 'delivered']);
-
-        // 7. Partner submits full Bank payment claim
-        $claimRes = $this->actingAs($dealer)->postJson("/api/v1/orders/{$orderId}/payments", [
-            'channel' => 'Bank',
-            'reference' => 'IBBL-FT-'.Str::random(8),
-            'amount' => '3500.00',
-        ]);
-        $claimRes->assertCreated();
-        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
-
-        // 8. Finance staff verifies payment claim
-        $verifyRes = $this->actingAs($financeStaff)->postJson("/api/v1/claims/{$claimId}/verify", [
-            'approve' => true,
-            'reason' => 'Credited to corporate bank account IBBL-099',
-        ]);
-        $verifyRes->assertOk();
 
         // Check order is now delivered and fully paid
         $order = Order::find($orderId);
@@ -225,11 +224,23 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
-        // Staff approves and dispatches
+        // Subdealer pays in full first (no goods on credit), finance verifies...
+        $this->actingAs($subDealer)->postJson("/api/v1/orders/{$orderId}/payments", [
+            'channel' => 'Bank',
+            'reference' => 'SUB-REF-PAY-01',
+            'amount' => '3500.00',
+        ]);
+        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
+
+        $this->actingAs($superAdmin)->postJson("/api/v1/claims/{$claimId}/verify", [
+            'approve' => true,
+            'reason' => 'Payment verified in bank account',
+        ])->assertOk();
+
+        // ...then staff approve and dispatch.
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
-            'reason' => 'Subdealer authorized order',
-            'allow_credit' => true,
+            'reason' => 'Subdealer order approved after full payment',
         ])->assertOk();
 
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/dispatch", [
@@ -245,19 +256,6 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         // Confirm delivery
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/shipments/{$shipmentId}/delivered", [
             'reason' => 'Subdealer received consignment',
-        ])->assertOk();
-
-        // Subdealer pays in full
-        $this->actingAs($subDealer)->postJson("/api/v1/orders/{$orderId}/payments", [
-            'channel' => 'Bank',
-            'reference' => 'SUB-REF-PAY-01',
-            'amount' => '3500.00',
-        ]);
-        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
-
-        $this->actingAs($superAdmin)->postJson("/api/v1/claims/{$claimId}/verify", [
-            'approve' => true,
-            'reason' => 'Payment verified in bank account',
         ])->assertOk();
 
         // Commission batch was captured and processed
@@ -454,6 +452,7 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for Hub A dispatch',

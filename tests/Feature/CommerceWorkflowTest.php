@@ -70,7 +70,7 @@ class CommerceWorkflowTest extends TestCase
         foreach ([
             '/', '/orders', '/treasury',
             '/operations/financial-reports', '/operations/payment-accounts',
-            '/operations/financial-readiness', '/operations/dues-adjustments',
+            '/operations/financial-readiness',
             '/operations/policy-schedules', '/operations/reserve-payouts',
             '/operations/commission-holds', '/operations/data-imports',
             '/operations/service-integrations',

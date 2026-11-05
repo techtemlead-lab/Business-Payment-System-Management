@@ -32,6 +32,7 @@ class CompanyCommissionBenefitsFundTest extends TestCase
             'idempotency_key' => (string) Str::uuid(),
         ]);
         $finance = User::factory()->staff('finance')->create();
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
             'allow_credit' => true,
@@ -66,6 +67,7 @@ class CompanyCommissionBenefitsFundTest extends TestCase
             'idempotency_key' => (string) Str::uuid(),
         ]);
         $finance = User::factory()->staff('finance')->create();
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
             'allow_credit' => true,
@@ -110,6 +112,7 @@ class CompanyCommissionBenefitsFundTest extends TestCase
             'idempotency_key' => (string) Str::uuid(),
         ]);
         $finance = User::factory()->staff('finance')->create();
+        $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
             'allow_credit' => true,

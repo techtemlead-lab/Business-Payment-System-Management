@@ -456,7 +456,7 @@ class OperationsAndAdminFeatureTest extends E2ETestCase
     {
         $admin = $this->createStaff('super_admin');
 
-        foreach (['field-sales', 'payment-accounts', 'dues-adjustments', 'policy-schedules'] as $section) {
+        foreach (['field-sales', 'payment-accounts', 'policy-schedules'] as $section) {
             $response = $this->actingAs($admin)->onPortal('sadmin')->get('/operations/'.$section);
             $response->assertOk();
         }

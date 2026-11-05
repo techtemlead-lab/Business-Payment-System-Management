@@ -221,57 +221,6 @@ class PartnerEventSmsTest extends TestCase
         ));
     }
 
-    public function test_due_adjustment_review_sends_localized_partner_sms(): void
-    {
-        Config::set('madina.sms.driver', 'array');
-        Config::set('madina.sms.sent', []);
-        $this->enableFinancialPosting();
-        $this->seed(CommissionRuleSeeder::class);
-
-        $buyer = User::factory()->create([
-            'role' => 'dealer',
-            'status' => 'active',
-            'locale' => 'bn',
-            'phone' => '01720000091',
-        ]);
-        $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00', 'stock' => 5]);
-        $order = app(OrderService::class)->create($buyer, [
-            'items' => [['product_id' => $product->id, 'quantity' => 1]],
-            'idempotency_key' => (string) Str::uuid(),
-        ]);
-        $order->update(['status' => 'approved', 'paid' => '0.00']);
-
-        Config::set('madina.sms.sent', []);
-        $preparer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
-        $reviewer = User::factory()->create(['role' => 'finance', 'status' => 'active']);
-        $payload = [
-            'kind' => 'credit',
-            'amount' => '20.00',
-            'reference' => 'NOTE-SMS-'.Str::uuid(),
-            'request_key' => (string) Str::uuid(),
-            'reason' => 'Approved commercial allowance',
-        ];
-        $id = $this->actingAs($preparer)->postJson('/api/v1/operations/orders/'.$order->id.'/due-adjustments', $payload)
-            ->assertOk()->json('data.id');
-        $this->actingAs($reviewer)->postJson('/api/v1/operations/due-adjustments/'.$id.'/review', [
-            'decision' => 'approved',
-            'reason' => 'Independent allowance approval',
-        ])->assertOk();
-
-        $reference = DB::table('due_adjustments')->where('id', $id)->value('reference');
-        $sent = config('madina.sms.sent');
-        $this->assertSame('dues.adjustment_approved', $sent[0]['event'] ?? null);
-        $this->assertSame(
-            __('sms.due_adjustment', [
-                'number' => $order->number,
-                'decision' => __('portal.due_decision_approved', [], 'bn'),
-                'reference' => $reference,
-                'amount' => '80.00',
-            ], 'bn'),
-            $sent[0]['message'] ?? null,
-        );
-    }
-
     public function test_matured_commission_release_sends_localized_partner_sms(): void
     {
         Config::set('madina.sms.driver', 'array');

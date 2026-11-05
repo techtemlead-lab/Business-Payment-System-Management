@@ -22,7 +22,7 @@ class PortalInventorySmokeTest extends TestCase
     private function dealerSections(): array
     {
         return [
-            '/', '/orders', '/purchase', '/catalog', '/deliveries', '/dues',
+            '/', '/orders', '/purchase', '/catalog', '/deliveries',
             '/network', '/ranks', '/earnings', '/full-report', '/withdrawals',
             '/profile', '/security', '/notifications', '/circulars', '/help',
         ];
@@ -34,7 +34,7 @@ class PortalInventorySmokeTest extends TestCase
     private function subdealerSections(): array
     {
         return [
-            '/', '/orders', '/purchase', '/catalog', '/deliveries', '/dues',
+            '/', '/orders', '/purchase', '/catalog', '/deliveries',
             '/salary', '/earnings', '/full-report', '/withdrawals',
             '/profile', '/security', '/notifications', '/circulars', '/help',
         ];
@@ -48,8 +48,8 @@ class PortalInventorySmokeTest extends TestCase
         return [
             '/', '/employees', '/operations/staff-operations', '/operations/payroll', '/operations/my-payroll',
             '/operations/field-sales', '/operations/access-management',
-            '/orders', '/deliveries', '/dues',
-            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger', '/operations/dues-adjustments',
+            '/orders', '/deliveries',
+            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger',
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/inventory', '/branches', '/branch-performance', '/place-codes',
@@ -107,8 +107,8 @@ class PortalInventorySmokeTest extends TestCase
         $staff = User::factory()->create(['role' => 'finance', 'status' => 'active']);
 
         $paths = [
-            '/', '/orders', '/deliveries', '/dues',
-            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger', '/operations/dues-adjustments',
+            '/', '/orders', '/deliveries',
+            '/treasury', '/payments', '/withdrawals', '/operations/payment-accounts', '/ledger',
             '/operations/policy-schedules', '/operations/commission-holds', '/settlements', '/rewards', '/payouts-hub',
             '/operations/reserve-payouts', '/operations/finance-settings', '/operations/financial-readiness',
             '/catalog', '/reports', '/operations/financial-reports', '/operations/data-imports',

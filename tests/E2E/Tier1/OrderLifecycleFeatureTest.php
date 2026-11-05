@@ -396,24 +396,26 @@ class OrderLifecycleFeatureTest extends E2ETestCase
     /**
      * F07: Staff approves unpaid order when finance credit authorization is granted.
      */
-    public function test_staff_approves_order_with_authorized_credit(): void
+    public function test_credit_is_retired_an_unpaid_order_cannot_be_approved_even_with_the_credit_flag(): void
     {
         $staff = $this->createStaff('super_admin');
         $dealer = $this->createDealer();
         $order = $this->createSubmittedOrder($dealer); // Unpaid 500.00
 
-        $response = $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', [
+        $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'reason' => 'Approved on 7-day credit agreement',
+            'reason' => 'Trying the old 7-day credit agreement',
             'allow_credit' => true,
-        ]);
+        ])->assertUnprocessable()->assertJsonValidationErrors(['status']);
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'submitted', 'credit_authorized_by' => null]);
 
-        $response->assertOk();
-        $this->assertDatabaseHas('orders', [
-            'id' => $order->id,
+        // Once the dealer has paid in full, the same order can be approved.
+        $order->forceFill(['paid' => $order->fresh()->total])->save();
+        $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'credit_authorized_by' => $staff->id,
-        ]);
+            'reason' => 'Approved after full payment',
+        ])->assertOk();
+        $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'approved']);
     }
 
     /**

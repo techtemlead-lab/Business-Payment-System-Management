@@ -75,11 +75,22 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
-        // 3. Admin approves order with credit
+        // 3. No goods on credit: Gamma pays in full first and finance verifies it...
+        $this->actingAs($subGamma)->postJson("/api/v1/orders/{$orderId}/payments", [
+            'channel' => 'Bank',
+            'reference' => 'PAY-GAMMA-01',
+            'amount' => '3000.00',
+        ])->assertCreated();
+        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
+        $this->actingAs($admin)->postJson("/api/v1/claims/{$claimId}/verify", [
+            'approve' => true,
+            'reason' => 'Bank credit verified',
+        ])->assertOk();
+
+        // ...then the admin approves the order.
         $this->actingAs($admin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
-            'reason' => 'Network downline order approved',
-            'allow_credit' => true,
+            'reason' => 'Network downline order approved after full payment',
         ])->assertOk();
 
         // 4. Warehouse dispatches full order
@@ -95,20 +106,6 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         // 5. Confirm delivery
         $this->actingAs($admin)->postJson("/api/v1/orders/{$orderId}/shipments/{$shipmentId}/delivered", [
             'reason' => 'Delivered to Gamma physical store',
-        ])->assertOk();
-
-        // 6. Gamma submits payment
-        $this->actingAs($subGamma)->postJson("/api/v1/orders/{$orderId}/payments", [
-            'channel' => 'Bank',
-            'reference' => 'PAY-GAMMA-01',
-            'amount' => '3000.00',
-        ])->assertCreated();
-        $claimId = DB::table('payment_claims')->where('order_id', $orderId)->value('id');
-
-        // 7. Finance verifies payment -> triggers commission capture and processing
-        $this->actingAs($admin)->postJson("/api/v1/claims/{$claimId}/verify", [
-            'approve' => true,
-            'reason' => 'Bank credit verified',
         ])->assertOk();
 
         // 8. Verify Commission Batch and Allocations
@@ -240,6 +237,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $lineId = $orderRes->json('data.lines.0.id');
 
         // 4. Admin approves and dispatches
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'New recruit introductory terms approved',
@@ -311,6 +309,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $orderId = $orderRes->json('data.id');
         $lineId = $orderRes->json('data.lines.0.id');
 
+        Order::query()->whereKey($orderId)->update(['paid' => DB::raw('total')]); // The dealer pays in full before approval.
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved Dhaka order',

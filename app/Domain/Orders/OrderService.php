@@ -171,19 +171,17 @@ class OrderService
         if (! in_array($status, ['approved', 'held', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => __('portal.err_order_status_choice')]);
         }
-        DB::transaction(function () use ($actor, $order, $status, $reason, $allowCredit, $replacements): void {
+        DB::transaction(function () use ($actor, $order, $status, $reason, $replacements): void {
             CommissionWallet::lock();
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (! in_array($locked->status, ['submitted', 'held'], true)) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_already_decided')]);
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
+            // No goods on credit: a dealer pays the full amount (and the payment is
+            // verified) before an order can be approved. $allowCredit is ignored.
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
-                if (! $allowCredit || ! $actor->allows('finance')) {
-                    throw ValidationException::withMessages(['allow_credit' => __('portal.err_order_credit_auth')]);
-                }
-                $changes['credit_authorized_by'] = $actor->id;
-                $changes['credit_authorized_at'] = now();
+                throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             if ($status === 'rejected' && Money::cents($locked->paid) > 0) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_paid_needs_refund')]);
@@ -299,6 +297,10 @@ class OrderService
             }
             if (! in_array($locked->status, ['approved', 'partially_dispatched'], true)) {
                 throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_approve_first')]);
+            }
+            // Second line of defence for older credit orders: goods go out only once fully paid.
+            if (Money::cents($locked->outstanding()) > 0) {
+                throw ValidationException::withMessages(['shipment' => __('portal.err_shipment_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             $fulfillmentBranch = $this->branches->resolveWritableBranch($actor, isset($data['branch_id']) ? (int) $data['branch_id'] : null);
             $orderLines = $locked->lines()->whereIn('id', array_column($data['items'], 'line_id'))->get()->keyBy('id');
