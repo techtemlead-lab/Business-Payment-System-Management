@@ -472,3 +472,8 @@
 .app-shell .aa-item small{color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-note{margin:4px 0 0;color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}
 .app-shell .aa-reason{display:grid;gap:4px;font-weight:600;font-size:var(--ds-fs-sm)}
+
+/* Full report: income and rank certificate downloads. */
+.certificate-links{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 16px}
+.certificate-links label{flex-direction:row;align-items:center;gap:8px}
+.certificate-links select{width:auto;min-height:36px;padding:6px 10px}

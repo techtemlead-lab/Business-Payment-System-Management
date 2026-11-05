@@ -30,6 +30,8 @@ Route::middleware(['auth', 'active', 'portal:dealer'])->group(function () use ($
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
     Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');
+    Route::get('/income-certificate/pdf', [DashboardController::class, 'incomeCertificatePdf'])->middleware('throttle:10,1');
+    Route::get('/rank-certificate/pdf', [DashboardController::class, 'rankCertificatePdf'])->middleware('throttle:10,1');
     Route::get('/referral-qr.svg', [DashboardController::class, 'referralQrSvg'])->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');

@@ -83,6 +83,11 @@ final class WithdrawalsSection implements WorkspaceSection
         $reportTo = $resolved['to'];
         $props['full_report'] = app(PartnerFullReport::class)->for($user, $reportFrom, $reportTo);
         $props['full_report']['filters']['preset'] = $preset;
+        // Certificates the partner can download: a yearly income certificate always, a rank certificate once they hold a rank.
+        $props['full_report']['certificates'] = [
+            'years' => range((int) now('Asia/Dhaka')->format('Y'), max(2024, (int) ($user->created_at?->timezone('Asia/Dhaka')->format('Y') ?? 2024))),
+            'rank' => $user->role === 'dealer' && DB::table('dealer_ranks')->where('user_id', $user->id)->whereNotIn('current_rank', ['', 'dealer'])->exists(),
+        ];
 
         return $props;
     }
