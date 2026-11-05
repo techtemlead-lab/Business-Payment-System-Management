@@ -342,23 +342,27 @@ class AdversarialMilestone1Test extends TestCase
         DB::statement('SET enable_seqscan = OFF');
 
         try {
-            // 1. order_lines query using (order_id, product_id)
-            $explainOrderLines = DB::select("
-                EXPLAIN (FORMAT TEXT)
-                SELECT * FROM order_lines WHERE order_id = '00000000-0000-0000-0000-000000000000' AND product_id = 1
-            ");
-            $plan1 = implode("\n", array_map(fn ($r) => $r->{'QUERY PLAN'}, $explainOrderLines));
+            // 1. order_lines: order-led lookups (loading an order's lines) must use the
+            // (order_id, product_id) composite; it is the only index that leads with order_id.
+            $plan1 = $this->explainPlan("SELECT * FROM order_lines WHERE order_id = '00000000-0000-0000-0000-000000000000'");
             $this->assertStringContainsString('Index Scan', $plan1);
             $this->assertMatchesRegularExpression('/order_lines_order_(id_)?product_(id_index|idx)/', $plan1);
+            // Filtering on both columns may use the composite or the product_id index
+            // (equal cost on an empty table); either way it must never scan the whole table.
+            $plan1Both = $this->explainPlan("SELECT * FROM order_lines WHERE order_id = '00000000-0000-0000-0000-000000000000' AND product_id = 1");
+            $this->assertStringContainsString('Index Scan', $plan1Both);
+            $this->assertMatchesRegularExpression('/order_lines_(order_(id_)?product_(id_index|idx)|product_id_index)/', $plan1Both);
+            $this->assertStringNotContainsString('Seq Scan', $plan1Both);
 
-            // 2. payment_claims query using (order_id, status)
-            $explainPaymentClaims = DB::select("
-                EXPLAIN (FORMAT TEXT)
-                SELECT * FROM payment_claims WHERE order_id = '00000000-0000-0000-0000-000000000000' AND status = 'submitted'
-            ");
-            $plan2 = implode("\n", array_map(fn ($r) => $r->{'QUERY PLAN'}, $explainPaymentClaims));
+            // 2. payment_claims: order-led lookups must use the (order_id, status) composite.
+            $plan2 = $this->explainPlan("SELECT * FROM payment_claims WHERE order_id = '00000000-0000-0000-0000-000000000000'");
             $this->assertStringContainsString('Index Scan', $plan2);
             $this->assertMatchesRegularExpression('/payment_claims_order_(id_)?status(_index|idx)/', $plan2);
+            // With a status filter too, the composite or the status index may serve it, but never a full scan.
+            $plan2Both = $this->explainPlan("SELECT * FROM payment_claims WHERE order_id = '00000000-0000-0000-0000-000000000000' AND status = 'submitted'");
+            $this->assertMatchesRegularExpression('/Index Scan|Bitmap Index Scan/', $plan2Both);
+            $this->assertMatchesRegularExpression('/payment_claims_(order_(id_)?status(_index|idx)|status_index)/', $plan2Both);
+            $this->assertStringNotContainsString('Seq Scan', $plan2Both);
 
             // 3. shipments query using (order_id, status)
             $explainShipments = DB::select("
@@ -388,6 +392,11 @@ class AdversarialMilestone1Test extends TestCase
         } finally {
             DB::statement('SET enable_seqscan = ON');
         }
+    }
+
+    private function explainPlan(string $sql): string
+    {
+        return implode("\n", array_map(fn ($row) => $row->{'QUERY PLAN'}, DB::select('EXPLAIN (FORMAT TEXT) '.$sql)));
     }
 
     /**
