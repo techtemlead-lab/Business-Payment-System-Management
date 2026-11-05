@@ -5348,6 +5348,9 @@ return [
     'col_delivered_hint' => 'অর্ডারের পরিমাণের মধ্যে কতটা পাঠানো হয়েছে',
     'col_checked_by' => 'কে যাচাই করেছেন',
     'col_booked_units' => 'অর্ডারে বুক করা',
+    'admin_kpis_label' => 'ব্যবসার এক নজরে হিসাব',
+    'admin_kpi_open' => 'তালিকা দেখুন',
+    'orders_tab_all' => 'সব',
     'col_booked_units_hint' => 'অনুমোদিত অর্ডারের যে পরিমাণ এখনো পাঠানো হয়নি, পুরো কোম্পানির হিসাবে',
     'stock_free_to_sell' => 'বিক্রির জন্য খালি (কোম্পানি): :count',
 ];

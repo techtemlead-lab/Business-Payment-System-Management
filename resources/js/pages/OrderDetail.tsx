@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
-import { Row, Table, Badge, money, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
+import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { useT } from '../shared/i18n/t';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 
@@ -105,8 +105,8 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         {adjustments.length>0&&<section className="panel"><h2>{translate('portal', 'due_adjustment_history')}</h2><Table rows={adjustments} columns={[{key:'reference',title:translate('portal','col_reference')},{key:'kind',title:translate('portal','col_type')},{key:'amount',title:translate('portal','col_amount'),render:r=>money(r.amount)},{key:'status',title:translate('portal','col_status'),render:r=><Badge status={r.status}/>},{key:'before_outstanding',title:translate('portal','due_before'),render:r=>r.before_outstanding==null?'—':money(r.before_outstanding)},{key:'after_outstanding',title:translate('portal','due_after'),render:r=>r.after_outstanding==null?'—':money(r.after_outstanding)},{key:'reason',title:translate('portal','col_reason')},{key:'prepared_by',title:translate('portal','prepared_by')},{key:'reviewed_by',title:translate('portal','reviewed_by')}]}/></section>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
-                { key: 'name', title: translate('portal', 'col_product') }, { key: 'quantity', title: translate('portal', 'report_col_ordered') }, { key: 'dispatched', title: translate('portal', 'col_dispatched') },
-                { key: 'remaining', title: translate('portal', 'col_remaining'), render: line => line.quantity - line.dispatched },
+                { key: 'name', title: translate('portal', 'col_product') }, { key: 'quantity', title: translate('portal', 'report_col_ordered'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },
+                { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(line.quantity - line.dispatched) },
                 { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />
         </section>

@@ -25,11 +25,39 @@ final class OrdersSection implements WorkspaceSection
             $orderWith[] = 'fulfillmentBranch:id,name,code';
         }
 
-        return [
+        $props = [
             'orders' => $filteredOrders->with($orderWith)
                 ->latest()
                 ->paginate(12)
                 ->withQueryString(),
         ];
+        if ($context->section === 'orders') {
+            $props['order_status_counts'] = $this->statusCounts($context);
+        }
+
+        return $props;
+    }
+
+    /**
+     * Orders per status under every other filter on screen (search, period,
+     * buyer type), for the status tabs above the list — like Shopify or Daraz
+     * Seller Center. The status filter itself is left out so every tab keeps
+     * its count.
+     *
+     * @return array<string, int>
+     */
+    private function statusCounts(SectionContext $context): array
+    {
+        $withoutStatus = $context->request->duplicate($context->request->except('status'));
+
+        return app(OrderListFilter::class)
+            ->apply(clone $context->orders, $withoutStatus, $context->section, $context->isStaff)
+            ->toBase()
+            ->reorder()
+            ->selectRaw('status, COUNT(*) AS aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($count): int => (int) $count)
+            ->all();
     }
 }
