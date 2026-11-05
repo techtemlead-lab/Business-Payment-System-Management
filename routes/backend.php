@@ -56,7 +56,7 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::delete('/product-units/{productUnit}', [ProductUnitController::class, 'destroy'])->name('product-units.destroy');
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::post('/orders', [OrderController::class, 'store'])->middleware('throttle:10,1')->name('orders.store');
     Route::post('/orders/{order}/decision', [OrderController::class, 'decision'])->name('orders.decision');
     Route::post('/orders/{order}/dispatch', [OrderController::class, 'dispatch'])->name('orders.dispatch');
     Route::post('/orders/{order}/payments', [OrderController::class, 'claim'])->middleware('throttle:10,1')->name('orders.payments');
@@ -70,7 +70,7 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
     Route::delete('/branches/{branch}/staff/{user}', [BranchController::class, 'removeStaff'])->name('branches.staff.remove');
     Route::post('/branches/{branch}/select', [BranchController::class, 'select'])->name('branches.select');
     Route::get('/delivery-points', [BranchController::class, 'deliveryPoints'])->name('delivery-points.index');
-    Route::post('/withdrawals', [WithdrawalController::class, 'store'])->name('withdrawals.store');
+    Route::post('/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1')->name('withdrawals.store');
     Route::get('/finance/defaults', [FinancialPreviewController::class, 'defaults'])->name('finance.defaults');
     Route::post('/finance/distribution-preview', [FinancialPreviewController::class, 'distribution'])->name('finance.distribution-preview');
     Route::post('/finance/salary-preview', [FinancialPreviewController::class, 'salary'])->name('finance.salary-preview');

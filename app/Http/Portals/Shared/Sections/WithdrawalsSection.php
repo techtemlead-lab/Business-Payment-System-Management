@@ -231,6 +231,19 @@ final class WithdrawalsSection implements WorkspaceSection
                     ->orWhere('withdrawals.payment_reference', 'ilike', $term);
             });
         }
+        // Method and request dates, so finance can work one bKash or bank batch at a time.
+        $channel = $request->string('channel')->toString();
+        if (in_array($channel, PaymentAccounts::channels(), true)) {
+            $matching->where('withdrawals.channel', $channel);
+        }
+        $range = OrderListFilter::createdRange(
+            $request->string('period')->toString(),
+            $request->filled('from') ? $request->string('from')->toString() : null,
+            $request->filled('to') ? $request->string('to')->toString() : null,
+        );
+        if ($range !== null) {
+            $matching->where('withdrawals.created_at', '>=', $range['from'])->where('withdrawals.created_at', '<=', $range['until']);
+        }
 
         $summary = (clone $matching)
             ->selectRaw("count(*) filter (where withdrawals.status = 'requested') as requested_count")

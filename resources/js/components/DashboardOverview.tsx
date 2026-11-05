@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
@@ -9,42 +9,8 @@ import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, money, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
-type ChartSlice = { key: string; label: string; value: string; cents: number; color: string };
 type TargetRow = { key: string; label: string; current: string; target: string; remaining: string; percent: number; hint: string };
 
-function PieChart({ slices }: { slices: ChartSlice[] }) {
-    const total = slices.reduce((sum, slice) => sum + Math.max(0, slice.cents), 0);
-    const translate = useT();
-    if (total <= 0) {
-        return (
-            <div className="home-pie empty" aria-hidden="true">
-                <span>{translate('portal', 'no_activity_yet')}</span>
-            </div>
-        );
-    }
-    let cursor = 0;
-    const stops = slices.map((slice) => {
-        const share = (Math.max(0, slice.cents) / total) * 100;
-        const start = cursor;
-        cursor += share;
-        return `${slice.color} ${start}% ${cursor}%`;
-    }).join(', ');
-
-    return (
-        <div className="home-pie-wrap" data-tour="home-chart">
-            <div className="home-pie" style={{ background: `conic-gradient(${stops})` }} aria-hidden="true" />
-            <ul className="home-pie-legend">
-                {slices.map((slice) => (
-                    <li key={slice.key}>
-                        <i style={{ background: slice.color }} />
-                        <span>{slice.label}</span>
-                        <b>{money(slice.value)}</b>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
 
 function ReferralShare({ referral }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null }) {
     const translate = useT();
@@ -136,76 +102,133 @@ function ReferralShare({ referral }: { referral: { code?: string; url?: string; 
     );
 }
 
+/** Wallet balance hidden until tapped, then hidden again after a few seconds — as in bKash and Nagad. */
+function BalancePill({ amount }: { amount: unknown }) {
+    const translate = useT();
+    const [shown, setShown] = useState(false);
+    useEffect(() => {
+        if (!shown) {
+            return;
+        }
+        const timer = window.setTimeout(() => setShown(false), 6000);
+
+        return () => window.clearTimeout(timer);
+    }, [shown]);
+
+    return (
+        <button
+            type="button"
+            className={`ph-balance${shown ? ' is-shown' : ''}`}
+            onClick={() => setShown((value) => !value)}
+            aria-pressed={shown}
+        >
+            <span className="ph-balance-coin" aria-hidden="true">৳</span>
+            <span className="ph-balance-text" aria-live="polite">
+                {shown ? money(amount) : translate('portal', 'ph_tap_for_balance')}
+            </span>
+        </button>
+    );
+}
+
+type QuickAction = { section: string; label: string; icon: React.ComponentType<{ size?: number }>; tone: string };
+
+const QUICK_ACTIONS: QuickAction[] = [
+    { section: 'purchase', label: 'ph_qa_new_order', icon: ShoppingBag, tone: 'green' },
+    { section: 'orders', label: 'ph_qa_my_orders', icon: ListChecks, tone: 'blue' },
+    { section: 'deliveries', label: 'ph_qa_deliveries', icon: Truck, tone: 'amber' },
+    { section: 'withdrawals', label: 'ph_qa_withdraw', icon: Wallet, tone: 'rose' },
+    { section: 'earnings', label: 'ph_qa_earnings', icon: Coins, tone: 'green' },
+    { section: 'network', label: 'ph_qa_team', icon: Users, tone: 'blue' },
+    { section: 'salary', label: 'ph_qa_salary', icon: BadgeCheck, tone: 'amber' },
+    { section: 'ranks', label: 'ph_qa_ranks', icon: Target, tone: 'rose' },
+    { section: 'catalog', label: 'ph_qa_products', icon: Package, tone: 'green' },
+    { section: 'full-report', label: 'ph_qa_report', icon: FileBarChart2, tone: 'blue' },
+    { section: 'help', label: 'ph_qa_help', icon: MessageCircle, tone: 'amber' },
+];
+
+function QuickActions({ base }: { base: string }) {
+    const translate = useT();
+    const sections: string[] = usePage<any>().props.portalCatalog?.sections ?? [];
+    const actions = QUICK_ACTIONS.filter((action) => sections.includes(action.section)).slice(0, 8);
+    if (actions.length === 0) {
+        return null;
+    }
+
+    return (
+        <nav className="ph-actions" aria-label={translate('portal', 'ph_quick_actions')}>
+            {actions.map(({ section, label, icon: Icon, tone }) => (
+                <Link key={section} href={`${base}/${section}`} className="ph-action">
+                    <span className={`ph-action-icon tone-${tone}`} aria-hidden="true"><Icon size={22} /></span>
+                    <span className="ph-action-label">{translate('portal', label)}</span>
+                </Link>
+            ))}
+        </nav>
+    );
+}
+
 function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
     const { portalBase: base } = usePage<any>().props;
     const translate = useT();
     const profile = home.profile ?? {};
     const targets: TargetRow[] = home.targets ?? [];
-    const chart: ChartSlice[] = home.chart ?? [];
+    const snapshot = home.snapshot ?? {};
+    const wallet = home.wallet ?? {};
+    const location = [profile.district, profile.division].filter(Boolean).join(', ');
 
     return (
-        <div className="partner-home">
-            <section className="partner-home-grid">
-                <aside className="partner-home-profile" data-tour="home-profile">
+        <div className="partner-home ph">
+            <section className="ph-hero" data-tour="home-profile">
+                <div className="ph-hero-top">
                     <ProfilePhoto src={profile.photo_url} initial={profile.initial || '?'} />
-                    <h2>{profile.name}</h2>
-                    {profile.shop_name && <p className="partner-home-shop">{profile.shop_name}</p>}
-                    <small>{profile.dealer_code || '—'} · {labelRole(String(profile.role || ''), translate)}</small>
+                    <div className="ph-hero-who">
+                        <p>{translate('portal', 'ph_greeting')}</p>
+                        <h2>{profile.name}</h2>
+                        <span className="ph-chip">
+                            {profile.dealer_code || '—'}
+                            <i aria-hidden="true" />
+                            {labelRole(String(profile.role || ''), translate)}
+                        </span>
+                    </div>
                     <Badge status={profile.status || 'active'} />
-                    <dl>
-                        <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
-                        <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
-                        <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
-                        {(profile.district || profile.division) && (
-                            <div><dt>{translate('portal', 'label_location')}</dt><dd>{[profile.district, profile.division].filter(Boolean).join(', ')}</dd></div>
-                        )}
-                        {profile.refer_code && (
-                            <div><dt>{translate('portal', 'refer_code')}</dt><dd>{profile.refer_code}</dd></div>
-                        )}
-                    </dl>
-                    <Link href={`${base}/profile`} className="text-link">{translate('portal', 'full_profile')}</Link>
-                    <Link href={`${base}/full-report`} className="text-link" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <FileBarChart2 size={14} /> {translate('portal', 'full_report')}
-                    </Link>
-                    <a href={`${base}/id-card/pdf`} className="text-link">{translate('portal', 'download_id_card')}</a>
-                    <a href={`${base}/join-poster/pdf`} className="text-link">{translate('portal', 'download_join_poster')}</a>
-                </aside>
-
-                <section className="partner-home-metrics" data-tour="home-metrics">
-                    <div className="partner-home-metrics-head">
-                        <div>
-                            <h3>{translate('portal', 'today_activity')}</h3>
-                            <p>{translate('portal', 'today_activity_hint')}</p>
-                        </div>
-                        <TrendingUp size={18} />
+                </div>
+                <BalancePill amount={wallet.available} />
+                <dl className="ph-hero-stats">
+                    <div>
+                        <dt>{translate('portal', 'ph_commission_month')}</dt>
+                        <dd>{money(snapshot.commission_month)}</dd>
                     </div>
-                    <div className="partner-home-metric-cards">
-                        <div>
-                            <span>{translate('portal', 'today_purchase')}</span>
-                            <strong>{money(home.snapshot?.own_sales_today)}</strong>
-                            <small>{translate('portal', 'today_purchase_hint')}</small>
-                        </div>
-                        <div>
-                            <span>{translate('portal', 'team_sales')}</span>
-                            <strong>{money(home.snapshot?.team_sales_today)}</strong>
-                            <small>{translate('portal', 'team_sales_hint')}</small>
-                        </div>
-                        <div>
-                            <span>{translate('portal', 'commission_month')}</span>
-                            <strong>{money(home.snapshot?.commission_month)}</strong>
-                            <small>{translate('portal', 'commission_month_hint')}</small>
-                        </div>
+                    <div>
+                        <dt>{translate('portal', 'ph_pending_withdrawal')}</dt>
+                        <dd>{money(wallet.pending_withdrawal)}</dd>
                     </div>
-                    <PieChart slices={chart} />
-                </section>
+                </dl>
+            </section>
 
-                <section className="partner-home-targets" data-tour="home-targets">
-                    <div className="partner-home-metrics-head">
-                        <div>
-                            <h3>{translate('portal', 'targets')}</h3>
-                            <p>{translate('portal', 'targets_hint')}</p>
-                        </div>
-                        <Target size={18} />
+            <QuickActions base={base} />
+
+            <section className="ph-today" data-tour="home-metrics" aria-labelledby="ph-today-title">
+                <h3 id="ph-today-title">{translate('portal', 'today_activity')}</h3>
+                <div className="ph-today-grid">
+                    <div>
+                        <span>{translate('portal', 'today_purchase')}</span>
+                        <strong>{money(snapshot.own_sales_today)}</strong>
+                    </div>
+                    <div>
+                        <span>{translate('portal', 'today_commission')}</span>
+                        <strong>{money(snapshot.commission_today)}</strong>
+                    </div>
+                    <div>
+                        <span>{translate('portal', 'team_sales')}</span>
+                        <strong>{money(snapshot.team_sales_today)}</strong>
+                    </div>
+                </div>
+            </section>
+
+            {targets.length > 0 && (
+                <section className="ph-card ph-targets" data-tour="home-targets">
+                    <div className="ph-card-head">
+                        <h3>{translate('portal', 'targets')}</h3>
+                        <p>{translate('portal', 'targets_hint')}</p>
                     </div>
                     <div className="partner-home-target-list">
                         {targets.map((target) => (
@@ -215,9 +238,16 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                                         {target.key === 'bike_incentive' ? <Bike size={14} /> : null}
                                         {target.label}
                                     </b>
-                                    <span>{target.percent}%</span>
+                                    <span>{number(target.percent)}%</span>
                                 </div>
-                                <div className="partner-home-bar" aria-hidden="true">
+                                <div
+                                    className="partner-home-bar"
+                                    role="progressbar"
+                                    aria-label={target.label}
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.min(100, Number(target.percent) || 0)}
+                                >
                                     <i style={{ width: `${Math.min(100, target.percent)}%` }} />
                                 </div>
                                 <div className="partner-home-target-meta">
@@ -229,6 +259,17 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                         ))}
                     </div>
                 </section>
+            )}
+
+            <section className="panel table-panel dense-panel" data-tour="recent-orders">
+                <div className="panel-heading">
+                    <div>
+                        <h2>{translate('portal', 'recent_orders')}</h2>
+                        <p>{translate('portal', 'recent_orders_hint')}</p>
+                    </div>
+                    <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
+                </div>
+                {orders}
             </section>
 
             {home.sponsor && (
@@ -247,8 +288,7 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                                 href={`https://wa.me/${String(home.sponsor.phone).replace(/[^0-9]/g, '').replace(/^01/, '8801')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="button small"
-                                style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#047857' }}
+                                className="button small ph-whatsapp"
                             >
                                 <MessageCircle size={14} /> {translate('portal', 'whatsapp')}
                             </a>
@@ -258,15 +298,23 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
             )}
             <ReferralShare referral={home.referral ?? null} />
 
-            <section className="panel table-panel dense-panel" data-tour="recent-orders">
-                <div className="panel-heading">
-                    <div>
-                        <h2>{translate('portal', 'recent_orders')}</h2>
-                        <p>{translate('portal', 'recent_orders_hint')}</p>
-                    </div>
-                    <Link href={`${base}/orders`} className="text-link">{translate('portal', 'view_all')} <ArrowUpRight size={15} /></Link>
+            <section className="ph-card ph-profile">
+                <div className="ph-card-head">
+                    <h3>{translate('portal', 'ph_my_account')}</h3>
+                    {profile.shop_name && <p>{profile.shop_name}</p>}
                 </div>
-                {orders}
+                <dl>
+                    <div><dt>{translate('portal', 'label_mobile')}</dt><dd>{profile.phone || '—'}</dd></div>
+                    <div><dt>{translate('portal', 'label_email')}</dt><dd>{profile.email || '—'}</dd></div>
+                    <div><dt>{translate('portal', 'label_area_code')}</dt><dd>{profile.area_code || '—'}</dd></div>
+                    {location && <div><dt>{translate('portal', 'label_location')}</dt><dd>{location}</dd></div>}
+                    {profile.refer_code && <div><dt>{translate('portal', 'refer_code')}</dt><dd>{profile.refer_code}</dd></div>}
+                </dl>
+                <div className="ph-profile-links">
+                    <Link href={`${base}/profile`} className="button small">{translate('portal', 'full_profile')}</Link>
+                    <a href={`${base}/id-card/pdf`} className="button small">{translate('portal', 'download_id_card')}</a>
+                    <a href={`${base}/join-poster/pdf`} className="button small">{translate('portal', 'download_join_poster')}</a>
+                </div>
             </section>
         </div>
     );

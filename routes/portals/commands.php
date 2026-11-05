@@ -34,8 +34,8 @@ return function (string $portal): void {
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');
 
-    Route::post('/commands/orders', [CommandController::class, 'order']);
-    Route::post('/commands/withdrawals', [WithdrawalController::class, 'store']);
+    Route::post('/commands/orders', [CommandController::class, 'order'])->middleware('throttle:10,1');
+    Route::post('/commands/withdrawals', [WithdrawalController::class, 'store'])->middleware('throttle:10,1');
     Route::get('/exports/orders', [ReportController::class, 'export'])->middleware('throttle:5,1');
     Route::get('/exports/genealogy', [ReportController::class, 'genealogy'])->middleware('throttle:5,1');
 

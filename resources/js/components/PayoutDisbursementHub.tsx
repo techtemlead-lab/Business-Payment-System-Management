@@ -69,6 +69,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const summary: PayoutTotals = totals ?? pageData?.payout_totals ?? emptyTotals;
     const activeSearch = String(filters?.q ?? '');
     const activeStatus = statusTabs.includes(filters?.status) ? String(filters.status) : 'all';
+    const activeChannel = String(filters?.channel ?? '');
+    const activePeriod = String(filters?.period ?? '');
 
     const [searchQuery, setSearchQuery] = useState(activeSearch);
     useEffect(() => setSearchQuery(activeSearch), [activeSearch]);
@@ -91,11 +93,13 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const records = withdrawals?.data ?? [];
 
     /** Search and status run on the server so every page and the totals agree. */
-    const applyFilters = (next: { q?: string; status?: string }) => {
+    const applyFilters = (next: { q?: string; status?: string; channel?: string; period?: string }) => {
         const status = next.status ?? activeStatus;
         const query = {
             q: (next.q ?? activeSearch).trim(),
             status: status === 'all' ? '' : status,
+            channel: next.channel ?? activeChannel,
+            period: next.period ?? activePeriod,
         };
         router.get(
             `${portalBase ?? ''}/payouts-hub`,
@@ -103,7 +107,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
             { preserveState: true, preserveScroll: true },
         );
     };
-    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all';
+    const hasActiveFilters = activeSearch !== '' || activeStatus !== 'all' || activeChannel !== '' || activePeriod !== '';
 
     const handleOpenReview = (record: WithdrawalRecord) => {
         setReviewModalRecord(record);
@@ -252,11 +256,25 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                         />
                     </div>
                     <button type="submit" className="button small dark">{translate('portal', 'search')}</button>
+                    <select aria-label={translate('portal', 'pay_filter_channel')} value={activeChannel} onChange={(e) => applyFilters({ channel: e.target.value })}>
+                        <option value="">{translate('portal', 'pay_filter_channel')}</option>
+                        <option value="bKash">{translate('portal', 'pay_channel_bkash')}</option>
+                        <option value="Nagad">{translate('portal', 'pay_channel_nagad')}</option>
+                        <option value="Rocket">{translate('portal', 'pay_channel_rocket')}</option>
+                        <option value="Bank">{translate('portal', 'pay_channel_bank')}</option>
+                    </select>
+                    <select aria-label={translate('portal', 'orders_period_all')} value={activePeriod} onChange={(e) => applyFilters({ period: e.target.value })}>
+                        <option value="">{translate('portal', 'orders_period_all')}</option>
+                        <option value="today">{translate('portal', 'orders_period_today')}</option>
+                        <option value="week">{translate('portal', 'orders_period_week')}</option>
+                        <option value="month">{translate('portal', 'orders_period_month')}</option>
+                        <option value="year">{translate('portal', 'orders_period_year')}</option>
+                    </select>
                     {hasActiveFilters && (
                         <button
                             type="button"
                             className="text-link"
-                            onClick={() => { setSearchQuery(''); applyFilters({ q: '', status: 'all' }); }}
+                            onClick={() => { setSearchQuery(''); applyFilters({ q: '', status: 'all', channel: '', period: '' }); }}
                         >
                             {translate('portal', 'clear')}
                         </button>

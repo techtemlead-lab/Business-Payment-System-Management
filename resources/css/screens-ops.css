@@ -477,3 +477,6 @@
 .certificate-links{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:0 0 16px}
 .certificate-links label{flex-direction:row;align-items:center;gap:8px}
 .certificate-links select{width:auto;min-height:36px;padding:6px 10px}
+/* Payout desk: search, method and dates on one wrapping row. */
+.app-shell .pay-search{flex-wrap:wrap;max-width:none}
+.app-shell .pay-search>select{width:auto;min-height:36px;padding:6px 10px}

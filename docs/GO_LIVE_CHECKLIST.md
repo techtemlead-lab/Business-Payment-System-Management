@@ -15,6 +15,12 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] `php artisan app:readiness` reports PASS for migrations, DB timezone UTC, cache, private storage, preview posting disabled
 - [ ] `composer audit --locked` and `npm audit` reviewed; known issues accepted or remediated (local hardening verification: both reported 0 vulnerabilities)
 - [ ] Frontend built: `npm ci --ignore-scripts && npm run build`
+- [ ] Off-site backup copy configured: `MADINA_BACKUP_OFFSITE_DISK=backups-offsite` with `MADINA_BACKUP_OFFSITE_PATH` on a volume from another machine; one backup restored on a separate database (restore drill in `docs/RUNBOOK.md`)
+- [ ] `TRUSTED_PROXIES` lists the real proxy network and is **not** `*`
+- [ ] `example.com` replaced with the real domain in `infra/nginx.production.conf`; `APP_DOMAIN` exported for `docker compose` (used by the web health check)
+- [ ] Critical alerts reach a person: `,slack` added to `LOG_STACK` with `LOG_SLACK_WEBHOOK_URL`, or the hosting log service alerts on `CRITICAL`; send a test alert
+- [ ] Two-factor login (TOTP) enabled for every owner and finance account
+- [ ] Every staff role reviewed: only the Super Admin changes Service integrations; only owners change auto-approval
 
 ## Policy and money (activation gate)
 
