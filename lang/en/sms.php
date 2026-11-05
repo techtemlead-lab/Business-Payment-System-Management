@@ -56,4 +56,5 @@ return [
     'err_otp_resend_wait' => 'Please wait :seconds seconds before asking for a new code.',
     'err_otp_send_limit' => 'Too many codes were sent to this account. Try again in :minutes minutes.',
     'err_otp_send_failed' => 'We could not send the SMS code. Please try again in a minute.',
+    'birthday_greeting' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
 ];
