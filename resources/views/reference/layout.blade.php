@@ -13,12 +13,9 @@
 <link rel="apple-touch-icon" href="/reference/favicon.png?v=8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" as="image" href="/madina-header-logo.png?v=9" fetchpriority="high">
-<link rel="stylesheet" href="/reference/instrument-sans-local.css">
 <link rel="stylesheet" href="https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap">
-@if(app()->getLocale() === 'bn')
 <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-<link rel="stylesheet" href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap">
-@endif
+<link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
 {{-- Load Font Awesome on the critical path so header/category icons never render as empty boxes. --}}
 <link rel="preload" href="/reference/fonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
