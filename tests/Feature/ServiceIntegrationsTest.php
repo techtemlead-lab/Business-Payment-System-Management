@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Integrations\IntegrationCatalog;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Models\User;
@@ -115,6 +116,32 @@ class ServiceIntegrationsTest extends TestCase
             'api_key' => '',
             'reason' => 'Attempt to enable courier without credentials.',
         ])->assertSessionHasErrors(['base_url']);
+    }
+
+    public function test_finance_staff_cannot_redirect_mail_or_sms_but_may_edit_maps(): void
+    {
+        $finance = User::factory()->create(['role' => 'finance', 'status' => 'active']);
+
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/operations/integrations/providers', [
+            'group' => 'mail',
+            'provider' => 'smtp',
+            'version' => 0,
+            'enabled' => true,
+            'host' => 'attacker.example',
+            'port' => 25,
+            'encryption' => 'none',
+            'from_address' => 'x@example.com',
+            'reason' => 'Point password reset mail at another server.',
+        ])->assertForbidden();
+        $this->assertFalse(app(IntegrationSettings::class)->isEnabled('mail', 'smtp'));
+
+        $this->actingAs($finance)->onPortal('manage')->post('/commands/operations/integrations/providers', [
+            'group' => 'maps',
+            'provider' => array_key_first(IntegrationCatalog::groups()['maps']['providers']),
+            'version' => 0,
+            'enabled' => false,
+            'reason' => 'Finance may still keep the map settings tidy.',
+        ])->assertRedirect();
     }
 
     public function test_admin_can_enable_smtp_mailer(): void

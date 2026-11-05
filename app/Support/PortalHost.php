@@ -80,8 +80,7 @@ final class PortalHost
     {
         // A production install with a missing APP_DOMAIN must not silently reopen
         // the loopback preview switcher.
-        $app = app();
-        if ($app instanceof Application && $app->environment('production')) {
+        if (app()->environment('production')) {
             return false;
         }
 

@@ -3535,7 +3535,7 @@ return [
     'acct_type_partner' => 'Partner',
     'acct_created_flash' => ':type account created. Code: :code. An email to set the password has been sent.',
     'acct_invite_flash' => 'If the account can receive it, a link to set the password has been emailed.',
-    'acct_password_reset_flash' => 'Password reset. The new temporary password was sent to the partner, and company staff can see it here.',
+    'acct_password_reset_flash' => 'Password reset. The new password was sent to the partner by SMS.',
     'acct_password_reset_flash_with_password' => 'Password reset. New temporary password: :password',
     'acct_phone_bd_invalid' => 'Enter a valid Bangladeshi mobile number (01XXXXXXXXX).',
     'flash_otp_sign_in_again' => 'Sign in again to receive a new code.',

@@ -60,7 +60,7 @@ class CommissionController extends Controller
     public function refund(Request $request, Order $order, CommissionService $service): JsonResponse
     {
         abort_unless($request->user()->allows('finance'), 403);
-        $data = $request->validate(['refund_amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/'],
+        $data = $request->validate(['refund_amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/D'],
             'reference' => 'required|string|max:100', 'reason' => 'required|string|min:5|max:1000', 'request_key' => 'required|uuid']);
 
         return response()->json(['data' => $service->reverseOrderPartial($order, $data['refund_amount'], $data['reason'], $data['reference'], $request->user()->id, $data['request_key']), 'records_commission_adjustment_only' => true]);
