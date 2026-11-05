@@ -463,6 +463,15 @@ class OrderService
         if ($amount <= 0 || $amount > Money::cents($order->outstanding())) {
             throw ValidationException::withMessages(['amount' => __('portal.err_claim_amount')]);
         }
+        // Payments already sent and still waiting for a check count too, so a dealer cannot
+        // send more in total than the order still needs.
+        $waiting = Money::cents((string) DB::table('payment_claims')->where('order_id', $order->id)->where('status', 'pending')->sum('amount'));
+        if ($waiting > 0 && $amount + $waiting > Money::cents($order->outstanding())) {
+            throw ValidationException::withMessages(['amount' => __('portal.err_claim_over_waiting', [
+                'waiting' => Money::grouped(Money::decimal($waiting)),
+                'left' => Money::grouped(Money::decimal(max(0, Money::cents($order->outstanding()) - $waiting))),
+            ])]);
+        }
 
         $account = app(PaymentAccounts::class)->collection(isset($data['payment_account_id']) ? (int) $data['payment_account_id'] : null, $data['channel']);
         $reference = Str::upper(trim($data['reference']));

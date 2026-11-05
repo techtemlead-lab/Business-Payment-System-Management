@@ -49,9 +49,16 @@ final class WithdrawalsSection implements WorkspaceSection
         $props['wallet'] = DB::table('wallets')->where('user_id', $user->id)->first(['available', 'held', 'commission_held']);
         $props['withdrawal_balances'] = $presenter->withdrawalBalances($user);
         $props['earnings_filters'] = ['from' => $earningsFrom, 'to' => $earningsTo, 'preset' => $preset];
-        $props['earnings'] = $presenter->ledgerRows($user, $earningsFromUtc, $earningsToUtc);
+        $props['earnings'] = $presenter->ledgerRows($user, $earningsFromUtc, $earningsToUtc, 500);
+        // The period total comes from the database, so it covers every row in the dates (not only
+        // the rows on screen) and leaves out commission that was taken back.
         $props['period_totals'] = [
-            'commission' => Money::decimal(Money::cents((string) collect($props['earnings'])->sum(fn ($row) => (float) $row['amount']))),
+            'commission' => Money::decimal(Money::cents((string) DB::table('commission_allocations')
+                ->where('user_id', $user->id)
+                ->where('status', '!=', 'reversed')
+                ->when($earningsFromUtc, fn ($query) => $query->where('created_at', '>=', $earningsFromUtc))
+                ->when($earningsToUtc, fn ($query) => $query->where('created_at', '<', $earningsToUtc))
+                ->sum('amount'))),
         ];
         $props['settlement_payouts'] = DB::table('commission_settlement_payouts')->where('user_id', $user->id)->latest()->limit(30)->get(['id', 'kind', 'period_month', 'amount', 'reversed_amount', 'created_at']);
         $props['withdrawals'] = $this->withdrawalHistory($request, $user, $context->portal, $context->section === 'withdrawals');

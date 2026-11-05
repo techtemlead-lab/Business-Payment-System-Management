@@ -2,6 +2,7 @@
 
 namespace App\Domain\Integrations;
 
+use App\Support\RedactedError;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -30,9 +31,9 @@ final class CourierGatewayClient
                 default => ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_unknown'), 'raw' => null],
             };
         } catch (\Throwable $exception) {
-            Log::warning('courier.create_failed', ['provider' => $provider, 'error' => $exception->getMessage()]);
+            Log::warning('courier.create_failed', ['provider' => $provider, 'error' => RedactedError::message($exception)]);
 
-            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_request_failed', ['error' => $exception->getMessage()]), 'raw' => null];
+            return ['success' => false, 'tracking' => null, 'consignment_id' => null, 'provider' => $provider, 'message' => __('portal.si_courier_request_failed', ['error' => RedactedError::message($exception)]), 'raw' => null];
         }
     }
 

@@ -26,8 +26,13 @@ interface SettlementState {
         user_id: number;
         name: string;
         dealer_code: string;
-        monthly_volume: number;
+        division?: string;
+        monthly_volume: number | string;
+        share?: string;
     }>;
+    /** Dealer salary per division, from the same calculation settlement pays from. */
+    salary_divisions?: Array<{ division: string; pool: string; qualifiers: number; per_head: string; to_company_profit: string }>;
+    salary_to_company_profit?: string;
     rank_pool_pending: number;
     rank_pool_allocations_count: number;
     qualified_rank_leaders_count: number;
@@ -212,6 +217,23 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             {translate('portal', 'st_salary_hint')}
                         </div>
 
+                        {(state.salary_divisions?.length ?? 0) > 0 && (
+                            <div className="hub-spaced">
+                                <Table
+                                    tools={false}
+                                    totalLabel={translate('portal', 'st_div_total')}
+                                    rows={state.salary_divisions ?? []}
+                                    columns={[
+                                        { key: 'division', title: translate('portal', 'st_div_col_division'), render: d => <span className="hub-strong">{d.division}</span> },
+                                        { key: 'pool', title: translate('portal', 'st_div_col_pool'), money: true, total: true, sortValue: d => Number(d.pool) || 0, render: d => money(d.pool) },
+                                        { key: 'qualifiers', title: translate('portal', 'st_div_col_qualifiers'), align: 'right', total: true, render: d => d.qualifiers },
+                                        { key: 'per_head', title: translate('portal', 'st_div_col_per_head'), money: true, sortValue: d => Number(d.per_head) || 0, render: d => <b className="tone-ok">{money(d.per_head)}</b> },
+                                        { key: 'to_company_profit', title: translate('portal', 'st_div_col_to_company'), money: true, total: true, sortValue: d => Number(d.to_company_profit) || 0, render: d => money(d.to_company_profit) },
+                                    ]}
+                                />
+                            </div>
+                        )}
+
                         {state.qualified_salary_dealers.length > 0 && (
                             <div className="hub-spaced">
                                 <Table
@@ -237,6 +259,14 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                             sortable: true,
                                             sortValue: d => Number(d.monthly_volume) || 0,
                                             render: d => <b className="tone-ok">{money(d.monthly_volume)}</b>,
+                                        },
+                                        {
+                                            key: 'share',
+                                            title: translate('portal', 'st_col_share'),
+                                            align: 'right',
+                                            sortable: true,
+                                            sortValue: d => Number(d.share) || 0,
+                                            render: d => (d.share ? <b>{money(d.share)}</b> : '—'),
                                         },
                                     ]}
                                 />

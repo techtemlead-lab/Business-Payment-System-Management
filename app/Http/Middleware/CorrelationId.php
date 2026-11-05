@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -27,9 +27,9 @@ class CorrelationId
         $request->attributes->set('correlation_id', $correlationId);
         $request->headers->set(self::HeaderName, $correlationId);
 
-        if (class_exists(Log::class)) {
-            Log::shareContext(['correlation_id' => $correlationId]);
-        }
+        // Context is added to every log line of this request and travels with queued jobs,
+        // so a failed import or SMS can be traced back to the request that started it.
+        Context::add('correlation_id', $correlationId);
 
         $response = $next($request);
         $response->headers->set(self::HeaderName, $correlationId);

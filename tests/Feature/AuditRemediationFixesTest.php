@@ -118,11 +118,15 @@ class AuditRemediationFixesTest extends TestCase
         $this->assertSame('লাইন মোট', __('portal.col_line_total', [], 'bn'));
         $this->assertSame('Open Help & Support', __('portal.profile_locked_support_cta', [], 'en'));
 
+        // The live checkout (ProductPurchaseMatrix) shows a total for each line and for the cart.
+        $checkout = file_get_contents(resource_path('js/components/ProductPurchaseMatrix.tsx'));
+        $this->assertIsString($checkout);
+        $this->assertStringContainsString("translate('portal', 'ppm_line_total'", $checkout);
+        $this->assertStringContainsString("translate('portal', 'b2b_col_total')", $checkout);
+        $this->assertStringContainsString('money(lineTotal)', $checkout);
+
         $source = file_get_contents(resource_path('js/pages/Portal.tsx'));
         $this->assertIsString($source);
-        $this->assertStringContainsString("translate('portal','col_line_total')", $source);
-        $this->assertStringContainsString("translate('portal','order_total')", $source);
-        $this->assertStringContainsString('money(cartTotal)', $source);
         $this->assertStringContainsString('href={`${base}/help`}', $source);
         $this->assertStringContainsString("translate('portal','profile_locked_support_cta')", $source);
     }
