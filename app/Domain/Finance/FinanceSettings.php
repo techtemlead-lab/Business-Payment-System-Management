@@ -51,7 +51,9 @@ final class FinanceSettings
     {
         DB::transaction(function () use ($actor, $enabled, $items, $version, $reason): void {
             CommissionWallet::lock();
-            abort_unless($actor->fresh()->canAct('finance', 'edit'), 403);
+            // Auto-approval pays money out with no second person, so only an owner may change it.
+            $fresh = $actor->fresh();
+            abort_unless($fresh->owner() && $fresh->canAct('finance', 'edit'), 403);
             $before = $this->autoApproval();
             if ($version !== $before['version']) {
                 throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);

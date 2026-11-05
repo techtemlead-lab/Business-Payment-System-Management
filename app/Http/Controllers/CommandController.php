@@ -335,8 +335,19 @@ class CommandController extends Controller
                 ReferralTreePath::reparentUser($locked->id, ! empty($d['sponsor_id']) ? (int) $d['sponsor_id'] : null);
             }
 
+            // Contact, login and placement fields decide where codes go and who earns
+            // from this account, so the audit keeps their old and new values.
+            $traceable = ['name', 'phone', 'email', 'status', 'sponsor_id', 'dealer_code', 'refer_code', 'division', 'district', 'directory_visible'];
+            $tracedBefore = $locked->only($traceable);
+
             // Privilege fields are guarded on User; forceFill only after accounts authorization above.
             $locked->forceFill($d)->save();
+            $tracedChanges = [];
+            foreach ($traceable as $field) {
+                if (array_key_exists($field, $d) && $tracedBefore[$field] != $locked->{$field}) {
+                    $tracedChanges[$field] = ['before' => $tracedBefore[$field], 'after' => $locked->{$field}];
+                }
+            }
             if ($isPartner && $placeCode !== '') {
                 $partners->rebindGeography($r->user(), $locked->fresh(), $placeCode, $reason);
             }
@@ -347,7 +358,7 @@ class CommandController extends Controller
                 $locked->forceFill(['remember_token' => Str::random(60)])->save();
                 DB::table('sessions')->where('user_id', $user->id)->delete();
             }
-            Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'reason' => $reason]);
+            Audit::record($r->user()->id, 'account.updated', (string) $user->id, ['fields' => array_keys($d), 'changes' => $tracedChanges, 'reason' => $reason]);
             if ($isPartner && array_key_exists('status', $d) && $previousStatus !== (string) $d['status']) {
                 $statusChange = [
                     'from' => $previousStatus,
