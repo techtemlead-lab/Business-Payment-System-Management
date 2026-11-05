@@ -43,6 +43,7 @@ class EnforceStaffActions
                 'CatalogController' => $method === 'index',
                 'ReportController' => $method === 'export',
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
+                'PartnerAgreementController' => $method === 'accept',
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -53,6 +54,10 @@ class EnforceStaffActions
             return $next($request);
         }
         if ($controller === 'CommandController' && $method === 'readNotice') {
+            return $next($request);
+        }
+        if ($controller === 'PartnerAgreementController' && $actor->owner()) {
+            // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);
         }
         if ($controller === 'BranchController' && $method === 'select') {
