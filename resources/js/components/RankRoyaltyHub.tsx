@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
 import { money, date, Table } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useEscape } from '../shared/useEscape';
 
 /** A live policy number, or null when the policy does not set it. */
 function policyNumber(value: unknown): number | null {
@@ -125,6 +126,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
         },
     ];
     const [auditingPartner, setAuditingPartner] = useState<RankRecord | null>(null);
+    useEscape(auditingPartner !== null, () => setAuditingPartner(null));
 
     const personalHistory = ranks.length === 1
         ? (ranks[0].qualification_history?.length
@@ -376,7 +378,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
             {/* Audit Modal for Selected Partner */}
             {auditingPartner && (
                 <div className="hub-overlay">
-                    <div className="hub-dialog">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
                         <div className="hub-dialog-head">
                             <div>
                                 <span className={`hub-pill ${(rankHierarchy.find(x => x.key === auditingPartner.current_rank) || rankHierarchy[0]).badge.tone}`}>

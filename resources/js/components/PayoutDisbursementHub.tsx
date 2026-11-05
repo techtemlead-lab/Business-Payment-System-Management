@@ -3,6 +3,7 @@ import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useEscape } from '../shared/useEscape';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
@@ -79,6 +80,8 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [processingReview, setProcessingReview] = useState(false);
 
     const [settleModalRecord, setSettleModalRecord] = useState<WithdrawalRecord | null>(null);
+    useEscape(reviewModalRecord !== null, () => setReviewModalRecord(null));
+    useEscape(settleModalRecord !== null, () => setSettleModalRecord(null));
     const [paymentReference, setPaymentReference] = useState('');
     const [paidAt, setPaidAt] = useState(() => new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
     const [settleNote, setSettleNote] = useState('');
@@ -410,7 +413,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
             {/* Review Modal */}
             {reviewModalRecord && (
                 <div className="hub-overlay">
-                    <div className="hub-dialog">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
                         <h3 className="hub-title is-lg">
                             {translate('portal', 'pay_review_title')}
                         </h3>
@@ -499,7 +502,7 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
             {/* Settlement Modal */}
             {settleModalRecord && (
                 <div className="hub-overlay">
-                    <div className="hub-dialog">
+                    <div className="hub-dialog" role="dialog" aria-modal="true">
                         <h3 className="hub-title is-lg">
                             {translate('portal', 'pay_settle_title')}
                         </h3>

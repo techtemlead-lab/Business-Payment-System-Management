@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import { ShieldCheck, Eye } from 'lucide-react';
 import { money, Table } from './UI';
 import { useT } from '../shared/i18n/t';
+import { useEscape } from '../shared/useEscape';
 
 /** A positive policy amount, or null when the policy does not set one. */
 function policyAmount(value: unknown): number | null {
@@ -50,6 +51,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     const translate = useT();
     const [activeTab, setActiveTab] = useState<'bike' | 'car'>('bike');
     const [selectedCandidate, setSelectedCandidate] = useState<MilestoneRecord | null>(null);
+    useEscape(selectedCandidate !== null, () => setSelectedCandidate(null));
 
     const notSet = translate('portal', 'policy_value_not_set');
     const moneyOrNotSet = (amount: number | null) => amount === null ? notSet : money(amount);
@@ -287,7 +289,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
             {/* Anti-Whale Branch Inspection Modal */}
             {selectedCandidate && (
                 <div className="hub-overlay">
-                    <div className="hub-dialog is-wide">
+                    <div className="hub-dialog is-wide" role="dialog" aria-modal="true">
                         <div className="hub-dialog-head">
                             <div>
                                 <div className="hub-label tone-ok">
