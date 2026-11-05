@@ -127,6 +127,48 @@ class FinancialReportsTest extends TestCase
         $this->assertSame(1, (int) $rows[1]->order_count);
     }
 
+    public function test_dues_aging_splits_each_partners_unpaid_balance_by_order_age(): void
+    {
+        $dealer = User::factory()->create(['name' => 'Aging Dealer']);
+        $paidUp = User::factory()->create(['name' => 'Paid Up Dealer']);
+        foreach (['A-10' => 10, 'A-45' => 45, 'A-75' => 75, 'A-120' => 120] as $number => $daysAgo) {
+            $order = $this->order($dealer, $number);
+            $order->forceFill(['status' => 'approved', 'created_at' => now()->subDays($daysAgo)])->save();
+        }
+        $this->order($dealer, 'A-PENDING')->forceFill(['created_at' => now()->subDays(5)])->save();
+        $settled = $this->order($paidUp, 'P-1');
+        $settled->forceFill(['status' => 'delivered', 'paid' => '1250.50'])->save();
+
+        $report = app(ReportData::class)->query(User::factory()->create(['role' => 'finance']), 'dues-aging', '2026-01-01', '2026-10-17');
+        $rows = $report['query']->get();
+
+        $this->assertSame(['dealer_code', 'name', 'phone', 'district', 'order_count', 'outstanding', 'due_0_30', 'due_31_60', 'due_61_90', 'due_over_90', 'days_outstanding'], $report['columns']);
+        $this->assertCount(1, $rows);
+        $row = $rows[0];
+        $this->assertSame('Aging Dealer', $row->name);
+        $this->assertSame(4, (int) $row->order_count);
+        foreach (['outstanding' => '4002.00', 'due_0_30' => '1000.50', 'due_31_60' => '1000.50', 'due_61_90' => '1000.50', 'due_over_90' => '1000.50'] as $column => $expected) {
+            $this->assertSame($expected, number_format((float) $row->{$column}, 2, '.', ''), $column);
+        }
+        $this->assertSame(120, (int) $row->days_outstanding);
+    }
+
+    public function test_dues_export_lists_division_and_days_due(): void
+    {
+        $dealer = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $order = $this->order($dealer, 'DUE-OLD');
+        $order->forceFill(['status' => 'approved', 'created_at' => now()->subDays(40)])->save();
+
+        $report = app(ReportData::class)->query(User::factory()->create(['role' => 'finance']), 'dues', '2026-09-01', '2026-10-17');
+        $row = $report['query']->first();
+
+        $this->assertContains('division', $report['columns']);
+        $this->assertContains('days_outstanding', $report['columns']);
+        $this->assertNotContains('days_outstanding', app(ReportData::class)->query(User::factory()->create(['role' => 'finance']), 'orders', '2026-09-01', '2026-10-17')['columns']);
+        $this->assertSame('Rangpur', $row->division);
+        $this->assertSame(40, (int) $row->days_outstanding);
+    }
+
     public function test_each_company_report_uses_a_valid_schema_and_guest_access_is_denied(): void
     {
         $this->getJson('/api/v1/operations/views/payroll')->assertUnauthorized();
