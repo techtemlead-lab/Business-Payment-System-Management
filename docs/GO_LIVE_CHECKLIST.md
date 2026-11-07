@@ -30,6 +30,10 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Payment accounts configured (bank / MFS) with correct labels — at least one active account with collections enabled and one with payouts enabled; `app:readiness` must not warn `payment_collection_accounts_missing` or `payment_payout_accounts_missing`
 - [ ] Retained / owner benefits fund visibility confirmed for owners only
 - [ ] Partner benefit overrides (unconditional salary / rank) audited — none unintended; `app:readiness` must not warn `partner_benefit_overrides_active` (or each remaining override is documented)
+- [ ] Scheduler and queue worker are running (cron `* * * * * php artisan schedule:run` and a supervised `php artisan queue:work`). Automatic month-end salary, royalty and rank rewards (`finance:auto-approve`, hourly), the nightly audit check and the money reconciliation all depend on the scheduler
+- [ ] Automatic release of area commission decided: with `MADINA_AUTO_RELEASE_QUOTA_HOLDS=true` a held area share is paid as soon as the area dealer's monthly quota for that month is met; without it Finance releases each one by hand. Set `MADINA_AUTO_RELEASE_MATURED=true` too if a cooling-off period is configured
+- [ ] Owner decision recorded for area shares whose dealer never meets that month's quota: today they stay held with no end date
+- [ ] Payout TDS set in the commission rules if the owner wants it (percentage and monthly threshold; the default is 0%). TDS is worked out on the partner's monthly payout total
 - [ ] Only after the above: set `MADINA_FINANCIAL_ACTIVATION=true` on the production host and re-run `app:readiness`
 - [ ] Confirm `MADINA_PREVIEW_MODE=false` on production — `app:readiness` must not warn `preview_mode_enabled`
 
@@ -51,6 +55,9 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Manual payment claim verification works
 - [ ] Data import templates download; a dry-run import succeeds
 - [ ] Report exports (xlsx/pdf) succeed for permitted staff
+- [ ] Every deploy runs `php artisan migrate --force`. The load-test speed fixes add three database indexes (refund debts, delivered-order totals, refunded batches); without them deliveries and wallet credits slow down as sales grow
+- [ ] After the first month end: Settlements shows the closed month settled (salary per division, royalty per rank, sub-dealer salary), partners got one "salary credited" notice each, and `php artisan finance:readiness` passes
+- [ ] Every partner, branch, area seat and staff area has a place code; `app:readiness` must not warn `records_missing_place_codes`. Set the head-office branch's place code by hand
 
 ## Bangladesh field readiness
 
