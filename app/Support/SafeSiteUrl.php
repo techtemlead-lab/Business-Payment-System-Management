@@ -13,6 +13,9 @@ final class SafeSiteUrl
             $path = $prefix.'.'.$key;
             if (is_array($value)) {
                 $values[$key] = self::clean($value, $validate, $path);
+            } elseif ($value === null) {
+                // An empty editor field reaches here as null (Laravel turns '' into null): nothing to check.
+                continue;
             } elseif (is_string($key) && (preg_match('/(^|_)(url|link|image|image_path)$/D', $key) || str_starts_with($key, 'social_'))) {
                 if ($key === 'social_whatsapp' && is_string($value) && PhoneIdentity::normalize($value) !== null) {
                     continue;
