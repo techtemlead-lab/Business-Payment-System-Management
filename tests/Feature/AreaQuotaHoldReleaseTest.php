@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -89,6 +90,44 @@ class AreaQuotaHoldReleaseTest extends TestCase
         $this->assertSame('release_reason_quota_auto', $released->metadata['release_reason'] ?? null);
         $this->assertArrayHasKey('released_by', $released->metadata);
         $this->assertNull($released->metadata['released_by']);
+    }
+
+    public function test_release_pays_only_dealers_who_met_the_quota_and_reads_each_dealer_once(): void
+    {
+        $this->enableFinancialPosting();
+        config(['madina.auto_release_quota_holds' => true]);
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        $metQuota = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
+        $missedQuota = User::factory()->inPlace($dhaka)->create(['role' => 'dealer', 'status' => 'active']);
+        foreach ([[$metQuota, $rangpur, '100'], [$missedQuota, $dhaka, '100000']] as [$dealer, $place, $quota]) {
+            AreaDealerAssignment::create(['user_id' => $dealer->id, 'level' => 'division', 'place_code_id' => $place->id,
+                'division' => $place->name, 'zone_name' => $place->name, 'monthly_quota' => $quota, 'is_active' => true]);
+        }
+        $rangpurBuyer = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
+        $dhakaBuyer = User::factory()->inPlace($dhaka)->create(['role' => 'dealer', 'status' => 'active']);
+        for ($i = 0; $i < 3; $i++) {
+            $this->postedOrder($rangpurBuyer);
+            $this->postedOrder($dhakaBuyer);
+        }
+        $this->assertSame(6, CommissionAllocation::where('category', 'area_division')->where('status', 'held')->count());
+        $this->postedOrder($metQuota);
+
+        $volumeQueries = 0;
+        DB::listen(function ($query) use (&$volumeQueries): void {
+            if (str_contains($query->sql, 'cash_basis - refunded_amount')) {
+                $volumeQueries++;
+            }
+        });
+        $this->artisan('finance:release-quota-holds')->assertSuccessful();
+
+        // One volume read for all held shares, plus the safety re-check for each share actually paid;
+        // the dealer who missed the quota costs no extra reads however many holds pile up.
+        $released = CommissionAllocation::where('category', 'area_division')->where('user_id', $metQuota->id)->where('status', '<>', 'held')->count();
+        $this->assertGreaterThanOrEqual(3, $released);
+        $this->assertSame(1 + $released, $volumeQueries);
+        $this->assertSame(0, CommissionAllocation::where('category', 'area_division')->where('user_id', $metQuota->id)->where('status', 'held')->count());
+        $this->assertSame(3, CommissionAllocation::where('category', 'area_division')->where('user_id', $missedQuota->id)->where('status', 'held')->count());
     }
 
     public function test_auto_release_skips_when_financial_activation_is_off(): void

@@ -276,14 +276,23 @@ final class ReserveService
                 ->get();
             $count = 0;
             $total = 0;
+            // Each partner is read once and each partner's month volume once, not once per held share:
+            // this runs every 15 minutes under the money lock, and unmet holds pile up month after month.
+            $partners = User::query()->whereIn('id', $funds->pluck('user_id')->unique()->values())->get()->keyBy('id');
+            $volumes = [];
+            foreach ($funds->groupBy(fn (CommissionAllocation $fund): string => (string) ($fund->metadata['period_month'] ?? '')) as $period => $periodFunds) {
+                if ($period !== '') {
+                    $volumes[$period] = $this->qualification->monthlyVolumesFor($periodFunds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all(), $period);
+                }
+            }
             foreach ($funds as $fund) {
-                $partner = User::find($fund->user_id);
+                $partner = $partners->get($fund->user_id);
                 if (! $partner || $partner->status !== 'active' || ! in_array($partner->role, ['dealer', 'sub_dealer'], true)) {
                     continue;
                 }
                 $quota = $fund->metadata['monthly_quota'] ?? null;
                 $period = $fund->metadata['period_month'] ?? null;
-                if ($quota === null || $period === null || $this->qualification->monthlyVolume($partner->id, $period) < Money::cents($quota)) {
+                if ($quota === null || $period === null || ($volumes[$period][$partner->id] ?? 0) < Money::cents($quota)) {
                     continue;
                 }
                 $amount = $this->creditHeldAllocation($fund, $actorId, 'release_reason_quota_auto');
