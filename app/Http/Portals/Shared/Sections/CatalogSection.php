@@ -78,6 +78,7 @@ final class CatalogSection implements WorkspaceSection
             if ($context->section === 'inventory') {
                 $base['register_name'] = $p->registerName();
                 $base['expires_on'] = $supportsProductExpiry ? $p->expires_on?->toDateString() : null;
+                $base['batch_number'] = $p->batch_number;
                 if ($revealDealerPrice) {
                     $base['dealer_price'] = $p->dealer_price;
                     $base['sub_dealer_price'] = $p->sub_dealer_price;
