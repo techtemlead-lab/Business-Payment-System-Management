@@ -232,11 +232,15 @@ class ProjectAuditTest extends TestCase
     public function test_ambiguous_case_variant_legacy_area_assignments_do_not_receive_wallet_credits(): void
     {
         $this->enableFinancialPosting();
+        // Name-only seats saved before place codes were required: new ones are refused by the
+        // database, so recreate the old rows the way they exist in a live database.
+        DB::statement('ALTER TABLE area_dealer_assignments DROP CONSTRAINT area_dealer_assignments_active_needs_place_code');
         foreach (['Dhaka', ' DHAKA '] as $division) {
             $recipient = User::factory()->create();
             AreaDealerAssignment::create(['user_id' => $recipient->id, 'level' => 'division', 'zone_name' => 'Legacy zone',
                 'division' => $division, 'monthly_quota' => '0.00', 'is_active' => true]);
         }
+        DB::statement('ALTER TABLE area_dealer_assignments ADD CONSTRAINT area_dealer_assignments_active_needs_place_code CHECK (is_active = false OR place_code_id IS NOT NULL) NOT VALID');
         $buyer = User::factory()->create(['division' => 'Dhaka']);
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
         $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);

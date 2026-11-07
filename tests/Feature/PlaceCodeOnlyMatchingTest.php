@@ -61,11 +61,7 @@ class PlaceCodeOnlyMatchingTest extends TestCase
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $this->areaDealer($rangpur);
         // An old seat saved with names only, matching the buyer's names exactly.
-        $legacySeat = User::factory()->create();
-        AreaDealerAssignment::query()->create([
-            'user_id' => $legacySeat->id, 'level' => 'division', 'zone_name' => 'Rangpur', 'division' => 'Rangpur',
-            'monthly_quota' => '0', 'is_active' => true,
-        ]);
+        $legacySeat = $this->legacyNameOnlySeat('Rangpur');
         $buyer = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
 
         $order = $this->postedOrder($buyer);
@@ -83,11 +79,7 @@ class PlaceCodeOnlyMatchingTest extends TestCase
     public function test_a_seat_saved_without_a_place_code_never_earns_from_a_placed_buyer_with_the_same_names(): void
     {
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
-        $legacySeat = User::factory()->create();
-        AreaDealerAssignment::query()->create([
-            'user_id' => $legacySeat->id, 'level' => 'division', 'zone_name' => 'Rangpur', 'division' => 'Rangpur',
-            'monthly_quota' => '0', 'is_active' => true,
-        ]);
+        $this->legacyNameOnlySeat('Rangpur');
 
         $order = $this->postedOrder(User::factory()->inPlace($rangpur)->create());
 
@@ -128,6 +120,23 @@ class PlaceCodeOnlyMatchingTest extends TestCase
         $this->assertSame('0.00', $this->salaryPaid($unplacedDealer));
         $this->assertSame('0.00', $this->salaryPaid($unplacedBuyer));
         $this->assertSame('400.00', $result['total_to_company_profit']);
+    }
+
+    /**
+     * A seat saved with names only before place codes were required. The database now
+     * refuses new ones, so the old row is recreated the way it exists in a live database.
+     */
+    private function legacyNameOnlySeat(string $division): User
+    {
+        $holder = User::factory()->create();
+        DB::statement('ALTER TABLE area_dealer_assignments DROP CONSTRAINT IF EXISTS area_dealer_assignments_active_needs_place_code');
+        AreaDealerAssignment::query()->create([
+            'user_id' => $holder->id, 'level' => 'division', 'zone_name' => $division, 'division' => $division,
+            'monthly_quota' => '0', 'is_active' => true,
+        ]);
+        DB::statement('ALTER TABLE area_dealer_assignments ADD CONSTRAINT area_dealer_assignments_active_needs_place_code CHECK (is_active = false OR place_code_id IS NOT NULL) NOT VALID');
+
+        return $holder;
     }
 
     private function areaDealer(PlaceCode $place): User

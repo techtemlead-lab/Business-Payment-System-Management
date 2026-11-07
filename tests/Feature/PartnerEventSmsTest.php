@@ -14,6 +14,7 @@ use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -514,6 +515,7 @@ class PartnerEventSmsTest extends TestCase
             ->post('/commands/operations/staff/applications/'.$id.'/review', [
                 'decision' => 'approved',
                 'reason' => 'Territory verified for SMS coverage.',
+                'place_code' => PlaceCode::factory()->division()->create(['name' => 'Khulna'])->code,
             ])
             ->assertRedirect();
 
@@ -649,10 +651,10 @@ class PartnerEventSmsTest extends TestCase
             'phone' => '01720000104',
         ]);
 
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         app(TerritoryAccess::class)->assign($admin, [
             'staff_id' => $sr->id,
-            'level' => 'division',
-            'division' => 'Rangpur',
+            'place_code' => $rangpur->code,
         ]);
 
         $sent = config('madina.sms.sent');
@@ -661,7 +663,7 @@ class PartnerEventSmsTest extends TestCase
         $this->assertSame(
             __('sms.staff_territory_assigned', [
                 'level' => 'division',
-                'territory' => 'Rangpur',
+                'territory' => 'Rangpur ('.$rangpur->code.')',
             ], 'bn'),
             $sent[0]['message'] ?? null,
         );
@@ -686,8 +688,7 @@ class PartnerEventSmsTest extends TestCase
 
         $territoryId = app(TerritoryAccess::class)->assign($admin, [
             'staff_id' => $sr->id,
-            'level' => 'division',
-            'division' => 'Khulna',
+            'place_code' => PlaceCode::factory()->division()->create(['name' => 'Khulna'])->code,
         ]);
         Config::set('madina.sms.sent', []);
 
@@ -958,8 +959,7 @@ class PartnerEventSmsTest extends TestCase
         ]);
         app(TerritoryAccess::class)->assign($admin, [
             'staff_id' => $sr->id,
-            'level' => 'division',
-            'division' => 'Rangpur',
+            'place_code' => PlaceCode::factory()->division()->create(['name' => 'Rangpur'])->code,
         ]);
         Config::set('madina.sms.sent', []);
         $month = now('Asia/Dhaka')->format('Y-m');

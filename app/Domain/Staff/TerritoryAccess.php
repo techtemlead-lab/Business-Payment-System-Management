@@ -4,7 +4,9 @@ namespace App\Domain\Staff;
 
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\Money;
@@ -22,6 +24,31 @@ final class TerritoryAccess
         return DB::table('staff_territories')->where('staff_id', $staffId)->where('is_active', true)->orderBy('id')->get()->map(fn ($row): array => (array) $row)->all();
     }
 
+    /**
+     * The place code ids of a staff member's territories. A territory saved without a
+     * place code gives no access: territories are never matched by place name.
+     *
+     * @param  list<array<string, mixed>>|null  $regions
+     * @return list<int>
+     */
+    public function placeIds(int $staffId, ?array $regions = null): array
+    {
+        $regions ??= $this->territories($staffId);
+        $ids = [];
+        foreach ($regions as $region) {
+            $id = filter_var($region['place_code_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            if ($id !== false) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /**
+     * Partners a staff member may work with: everyone for staff admins; for a field rep,
+     * partners whose place code is one of their territory places or lies inside one.
+     */
     public function partners(User $actor): Builder
     {
         $query = User::whereIn('role', ['dealer', 'sub_dealer']);
@@ -29,24 +56,9 @@ final class TerritoryAccess
             return $query;
         }
         abort_unless($actor->allows('field_sales'), 403);
-        $regions = $this->territories($actor->id);
-        if ($regions === []) {
-            return $query->whereRaw('1=0');
-        }
+        PlaceTree::whereInside($query, $this->placeIds($actor->id));
 
-        return $query->where(function (Builder $outer) use ($regions): void {
-            foreach ($regions as $region) {
-                $outer->orWhere(function (Builder $inner) use ($region): void {
-                    foreach (self::Fields as $field) {
-                        $column = in_array($field, ['division', 'district'], true) ? 'users.'.$field : "users.profile->>'".$field."'";
-                        $inner->whereRaw('LOWER(TRIM('.$column.')) = ?', [mb_strtolower(trim($region[$field]))]);
-                        if ($field === $region['level']) {
-                            break;
-                        }
-                    }
-                });
-            }
-        });
+        return $query;
     }
 
     public function assertPartner(User $actor, int $userId, string $capability): User
@@ -57,25 +69,18 @@ final class TerritoryAccess
         return $this->partners($actor)->whereKey($userId)->firstOrFail();
     }
 
-    /** @param array<string, mixed> $data */
-    public function assertGeography(User $actor, array $data): void
+    /**
+     * Stop a field rep from working outside their territories: the place must be one of
+     * their territory places or lie inside one, compared by place code id.
+     */
+    public function assertPlace(User $actor, PlaceCode $place): void
     {
         if ($actor->allows('staff_admin')) {
             return;
         }
-        foreach ($this->territories($actor->id) as $region) {
-            $matches = true;
-            foreach (self::Fields as $field) {
-                $matches = $matches && mb_strtolower(trim((string) ($data[$field] ?? ''))) === mb_strtolower(trim($region[$field]));
-                if ($field === $region['level']) {
-                    break;
-                }
-            }
-            if ($matches) {
-                return;
-            }
+        if (! app(PlaceTree::class)->isInside((int) $place->id, $this->placeIds($actor->id))) {
+            abort(403, __('portal.err_terr_outside'));
         }
-        abort(403, __('portal.err_terr_outside'));
     }
 
     /** @param array<string, mixed> $data */
@@ -90,27 +95,23 @@ final class TerritoryAccess
             if (! $staff->staff() || ! $staff->allows('field_sales') || $staff->id === $actor->id) {
                 throw ValidationException::withMessages(['staff_id' => __('portal.err_terr_sr')]);
             }
-            $path = [];
-            foreach (self::Fields as $field) {
-                $value = trim((string) ($data[$field] ?? ''));
-                if ($value === '') {
-                    throw ValidationException::withMessages([$field => __('portal.err_terr_hierarchy')]);
-                }
-                $path[$field] = $value;
-                if ($field === $data['level']) {
-                    break;
-                }
+            // A territory is a place code; its names are filled in from that code for display.
+            $place = PlaceTree::requirePlace($data['place_code'] ?? null);
+            if (filled($data['level'] ?? null) && $data['level'] !== $place->level) {
+                throw ValidationException::withMessages(['place_code' => __('portal.cmd_val_place_level_mismatch')]);
             }
-            $key = hash('sha256', json_encode([$staff->id, $data['level'], array_map(mb_strtolower(...), $path)], JSON_THROW_ON_ERROR));
+            $path = app(PlaceTree::class)->namesDownTo($place);
+            $key = hash('sha256', json_encode([$staff->id, 'place', (int) $place->id], JSON_THROW_ON_ERROR));
             $existing = DB::table('staff_territories')->where('territory_key', $key)->first();
             if ($existing) {
                 return $existing->id;
             }
-            $id = DB::table('staff_territories')->insertGetId([...$path, 'staff_id' => $staff->id, 'level' => $data['level'], 'territory_key' => $key,
-                'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
-            Audit::record($actor->id, 'staff.territory_assigned', (string) $id, ['staff_id' => $staff->id]);
+            $id = DB::table('staff_territories')->insertGetId([...$path, 'staff_id' => $staff->id, 'level' => $place->level, 'place_code_id' => $place->id,
+                'territory_key' => $key, 'created_by' => $actor->id, 'created_at' => now(), 'updated_at' => now()]);
+            $data['level'] = $place->level;
+            Audit::record($actor->id, 'staff.territory_assigned', (string) $id, ['staff_id' => $staff->id, 'place_code' => $place->code]);
             $locale = $staff->preferredLocale();
-            $label = collect($path)->filter()->implode(' / ');
+            $label = collect($path)->filter()->implode(' / ').' ('.$place->code.')';
             Audit::notice(
                 $staff->id,
                 __('portal.notice_staff_territory_title', [], $locale),
@@ -188,25 +189,32 @@ final class TerritoryAccess
         }, 3);
     }
 
-    /** @param list<array<string, mixed>>|null $regions */
+    /**
+     * Net sales in the month inside the given territories, matched by the place code id the
+     * order captured at that territory's level. Territories without a place code count nothing.
+     *
+     * @param  list<array<string, mixed>>|null  $regions
+     */
     public function volume(int $staffId, string $month, ?array $regions = null): int
     {
         CommissionQualification::period($month);
         $regions ??= $this->territories($staffId);
-        if ($regions === []) {
+        $byLevel = [];
+        foreach ($regions as $region) {
+            $id = filter_var($region['place_code_id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+            $level = (string) ($region['level'] ?? '');
+            if ($id !== false && in_array($level, self::Fields, true)) {
+                $byLevel[$level][$id] = (string) $id;
+            }
+        }
+        if ($byLevel === []) {
             return 0;
         }
         $query = DB::table('commission_batches')->where('period_month', $month);
-        $query->where(function ($outer) use ($regions): void {
-            foreach ($regions as $region) {
-                $outer->orWhere(function ($inner) use ($region): void {
-                    foreach (self::Fields as $field) {
-                        $inner->whereRaw("LOWER(TRIM(policy->'geography'->>?)) = ?", [$field, mb_strtolower(trim($region[$field]))]);
-                        if ($field === $region['level']) {
-                            break;
-                        }
-                    }
-                });
+        $query->where(function ($outer) use ($byLevel): void {
+            foreach ($byLevel as $level => $ids) {
+                $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+                $outer->orWhereRaw("policy->'geography'->'place_ids'->>? IN (".$placeholders.')', [$level, ...array_values($ids)]);
             }
         });
 

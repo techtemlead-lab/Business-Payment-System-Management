@@ -55,10 +55,11 @@ class OperationsCompletionTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sr = User::factory()->create(['role' => 'sr']);
-        $inside = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $outside = User::factory()->create(['division' => 'Dhaka', 'district' => 'Dhaka']);
+        $rangpurDistrict = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Rangpur']);
+        $inside = User::factory()->inPlace($rangpurDistrict)->create();
+        $outside = User::factory()->inPlace(PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create(['name' => 'Dhaka']))->create();
         $product = Product::factory()->create();
-        $this->actingAs($admin)->postJson('/api/v1/operations/staff/territories', ['staff_id' => $sr->id, 'level' => 'district', 'division' => 'Rangpur', 'district' => 'Rangpur'])->assertOk();
+        $this->actingAs($admin)->postJson('/api/v1/operations/staff/territories', ['staff_id' => $sr->id, 'place_code' => $rangpurDistrict->code])->assertOk();
         $payload = ['user_id' => $inside->id, 'items' => [['product_id' => $product->id, 'quantity' => 2]], 'idempotency_key' => (string) Str::uuid()];
         $response = $this->actingAs($sr)->postJson('/api/v1/operations/staff/orders', $payload)->assertOk();
         $this->assertDatabaseHas('orders', ['id' => $response->json('data.id'), 'user_id' => $inside->id, 'submitted_by' => $sr->id]);
@@ -73,11 +74,14 @@ class OperationsCompletionTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sr = User::factory()->create(['role' => 'sr']);
-        app(TerritoryAccess::class)->assign($admin, ['staff_id' => $sr->id, 'level' => 'division', 'division' => 'Rangpur']);
-        $payload = ['name' => 'New dealer', 'email' => 'new-partner@example.test', 'phone' => '01711111111', 'role' => 'dealer', 'division' => 'Rangpur', 'district' => 'Kurigram'];
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        app(TerritoryAccess::class)->assign($admin, ['staff_id' => $sr->id, 'place_code' => $rangpur->code]);
+        $payload = ['name' => 'New dealer', 'email' => 'new-partner@example.test', 'phone' => '01711111111', 'role' => 'dealer',
+            'place_code' => PlaceCode::factory()->district($rangpur)->create(['name' => 'Kurigram'])->code];
         $id = $this->actingAs($sr)->postJson('/api/v1/operations/staff/applications', $payload)->assertOk()->json('data.id');
         $this->assertDatabaseMissing('users', ['email' => $payload['email']]);
-        $this->postJson('/api/v1/operations/staff/applications', [...$payload, 'email' => 'other@example.test', 'division' => 'Dhaka'])->assertForbidden();
+        $this->postJson('/api/v1/operations/staff/applications', [...$payload, 'email' => 'other@example.test', 'place_code' => $dhaka->code])->assertForbidden();
         $this->postJson('/api/v1/operations/staff/applications', [...$payload, 'role' => 'finance'])->assertUnprocessable();
         $this->actingAs($admin)->postJson('/api/v1/operations/staff/applications/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Identity and territory reviewed'])->assertOk();
         $this->assertDatabaseHas('users', ['email' => $payload['email'], 'role' => 'dealer']);
@@ -206,7 +210,7 @@ class OperationsCompletionTest extends TestCase
         $sr = User::factory()->create(['role' => 'sr']);
         $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
         $buyer = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Kurigram']))->create();
-        $territory = app(TerritoryAccess::class)->assign($admin, ['staff_id' => $sr->id, 'level' => 'division', 'division' => 'Rangpur']);
+        $territory = app(TerritoryAccess::class)->assign($admin, ['staff_id' => $sr->id, 'place_code' => $rangpur->code]);
         $this->actingAs($admin)->postJson('/api/v1/operations/staff/targets', ['staff_id' => $sr->id, 'period_month' => '2026-10', 'target' => '50', 'bonus' => '1000'])->assertOk();
         $order = $this->postedOrder($buyer);
         app(CommissionReversal::class)->refund($order, 5000, 'Half of sale returned', 'TARGET-REFUND');

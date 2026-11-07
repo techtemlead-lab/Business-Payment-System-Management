@@ -6,8 +6,10 @@ use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\DealerRank;
+use App\Models\PlaceCode;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Audit;
@@ -85,7 +87,9 @@ final class StaffOperations
         return DB::transaction(function () use ($actor, $data): string {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('sr_onboarding'), 403);
-            $this->territories->assertGeography($actor->fresh(), $data);
+            $place = $this->applicationPlace($data['place_code'] ?? null, (string) $data['role']);
+            $this->territories->assertPlace($actor->fresh(), $place);
+            $data = [...$data, ...$this->placeFields($place)];
             $phones = app(AccountPhoneRules::class);
             $data['phone'] = $phones->normalize($data['phone'] ?? '');
             if ($phones->holders($data['phone']) !== []) {
@@ -112,10 +116,42 @@ final class StaffOperations
         }, 3);
     }
 
-    public function review(User $actor, string $id, string $decision, string $reason): void
+    /**
+     * The place code an application is for: an active, ready place; a sub-dealer needs a union.
+     */
+    private function applicationPlace(mixed $code, string $role): PlaceCode
+    {
+        $place = PlaceTree::requirePlace($code);
+        if ($role === 'sub_dealer' && $place->level !== PlaceCode::LevelUnion) {
+            throw ValidationException::withMessages(['place_code' => __('portal.acct_val_place_sub_level')]);
+        }
+
+        return $place;
+    }
+
+    /**
+     * The place code and the display names that come from it.
+     *
+     * @return array{place_code: string|null, place_code_id: int, division: string|null, district: string|null, upazila: string|null, union: string|null}
+     */
+    private function placeFields(PlaceCode $place): array
+    {
+        $names = app(PlaceTree::class)->namesDownTo($place);
+
+        return [
+            'place_code' => $place->code,
+            'place_code_id' => (int) $place->id,
+            'division' => $names['division'] ?? null,
+            'district' => $names['district'] ?? null,
+            'upazila' => $names['upazila'] ?? null,
+            'union' => $names['union'] ?? null,
+        ];
+    }
+
+    public function review(User $actor, string $id, string $decision, string $reason, ?string $placeCode = null): void
     {
         abort_unless($actor->allows('accounts'), 403);
-        DB::transaction(function () use ($actor, $id, $decision, $reason): void {
+        DB::transaction(function () use ($actor, $id, $decision, $reason, $placeCode): void {
             CommissionWallet::lock();
             abort_unless($actor->fresh()->allows('accounts'), 403);
             $application = DB::table('dealer_applications')->where('id', $id)->lockForUpdate()->first();
@@ -138,6 +174,9 @@ final class StaffOperations
                 if (filled($data['date_of_birth'] ?? null) && ! PartnerAge::isAdult($data['date_of_birth'])) {
                     throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => PartnerAge::MinimumYears])]);
                 }
+                // A partner is only created on a place code: the reviewer's, else the application's.
+                $place = $this->applicationPlace(filled($placeCode) ? $placeCode : ($payload['place_code'] ?? $payload['area_code'] ?? null), (string) $payload['role']);
+                $data = [...$data, ...$this->placeFields($place)];
                 $sponsorId = $data['sponsor_id'] ?? null;
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
                     $sponsorId = User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->value('id');
@@ -157,7 +196,8 @@ final class StaffOperations
                     'dealer_code' => 'MN-'.Str::upper(Str::random(12)), 'sponsor_id' => $sponsorId,
                     'locale' => $applicantLocale,
                     'division' => $data['division'], 'district' => $data['district'],
-                    'profile' => ['upazila' => $data['upazila'] ?? null, 'union' => $data['union'] ?? null, 'area_code' => $data['area_code'] ?? null,
+                    'profile' => ['upazila' => $data['upazila'], 'union' => $data['union'], 'area_code' => $data['place_code'],
+                        'place_code' => $data['place_code'], 'place_code_id' => $data['place_code_id'],
                         'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,
                         ...(filled($data['date_of_birth'] ?? null) ? ['date_of_birth' => $data['date_of_birth']] : [])]]);
                 $user->save();
