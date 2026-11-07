@@ -4,6 +4,7 @@ namespace App\Domain\Content;
 
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\WebPushNotices;
+use App\Jobs\SendPartnerEventSms;
 use App\Models\PartnerEvent;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,7 +14,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Tells the partners in an event's audience when it is published or cancelled:
  * always with a portal notice (account_notices, like circulars), and by SMS
- * only when the event's "send SMS" box was ticked. Posts no financial entries.
+ * only when the event's "send SMS" box was ticked (queued, see SendPartnerEventSms).
+ * Posts no financial entries.
  */
 final class PartnerEventNotifications
 {
@@ -70,13 +72,32 @@ final class PartnerEventNotifications
                 $count += $users->count();
 
                 if ($event->send_sms) {
-                    foreach ($users as $user) {
-                        $this->sms->send($user, $smsEvent, __($smsKey, $this->replacements($event, $user->preferredLocale()), $user->preferredLocale()));
-                    }
+                    // Texts go out in the background after the change is saved (SendPartnerEventSms).
+                    SendPartnerEventSms::dispatch($event->id, $users->pluck('id')->map(fn ($id): int => (int) $id)->values()->all(), $smsEvent, $smsKey);
                 }
             });
 
         return $count;
+    }
+
+    /**
+     * Send the event SMS to these partners (still active dealers or sub-dealers only).
+     * Called by the SendPartnerEventSms job.
+     *
+     * @param  list<int>  $userIds
+     */
+    public function sendSms(PartnerEvent $event, array $userIds, string $smsEvent, string $smsKey): void
+    {
+        User::query()
+            ->whereIn('id', $userIds)
+            ->where('status', 'active')
+            ->whereIn('role', ['dealer', 'sub_dealer'])
+            ->select(['id', 'locale', 'phone'])
+            ->orderBy('id')
+            ->each(function (User $user) use ($event, $smsEvent, $smsKey): void {
+                $locale = $user->preferredLocale();
+                $this->sms->send($user, $smsEvent, __($smsKey, $this->replacements($event, $locale), $locale));
+            });
     }
 
     /** @return array<string, string> */
