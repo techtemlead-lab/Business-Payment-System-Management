@@ -242,11 +242,14 @@ class FinanceOperationsController extends Controller
     public function export(Request $request, ReportData $reports): Response
     {
         $data = $request->validate(['type' => ['required', Rule::in(ReportData::Types)], 'format' => 'required|in:xlsx,pdf',
-            'from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from']);
+            'from' => 'required|date_format:Y-m-d', 'to' => 'required|date_format:Y-m-d|after_or_equal:from',
+            'account_type' => ['nullable', Rule::in(ReportData::AccountTypes)]]);
         if (CarbonImmutable::parse($data['from'])->diffInDays(CarbonImmutable::parse($data['to'])) > 366) {
             throw ValidationException::withMessages(['to' => __('portal.ops_val_date_range')]);
         }
-        $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to']);
+        $accountType = in_array($data['type'], ReportData::AccountTypeReports, true) ? ($data['account_type'] ?? null) : null;
+        $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to'], $accountType);
+        $partnerScope = in_array($data['type'], ReportData::AccountTypeReports, true) ? __('portal.ops_report_account_'.($accountType ?? 'all')) : null;
         $reportKey = str_replace('-', '_', $data['type']);
         $reportNameKey = 'portal.ops_export_name_'.$reportKey;
         $reportNoteKey = 'portal.ops_export_note_'.$reportKey;
@@ -304,6 +307,7 @@ class FinanceOperationsController extends Controller
                         [__('portal.ops_export_records'), $rowCount],
                         [__('portal.ops_export_generated'), $generatedAt],
                         [__('portal.ops_export_scope'), $reportNote],
+                        ...($partnerScope !== null ? [[__('portal.ops_report_account_type'), $partnerScope]] : []),
                     ] as $summaryRow) {
                         $writer->addRow(Row::fromValues($summaryRow));
                     }
@@ -318,7 +322,7 @@ class FinanceOperationsController extends Controller
                 if ($items->count() > 5000) {
                     throw ValidationException::withMessages(['format' => __('portal.ops_val_pdf_row_limit')]);
                 }
-                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}td.num,th.num{text-align:right;white-space:nowrap}tbody tr:nth-child(even) td{background:#f5f9f7}tfoot th{background:#e8f0ec;color:#153d30}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportHeading).'</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka · '.e(__('portal.ops_export_records')).': '.$items->count().'</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
+                $html = '<style>body{font-family:freeserif;font-size:9pt;color:#153d30}table{border-collapse:collapse;width:100%}th{background:#153d30;color:white}td,th{padding:5px;border:1px solid #cddbd4}td.num,th.num{text-align:right;white-space:nowrap}tbody tr:nth-child(even) td{background:#f5f9f7}tfoot th{background:#e8f0ec;color:#153d30}h1{font-size:18pt}small{color:#52665d}</style><h1>Madina Natural Health Care</h1><h2>'.e($reportHeading).'</h2><p>'.e($data['from']).' — '.e($data['to']).' · BDT · Asia/Dhaka · '.e(__('portal.ops_export_records')).': '.$items->count().($partnerScope !== null ? ' · '.e($partnerScope) : '').'</p><p><small>'.e($reportNote).'</small></p><table><thead><tr>';
                 foreach ($report['columns'] as $column) {
                     $numeric = in_array($column, $report['money'], true);
                     $html .= '<th'.($numeric ? ' class="num"' : '').'>'.e($this->reportColumnLabel($column)).'</th>';

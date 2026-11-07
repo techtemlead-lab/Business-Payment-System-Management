@@ -114,13 +114,16 @@ final class OrderInvoice
             $logoPath = public_path('madina-header-logo.png');
         }
 
+        // Letterhead text is edited in the website editor; its factory defaults fill any gap.
+        $defaults = SiteCustomization::defaults();
+        $letterhead = static fn (string $key): string => filled($custom[$key] ?? null) ? (string) $custom[$key] : (string) ($defaults[$key] ?? '');
         $company = [
-            'name' => (string) ($custom['contact_company_title'] ?? config('madina.company_name', 'Madina Natural Health Care')),
-            'address' => (string) ($custom['office_address'] ?? $custom['footer_address'] ?? 'Thana Road, Pirganj 5470, Rangpur, Bangladesh'),
-            'phones' => (string) ($custom['contact_phone'] ?? $custom['footer_phone'] ?? '+8801730532966'),
-            'manufacturer' => (string) config('madina.invoice_manufacturer', 'Holistic Nutracare'),
-            'marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
-            'marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
+            'name' => $letterhead('contact_company_title'),
+            'address' => $letterhead('office_address'),
+            'phones' => $letterhead('contact_phone'),
+            'manufacturer' => $letterhead('invoice_manufacturer'),
+            'marketed_by' => $letterhead('invoice_marketed_by'),
+            'marketed_phones' => $letterhead('invoice_marketed_phones'),
             'logo_path' => is_file($logoPath) ? $logoPath : null,
         ];
 

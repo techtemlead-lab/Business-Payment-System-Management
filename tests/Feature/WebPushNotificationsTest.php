@@ -28,6 +28,7 @@ class WebPushNotificationsTest extends TestCase
             'webpush.vapid.public_key' => $keys['publicKey'],
             'webpush.vapid.private_key' => $keys['privateKey'],
             'webpush.vapid.subject' => 'mailto:owner@example.test',
+            'madina.web_push_hosts' => ['push.example.test'],
         ]);
 
         return $keys['publicKey'];
@@ -117,6 +118,35 @@ class WebPushNotificationsTest extends TestCase
             ->postJson('/commands/push-subscriptions', ['endpoint' => 'http://push.example.test/x', 'keys' => ['p256dh' => '', 'auth' => '']])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['endpoint', 'keys.p256dh', 'keys.auth']);
+    }
+
+    public function test_subscription_must_point_at_a_browser_push_service(): void
+    {
+        $this->enableWebPush();
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+
+        foreach (['https://10.0.0.5/internal', 'https://evil-push.example.test.attacker.test/x', 'https://push.example.test:8443/x', 'https://localhost/x'] as $endpoint) {
+            $this->actingAs($dealer)->onPortal('dealer')
+                ->postJson('/commands/push-subscriptions', $this->browserSubscription($endpoint))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['endpoint']);
+        }
+        $this->assertSame(0, PushSubscription::query()->count());
+
+        $this->assertTrue(WebPushNotices::isPushServiceEndpoint('https://push.example.test/send/x'));
+    }
+
+    public function test_default_push_services_cover_the_main_browsers(): void
+    {
+        $defaults = require config_path('madina.php');
+        config(['madina.web_push_hosts' => $defaults['web_push_hosts']]);
+
+        foreach (['https://fcm.googleapis.com/fcm/send/abc', 'https://updates.push.services.mozilla.com/wpush/v2/abc', 'https://wns2-par02p.notify.windows.com/w/?token=abc', 'https://web.push.apple.com/abc'] as $endpoint) {
+            $this->assertTrue(WebPushNotices::isPushServiceEndpoint($endpoint), $endpoint);
+        }
+        foreach (['http://fcm.googleapis.com/x', 'https://fcm.googleapis.com.evil.test/x', 'https://127.0.0.1/x'] as $endpoint) {
+            $this->assertFalse(WebPushNotices::isPushServiceEndpoint($endpoint), $endpoint);
+        }
     }
 
     public function test_dealer_can_turn_notifications_off(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Content\TestimonialLabels;
 use App\Models\SiteFeedback;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -41,8 +42,8 @@ final class FeedbackSection implements WorkspaceSection
             ->map(fn (SiteFeedback $row): array => [
                 'id' => $row->id,
                 'name' => $row->name,
-                'role' => $row->role,
-                'location' => $row->location,
+                'role' => TestimonialLabels::role($row->role, $row->source),
+                'location' => TestimonialLabels::location($row->location),
                 'rating' => $row->rating,
                 'message' => $row->message,
                 'source' => $row->source,

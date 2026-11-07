@@ -13,11 +13,23 @@
 <style @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
     .login-captcha { display: grid; gap: 8px; margin: 4px 0 8px; }
     .login-captcha-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-    .login-captcha-row img { width: 100%; max-width: 260px; height: auto; aspect-ratio: 220 / 72; border-radius: 8px; border: 1px solid rgba(100, 116, 139, .45); background: #f6f8fa; image-rendering: auto; }
-    .login-captcha-refresh { min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(100, 116, 139, .55); background: transparent; color: inherit; font: inherit; cursor: pointer; }
-    .login-captcha input { font-size: 1.1rem; }
-    .login-captcha input:not(:placeholder-shown) { text-transform: uppercase; letter-spacing: .2em; }
+    .login-captcha-row img { flex: 1 1 160px; min-width: 0; width: 100%; max-width: 260px; height: auto; aspect-ratio: 220 / 72; border-radius: 8px; border: 1px solid rgba(100, 116, 139, .45); background: #f6f8fa; image-rendering: auto; }
+    .login-captcha-refresh { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(100, 116, 139, .55); background: transparent; color: inherit; font: inherit; font-size: .9rem; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background-color .2s ease, border-color .2s ease, transform .12s ease; }
+    .login-captcha-refresh:hover { background: rgba(100, 116, 139, .1); border-color: rgba(100, 116, 139, .8); }
+    .login-captcha-refresh:active { transform: scale(.97); }
+    .login-captcha-refresh span { display: inline-block; font-size: 1.1em; line-height: 1; transition: transform .45s cubic-bezier(.34, 1.56, .64, 1); }
+    .login-captcha-refresh:hover span { transform: rotate(-180deg); }
+    .login-captcha input:not(:placeholder-shown) { text-transform: uppercase; letter-spacing: .2em; font-weight: 600; }
     .login-captcha-hint { margin: 0; font-size: .85rem; opacity: .8; }
+    /* Narrow cards (phones): the refresh button becomes a square icon so the picture stays full size. */
+    .login-captcha { container-type: inline-size; }
+    @container (max-width: 330px) {
+        .login-captcha-row { flex-wrap: nowrap; gap: 8px; }
+        .login-captcha-row img { flex: 1 1 auto; max-width: none; }
+        .login-captcha-refresh { width: 48px; min-height: 48px; padding: 0; font-size: 0; gap: 0; }
+        .login-captcha-refresh span { font-size: 22px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .login-captcha-refresh, .login-captcha-refresh span { transition: none; } .login-captcha-refresh:hover span, .login-captcha-refresh:active { transform: none; } }
 </style>
 <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
     (function () {
