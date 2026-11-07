@@ -44,15 +44,14 @@ final class PartnerDashboardHome
         $ownSalesToday = $this->purchaseTotal(
             Order::query()->where('user_id', $user->id)->where('created_at', '>=', $todayUtc),
         );
+        // The team is matched inside the database, so a large downline is never loaded into PHP.
         $teamIds = ReferralTreePath::query()
             ->where('ancestor_id', $user->id)
             ->where('depth', '>', 0)
-            ->pluck('descendant_id');
-        $teamSalesToday = $teamIds->isEmpty()
-            ? 0
-            : $this->purchaseTotal(
-                Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
-            );
+            ->select('descendant_id');
+        $teamSalesToday = $this->purchaseTotal(
+            Order::query()->whereIn('user_id', $teamIds)->where('created_at', '>=', $todayUtc),
+        );
         $activeStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
         $commissionMonth = Money::cents((string) DB::table('commission_allocations')
             ->where('user_id', $user->id)

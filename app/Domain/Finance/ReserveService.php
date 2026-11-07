@@ -380,6 +380,35 @@ final class ReserveService
             ->where('amount', '>', 0)->orderBy('id')->lockForUpdate()->get();
     }
 
+    /**
+     * What is left in every reserve fund, per category, in cents: the same sum as remaining()
+     * over each fund row, worked out by the database in one query.
+     *
+     * @return array<string, int>
+     */
+    public function remainingByCategory(): array
+    {
+        $paid = DB::table('commission_settlement_payouts')->groupBy('allocation_id')
+            ->selectRaw('allocation_id, SUM(amount - reversed_amount) AS total');
+        $spent = DB::table('reserve_expense_sources')->join('reserve_disbursements', 'disbursement_id', '=', 'reserve_disbursements.id')
+            ->whereIn('reserve_disbursements.status', ['approved', 'paid'])->groupBy('reserve_expense_sources.allocation_id')
+            ->selectRaw('reserve_expense_sources.allocation_id, SUM(reserve_expense_sources.amount - reserve_expense_sources.reversed_amount) AS total');
+
+        return DB::table('commission_allocations as funds')
+            ->leftJoinSub($paid, 'paid', 'paid.allocation_id', '=', 'funds.id')
+            ->leftJoinSub($spent, 'spent', 'spent.allocation_id', '=', 'funds.id')
+            ->whereIn('funds.category', array_values(array_unique(self::Programs)))
+            ->groupBy('funds.category')
+            ->selectRaw('funds.category, SUM(funds.amount - COALESCE(paid.total, 0) - COALESCE(spent.total, 0)) AS remaining')
+            ->pluck('remaining', 'category')
+            ->map(function ($remaining): int {
+                $value = (string) $remaining;
+
+                return str_starts_with($value, '-') ? -Money::cents(substr($value, 1)) : Money::cents($value);
+            })
+            ->all();
+    }
+
     public function remaining(CommissionAllocation $fund): int
     {
         $walletPaid = DB::table('commission_settlement_payouts')->where('allocation_id', $fund->id)->selectRaw('COALESCE(SUM(amount - reversed_amount),0) AS total')->value('total');

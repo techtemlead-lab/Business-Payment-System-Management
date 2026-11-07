@@ -180,7 +180,7 @@ class WorkspaceController extends Controller
             default => ['dealer'],
         };
         abort_if($intent === 'staff' && $u->role !== 'super_admin', 403);
-        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'refer_code', 'district']);
+        $sponsors = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code']);
         $divisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)

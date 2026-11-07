@@ -619,6 +619,19 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                     );
                                 })}
                             </div>
+                            <label className="ops-block ops-mt-3">
+                                {translate('portal','dash_mgmt_support_overdue_hours')}
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={720}
+                                    step={1}
+                                    value={form.data.settings.support_overdue_hours ?? 24}
+                                    onChange={e => updateField('support_overdue_hours', e.target.value)}
+                                    className="ops-full ops-mt-1"
+                                />
+                                <small className="muted">{translate('portal','dash_mgmt_support_overdue_hours_hint')}</small>
+                            </label>
                         </section>
                     </div>
                 )}
