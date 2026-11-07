@@ -165,7 +165,7 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false, array $replacements = []): void
+    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -180,7 +180,7 @@ class OrderService
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
             // No goods on credit: a dealer pays the full amount (and the payment is
-            // verified) before an order can be approved. $allowCredit is ignored.
+            // verified) before an order can be approved.
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
@@ -193,7 +193,7 @@ class OrderService
                 throw ValidationException::withMessages(['replacement' => __('portal.err_order_replacement_on_approve')]);
             }
             $locked->update($changes);
-            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by']),
+            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason,
                 'referral_replacements' => $status === 'approved' ? $locked->commission_policy_snapshot['referral_replacements'] ?? [] : []]);
             if ($status === 'approved') {
                 Audit::record($actor->id, 'commissions.policy_approved', $locked->id, ['reason' => $reason, 'revision_id' => $locked->commission_policy_snapshot['revision_id'],

@@ -65,11 +65,8 @@ class OperationsController extends Controller
             $data['regions'] = $territories->territories($actor->id);
             $data['products'] = Product::where('active', true)->where('is_stock_paused', false)->orderBy('name')->get(['id', 'name', 'sku']);
             $scope = $territories->partners($actor)->select('users.id');
-            if ($actor->allows('sr_orders') || $actor->allows('sr_dues')) {
+            if ($actor->allows('sr_orders')) {
                 $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
-                if ($actor->allows('sr_dues')) {
-                    $columns = [...$columns, 'o.paid', 'o.due_credit', DB::raw('o.total-o.due_credit-o.paid AS outstanding')];
-                }
                 $tables['territory_orders'] = DB::table('orders as o')->join('users as u', 'u.id', '=', 'o.user_id')->whereIn('o.user_id', $scope)->select($columns)->orderByDesc('o.created_at');
             }
             $tables['my_targets'] = DB::table('staff_targets')->where('staff_id', $actor->id)->orderByDesc('period_month');

@@ -199,7 +199,7 @@ final class UserManual
             $this->ch('rewards_milestones', ['dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক', 'গাড়ি', 'বাইক']),
             $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'reserve', '5%', '2%', 'বেতন', 'সাব-ডিলার', 'ট্যুর']),
             $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট', 'পারমিশন']),
-            $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'dues', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
+            $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
             $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
             $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম', 'ব্রাঞ্চ']),
             $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'উপজেলা']),

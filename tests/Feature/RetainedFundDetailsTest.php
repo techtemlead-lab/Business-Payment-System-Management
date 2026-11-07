@@ -38,7 +38,6 @@ class RetainedFundDetailsTest extends TestCase
         $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'allow_credit' => true,
             'reason' => 'Approve for retained fund detail coverage',
         ])->assertOk();
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);
@@ -99,7 +98,6 @@ class RetainedFundDetailsTest extends TestCase
         $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'allow_credit' => true,
             'reason' => 'Approve sub-dealer retained fund coverage',
         ])->assertOk();
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);

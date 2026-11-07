@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionQualification;
-use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Finance\ImportWorkbook;
 use App\Domain\Finance\OpeningBalanceImport;
@@ -19,12 +18,10 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Cell\FormulaCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
-use PHPUnit\Framework\Attributes\TestWith;
 use Tests\TestCase;
 
 class DataImportTest extends TestCase
@@ -239,9 +236,7 @@ class DataImportTest extends TestCase
         $this->assertDatabaseCount('jobs', 0);
     }
 
-    #[TestWith(['0.00', '120.00'])]
-    #[TestWith(['50.00', '70.00'])]
-    public function test_historical_order_collections_and_credits_reconcile_without_commissions(string $credit, string $collection): void
+    public function test_historical_order_collections_reconcile_without_commissions(): void
     {
         Storage::fake('local');
         $preparer = User::factory()->staff('finance')->create();
@@ -254,15 +249,8 @@ class DataImportTest extends TestCase
         $imports->apply($reviewer, $id, 'Reviewed the historical statement');
         $order = Order::where('user_id', $partner->id)->firstOrFail();
         $this->enableFinancialPosting();
-        if ($credit !== '0.00') {
-            $adjustment = app(DueAdjustments::class)->request($preparer, $order, [
-                'kind' => 'credit', 'amount' => $credit, 'reference' => 'HISTORICAL-CREDIT',
-                'request_key' => (string) Str::uuid(), 'reason' => 'Approved historical receivable correction',
-            ]);
-            app(DueAdjustments::class)->review($reviewer, $adjustment, 'approved', 'Independent correction review');
-        }
         $orders = app(OrderService::class);
-        $orders->claim($partner, $order->fresh(), ['channel' => 'Bank', 'reference' => 'HISTORICAL-COLLECTION', 'amount' => $collection]);
+        $orders->claim($partner, $order->fresh(), ['channel' => 'Bank', 'reference' => 'HISTORICAL-COLLECTION', 'amount' => '120.00']);
         $claim = DB::table('payment_claims')->where('reference', 'HISTORICAL-COLLECTION')->value('id');
         $orders->verify($reviewer, $claim, true, 'Verified historical balance collection');
         $this->assertSame('0.00', $order->fresh()->outstanding());

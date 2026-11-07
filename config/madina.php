@@ -60,10 +60,10 @@ return [
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
     ],
     'roles' => [
-        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'payroll', 'partner_chat'],
+        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat'],
         'md' => ['orders', 'finance', 'reports', 'audit'],
         'chairman' => ['orders', 'finance', 'reports', 'audit'],
-        'sr' => ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'],
+        'sr' => ['field_sales', 'sr_orders', 'sr_onboarding'],
         'account_manager' => ['accounts', 'orders', 'order_review'],
         'inventory' => ['inventory', 'orders'],
         'finance' => ['cost_read', 'finance', 'orders', 'order_review', 'reports', 'payroll'],
