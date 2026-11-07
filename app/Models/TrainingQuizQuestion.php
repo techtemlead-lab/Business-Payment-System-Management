@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $training_item_id
  * @property string $question
- * @property list<string> $options
+ * @property array<int, string> $options
  * @property int $correct_option
  * @property int $sort_order
  */
