@@ -116,6 +116,28 @@ class AccountListFiltersTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/exports/accounts?section=accounts')->assertForbidden();
     }
 
+    public function test_view_only_staff_get_masked_phones_and_emails_while_account_editors_get_them_in_full(): void
+    {
+        $dealer = $this->dealer('Contact Dealer', 'Dhaka', 'Gazipur');
+        $dealer->forceFill(['phone' => '01712345678', 'email' => 'rahim@example.test'])->save();
+        $viewer = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['accounts'], 'action_permissions' => ['accounts' => ['view' => true]]]]);
+        $editor = User::factory()->create(['role' => 'account_manager', 'status' => 'active']);
+
+        [$list, $summary] = $this->sheets($this->actingAs($viewer)->onPortal('manage')->get('/exports/accounts?section=accounts')->assertOk());
+        $everything = json_encode([$list, $summary], JSON_UNESCAPED_UNICODE);
+        $this->assertStringNotContainsString('01712345678', $everything);
+        $this->assertStringNotContainsString('rahim@example.test', $everything);
+        $this->assertContains('••••5678', $list[1]);
+        $this->assertContains('r•••@example.test', $list[1]);
+        $this->assertStringContainsString(__('portal.acct_export_contacts_masked'), $everything);
+        $this->assertDatabaseHas('audit_events', ['action' => 'report.exported', 'actor_id' => $viewer->id]);
+        $this->travel(61)->seconds();
+
+        [$list] = $this->sheets($this->actingAs($editor)->onPortal('manage')->get('/exports/accounts?section=accounts')->assertOk());
+        $this->assertContains('01712345678', $list[1]);
+        $this->assertContains('rahim@example.test', $list[1]);
+    }
+
     private function dealer(string $name, string $division, string $district, ?string $rank = null): User
     {
         $dealer = User::factory()->dealer()->create(['name' => $name, 'division' => $division, 'district' => $district, 'status' => 'active']);

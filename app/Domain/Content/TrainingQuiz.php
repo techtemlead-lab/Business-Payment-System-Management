@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\Audit;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -23,6 +24,46 @@ final class TrainingQuiz
     public const MinOptions = 2;
 
     public const MaxOptions = 4;
+
+    /** Default number of tries a partner gets per quiz in one hour (owner can change it). */
+    public const DefaultAttemptsPerHour = 5;
+
+    public const MaxAttemptsPerHour = 50;
+
+    private const LimitSetting = 'training_quiz_limit';
+
+    /**
+     * How many tries a partner gets per quiz in one hour, so the right answers cannot be
+     * found by guessing again and again.
+     *
+     * @return array{per_hour: int, version: int}
+     */
+    public function attemptLimit(): array
+    {
+        $row = DB::table('business_settings')->where('key', self::LimitSetting)->first();
+        $stored = $row ? json_decode((string) $row->value, true) : [];
+        $perHour = (int) (is_array($stored) ? ($stored['per_hour'] ?? self::DefaultAttemptsPerHour) : self::DefaultAttemptsPerHour);
+
+        return ['per_hour' => max(1, min(self::MaxAttemptsPerHour, $perHour)), 'version' => (int) ($row->version ?? 0)];
+    }
+
+    /** Owners change the hourly limit; the change is audited. */
+    public function saveAttemptLimit(User $actor, int $perHour, int $version): void
+    {
+        abort_unless($actor->owner() && $actor->status === 'active', 403);
+        DB::transaction(function () use ($actor, $perHour, $version): void {
+            $stored = DB::table('business_settings')->where('key', self::LimitSetting)->lockForUpdate()->first();
+            $before = $this->attemptLimit();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['per_hour' => __('portal.training_quiz_limit_err_stale')]);
+            }
+            DB::table('business_settings')->updateOrInsert(['key' => self::LimitSetting], [
+                'value' => json_encode(['per_hour' => $perHour], JSON_THROW_ON_ERROR), 'version' => $version + 1,
+                'updated_by' => $actor->id, 'created_at' => $stored->created_at ?? now(), 'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'training.quiz_limit_changed', self::LimitSetting, ['before' => $before['per_hour'], 'after' => $perHour]);
+        });
+    }
 
     /**
      * Replace the item's quiz. An empty question list removes the quiz.
@@ -64,10 +105,17 @@ final class TrainingQuiz
         if ($questions->isEmpty()) {
             throw ValidationException::withMessages(['answers' => __('portal.training_quiz_err_none')]);
         }
+        $limitKey = 'training-quiz|'.$partner->id.'|'.$item->id;
+        $perHour = $this->attemptLimit()['per_hour'];
+        if (RateLimiter::tooManyAttempts($limitKey, $perHour)) {
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($limitKey) / 60));
+            throw ValidationException::withMessages(['answers' => __('portal.training_quiz_err_too_many', ['count' => (string) $perHour, 'minutes' => (string) $minutes])]);
+        }
         $missing = $questions->first(fn (TrainingQuizQuestion $question): bool => ! isset($answers[$question->id]) || ! is_numeric($answers[$question->id]));
         if ($missing) {
             throw ValidationException::withMessages(['answers' => __('portal.training_quiz_err_unanswered')]);
         }
+        RateLimiter::hit($limitKey, 3600);
         $correct = $questions->filter(fn (TrainingQuizQuestion $question): bool => (int) $answers[$question->id] === $question->correct_option)->count();
         $total = $questions->count();
         $score = (int) floor($correct * 100 / $total);
