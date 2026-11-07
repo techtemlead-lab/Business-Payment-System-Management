@@ -75,7 +75,7 @@
         </form>
     </article>
 </main>
-<script>
+<script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
 (function () {
     var root = document.querySelector('.ref-star-rating');
     if (!root) return;

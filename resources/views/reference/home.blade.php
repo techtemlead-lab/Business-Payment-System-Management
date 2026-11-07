@@ -232,7 +232,7 @@
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
         </div>
-        <script>
+        <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
         (function() {
             var btn = document.getElementById('refCatToggleBtn');
             var grid = document.getElementById('refCategoryGrid');
