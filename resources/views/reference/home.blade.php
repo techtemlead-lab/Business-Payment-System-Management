@@ -7,7 +7,7 @@
 @endphp
 
 @extends('reference.layout')
-@section('title', __('site.home_document_title'))
+@section('title', \App\Support\SiteCustomization::brandName().' · '.__('site.home_title_tagline'))
 @section('content')
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);

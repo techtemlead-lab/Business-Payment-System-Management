@@ -82,7 +82,7 @@ class PublicController extends Controller
 
         $contentPages = $this->cachedContentPages();
         $pageContent = $contentPages[$page] ?? null;
-        $customTitle = filled($pageContent->title ?? null) ? ((string) $pageContent->title.' · '.(string) config('app.name', 'Madina Natural Health Care')) : null;
+        $customTitle = filled($pageContent->title ?? null) ? ((string) $pageContent->title.' · '.SiteCustomization::brandName()) : null;
         $customDesc = filled($pageContent->body ?? null) ? mb_substr(trim(strip_tags((string) $pageContent->body)), 0, 280) : null;
 
         $social = $page === 'home'

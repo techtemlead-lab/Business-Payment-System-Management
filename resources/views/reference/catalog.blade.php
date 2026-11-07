@@ -1,5 +1,5 @@
 @extends('reference.layout')
-@section('title', __('site.products').' · Madina Natural Health Care')
+@section('title', __('site.products').' · '.\App\Support\SiteCustomization::brandName())
 @section('bodyClass','ref-catalog-page')
 @section('content')
 @php

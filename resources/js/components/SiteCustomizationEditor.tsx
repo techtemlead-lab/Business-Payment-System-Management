@@ -432,6 +432,9 @@ export interface CustomizationData {
 
     // Copyright
     copyright_text?: string;
+    copyright_text_bn?: string;
+    notice_empty?: string;
+    notice_empty_bn?: string;
 }
 
 function Field({
@@ -3638,10 +3641,12 @@ export default function SiteCustomizationEditor({
     customization,
     defaults,
     products = [],
-    websitePages = []
+    websitePages = [],
+    bnCopy = {}
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
+    bnCopy?: { copyright?: string; notice_empty?: string };
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     websitePages?: { key: string; slug: string; label: string; toggleable?: boolean; enabled?: boolean; flag?: string | null }[];
 }) {
@@ -4065,7 +4070,10 @@ export default function SiteCustomizationEditor({
             partner_help_body: customization.partner_help_body || '',
 
             // Copyright
-            copyright_text: customization.copyright_text || ''
+            copyright_text: customization.copyright_text || '',
+            copyright_text_bn: customization.copyright_text_bn || '',
+            notice_empty: customization.notice_empty || '',
+            notice_empty_bn: customization.notice_empty_bn || ''
         }
     });
 
@@ -4918,6 +4926,9 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_play_store_link')} fieldKey="app_google_play_link" value={form.data.customization.app_google_play_link} placeholder={defaults.app_google_play_link} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_app_store_link')} fieldKey="app_apple_store_link" value={form.data.customization.app_apple_store_link} placeholder={defaults.app_apple_store_link} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_copyright')} fieldKey="copyright_text" value={form.data.customization.copyright_text} placeholder={defaults.copyright_text} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_fld_copyright_text_bn')} fieldKey="copyright_text_bn" value={form.data.customization.copyright_text_bn} placeholder={bnCopy.copyright} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_fld_notice_empty')} fieldKey="notice_empty" value={form.data.customization.notice_empty} placeholder={defaults.notice_empty} onChange={updateField} span2 />
+                                <Field label={translate('portal', 'sce_fld_notice_empty_bn')} fieldKey="notice_empty_bn" value={form.data.customization.notice_empty_bn} placeholder={bnCopy.notice_empty} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_support_partner_access_heading')}</h3>
