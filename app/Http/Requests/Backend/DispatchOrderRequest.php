@@ -16,6 +16,7 @@ class DispatchOrderRequest extends FormRequest
         return [
             'courier' => 'required|string|max:100',
             'tracking' => 'nullable|string|max:100',
+            'courier_contact' => 'nullable|string|max:120',
             'courier_provider' => 'nullable|string|in:pathao,steadfast,redx,paperfly,ecourier',
             'eta' => 'nullable|date', 'idempotency_key' => 'required|uuid',
             'items' => 'required|array|min:1|max:100', 'items.*' => 'array:line_id,quantity',
