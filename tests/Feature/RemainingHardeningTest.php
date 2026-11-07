@@ -145,12 +145,13 @@ class RemainingHardeningTest extends TestCase
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $buyer = User::factory()->create();
-        $product = Product::factory()->create(['mrp' => '500000.00', 'dealer_price' => '250000.00']);
+        // ৳5 lakh funds ৳10,000 of rank rewards: the buyer's own MO reward (paid at once) and the leader's.
+        $product = Product::factory()->create(['mrp' => '1000000.00', 'dealer_price' => '500000.00']);
         $order = app(OrderService::class)->create($buyer, [
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
             'idempotency_key' => (string) Str::uuid(),
         ]);
-        $order->update(['paid' => '250000.00', 'status' => 'delivered']);
+        $order->update(['paid' => '500000.00', 'status' => 'delivered']);
         app(CommissionService::class)->processOrder($order);
 
         $claimKey = (string) Str::uuid();

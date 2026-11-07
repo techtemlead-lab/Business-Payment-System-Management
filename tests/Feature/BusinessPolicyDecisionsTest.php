@@ -278,7 +278,8 @@ class BusinessPolicyDecisionsTest extends TestCase
         $finance = User::factory()->staff('finance')->create();
         $this->actingAs($finance)->postJson('/api/v1/finance/settlements', ['kind' => 'salary', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
         $this->postJson('/api/v1/finance/settlements', ['kind' => 'royalty', 'period_month' => '2026-09', 'request_key' => (string) Str::uuid()])->assertOk();
-        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '20000.00']);
+        // ৳20,000 of earnings plus the ৳5,000 MO reward, paid the moment MO is reached (owner rule).
+        $this->assertDatabaseHas('wallets', ['user_id' => $order->user_id, 'available' => '25000.00']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.salary_pool_settled']);
         $this->assertDatabaseHas('audit_events', ['actor_id' => $finance->id, 'action' => 'commissions.royalty_pool_settled']);
     }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionService;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\ReportData;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffPermissions;
@@ -154,6 +155,9 @@ class ModuleCompletionTest extends TestCase
 
     public function test_rank_award_report_includes_actual_funded_awards_and_source_reversals(): void
     {
+        // This checks the manual claim by finance, so the automatic reward at promotion is switched off.
+        app(FinanceSettings::class)->saveAutoApproval(User::factory()->create(['role' => 'super_admin']), false,
+            ['salary' => true, 'royalty' => true, 'rank_incentive' => false], 0, 'Rank rewards checked by hand in this test');
         $buyer = User::factory()->dealer()->create();
         $finance = User::factory()->staff('finance')->create();
         $order = $this->purchase($buyer, '250000.00', true);
