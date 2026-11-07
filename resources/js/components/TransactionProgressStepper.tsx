@@ -212,8 +212,6 @@ export default function TransactionProgressStepper({
                 stage3Desc = `${verifiedClaim.channel || 'Payment'} · ${money(verifiedClaim.amount)}`;
             } else if (orderPaid > 0) {
                 stage3Desc = `${t('stage_settled_paid', 'Verified')} ${money(orderPaid)}`;
-            } else if (orderDueCredit > 0) {
-                stage3Desc = `${t('stage_credit_auth', 'Discount')} ${money(orderDueCredit)}`;
             } else {
                 stage3Desc = t('stage_desc_payment_cleared', 'Payment verified');
             }

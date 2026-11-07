@@ -13,7 +13,7 @@ type CommissionPlace = { level: string; code: string | null; name: string | null
 type Consumer = { id: number | null; name: string; refer_code: string | null; rate: string; fund?: string } | null;
 
 const availablePermissionKeys = [
-    'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'staff_admin', 'payroll',
+    'field_sales', 'sr_orders', 'sr_onboarding', 'staff_admin', 'payroll',
     'orders', 'order_review', 'inventory', 'catalog', 'accounts', 'finance', 'reports',
     'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat',
 ] as const;
@@ -406,7 +406,7 @@ export default function AccountCreate({
                                                 role: newRole,
                                                 place_code: '',
                                                 dealer_code: '',
-                                                permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'] : ['orders', 'inventory'],
+                                                permissions: newRole === 'sr' ? ['field_sales', 'sr_orders', 'sr_onboarding'] : ['orders', 'inventory'],
                                             }));
                                             setPlacePreview(null);
                                         }}
@@ -431,7 +431,7 @@ export default function AccountCreate({
                                 </div>
                             </div>
                             <div className="hub-grid is-wide acr-option-grid">
-                                {availablePermissionKeys.filter((key) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'].includes(key)).map((key) => {
+                                {availablePermissionKeys.filter((key) => form.data.role !== 'sr' || ['field_sales', 'sr_orders', 'sr_onboarding'].includes(key)).map((key) => {
                                     const checked = form.data.permissions.includes(key);
                                     return (
                                         <label

@@ -96,7 +96,6 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
 /** Both the Inertia screens and independently developed clients use these services. */
 $operations = function (): void {
     $completion = ModuleCompletionController::class;
-    // Due adjustments retired: goods are no longer given on credit.
     Route::post('/settings/withdrawal-minimum', [$completion, 'minimum']);
     Route::post('/settings/auto-approval', [$completion, 'autoApproval']);
     Route::post('/settings/kyc-before-first-withdrawal', [$completion, 'kycBeforeFirstWithdrawal']);
