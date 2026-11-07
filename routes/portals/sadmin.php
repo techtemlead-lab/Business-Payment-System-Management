@@ -6,6 +6,7 @@ use App\Http\Controllers\IntegrationSettingsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PartnerStatementController;
+use App\Http\Controllers\PayoutReceiptController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\TeamOrdersController;
 use App\Http\Controllers\WithdrawalController;
@@ -48,6 +49,7 @@ Route::middleware(['auth', 'active', 'portal:sadmin', 'authenticator'])->group(f
     Route::get('/orders/{order}/invoice', [DashboardController::class, 'orderInvoice'])->middleware('throttle:20,1');
     Route::get('/orders/{order}/invoice/print', [DashboardController::class, 'orderInvoicePrint'])->middleware('throttle:20,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
+    Route::get('/payment-receipts/{receipt}/print', [PayoutReceiptController::class, 'print'])->whereNumber('receipt')->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
     Route::redirect('/places', '/place-codes', 301);
     Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('sadmin'));

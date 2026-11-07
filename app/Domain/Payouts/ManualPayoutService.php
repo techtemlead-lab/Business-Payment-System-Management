@@ -117,13 +117,27 @@ class ManualPayoutService
         }, 3);
     }
 
-    public function settle(User $actor, string $id, UploadedFile $receipt, string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): void
+    /**
+     * Marks an approved withdrawal as paid by hand and issues its numbered payout receipt.
+     * Cash needs the name of the person who took the money; every other method needs the
+     * transaction reference (plus bank and account, or the wallet number) and the transfer proof.
+     *
+     * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
+     * @return string The new receipt number.
+     */
+    public function settle(User $actor, string $id, array $payout, ?UploadedFile $receipt, ?string $reference, string $paidAt, string $note, ?int $paymentAccountId = null): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        $path = $receipt->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
+        $isCash = ($payout['method'] ?? null) === 'cash';
+        $reference = ($reference === null || trim($reference) === '') ? null : $reference;
+        if (! $isCash && ($reference === null || $receipt === null)) {
+            throw ValidationException::withMessages([$reference === null ? 'payment_reference' : 'receipt' => __('portal.err_payout_details_needed')]);
+        }
+        $path = $receipt?->storeAs('payout-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
+        $issued = null;
         try {
-            DB::transaction(function () use ($actor, $id, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId) {
+            DB::transaction(function () use ($actor, $id, $payout, $isCash, $receipt, $path, $reference, $paidAt, $note, $paymentAccountId, &$issued) {
                 CommissionWallet::lock();
                 $w = DB::table('withdrawals')->where('id', $id)->lockForUpdate()->first();
                 abort_unless($w, 404);
@@ -136,11 +150,14 @@ class ManualPayoutService
                 if ($actor->id === $w->user_id || $actor->id === $w->reviewed_by) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_payer_separation')]);
                 }
-                if (DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
+                if ($reference !== null && DB::table('withdrawals')->where('payment_reference', $reference)->exists()) {
                     throw ValidationException::withMessages(['payment_reference' => __('portal.err_wd_payment_ref_used')]);
                 }
-                app(PaymentAccounts::class)->recordReference($actor, $reference, 'withdrawal:'.$id, $paymentAccountId);
-                DB::table('withdrawals')->where('id', $id)->update(['payment_account_id' => $paymentAccountId]);
+                // Cash is handed over at the office, not sent from a company payout account.
+                if ($reference !== null && ! $isCash) {
+                    app(PaymentAccounts::class)->recordReference($actor, $reference, 'withdrawal:'.$id, $paymentAccountId);
+                    DB::table('withdrawals')->where('id', $id)->update(['payment_account_id' => $paymentAccountId]);
+                }
                 $wallet = DB::table('wallets')->where('user_id', $w->user_id)->lockForUpdate()->first();
                 if (! $wallet || Money::cents($wallet->held) - Money::cents($wallet->commission_held) < Money::cents($w->amount)) {
                     throw ValidationException::withMessages(['withdrawal' => __('portal.err_wd_held_settle_mismatch')]);
@@ -151,22 +168,30 @@ class ManualPayoutService
                 $entry = (string) Str::uuid();
                 DB::table('journal_entries')->insert(['id' => $entry, 'event_key' => 'manual-payout:'.$id, 'description' => __('portal.wd_journal_manual_payout', [], $locale), 'actor_id' => $actor->id, 'created_at' => now()]);
                 DB::table('journal_lines')->insert([['entry_id' => $entry, 'user_id' => $w->user_id, 'account' => 'wallet_liability', 'debit' => $w->amount, 'credit' => '0.00'], ['entry_id' => $entry, 'user_id' => null, 'account' => 'manual_payout_clearing', 'debit' => '0.00', 'credit' => $w->net_amount ?? $w->amount], ['entry_id' => $entry, 'user_id' => null, 'account' => 'payout_withholding_payable', 'debit' => '0.00', 'credit' => $w->withheld_amount]]);
-                DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference, 'paid_at' => $paidAt, 'paid_by' => $actor->id, 'receipt_path' => $path, 'receipt_mime' => $receipt->getMimeType(), 'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
+                $issued = app(PayoutReceipts::class)->issue($actor, $w, $payout, $reference, $paidAt);
+                $proofHash = $receipt ? hash_file('sha256', $receipt->getRealPath()) : null;
+                DB::table('withdrawals')->where('id', $id)->update(['status' => 'paid', 'payment_reference' => $reference ?? $issued['number'], 'paid_at' => $paidAt, 'paid_by' => $actor->id,
+                    'receipt_path' => $path, 'receipt_mime' => $receipt?->getMimeType(), 'receipt_sha256' => $proofHash, 'updated_at' => now()]);
                 DB::table('withdrawal_events')->insert(['withdrawal_id' => $id, 'actor_id' => $actor->id, 'event' => 'paid', 'note' => $note, 'created_at' => now()]);
                 Audit::record($actor->id, 'withdrawal.paid', $id, [
                     'user_id' => $w->user_id, 'amount' => $w->amount, 'net_amount' => $w->net_amount ?? $w->amount,
                     'withheld_amount' => $w->withheld_amount, 'payment_reference' => $reference,
-                    'receipt_sha256' => hash_file('sha256', $receipt->getRealPath()),
+                    'method' => $payout['method'], 'payout_receipt' => $issued['number'],
+                    'receipt_sha256' => $proofHash,
                 ]);
                 Audit::notice(
                     $w->user_id,
                     __('portal.notice_wd_paid_title', [], $locale),
-                    __('portal.notice_wd_paid_body', [], $locale),
+                    __('portal.notice_wd_paid_receipt_body', ['number' => $issued['number']], $locale),
                 );
             }, 3);
         } catch (\Throwable $e) {
-            Storage::disk('local')->delete($path);
+            if ($path !== null) {
+                Storage::disk('local')->delete($path);
+            }
             throw $e;
         }
+
+        return $issued['number'];
     }
 }

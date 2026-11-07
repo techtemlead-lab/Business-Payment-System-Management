@@ -113,7 +113,7 @@ class LedgerSafetyTest extends TestCase
             'destination' => encrypt('TEST-ACCOUNT-1234'), 'idempotency_key' => (string) Str::uuid(), 'reviewed_by' => $reviewer->id,
             'created_at' => now()->subDay(), 'updated_at' => now()]);
         $this->actingAs($payer)->post('/commands/withdrawals/'.$id.'/record-payment', [
-            'payment_reference' => 'PAY-AUDIT-1', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by bank transfer',
+            'method' => 'other', 'payment_reference' => 'PAY-AUDIT-1', 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'), 'note' => 'Sent by bank transfer',
             'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf'),
         ])->assertRedirect()->assertSessionHasNoErrors();
 
