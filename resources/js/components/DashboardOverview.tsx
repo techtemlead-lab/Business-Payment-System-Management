@@ -449,7 +449,7 @@ function OfficeTiles({ base }: { base: string }) {
     const { auth, portal, portalCatalog } = usePage<any>().props;
     const translate = useT();
     const catalogSections: string[] = portalCatalog?.sections ?? [];
-    const available = buildStaffAvailable({ capabilities: auth.capabilities ?? [], role: auth.user?.role ?? '', ownerPortal: portal === 'sadmin' });
+    const available = buildStaffAvailable({ capabilities: auth.capabilities ?? [], role: auth.user?.role ?? '', ownerPortal: portal === 'sadmin', chatAnswerer: Boolean(auth.chatAnswerer) });
     const offered = new Set(pick(available, OFFICE_TILES.map((tile) => tile.section)));
     const tiles = OFFICE_TILES.filter((tile) => offered.has(tile.section) && (catalogSections.length === 0 || catalogSections.includes(tile.section)));
     if (tiles.length === 0) {

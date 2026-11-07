@@ -7,6 +7,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
+use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
 use App\Domain\Support\TourGuide;
 use App\Domain\Support\UserManual;
@@ -48,7 +49,16 @@ class HandleInertiaRequests extends Middleware
                 $chatSql = 'COALESCE((SELECT partner_unread FROM partner_conversations WHERE partner_id = ?), 0)';
                 $bindings[] = $u->id;
             } elseif (($u->staff() || $u->usingStaffWorkspace()) && PartnerChat::canAnswer($u)) {
-                $chatSql = '(SELECT COALESCE(SUM(office_unread), 0) FROM partner_conversations)';
+                // Only the chats routed to this person: every chat for owners and company-wide answerers.
+                $routing = app(ChatRouting::class);
+                $branchIds = $routing->visibleBranchIds($u);
+                if ($branchIds === null) {
+                    $chatSql = '(SELECT COALESCE(SUM(office_unread), 0) FROM partner_conversations)';
+                } elseif ($branchIds !== []) {
+                    $chatSql = '(SELECT COALESCE(SUM(pc.office_unread), 0) FROM partner_conversations pc JOIN users pu ON pu.id = pc.partner_id WHERE '
+                        .$routing->partnerBranchSql('pu').' IN ('.implode(',', array_fill(0, count($branchIds), '?')).'))';
+                    array_push($bindings, ...$branchIds);
+                }
             }
             $row = DB::selectOne('SELECT (SELECT COUNT(*) FROM "account_notices" WHERE user_id = ? AND read_at IS NULL) AS notices, '.$chatSql.' AS chat', $bindings);
 
@@ -56,7 +66,12 @@ class HandleInertiaRequests extends Middleware
         };
         $unreadNotices = fn (): int => $attention()['notices'];
 
-        return [...parent::share($request), 'auth' => ['user' => $u?->safe(), 'capabilities' => $capabilities],
+        return [...parent::share($request), 'auth' => [
+            'user' => $u?->safe(),
+            'capabilities' => $capabilities,
+            // Staff the owner nominated to answer partner chat (owners always may).
+            'chatAnswerer' => $u !== null && ($u->staff() || $u->usingStaffWorkspace()) && PartnerChat::canAnswer($u),
+        ],
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
                 ? $payments->listing($u, true, true)
                 : [],

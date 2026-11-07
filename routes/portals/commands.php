@@ -38,6 +38,7 @@ return function (string $portal): void {
     Route::post('/commands/messages', [PartnerChatController::class, 'send'])->middleware('throttle:20,1');
     Route::post('/commands/partner-messages/{user}', [PartnerChatController::class, 'reply'])->middleware('throttle:60,1');
     Route::get('/commands/messages/{message}/photo', [PartnerChatController::class, 'photo'])->middleware('throttle:120,1');
+    Route::post('/commands/chat-answerers', [PartnerChatController::class, 'answerers'])->middleware('throttle:10,1');
     Route::post('/commands/owner/contact', [AuthController::class, 'ownerContact'])->middleware('throttle:5,1');
     Route::post('/commands/profile/photo', [AuthController::class, 'profilePhoto'])->middleware('throttle:10,1');
     Route::post('/commands/owner/partner-login-otp', [AuthController::class, 'partnerLoginOtp'])->middleware('throttle:5,1');

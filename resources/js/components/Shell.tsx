@@ -276,8 +276,8 @@ export default function Shell({ section, children, action }: { section: string; 
     const currentDomain = resolveStaffDomain(section, readDomainPin);
 
     const staffAvailable = useMemo(
-        () => buildStaffAvailable({ capabilities, role: user.role, ownerPortal }),
-        [capabilities, ownerPortal, user.role],
+        () => buildStaffAvailable({ capabilities, role: user.role, ownerPortal, chatAnswerer: Boolean(auth.chatAnswerer) }),
+        [capabilities, ownerPortal, user.role, auth.chatAnswerer],
     );
 
     const partnerAvailable = useMemo(

@@ -27,6 +27,8 @@ type CapabilityContext = {
     capabilities: string[];
     role: string;
     ownerPortal: boolean;
+    /** The owner nominated this staff member to answer partner chat. */
+    chatAnswerer?: boolean;
     dashboardControls?: Record<string, unknown> | null;
 };
 
@@ -191,13 +193,13 @@ export function compactMothers(mothers: Array<NavMother | null>): NavMother[] {
 }
 
 export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
-    const { capabilities, role, ownerPortal } = ctx;
+    const { capabilities, role, ownerPortal, chatAnswerer } = ctx;
     const items = new Set<string>(['overview', 'profile', 'security', 'notifications', 'help']);
     if (capabilities.includes('accounts') || ownerPortal) {
         items.add('support-admin');
         items.add('agreement');
     }
-    if (capabilities.includes('partner_chat') || ownerPortal) items.add('partner-messages');
+    if (chatAnswerer || ownerPortal) items.add('partner-messages');
     if (capabilities.includes('field_sales')) items.add('field-sales');
     if (capabilities.includes('staff_admin')) items.add('staff-operations');
     if (capabilities.includes('payroll')) items.add('payroll');

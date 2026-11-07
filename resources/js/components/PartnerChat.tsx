@@ -133,8 +133,81 @@ export function PartnerMessages({ chat }: { chat: Row }) {
     );
 }
 
+type RoutingStaff = { id: number; name: string; role: string; branches: string[]; scope: 'branch' | 'company' | null };
+
+type ChatRouting = { staff: RoutingStaff[]; answerers: RoutingStaff[]; version: number };
+
+/** Owner only: choose which staff answer partner chat, for their own branches or the whole company. */
+function ChatRoutingPanel({ routing }: { routing: ChatRouting }) {
+    const translate = useT();
+    // The parent remounts this panel (key = version) after a save, so the choices start from what is saved.
+    const [scopes, setScopes] = useState<Record<number, string>>(() => Object.fromEntries(routing.staff.map((row) => [row.id, row.scope ?? ''])));
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const save = () => {
+        setSaving(true);
+        setError(null);
+        const answerers = Object.entries(scopes)
+            .filter(([, scope]) => scope !== '')
+            .map(([id, scope]) => ({ user_id: Number(id), scope }));
+        router.post('/commands/chat-answerers', { answerers, version: routing.version }, {
+            preserveScroll: true,
+            onError: (errors) => setError(String(Object.values(errors)[0] ?? translate('portal', 'chat_route_err_invalid'))),
+            onFinish: () => setSaving(false),
+        });
+    };
+
+    return (
+        <details className="panel chat-routing">
+            <summary>
+                <b>{translate('portal', 'chat_route_title')}</b>{' '}
+                <small className="muted">{translate('portal', 'chat_route_count', { count: String(routing.answerers.length) })}</small>
+            </summary>
+            <p className="muted">{translate('portal', 'chat_route_hint')}</p>
+            {error && <p className="field-error" role="alert">{error}</p>}
+            {routing.staff.length === 0 ? (
+                <p className="chat-empty">{translate('portal', 'chat_route_no_staff')}</p>
+            ) : (
+                <div className="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{translate('portal', 'chat_route_col_staff')}</th>
+                                <th>{translate('portal', 'chat_route_col_branches')}</th>
+                                <th>{translate('portal', 'chat_route_col_answers')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {routing.staff.map((row) => (
+                                <tr key={row.id}>
+                                    <td><b>{row.name}</b><small className="cell-sub">{label(String(row.role), translate)}</small></td>
+                                    <td>{row.branches.length > 0 ? row.branches.join(', ') : <span className="muted">{translate('portal', 'chat_route_no_branch')}</span>}</td>
+                                    <td>
+                                        <select
+                                            value={scopes[row.id] ?? ''}
+                                            aria-label={`${translate('portal', 'chat_route_col_answers')}: ${row.name}`}
+                                            onChange={(event) => setScopes((current) => ({ ...current, [row.id]: event.target.value }))}
+                                        >
+                                            <option value="">{translate('portal', 'chat_route_scope_none')}</option>
+                                            <option value="branch">{translate('portal', 'chat_route_scope_branch')}</option>
+                                            <option value="company">{translate('portal', 'chat_route_scope_company')}</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            <div className="actions">
+                <button type="button" className="button dark" disabled={saving} onClick={save}>{translate('portal', 'chat_route_save')}</button>
+            </div>
+        </details>
+    );
+}
+
 /** Office view: every partner's chat in one inbox; open one to read and reply. */
-export default function OfficeChat({ inbox, thread }: { inbox: Row; thread: Row | null }) {
+export default function OfficeChat({ inbox, thread, routing }: { inbox: Row; thread: Row | null; routing?: ChatRouting | null }) {
     const translate = useT();
     const { portalBase: base, filters } = usePage<any>().props;
     usePoll(10000, { only: ['data', 'navAttention'] });
@@ -145,6 +218,8 @@ export default function OfficeChat({ inbox, thread }: { inbox: Row; thread: Row 
     const go = (next: Row) => router.get(`${base}/partner-messages`, Object.fromEntries(Object.entries({ q, status: unreadOnly ? 'unread' : '', with: activeId ?? '', ...next }).filter(([, value]) => value)), { preserveState: true, preserveScroll: true });
 
     return (
+        <>
+        {routing && <ChatRoutingPanel key={routing.version} routing={routing} />}
         <section className={`panel chat-office${activeId ? ' has-thread' : ''}`}>
             <aside className="chat-inbox" aria-label={translate('portal', 'chat_inbox')}>
                 <form className="chat-search" onSubmit={(event) => { event.preventDefault(); go({ q, with: '' }); }}>
@@ -198,5 +273,6 @@ export default function OfficeChat({ inbox, thread }: { inbox: Row; thread: Row 
                 )}
             </div>
         </section>
+        </>
     );
 }
