@@ -291,8 +291,8 @@ final class CommissionSettlement
      *
      * @param  Collection<int, CommissionAllocation>|null  $pendingFunds
      * @return array{
-     *   divisions: list<array{division: string, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
-     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, monthly_volume: string, share: string}>,
+     *   divisions: list<array{division: string, division_id: int|null, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
+     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, division_id: int|null, monthly_volume: string, share: string}>,
      *   dealer_pool: string, sub_dealer_salary: string, to_company_profit: string
      * }
      */
@@ -313,6 +313,7 @@ final class CommissionSettlement
         $divisions = [];
         $shares = [];
         $shareDivision = [];
+        $shareDivisionId = [];
         $subDealerCents = 0;
         $split = FairPaisaSplit::forMonth($month);
         foreach ($funds as $fund) {
@@ -326,12 +327,14 @@ final class CommissionSettlement
             [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
             $fundShares = $split->divide($cents, $qualifiedIds, 'salary');
             $divisions[$divisionKey]['name'] = $label;
+            $divisions[$divisionKey]['id'] = $fundDivision['id'] ?? null;
             $divisions[$divisionKey]['pool'] = ($divisions[$divisionKey]['pool'] ?? 0) + $cents;
             $divisions[$divisionKey]['to_company'] = ($divisions[$divisionKey]['to_company'] ?? 0) + $cents - array_sum($fundShares);
             $divisions[$divisionKey]['qualifiers'] = max($divisions[$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
             foreach ($fundShares as $id => $amount) {
                 $shares[$id] = ($shares[$id] ?? 0) + $amount;
                 $shareDivision[$id] = $label;
+                $shareDivisionId[$id] = $fundDivision['id'] ?? null;
             }
         }
         uasort($divisions, fn (array $a, array $b): int => $a['name'] <=> $b['name']);
@@ -344,6 +347,7 @@ final class CommissionSettlement
                 'name' => (string) $dealer?->name,
                 'dealer_code' => $dealer?->dealer_code,
                 'division' => $shareDivision[$id],
+                'division_id' => $shareDivisionId[$id] ?? null,
                 'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
                 'share' => Money::decimal($amount),
             ];
@@ -353,6 +357,7 @@ final class CommissionSettlement
         return [
             'divisions' => array_map(fn (array $row): array => [
                 'division' => $row['name'],
+                'division_id' => $row['id'],
                 'pool' => Money::decimal($row['pool']),
                 'qualifiers' => (int) $row['qualifiers'],
                 'per_head' => Money::decimal($row['qualifiers'] > 0 ? intdiv($row['pool'] - $row['to_company'], $row['qualifiers']) : 0),

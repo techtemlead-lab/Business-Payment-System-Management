@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Domain\Catalog\CatalogTaxonomy;
+use App\Domain\Content\TestimonialLabels;
 use App\Models\Product;
 use App\Models\SiteFeedback;
 use Illuminate\Support\Facades\Cache;
@@ -60,6 +61,14 @@ class SiteCustomization
             'header_network_title' => 'Dealer Network',
             'company_intro_title' => 'Madina Natural Health Care',
             'company_intro_body' => $copy('company_intro_body'),
+            // Home page intro: small line above the company name and the two link cards beside it.
+            'company_intro_eyebrow' => $copy('company_intro_eyebrow'),
+            'product_range_title' => $copy('product_range_title'),
+            'product_range_sub' => $copy('product_range_sub'),
+            'partner_with_us_title' => $copy('partner_with_us_title'),
+            'partner_with_us_sub' => $copy('partner_with_us_sub'),
+            'our_services_title' => $copy('our_services_title'),
+            'our_services_sub' => $copy('our_services_sub'),
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
             // Mobile search overlay — Popular Categories chips (admin-managed)
@@ -177,6 +186,12 @@ class SiteCustomization
             'testimonials_title' => 'What Customers Say',
             'testimonials_subtitle' => 'Shared by customers and partners, and published after our team approves them.',
             'testimonials' => [],
+            // Shown in place of the reviews until the first one is approved.
+            'testimonials_invite_title' => $copy('testimonials_invite_title'),
+            'testimonials_invite_body' => $copy('testimonials_invite_body'),
+            // Review form (/feedback)
+            'feedback_page_title' => $copy('feedback_page_title'),
+            'feedback_page_lead' => $copy('feedback_page_lead'),
 
             // Brand Video Gallery Showcase (Toggleable by Admin)
             // Off by default until real company videos are configured — avoids placeholder embeds on a corporate site.
@@ -232,6 +247,10 @@ class SiteCustomization
             'contact_topic2_title' => 'Products & Support',
             'contact_topic2_desc' => $copy('contact_topic2_desc'),
             'contact_topic3_title' => 'Head Office',
+            // Printed order invoice letterhead (starting values come from config/madina.php).
+            'invoice_manufacturer' => (string) config('madina.invoice_manufacturer', 'Holistic Nutracare'),
+            'invoice_marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
+            'invoice_marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
             // Default pin: Pirganj Upazila, Rangpur District (admin can override in Website CMS).
@@ -344,6 +363,9 @@ class SiteCustomization
             'auth_login_subtitle' => 'Welcome back! Please enter your credentials.',
             'auth_dealer_help_text' => 'Need a dealer account?',
             'auth_dealer_contact_text' => 'Contact the company',
+            // Help box in the dealer and sub-dealer side menu (phone comes from contact_phone).
+            'partner_help_title' => $copy('partner_help_title'),
+            'partner_help_body' => $copy('partner_help_body'),
 
             // Partnership / Become a Dealer (/partnership)
             'partnership_hero_title' => 'Become an Authorized Madina Partner',
@@ -446,6 +468,28 @@ class SiteCustomization
 
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
+        ];
+    }
+
+    /**
+     * Website editor text the dealer and sub-dealer panels show: header
+     * links and the help box in the side menu, in the partner's language.
+     *
+     * @return array<string, string>
+     */
+    public static function partnerPanelCopy(): array
+    {
+        $all = self::all();
+        $copy = collect($all)->only([
+            'header_offers_title', 'header_offers_subtitle',
+            'header_projects_title', 'header_projects_subtitle',
+        ])->map(fn (mixed $value): string => (string) $value)->all();
+        $phone = trim((string) ($all['contact_phone'] ?? ''));
+
+        return $copy + [
+            'partner_help_title' => SiteChrome::text('partner_help_title', $all['partner_help_title'] ?? null),
+            'partner_help_body' => SiteChrome::text('partner_help_body', $all['partner_help_body'] ?? null),
+            'partner_help_phone' => $phone !== '' ? $phone : (string) self::defaults()['contact_phone'],
         ];
     }
 
@@ -1327,19 +1371,39 @@ class SiteCustomization
         return $items;
     }
 
+    /**
+     * Approved reviews for the public site, with the role and place words in
+     * the visitor's language (the cache holds the saved words only).
+     *
+     * @return list<array<string, mixed>>
+     */
     public static function getTestimonials(): array
     {
-        return Cache::remember(self::TestimonialsCacheKey, self::TestimonialsCacheTtlSeconds, function (): array {
+        $rows = Cache::remember(self::TestimonialsCacheKey, self::TestimonialsCacheTtlSeconds, function (): array {
             return self::buildTestimonials();
         });
+
+        return array_map(static fn (array $row): array => [
+            ...$row,
+            'role' => TestimonialLabels::role($row['role'] ?? null, $row['source'] ?? null),
+            'location' => TestimonialLabels::location($row['location'] ?? null),
+        ], $rows);
+    }
+
+    /**
+     * Whether the owner keeps the review section switched on.
+     */
+    public static function testimonialsEnabled(?array $customization = null): bool
+    {
+        $all = $customization ?? self::all();
+
+        return filter_var($all['testimonials_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
     }
 
     /** @return list<array<string, mixed>> */
     private static function buildTestimonials(): array
     {
-        $all = self::all();
-        $enabled = filter_var($all['testimonials_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
-        if (! $enabled) {
+        if (! self::testimonialsEnabled()) {
             return [];
         }
 

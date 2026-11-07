@@ -149,4 +149,48 @@ class FinancialReportsTest extends TestCase
             $this->travel(61)->seconds();
         }
     }
+
+    public function test_partner_reports_can_be_narrowed_to_dealers_or_sub_dealers(): void
+    {
+        $finance = User::factory()->create(['role' => 'finance']);
+        $this->order(User::factory()->dealer()->create(), 'DEALER-ORDER');
+        $this->order(User::factory()->subDealer()->create(), 'SUBDEALER-ORDER');
+        $today = now()->format('Y-m-d');
+
+        $read = function (string $accountType) use ($finance, $today): array {
+            $response = $this->actingAs($finance)->get('/commands/operations/reports?type=orders&format=xlsx&from='.$today.'&to='.$today.'&account_type='.$accountType)->assertOk();
+            $file = $response->baseResponse->getFile()->getPathname();
+            $zip = new ZipArchive;
+            $this->assertTrue($zip->open($file));
+            $sheets = [(string) $zip->getFromName('xl/worksheets/sheet1.xml'), (string) $zip->getFromName('xl/worksheets/sheet2.xml')];
+            $zip->close();
+            unlink($file);
+            $this->travel(61)->seconds();
+
+            return $sheets;
+        };
+
+        [$rows, $summary] = $read('sub_dealer');
+        $this->assertStringContainsString('SUBDEALER-ORDER', $rows);
+        $this->assertStringNotContainsString('>DEALER-ORDER<', $rows);
+        $this->assertStringContainsString(__('portal.ops_report_account_sub_dealer'), $summary);
+
+        [$rows] = $read('dealer');
+        $this->assertStringContainsString('DEALER-ORDER', $rows);
+        $this->assertStringNotContainsString('SUBDEALER-ORDER', $rows);
+
+        [$rows, $summary] = $read('');
+        $this->assertStringContainsString('DEALER-ORDER', $rows);
+        $this->assertStringContainsString('SUBDEALER-ORDER', $rows);
+        $this->assertStringContainsString(__('portal.ops_report_account_all'), $summary);
+
+        $this->actingAs($finance)->getJson('/commands/operations/reports?type=orders&format=xlsx&from='.$today.'&to='.$today.'&account_type=staff')
+            ->assertUnprocessable()->assertJsonValidationErrors('account_type');
+        $this->travel(61)->seconds();
+
+        foreach (ReportData::AccountTypeReports as $type) {
+            $this->actingAs($finance)->get('/commands/operations/reports?type='.$type.'&format=xlsx&from='.$today.'&to='.$today.'&account_type=sub_dealer')->assertOk();
+            $this->travel(61)->seconds();
+        }
+    }
 }

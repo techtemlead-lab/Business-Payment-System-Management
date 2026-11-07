@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Notifications\WebPushNotices;
+use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,11 @@ class PushSubscriptionController extends Controller
         abort_unless(WebPushNotices::enabled(), 404);
         /** @var array{endpoint: string, keys: array{p256dh: string, auth: string}, content_encoding?: string|null} $data */
         $data = $request->validate([
-            'endpoint' => ['required', 'string', 'url:https', 'max:1024'],
+            'endpoint' => ['required', 'string', 'url:https', 'max:1024', function (string $attribute, mixed $value, Closure $fail): void {
+                if (! is_string($value) || ! WebPushNotices::isPushServiceEndpoint($value)) {
+                    $fail(__('validation.url', ['attribute' => $attribute]));
+                }
+            }],
             'keys.p256dh' => ['required', 'string', 'max:255'],
             'keys.auth' => ['required', 'string', 'max:255'],
             'content_encoding' => ['nullable', 'string', 'in:aesgcm,aes128gcm'],

@@ -14,6 +14,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Content\CircularPublishNotifications;
+use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Geography\PlaceTree;
@@ -716,15 +717,18 @@ class CommandController extends Controller
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 403);
 
         $data = $r->validate([
-            'location' => 'nullable|string|max:120',
+            'location' => ['nullable', 'string', 'max:120', TestimonialLabels::NoHtmlRule],
             'rating' => 'required|integer|min:1|max:5',
-            'message' => 'required|string|min:20|max:2000',
+            'message' => ['required', 'string', 'min:20', 'max:2000', TestimonialLabels::NoHtmlRule],
+        ], [
+            '*.not_regex' => __('site.feedback_no_html'),
         ]);
 
         $feedback = SiteFeedback::query()->create([
             'name' => $user->name,
-            'role' => $user->role === 'sub_dealer' ? 'Sub-Dealer Partner' : 'Authorized Dealer Partner',
-            'location' => filled($data['location'] ?? null) ? $data['location'] : (string) ($user->district ?? 'Bangladesh'),
+            // Empty role: the site shows "Dealer" or "Sub-dealer" in the visitor's language.
+            'role' => '',
+            'location' => filled($data['location'] ?? null) ? $data['location'] : (string) ($user->district ?? ''),
             'rating' => (int) $data['rating'],
             'message' => $data['message'],
             'source' => $user->role === 'sub_dealer' ? 'sub_dealer' : 'dealer',
@@ -733,7 +737,7 @@ class CommandController extends Controller
         ]);
 
         Audit::notifyAdminsAndStaff(
-            ['content', 'accounts'],
+            ['content'],
             __('portal.notice_admin_feedback_title'),
             __('portal.notice_admin_feedback_body', [
                 'name' => $feedback->name,
@@ -745,9 +749,47 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_feedback_submitted'));
     }
 
+    /**
+     * Staff add a review a customer gave by phone, in person or on social media.
+     * It is published at once, because the staff member is the one checking it.
+     */
+    public function storeStaffTestimonial(Request $r): RedirectResponse
+    {
+        abort_unless($r->user()->allows('content'), 403);
+
+        $data = $r->validate([
+            'name' => ['required', 'string', 'max:150', TestimonialLabels::NoHtmlRule],
+            'role' => ['nullable', 'string', 'max:120', TestimonialLabels::NoHtmlRule],
+            'location' => ['nullable', 'string', 'max:120', TestimonialLabels::NoHtmlRule],
+            'rating' => 'required|integer|min:1|max:5',
+            'message' => ['required', 'string', 'min:10', 'max:2000', TestimonialLabels::NoHtmlRule],
+        ], [
+            '*.not_regex' => __('site.feedback_no_html'),
+        ]);
+
+        $feedback = SiteFeedback::query()->create([
+            'name' => trim($data['name']),
+            'role' => trim((string) ($data['role'] ?? '')),
+            'location' => trim((string) ($data['location'] ?? '')),
+            'rating' => (int) $data['rating'],
+            'message' => trim($data['message']),
+            'source' => 'staff',
+            'status' => 'approved',
+            'moderated_by' => $r->user()->id,
+            'moderated_at' => now(),
+        ]);
+        Cache::forget(SiteCustomization::TestimonialsCacheKey);
+
+        Audit::record($r->user()->id, 'feedback.added_by_staff', 'frontend', [
+            'feedback_id' => $feedback->id,
+        ]);
+
+        return back()->with('success', __('portal.flash_testimonial_added'));
+    }
+
     public function moderateSiteFeedback(Request $r, int $id): RedirectResponse
     {
-        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts') || $r->user()->role === 'super_admin', 403);
+        abort_unless($r->user()->allows('content'), 403);
 
         $data = $r->validate([
             'status' => 'required|in:pending,approved,rejected',

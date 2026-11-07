@@ -105,9 +105,9 @@ final class CommissionService
 
     public function updateCarBikeMilestonesForAncestors(int $buyerId, float $cashAmount): void
     {
-        foreach (ReferralTreePath::getUplines($buyerId, 100) as $path) {
-            $this->qualification->refreshMilestones($path->ancestor_id);
-        }
+        $this->qualification->refreshMilestonesFor(
+            ReferralTreePath::getUplines($buyerId, 100)->pluck('ancestor_id')->map(fn ($id): int => (int) $id)->all()
+        );
     }
 
     /** Preview only: no wallet, allocation, policy or rank writes. @return array<string, mixed> */
