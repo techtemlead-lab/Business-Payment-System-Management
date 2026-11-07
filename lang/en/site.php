@@ -538,4 +538,6 @@ Questions about these terms, partnership rules or the website:
     'pd_col_distributor' => 'Licensed distributor',
     'form_fix_errors' => 'Please fix these:',
     'partner_message_placeholder' => 'Tell us briefly about your business, your shop or pharmacy, and your plans...',
+    'partner_date_of_birth' => 'Date of birth',
+    'partner_date_of_birth_hint' => 'You must be at least 18 years old to become a partner.',
 ];

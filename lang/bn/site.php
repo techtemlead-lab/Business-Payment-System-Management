@@ -538,4 +538,6 @@ return [
     'pd_col_distributor' => 'লাইসেন্সধারী পরিবেশক',
     'form_fix_errors' => 'নিচের ভুলগুলো ঠিক করুন:',
     'partner_message_placeholder' => 'আপনার ব্যবসা, দোকান বা ফার্মেসি আর সামনের পরিকল্পনা নিয়ে ছোট করে লিখুন...',
+    'partner_date_of_birth' => 'জন্ম তারিখ',
+    'partner_date_of_birth_hint' => 'পার্টনার হতে বয়স কমপক্ষে ১৮ বছর হতে হবে।',
 ];

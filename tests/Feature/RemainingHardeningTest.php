@@ -102,6 +102,7 @@ class RemainingHardeningTest extends TestCase
             'name' => 'Second Applicant',
             'email' => 'second.partner@example.test',
             'phone' => '01710003344',
+            'date_of_birth' => '1990-01-01',
             'role' => 'dealer',
             'division' => 'Rangpur',
             'district' => 'Dinajpur',

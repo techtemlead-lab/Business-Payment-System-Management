@@ -18,6 +18,14 @@ const availablePermissionKeys = [
     'content', 'audit', 'pricing', 'cost_read', 'identity_write', 'partner_chat',
 ] as const;
 
+/** The latest date of birth for someone who is 18 today (Dhaka calendar), as YYYY-MM-DD. */
+function latestAdultBirthDate(): string {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const [year, month, day] = today.split('-');
+    const candidate = `${Number(year) - 18}-${month}-${day}`;
+    return month === '02' && day === '29' ? `${Number(year) - 18}-02-28` : candidate;
+}
+
 async function fetchJson<T>(url: string, failedMessage: string): Promise<T> {
     const response = await fetch(url, {
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -489,7 +497,8 @@ export default function AccountCreate({
                                     )}
                                     <label>
                                         {translate('portal','acct_dob')}
-                                        <DateInput required value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
+                                        <DateInput required max={latestAdultBirthDate()} value={form.data.date_of_birth} onChange={(e) => form.setData('date_of_birth', e.target.value)} />
+                                        <small className="field-hint">{translate('portal','acct_dob_age_hint')}</small>
                                         {form.errors.date_of_birth && <span className="field-error">{form.errors.date_of_birth}</span>}
                                     </label>
                                 </div>
