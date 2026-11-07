@@ -6097,4 +6097,6 @@ return [
     'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
     'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
     'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
+    'shipment_courier_booking_pending' => 'Booking with the courier. The tracking number will show here soon.',
+    'shipment_courier_booking_failed' => 'The courier did not accept this booking. Book it with the courier yourself and tell the partner the tracking number.',
 ];

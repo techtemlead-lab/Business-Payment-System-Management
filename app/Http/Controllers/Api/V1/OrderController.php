@@ -32,7 +32,7 @@ class OrderController extends Controller
         ]);
         $query = Order::query()->when(! $companyAccess, fn ($q) => $q->where('user_id', $user->id))
             ->when(isset($data['status']), fn ($q) => $q->where('status', $data['status']))
-            ->when(! empty($data['q']), fn ($q) => $q->where('number', 'like', '%'.$data['q'].'%'));
+            ->when(! empty($data['q']), fn ($q) => $q->where('number', 'ilike', '%'.addcslashes($data['q'], '%_\\').'%'));
 
         return OrderResource::collection($query->with('lines')->orderByDesc('created_at')->orderByDesc('id')->paginate($data['per_page'] ?? 12)->withQueryString());
     }
@@ -45,7 +45,7 @@ class OrderController extends Controller
         $data['payment_claims'] = DB::table('payment_claims')->where('order_id', $order->id)->orderBy('id')
             ->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']);
         $data['shipments'] = DB::table('shipments')->where('order_id', $order->id)->orderBy('id')
-            ->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])
+            ->get(['id', 'courier', 'tracking', 'eta', 'status', 'courier_booking_status', 'lines', 'delivered_at', 'created_at'])
             ->map(function ($shipment): object {
                 $shipment->lines = json_decode($shipment->lines, true, flags: JSON_THROW_ON_ERROR);
 

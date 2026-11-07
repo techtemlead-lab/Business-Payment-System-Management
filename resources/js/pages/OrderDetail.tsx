@@ -129,7 +129,10 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 {shipments.length ? shipments.map(shipment => {
                     const lines = typeof shipment.lines === 'string' ? JSON.parse(shipment.lines) : shipment.lines;
                     return <div className="timeline-item" key={shipment.id}><i /><div>
-                        <b>{shipment.courier} · {shipment.tracking}</b><p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>
+                        <b>{shipment.courier}{shipment.tracking ? ` · ${shipment.tracking}` : ''}</b>
+                        {['pending', 'booking'].includes(shipment.courier_booking_status) && <p className="muted">{translate('portal', 'shipment_courier_booking_pending')}</p>}
+                        {shipment.courier_booking_status === 'failed' && <p className="muted">{translate('portal', 'shipment_courier_booking_failed')}</p>}
+                        <p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>
                         <p>{lines.map((line: Row) => `${line.name} × ${line.quantity}`).join(', ')}</p>
                         <Badge status={shipment.status} />
                         {capabilities.includes('inventory') && shipment.status === 'dispatched' && <ActionForm action={`/commands/orders/${order.id}/shipments/${shipment.id}/delivered`} fields={[{ name: 'reason', label: translate('portal', 'delivery_confirmation_evidence'), required: true }]} submit={translate('portal', 'confirm_delivery')} />}
