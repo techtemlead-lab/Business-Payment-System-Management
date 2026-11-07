@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Head, Link, useForm, usePage} from '@inertiajs/react';
+import {Head, Link, router, useForm, usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
 import StaffAccessEditor from '../components/StaffAccessEditor';
 import {actionAllowed} from '../components/action-permissions';
@@ -27,6 +27,29 @@ const sectionTitleKeys:Record<string,string> = {
     'access-management':'access_management',
     'video-marketing':'video_marketing',
 };
+type TableFilter = {searchable?:boolean;statuses?:string[];q?:string;status?:string};
+/** Search box and status filter for one paged table; both run on the server, so they cover every page. */
+function TableSearch({tableKey,filter}:{tableKey:string;filter?:TableFilter}){
+    const translate=useT();
+    const [q,setQ]=useState(filter?.q??'');
+    const statuses=filter?.statuses??[];
+    if(!filter?.searchable&&statuses.length===0)return null;
+    const apply=(next:{q?:string;status?:string})=>{
+        const params=new URLSearchParams(window.location.search);
+        [...params.keys()].filter(key=>/^page_\d+$/.test(key)).forEach(key=>params.delete(key));
+        const values={q:next.q??q,status:next.status??filter?.status??''};
+        for(const [name,value] of Object.entries(values)){
+            if(value)params.set(`${tableKey}_${name}`,value);else params.delete(`${tableKey}_${name}`);
+        }
+        router.get(window.location.pathname,Object.fromEntries(params.entries()),{preserveState:true,preserveScroll:true});
+    };
+    const filtered=Boolean(filter?.q||filter?.status);
+    return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q});}}>
+        {filter?.searchable&&<div className="order-search"><div className="search-input"><input aria-label={translate('portal','table_search')} placeholder={translate('portal','table_search')} value={q} onChange={e=>setQ(e.target.value)}/></div><button className="button small dark" type="submit">{translate('portal','search')}</button></div>}
+        {statuses.length>0&&<select className="order-status-select" aria-label={translate('portal','table_status')} value={filter?.status??''} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
+        {filtered&&<div className="order-filter-actions"><button type="button" className="text-link" onClick={()=>{setQ('');apply({q:'',status:''});}}>{translate('portal','clear')}</button></div>}
+    </form>;
+}
 function parseJson(value: unknown, invalidLabel = 'Invalid stored JSON'): unknown {
     if (typeof value !== 'string') {
         return value;
@@ -250,7 +273,34 @@ function KycFirstWithdrawalPanel({setting,root}:{setting:Row,root:string}){
     </section>;
 }
 
-export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],withdrawalSetting,autoApproval,kycBeforeFirstWithdrawal,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
+/**
+ * Owner switch: "Full payment required when ordering". On by default. While on,
+ * partners and staff can only send an order together with the whole payment and
+ * its screenshot. Only owners can change it; others just see it.
+ */
+function FullPaymentOrderingPanel({setting,root}:{setting:Row,root:string}){
+    const translate=useT();
+    const action=root+'/settings/full-payment-when-ordering';
+    const form=useForm<Row>({enabled:Boolean(setting.enabled),version:setting.version??0,reason:''});
+    const canEdit=Boolean(setting.can_edit);
+    return <section className="panel auto-approval-panel" data-tour="full-payment-when-ordering">
+        <div className="panel-heading"><div><h2>{translate('portal','fpo_title')}</h2><p>{translate('portal','fpo_body')}</p></div></div>
+        <form onSubmit={e=>{e.preventDefault();form.post(action,{preserveScroll:true,onSuccess:()=>form.setData('reason','')});}}>
+            <label className="aa-switch">
+                <input type="checkbox" role="switch" checked={form.data.enabled} disabled={!canEdit} onChange={e=>form.setData('enabled',e.target.checked)}/>
+                <span><b>{translate('portal','fpo_switch')}</b><small>{translate('portal',form.data.enabled?'fpo_on':'fpo_off')}</small></span>
+            </label>
+            {!canEdit&&<p className="aa-note">{translate('portal','fpo_owner_only')}</p>}
+            {canEdit&&<>
+                <label className="aa-reason">{translate('portal','change_reason_label')}<textarea rows={2} required value={form.data.reason} onChange={e=>form.setData('reason',e.target.value)}/></label>
+                {Object.values(form.errors).map(error=><span key={String(error)} className="field-error" role="alert">{String(error)}</span>)}
+                <button className="button dark" disabled={form.processing}>{form.processing?translate('portal','saving'):translate('portal','save_changes')}</button>
+            </>}
+        </form>
+    </section>;
+}
+
+export default function Operations({section,tables,paymentAccounts=[],partners=[],partnerSearch='',staff=[],summary={},policy,readiness,deploymentStatus,startupMode,regions=[],products=[],accountHistory=[],withdrawalSetting,autoApproval,kycBeforeFirstWithdrawal,fullPaymentWhenOrdering,permissionModules=[],staffAccess=[],customRoles=[],rolePresets=[],videoSetting={},videoProducts=[]}:Row) {
     const translate=useT();
     const metricLabel=(key:string)=>{const localized=translate('portal',`ops_chk_${key}`);return localized===`ops_chk_${key}`?label(key,translate):localized;};
     const sectionTitle=translate('portal', sectionTitleKeys[section] ?? section);
@@ -275,7 +325,9 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         forms.push({title:translate('portal','ops_set_monthly_target'),action:root+'/staff/targets',fields:[choose(staff.filter((s:Row)=>s.field_sales),'staff_id',translate('portal','ops_fld_sales_rep')),field('period_month',translate('portal','ops_fld_target_month'),'month'),field('target',translate('portal','ops_fld_sales_target'),'number'),field('bonus',translate('portal','ops_fld_bonus'),'number'),field('version',translate('portal','ops_fld_version_revise'),'number',false)]});
     }
     if(section==='field-sales') {
-        if(capabilities.includes('sr_orders'))forms.push({title:translate('portal','ops_submit_partner_order'),action:root+'/staff/orders',fields:[partnerField,choose(products,'items.0.product_id',translate('portal','ops_fld_product')),field('items.0.quantity',translate('portal','ops_fld_quantity'),'number'),field('note',translate('portal','ops_fld_order_note'),'textarea',false)],defaults:{idempotency_key:crypto.randomUUID()}});
+        // "Full payment required when ordering": staff orders carry the whole payment and its screenshot too.
+        const orderPayment:Field[]=fullPaymentWhenOrdering?.enabled?[{name:'channel',label:translate('portal','payment_method'),required:true,options:[{value:'Bank',label:translate('portal','pay_channel_bank')},{value:'bKash',label:translate('portal','pay_channel_bkash')},{value:'Nagad',label:translate('portal','pay_channel_nagad')},{value:'Rocket',label:translate('portal','pay_channel_rocket')}]},field('reference',translate('portal','transaction_reference')),field('amount',translate('portal','ops_fld_full_order_amount'),'number'),field('proof',translate('portal','payment_proof_label'),'file')]:[];
+        if(capabilities.includes('sr_orders'))forms.push({title:translate('portal','ops_submit_partner_order'),action:root+'/staff/orders',fields:[partnerField,choose(products,'items.0.product_id',translate('portal','ops_fld_product')),field('items.0.quantity',translate('portal','ops_fld_quantity'),'number'),...orderPayment,field('note',translate('portal','ops_fld_order_note'),'textarea',false)],defaults:{idempotency_key:crypto.randomUUID()}});
         if(capabilities.includes('sr_onboarding'))forms.push({title:translate('portal','ops_submit_dealer_application'),action:root+'/staff/applications',fields:[field('name',translate('portal','ops_fld_full_name')),field('email',translate('portal','ops_fld_email'),'email'),field('phone',translate('portal','ops_fld_phone')),choice('role',translate('portal','ops_fld_account_type'),['dealer','sub_dealer']),field('division',translate('portal','ops_fld_division')),field('district',translate('portal','ops_fld_district')),field('upazila',translate('portal','ops_fld_upazila'),'text',false),field('union',translate('portal','ops_fld_union'),'text',false),field('area_code',translate('portal','ops_fld_area_code'),'text',false),choose(partners.filter((p:Row)=>p.role==='dealer'),'sponsor_id',translate('portal','ops_fld_sponsor_optional'),false)]});
     }
     if(section==='payroll') {
@@ -315,7 +367,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {!financeActive&&capabilities.includes('finance')&&<div className="notice"><p>{translate('portal','ops_preview_finance_notice')}</p></div>}
         {section==='video-marketing'&&<section className="panel"><h2>{translate('portal','ops_promote_video')}</h2><p>{translate('portal','ops_promote_video_body')} <Link className="text-link" href="/catalog">{translate('portal','product_management')}</Link>. {translate('portal','ops_promote_video_hide')}</p>{videoProducts.length===0&&<p className="muted">{translate('portal','ops_no_product_videos')}</p>}</section>}
         {section==='access-management'&&<StaffAccessEditor modules={permissionModules} staff={staffAccess} roles={customRoles} presets={rolePresets}/>}
-        {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&kycBeforeFirstWithdrawal&&<KycFirstWithdrawalPanel setting={kycBeforeFirstWithdrawal} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
+        {section==='finance-settings'&&autoApproval&&<AutoApprovalPanel setting={autoApproval} root={root}/>}{section==='finance-settings'&&fullPaymentWhenOrdering&&<FullPaymentOrderingPanel setting={fullPaymentWhenOrdering} root={root}/>}{section==='finance-settings'&&kycBeforeFirstWithdrawal&&<KycFirstWithdrawalPanel setting={kycBeforeFirstWithdrawal} root={root}/>}{section==='finance-settings'&&withdrawalSetting&&<section className="panel"><h2>{translate('portal','ops_withdrawal_policy')}</h2><p>{translate('portal','ops_withdrawal_policy_body',{amount:money(withdrawalSetting.amount)})}</p></section>}
         {section==='policy-schedules'&&<p>{translate('portal','ops_policy_schedules_hint')}</p>}
         {section==='payroll'&&<p>{translate('portal','ops_payroll_hint')}</p>}
         {section==='reserve-payouts'&&<p>{translate('portal','ops_reserve_payouts_hint')}</p>}
@@ -327,7 +379,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {section==='financial-reports'&&<Reports salesOnly={!capabilities.includes('finance')&&!capabilities.includes('reports')}/>}
         {section==='payment-accounts'&&<section className="panel"><h2>{translate('portal','ops_account_registry')}</h2><Table rows={paymentAccounts} columns={[{key:'label',title:translate('portal','ops_account')},{key:'channel',title:translate('portal','ops_method')},{key:'holder',title:translate('portal','ops_holder')},{key:'account_number',title:translate('portal','ops_number')},{key:'is_active',title:translate('portal','ops_status'),render:r=><Badge status={r.is_active?'active':'inactive'}/>},{key:'edit',title:translate('portal','ops_manage'),render:r=><div className="ops-row"><button className="button small" onClick={()=>setAccount(r)}>{translate('portal','ops_edit_version',{version:String(r.version)})}</button><Link className="button small" href={'/operations/payment-accounts?account_history='+r.id}>{translate('portal','ops_version_history')}</Link></div>}]}/>{account&&<button className="button" onClick={()=>setAccount(null)}>{translate('portal','ops_create_another_account')}</button>}</section>}
         {accountHistory.length>0&&<section className="panel"><h2>{translate('portal','ops_payment_account_history')}</h2><Table rows={accountHistory} columns={[{key:'version',title:translate('portal','ops_version')},{key:'label',title:translate('portal','ops_account')},{key:'account_number',title:translate('portal','ops_number_at_version')},{key:'recorded_at',title:translate('portal','ops_recorded_at'),render:(r:Row)=>dateTime(r.recorded_at)},{key:'reason',title:translate('portal','ops_reason')}]}/></section>}{forms.filter(a=>actionAllowed(a.action,staffActions,a.defaults?._method??'post')).map(a=><section className="panel narrow-panel" key={a.title+(account?.version??'')}><h2>{a.title}</h2><OperationForm {...a} onDone={()=>{if(section==='payment-accounts')setAccount(null);}}/></section>)}
-        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const tableKey=String(table.key??table.title??'');const tableTitle=translate('portal',`ops_tbl_${tableKey}`);const shown=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));const keys=rows.some(r=>r.created_at)?['created_at',...shown]:shown;const multiPage=Number(table.page.last_page??1)>1;return <section className="panel" key={tableKey}><h2>{tableTitle===`ops_tbl_${tableKey}`?label(tableKey,translate):tableTitle}</h2><Table printable totalCount={table.page.total} totalLabel={multiPage?translate('portal','table_page_total'):undefined} rows={rows} columns={[...keys.map(key=>({key,title:columnLabel(key,translate),money:isMoneyKey(key),total:totalKeys.has(key),render:(row:Row)=>['rules','metadata','data','snapshot'].includes(key)?<details><summary>{translate('portal','ops_view_details')}</summary><div className="opr-json"><Detail value={parseJson(row[key], translate('portal','ops_invalid_json'))}/></div></details>:cellValue(key,row[key],translate)})),{key:'actions',title:translate('portal','ops_actions'),render:r=>rowActions(r,tableKey)}]}/><Pagination page={table.page}/></section>;})}
+        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const tableKey=String(table.key??table.title??'');const tableTitle=translate('portal',`ops_tbl_${tableKey}`);const shown=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));const keys=rows.some(r=>r.created_at)?['created_at',...shown]:shown;const multiPage=Number(table.page.last_page??1)>1;return <section className="panel" key={tableKey}><h2>{tableTitle===`ops_tbl_${tableKey}`?label(tableKey,translate):tableTitle}</h2><TableSearch tableKey={tableKey} filter={table.filter}/><Table searchable={false} printable totalCount={table.page.total} totalLabel={multiPage?translate('portal','table_page_total'):undefined} rows={rows} columns={[...keys.map(key=>({key,title:columnLabel(key,translate),money:isMoneyKey(key),total:totalKeys.has(key),render:(row:Row)=>['rules','metadata','data','snapshot'].includes(key)?<details><summary>{translate('portal','ops_view_details')}</summary><div className="opr-json"><Detail value={parseJson(row[key], translate('portal','ops_invalid_json'))}/></div></details>:cellValue(key,row[key],translate)})),{key:'actions',title:translate('portal','ops_actions'),render:r=>rowActions(r,tableKey)}]}/><Pagination page={table.page}/></section>;})}
         {selected&&<Modal title={selected.title} onClose={()=>setSelected(null)}><OperationForm {...selected} onDone={()=>setSelected(null)}/></Modal>}
     </Shell>;
 }

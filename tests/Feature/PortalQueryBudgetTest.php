@@ -93,6 +93,15 @@ class PortalQueryBudgetTest extends TestCase
         $this->assertCount(count($queries), $moreQueries, 'Dealer dashboard queries must not grow with the number of orders.');
     }
 
+    public function test_portal_page_builds_the_page_tour_once(): void
+    {
+        $owner = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+
+        [, $queries] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get('/orders'));
+
+        $this->assertSame(1, $this->matching($queries, 'from "tour_completions"'), 'The page tour should be built once per page.');
+    }
+
     public function test_guide_checklist_reads_tours_and_orders_once(): void
     {
         $dealer = User::factory()->dealer()->create(['phone' => null]);

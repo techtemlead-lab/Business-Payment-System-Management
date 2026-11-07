@@ -1036,7 +1036,7 @@ class CommandController extends Controller
         $this->permit($r, 'identity_write');
         abort_unless(in_array($user->role, ['dealer', 'sub_dealer'], true), 404);
 
-        return $documents->download($user, $document);
+        return $documents->download($r->user(), $user, $document);
     }
 
     public function updateCommissionRules(Request $r, CommissionPolicy $policy): RedirectResponse

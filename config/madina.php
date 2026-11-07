@@ -43,6 +43,9 @@ return [
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Owner decision: nobody orders without paying the whole order first. This is only the starting
+    // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
+    'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
     // Printable order invoice letterhead (matches partner invoice template layout).
     'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', 'Holistic Nutracare'),
     'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', 'Madina Natural Health Care'),
