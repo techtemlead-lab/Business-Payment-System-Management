@@ -27,7 +27,7 @@ final class AccountsSection implements WorkspaceSection
     }
 
     /**
-     * Paged dealer or sub-dealer accounts, and the active dealers who can sponsor them.
+     * Paged dealer or sub-dealer accounts with status counts and area filters.
      *
      * @return array<string, mixed>
      */
@@ -40,7 +40,6 @@ final class AccountsSection implements WorkspaceSection
         $props['account_status_counts'] = $list->statusCounts($role, $filters);
         $props['accounts'] = $list->page($role, $filters);
         $props['account_areas'] = $list->areaOptions($role);
-        $props['sponsors'] = User::where('role', 'dealer')->where('status', 'active')->orderBy('name')->get(['id', 'name', 'dealer_code', 'district']);
 
         return $props;
     }

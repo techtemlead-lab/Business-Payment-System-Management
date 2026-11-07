@@ -49,6 +49,11 @@ Schedule::command('partners:birthday-sms')->dailyAt('09:00')->timezone('Asia/Dha
 Schedule::command('orders:delivery-reminders')->dailyAt('10:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled overdue delivery reminder failed.'));
 
+// Support tickets that have waited longer than the owner's limit (24 hours unless changed) for an
+// office reply. Each morning staff with the accounts permission get one portal notice with the count. No SMS.
+Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled overdue support ticket reminder failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

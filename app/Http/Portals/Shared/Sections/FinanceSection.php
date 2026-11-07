@@ -214,17 +214,30 @@ final class FinanceSection implements WorkspaceSection
         // reserve) while the pool row keeps its full amount, so counting both would count that
         // money twice. Only original rows count toward what the commission pool handed out.
         $original = fn ($query) => $query->whereRaw("(metadata->>'source_allocation_id') IS NULL");
-        $allocated = CommissionAllocation::where('status', '!=', 'reversed')
-            ->where('category', '!=', 'company_commission_benefits_fund')
-            ->where($original)
-            ->sum('amount');
-        $unclaimedToCompany = CommissionAllocation::where('status', '!=', 'reversed')
-            ->where('category', CommissionSettlement::CompanyProfitCategory)
-            ->sum('amount');
-        $company = DB::table('commission_batches')->selectRaw('COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
-        $buffer = DB::table('commission_batches')->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')->value('amount');
+        // Every commission-allocation total in one pass, each with the same filter it had as its own query.
+        $pools = DB::table('commission_allocations')->selectRaw(
+            "COALESCE(SUM(amount) FILTER (WHERE status <> 'reversed' AND category <> 'company_commission_benefits_fund' AND (metadata->>'source_allocation_id') IS NULL), 0) AS allocated, "
+            ."COALESCE(SUM(amount) FILTER (WHERE status <> 'reversed' AND category = ?), 0) AS unclaimed_to_company, "
+            ."COALESCE(SUM(amount) FILTER (WHERE status = 'unassigned_reserve'), 0) AS unassigned, "
+            ."COALESCE(SUM(amount) FILTER (WHERE status = 'maturing'), 0) AS maturing, "
+            ."COALESCE(SUM(amount) FILTER (WHERE category = 'company_marketing_fund'), 0) AS marketing_fund, "
+            ."COALESCE(SUM(amount) FILTER (WHERE category = 'car_bike_incentive_fund'), 0) AS car_bike_fund",
+            [CommissionSettlement::CompanyProfitCategory],
+        )->first();
+        // Batch shares, paid withdrawals and refunds in a second pass.
+        $totals = DB::query()->selectRaw(
+            '(SELECT COALESCE(SUM(company_share * (cash_basis - refunded_amount) / cash_basis), 0) FROM commission_batches) AS company, '
+            .'(SELECT COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) FROM commission_batches) AS buffer, '
+            ."(SELECT COALESCE(SUM(COALESCE(net_amount, amount)), 0) FROM withdrawals WHERE status = 'paid') AS settled_disbursements, "
+            ."(SELECT COALESCE(SUM(withheld_amount), 0) FROM withdrawals WHERE status = 'paid') AS tds_tax_withheld, "
+            .'(SELECT COALESCE(SUM(amount), 0) FROM commission_refunds) AS refunded',
+        )->first();
+        $allocated = $pools->allocated;
+        $unclaimedToCompany = $pools->unclaimed_to_company;
+        $company = $totals->company;
+        $buffer = $totals->buffer;
         $management = app(ManagementReferral::class)->fundAmount();
-        $unassigned = CommissionAllocation::where('status', 'unassigned_reserve')->sum('amount');
+        $unassigned = $pools->unassigned;
         $props['flow'] = [
             'gross_cash_inflow' => $cash,
             'dealer_cash_inflow' => $dealerCash,
@@ -236,12 +249,12 @@ final class FinanceSection implements WorkspaceSection
             'total_company_deposits' => round((float) $company + (float) $management + (float) $unassigned, 2),
             'commission_pool_40' => (float) $allocated,
             'allocated_so_far' => (float) $allocated,
-            'settled_disbursements' => (float) DB::table('withdrawals')->where('status', 'paid')->sum(DB::raw('COALESCE(net_amount, amount)')),
-            'maturing_commissions' => (float) CommissionAllocation::where('status', 'maturing')->sum('amount'),
-            'marketing_fund' => (float) CommissionAllocation::where('category', 'company_marketing_fund')->sum('amount'),
-            'car_bike_fund' => (float) CommissionAllocation::where('category', 'car_bike_incentive_fund')->sum('amount'),
-            'tds_tax_withheld' => (float) DB::table('withdrawals')->where('status', 'paid')->sum('withheld_amount'),
-            'refunded_purchase_value' => (float) DB::table('commission_refunds')->sum('amount'),
+            'settled_disbursements' => (float) $totals->settled_disbursements,
+            'maturing_commissions' => (float) $pools->maturing,
+            'marketing_fund' => (float) $pools->marketing_fund,
+            'car_bike_fund' => (float) $pools->car_bike_fund,
+            'tds_tax_withheld' => (float) $totals->tds_tax_withheld,
+            'refunded_purchase_value' => (float) $totals->refunded,
             'unclaimed_to_company_profit' => (float) $unclaimedToCompany,
         ];
         $ownerBenefits = $user->owner() && $context->portal === 'sadmin';
