@@ -356,6 +356,8 @@
     </section>
     @endif
 
+    @include('reference.partials.md-message', ['placement' => 'home'])
+
     {{-- Customer & Partner Testimonials Section (Admin-controlled toggle) --}}
     @php
         $testimonials = $testimonials ?? [];

@@ -491,6 +491,30 @@ function initFaqAccordions() {
     });
 }
 
+// Managing Director's message: "Read the full message" shows the rest of the letter.
+function initMdMessageToggles() {
+    document.querySelectorAll<HTMLButtonElement>('[data-md-toggle]').forEach((button) => {
+        const more = document.getElementById(button.getAttribute('aria-controls') ?? '');
+        const label = button.querySelector('span');
+        const icon = button.querySelector('i');
+        if (!more) return;
+
+        const setOpen = (open: boolean) => {
+            more.hidden = !open;
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (label) label.textContent = (open ? button.dataset.labelLess : button.dataset.labelMore) ?? '';
+            icon?.classList.toggle('fa-chevron-down', !open);
+            icon?.classList.toggle('fa-chevron-up', open);
+        };
+
+        button.addEventListener('click', () => setOpen(button.getAttribute('aria-expanded') !== 'true'));
+        // A link to /about#md-message opens the whole letter.
+        if (window.location.hash === '#md-message' && button.closest('#md-message')) {
+            setOpen(true);
+        }
+    });
+}
+
 function initPageProgressNavigation() {
     const progress = document.getElementById('refPageProgress');
     const root = document.documentElement;
@@ -591,6 +615,7 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initScrollReveal();
         initFaqAccordions();
+        initMdMessageToggles();
         bindLocaleSwitchForms();
         initPageProgressNavigation();
         prefetchLikelyNextPages();
@@ -598,6 +623,7 @@ if (document.readyState === 'loading') {
 } else {
     initScrollReveal();
     initFaqAccordions();
+    initMdMessageToggles();
     bindLocaleSwitchForms();
     initPageProgressNavigation();
     prefetchLikelyNextPages();
