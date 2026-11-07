@@ -717,7 +717,8 @@ class CommissionLogicValidationTest extends TestCase
             'one_time_incentive_paid' => false,
         ]);
 
-        $funding = $this->commissionOrder(['idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', 'incentive-funding'), 'number' => 'INCENTIVE-FUNDING', 'user_id' => User::factory()->create()->id, 'status' => 'delivered', 'total' => '250000.00', 'paid' => '250000.00']);
+        $funding = $this->commissionOrder(['idempotency_key' => (string) Str::uuid(), 'payload_hash' => hash('sha256', 'incentive-funding'), 'number' => 'INCENTIVE-FUNDING', 'user_id' => User::factory()->create()->id, 'status' => 'delivered', 'total' => '500000.00', 'paid' => '500000.00']);
+        // ৳5 lakh funds ৳10,000: the buyer reaches MO and is paid ৳5,000 at once (owner rule); ৳5,000 is left for the leader.
         $service->processOrder($funding);
         // Claim the funded one-time incentive.
         $claim = $service->claimOneTimeRankIncentive($leader->id, 5000.00);

@@ -294,7 +294,8 @@ class CommissionSettlementTest extends TestCase
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
         $service = app(CommissionService::class);
         $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
-        $this->purchase(User::factory()->create(), '250000.00', '500000.00');
+        // A sub-dealer funds the reserve: sub-dealers never rank up, so no reward of their own uses it.
+        $this->purchase(User::factory()->create(['role' => 'sub_dealer']), '250000.00', '400000.00');
         $claim = $service->claimOneTimeRankIncentive($leader->id);
 
         $this->assertTrue($claim['success']);
@@ -325,6 +326,39 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame(['am', 'mo'], DB::table('rank_incentive_awards')->where('user_id', $leader->id)->orderBy('rank')->pluck('rank')->all());
     }
 
+    public function test_the_rank_reward_is_paid_the_moment_the_rank_is_reached(): void
+    {
+        $dealer = User::factory()->create();
+
+        // ৳2,50,000 of own purchases reaches MO; this sale's 2% reward reserve (৳5,000) funds the MO reward.
+        $this->purchase($dealer, '250000.00', '500000.00');
+
+        $this->assertSame('mo', DealerRank::where('user_id', $dealer->id)->value('current_rank'));
+        $this->assertDatabaseHas('rank_incentive_awards', ['user_id' => $dealer->id, 'rank' => 'mo', 'amount' => '5000.00']);
+    }
+
+    public function test_royalty_is_paid_only_for_the_latest_rank_reached_in_the_month(): void
+    {
+        $leader = User::factory()->create();
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'am', 'achieved_at' => now(), 'qualification_history' => [
+            ['rank' => 'mo', 'achieved_at' => now()->subDays(2)->toIso8601String()],
+            ['rank' => 'am', 'achieved_at' => now()->toIso8601String()],
+        ]]);
+        $mo = User::factory()->create();
+        DealerRank::create(['user_id' => $mo->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
+        $this->purchase($leader, '3000000.00', '6000000.00');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        app(CommissionService::class)->settleRankRoyaltyPool('2026-09');
+
+        // 4% of ৳30 lakh = ৳1,20,000 in four ৳30,000 rank buckets: the AM bucket goes to the leader,
+        // the MO bucket to the MO dealer only. The leader is not paid as MO as well.
+        $royalty = fn (User $user): int => (int) DB::table('commission_settlement_payouts')->where('user_id', $user->id)->where('kind', 'royalty')
+            ->get()->sum(fn ($row) => Money::cents((string) $row->amount));
+        $this->assertSame(3000000, $royalty($leader));
+        $this->assertSame(3000000, $royalty($mo));
+    }
+
     public function test_a_rank_never_reached_is_not_rewarded(): void
     {
         // Promoted to AM by team size without ever buying the MO target: no MO reward.
@@ -348,7 +382,7 @@ class CommissionSettlementTest extends TestCase
             'current_rank' => 'mo',
             'achieved_at' => now()->subDays(60),
         ]);
-        $this->purchase(User::factory()->create(), '250000.00', '500000.00');
+        $this->purchase(User::factory()->create(['role' => 'sub_dealer']), '250000.00', '400000.00');
         $claim = app(CommissionService::class)->claimOneTimeRankIncentive($leader->id);
 
         $this->assertFalse($claim['success']);
@@ -442,7 +476,8 @@ class CommissionSettlementTest extends TestCase
         $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'dealer']);
         $this->purchase($buyer, '10000.00', '20000.00');
         $this->assertDatabaseHas('dealer_ranks', ['user_id' => $buyer->id, 'current_rank' => 'mo', 'lifetime_purchase_total' => '250000.00']);
-        $this->assertDatabaseCount('rank_incentive_awards', 0);
+        // Owner rule: the MO reward is paid the moment MO is reached.
+        $this->assertDatabaseHas('rank_incentive_awards', ['user_id' => $buyer->id, 'rank' => 'mo', 'amount' => '5000.00']);
     }
 
     public function test_a_refund_blocks_an_unpaid_withdrawal_and_rejection_clears_its_clawback(): void
