@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Content\TrainingQuiz;
 use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use App\Models\User;
@@ -138,6 +139,54 @@ class TrainingQuizTest extends TestCase
      *
      * @return array{0: TrainingItem, 1: list<int>}
      */
+    public function test_quiz_tries_are_limited_per_hour_so_answers_cannot_be_guessed(): void
+    {
+        [$item, $questions] = $this->quizItem(100);
+        [$other, $otherQuestions] = $this->quizItem(100);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        $wrong = [$questions[0] => 0, $questions[1] => 0];
+
+        for ($try = 1; $try <= TrainingQuiz::DefaultAttemptsPerHour; $try++) {
+            $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => $wrong])
+                ->assertSessionHasNoErrors()->assertSessionHas('error');
+        }
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => [$questions[0] => 1, $questions[1] => 2]])
+            ->assertSessionHasErrors('answers');
+        $completion = TrainingCompletion::query()->where('training_item_id', $item->id)->sole();
+        $this->assertSame(TrainingQuiz::DefaultAttemptsPerHour, $completion->attempts);
+        $this->assertNull($completion->passed_at, 'The blocked try is not marked, even with the right answers.');
+
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$other->id.'/quiz-attempt', ['answers' => [$otherQuestions[0] => 1, $otherQuestions[1] => 2]])
+            ->assertSessionHasNoErrors()->assertSessionHas('success');
+
+        $this->travel(61)->minutes();
+        $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => [$questions[0] => 1, $questions[1] => 2]])
+            ->assertSessionHasNoErrors()->assertSessionHas('success');
+    }
+
+    public function test_owners_can_change_the_hourly_quiz_limit_and_other_staff_cannot(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $editor = User::factory()->staff('editor')->create();
+
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training/quiz-limit', ['per_hour' => 50, 'version' => 0])->assertForbidden();
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training/quiz-limit', ['per_hour' => 99, 'version' => 0])->assertSessionHasErrors('per_hour');
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training/quiz-limit', ['per_hour' => 2, 'version' => 0])
+            ->assertSessionHasNoErrors()->assertSessionHas('success');
+        $this->assertSame(['per_hour' => 2, 'version' => 1], app(TrainingQuiz::class)->attemptLimit());
+        $this->assertDatabaseHas('audit_events', ['actor_id' => $owner->id, 'action' => 'training.quiz_limit_changed']);
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training/quiz-limit', ['per_hour' => 3, 'version' => 0])->assertSessionHasErrors('per_hour');
+
+        [$item, $questions] = $this->quizItem(100);
+        $dealer = User::factory()->dealer()->create(['status' => 'active']);
+        foreach ([false, false, true] as $blocked) {
+            $response = $this->actingAs($dealer)->onPortal('dealer')->post('/commands/training/'.$item->id.'/quiz-attempt', ['answers' => [$questions[0] => 0, $questions[1] => 0]]);
+            $blocked ? $response->assertSessionHasErrors('answers') : $response->assertSessionHasNoErrors();
+        }
+        $this->actingAs($owner)->onPortal('sadmin')->get('/training')->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.training.quiz_limit.per_hour', 2)->where('data.training.quiz_limit.can_edit', true));
+    }
+
     private function quizItem(int $passPercent): array
     {
         $item = TrainingItem::factory()->published()->create(['quiz_pass_percent' => $passPercent]);

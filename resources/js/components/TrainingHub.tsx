@@ -56,6 +56,7 @@ type StaffData = {
     pdf_max_mb: number;
     video_max_mb: number;
     new_for_days: number;
+    quiz_limit?: { per_hour: number; version: number; can_edit: boolean; max: number };
 };
 
 export type TrainingData = PartnerData | StaffData;
@@ -473,6 +474,22 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
     );
 }
 
+/** Owners: how many quiz tries a partner gets per quiz in one hour. */
+function QuizLimitForm({ limit }: { limit: NonNullable<StaffData['quiz_limit']> }) {
+    const translate = useT();
+    const form = useForm({ per_hour: String(limit.per_hour), version: limit.version });
+    return (
+        <form className="action-form training-quiz-limit" onSubmit={(event) => { event.preventDefault(); form.post('/commands/training/quiz-limit', { preserveScroll: true }); }}>
+            <label>{translate('portal', 'training_quiz_limit_label')}
+                <input type="number" min={1} max={limit.max} required value={form.data.per_hour} onChange={(event) => form.setData('per_hour', event.target.value)} />
+            </label>
+            <p className="muted">{translate('portal', 'training_quiz_limit_hint')}</p>
+            {form.errors.per_hour && <p className="error">{form.errors.per_hour}</p>}
+            <button type="submit" className="button small" disabled={form.processing}>{translate('portal', 'training_quiz_limit_save')}</button>
+        </form>
+    );
+}
+
 function StaffEditor({ data }: { data: StaffData }) {
     const translate = useT();
     const titleOf = useTitle();
@@ -505,6 +522,7 @@ function StaffEditor({ data }: { data: StaffData }) {
                     <div>
                         <h2>{translate('portal', 'training')}</h2>
                         <p className="muted">{translate('portal', 'training_staff_intro')}</p>
+                        {data.quiz_limit?.can_edit && <QuizLimitForm key={data.quiz_limit.version} limit={data.quiz_limit} />}
                     </div>
                     {data.can_create && (
                         <button type="button" className="button dark" onClick={() => setEditing('new')}>
