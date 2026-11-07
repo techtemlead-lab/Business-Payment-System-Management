@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Commissions\CommissionQualification;
 use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -99,6 +101,54 @@ class ReferralTreeEarningsTest extends TestCase
 
                 return true;
             }));
+    }
+
+    public function test_the_tree_shows_the_same_monthly_volume_that_decides_salary(): void
+    {
+        $month = CommissionQualification::currentMonth();
+        $thisMonth = Order::query()->where('user_id', $this->grandchild->id)->where('status', 'delivered')->firstOrFail();
+        $this->batch($thisMonth, $month, '1000.00', '100.00');
+        // Ordered last month but delivered (and counted) this month.
+        $lateDelivery = $this->order($this->child, '300.00', 'delivered', now()->subMonthNoOverflow()->startOfMonth());
+        $this->batch($lateDelivery, $month, '300.00', '0.00');
+        $lastYear = Order::query()->where('user_id', $this->child->id)->where('total', '700.00')->firstOrFail();
+        $this->batch($lastYear, now()->subYear()->format('Y-m'), '700.00', '0.00');
+        $expected = app(CommissionQualification::class)->monthlyVolumesFor([$this->grandchild->id, $this->child->id], $month);
+
+        $this->actingAs($this->root)->onPortal('dealer')->get('/network')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('data.dealers', function ($dealers) use ($expected): bool {
+                $nodes = collect($dealers)->keyBy('id');
+                $grandchild = $nodes[$this->grandchild->id];
+                $child = $nodes[$this->child->id];
+
+                $this->assertSame('900.00', $grandchild['qualifying_volume_month'], 'Refunds come off the salary volume.');
+                $this->assertSame(Money::decimal($expected[$this->grandchild->id]), $grandchild['qualifying_volume_month']);
+                $this->assertSame('1000.00', $grandchild['sales_month']);
+                $this->assertSame('300.00', $child['qualifying_volume_month'], 'Counted in the month it was delivered.');
+                $this->assertSame(Money::decimal($expected[$this->child->id]), $child['qualifying_volume_month']);
+                $this->assertSame('0.00', $nodes[$this->root->id]['qualifying_volume_month']);
+
+                return true;
+            }));
+    }
+
+    private function batch(Order $order, string $month, string $cash, string $refunded): void
+    {
+        DB::table('commission_batches')->insert([
+            'order_id' => $order->id,
+            'account_type' => 'dealer',
+            'period_month' => $month,
+            'cash_basis' => $cash,
+            'mrp_basis' => $cash,
+            'company_share' => $cash,
+            'total_allocated' => '0.00',
+            'unallocated' => '0.00',
+            'refunded_amount' => $refunded,
+            'policy' => '{}',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function order(User $buyer, string $total, string $status, $createdAt): Order
