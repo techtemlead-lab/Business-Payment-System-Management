@@ -137,12 +137,9 @@ final class PlaceGeographyResolver
     /** The place code id saved on a partner's profile, when it is a usable number. */
     public static function profilePlaceId(User $user): ?int
     {
-        $value = is_array($user->profile) ? ($user->profile['place_code_id'] ?? null) : null;
-        if (is_int($value) || (is_string($value) && ctype_digit($value))) {
-            return (int) $value > 0 ? (int) $value : null;
-        }
+        $value = filter_var(data_get($user->profile, 'place_code_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
-        return null;
+        return $value === false ? null : $value;
     }
 
     /**
