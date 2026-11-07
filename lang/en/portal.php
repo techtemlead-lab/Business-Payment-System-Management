@@ -6257,4 +6257,11 @@ return [
     'ops_fld_wallet_number_mobile' => 'Wallet number paid to (bKash / Nagad)',
     'ops_fld_received_by_cash' => 'Cash received by (cash only)',
     'ops_fld_payment_receipt_not_cash' => 'Transfer proof (not needed for cash)',
+    'push_turn_on' => 'Turn on notifications',
+    'push_turn_off' => 'Turn off notifications',
+    'push_off_hint' => 'Get these updates on this phone or computer, even when the portal is closed.',
+    'push_on_hint' => 'Notifications are on for this phone or computer.',
+    'push_working' => 'Please wait…',
+    'push_blocked' => 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
+    'push_failed' => 'Could not change notifications. Please try again.',
 ];

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Inventory\BranchOperations;
+use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Security\SecuritySettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\ChatRouting;
@@ -135,6 +136,8 @@ class HandleInertiaRequests extends Middleware
             },
             // Kept for Shell fallbacks; value mirrors navAttention.notifications and shares its single count.
             'unreadNotices' => fn () => $u ? $unreadNotices() : 0,
+            // Phone/browser notifications: the public VAPID key, or null when the feature is off.
+            'webPushKey' => fn () => ($u && $portal !== 'public') ? WebPushNotices::publicKey() : null,
             'tour' => fn () => ($u && $portalShell)
                 ? app(TourGuide::class)->forPage($u, 'overview')
                 : null,

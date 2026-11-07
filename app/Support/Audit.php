@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domain\Notifications\WebPushNotices;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +24,7 @@ final class Audit
     public static function notice(int $user, string $title, string $body): void
     {
         DB::table('account_notices')->insert(['user_id' => $user, 'title' => $title, 'body' => $body, 'created_at' => now(), 'updated_at' => now()]);
+        app(WebPushNotices::class)->send([['user_id' => $user, 'title' => $title, 'body' => $body]]);
     }
 
     /**
@@ -72,5 +74,6 @@ final class Audit
         ])->values()->all();
 
         DB::table('account_notices')->insert($rows);
+        app(WebPushNotices::class)->send($rows);
     }
 }

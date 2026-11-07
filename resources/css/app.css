@@ -30,3 +30,4 @@
 .import-workspace .import-choice input,.import-workspace .import-confirmation input{width:18px;height:18px;min-height:18px;margin:0;padding:0;flex:0 0 18px;accent-color:#2e3192}
 .import-workspace .import-confirmation{display:flex;flex-direction:row;align-items:flex-start;gap:10px}
 @media(max-width:640px){.import-workspace .import-options{grid-template-columns:1fr}.import-workspace .section-header{align-items:flex-start}}
+.push-opt-in{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2,8px) var(--ds-s-3,12px);margin:0 0 var(--ds-s-4,16px)}.push-opt-in .button svg{flex-shrink:0}.push-opt-in small{color:var(--ds-text-muted);font-size:var(--ds-fs-xs)}

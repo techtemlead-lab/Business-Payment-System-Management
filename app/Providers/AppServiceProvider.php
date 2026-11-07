@@ -4,12 +4,14 @@ namespace App\Providers;
 
 use App\Database\Connectors\PostgresConnector;
 use App\Domain\Integrations\SmtpMailConfig;
+use App\Domain\Notifications\WebPushNotices;
 use App\Domain\Pricing\CurrentProductPricing;
 use App\Domain\Pricing\ProductPricing;
 use App\Models\User;
 use App\Support\PhoneIdentity;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Events\DiagnosingHealth;
@@ -78,6 +80,10 @@ class AppServiceProvider extends ServiceProvider
                 Cache::put('operations:queue-heartbeat', now()->utc()->toIso8601String(), now()->addMinutes(5));
                 $lastRecorded = time();
             }
+        });
+        Event::listen(Logout::class, function (Logout $event): void {
+            $endpoint = request()->hasSession() ? request()->session()->get(WebPushNotices::SessionEndpoint) : null;
+            app(WebPushNotices::class)->forgetOnLogout($event->user instanceof User ? $event->user : null, is_string($endpoint) ? $endpoint : null);
         });
         Event::listen(JobFailed::class, function (JobFailed $event): void {
             Log::critical('Background job failed. Review the failed-jobs register.', ['job' => $event->job->resolveName()]);

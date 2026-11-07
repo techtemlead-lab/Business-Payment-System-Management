@@ -14,6 +14,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductRegistryController;
 use App\Http\Controllers\ProductSubcategoryController;
 use App\Http\Controllers\ProductUnitController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TrainingController;
 use App\Http\Controllers\WithdrawalController;
@@ -35,6 +36,8 @@ return function (string $portal): void {
     Route::post('/security/privacy-export', [AuthController::class, 'privacyExport'])->middleware('throttle:3,1');
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
     Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
+    Route::post('/commands/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:20,1');
+    Route::delete('/commands/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->middleware('throttle:20,1');
     Route::post('/commands/partner-support', [CommandController::class, 'partnerSupport'])->middleware('throttle:5,1');
     Route::post('/commands/messages', [PartnerChatController::class, 'send'])->middleware('throttle:20,1');
     Route::post('/commands/partner-messages/{user}', [PartnerChatController::class, 'reply'])->middleware('throttle:60,1');

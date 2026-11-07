@@ -3,6 +3,7 @@
 namespace App\Domain\Content;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\WebPushNotices;
 use App\Models\PartnerEvent;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,7 +53,7 @@ final class PartnerEventNotifications
             ->select(['id', 'locale', 'phone'])
             ->chunkById(500, function (Collection $users) use ($event, $titleKey, $bodyKey, $smsEvent, $smsKey, &$count): void {
                 $timestamp = now();
-                DB::table('account_notices')->insert($users->map(function (User $user) use ($event, $titleKey, $bodyKey, $timestamp): array {
+                $rows = $users->map(function (User $user) use ($event, $titleKey, $bodyKey, $timestamp): array {
                     $locale = $user->preferredLocale();
                     $replace = $this->replacements($event, $locale);
 
@@ -63,7 +64,9 @@ final class PartnerEventNotifications
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp,
                     ];
-                })->all());
+                })->all();
+                DB::table('account_notices')->insert($rows);
+                app(WebPushNotices::class)->send($rows);
                 $count += $users->count();
 
                 if ($event->send_sms) {
