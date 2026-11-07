@@ -52,7 +52,7 @@ final class ChatRouting
                 $answerers[$userId] = $scope;
             }
         }
-        $setting = ['answerers' => $answerers, 'version' => (int) ($row?->version ?? 0)];
+        $setting = ['answerers' => $answerers, 'version' => (int) ($row->version ?? 0)];
         $request->attributes->set(self::MemoKey, $setting);
 
         return $setting;
@@ -214,7 +214,7 @@ final class ChatRouting
         }
         DB::transaction(function () use ($actor, $clean, $version): void {
             $stored = DB::table('business_settings')->where('key', self::SettingKey)->lockForUpdate()->first();
-            $current = (int) ($stored?->version ?? 0);
+            $current = (int) ($stored->version ?? 0);
             if ($version !== $current) {
                 throw ValidationException::withMessages(['answerers' => __('portal.chat_route_err_stale')]);
             }
@@ -227,7 +227,7 @@ final class ChatRouting
                 'value' => json_encode(['answerers' => $after], JSON_THROW_ON_ERROR),
                 'version' => $current + 1,
                 'updated_by' => $actor->id,
-                'created_at' => $stored?->created_at ?? now(),
+                'created_at' => $stored->created_at ?? now(),
                 'updated_at' => now(),
             ]);
             Audit::record($actor->id, 'partner_chat.answerers_changed', self::SettingKey, ['before' => $before, 'after' => $after]);
