@@ -7,6 +7,7 @@ use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -606,9 +607,10 @@ class CommissionLogicValidationTest extends TestCase
         $this->travelTo(now()->startOfMonth()->subMonth()->addDays(14));
         $period = now()->format('Y-m');
 
-        // Setup 2 dealers
-        $dealer1 = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
-        $dealer2 = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        // Setup 2 dealers in the same division (salary is shared by division place code)
+        $division = PlaceCode::factory()->division()->create();
+        $dealer1 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
+        $dealer2 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
 
         // Dealer 1 has ৳15,000 monthly purchases (qualified >= ৳10,000)
         DealerRank::create([

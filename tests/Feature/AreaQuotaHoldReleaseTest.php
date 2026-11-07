@@ -7,6 +7,7 @@ use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -54,11 +55,13 @@ class AreaQuotaHoldReleaseTest extends TestCase
         $this->enableFinancialPosting();
         config(['madina.auto_release_quota_holds' => true]);
 
-        $area = User::factory()->create(['division' => 'Rangpur', 'role' => 'dealer', 'status' => 'active']);
-        $buyer = User::factory()->create(['division' => 'Rangpur', 'role' => 'dealer', 'status' => 'active']);
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $area = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
+        $buyer = User::factory()->inPlace($rangpur)->create(['role' => 'dealer', 'status' => 'active']);
         AreaDealerAssignment::create([
             'user_id' => $area->id,
             'level' => 'division',
+            'place_code_id' => $rangpur->id,
             'division' => 'Rangpur',
             'zone_name' => 'Rangpur',
             'monthly_quota' => '100',

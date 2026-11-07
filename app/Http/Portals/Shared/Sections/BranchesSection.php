@@ -34,6 +34,7 @@ final class BranchesSection implements WorkspaceSection
         $props = [];
         $branchOps = app(BranchOperations::class);
         $branches = CompanyBranch::query()
+            ->with('placeCode:id,code')
             ->withCount(['stocks as stock_skus' => fn ($stocks) => $stocks->where('quantity', '>', 0)])
             ->withSum('stocks as stock_units', 'quantity')
             ->addSelect(['stock_value' => DB::table('branch_product_stocks')

@@ -10,6 +10,7 @@ use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\SiteCustomization;
@@ -113,6 +114,8 @@ class RemainingHardeningTest extends TestCase
         $this->actingAs($reviewer)->postJson('/api/v1/operations/staff/applications/'.$id.'/review', [
             'decision' => 'approved',
             'reason' => 'Approved after territory and documents review.',
+            'place_code' => PlaceCode::factory()->union(PlaceCode::factory()->upazila(PlaceCode::factory()->district(
+                PlaceCode::factory()->division()->create())->create())->create())->create()->code,
         ])->assertOk();
 
         $this->assertDatabaseHas('users', [

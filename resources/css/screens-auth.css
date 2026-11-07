@@ -37,11 +37,6 @@ body.company-auth .company-auth-main{position:relative;z-index:1}
   body.company-auth .company-auth-card{padding:24px 20px}
 }
 
-/* Dealer / sub-dealer sign-in on phones: the floating chat button sat on top of the
-   password box. Move it down to the bottom corner, above the back-to-top button. */
-@media(max-width:767px){
-  body:has(.ref-auth-main) aside.ref-floating-tools{inset:auto 12px calc(148px + env(safe-area-inset-bottom,0px)) auto!important;top:auto!important;bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;transform:none!important}
-}
 
 @media(prefers-reduced-motion:no-preference){
   body.company-auth::after{animation:authAuroraFade 12s ease-in-out infinite alternate}

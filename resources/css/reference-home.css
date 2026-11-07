@@ -3032,6 +3032,60 @@ aside.ref-floating-tools > a.ref-chat:focus-visible::after {
     }
 }
 
+/* Phones and tablets (bottom menu showing): the WhatsApp button used to float mid-right over
+   the text. It now sits in the bottom corner just above the bottom menu (clear of the phone's
+   rounded corners and home bar), back-to-top stacks above it, and while the visitor scrolls
+   down to read it tucks away to the side (reference-home.ts adds .ref-fab-tucked). The footer
+   gets extra room at the end so its last lines can always be scrolled clear of both buttons. */
+@media (max-width: 1023px) {
+    aside.ref-floating-tools {
+        inset: auto calc(12px + env(safe-area-inset-right, 0px)) calc(76px + env(safe-area-inset-bottom, 0px)) auto !important;
+        top: auto !important;
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+        right: calc(12px + env(safe-area-inset-right, 0px)) !important;
+        transform: none !important;
+        transition: translate .28s cubic-bezier(.16, 1, .3, 1), opacity .2s ease;
+    }
+
+    aside.ref-floating-tools > a.ref-chat {
+        width: 46px !important;
+        height: 46px !important;
+        min-width: 46px !important;
+    }
+
+    aside.ref-floating-tools > a.ref-chat i,
+    aside.ref-floating-tools > a.ref-chat .ref-chat-icon {
+        font-size: 22px !important;
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    body.ref-fab-tucked aside.ref-floating-tools {
+        translate: calc(100% + 24px) 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .ref-back-top {
+        right: calc(12px + env(safe-area-inset-right, 0px)) !important;
+        bottom: calc(134px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    body.ref-fab-tucked .ref-back-top {
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    body.ref-home:has(aside.ref-floating-tools) .ref-footer {
+        padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+    aside.ref-floating-tools {
+        transition: none;
+    }
+}
+
 /* Mobile: center catalog CTA; compress public footer height */
 @media (max-width: 767px) {
     .ref-public-catalog-note {
