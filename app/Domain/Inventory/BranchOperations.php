@@ -472,9 +472,11 @@ final class BranchOperations
     }
 
     /**
+     * The branch shown as active in the top-bar switcher, picked from branches already loaded.
+     *
      * @param  Collection<int, CompanyBranch>  $branches
      */
-    private function preferredAmong(Collection $branches, User $actor): ?CompanyBranch
+    public function preferredAmong(Collection $branches, User $actor): ?CompanyBranch
     {
         if ($actor->active_branch_id) {
             $saved = $branches->firstWhere('id', (int) $actor->active_branch_id);
@@ -499,9 +501,12 @@ final class BranchOperations
     }
 
     /**
+     * Branches the actor may see: every branch for the owner and all-branch staff,
+     * otherwise only the branches the actor is assigned to.
+     *
      * @return Collection<int, CompanyBranch>
      */
-    private function visibleBranches(User $actor): Collection
+    public function visibleBranches(User $actor): Collection
     {
         $query = CompanyBranch::query()->orderBy('name');
         if (! $this->canManageAllBranches($actor) && ! $actor->owner()) {

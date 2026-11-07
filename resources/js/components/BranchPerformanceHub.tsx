@@ -46,6 +46,7 @@ interface PerformancePayload {
     unassigned: BranchMetric;
     orders: PerformanceOrder[];
     selected_branch_id?: number | null;
+    can_view_all_branches?: boolean;
 }
 
 interface BranchOption {
@@ -68,11 +69,14 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
 
     const apply = (next?: { period?: string; from?: string; to?: string; branch_id?: string }) => {
         const selectedPeriod = next?.period ?? period;
+        const selectedBranch = next?.branch_id ?? branchId;
         router.get('/branch-performance', {
             period: selectedPeriod,
             from: selectedPeriod === 'custom' ? (next?.from ?? from) : undefined,
             to: selectedPeriod === 'custom' ? (next?.to ?? to) : undefined,
-            branch_id: (next?.branch_id ?? branchId) || undefined,
+            branch_id: selectedBranch || undefined,
+            // No branch chosen means every branch the reader may see, even when the top bar is on one branch.
+            all_branches: selectedBranch ? undefined : 1,
         }, { preserveState: true, replace: true });
     };
 
@@ -151,6 +155,10 @@ export default function BranchPerformanceHub({ performance, branch_options = [] 
                     <div className="metric"><span>{translate('portal', 'branch_perf_outstanding')}</span><strong>{money(performance.totals.outstanding)}</strong></div>
                 </div>
                 <p className="muted ops-mt-2">{translate('portal', 'branch_perf_profit_note')}</p>
+                <p className="muted ops-mt-2">{translate('portal', 'branch_perf_counted_note')}</p>
+                {performance.can_view_all_branches === false && (
+                    <p className="muted ops-mt-2">{translate('portal', 'branch_perf_own_branches_note')}</p>
+                )}
             </section>
 
             <section className="panel table-panel">

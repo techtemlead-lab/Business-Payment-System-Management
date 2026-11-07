@@ -2,14 +2,19 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Orders\OrderListFilter;
 use App\Models\CompanyBranch;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 final class BranchPerformance
 {
+    /** How many of the period's latest orders the report lists; totals always cover every order. */
+    public const RecentOrderLimit = 200;
+
     /**
      * @return array{from:string,to:string,label:string,timezone:string}
      */
@@ -51,13 +56,23 @@ final class BranchPerformance
     /**
      * Owner/staff financial snapshot per company branch for a period.
      *
-     * @param  array{period?:string,from?:string,to?:string,branch_id?:int|null}  $filters
+     * Totals come from SQL sums over every confirmed order in the period (the same
+     * {@see OrderListFilter::Confirmed} rule the staff dashboard and sales reports use),
+     * so they stay right however many orders there are. Only the order list is capped.
+     *
+     * Staff who may not manage every branch see only the branches they are assigned to
+     * ({@see BranchOperations::visibleBranches()}); asking for any other branch is refused.
+     *
+     * @param  array{period?:string|null,from?:string|null,to?:string|null,branch_id?:int|string|null,follow_workspace_branch?:bool}  $filters
      * @return array{
      *   period: array{period:string,from:string,to:string,label:string,timezone:string},
      *   totals: array<string, mixed>,
      *   branches: list<array<string, mixed>>,
      *   unassigned: array<string, mixed>,
-     *   orders: list<array<string, mixed>>
+     *   orders: list<array<string, mixed>>,
+     *   selected_branch_id: int|null,
+     *   can_view_all_branches: bool,
+     *   branch_options: list<array<string, mixed>>
      * }
      */
     public function summary(User $actor, array $filters = []): array
@@ -70,49 +85,32 @@ final class BranchPerformance
             isset($filters['to']) ? (string) $filters['to'] : null,
         );
 
+        $branchOperations = app(BranchOperations::class);
+        $canViewAllBranches = $branchOperations->canManageAllBranches($actor);
+        $branches = $branchOperations->visibleBranches($actor)->keyBy('id');
+
         $branchFilter = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;
         if ($branchFilter !== null && $branchFilter < 1) {
             $branchFilter = null;
         }
+        if ($branchFilter === null && ($filters['follow_workspace_branch'] ?? false)) {
+            $branchFilter = $branchOperations->preferredAmong($branches->values(), $actor)?->id;
+        }
+        abort_if($branchFilter !== null && ! $branches->has($branchFilter), 403);
 
-        $branches = CompanyBranch::query()->orderBy('name')->get()->keyBy('id');
-        $orderRows = DB::table('orders as o')
-            ->leftJoin('users as u', 'u.id', '=', 'o.user_id')
+        $confirmedOrders = DB::table('orders as o')
+            ->whereIn('o.status', OrderListFilter::Confirmed)
             ->where('o.created_at', '>=', $period['from_utc'])
             ->where('o.created_at', '<', $period['to_utc_exclusive'])
-            ->when($branchFilter, fn ($q) => $q->where('o.fulfillment_branch_id', $branchFilter))
-            ->orderByDesc('o.created_at')
-            ->limit(200)
-            ->get([
-                'o.id',
-                'o.number',
-                'o.status',
-                'o.total',
-                'o.paid',
-                'o.due_credit',
-                'o.fulfillment_branch_id',
-                'o.created_at',
-                'u.name as partner_name',
-                'u.dealer_code',
-            ]);
-
-        $orderIds = $orderRows->pluck('id')->all();
-        $profitByOrder = [];
-        if ($orderIds !== []) {
-            $profitRows = DB::table('order_lines as l')
-                ->join('products as p', 'p.id', '=', 'l.product_id')
-                ->whereIn('l.order_id', $orderIds)
-                ->groupBy('l.order_id')
-                ->selectRaw('l.order_id, COALESCE(SUM(CASE WHEN p.cost_price IS NULL THEN 0 ELSE (l.unit_price - p.cost_price) * l.quantity END), 0) AS estimated_profit, COALESCE(SUM(CASE WHEN p.cost_price IS NULL THEN 0 ELSE p.cost_price * l.quantity END), 0) AS estimated_cost')
-                ->get()
-                ->keyBy('order_id');
-            foreach ($profitRows as $orderId => $row) {
-                $profitByOrder[(string) $orderId] = [
-                    'estimated_profit' => Money::decimal(Money::cents((string) $row->estimated_profit)),
-                    'estimated_cost' => Money::decimal(Money::cents((string) $row->estimated_cost)),
-                ];
-            }
-        }
+            ->when(
+                $branchFilter !== null,
+                fn (Builder $orders) => $orders->where('o.fulfillment_branch_id', $branchFilter),
+                fn (Builder $orders) => $orders->when(
+                    ! $canViewAllBranches,
+                    fn (Builder $scoped) => $scoped->whereIn('o.fulfillment_branch_id', $branches->keys()->all()),
+                ),
+            )
+            ->leftJoinLateral($this->orderCostQuery(), 'lc');
 
         $bucket = [];
         foreach ($branches as $branch) {
@@ -124,16 +122,61 @@ final class BranchPerformance
             'name' => __('portal.branch_unassigned'),
         ]);
 
+        $branchRows = (clone $confirmedOrders)
+            ->groupBy('o.fulfillment_branch_id')
+            ->selectRaw(
+                'o.fulfillment_branch_id, COUNT(*) AS order_count, '
+                .'COALESCE(SUM(o.total), 0) AS order_value, '
+                .'COALESCE(SUM(o.paid), 0) AS income, '
+                .'COALESCE(SUM(GREATEST(o.total - o.paid - COALESCE(o.due_credit, 0), 0)), 0) AS outstanding, '
+                .'COALESCE(SUM(lc.estimated_profit), 0) AS estimated_profit, '
+                .'COALESCE(SUM(lc.estimated_cost), 0) AS estimated_cost'
+            )
+            ->get();
+
+        foreach ($branchRows as $row) {
+            $branchId = $row->fulfillment_branch_id !== null ? (int) $row->fulfillment_branch_id : null;
+            $known = $branchId !== null && isset($bucket[$branchId]);
+            $target = $known ? $bucket[$branchId] : $unassigned;
+            $target['order_count'] += (int) $row->order_count;
+            $target['order_value_cents'] += $this->signedCents($row->order_value);
+            $target['income_cents'] += $this->signedCents($row->income);
+            $target['outstanding_cents'] += $this->signedCents($row->outstanding);
+            $target['profit_cents'] += $this->signedCents($row->estimated_profit);
+            $target['cost_cents'] += $this->signedCents($row->estimated_cost);
+            if ($known) {
+                $bucket[$branchId] = $target;
+            } else {
+                $unassigned = $target;
+            }
+        }
+
+        $recentOrders = (clone $confirmedOrders)
+            ->leftJoin('users as u', 'u.id', '=', 'o.user_id')
+            ->orderByDesc('o.created_at')
+            ->limit(self::RecentOrderLimit)
+            ->get([
+                'o.id',
+                'o.number',
+                'o.status',
+                'o.total',
+                'o.paid',
+                'o.due_credit',
+                'o.fulfillment_branch_id',
+                'o.created_at',
+                'u.name as partner_name',
+                'u.dealer_code',
+                DB::raw('COALESCE(lc.estimated_profit, 0) AS estimated_profit'),
+                DB::raw('COALESCE(lc.estimated_cost, 0) AS estimated_cost'),
+            ]);
+
         $ordersOut = [];
-        foreach ($orderRows as $order) {
+        foreach ($recentOrders as $order) {
             $branchId = $order->fulfillment_branch_id !== null ? (int) $order->fulfillment_branch_id : null;
-            $profit = $profitByOrder[(string) $order->id] ?? ['estimated_profit' => '0.00', 'estimated_cost' => '0.00'];
-            $outstanding = Money::decimal(
-                Money::cents((string) $order->total)
+            $outstandingCents = Money::cents((string) $order->total)
                 - Money::cents((string) $order->paid)
-                - Money::cents((string) ($order->due_credit ?? '0'))
-            );
-            $entry = [
+                - Money::cents((string) ($order->due_credit ?? '0'));
+            $ordersOut[] = [
                 'id' => $order->id,
                 'number' => $order->number,
                 'status' => $order->status,
@@ -141,28 +184,14 @@ final class BranchPerformance
                 'dealer_code' => $order->dealer_code,
                 'total' => Money::decimal(Money::cents((string) $order->total)),
                 'paid' => Money::decimal(Money::cents((string) $order->paid)),
-                'outstanding' => $outstanding,
-                'estimated_profit' => $profit['estimated_profit'],
-                'estimated_cost' => $profit['estimated_cost'],
+                'outstanding' => Money::decimal(max($outstandingCents, 0)),
+                'estimated_profit' => $this->signedDecimal($this->signedCents($order->estimated_profit)),
+                'estimated_cost' => $this->signedDecimal($this->signedCents($order->estimated_cost)),
                 'fulfillment_branch_id' => $branchId,
                 'branch_code' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->code : null,
                 'branch_name' => $branchId && isset($branches[$branchId]) ? $branches[$branchId]->name : __('portal.branch_unassigned'),
                 'created_at' => CarbonImmutable::parse($order->created_at)->timezone($period['timezone'])->toIso8601String(),
             ];
-            $ordersOut[] = $entry;
-
-            $target = ($branchId && isset($bucket[$branchId])) ? $bucket[$branchId] : $unassigned;
-            $target['order_count']++;
-            $target['order_value_cents'] += Money::cents($entry['total']);
-            $target['income_cents'] += Money::cents($entry['paid']);
-            $target['outstanding_cents'] += Money::cents($entry['outstanding']);
-            $target['profit_cents'] += Money::cents($entry['estimated_profit']);
-            $target['cost_cents'] += Money::cents($entry['estimated_cost']);
-            if ($branchId && isset($bucket[$branchId])) {
-                $bucket[$branchId] = $target;
-            } else {
-                $unassigned = $target;
-            }
         }
 
         $branchSummaries = array_values(array_map(fn (array $row) => $this->finalizeMetrics($row), $bucket));
@@ -191,7 +220,42 @@ final class BranchPerformance
             'unassigned' => $this->finalizeMetrics($unassigned),
             'orders' => $ordersOut,
             'selected_branch_id' => $branchFilter,
+            'can_view_all_branches' => $canViewAllBranches,
+            'branch_options' => $branches->values()->map(fn (CompanyBranch $branch) => $branch->summary())->all(),
         ];
+    }
+
+    /**
+     * Estimated cost and profit of one order's lines, joined laterally to each order.
+     * Lines whose product has no cost price add nothing.
+     */
+    private function orderCostQuery(): Builder
+    {
+        return DB::table('order_lines as l')
+            ->join('products as p', 'p.id', '=', 'l.product_id')
+            ->whereColumn('l.order_id', 'o.id')
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN p.cost_price IS NULL THEN 0 ELSE (l.unit_price - p.cost_price) * l.quantity END), 0) AS estimated_profit, '
+                .'COALESCE(SUM(CASE WHEN p.cost_price IS NULL THEN 0 ELSE p.cost_price * l.quantity END), 0) AS estimated_cost'
+            );
+    }
+
+    /**
+     * Cents from a SQL decimal that may be negative (a sale below cost gives a loss).
+     */
+    private function signedCents(mixed $value): int
+    {
+        $text = trim((string) ($value ?? '0'));
+        if (str_starts_with($text, '-')) {
+            return -Money::cents(substr($text, 1));
+        }
+
+        return Money::cents($text);
+    }
+
+    private function signedDecimal(int $cents): string
+    {
+        return ($cents < 0 ? '-' : '').Money::decimal(abs($cents));
     }
 
     /**
@@ -229,8 +293,8 @@ final class BranchPerformance
             'order_value' => Money::decimal((int) $row['order_value_cents']),
             'income' => Money::decimal((int) $row['income_cents']),
             'outstanding' => Money::decimal((int) $row['outstanding_cents']),
-            'estimated_profit' => Money::decimal((int) $row['profit_cents']),
-            'estimated_cost' => Money::decimal((int) $row['cost_cents']),
+            'estimated_profit' => $this->signedDecimal((int) $row['profit_cents']),
+            'estimated_cost' => $this->signedDecimal((int) $row['cost_cents']),
             'order_value_cents' => (int) $row['order_value_cents'],
             'income_cents' => (int) $row['income_cents'],
             'outstanding_cents' => (int) $row['outstanding_cents'],
