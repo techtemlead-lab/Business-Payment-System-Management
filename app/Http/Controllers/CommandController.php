@@ -656,7 +656,11 @@ class CommandController extends Controller
 
         $data = $r->validate([
             'image' => 'required|file|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=2048,max_height=2048',
+            // Website photos (such as the Managing Director's photo) are kept apart from category icons.
+            'purpose' => 'nullable|in:category_icon,site_photo',
         ]);
+        $isSitePhoto = ($data['purpose'] ?? null) === 'site_photo';
+        $folder = $isSitePhoto ? 'site-photos' : 'category-icons';
 
         $file = $data['image'];
         $extension = strtolower((string) ($file->guessExtension() ?: 'png'));
@@ -664,7 +668,7 @@ class CommandController extends Controller
             $extension = 'png';
         }
 
-        $directory = public_path('branding/category-icons');
+        $directory = public_path('branding/'.$folder);
         if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -672,8 +676,8 @@ class CommandController extends Controller
         $filename = Str::uuid()->toString().'.'.$extension;
         $file->move($directory, $filename);
 
-        $url = '/branding/category-icons/'.$filename;
-        Audit::record($r->user()->id, 'customization.category_icon_uploaded', 'frontend', ['path' => $url]);
+        $url = '/branding/'.$folder.'/'.$filename;
+        Audit::record($r->user()->id, $isSitePhoto ? 'customization.site_photo_uploaded' : 'customization.category_icon_uploaded', 'frontend', ['path' => $url]);
 
         return response()->json([
             'ok' => true,

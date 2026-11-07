@@ -568,4 +568,26 @@ Questions about these terms, partnership rules or the website:
     'partner_help_title' => 'Growing, together.',
     'partner_help_body' => 'One Madina family.',
     'home_title_tagline' => 'Products & Dealer Network',
+    'md_message_heading' => 'Managing Director\'s Message',
+    'md_message_name' => 'Mohammad Anwar Hossain',
+    'md_message_title' => 'Managing Director',
+    'md_message_company' => 'Madina Natural Health Care',
+    'md_message_body' => 'In the Name of Allah, the Most Gracious, the Most Merciful.
+
+All praise belongs to Allah. Through His magnificent creation, Allah has placed countless blessings and beneficial resources in nature for humanity. Our vision is to responsibly utilize these natural resources and encourage a healthier way of life inspired by the Sunnah of Prophet Muhammad (peace be upon him).
+
+At Madina Natural Health Care, our purpose goes beyond business. We are committed to bringing quality, safe, and trustworthy healthcare products within people\'s reach.
+
+We source quality natural, Unani, Ayurvedic, and herbal healthcare products from reliable manufacturers at fair prices. Through the Madina brand, we strive to make these products accessible across Bangladesh, while emphasizing applicable regulations and guidance from registered medical practitioners.
+
+We believe that healthcare should be every person\'s right. That is why our commitment is to bring products within everyone\'s means, at fair prices, without ever compromising on quality.
+
+Guided by people\'s trust, honesty, ethics and a spirit of service, we want to keep moving forward.
+
+Our hope is to make people\'s lives better and more health-aware through the blessings of nature, the inspiration of the Sunnah, and trustworthy healthcare.
+
+We humbly ask for everyone\'s prayers and support.',
+    'md_message_read_more' => 'Read the full message',
+    'md_message_read_less' => 'Show less',
+    'md_message_photo_alt' => 'Photo of :name, :title, :company',
 ];

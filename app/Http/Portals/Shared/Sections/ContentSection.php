@@ -88,6 +88,11 @@ final class ContentSection implements WorkspaceSection
         $props['bangla_defaults'] = [
             'copyright' => __('site.copyright', ['year' => LocalDigits::text(date('Y'), 'bn')], 'bn'),
             'notice_empty' => __('site.notice_empty', [], 'bn'),
+            'md_message_heading' => __('site.md_message_heading', [], 'bn'),
+            'md_message_name' => __('site.md_message_name', [], 'bn'),
+            'md_message_title' => __('site.md_message_title', [], 'bn'),
+            'md_message_company' => __('site.md_message_company', [], 'bn'),
+            'md_message_body' => __('site.md_message_body', [], 'bn'),
         ];
         $enabled = SiteCustomization::enabledPagesMap();
         $props['websitePages'] = collect([

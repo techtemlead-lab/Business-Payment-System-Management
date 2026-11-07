@@ -28,6 +28,8 @@
     <div class="ref-content-prose">{{ $chrome('about_hero_lead', $siteCustomization['about_hero_lead'] ?? null) }}</div>
 </article>
 
+@include('reference.partials.md-message', ['placement' => 'about'])
+
 <div class="ref-about-sections-grid">
     <section class="ref-content-card">
         <div class="ref-about-icon"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
