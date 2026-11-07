@@ -6632,4 +6632,9 @@ return [
     'target_tour_fund' => 'ট্যুর ফান্ড',
     'target_tour_fund_hint' => 'টাকা পরিশোধ ও ডেলিভারি হওয়া প্রতিটি কেনার :rate% কোম্পানির ট্যুরের জন্য এখানে জমা হয়। এটি তোলার টাকা নয়।',
     'target_switched_off_hint' => 'কোম্পানি এখন এটি বন্ধ রেখেছে।',
+    'ops_report_account_type' => 'পার্টনার',
+    'ops_report_account_all' => 'সব ডিলার ও সাব-ডিলার',
+    'ops_report_account_dealer' => 'শুধু ডিলার',
+    'ops_report_account_sub_dealer' => 'শুধু সাব-ডিলার',
+    'ops_report_account_hint' => 'পার্টনারদের রিপোর্টে কাজ করে: অর্ডার, পেমেন্ট, কমিশন, মাসিক জমা, টাকা তোলা, কর, পুরস্কার, র‍্যাঙ্ক ও টাকা ফেরত।',
 ];

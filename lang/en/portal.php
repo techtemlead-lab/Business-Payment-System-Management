@@ -6632,4 +6632,9 @@ return [
     'target_tour_fund' => 'Tour fund',
     'target_tour_fund_hint' => ':rate% of every paid and delivered purchase is saved here for company tours. It is not cash to withdraw.',
     'target_switched_off_hint' => 'The company has switched this off for now.',
+    'ops_report_account_type' => 'Partners',
+    'ops_report_account_all' => 'All dealers and sub-dealers',
+    'ops_report_account_dealer' => 'Dealers only',
+    'ops_report_account_sub_dealer' => 'Sub-dealers only',
+    'ops_report_account_hint' => 'Works for partner reports: orders, payments, commissions, monthly credits, withdrawals, tax, rewards, ranks and refunds.',
 ];

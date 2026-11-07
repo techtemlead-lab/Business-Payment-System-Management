@@ -17,8 +17,17 @@ final class ReportData
     /** Money still to collect on one order; never negative. */
     private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
 
+    /**
+     * Reports whose rows belong to one dealer or sub-dealer (joined as `u`), so they can be
+     * narrowed to dealers only or sub-dealers only (contract S04).
+     */
+    public const AccountTypeReports = ['orders', 'commissions', 'settlements', 'withdrawals', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
+
+    /** Partner kinds a report can be narrowed to. */
+    public const AccountTypes = ['dealer', 'sub_dealer'];
+
     /** @return array{query: Builder, columns: list<string>, money: list<string>} */
-    public function query(User $actor, string $type, string $from, string $to): array
+    public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null): array
     {
         $company = $actor->allows('finance') || $actor->allows('reports');
         $sales = $actor->allows('field_sales');
@@ -72,6 +81,9 @@ final class ReportData
             'refunds' => [DB::table('commission_refunds as f')->join('orders as o', 'o.id', '=', 'f.order_id')->join('users as u', 'u.id', '=', 'o.user_id'),
                 ['f.id', 'o.number', 'u.name', 'f.reference', 'f.amount', 'f.reason', 'f.created_at'], ['amount'], 'f.created_at', 'o.user_id'],
         };
+        if ($accountType !== null && in_array($accountType, self::AccountTypes, true) && in_array($type, self::AccountTypeReports, true)) {
+            $query->where('u.role', $accountType);
+        }
         $query->where($date, '>=', CarbonImmutable::parse($from, 'Asia/Dhaka')->startOfDay()->utc())
             ->where($date, '<', CarbonImmutable::parse($to, 'Asia/Dhaka')->addDay()->startOfDay()->utc());
         if (! $company) {
