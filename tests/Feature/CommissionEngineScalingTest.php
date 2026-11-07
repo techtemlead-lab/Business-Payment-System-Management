@@ -52,7 +52,7 @@ class CommissionEngineScalingTest extends TestCase
     private function bikeVolumes(array $userIds): array
     {
         return RewardMilestoneProgress::query()->whereIn('user_id', $userIds)->where('milestone_type', 'bike')
-            ->pluck('raw_team_volume', 'user_id')->map(fn ($volume): string => (string) $volume)->all();
+            ->orderBy('user_id')->pluck('raw_team_volume', 'user_id')->map(fn ($volume): string => (string) $volume)->all();
     }
 
     public function test_refund_recounts_upline_milestones_after_the_refund_commits(): void
