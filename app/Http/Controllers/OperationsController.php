@@ -17,6 +17,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use App\Support\Money;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,28 @@ use Inertia\Response;
 
 class OperationsController extends Controller
 {
+    /**
+     * Which columns each table's search box looks in, and which status column its filter uses.
+     * Fixed SQL column names only; the search text is always passed as a binding.
+     *
+     * @var array<string, array{search: list<string>, status: string|null, statuses: list<string>}>
+     */
+    private const TableFilters = [
+        'territories' => ['search' => ['u.name', 't.level', 't.division', 't.district', 't.upazila', 't."union"'], 'status' => null, 'statuses' => []],
+        'monthly_targets' => ['search' => ['u.name', 't.period_month'], 'status' => null, 'statuses' => []],
+        'territory_orders' => ['search' => ['o.number', 'u.name'], 'status' => 'o.status', 'statuses' => ['submitted', 'held', 'approved', 'rejected', 'cancelled', 'partially_dispatched', 'dispatched', 'delivered']],
+        'my_targets' => ['search' => ['period_month'], 'status' => null, 'statuses' => []],
+        'dealer_applications' => ['search' => ['email', "data->>'name'", "data->>'phone'", "data->>'district'"], 'status' => 'status', 'statuses' => ['pending', 'approved', 'rejected']],
+        'salary_register' => ['search' => ['u.name', 'p.period_month', 'p.payment_reference'], 'status' => 'p.status', 'statuses' => ['draft', 'approved', 'rejected', 'paid']],
+        'salary_contracts' => ['search' => ['u.name', 'c.effective_month', 'c.reason'], 'status' => null, 'statuses' => []],
+        'policy_schedules' => ['search' => ['u.name', 'proposer.name', 's.reason', 's.scope'], 'status' => 's.status', 'statuses' => ['draft', 'approved', 'rejected', 'cancelled']],
+        'reserve_requests' => ['search' => ['u.name', 'r.payee_name', 'r.program', 'r.payment_reference', 'r.reason'], 'status' => 'r.status', 'statuses' => ['requested', 'approved', 'credited', 'rejected', 'paid', 'cancelled']],
+        'clawback_recoveries' => ['search' => ['payment_reference'], 'status' => null, 'statuses' => []],
+        'held_allocations' => ['search' => ['u.name', 'a.category', 'a.order_id'], 'status' => null, 'statuses' => []],
+        'opening_holds' => ['search' => ['u.name', 'e.reference'], 'status' => null, 'statuses' => []],
+        'opening_reviews' => ['search' => ['fingerprint', 'source_reference'], 'status' => null, 'statuses' => []],
+    ];
+
     public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'finance-settings', 'access-management', 'video-marketing'];
 
     public function index(Request $request, string $section): Response|JsonResponse
@@ -142,6 +165,7 @@ class OperationsController extends Controller
             $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
         }
         foreach ($tables as $key => $query) {
+            $filter = $this->applyTableFilter($request, $key, $query);
             $page = $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString();
             if ($key === 'policy_schedules') {
                 $page->through(function (object $row): object {
@@ -151,9 +175,40 @@ class OperationsController extends Controller
                     return $row;
                 });
             }
-            $data['tables'][] = ['key' => $key, 'page' => $page];
+            $data['tables'][] = ['key' => $key, 'page' => $page, 'filter' => $filter];
         }
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Operations', $data);
+    }
+
+    /**
+     * Search and status filter for one table, run on the server so they cover every page.
+     * Each table reads its own "{key}_q" and "{key}_status" from the address.
+     *
+     * @return array{searchable: bool, statuses: list<string>, q: string, status: string}
+     */
+    private function applyTableFilter(Request $request, string $key, Builder $query): array
+    {
+        $config = self::TableFilters[$key] ?? ['search' => [], 'status' => null, 'statuses' => []];
+        $search = trim(Str::limit($request->string($key.'_q')->toString(), 100, ''));
+        $status = $request->string($key.'_status')->toString();
+        if ($search !== '' && $config['search'] !== []) {
+            $term = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(function (Builder $match) use ($config, $term): void {
+                foreach ($config['search'] as $column) {
+                    $match->orWhereRaw('('.$column.')::text ilike ?', [$term]);
+                }
+            });
+        }
+        if ($config['status'] !== null && in_array($status, $config['statuses'], true)) {
+            $query->where($config['status'], $status);
+        }
+
+        return [
+            'searchable' => $config['search'] !== [],
+            'statuses' => $config['status'] !== null ? $config['statuses'] : [],
+            'q' => $config['search'] !== [] ? $search : '',
+            'status' => in_array($status, $config['statuses'], true) ? $status : '',
+        ];
     }
 }

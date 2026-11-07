@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\DB;
  */
 final class FinanceSection implements WorkspaceSection
 {
+    /** Statuses the benefits-fund list can be filtered by. */
+    public const BenefitsStatuses = ['reserved', 'reversed'];
+
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
@@ -25,7 +28,7 @@ final class FinanceSection implements WorkspaceSection
             'ledger' => $this->ledger($context->request),
             'audit' => $this->auditLog($context->request),
             'capital-flow', 'treasury' => $this->treasury($context),
-            'benefits-fund' => $this->benefitsFund(),
+            'benefits-fund' => $this->benefitsFund($context->request),
             default => [],
         };
     }
@@ -271,15 +274,25 @@ final class FinanceSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function benefitsFund(): array
+    private function benefitsFund(Request $request): array
     {
         $props = [];
         $ledger = app(RetainedFundLedger::class);
         $balance = DB::table('commission_batches')
             ->selectRaw('COALESCE(SUM(unallocated * (cash_basis - refunded_amount) / cash_basis), 0) AS amount')
             ->value('amount');
+        $search = trim($request->string('q')->toString());
+        $status = $request->string('status')->toString();
         $entries = CommissionAllocation::query()
             ->where('category', RetainedFundLedger::BenefitsCategory)
+            ->when($search !== '', function ($query) use ($search): void {
+                $term = '%'.addcslashes($search, '%_\\').'%';
+                $query->whereHas('order', fn ($orders) => $orders->where('number', 'ilike', $term)
+                    ->orWhereHas('user', fn ($buyers) => $buyers->where('name', 'ilike', $term)
+                        ->orWhere('dealer_code', 'ilike', $term)
+                        ->orWhere('district', 'ilike', $term)));
+            })
+            ->when(in_array($status, self::BenefitsStatuses, true), fn ($query) => $query->where('status', $status))
             ->with(['order:id,number,user_id,total,commission_policy_snapshot', 'order.user:id,name,dealer_code,division,district,role,profile'])
             ->latest()
             ->paginate(25)
