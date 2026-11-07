@@ -892,6 +892,19 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_delivery_recorded'));
     }
 
+    /** Back-order date: when the items still waiting for stock are expected to go out. */
+    public function supplyDate(Request $r, Order $order, OrderService $service): RedirectResponse
+    {
+        $this->permit($r, 'inventory');
+        $data = $r->validate([
+            'supply_eta' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today', 'before:'.now()->addYear()->toDateString()],
+            'supply_note' => ['nullable', 'string', 'max:300'],
+        ]);
+        $service->setSupplyDate($r->user(), $order, $data['supply_eta'] ?? null, $data['supply_note'] ?? null);
+
+        return back()->with('success', __('portal.flash_supply_eta_saved'));
+    }
+
     public function invite(Request $r, User $user): RedirectResponse
     {
         $this->permit($r, 'accounts');

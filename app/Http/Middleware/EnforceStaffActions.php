@@ -154,7 +154,7 @@ class EnforceStaffActions
                 'storeKycDocument' => [['accounts', 'identity_write'], 'create'],
                 'benefitControls' => [['finance'], 'approve'],
                 'decision' => [['order_review'], 'approve'], 'verify', 'refund' => [['finance'], 'approve'],
-                'dispatch', 'delivered' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
+                'dispatch', 'delivered', 'supplyDate' => [['inventory'], 'edit'], 'stock' => [['inventory'], 'create'],
                 'content', 'resetCustomization' => [['content'], 'edit'],
                 'enquiry', 'moderateSiteFeedback' => [['content', 'accounts'], 'edit'],
                 'customization', 'uploadCategoryIcon' => [['content', 'catalog'], 'edit'],
