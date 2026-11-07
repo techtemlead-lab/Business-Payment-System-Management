@@ -56,9 +56,10 @@ final class BirthdayGreetings
 
     /**
      * Send today's birthday SMS to every active dealer and sub-dealer, once a
-     * year each. Does nothing while the owner switch is off.
+     * year each. Does nothing while the owner switch is off, or while SMS cannot
+     * really be sent yet (then `sms_ready` is false).
      *
-     * @return array{enabled: bool, sent: int, already_sent: int, failed: int}
+     * @return array{enabled: bool, sent: int, already_sent: int, failed: int, sms_ready?: false}
      */
     public function sendForToday(?CarbonImmutable $today = null): array
     {
@@ -66,8 +67,6 @@ final class BirthdayGreetings
         if (! (bool) (DashboardManagement::get()['birthday_sms_enabled'] ?? false)) {
             return $result;
         }
-        // Turned on by the owner (2026-11-05), but a greeting only goes out when SMS can really be
-        // sent: never in trial mode, and only through a configured SMS provider.
         if (! $this->smsReady()) {
             return [...$result, 'sms_ready' => false];
         }
@@ -161,7 +160,14 @@ final class BirthdayGreetings
         return null;
     }
 
-    /** True when an SMS would really reach a phone: the test driver, or a configured provider outside trial mode. */
+    /**
+     * True when a birthday SMS would really reach a phone. The owner turned the
+     * greeting on (2026-11-05), but it only goes out when SMS can really be sent:
+     * never in preview (trial) mode, and only through an SMS provider that is
+     * switched on with its address and key. The "array" driver used by tests
+     * counts as ready; the "log" driver alone does not, so a greeting is never
+     * written to a log file and then marked as sent for the year.
+     */
     private function smsReady(): bool
     {
         if (app(SecuritySettings::class)->previewMode()) {
