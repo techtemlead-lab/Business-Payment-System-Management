@@ -125,7 +125,7 @@ class TrainingController extends Controller
             ->where('user_id', $partner->id)
             ->whereNotNull('passed_at')
             ->first();
-        abort_unless($completion, 404);
+        abort_unless($completion !== null, 404);
 
         return app(PartnerCertificates::class)->trainingPdf($partner, $trainingItem, $completion);
     }
