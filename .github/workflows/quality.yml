@@ -53,6 +53,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm audit
       - run: cp .env.example .env && php artisan key:generate --no-interaction
+      # Static analysis (Larastan). Old findings sit in phpstan-baseline.neon; new code must pass.
+      - run: composer analyse
       - run: node node_modules/typescript/bin/tsc --noEmit
       - run: node --test tests/Unit/*.test.mjs
       - run: npm run build

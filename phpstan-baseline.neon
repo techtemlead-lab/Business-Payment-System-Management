@@ -1,0 +1,2041 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Offset ''details'' on array\{ready\: bool, checks\: array\<string, bool\>, warnings\: list\<string\>, details\: array\<string, mixed\>, preview_mode\: bool, financial_posting\: bool\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Console/Commands/CheckProductionReadiness.php
+
+		-
+			message: '#^Offset ''warnings'' on array\{ready\: bool, checks\: array\<string, bool\>, warnings\: list\<string\>, details\: array\<string, mixed\>, preview_mode\: bool, financial_posting\: bool\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Console/Commands/CheckProductionReadiness.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/PrepareDemo.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Console/Commands/PurgeOldPersonalData.php
+
+		-
+			message: '#^Parameter \#3 \$templates of method App\\Console\\Commands\\SeedVolumeHistory\:\:seedOrders\(\) expects array\<string, array\{account_type\: string, company\: int, allocated\: int, unallocated\: int, rows\: list\<array\<string, mixed\>\>, policy\: array\<string, mixed\>\}\>, array\<string, array\{account_type\: string, company\: int, allocated\: int, unallocated\: int, rows\: list\<array\<string, mixed\>\>\}\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/SeedVolumeHistory.php
+
+		-
+			message: '#^Relation ''sponsor'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountList.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Offset ''place_code'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Offset ''union'' on array\{place_code\: string\|null, place_code_id\: int\<0, max\>, upazila\: mixed\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Offset ''upazila'' on array\{place_code\: string\|null, place_code_id\: int\<0, max\>\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between '''' and '''' will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 2
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Ternary operator condition is always false\.$#'
+			identifier: ternary.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerAccountProvisioning.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerAgreementAcceptance\:\:\$version\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\PartnerAgreementAcceptance\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\PartnerAgreementVersion\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>setting" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Accounts/PartnerAgreement.php
+
+		-
+			message: '#^Call to function is_array\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''benefit_controls'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''forced_royalty_rank'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''note'' on array\{\} in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''unconditional_rank…'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''unconditional_salary'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''updated_at'' on array\{\} in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Offset ''updated_by'' on array\{\} in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerBenefitControls.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Domain/Accounts/PartnerCertificates.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerCreateMedia.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''area_code'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''avatar_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''pharmacy'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''pharmacy_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''place_code'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Offset ''shop_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerDashboardHome.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\CommissionAllocation\:\:\$order\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Domain/Accounts/PartnerEarningsPresenter.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Accounts/PartnerFullReport.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerIdCard.php
+
+		-
+			message: '#^Offset ''pharmacy'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerIdCard.php
+
+		-
+			message: '#^Offset ''shop_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerIdCard.php
+
+		-
+			message: '#^Offset ''upazila'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerIdCard.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between '''' and '''' will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerIdCard.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerJoinPoster.php
+
+		-
+			message: '#^Offset ''pharmacy'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerJoinPoster.php
+
+		-
+			message: '#^Offset ''shop_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerJoinPoster.php
+
+		-
+			message: '#^Offset ''upazila'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerJoinPoster.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between '''' and '''' will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerJoinPoster.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerKycDocuments.php
+
+		-
+			message: '#^Call to function is_string\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Accounts/PartnerKycDocuments.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Accounts/PartnerKycDocuments.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerKycDocuments.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and null will always evaluate to false\.$#'
+			identifier: notIdentical.alwaysFalse
+			count: 1
+			path: app/Domain/Accounts/PartnerKycDocuments.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<object\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domain/Accounts/PartnerWalletStatement.php
+
+		-
+			message: '#^Method Illuminate\\Database\\Query\\Builder\:\:lazy\(\) invoked with 2 parameters, 0\-1 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/Domain/Accounts/TeamOrdersReport.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int, product_category_id\: int, name\: string, slug\: string, sort_order\: int, is_active\: bool\}, Closure\(App\\Models\\ProductSubcategory\)\: array\{id\: int, product_category_id\: int, name\: string, slug\: string, sort_order\: int, is_active\: bool\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Catalog/CatalogTaxonomy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$mrp\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Call to function array_key_exists\(\) with ''management_referral'' and non\-falsy\-string will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Method App\\Domain\\Commissions\\CommissionPosting\:\:capture\(\) should return array\<string, mixed\> but returns string\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Offset ''capture_event'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Offset ''geography'' does not exist on non\-falsy\-string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Offset ''uplines'' does not exist on non\-falsy\-string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 5
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Parameter \#2 \$array of function array_key_exists expects array, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and ''approval'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Commissions/CommissionPosting.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Domain/Commissions/CommissionQualification.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>current_rank" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Commissions/CommissionQualification.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$mrp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/CommissionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/CommissionService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Commissions/CommissionService.php
+
+		-
+			message: '#^Offset ''account_type'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Domain/Commissions/CommissionService.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Domain/Commissions/CommissionService.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between string and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Commissions/CommissionSettlement.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Commissions/CommissionSettlement.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\<string, mixed\> will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Domain/Commissions/PolicyChangeSummary.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Commissions/PolicyScheduling.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\CommissionAllocation\:\:\$order\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>role" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Commissions/RetainedFundLedger.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{month\: string, days\: non\-empty\-list\<array\{date\: string, events\: non\-empty\-list\<array\<string, mixed\>\>\}\>\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domain/Content/PartnerEventCalendar.php
+
+		-
+			message: '#^Parameter \#1 \$array \(non\-empty\-list\<array\{date\: string, events\: non\-empty\-list\<array\<string, mixed\>\>\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domain/Content/PartnerEventCalendar.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: app/Domain/Finance/FinanceSettings.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 4
+			path: app/Domain/Finance/FinanceSettings.php
+
+		-
+			message: '#^Method Illuminate\\Database\\Query\\Builder\:\:cursor\(\) invoked with 1 parameter, 0 required\.$#'
+			identifier: arguments.count
+			count: 2
+			path: app/Domain/Finance/FinancialReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Finance/FinancialReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Finance/OpeningBalanceImport.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Domain/Finance/OpeningBalanceImport.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domain/Finance/PayrollService.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Finance/PolicyDraftService.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Domain/Finance/ReportData.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domain/Finance/ReserveService.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 3
+			path: app/Domain/Geography/ManagementReferral.php
+
+		-
+			message: '#^Offset ''referred_by'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Domain/Geography/ManagementReferral.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between null and ''management'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Geography/ManagementReferral.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and ''management'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Geography/ManagementReferral.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Domain/Geography/ManagementReferral.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$code\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Geography/PlaceCodeCatalog.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Geography/PlaceCodeCatalog.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\PlaceCode\>\:\:through\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Domain/Geography/PlaceCodeCatalog.php
+
+		-
+			message: '#^Offset ''area_code'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Domain/Geography/PlaceGeographyResolver.php
+
+		-
+			message: '#^Offset ''place_code'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 2
+			path: app/Domain/Geography/PlaceGeographyResolver.php
+
+		-
+			message: '#^Offset ''union'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 4
+			path: app/Domain/Geography/PlaceGeographyResolver.php
+
+		-
+			message: '#^Offset ''upazila'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 4
+			path: app/Domain/Geography/PlaceGeographyResolver.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Integrations/IntegrationSettings.php
+
+		-
+			message: '#^Match arm comparison between ''rocket'' and ''rocket'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Domain/Integrations/PaymentGatewayClient.php
+
+		-
+			message: '#^Offset ''from_utc'' does not exist on array\{from\: string, to\: string, label\: string, timezone\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Inventory/BranchPerformance.php
+
+		-
+			message: '#^Offset ''period'' does not exist on array\{from\: string, to\: string, label\: string, timezone\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Inventory/BranchPerformance.php
+
+		-
+			message: '#^Offset ''to_utc_exclusive'' does not exist on array\{from\: string, to\: string, label\: string, timezone\: string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Inventory/BranchPerformance.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: app/Domain/Notifications/BirthdayGreetings.php
+
+		-
+			message: '#^Offset ''date_of_birth'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Notifications/BirthdayGreetings.php
+
+		-
+			message: '#^Offset ''date_of_birth'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Notifications/BirthdayGreetings.php
+
+		-
+			message: '#^Offset ''name_bn'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Notifications/BirthdayGreetings.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Notifications/JoinAnniversaryGreetings.php
+
+		-
+			message: '#^Offset ''name_bn'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Notifications/JoinAnniversaryGreetings.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$batch_number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$channel\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$dealer_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$district\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$division\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$expires_on\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$mrp\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$profile\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$reference\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$sponsor_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$unit_price\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Orders/OrderRefund.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:grouped\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Orders/OrderRefund.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$dispatched\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Cannot access property \$order_id on array\<mixed\>\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Offset ''funding_decisions'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Offset ''referral_replacements'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Offset ''referral…'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Offset ''revision_id'' does not exist on string\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, array\<mixed\>\|object\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 5
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Parameter \#2 \$buyer of method App\\Domain\\Commissions\\CommissionPosting\:\:capture\(\) expects App\\Models\\User, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Order\:\:\$day\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/StaffDashboardSummary.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 2
+			path: app/Domain/Orders/TopSellersBoard.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Offset ''uplines'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between \*NEVER\* and null will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between \*NEVER\* and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between array\{\} and array\{\} will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Domain/Orders/UplineReplacementOptions.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domain/Payouts/ManualPayoutService.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Domain/Pricing/CurrentProductPricing.php
+
+		-
+			message: '#^Method App\\Domain\\Security\\SecuritySettings\:\:portalPayload\(\) should return array\{preview_mode\: bool, partner_login_otp\: array\{enabled\: bool, version\: int, preview_forced_off\: bool, config_default\: bool, stored_enabled\: bool\}, password_reset_notice\: array\{enabled\: bool, version\: int\}, totp\: array\{challenges_enabled\: bool, confirmed\: bool, preview_forced_off\: bool, required\: bool\}, admin_ip_allowlist_active\: bool, session_count\: int\} but returns array\{preview_mode\: bool, partner_login_otp\: array\{enabled\: bool, version\: int, preview_forced_off\: bool, config_default\: bool\}, password_reset_notice\: array\{enabled\: bool, version\: int\}, totp\: array\{challenges_enabled\: bool, confirmed\: bool, preview_forced_off\: bool, required\: bool\}, admin_ip_allowlist_active\: bool, session_count\: int\<0, max\>\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domain/Security/SecuritySettings.php
+
+		-
+			message: '#^Parameter \#3 \$before of method App\\Domain\\Security\\SecuritySettings\:\:storePartnerLoginOtp\(\) expects array\{enabled\: bool, version\: int, preview_forced_off\: bool, config_default\: bool, stored_enabled\: bool\}, array\{enabled\: bool, version\: int, preview_forced_off\: bool, config_default\: bool\} given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domain/Security/SecuritySettings.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Domain/Security/SecuritySettings.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Staff/PartnerStaffLink.php
+
+		-
+			message: '#^Parameter \#1 \$array of function array_values contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Domain/Staff/PartnerStaffLink.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between \*NEVER\* and array\{\} will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Staff/PartnerStaffLink.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Domain/Staff/StaffOperations.php
+
+		-
+			message: '#^Offset ''action_permissions'' on string\|null in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Offset ''permissions'' on string\|null in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Offset ''permissions'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Domain/Staff/StaffPermissions.php
+
+		-
+			message: '#^Method App\\Domain\\Staff\\TerritoryAccess\:\:assertPartner\(\) should return App\\Models\\User but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domain/Staff/TerritoryAccess.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{''overview'', ''profile'', ''catalog'', ''orders'', ''earnings'', ''withdrawals'', ''full\-report'', ''help''\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Domain/Support/GuidePrerequisites.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between ''catalog''\|''earnings''\|''full\-report''\|''help''\|''orders''\|''overview''\|''profile''\|''withdrawals'' and ''network'' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Domain/Support/GuidePrerequisites.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$dealer_code\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$district\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$division\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\PartnerConversation\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Method App\\Domain\\Support\\PartnerChat\:\:inbox\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, array\<string, mixed\>\> but returns Illuminate\\Pagination\\LengthAwarePaginator\<int, array\{conversation_id\: int, partner_id\: int, name\: string, dealer_code\: mixed, role\: string, phone\: mixed, place\: mixed, last_message_at\: mixed, \.\.\.\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,App\\Models\\PartnerConversation\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Domain/Support/PartnerChat.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Domain/Support/SupportTickets.php
+
+		-
+			message: '#^Method App\\Domain\\Support\\TourGuide\:\:manualSections\(\) should return list\<array\{key\: string, title\: string, body\: string\}\> but returns list\<array\{key\: string, badge\: string\|null, title\: string, summary\: string, purpose\: string\|null, why\: string\|null, steps\: list\<string\>, outcomes\: list\<string\>, \.\.\.\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Domain/Support/TourGuide.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\<array\{q\: string, a\: string\}\>\) to function array_filter does not contain falsy values, the array will always stay the same\.$#'
+			identifier: arrayFilter.same
+			count: 1
+			path: app/Domain/Support/UserManual.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 3
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Empty array passed to foreach\.$#'
+			identifier: foreach.emptyArray
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between null and null will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: app/Http/Controllers/AuthController.php
+
+		-
+			message: '#^Cannot access property \$order_id on array\<mixed\>\|object\.$#'
+			identifier: property.nonObject
+			count: 1
+			path: app/Http/Controllers/CommandController.php
+
+		-
+			message: '#^Offset ''action_permissions'' on array\{\}\|string in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Http/Controllers/CommandController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/CommandController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/CommandController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/DataImportController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, stdClass\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/FinanceOperationsController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ModuleCompletionController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ModuleCompletionController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_category_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Offset ''video'' on array\{image\?\: non\-falsy\-string, video\: non\-falsy\-string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>video_source" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\Product\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/ProductRegistryController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$distance_km\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Http/Controllers/PublicController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$fulfillmentBranch\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$paid\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$verified_channels\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$verified_references\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:outstanding\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/ReportController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, list\<list\<string\>\|string\>\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Middleware/EnforceStaffActions.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Middleware/HandleInertiaRequests.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>locale" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Middleware/SetLocale.php
+
+		-
+			message: '#^Call to function is_array\(\) with array\{scheme\?\: string, host\: string, port\?\: int\<0, 65535\>, user\?\: string, pass\?\: string, path\?\: string, query\?\: string, fragment\?\: string\} will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 3
+			path: app/Http/Middleware/UseSharedPreviewPortal.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 1
+			path: app/Http/Middleware/UseSharedPreviewPortal.php
+
+		-
+			message: '#^Method App\\Http\\Portals\\Shared\\Sections\\AccountsSection\:\:partnerApplications\(\) should return array\{applications\: Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, array\<string, mixed\>\>, application_counts\: array\{total\: int, pending\: int, approved\: int, rejected\: int\}\} but returns array\{applications\: Illuminate\\Pagination\\LengthAwarePaginator\<\(int\|string\), array\{id\: mixed, email\: mixed, name\: mixed, phone\: mixed, role\: mixed, division\: mixed, district\: mixed, upazila\: mixed, \.\.\.\}\>, application_counts\: array\{total\: int, pending\: int, approved\: int, rejected\: int\}\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Portals/Shared/Sections/AccountsSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<\(int\|string\),mixed\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/AccountsSection.php
+
+		-
+			message: '#^Cannot call method toIso8601String\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Portals/Shared/Sections/AgreementSection.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/AgreementSection.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$phone\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<int,App\\Models\\CompanyBranch\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),mixed\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Parameter \#1 \$value of function collect contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/BranchesSection.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Http/Portals/Shared/Sections/CatalogSection.php
+
+		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Http/Portals/Shared/Sections/CatalogSection.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\DealerRank\:\:\$user\.$#'
+			identifier: property.notFound
+			count: 7
+			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\DealerRank model\.$#'
+			identifier: larastan.relationExistence
+			count: 3
+			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\RewardMilestoneProgress model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Carbon\\Carbon\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$activeBranch\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Portals/Shared/Sections/EmployeesSection.php
+
+		-
+			message: '#^Relation ''activeBranch'' is not found in App\\Models\\User model\.$#'
+			identifier: larastan.relationExistence
+			count: 1
+			path: app/Http/Portals/Shared/Sections/EmployeesSection.php
+
+		-
+			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Portals/Shared/Sections/FinanceSection.php
+
+		-
+			message: '#^Relation ''user'' is not found in App\\Models\\CommissionAllocation model\.$#'
+			identifier: larastan.relationExistence
+			count: 2
+			path: app/Http/Portals/Shared/Sections/FinanceSection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/InventorySection.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$sponsor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Method App\\Http\\Portals\\Shared\\Sections\\NetworkSection\:\:members\(\) should return array\{members\: Illuminate\\Support\\Collection\<int, object\>, members_total\: int, members_truncated\: bool\} but returns array\{members\: Illuminate\\Support\\Collection\<int, stdClass\>, members_total\: int\<0, max\>, members_truncated\: bool\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>current_rank" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>lifetime_purchase_total" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/OverviewSection.php
+
+		-
+			message: '#^Call to function is_string\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: app/Http/Portals/Shared/Sections/OverviewSection.php
+
+		-
+			message: '#^Offset ''avatar_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/OverviewSection.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/OverviewSection.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Match arm comparison between '''' and ''birth_certificate'' is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''area_code'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''birth_certificate…'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''date_of_birth'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''identity_type'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''name_bn'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''pharmacy'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''place_code'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''shop_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''union'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''upazila'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Offset ''village'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''''\|''nid'' and ''birth_certificate'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Http/Portals/Shared/Sections/ProfileSection.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Offset ''place_code'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Offset ''union'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Offset ''upazila'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>level" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Portals/Shared/Sections/TerritorySection.php
+
+		-
+			message: '#^Method App\\Http\\Portals\\Shared\\Sections\\WithdrawalsSection\:\:payoutsHub\(\) should return array\{withdrawals\: Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, array\<string, mixed\>\>, payout_totals\: array\{requested_count\: int, requested_amount\: string, approved_count\: int, approved_amount\: string, paid_count\: int, paid_amount\: string, paid_withheld_amount\: string\}, tds_rate\: float\} but returns array\{withdrawals\: Illuminate\\Pagination\\LengthAwarePaginator\<\(int\|string\), array\{id\: mixed, user_id\: mixed, user_name\: mixed, dealer_code\: mixed, phone\: mixed, amount\: mixed, withheld_amount\: mixed, net_amount\: mixed, \.\.\.\}\>, payout_totals\: array\{requested_count\: int, requested_amount\: string, approved_count\: int, approved_amount\: string, paid_count\: int, paid_amount\: string, paid_withheld_amount\: string\}, tds_rate\: float\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Portals/Shared/Sections/WithdrawalsSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Pagination\\AbstractPaginator\<\(int\|string\),mixed\>\:\:through\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Http/Portals/Shared/Sections/WithdrawalsSection.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Portals/Shared/WorkspaceController.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Http/Requests/Backend/ClaimPaymentRequest.php
+
+		-
+			message: '#^Method App\\Http\\Requests\\Backend\\RefundOrderRequest\:\:rules\(\) should return array\<string, string\> but returns array\<string, list\<string\>\|string\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Requests/Backend/RefundOrderRequest.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Requests/Backend/StoreOrderRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$decision_reason\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$due_credit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$lines\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$note\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$number\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$paid\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\Api\\V1\\OrderResource\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/Api/V1/OrderResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$union\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/BookShipmentCourier.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$upazila\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Jobs/BookShipmentCourier.php
+
+		-
+			message: '#^Parameter \#1 \$value of static method App\\Support\\Money\:\:cents\(\) expects int\|string, float given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Models/Order.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between non\-empty\-string and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Models/PlaceCode.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between float and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between float and null will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Models/Product.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\User\:\:\$activeBranch\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Call to function is_string\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 3
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''action_permissions'' on string\|null in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''avatar_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''permissions'' on string\|null in isset\(\) does not exist\.$#'
+			identifier: isset.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''permissions'' on string\|null on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''shop_name'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Illuminate\\Http\\Request\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Audit.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type Symfony\\Component\\HttpFoundation\\ParameterBag\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Audit.php
+
+		-
+			message: '#^Using nullsafe property access on non\-nullable type Illuminate\\Http\\Request\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Support/Audit.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$product_category_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Support/CatalogCms.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string\}, Closure\(App\\Models\\ProductSubcategory\)\: array\{id\: int\<0, max\>, name\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/CatalogCms.php
+
+		-
+			message: '#^Offset ''stored_enabled'' does not exist on array\{enabled\: bool, version\: int, preview_forced_off\: bool, config_default\: bool\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: app/Support/DeploymentReadiness.php
+
+		-
+			message: '#^Parameter \#1 \$search of function str_replace expects array\<string\>\|string, array\<int, int\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Support/LocalDigits.php
+
+		-
+			message: '#^Instanceof between Illuminate\\Foundation\\Application and Illuminate\\Foundation\\Application will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 1
+			path: app/Support/PortalHost.php
+
+		-
+			message: '#^Instanceof between Illuminate\\Http\\Request and Illuminate\\Http\\Request will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 3
+			path: app/Support/PortalHost.php
+
+		-
+			message: '#^Offset 0 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 3
+			path: app/Support/SiteCustomization.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between non\-falsy\-string and '''' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Support/SiteCustomization.php
+
+		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Call to function is_string\(\) with null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Method App\\Support\\SocialShareMeta\:\:partnerPhoto\(\) never returns string so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Offset ''avatar_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Offset ''description'' on array\{title\: string, description\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Offset ''photo_url'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Offset ''title'' on array\{title\: string, description\: string\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Strict comparison using \!\=\= between \*NEVER\* and '''' will always evaluate to true\.$#'
+			identifier: notIdentical.alwaysTrue
+			count: 1
+			path: app/Support/SocialShareMeta.php
+
+		-
+			message: '#^Parameter \#1 \$array \(array\{0\: \(array\|string\), 1\?\: int\|string\}\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/TableWorkbook.php
+
+		-
+			message: '#^Parameter \#1 \$array \(list\<array\{key\: string, label\: string, type\?\: ''int''\|''money''\|''text'', total\?\: bool\}\>\) of array_values is already a list, call has no effect\.$#'
+			identifier: arrayValues.list
+			count: 1
+			path: app/Support/TableWorkbook.php

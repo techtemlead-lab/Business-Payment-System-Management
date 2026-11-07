@@ -16,12 +16,12 @@
 return [
     'dealer' => [
         'page' => 'portals/dealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'network', 'ranks', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
             'network' => ['network', 'ranks'],
-            'earnings' => ['earnings', 'full-report', 'withdrawals'],
+            'earnings' => ['earnings', 'full-report', 'withdrawals', 'payment-receipts'],
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
         ],
@@ -31,11 +31,11 @@ return [
     ],
     'subdealer' => [
         'page' => 'portals/subdealer/Dashboard',
-        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
+        'sections' => ['overview', 'orders', 'purchase', 'catalog', 'deliveries', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'earnings', 'salary', 'top-sellers', 'withdrawals', 'payment-receipts', 'full-report', 'share-feedback', 'help', 'messages', 'training', 'events'],
         'nav' => [
             'home' => ['overview', 'top-sellers'],
             'commerce' => ['orders', 'purchase', 'catalog', 'deliveries'],
-            'earnings' => ['salary', 'earnings', 'full-report', 'withdrawals'],
+            'earnings' => ['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'],
             'account' => ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'],
             'learning' => ['training', 'events'],
         ],
