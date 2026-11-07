@@ -28,7 +28,7 @@
     <a href="https://wa.me/?text={{ $encodedText }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
     <a href="https://www.facebook.com/dialog/send?link={{ $encodedUrl }}&app_id=0&redirect_uri={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="{{ __('site.share_messenger') }}"><i class="fa-brands fa-facebook-messenger"></i></a>
     <a href="https://www.facebook.com/sharer/sharer.php?u={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
-    <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X"><i class="fa-brands fa-x-twitter"></i></a>
+    <a href="https://twitter.com/intent/tweet?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="X">{{-- Font Awesome 6.4.0 has no X glyph, so the logo is drawn inline --}}<svg class="ref-x-icon" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true" focusable="false"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
     <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ $encodedUrl }}" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
     <a href="https://t.me/share/url?url={{ $encodedUrl }}&text={{ rawurlencode($shareText) }}" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><i class="fa-brands fa-telegram"></i></a>
     <a href="mailto:?subject={{ rawurlencode($item['name']) }}&body={{ $encodedText }}" aria-label="{{ __('site.share_email') }}"><i class="fa-solid fa-envelope"></i></a>
@@ -129,9 +129,8 @@
     <div id="description-panel" role="tabpanel" aria-labelledby="description-tab">
         <h2>{{ $chrome('product_tab_description', $siteCustomization['product_tab_description'] ?? null) }}</h2>
         <h3>{{ $item['name'] }}</h3>
-        <p style="font-size: 15px; line-height: 1.7; color: #334155; margin-bottom: 20px;">
-            {{ $item['description'] ?: __('site.pd_default_description') }}
-        </p>
+        {{-- Kept on one line: this paragraph keeps the description's own line breaks (pre-wrap), so template indentation would show. --}}
+        <p class="ref-product-description-text">{{ $item['description'] ?: __('site.pd_default_description') }}</p>
         <div class="ref-product-highlights-grid">
             <div class="ref-highlight-box">
                 <i class="fa-solid fa-leaf" aria-hidden="true"></i>

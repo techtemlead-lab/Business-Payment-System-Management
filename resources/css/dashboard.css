@@ -723,6 +723,18 @@ label.partner-home-avatar-upload input{position:absolute;inset:0;width:100%;heig
   .profile-menu-trigger .user-caption{display:none}
   .profile-menu-panel{right:-4px;min-width:200px}
 }
+/* Tablet and small laptop (768–1279px): the top bar ran out of room, so the page name was
+   squeezed to a few stray letters beside the branch picker. Keep only the page name, show the
+   short language labels and the avatar without the name/role text, and cap the branch picker. */
+@media(min-width:768px) and (max-width:1279px){
+  .app-shell .workspace-header .breadcrumb{flex:1 1 auto;min-width:96px}
+  .app-shell .workspace-header .breadcrumb>span{display:none}
+  .app-shell .workspace-header .breadcrumb>b{flex:1 1 auto;min-width:0}
+  .app-shell .workspace-header .branch-workspace-select{flex:0 1 210px;min-width:150px;max-width:210px}
+  .app-shell .workspace-header .profile-menu-trigger .user-caption{display:none}
+  .app-shell .workspace-header .language-switcher .language-full{display:none}
+  .app-shell .workspace-header .language-switcher .language-short{display:inline}
+}
 
 /* Glass header, modal polish, tooltips, shimmer */
 .glass-header,.company-shell .workspace-header,.owner-shell .workspace-header{
@@ -2381,7 +2393,7 @@ html[data-theme="dark"] .admin-work-queue li a{background:#0f1b2d;border-color:#
 html[data-theme="dark"] .admin-work-queue li a:hover{background:#16233a;border-color:#7c83ff}
 html[data-theme="dark"] .admin-month-strip>div{background:#0f1b2d;border-color:#22324a}
 html[data-theme="dark"] .admin-month-strip strong{color:#a5b4fc}
-html[data-theme="dark"] .admin-trend-chart .bar{fill:#7c83ff}
+html[data-theme="dark"] .admin-trend-chart .bar{fill:var(--ds-brand)}
 html[data-theme="dark"] .admin-trend-chart .bar.empty{fill:#22324a}
 html[data-theme="dark"] .admin-trend-chart text{fill:#94a3b8}
 
