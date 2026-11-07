@@ -150,7 +150,7 @@ class HandleInertiaRequests extends Middleware
 
                 $branchOperations = app(BranchOperations::class);
                 ['preferred' => $preferred, 'branches' => $branches] = $branchOperations->branchChoices($u);
-                $canViewAll = $branchOperations->canManageAllBranches($u);
+                $canViewAll = $branchOperations->canViewAllBranches($u);
                 $viewAll = $canViewAll && $request->session()->get(BranchOperations::SessionView) === 'all';
 
                 return [

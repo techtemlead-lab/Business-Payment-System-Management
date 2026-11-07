@@ -97,7 +97,7 @@ final class BranchesSection implements WorkspaceSection
     {
         $request = $context->request;
         $user = $context->user;
-        $canViewAllBranches = app(BranchOperations::class)->canManageAllBranches($user);
+        $canViewAllBranches = app(BranchOperations::class)->canViewAllBranches($user);
         $switcherView = $request->session()->get(BranchOperations::SessionView);
         $noSwitcherChoiceYet = $switcherView === null && $user->active_branch_id === null;
         $opensOnAllBranches = $request->boolean('all_branches')

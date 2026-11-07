@@ -148,10 +148,10 @@ class BranchPerformanceReportTest extends TestCase
         $this->createFulfilledOrder($partner, $product, $dhaka->id, '200.00', '50.00');
         $this->createFulfilledOrder($partner, $product, null, '900.00', '0.00');
 
-        $accountant = User::factory()->staff('finance')->create(['active_branch_id' => $dhaka->id]);
-        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $accountant->id, 'duty' => 'storekeeper', 'is_primary' => true]);
+        $reportsClerk = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports']], 'active_branch_id' => $dhaka->id]);
+        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $reportsClerk->id, 'duty' => 'storekeeper', 'is_primary' => true]);
 
-        $summary = app(BranchPerformance::class)->summary($accountant, ['period' => 'month']);
+        $summary = app(BranchPerformance::class)->summary($reportsClerk, ['period' => 'month']);
         $this->assertFalse($summary['can_view_all_branches']);
         $this->assertSame(['DHK-02'], collect($summary['branches'])->pluck('code')->all());
         $this->assertSame(['DHK-02'], collect($summary['branch_options'])->pluck('code')->all());
@@ -161,17 +161,17 @@ class BranchPerformanceReportTest extends TestCase
         $this->assertSame(['DHK-02'], collect($summary['orders'])->pluck('branch_code')->unique()->values()->all());
 
         try {
-            app(BranchPerformance::class)->summary($accountant, ['period' => 'month', 'branch_id' => $hub->id]);
+            app(BranchPerformance::class)->summary($reportsClerk, ['period' => 'month', 'branch_id' => $hub->id]);
             $this->fail('Another branch must not be readable.');
         } catch (HttpException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
         }
 
-        $this->actingAs($accountant)->onPortal('manage')
+        $this->actingAs($reportsClerk)->onPortal('manage')
             ->get('/branch-performance?period=month&branch_id='.$hub->id)
             ->assertForbidden();
 
-        $this->actingAs($accountant)->onPortal('manage')
+        $this->actingAs($reportsClerk)->onPortal('manage')
             ->withSession([BranchOperations::SessionView => 'all'])
             ->get('/branch-performance?period=month&all_branches=1')
             ->assertOk()
@@ -271,9 +271,9 @@ class BranchPerformanceReportTest extends TestCase
                 ->where('data.performance.selected_branch_id', null)
                 ->where('data.performance.totals.order_count', 2));
 
-        $accountant = User::factory()->staff('finance')->create(['active_branch_id' => null]);
-        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $accountant->id, 'duty' => 'storekeeper', 'is_primary' => false]);
-        $this->actingAs($accountant)->onPortal('manage')
+        $reportsClerk = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports']], 'active_branch_id' => null]);
+        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $reportsClerk->id, 'duty' => 'storekeeper', 'is_primary' => false]);
+        $this->actingAs($reportsClerk)->onPortal('manage')
             ->withSession([BranchOperations::SessionView => 'all'])
             ->get('/branch-performance?period=month')
             ->assertOk()
@@ -281,6 +281,46 @@ class BranchPerformanceReportTest extends TestCase
                 ->where('data.performance.selected_branch_id', $dhaka->id)
                 ->where('data.performance.totals.order_count', 1)
                 ->where('data.performance.totals.order_value', '200.00'));
+    }
+
+    public function test_finance_staff_with_no_branch_assignment_see_every_branch_and_the_grand_total(): void
+    {
+        $partner = User::factory()->dealer()->create();
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $dhaka = CompanyBranch::factory()->create(['code' => 'DHK-02', 'name' => 'Dhaka Hub']);
+        $product = Product::factory()->create(['cost_price' => '10.00']);
+        $this->createFulfilledOrder($partner, $product, $hub->id, '700.00', '700.00');
+        $this->createFulfilledOrder($partner, $product, $dhaka->id, '200.00', '50.00');
+        $this->createFulfilledOrder($partner, $product, null, '900.00', '0.00');
+        $allCodes = CompanyBranch::query()->pluck('code')->sort()->values()->all();
+
+        $accountant = User::factory()->staff('finance')->create(['active_branch_id' => null]);
+        $this->assertSame(0, BranchStaffAssignment::query()->where('user_id', $accountant->id)->count());
+
+        $this->actingAs($accountant)->onPortal('manage')
+            ->get('/branch-performance?period=month')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('workspaceBranches.can_view_all', true)
+                ->where('data.performance.can_view_all_branches', true)
+                ->where('data.performance.selected_branch_id', null)
+                ->where('data.performance.totals.order_count', 3)
+                ->where('data.performance.totals.order_value', '1800.00')
+                ->where('data.performance.unassigned.order_count', 1)
+                ->where('data.performance.branches', fn ($branches) => collect($branches)->pluck('code')->sort()->values()->all() === $allCodes)
+                ->where('data.branch_options', fn ($options) => collect($options)->pluck('code')->sort()->values()->all() === $allCodes));
+
+        $this->actingAs($accountant)->onPortal('manage')
+            ->get('/branch-performance?period=month&branch_id='.$hub->id)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.performance.totals.order_count', 1)
+                ->where('data.performance.totals.order_value', '700.00'));
+
+        // Viewing every branch gives no right to change stock at a branch they are not assigned to.
+        $operations = app(BranchOperations::class);
+        $this->assertTrue($operations->canViewAllBranches($accountant));
+        $this->assertFalse($operations->canManageAllBranches($accountant));
     }
 
     public function test_product_editor_public_link_uses_public_portal_host(): void

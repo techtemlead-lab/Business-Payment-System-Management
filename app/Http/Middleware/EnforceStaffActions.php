@@ -94,8 +94,9 @@ class EnforceStaffActions
             // The agreement text and its switch belong to the owners; the controller checks it again.
             return $next($request);
         }
-        if ($controller === 'BranchController' && $method === 'select') {
-            // Domain layer enforces assignment / capability for the chosen hub.
+        if ($controller === 'BranchController' && in_array($method, ['select', 'viewAll'], true)) {
+            // Choosing which branch to look at changes nothing; BranchOperations checks
+            // assignment for one branch and canViewAllBranches() for "All branches".
             return $next($request);
         }
         if ($controller === 'DataImportController') {
