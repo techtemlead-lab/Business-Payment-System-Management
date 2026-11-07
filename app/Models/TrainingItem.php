@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * One lesson in the partner training library: a video link, a PDF guide or a
+ * One lesson in the partner training library: a video (a link or an uploaded file), a PDF guide or a
  * plain-text article. Partners only see published items meant for their role.
  *
  * @property int $id
@@ -21,6 +21,10 @@ use Illuminate\Support\Carbon;
  * @property string $topic
  * @property string $audience
  * @property string|null $video_url
+ * @property string|null $video_path
+ * @property string|null $video_name
+ * @property int|null $video_size
+ * @property string|null $video_mime
  * @property string|null $body
  * @property string|null $pdf_path
  * @property string|null $pdf_name
@@ -45,7 +49,7 @@ class TrainingItem extends Model
     public const NewForDays = 14;
 
     protected $fillable = [
-        'title_bn', 'title_en', 'summary', 'type', 'topic', 'audience', 'video_url', 'body',
+        'title_bn', 'title_en', 'summary', 'type', 'topic', 'audience', 'video_url', 'video_path', 'video_name', 'video_size', 'video_mime', 'body',
         'pdf_path', 'pdf_name', 'pdf_size', 'sort_order', 'published', 'published_at', 'created_by', 'updated_by', 'quiz_pass_percent',
     ];
 
@@ -57,6 +61,7 @@ class TrainingItem extends Model
             'published_at' => 'datetime',
             'sort_order' => 'integer',
             'pdf_size' => 'integer',
+            'video_size' => 'integer',
             'quiz_pass_percent' => 'integer',
         ];
     }

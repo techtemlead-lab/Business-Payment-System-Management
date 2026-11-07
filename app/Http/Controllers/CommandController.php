@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\AccountPhoneRules;
 use App\Domain\Accounts\PartnerAccountProvisioning;
+use App\Domain\Accounts\PartnerAge;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Accounts\PartnerCreateMedia;
 use App\Domain\Accounts\PartnerKycDocuments;
@@ -123,7 +124,7 @@ class CommandController extends Controller
                 'identity_type' => 'required|in:birth_certificate,nid',
                 'birth_certificate_number' => 'nullable|string|max:40',
                 'nid' => 'nullable|string|max:30',
-                'date_of_birth' => 'required|date',
+                'date_of_birth' => ['required', 'date', PartnerAge::rule()],
                 'name' => 'required|string|max:150',
                 'name_bn' => 'required|string|max:150',
                 'father_name' => 'required|string|max:150',

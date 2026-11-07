@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, Award, BookOpen, Eye, EyeOff, FileText, ListChecks, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Award, BookOpen, Download, Eye, EyeOff, FileText, ListChecks, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
 import { Empty, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 
@@ -16,8 +16,14 @@ export type TrainingItem = {
     provider?: 'youtube' | 'facebook' | null;
     body?: string | null;
     pdf_url?: string | null;
+    pdf_download_url?: string | null;
     pdf_name?: string | null;
     pdf_size?: number | null;
+    video_file_url?: string | null;
+    video_download_url?: string | null;
+    video_name?: string | null;
+    video_size?: number | null;
+    video_mime?: string | null;
     is_new: boolean;
     published_at?: string | null;
     video_url?: string | null;
@@ -48,6 +54,7 @@ type StaffData = {
     types: string[];
     audiences: string[];
     pdf_max_mb: number;
+    video_max_mb: number;
     new_for_days: number;
 };
 
@@ -108,6 +115,27 @@ function VideoFacade({ item, title, translate }: { item: TrainingItem; title: st
     );
 }
 
+/** An uploaded video file: plays in the page (served from the company's own server) and can be downloaded. */
+function UploadedVideo({ item, translate }: { item: TrainingItem; translate: Translate }) {
+    if (!item.video_file_url) {
+        return null;
+    }
+    return (
+        <div className="training-video-file">
+            <video controls preload="metadata" playsInline>
+                <source src={item.video_file_url} type={item.video_mime ?? 'video/mp4'} />
+                {translate('portal', 'training_video_unsupported')}
+            </video>
+            {item.video_download_url && (
+                <a className="button small" href={item.video_download_url} download>
+                    <Download size={16} aria-hidden="true" />{translate('portal', 'training_download')}
+                    {item.video_size ? <span className="muted"> · {fileSize(item.video_size)}</span> : null}
+                </a>
+            )}
+        </div>
+    );
+}
+
 function TrainingCard({ item, translate, children }: { item: TrainingItem; translate: Translate; children?: React.ReactNode }) {
     const titleOf = useTitle();
     const { main, other } = titleOf(item);
@@ -121,12 +149,21 @@ function TrainingCard({ item, translate, children }: { item: TrainingItem; trans
             <h3>{main}</h3>
             {other && other !== main && <p className="training-alt-title">{other}</p>}
             {item.summary && <p className="training-summary">{item.summary}</p>}
-            {item.type === 'video' && <VideoFacade item={item} title={main} translate={translate} />}
+            {item.type === 'video' && (item.video_file_url
+                ? <UploadedVideo item={item} translate={translate} />
+                : <VideoFacade item={item} title={main} translate={translate} />)}
             {item.type === 'pdf' && item.pdf_url && (
-                <a className="button small training-pdf" href={item.pdf_url} target="_blank" rel="noopener">
-                    <FileText size={16} aria-hidden="true" />{translate('portal', 'training_open_pdf')}
-                    {item.pdf_size ? <span className="muted"> · {fileSize(item.pdf_size)}</span> : null}
-                </a>
+                <div className="training-file-actions">
+                    <a className="button small training-pdf" href={item.pdf_url} target="_blank" rel="noopener">
+                        <FileText size={16} aria-hidden="true" />{translate('portal', 'training_open_pdf')}
+                        {item.pdf_size ? <span className="muted"> · {fileSize(item.pdf_size)}</span> : null}
+                    </a>
+                    {item.pdf_download_url && (
+                        <a className="button small" href={item.pdf_download_url} download>
+                            <Download size={16} aria-hidden="true" />{translate('portal', 'training_download')}
+                        </a>
+                    )}
+                </div>
             )}
             {item.type === 'article' && item.body && (
                 <details className="training-article">
@@ -316,6 +353,7 @@ type FormShape = {
     video_url: string;
     body: string;
     pdf: File | null;
+    video_file: File | null;
 };
 
 function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingItem | null; onDone: () => void }) {
@@ -330,7 +368,19 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
         video_url: item?.video_url ?? '',
         body: item?.body ?? '',
         pdf: null,
+        video_file: null,
     });
+    const keepingVideoFile = item?.type === 'video' && item.video_name;
+    // An uploaded video is shown first when the item already has one; otherwise a link.
+    const [videoSource, setVideoSource] = useState<'link' | 'file'>(keepingVideoFile ? 'file' : 'link');
+    const chooseVideoSource = (source: 'link' | 'file') => {
+        setVideoSource(source);
+        if (source === 'link') {
+            form.setData('video_file', null);
+        } else {
+            form.setData('video_url', '');
+        }
+    };
     const submit = (event: React.FormEvent) => {
         event.preventDefault();
         const options = { forceFormData: true, preserveScroll: true, onSuccess: () => onDone() };
@@ -374,6 +424,29 @@ function TrainingForm({ data, item, onDone }: { data: StaffData; item: TrainingI
                 </label>
             </div>
             {form.data.type === 'video' && (
+                <fieldset className="training-video-source">
+                    <legend>{translate('portal', 'training_field_video_source')}</legend>
+                    <label className="inline-choice">
+                        <input type="radio" name="video_source" checked={videoSource === 'file'} onChange={() => chooseVideoSource('file')} />
+                        {translate('portal', 'training_video_source_file')}
+                    </label>
+                    <label className="inline-choice">
+                        <input type="radio" name="video_source" checked={videoSource === 'link'} onChange={() => chooseVideoSource('link')} />
+                        {translate('portal', 'training_video_source_link')}
+                    </label>
+                </fieldset>
+            )}
+            {form.data.type === 'video' && videoSource === 'file' && (
+                <label>{translate('portal', 'training_field_video_file')}
+                    <input type="file" accept="video/mp4,video/webm,.mp4,.webm" required={!keepingVideoFile} onChange={(e) => form.setData('video_file', e.target.files?.[0] ?? null)} />
+                    <small className="field-hint">
+                        {translate('portal', 'training_field_video_file_hint', { mb: String(data.video_max_mb) })}
+                        {keepingVideoFile ? ` ${translate('portal', 'training_field_pdf_keep_hint', { name: String(item?.video_name) })}` : ''}
+                    </small>{error('video_file')}
+                    {form.progress && <progress value={form.progress.percentage ?? 0} max={100} aria-label={translate('portal', 'training_uploading')} />}
+                </label>
+            )}
+            {form.data.type === 'video' && videoSource === 'link' && (
                 <label>{translate('portal', 'training_field_video_url')}
                     <input type="url" inputMode="url" required pattern="https://.*" maxLength={500} placeholder="https://www.youtube.com/watch?v=..." value={form.data.video_url} onChange={(e) => form.setData('video_url', e.target.value)} />
                     <small className="field-hint">{translate('portal', 'training_field_video_hint')}</small>{error('video_url')}

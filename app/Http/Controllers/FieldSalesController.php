@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAge;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
 use App\Domain\Staff\TerritoryAccess;
@@ -44,7 +45,8 @@ class FieldSalesController extends Controller
     {
         $data = $request->validate(['name' => 'required|string|max:150', 'email' => 'required|email|max:254', 'phone' => 'required|string|max:30',
             'role' => 'required|in:dealer,sub_dealer', 'division' => 'required|string|max:80', 'district' => 'required|string|max:80',
-            'upazila' => 'nullable|string|max:80', 'union' => 'nullable|string|max:80', 'area_code' => 'nullable|string|max:40', 'sponsor_id' => 'nullable|integer|exists:users,id']);
+            'upazila' => 'nullable|string|max:80', 'union' => 'nullable|string|max:80', 'area_code' => 'nullable|string|max:40', 'sponsor_id' => 'nullable|integer|exists:users,id',
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d', PartnerAge::rule()]]);
 
         return $this->done($request, ['id' => $operations->apply($request->user(), $data)]);
     }
