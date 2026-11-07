@@ -35,7 +35,6 @@ class CompanyCommissionBenefitsFundTest extends TestCase
         $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'allow_credit' => true,
             'reason' => 'Approve funded 40% discount purchase',
         ])->assertOk();
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);
@@ -70,7 +69,6 @@ class CompanyCommissionBenefitsFundTest extends TestCase
         $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'allow_credit' => true,
             'reason' => 'Approve for benefits fund visibility checks',
         ])->assertOk();
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);
@@ -115,7 +113,6 @@ class CompanyCommissionBenefitsFundTest extends TestCase
         $order->forceFill(['paid' => $order->fresh()->total])->save(); // The dealer pays in full before approval.
         $this->actingAs($finance)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
-            'allow_credit' => true,
             'reason' => 'Approve sub-dealer benefits fund posting',
         ])->assertOk();
         $order->refresh()->update(['paid' => $order->total, 'status' => 'delivered']);

@@ -18,7 +18,6 @@ return [
     'payment_reviewed' => 'Madina: payment for order :number was :outcome.',
     'shipment_dispatched' => 'Madina: order :number was sent by :courier. Tracking: :tracking.',
     'delivery_confirmed' => 'Madina: delivery of order :number is confirmed.',
-    'due_adjustment' => 'Madina: the balance fix on order :number was :decision (:reference). Left to pay: Tk :amount.',
     'commission_matured' => 'Madina: the waiting time is over. Tk :amount commission can now be withdrawn from your wallet.',
     'reward_credited' => 'Madina: Tk :amount added for :program. Check your earnings.',
     'commission_released' => 'Madina: Tk :amount of held :category was released to your wallet.',

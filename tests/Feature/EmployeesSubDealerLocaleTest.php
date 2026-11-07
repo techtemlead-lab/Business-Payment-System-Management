@@ -33,7 +33,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
                 ->where('translations.portal.emp_preset_finance', 'হিসাব ও ফান্ড')
                 ->where('data.available_permissions.0.label', 'মার্কেট সেলস ডেস্ক')
                 ->where('data.available_permissions.0.category', 'মার্কেট সেলস')
-                ->where('data.available_permissions.6.label', 'অর্ডার ও ডেলিভারি'));
+                ->where('data.available_permissions.5.label', 'অর্ডার ও ডেলিভারি'));
     }
 
     public function test_website_customization_exposes_bangla_shell_keys(): void
