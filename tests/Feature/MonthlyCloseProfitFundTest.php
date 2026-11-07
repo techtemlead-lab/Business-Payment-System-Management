@@ -156,6 +156,26 @@ class MonthlyCloseProfitFundTest extends TestCase
         $this->assertDatabaseMissing('commission_allocations', ['category' => 'sub_dealer_salary_settlement_reserve']);
     }
 
+    public function test_the_additional_rank_fund_goes_to_profit_at_close_and_marketing_and_management_stay(): void
+    {
+        $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);
+        $order = $this->purchase($sub, '120.00', '200.00');
+        $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+
+        // 4% of ৳120 = ৳4.80, moved once with its source.
+        $profit = CommissionAllocation::where('category', 'company_profit_fund')->where('metadata->source_category', 'additional_rank_pool')->sole();
+        $this->assertSame('4.80', (string) $profit->amount);
+        $this->assertSame('retained_reason_unclaimed_additional_rank', $profit->metadata['reason_key']);
+        $this->assertSame('2026-09', $profit->metadata['period_month']);
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'additional_rank_pool', 'status' => 'settled']);
+        // Owner decision: the management share and the marketing budget are kept and carry over.
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'area_management', 'status' => 'pending']);
+        $this->assertDatabaseHas('commission_allocations', ['order_id' => $order->id, 'category' => 'company_marketing_fund', 'status' => 'pending']);
+    }
+
     public function test_the_rollover_funds_still_roll_over_after_the_close(): void
     {
         $sub = User::factory()->inPlace($this->division)->create(['role' => 'sub_dealer']);

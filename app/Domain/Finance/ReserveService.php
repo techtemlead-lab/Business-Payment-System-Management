@@ -320,6 +320,43 @@ final class ReserveService
         }, 3);
     }
 
+    /**
+     * Month close for the 4% sub-dealer additional-rank fund (owner rule): money nobody
+     * qualified for in the month goes to the company profit fund with its source. No
+     * qualification rule is set yet, so the whole closed month goes. Re-running moves nothing.
+     *
+     * @return array{status: string, period: string, closed_count: int, total_amount: string}
+     */
+    public function closeAdditionalRankFund(string $month, ?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+        [, $end] = CommissionQualification::period($month);
+        if ($end->isFuture()) {
+            return ['status' => 'month_open', 'period' => $month, 'closed_count' => 0, 'total_amount' => '0.00'];
+        }
+
+        return DB::transaction(function () use ($month, $actorId): array {
+            CommissionWallet::lock();
+            $funds = CommissionAllocation::query()->where('category', 'additional_rank_pool')->where('status', 'pending')
+                ->where('metadata->period_month', $month)->orderBy('id')->lockForUpdate()->get();
+            $settlement = app(CommissionSettlement::class);
+            $total = 0;
+            foreach ($funds as $fund) {
+                $amount = Money::cents($fund->amount);
+                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'additional_rank', null, 'retained_reason_unclaimed_additional_rank');
+                $fund->update(['status' => 'settled', 'metadata' => [...$fund->metadata, 'settled_at' => now()->toIso8601String(),
+                    'settled_period' => $month, 'distributed' => '0.00', 'reserved' => Money::decimal($amount), 'settlement_reserve_allocation_id' => $profitId]]);
+                $total += $amount;
+            }
+            if ($funds->isNotEmpty()) {
+                Audit::record($actorId, 'commission.additional_rank_closed', $month, ['count' => $funds->count(), 'amount' => Money::decimal($total)]);
+            }
+
+            return ['status' => $funds->isNotEmpty() ? 'closed' : 'nothing_to_close', 'period' => $month,
+                'closed_count' => $funds->count(), 'total_amount' => Money::decimal($total)];
+        }, 3);
+    }
+
     public function releaseQualifiedQuotaHolds(?int $actorId = null): array
     {
         CommissionWallet::requireActive();

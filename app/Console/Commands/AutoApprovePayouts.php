@@ -66,6 +66,7 @@ class AutoApprovePayouts extends Command
         foreach ([2, 1] as $back) {
             $month = $current->subMonthsNoOverflow($back)->format('Y-m');
             $summary['area_quota_close:'.$month] = $this->attempt(fn () => app(ReserveService::class)->forfeitUnmetQuotaHolds($month)['status']);
+            $summary['additional_rank_close:'.$month] = $this->attempt(fn () => app(ReserveService::class)->closeAdditionalRankFund($month)['status']);
         }
 
         if ($settings->isAutoApproved('rank_incentive')) {
