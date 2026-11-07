@@ -33,9 +33,19 @@ return [
         // Days to retain closed support/enquiry records; 0 disables automated retention guidance.
         'closed_record_retention_days' => (int) env('MADINA_PRIVACY_RETENTION_DAYS', 365),
     ],
+    // Partner training uploads: the disk they are kept on and the largest file staff may upload.
+    // The web server's upload limit (infra/php.production.ini, nginx client_max_body_size) must allow the video size.
+    'training' => [
+        'disk' => env('MADINA_TRAINING_DISK', 'local'),
+        'video_max_mb' => (int) env('MADINA_TRAINING_VIDEO_MAX_MB', 100),
+        'pdf_max_mb' => (int) env('MADINA_TRAINING_PDF_MAX_MB', 20),
+    ],
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',
+    // Owner decision: nobody orders without paying the whole order first. This is only the starting
+    // value; the owner switches it on or off in Finance settings ("Full payment required when ordering").
+    'full_payment_when_ordering' => env('MADINA_FULL_PAYMENT_WHEN_ORDERING', true),
     // Printable order invoice letterhead (matches partner invoice template layout).
     'invoice_manufacturer' => env('MADINA_INVOICE_MANUFACTURER', 'Holistic Nutracare'),
     'invoice_marketed_by' => env('MADINA_INVOICE_MARKETED_BY', 'Madina Natural Health Care'),

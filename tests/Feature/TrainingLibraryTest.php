@@ -19,6 +19,9 @@ class TrainingLibraryTest extends TestCase
 
     private const PdfBytes = "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n";
 
+    /** The opening "ftyp" box of an MP4 file, enough for the server to recognise the type. */
+    private const Mp4Bytes = "\x00\x00\x00\x20ftypisom\x00\x00\x02\x00isomiso2avc1mp41\x00\x00\x00\x08free";
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -270,6 +273,99 @@ class TrainingLibraryTest extends TestCase
         $this->assertNull($item->fresh()->pdf_path);
         Storage::disk('local')->assertMissing($oldPath);
         $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$item->id.'/pdf')->assertNotFound();
+    }
+
+    public function test_staff_upload_a_video_file_that_partners_can_play_and_download(): void
+    {
+        Storage::fake('local');
+        config(['madina.training.video_max_mb' => 5]);
+        $editor = User::factory()->staff('editor')->create();
+        $base = ['title_bn' => 'পণ্য পরিচিতি', 'title_en' => 'Product intro', 'type' => 'video', 'topic' => 'products', 'audience' => 'dealers'];
+
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training', $base)->assertSessionHasErrors('video_url');
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => $this->realUpload('clip.mp4', 'plain text pretending to be a video')])
+            ->assertSessionHasErrors('video_file');
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => UploadedFile::fake()->create('clip.avi', 100, 'video/x-msvideo')])
+            ->assertSessionHasErrors('video_file');
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => UploadedFile::fake()->create('long.mp4', 5 * 1024 + 1, 'video/mp4')])
+            ->assertSessionHasErrors('video_file');
+        $this->assertDatabaseCount('training_items', 0);
+
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training', [...$base, 'video_file' => $this->realUpload('Product intro.mp4', self::Mp4Bytes)])
+            ->assertSessionHasNoErrors();
+        $item = TrainingItem::query()->sole();
+        $this->assertStringStartsWith('training/videos/', (string) $item->video_path);
+        $this->assertNull($item->video_url);
+        $this->assertSame('video/mp4', $item->video_mime);
+        $this->assertSame('Product-intro.mp4', $item->video_name);
+        Storage::disk('local')->assertExists((string) $item->video_path);
+
+        $dealer = User::factory()->dealer()->create();
+        $subDealer = User::factory()->subDealer()->create();
+        $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$item->id.'/video')->assertNotFound();
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/training/'.$item->id.'/publish', ['published' => true]);
+
+        $played = $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$item->id.'/video');
+        $played->assertOk()->assertHeader('Content-Type', 'video/mp4');
+        $this->assertStringContainsString('inline', (string) $played->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('no-store', (string) $played->headers->get('Cache-Control'));
+        $this->assertSame(self::Mp4Bytes, $played->streamedContent());
+        $saved = $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$item->id.'/video?download=1');
+        $this->assertStringContainsString('attachment', (string) $saved->headers->get('Content-Disposition'));
+        $this->actingAs($dealer)->onPortal('dealer')->withHeaders(['Range' => 'bytes=0-3'])->get('/training/'.$item->id.'/video')->assertStatus(206);
+        $this->actingAs($subDealer)->onPortal('subdealer')->get('/training/'.$item->id.'/video')->assertNotFound();
+
+        $this->actingAs($dealer)->onPortal('dealer')->get('/training')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.training.groups.0.items.0.video_file_url', '/training/'.$item->id.'/video')
+                ->where('data.training.groups.0.items.0.video_download_url', '/training/'.$item->id.'/video?download=1')
+                ->where('data.training.groups.0.items.0.embed_url', null)
+                ->missing('data.training.groups.0.items.0.video_url'));
+
+        $oldPath = (string) $item->video_path;
+        $this->actingAs($editor)->onPortal('manage')->patch('/commands/training/'.$item->id, [...$base, 'title_en' => 'Product intro v2'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame($oldPath, $item->fresh()->video_path, 'Editing without a new file keeps the uploaded video.');
+
+        $this->actingAs($editor)->onPortal('manage')->patch('/commands/training/'.$item->id, [...$base, 'video_url' => 'https://youtu.be/dQw4w9WgXcQ'])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($item->fresh()->video_path);
+        $this->assertSame('https://youtu.be/dQw4w9WgXcQ', $item->fresh()->video_url);
+        Storage::disk('local')->assertMissing($oldPath);
+        $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$item->id.'/video')->assertNotFound();
+    }
+
+    public function test_training_files_go_to_the_configured_disk_and_are_removed_with_the_item(): void
+    {
+        Storage::fake('local');
+        Storage::fake('training');
+        config(['madina.training.disk' => 'training']);
+        $owner = User::factory()->staff('md')->create();
+
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training', [
+            'title_bn' => 'ভিডিও', 'title_en' => 'Video', 'type' => 'video', 'topic' => 'selling', 'audience' => 'all',
+            'video_file' => $this->realUpload('talk.mp4', self::Mp4Bytes),
+        ])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training', [
+            'title_bn' => 'গাইড', 'title_en' => 'Guide', 'type' => 'pdf', 'topic' => 'rules', 'audience' => 'all',
+            'pdf' => $this->realUpload('rules.pdf', self::PdfBytes),
+        ])->assertSessionHasNoErrors();
+
+        $video = TrainingItem::query()->where('type', 'video')->sole();
+        $guide = TrainingItem::query()->where('type', 'pdf')->sole();
+        Storage::disk('training')->assertExists([(string) $video->video_path, (string) $guide->pdf_path]);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/training/'.$guide->id.'/publish', ['published' => true]);
+        $dealer = User::factory()->dealer()->create();
+        $download = $this->actingAs($dealer)->onPortal('dealer')->get('/training/'.$guide->id.'/pdf?download=1');
+        $download->assertOk();
+        $this->assertStringContainsString('attachment', (string) $download->headers->get('Content-Disposition'));
+        $this->assertSame(self::PdfBytes, $download->streamedContent());
+
+        $this->actingAs($owner)->onPortal('sadmin')->delete('/commands/training/'.$video->id)->assertRedirect();
+        Storage::disk('training')->assertMissing((string) $video->video_path);
     }
 
     /**

@@ -5,19 +5,52 @@ namespace App\Domain\Content;
 use App\Models\TrainingItem;
 use App\Models\User;
 use App\Support\Audit;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
  * Who may manage or open training items, what each screen shows, and how
- * items are saved. PDF guides live on the private disk and are only streamed
+ * items are saved. PDF guides and uploaded videos live on the training disk
+ * (config madina.training.disk, private by default) and are only streamed
  * through the controller after the checks here.
  */
 final class TrainingLibrary
 {
-    /** Private disk folder for uploaded PDF guides. */
+    /** Disk folder for uploaded PDF guides. */
     public const PdfFolder = 'training';
+
+    /** Disk folder for uploaded training videos. */
+    public const VideoFolder = 'training/videos';
+
+    /** Video files staff may upload. */
+    public const VideoExtensions = ['mp4', 'webm'];
+
+    public const VideoMimes = ['video/mp4', 'video/webm'];
+
+    /** The disk training files are kept on. */
+    public static function diskName(): string
+    {
+        return (string) config('madina.training.disk', 'local');
+    }
+
+    public static function disk(): Filesystem
+    {
+        return Storage::disk(self::diskName());
+    }
+
+    /** Largest uploaded video, in megabytes. */
+    public static function videoMaxMb(): int
+    {
+        return max(1, (int) config('madina.training.video_max_mb', 100));
+    }
+
+    /** Largest PDF guide, in megabytes. */
+    public static function pdfMaxMb(): int
+    {
+        return max(1, (int) config('madina.training.pdf_max_mb', 20));
+    }
 
     /** Office staff with the content permission and the owners manage the library. */
     public function canManage(User $user): bool
@@ -100,8 +133,15 @@ final class TrainingLibrary
             'audience' => $item->audience,
             'embed_url' => $item->type === 'video' && $item->video_url ? TrainingVideoLink::embedUrl($item->video_url) : null,
             'provider' => $item->type === 'video' && $item->video_url ? TrainingVideoLink::provider($item->video_url) : null,
+            // An uploaded video plays in the page and can be downloaded.
+            'video_file_url' => $item->type === 'video' && $item->video_path ? '/training/'.$item->id.'/video' : null,
+            'video_download_url' => $item->type === 'video' && $item->video_path ? '/training/'.$item->id.'/video?download=1' : null,
+            'video_name' => $item->type === 'video' ? $item->video_name : null,
+            'video_size' => $item->type === 'video' ? $item->video_size : null,
+            'video_mime' => $item->type === 'video' ? $item->video_mime : null,
             'body' => $item->type === 'article' ? $item->body : null,
             'pdf_url' => $item->type === 'pdf' && $item->pdf_path ? '/training/'.$item->id.'/pdf' : null,
+            'pdf_download_url' => $item->type === 'pdf' && $item->pdf_path ? '/training/'.$item->id.'/pdf?download=1' : null,
             'pdf_name' => $item->type === 'pdf' ? $item->pdf_name : null,
             'pdf_size' => $item->type === 'pdf' ? $item->pdf_size : null,
             'is_new' => $item->isNew(),
@@ -120,32 +160,37 @@ final class TrainingLibrary
      *
      * @param  array<string, mixed>  $data
      */
-    public function save(User $actor, ?TrainingItem $item, array $data, ?UploadedFile $pdf): TrainingItem
+    public function save(User $actor, ?TrainingItem $item, array $data, ?UploadedFile $pdf, ?UploadedFile $video = null): TrainingItem
     {
         $oldPdf = $item?->pdf_path;
-        $newPdf = $pdf ? $pdf->store(self::PdfFolder, 'local') : null;
+        $oldVideo = $item?->video_path;
         $type = (string) $data['type'];
+        $newPdf = $pdf && $type === 'pdf' ? $pdf->store(self::PdfFolder, self::diskName()) : null;
+        $newVideo = $video && $type === 'video' ? $video->store(self::VideoFolder, self::diskName()) : null;
 
         try {
-            $saved = $this->persist($actor, $item, $data, $pdf, $newPdf, $type);
+            $saved = $this->persist($actor, $item, $data, $pdf, $newPdf, $type, $video, $newVideo);
         } catch (\Throwable $exception) {
-            if ($newPdf) {
-                Storage::disk('local')->delete($newPdf);
+            foreach (array_filter([$newPdf, $newVideo]) as $path) {
+                self::disk()->delete($path);
             }
             throw $exception;
         }
 
         if ($oldPdf && $oldPdf !== $saved->pdf_path) {
-            Storage::disk('local')->delete($oldPdf);
+            self::disk()->delete($oldPdf);
+        }
+        if ($oldVideo && $oldVideo !== $saved->video_path) {
+            self::disk()->delete($oldVideo);
         }
 
         return $saved;
     }
 
     /** @param array<string, mixed> $data */
-    private function persist(User $actor, ?TrainingItem $item, array $data, ?UploadedFile $pdf, ?string $newPdf, string $type): TrainingItem
+    private function persist(User $actor, ?TrainingItem $item, array $data, ?UploadedFile $pdf, ?string $newPdf, string $type, ?UploadedFile $video, ?string $newVideo): TrainingItem
     {
-        return DB::transaction(function () use ($actor, $item, $data, $pdf, $newPdf, $type): TrainingItem {
+        return DB::transaction(function () use ($actor, $item, $data, $pdf, $newPdf, $type, $video, $newVideo): TrainingItem {
             $item ??= new TrainingItem([
                 'created_by' => $actor->id,
                 'sort_order' => ((int) TrainingItem::query()->max('sort_order')) + 1,
@@ -158,12 +203,28 @@ final class TrainingLibrary
                 'type' => $type,
                 'topic' => $data['topic'],
                 'audience' => $data['audience'],
-                'video_url' => $type === 'video' ? trim((string) $data['video_url']) : null,
                 'body' => $type === 'article' ? trim((string) $data['body']) : null,
                 'updated_by' => $actor->id,
             ]);
             if (isset($data['sort_order'])) {
                 $item->sort_order = (int) $data['sort_order'];
+            }
+            $link = trim((string) ($data['video_url'] ?? ''));
+            $noVideoFile = ['video_path' => null, 'video_name' => null, 'video_size' => null, 'video_mime' => null];
+            if ($type !== 'video') {
+                $item->fill(['video_url' => null, ...$noVideoFile]);
+            } elseif ($video && $newVideo) {
+                // An uploaded file replaces a link.
+                $item->fill([
+                    'video_url' => null,
+                    'video_path' => $newVideo,
+                    'video_name' => $this->safeFileName($video->getClientOriginalName(), 'training-video', (string) ($video->guessExtension() ?: 'mp4')),
+                    'video_size' => (int) $video->getSize(),
+                    'video_mime' => (string) $video->getMimeType(),
+                ]);
+            } elseif ($link !== '') {
+                // A link replaces an uploaded file.
+                $item->fill(['video_url' => $link, ...$noVideoFile]);
             }
             if ($type !== 'pdf') {
                 $item->fill(['pdf_path' => null, 'pdf_name' => null, 'pdf_size' => null]);
@@ -218,12 +279,12 @@ final class TrainingLibrary
 
     public function delete(User $actor, TrainingItem $item): void
     {
-        $pdf = $item->pdf_path;
+        $files = array_filter([$item->pdf_path, $item->video_path]);
         $id = $item->id;
         $title = $item->title_en;
         $item->delete();
-        if ($pdf) {
-            Storage::disk('local')->delete($pdf);
+        foreach ($files as $path) {
+            self::disk()->delete($path);
         }
         Audit::record($actor->id, 'training.deleted', (string) $id, ['title' => $title]);
     }
@@ -231,9 +292,15 @@ final class TrainingLibrary
     /** A plain ASCII file name for the download header, always ending in .pdf. */
     public function safePdfName(string $original): string
     {
+        return $this->safeFileName($original, 'training-guide', 'pdf');
+    }
+
+    /** A plain ASCII file name for the download header, with the given extension. */
+    public function safeFileName(string $original, string $fallback, string $extension): string
+    {
         $base = pathinfo($original, PATHINFO_FILENAME);
         $base = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '-', $base), '-.');
 
-        return substr($base !== '' ? $base : 'training-guide', 0, 150).'.pdf';
+        return substr($base !== '' ? $base : $fallback, 0, 150).'.'.$extension;
     }
 }
