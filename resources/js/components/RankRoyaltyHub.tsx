@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Eye } from 'lucide-react';
-import { money, date, Table, number } from './UI';
+import { money, date, Table, number, Pagination, type Row } from './UI';
+import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
 
@@ -42,8 +43,14 @@ interface RankStats {
     dealer_count: number;
 }
 
+/** A page of rows from the server, as Laravel sends it. */
+type PagedRanks = Row & { data: RankRecord[]; total: number };
+
 interface RankRoyaltyHubProps {
-    ranks: RankRecord[];
+    /** Staff get one server page of leaders; a partner gets their own row. */
+    ranks: RankRecord[] | PagedRanks;
+    /** Search words and rank picked for the server list. */
+    filters?: { q?: string; rank?: string };
     stats: RankStats;
     policy?: {qualification: Record<string,number|string>; incentives: Record<string,number|string>; pool_pct?: number|string|null};
 }
@@ -59,8 +66,10 @@ const rankBadgeStyles: Record<string, { tone: string }> = {
 
 
 
-export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubProps) {
+export default function RankRoyaltyHub({ ranks: rankList, stats, policy, filters = {} }: RankRoyaltyHubProps) {
     const translate = useT();
+    const paged = Array.isArray(rankList) ? null : rankList;
+    const ranks: RankRecord[] = paged ? paged.data : (rankList as RankRecord[]);
     const q=policy?.qualification??{};
     const bonuses=policy?.incentives??{};
     const notSet = translate('portal','policy_value_not_set');
@@ -128,7 +137,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
     const [auditingPartner, setAuditingPartner] = useState<RankRecord | null>(null);
     useEscape(auditingPartner !== null, () => setAuditingPartner(null));
 
-    const personalHistory = ranks.length === 1
+    const personalHistory = !paged && ranks.length === 1
         ? (ranks[0].qualification_history?.length
             ? ranks[0].qualification_history
             : (ranks[0].achieved_at && ranks[0].current_rank !== 'dealer'
@@ -162,7 +171,7 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                 <div className="metric">
                     <span>{translate('portal','rank_stat_dealers')}</span>
                     <strong>
-                        {stats.dealer_count || ranks.length}
+                        {number(stats.dealer_count || (paged ? paged.total : ranks.length))}
                     </strong>
                     <small>{translate('portal','rank_stat_dealers_hint')}</small>
                 </div>
@@ -356,8 +365,26 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                         },
                     ]}
                     data={ranks}
+                    searchable={!paged}
+                    totalCount={paged?.total}
+                    extraTools={paged ? (
+                        <ServerListSearch
+                            query={filters.q ?? ''}
+                            placeholder={translate('portal', 'rank_search_placeholder')}
+                            selects={[{
+                                name: 'rank',
+                                label: translate('portal', 'rank_col_current'),
+                                value: filters.rank ?? '',
+                                options: [
+                                    { value: '', label: translate('portal', 'all') },
+                                    ...['mo', 'am', 'sm', 'me'].map(code => ({ value: code, label: translate('portal', `net_rank_${code}`) })),
+                                    { value: 'dealer', label: translate('portal', 'acct_role_dealer') },
+                                ],
+                            }]}
+                        />
+                    ) : undefined}
                     searchPlaceholder={translate('portal', 'rank_search_placeholder')}
-                    filters={[
+                    filters={paged ? undefined : [
                         {
                             key: 'current_rank',
                             label: translate('portal', 'rank_col_current'),
@@ -370,9 +397,10 @@ export default function RankRoyaltyHub({ ranks, stats, policy }: RankRoyaltyHubP
                             ],
                         },
                     ]}
-                    pageSize={15}
+                    pageSize={paged ? undefined : 15}
                     emptyMessage={translate('portal', 'rank_empty')}
                 />
+                {paged && <Pagination page={paged} />}
             </div>
 
             {/* Audit Modal for Selected Partner */}

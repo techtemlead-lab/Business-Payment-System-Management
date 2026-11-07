@@ -8,6 +8,7 @@ use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Support\ListPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -198,8 +199,8 @@ class PortalQueryBudgetTest extends TestCase
 
         $qualification = app(CommissionQualification::class);
         $response->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->has('data.settlement_state.qualified_rank_leaders', 10)
-            ->where('data.settlement_state.qualified_rank_leaders', function ($leaders) use ($qualification, $month): bool {
+            ->has('data.settlement_state.qualified_rank_leaders.data', 10)
+            ->where('data.settlement_state.qualified_rank_leaders.data', function ($leaders) use ($qualification, $month): bool {
                 foreach ($leaders as $leader) {
                     $expected = $qualification->paidAs((int) $leader['user_id'], $month);
                     if ($leader['paid_as_rank'] !== $expected['paid_as_rank']
@@ -211,6 +212,35 @@ class PortalQueryBudgetTest extends TestCase
 
                 return true;
             }));
+    }
+
+    public function test_leader_lists_send_one_page_and_their_queries_do_not_grow_with_leaders(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $bikeProgress = function (): void {
+            foreach (User::where('role', 'dealer')->whereNotIn('id', DB::table('reward_milestone_progress')->select('user_id'))->get() as $dealer) {
+                DB::table('reward_milestone_progress')->insert(['user_id' => $dealer->id, 'milestone_type' => 'bike', 'target_amount' => '5000000.00', 'leg_cap_amount' => '800000.00',
+                    'qualifying_volume' => '1000.00', 'leg_breakdown' => '[]', 'created_at' => now(), 'updated_at' => now()]);
+            }
+        };
+        $this->rankLeaders(2);
+        $bikeProgress();
+        $pages = ['/ranks' => 'data.ranks', '/rewards' => 'data.milestones', '/area-dealers' => 'data.assignments', '/settlements' => 'data.settlement_state.qualified_rank_leaders'];
+        $before = [];
+        foreach (array_keys($pages) as $path) {
+            [$response, $before[$path]] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get($path));
+            $response->assertOk();
+        }
+
+        $this->rankLeaders(38);
+        $bikeProgress();
+        foreach ($pages as $path => $list) {
+            [$response, $after] = $this->measure(fn () => $this->actingAs($owner)->onPortal('sadmin')->get($path));
+            $response->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->has($list.'.data', ListPage::PerPage)
+                ->where($list.'.total', 40));
+            $this->assertCount(count($before[$path]), $after, $path.' queries must not grow with the number of leaders.');
+        }
     }
 
     public function test_accounts_list_reads_rank_and_order_activity_without_a_query_per_dealer(): void

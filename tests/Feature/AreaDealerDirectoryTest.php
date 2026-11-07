@@ -63,7 +63,7 @@ class AreaDealerDirectoryTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('section', 'area-dealers')
-                ->where('data.assignments', function (mixed $rows): bool {
+                ->where('data.assignments.data', function (mixed $rows): bool {
                     $seats = collect($rows);
                     $districtSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC-301');
                     $sadarSeat = $seats->first(fn (array $row): bool => is_array($row['place_code'] ?? null) && ($row['place_code']['code'] ?? null) === 'MNHC-401');
