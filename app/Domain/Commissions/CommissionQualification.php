@@ -3,6 +3,7 @@
 namespace App\Domain\Commissions;
 
 use App\Domain\Accounts\PartnerBenefitControls;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\DealerRank;
 use App\Models\ReferralTreePath;
@@ -257,6 +258,31 @@ final class CommissionQualification
         return $result;
     }
 
+    /**
+     * Owner rule: the one-time reward for a rank is paid as soon as the rank is reached
+     * (every reached rank, so MO and AM in the same month both pay). Runs after the sale
+     * commits in its own locked transaction, so a reward problem never undoes the sale;
+     * the hourly auto-approval run retries anything left unpaid.
+     */
+    private function payRankRewardsAfterCommit(int $userId): void
+    {
+        DB::afterCommit(function () use ($userId): void {
+            if (! config('madina.financial_activation') || config('madina.preview_mode')
+                || ! app(FinanceSettings::class)->isAutoApproved('rank_incentive')) {
+                return;
+            }
+            try {
+                for ($paid = 0; $paid < 4; $paid++) {
+                    if (! (app(CommissionService::class)->claimOneTimeRankIncentive($userId)['success'] ?? false)) {
+                        break;
+                    }
+                }
+            } catch (\Throwable $error) {
+                report($error);
+            }
+        });
+    }
+
     private function promote(DealerRank $rank, string $code): void
     {
         $history = $rank->qualification_history ?? [];
@@ -265,6 +291,7 @@ final class CommissionQualification
         }
         $history[] = ['rank' => $code, 'achieved_at' => now()->toIso8601String()];
         $rank->update(['current_rank' => $code, 'achieved_at' => now(), 'qualification_history' => $history, 'one_time_incentive_paid' => false]);
+        $this->payRankRewardsAfterCommit((int) $rank->user_id);
 
         $partner = User::find($rank->user_id);
         $locale = $partner?->preferredLocale() ?? app()->getLocale();

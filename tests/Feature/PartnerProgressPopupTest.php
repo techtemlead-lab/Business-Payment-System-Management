@@ -194,7 +194,8 @@ class PartnerProgressPopupTest extends TestCase
     {
         $leader = User::factory()->create();
         DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'mo', 'achieved_at' => now()]);
-        $this->purchase(User::factory()->create(), '250000.00', '500000.00');
+        // ৳5 lakh funds ৳10,000; the buyer's own MO reward (paid at once) takes half.
+        $this->purchase(User::factory()->create(), '500000.00', '1000000.00');
         $this->assertTrue(app(CommissionService::class)->claimOneTimeRankIncentive($leader->id)['success']);
 
         $rank = $this->progress($leader)->json('data.rank');

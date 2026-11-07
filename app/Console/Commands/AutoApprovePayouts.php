@@ -61,9 +61,15 @@ class AutoApprovePayouts extends Command
 
         if ($settings->isAutoApproved('rank_incentive')) {
             foreach ($this->rankRewardCandidates() as $userId) {
-                $summary['rank_incentive:'.$userId] = $this->attempt(
-                    fn () => ($commissions->claimOneTimeRankIncentive($userId)['success'] ?? false) ? 'paid' : 'not yet eligible',
-                );
+                // Owner rule: every rank reached is rewarded at once (MO and AM in the same run if both were reached).
+                $summary['rank_incentive:'.$userId] = $this->attempt(function () use ($commissions, $userId): string {
+                    $paid = 0;
+                    while ($paid < 4 && ($commissions->claimOneTimeRankIncentive($userId)['success'] ?? false)) {
+                        $paid++;
+                    }
+
+                    return $paid > 0 ? 'paid' : 'not yet eligible';
+                });
             }
         } else {
             $summary['rank_incentive'] = 'needs approval';
