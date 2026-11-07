@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use App\Models\User;
 use App\Support\Audit;
@@ -28,6 +29,8 @@ final class TrainingLibrary
     public const VideoExtensions = ['mp4', 'webm'];
 
     public const VideoMimes = ['video/mp4', 'video/webm'];
+
+    public function __construct(private TrainingQuiz $quiz) {}
 
     /** The disk training files are kept on. */
     public static function diskName(): string
@@ -83,9 +86,11 @@ final class TrainingLibrary
     {
         $items = TrainingItem::query()
             ->visibleTo($user)
+            ->with('quizQuestions')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
+        $completions = $this->quiz->completionsFor($user, $items->pluck('id')->all());
 
         $groups = [];
         foreach (TrainingItem::Topics as $topic) {
@@ -93,7 +98,7 @@ final class TrainingLibrary
             if ($inTopic->isNotEmpty()) {
                 $groups[] = [
                     'topic' => $topic,
-                    'items' => $inTopic->map(fn (TrainingItem $item): array => $this->present($item, false))->all(),
+                    'items' => $inTopic->map(fn (TrainingItem $item): array => $this->present($item, false, $completions->get($item->id)))->all(),
                 ];
             }
         }
@@ -109,6 +114,7 @@ final class TrainingLibrary
     public function staffItems(): array
     {
         return TrainingItem::query()
+            ->with('quizQuestions')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
@@ -121,8 +127,10 @@ final class TrainingLibrary
      *
      * @return array<string, mixed>
      */
-    public function present(TrainingItem $item, bool $forStaff): array
+    public function present(TrainingItem $item, bool $forStaff, ?TrainingCompletion $completion = null): array
     {
+        $quiz = $this->quiz->present($item, $forStaff);
+
         return [
             'id' => $item->id,
             'title_bn' => $item->title_bn,
@@ -146,6 +154,14 @@ final class TrainingLibrary
             'pdf_size' => $item->type === 'pdf' ? $item->pdf_size : null,
             'is_new' => $item->isNew(),
             'published_at' => $item->published_at?->toIso8601String(),
+            'quiz' => $quiz,
+            ...(! $forStaff && $quiz !== null ? ['progress' => [
+                'completed' => $completion?->passed_at !== null,
+                'completed_at' => $completion?->passed_at?->toIso8601String(),
+                'attempts' => (int) ($completion?->attempts ?? 0),
+                'last_score' => $completion?->attempts ? $completion->last_score : null,
+                'certificate_url' => $completion?->passed_at !== null ? '/training/'.$item->id.'/certificate' : null,
+            ]] : []),
             ...($forStaff ? [
                 'video_url' => $item->video_url,
                 'published' => $item->published,
