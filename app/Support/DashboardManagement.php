@@ -52,6 +52,9 @@ class DashboardManagement
 
             // Birthday SMS to dealers and sub-dealers. Off by default: every SMS costs money.
             'birthday_sms_enabled' => false,
+
+            // Support tickets waiting longer than this many hours for an office reply are marked overdue.
+            'support_overdue_hours' => 24,
         ];
     }
 
@@ -90,6 +93,13 @@ class DashboardManagement
             if (array_key_exists($textKey, $clean)) {
                 $clean[$textKey] = mb_substr(trim((string) $clean[$textKey]), 0, 500);
             }
+        }
+        if (array_key_exists('support_overdue_hours', $clean)) {
+            $hours = filter_var($clean['support_overdue_hours'], FILTER_VALIDATE_INT);
+            if ($hours === false || $hours < 1 || $hours > 720) {
+                throw ValidationException::withMessages(['support_overdue_hours' => __('portal.err_support_overdue_hours')]);
+            }
+            $clean['support_overdue_hours'] = $hours;
         }
         foreach (['dealer_min_order', 'subdealer_min_order'] as $moneyKey) {
             if (! array_key_exists($moneyKey, $clean)) {
