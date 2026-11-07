@@ -29,7 +29,7 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -147,7 +147,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             ]} submit={translate('portal', 'order_refund_submit')} />
         </section>}
         {owner && open && outstanding !== '0.00' && <section className="panel narrow-panel">
-            <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{translate('portal', 'submit_payment_reference_hint')}</p>
+            <h2>{translate('portal', 'submit_payment_reference')}</h2><p className="muted">{fullPaymentRequired ? translate('portal', 'submit_full_payment_hint', { amount: money(outstanding) }) : translate('portal', 'submit_payment_reference_hint')}</p>
             <ActionForm action={`/commands/orders/${order.id}/payments`} fields={[
                 { name: 'channel', label: translate('portal', 'payment_method'), required: true, options: [
                     { value: 'Bank', label: translate('portal', 'pay_channel_bank') },
@@ -156,7 +156,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     { value: 'Rocket', label: translate('portal', 'pay_channel_rocket') },
                 ] },
                 ...(collectionAccounts.length ? [{name:'payment_account_id',label:translate('portal','company_collection_account'),required:true,options:collectionAccounts.map((a:Row)=>({value:String(a.id),label:`${a.channel} · ${a.holder} · ${a.account_number}`}))}] : []),
-                { name: 'reference', label: translate('portal', 'transaction_reference'), required: true }, { name: 'amount', label: translate('portal', 'claimed_amount_bdt'), type: 'number', required: true },
+                { name: 'reference', label: translate('portal', 'transaction_reference'), required: true }, { name: 'amount', label: translate('portal', 'claimed_amount_bdt'), type: 'number', required: true, ...(fullPaymentRequired ? { value: outstanding, hint: translate('portal', 'submit_full_payment_amount_hint') } : {}) },
                 { name: 'proof', label: translate('portal', 'payment_proof_label'), type: 'file', required: true, accept: 'image/jpeg,image/png,image/webp,application/pdf', hint: translate('portal', 'payment_proof_hint') },
             ]} submit={translate('portal', 'submit_for_verification')} />
         </section>}

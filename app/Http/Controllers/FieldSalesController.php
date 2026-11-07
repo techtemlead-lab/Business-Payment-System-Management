@@ -60,7 +60,9 @@ class FieldSalesController extends Controller
 
     public function order(Request $request, TerritoryAccess $territories, OrderService $orders): Response
     {
-        $data = $request->validate([...(new StoreOrderRequest)->rules(), 'user_id' => 'required|integer|exists:users,id']);
+        // Staff orders follow the partner rules, including "Full payment required when ordering".
+        $orderRules = new StoreOrderRequest;
+        $data = $request->validate([...$orderRules->rules(), 'user_id' => 'required|integer|exists:users,id'], $orderRules->messages());
         $user = $territories->assertPartner($request->user(), (int) $data['user_id'], 'sr_orders');
         unset($data['user_id']);
         $order = $orders->create($user, $data, $request->user());

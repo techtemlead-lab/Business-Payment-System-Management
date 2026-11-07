@@ -9,6 +9,7 @@ use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
 use App\Domain\Finance\DueAdjustments;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
 use App\Domain\Orders\OrderInvoice;
@@ -287,6 +288,7 @@ class WorkspaceController extends Controller
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
             'outstanding' => $order->outstanding(), 'adjustments' => app(DueAdjustments::class)->history($order),
+            'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
             'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at']),

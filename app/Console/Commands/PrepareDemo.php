@@ -4,10 +4,12 @@ namespace App\Console\Commands;
 
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Orders\OrderService;
+use App\Domain\Pricing\ProductPricing;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\Money;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -90,7 +92,9 @@ class PrepareDemo extends Command
                 $service->decision($admin, $o->fresh(), 'approved', 'Synthetic demo order paid in full');
                 $line = $o->lines()->first();
                 $service->dispatch($admin, $o->fresh(), ['items' => [['line_id' => $line->id, 'quantity' => 4]], 'courier' => 'Demo courier', 'tracking' => 'DEMO-TRACK-001', 'idempotency_key' => (string) Str::uuid(), 'eta' => now()->addDays(3)->toDateString()]);
-                $service->create($sub, ['items' => [['product_id' => $p->id, 'quantity' => 5]], 'idempotency_key' => (string) Str::uuid(), 'note' => 'Synthetic sub-dealer request.']);
+                // Orders are paid in full when placed, so the demo sub-dealer order carries its payment too.
+                $subTotal = Money::decimal(app(ProductPricing::class)->unitPrice($p, $sub) * 5);
+                $service->create($sub, ['items' => [['product_id' => $p->id, 'quantity' => 5]], 'idempotency_key' => (string) Str::uuid(), 'reference' => 'DEMO-COLLECTION-002', 'channel' => 'Bank', 'amount' => $subTotal, 'note' => 'Synthetic sub-dealer request.']);
             }
             if (! DB::table('payment_accounts')->exists()) {
                 $accounts = app(PaymentAccounts::class);

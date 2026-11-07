@@ -133,6 +133,43 @@ final class FinanceSettings
         }, 3);
     }
 
+    /**
+     * "Full payment required when ordering". On by default (owner decision: as a new
+     * company nobody orders without paying). While on, an order is only accepted
+     * together with a payment for its whole total and a proof screenshot.
+     *
+     * @return array{enabled: bool, version: int}
+     */
+    public function fullPaymentWhenOrdering(): array
+    {
+        $row = DB::table('business_settings')->where('key', 'full_payment_when_ordering')->first();
+        $stored = $row ? json_decode($row->value, true, 512, JSON_THROW_ON_ERROR) : [];
+        $default = filter_var(config('madina.full_payment_when_ordering', true), FILTER_VALIDATE_BOOLEAN);
+
+        return ['enabled' => (bool) ($stored['enabled'] ?? $default), 'version' => $row?->version ?? 0];
+    }
+
+    public function saveFullPaymentWhenOrdering(User $actor, bool $enabled, int $version, string $reason): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $version, $reason): void {
+            CommissionWallet::lock();
+            abort_unless($actor->fresh()->owner(), 403);
+            $before = $this->fullPaymentWhenOrdering();
+            if ($version !== $before['version']) {
+                throw ValidationException::withMessages(['version' => __('portal.err_fin_wd_stale')]);
+            }
+            $after = ['enabled' => $enabled];
+            $stored = DB::table('business_settings')->where('key', 'full_payment_when_ordering')->first();
+            DB::table('business_settings')->updateOrInsert(['key' => 'full_payment_when_ordering'], [
+                'value' => json_encode($after, JSON_THROW_ON_ERROR), 'version' => $version + 1,
+                'updated_by' => $actor->id, 'created_at' => $stored?->created_at ?? now(), 'updated_at' => now(),
+            ]);
+            Audit::record($actor->id, 'finance.full_payment_when_ordering_changed', 'full_payment_when_ordering', [
+                'before' => ['enabled' => $before['enabled']], 'after' => $after, 'reason' => $reason,
+            ]);
+        }, 3);
+    }
+
     /** @return array{amount: string, version: int} */
     public function withdrawalMinimum(): array
     {

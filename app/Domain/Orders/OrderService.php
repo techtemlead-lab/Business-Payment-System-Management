@@ -4,6 +4,7 @@ namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
+use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\PaymentGatewayClient;
@@ -69,6 +70,7 @@ class OrderService
                 throw ValidationException::withMessages(['items' => __('portal.err_order_limit')]);
             }
             DashboardManagement::assertPartnerCanOrder($user, $total);
+            $this->assertPaidInFullWithOrder($data, $total);
             $order = Order::create(['number' => 'MN-'.now()->format('ymd').'-'.Str::upper(Str::random(8)),
                 'user_id' => $user->id, 'submitted_by' => $submittedBy?->id, 'total' => Money::decimal($total), 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash, 'note' => $data['note'] ?? null]);
@@ -132,6 +134,9 @@ class OrderService
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if (in_array($locked->status, ['rejected', 'cancelled'], true)) {
                 throw ValidationException::withMessages(['reference' => __('portal.err_order_closed')]);
+            }
+            if (app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'] && Money::cents((string) $data['amount']) !== Money::cents($locked->outstanding())) {
+                throw ValidationException::withMessages(['amount' => __('portal.err_claim_full_amount', ['amount' => Money::grouped($locked->outstanding())])]);
             }
             $reference = Str::upper(trim($data['reference']));
             if (DB::table('payment_claims')->where('channel', $data['channel'])->where('reference', $reference)->where('status', '<>', 'rejected')->exists()
@@ -526,6 +531,26 @@ class OrderService
                 throw ValidationException::withMessages(['reference' => __('portal.err_payment_ref_used')]);
             }
             throw $exception;
+        }
+    }
+
+    /**
+     * "Full payment required when ordering": while the owner keeps it on, an order is only
+     * accepted with a payment for its whole total (channel and reference). Part payments are
+     * refused. The proof screenshot is required by the order form rules.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function assertPaidInFullWithOrder(array $data, int $totalCents): void
+    {
+        if (! app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled']) {
+            return;
+        }
+        if (trim((string) ($data['reference'] ?? '')) === '' || trim((string) ($data['channel'] ?? '')) === '') {
+            throw ValidationException::withMessages(['reference' => __('portal.err_order_full_payment_needed')]);
+        }
+        if (Money::cents((string) ($data['amount'] ?? '0')) !== $totalCents) {
+            throw ValidationException::withMessages(['amount' => __('portal.err_order_full_payment_amount', ['amount' => Money::grouped(Money::decimal($totalCents))])]);
         }
     }
 
