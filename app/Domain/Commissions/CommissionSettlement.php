@@ -15,6 +15,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class CommissionSettlement
@@ -31,6 +32,9 @@ final class CommissionSettlement
      * benefit fund (RetainedFundLedger::BenefitsCategory).
      */
     public const CompanyProfitCategory = 'company_profit_fund';
+
+    /** Settlement payout rows written per insert statement. */
+    private const PayoutInsertChunk = 2000;
 
     /** @return list<string> */
     public static function settlementReserveCategories(): array
@@ -104,6 +108,8 @@ final class CommissionSettlement
                 ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
             $payees = $dealers->keyBy('id')->union($partners)->all();
             $split = FairPaisaSplit::forMonth($month);
+            $refundedBasis = $this->refundedBasisByOrder($funds);
+            $payoutRows = [];
             foreach ($funds as $fund) {
                 [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
                 $cents = Money::cents($fund->amount);
@@ -143,11 +149,18 @@ final class CommissionSettlement
                         $tiers[$code]['reserve_cents'] = ($tiers[$code]['reserve_cents'] ?? 0) + $buckets[$index] - array_sum($tierShares);
                     }
                 }
+                // Every source fund keeps its own payout rows (refunds claw back per source),
+                // but wallets, the journal and notices are written once per partner below.
                 foreach ($shares as $id => $amount) {
                     if ($amount > 0) {
-                        $this->pay($fund, $id, $amount, $month, $kind, $payees[$id] ?? null);
+                        $payoutRows[] = ['allocation_id' => $fund->id, 'user_id' => $id, 'kind' => $kind,
+                            'refunded_basis' => $refundedBasis[$fund->order_id] ?? '0.00', 'period_month' => $month,
+                            'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()];
                         $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
                     }
+                }
+                if (count($payoutRows) >= self::PayoutInsertChunk) {
+                    $this->insertPayouts($payoutRows);
                 }
                 $paidCents = array_sum($shares);
                 $remainder = $cents - $paidCents;
@@ -172,6 +185,8 @@ final class CommissionSettlement
                     'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
                     'settlement_reserve_allocation_id' => $reserveId]]);
             }
+            $this->insertPayouts($payoutRows);
+            $this->creditSettlement($distributed, $month, $kind, $payees);
             $totalPaid = array_sum($distributed);
             $result = [];
             $names = $dealerNames + $subDealerNames;
@@ -613,6 +628,71 @@ final class CommissionSettlement
     }
 
     /** @param  User|null  $payee  the partner when already loaded, so a batch of payouts skips looking each one up */
+    /**
+     * The refunded part of each source order at the time of this settlement, so a later
+     * refund never claws back the same money twice.
+     *
+     * @param  Collection<int, CommissionAllocation>  $funds
+     * @return array<string, string> order id => refunded amount
+     */
+    private function refundedBasisByOrder(Collection $funds): array
+    {
+        $basis = [];
+        foreach ($funds->pluck('order_id')->unique()->values()->chunk(5000) as $orderIds) {
+            foreach (DB::table('commission_batches')->whereIn('order_id', $orderIds->all())->get(['order_id', 'refunded_amount']) as $batch) {
+                $basis[(string) $batch->order_id] = (string) $batch->refunded_amount;
+            }
+        }
+
+        return $basis;
+    }
+
+    /** @param list<array<string, mixed>> $rows */
+    private function insertPayouts(array &$rows): void
+    {
+        foreach (array_chunk($rows, self::PayoutInsertChunk) as $chunk) {
+            DB::table('commission_settlement_payouts')->insert($chunk);
+        }
+        $rows = [];
+    }
+
+    /**
+     * Credits each partner's settled total once: one wallet credit and one notice per
+     * partner, and one balanced journal entry for the whole run.
+     *
+     * @param  array<int, int>  $distributed  user id => cents
+     * @param  array<int, User>  $payees
+     */
+    private function creditSettlement(array $distributed, string $month, string $kind, array $payees): void
+    {
+        $distributed = array_filter($distributed, fn (int $amount): bool => $amount > 0);
+        if ($distributed === []) {
+            return;
+        }
+        $lines = [['user_id' => null, 'account' => 'commission_expense', 'debit' => array_sum($distributed), 'credit' => 0]];
+        foreach ($distributed as $userId => $amount) {
+            $lines[] = ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount];
+        }
+        $this->wallets->journal('commissions.settlement.'.$kind.'.'.$month.'.'.Str::uuid(), __('portal.jr_commission_settlement', [
+            'kind' => __('portal.settle_kind_'.$kind),
+            'month' => $month,
+        ]), $lines);
+        foreach ($distributed as $userId => $amount) {
+            $this->wallets->credit($userId, $amount);
+            $partner = $payees[$userId] ?? User::find($userId);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            Audit::notice(
+                $userId,
+                __('portal.notice_settle_title', [], $locale),
+                __('portal.notice_settle_body', [
+                    'amount' => Money::decimal($amount),
+                    'kind' => __('portal.settle_kind_'.$kind, [], $locale),
+                    'month' => $month,
+                ], $locale),
+            );
+        }
+    }
+
     private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
     {
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,
