@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerCertificates;
 use App\Domain\Content\TrainingLibrary;
+use App\Domain\Content\TrainingQuiz;
 use App\Domain\Content\TrainingVideoLink;
+use App\Models\TrainingCompletion;
 use App\Models\TrainingItem;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -21,7 +26,7 @@ class TrainingController extends Controller
     /** Largest PDF guide, in kilobytes (20 MB). */
     public const PdfMaxKilobytes = 20480;
 
-    public function __construct(private TrainingLibrary $library) {}
+    public function __construct(private TrainingLibrary $library, private TrainingQuiz $quiz) {}
 
     public function store(Request $request): RedirectResponse
     {
@@ -68,6 +73,64 @@ class TrainingController extends Controller
         $this->library->delete($request->user(), $trainingItem);
 
         return back()->with('success', __('portal.training_flash_deleted'));
+    }
+
+    /** Saves the item's quiz: the pass mark and the full list of questions (an empty list removes the quiz). */
+    public function saveQuiz(Request $request, TrainingItem $trainingItem): RedirectResponse
+    {
+        $this->authorizeManager($request);
+        $data = $request->validate([
+            'pass_percent' => 'required|integer|min:1|max:100',
+            'questions' => 'present|array|max:'.TrainingQuiz::MaxQuestions,
+            'questions.*.question' => 'required|string|max:500',
+            'questions.*.options' => 'required|array|min:'.TrainingQuiz::MinOptions.'|max:'.TrainingQuiz::MaxOptions,
+            'questions.*.options.*' => 'required|string|max:200',
+            'questions.*.correct_option' => 'required|integer|min:0',
+        ]);
+        foreach ($data['questions'] as $index => $question) {
+            if ((int) $question['correct_option'] >= count($question['options'])) {
+                throw ValidationException::withMessages(['questions.'.$index.'.correct_option' => __('portal.training_quiz_err_correct')]);
+            }
+        }
+        $this->quiz->save($request->user(), $trainingItem, (int) $data['pass_percent'], array_values($data['questions']));
+
+        return back()->with('success', __('portal.training_quiz_flash_saved'));
+    }
+
+    /** A dealer or sub-dealer sends their quiz answers; the result comes back as a message. */
+    public function submitQuiz(Request $request, TrainingItem $trainingItem): RedirectResponse
+    {
+        $partner = $request->user();
+        abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true) && $partner->status === 'active', 403);
+        abort_unless($trainingItem->isVisibleTo($partner), 404);
+        $answers = $request->validate([
+            'answers' => 'required|array|max:'.TrainingQuiz::MaxQuestions,
+            'answers.*' => 'nullable|integer|min:0|max:'.(TrainingQuiz::MaxOptions - 1),
+        ])['answers'];
+        $result = $this->quiz->submit($partner, $trainingItem, $answers);
+        $message = __($result['passed'] ? 'portal.training_quiz_flash_passed' : 'portal.training_quiz_flash_failed', [
+            'score' => (string) $result['score'],
+            'correct' => (string) $result['correct'],
+            'total' => (string) $result['total'],
+            'pass' => (string) $trainingItem->quiz_pass_percent,
+        ]);
+
+        return back()->with($result['passed'] ? 'success' : 'error', $message);
+    }
+
+    /** Printable completion certificate for a partner who passed the item's quiz. */
+    public function certificate(Request $request, TrainingItem $trainingItem): BinaryFileResponse
+    {
+        $partner = $request->user();
+        abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 403);
+        $completion = TrainingCompletion::query()
+            ->where('training_item_id', $trainingItem->id)
+            ->where('user_id', $partner->id)
+            ->whereNotNull('passed_at')
+            ->first();
+        abort_unless($completion, 404);
+
+        return app(PartnerCertificates::class)->trainingPdf($partner, $trainingItem, $completion);
     }
 
     /** Streams a PDF guide to a signed-in partner or staff member who may read it. */

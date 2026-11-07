@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { router, useForm, usePage } from '@inertiajs/react';
-import { ArrowDown, ArrowUp, BookOpen, Eye, EyeOff, FileText, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Award, BookOpen, Eye, EyeOff, FileText, ListChecks, Pencil, PlayCircle, Plus, Trash2 } from 'lucide-react';
 import { Empty, FormErrors, Modal } from './UI';
 import { useT } from '../shared/i18n/t';
 
@@ -23,7 +23,15 @@ export type TrainingItem = {
     video_url?: string | null;
     published?: boolean;
     sort_order?: number;
+    quiz?: Quiz | null;
+    progress?: QuizProgress;
 };
+
+type QuizQuestion = { id: number; question: string; options: string[]; correct_option?: number };
+
+type Quiz = { pass_percent: number; questions: QuizQuestion[] };
+
+type QuizProgress = { completed: boolean; completed_at?: string | null; attempts: number; last_score: number | null; certificate_url: string | null };
 
 type PartnerData = {
     mode: 'partner';
@@ -131,6 +139,146 @@ function TrainingCard({ item, translate, children }: { item: TrainingItem; trans
     );
 }
 
+/**
+ * The partner side of a lesson quiz: progress, the questions as radio buttons, and the
+ * certificate link once passed. The server marks the answers; it never sends the right ones.
+ */
+function PartnerQuiz({ item, translate }: { item: TrainingItem; translate: Translate }) {
+    const [open, setOpen] = useState(false);
+    const [answers, setAnswers] = useState<Record<number, number>>({});
+    const [sending, setSending] = useState(false);
+    const quiz = item.quiz;
+    if (!quiz || quiz.questions.length === 0) {
+        return null;
+    }
+    const progress = item.progress;
+    const allAnswered = quiz.questions.every((question) => answers[question.id] !== undefined);
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        setSending(true);
+        router.post(`/commands/training/${item.id}/quiz-attempt`, { answers }, {
+            preserveScroll: true,
+            onSuccess: () => { setOpen(false); setAnswers({}); },
+            onFinish: () => setSending(false),
+        });
+    };
+    return (
+        <div className="training-quiz">
+            <div className="training-meta">
+                {progress?.completed && <span className="badge approved">{translate('portal', 'training_quiz_completed')}</span>}
+                {progress?.last_score !== null && progress?.last_score !== undefined && <span className="training-chip">{translate('portal', 'training_quiz_last_score', { score: String(progress.last_score) })}</span>}
+                <span className="muted">{translate('portal', 'training_quiz_pass_hint', { count: String(quiz.questions.length), pass: String(quiz.pass_percent) })}</span>
+            </div>
+            <div className="training-actions">
+                <button type="button" className="button small" onClick={() => setOpen(!open)}>
+                    {translate('portal', open ? 'training_quiz_hide' : (progress?.attempts ? 'training_quiz_retake' : 'training_quiz_take'))}
+                </button>
+                {progress?.certificate_url && (
+                    <a className="button small dark" href={progress.certificate_url} target="_blank" rel="noopener noreferrer">
+                        <Award size={15} aria-hidden="true" />{translate('portal', 'training_quiz_certificate')}
+                    </a>
+                )}
+            </div>
+            {open && (
+                <form className="action-form training-quiz-form" onSubmit={submit}>
+                    {quiz.questions.map((question, index) => (
+                        <fieldset key={question.id}>
+                            <legend>{index + 1}. {question.question}</legend>
+                            {question.options.map((option, optionIndex) => (
+                                <label key={optionIndex} className="training-quiz-option">
+                                    <input
+                                        type="radio"
+                                        name={`question-${item.id}-${question.id}`}
+                                        checked={answers[question.id] === optionIndex}
+                                        onChange={() => setAnswers({ ...answers, [question.id]: optionIndex })}
+                                    />
+                                    <span>{option}</span>
+                                </label>
+                            ))}
+                        </fieldset>
+                    ))}
+                    <button type="submit" className="button dark" disabled={!allAnswered || sending}>
+                        {sending ? translate('portal', 'saving') : translate('portal', 'training_quiz_submit')}
+                    </button>
+                </form>
+            )}
+        </div>
+    );
+}
+
+type EditableQuestion = { question: string; options: string[]; correct_option: number };
+
+/** Office editor for a lesson's quiz: pass mark and questions with 2 to 4 answers each. */
+function QuizEditor({ item, onDone }: { item: TrainingItem; onDone: () => void }) {
+    const translate = useT();
+    const [passPercent, setPassPercent] = useState(String(item.quiz?.pass_percent ?? 70));
+    const [questions, setQuestions] = useState<EditableQuestion[]>(
+        (item.quiz?.questions ?? []).map((question) => ({ question: question.question, options: [...question.options], correct_option: question.correct_option ?? 0 })),
+    );
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [saving, setSaving] = useState(false);
+    const change = (index: number, next: Partial<EditableQuestion>) => setQuestions(questions.map((question, position) => (position === index ? { ...question, ...next } : question)));
+    const save = (event: React.FormEvent) => {
+        event.preventDefault();
+        setSaving(true);
+        router.put(`/commands/training/${item.id}/quiz`, { pass_percent: passPercent, questions }, {
+            preserveScroll: true,
+            onSuccess: () => onDone(),
+            onError: (next) => setErrors(next as Record<string, string>),
+            onFinish: () => setSaving(false),
+        });
+    };
+    return (
+        <form className="action-form training-form" onSubmit={save}>
+            <FormErrors errors={errors} />
+            <p className="muted">{translate('portal', 'training_quiz_editor_hint')}</p>
+            <label>{translate('portal', 'training_quiz_pass_percent')}
+                <input type="number" min={1} max={100} required value={passPercent} onChange={(event) => setPassPercent(event.target.value)} />
+            </label>
+            {questions.map((question, index) => (
+                <fieldset key={index} className="training-quiz-edit">
+                    <legend>{translate('portal', 'training_quiz_question', { n: String(index + 1) })}</legend>
+                    <textarea rows={2} required maxLength={500} value={question.question} onChange={(event) => change(index, { question: event.target.value })} />
+                    {question.options.map((option, optionIndex) => (
+                        <div key={optionIndex} className="training-quiz-edit-option">
+                            <label className="training-quiz-option" title={translate('portal', 'training_quiz_correct_label')}>
+                                <input type="radio" name={`correct-${index}`} checked={question.correct_option === optionIndex} onChange={() => change(index, { correct_option: optionIndex })} aria-label={translate('portal', 'training_quiz_correct_label')} />
+                            </label>
+                            <input type="text" required maxLength={200} placeholder={translate('portal', 'training_quiz_option', { n: String(optionIndex + 1) })} value={option} onChange={(event) => change(index, { options: question.options.map((value, position) => (position === optionIndex ? event.target.value : value)) })} />
+                            {question.options.length > 2 && (
+                                <button type="button" className="icon-button" aria-label={translate('portal', 'training_delete')} onClick={() => change(index, {
+                                    options: question.options.filter((_, position) => position !== optionIndex),
+                                    correct_option: question.correct_option === optionIndex ? 0 : question.correct_option > optionIndex ? question.correct_option - 1 : question.correct_option,
+                                })}>
+                                    <Trash2 size={15} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    <div className="training-actions">
+                        {question.options.length < 4 && (
+                            <button type="button" className="button small" onClick={() => change(index, { options: [...question.options, ''] })}>
+                                <Plus size={15} aria-hidden="true" />{translate('portal', 'training_quiz_add_option')}
+                            </button>
+                        )}
+                        <button type="button" className="button small" onClick={() => setQuestions(questions.filter((_, position) => position !== index))}>
+                            <Trash2 size={15} aria-hidden="true" />{translate('portal', 'training_quiz_remove_question')}
+                        </button>
+                    </div>
+                </fieldset>
+            ))}
+            {questions.length < 20 && (
+                <button type="button" className="button small" onClick={() => setQuestions([...questions, { question: '', options: ['', ''], correct_option: 0 }])}>
+                    <Plus size={15} aria-hidden="true" />{translate('portal', 'training_quiz_add_question')}
+                </button>
+            )}
+            <button type="submit" className="button dark" disabled={saving}>
+                {saving ? translate('portal', 'saving') : translate('portal', 'training_quiz_save')}
+            </button>
+        </form>
+    );
+}
+
 function PartnerLibrary({ data }: { data: PartnerData }) {
     const translate = useT();
     return (
@@ -146,7 +294,11 @@ function PartnerLibrary({ data }: { data: PartnerData }) {
                 <section key={group.topic} className="training-topic" aria-labelledby={`training-topic-${group.topic}`}>
                     <h2 id={`training-topic-${group.topic}`}>{translate('portal', `training_topic_${group.topic}`)}</h2>
                     <div className="training-grid">
-                        {group.items.map((item) => <TrainingCard key={item.id} item={item} translate={translate} />)}
+                        {group.items.map((item) => (
+                            <TrainingCard key={item.id} item={item} translate={translate}>
+                                <PartnerQuiz item={item} translate={translate} />
+                            </TrainingCard>
+                        ))}
                     </div>
                 </section>
             ))}
@@ -252,6 +404,7 @@ function StaffEditor({ data }: { data: StaffData }) {
     const translate = useT();
     const titleOf = useTitle();
     const [editing, setEditing] = useState<TrainingItem | 'new' | null>(null);
+    const [quizFor, setQuizFor] = useState<TrainingItem | null>(null);
     const items = data.items;
 
     const move = (index: number, step: -1 | 1) => {
@@ -297,6 +450,7 @@ function StaffEditor({ data }: { data: StaffData }) {
                             <span className={`badge ${item.published ? 'approved' : 'draft'}`}>{translate('portal', item.published ? 'training_status_published' : 'training_status_draft')}</span>
                             <span className="training-chip">{translate('portal', `training_topic_${item.topic}`)}</span>
                             <span className="training-chip">{translate('portal', `training_audience_${item.audience}`)}</span>
+                            {(item.quiz?.questions.length ?? 0) > 0 && <span className="training-chip">{translate('portal', 'training_quiz_count', { count: String(item.quiz?.questions.length ?? 0) })}</span>}
                         </div>
                         {data.can_edit && (
                             <div className="training-actions">
@@ -306,6 +460,9 @@ function StaffEditor({ data }: { data: StaffData }) {
                                 </button>
                                 <button type="button" className="button small" onClick={() => setEditing(item)}>
                                     <Pencil size={15} aria-hidden="true" />{translate('portal', 'training_edit')}
+                                </button>
+                                <button type="button" className="button small" onClick={() => setQuizFor(item)}>
+                                    <ListChecks size={15} aria-hidden="true" />{translate('portal', 'training_quiz_edit')}
                                 </button>
                                 <button type="button" className="icon-button" disabled={index === 0} onClick={() => move(index, -1)} aria-label={translate('portal', 'training_move_up')} title={translate('portal', 'training_move_up')}>
                                     <ArrowUp size={16} />
@@ -324,6 +481,11 @@ function StaffEditor({ data }: { data: StaffData }) {
             {editing && (
                 <Modal title={translate('portal', editing === 'new' ? 'training_modal_add' : 'training_modal_edit')} onClose={() => setEditing(null)}>
                     <TrainingForm data={data} item={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
+                </Modal>
+            )}
+            {quizFor && (
+                <Modal title={`${translate('portal', 'training_quiz_modal')}: ${titleOf(quizFor).main}`} onClose={() => setQuizFor(null)}>
+                    <QuizEditor item={quizFor} onDone={() => setQuizFor(null)} />
                 </Modal>
             )}
         </div>

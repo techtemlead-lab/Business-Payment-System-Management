@@ -6,6 +6,7 @@ use Database\Factories\TrainingItemFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -26,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $pdf_size
  * @property int $sort_order
  * @property bool $published
+ * @property int $quiz_pass_percent
  * @property Carbon|null $published_at
  */
 class TrainingItem extends Model
@@ -44,7 +46,7 @@ class TrainingItem extends Model
 
     protected $fillable = [
         'title_bn', 'title_en', 'summary', 'type', 'topic', 'audience', 'video_url', 'body',
-        'pdf_path', 'pdf_name', 'pdf_size', 'sort_order', 'published', 'published_at', 'created_by', 'updated_by',
+        'pdf_path', 'pdf_name', 'pdf_size', 'sort_order', 'published', 'published_at', 'created_by', 'updated_by', 'quiz_pass_percent',
     ];
 
     /** @return array<string, string> */
@@ -55,7 +57,18 @@ class TrainingItem extends Model
             'published_at' => 'datetime',
             'sort_order' => 'integer',
             'pdf_size' => 'integer',
+            'quiz_pass_percent' => 'integer',
         ];
+    }
+
+    /**
+     * The quiz questions, in the order partners see them.
+     *
+     * @return HasMany<TrainingQuizQuestion, $this>
+     */
+    public function quizQuestions(): HasMany
+    {
+        return $this->hasMany(TrainingQuizQuestion::class)->orderBy('sort_order')->orderBy('id');
     }
 
     /**
