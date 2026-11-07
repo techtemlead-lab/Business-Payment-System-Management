@@ -2151,6 +2151,10 @@ dialog.portal-modal::backdrop{
 .catalog-toolbar-filters select.catalog-sort{min-width:168px}
 @media (max-width:720px){.pcm-grid,.pcm-price-line{grid-template-columns:1fr}.pcm-price-mrp{max-width:none}}
 .treasury-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+/* Exactly four figures: 2 x 2, or one row on wide screens, never three plus a lonely fourth */
+.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:1200px){.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:600px){.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:1fr}}
 .treasury-kpi-card{min-width:0;container-type:inline-size}
 .treasury-kpi-amount{max-width:100%;font-weight:800;line-height:1.15;letter-spacing:-.03em;font-variant-numeric:tabular-nums;font-size:clamp(13px,1.35vw,24px);overflow-wrap:anywhere}
 .treasury-kpi-card .treasury-kpi-amount{font-size:clamp(13px,5.4cqi,24px)}
@@ -2488,7 +2492,7 @@ html[data-theme="dark"] .subdealer-shell{--ds-side-bg:#0c1f19}
 
 /* ---- Top bar ----------------------------------------------------------- */
 .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header{height:60px;min-height:60px;max-width:none;margin:0;padding:0 24px;gap:12px;border-bottom:1px solid var(--ds-line);background:transparent!important}
-.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header::before{background:color-mix(in srgb,var(--ds-surface) 90%,transparent)}
+.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header::before{background:color-mix(in srgb,var(--ds-surface) 95%,transparent)}
 .app-shell .breadcrumb{gap:8px;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
 .app-shell .breadcrumb>span:nth-of-type(2){color:var(--ds-line-strong)}
 .app-shell .breadcrumb b{color:var(--ds-text);font-weight:600}
@@ -2937,6 +2941,8 @@ html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style
 .app-shell .hub .panel-heading{flex-wrap:wrap}
 .app-shell .panel-heading.is-top{align-items:flex-start}
 .app-shell .hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--ds-s-4)}
+/* Rank ladder has five steps: one row of five on wide screens instead of four plus one */
+@media(min-width:1280px){.app-shell .hub-grid:has(>.rk-tier:nth-child(5):last-child){grid-template-columns:repeat(5,minmax(0,1fr))}}
 .app-shell .hub-grid.is-narrow{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:var(--ds-s-3)}
 .app-shell .hub-grid.is-wide{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
 .app-shell .hub-grid.is-xwide{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:var(--ds-s-5)}
