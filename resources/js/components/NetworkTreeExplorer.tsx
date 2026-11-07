@@ -22,6 +22,8 @@ interface DealerNode {
     created_at: string;
     /** Completed purchases in the current business month. */
     sales_month?: string | number;
+    /** This month's volume as the salary target counts it: delivered, paid purchases after refunds. */
+    qualifying_volume_month?: string | number;
     /** What this member's direct referrer has earned from this member's purchases. */
     sponsor_earned?: string | number;
     /** Dealer's own tree only: what the signed-in dealer earned from this member. */
@@ -201,6 +203,8 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             <span>{translate('portal','net_purchases')}: <b className="tone-brand">{money(salesOf(dealer))}</b></span>
                             <span>•</span>
                             <span>{translate('portal','net_sales_month')}: <b>{money(dealer.sales_month ?? 0)}</b></span>
+                            <span>•</span>
+                            <span title={translate('portal','net_qualifying_volume_hint')}>{translate('portal','net_qualifying_volume_month')}: <b>{money(dealer.qualifying_volume_month ?? 0)}</b></span>
                         </div>
                         {dealer.sponsor_id && dealerMap[dealer.sponsor_id] && (
                             <div className="ops-row ops-meta ntx-card-meta">
@@ -468,6 +472,14 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                                     render: (d: DealerNode) => money(d.sales_month ?? 0),
                                 },
                                 {
+                                    key: 'qualifying_volume_month',
+                                    title: translate('portal', 'net_qualifying_volume_month'),
+                                    sortable: true,
+                                    align: 'right',
+                                    sortValue: (d: DealerNode) => Number(d.qualifying_volume_month) || 0,
+                                    render: (d: DealerNode) => money(d.qualifying_volume_month ?? 0),
+                                },
+                                {
                                     key: 'sponsor_earned',
                                     title: translate('portal', 'net_referrer_earned'),
                                     sortable: true,
@@ -577,6 +589,7 @@ export default function NetworkTreeExplorer({ dealers }: NetworkTreeExplorerProp
                             <div className="hub-label ops-mb-2">{translate('portal','net_money_summary')}</div>
                             <dl className="ntx-money">
                                 <div><dt>{translate('portal','net_sales_month')}</dt><dd>{money(activeDealer.sales_month ?? 0)}</dd></div>
+                                <div><dt>{translate('portal','net_qualifying_volume_month')}<small className="cell-sub">{translate('portal','net_qualifying_volume_hint')}</small></dt><dd>{money(activeDealer.qualifying_volume_month ?? 0)}</dd></div>
                                 <div><dt>{translate('portal','net_team_purchases')}</dt><dd>{money(sumTeam(activeDealer.id, d => salesOf(d)))}</dd></div>
                                 {activeDealer.sponsor_id && dealerMap[activeDealer.sponsor_id] && activeDealer.sponsor_id !== viewerId && (
                                     <div><dt>{translate('portal','net_referrer_earned_from',{name: dealerMap[activeDealer.sponsor_id].name})}</dt><dd className="tone-ok">{money(activeDealer.sponsor_earned ?? 0)}</dd></div>

@@ -5353,7 +5353,7 @@ return [
     'admin_kpis_label' => 'Business at a glance',
     'admin_kpi_open' => 'Open list',
     'net_my_tree' => 'My referral tree',
-    'net_sales_month' => 'This month',
+    'net_sales_month' => 'Bought this month',
     'net_referrer_earned' => 'Referrer earned',
     'net_you_earned' => 'You earned',
     'net_team_purchases' => 'Team purchases (all time)',
@@ -6097,4 +6097,6 @@ return [
     'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
     'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
     'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
+    'net_qualifying_volume_month' => 'Counts for salary this month',
+    'net_qualifying_volume_hint' => 'Paid orders delivered this month, minus refunds. This is the amount checked against the monthly salary target.',
 ];

@@ -103,6 +103,7 @@ final class CommissionSettlement
                 ->filter(fn (User $partner): bool => $partner->role === 'sub_dealer' && $partner->status === 'active' && ! array_key_exists($partner->id, $volumes))
                 ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
             $payees = $dealers->keyBy('id')->union($partners)->all();
+            $split = FairPaisaSplit::forMonth($month);
             foreach ($funds as $fund) {
                 [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
                 $cents = Money::cents($fund->amount);
@@ -117,7 +118,7 @@ final class CommissionSettlement
                         }
                     }
                 } elseif ($kind === 'salary') {
-                    $shares = $this->divide($cents, $qualifiedIds);
+                    $shares = $split->divide($cents, $qualifiedIds, 'salary');
                     $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
                     $divisionSummary[$label]['pool_cents'] = ($divisionSummary[$label]['pool_cents'] ?? 0) + $cents;
                     $divisionSummary[$label]['qualifiers'] = max($divisionSummary[$label]['qualifiers'] ?? 0, count($qualifiedIds));
@@ -132,7 +133,7 @@ final class CommissionSettlement
                             $dealerIds,
                             fn (int $id): bool => ($paidAsByRules[$rulesKey][$id]['paid_as_rank'] ?? 'dealer') === $code,
                         ));
-                        $tierShares = $this->divide($buckets[$index], $ids);
+                        $tierShares = $split->divide($buckets[$index], $ids, 'royalty_'.$code);
                         foreach ($tierShares as $id => $amount) {
                             $shares[$id] = ($shares[$id] ?? 0) + $amount;
                         }
@@ -311,6 +312,7 @@ final class CommissionSettlement
         $shares = [];
         $shareDivision = [];
         $subDealerCents = 0;
+        $split = FairPaisaSplit::forMonth($month);
         foreach ($funds as $fund) {
             $cents = Money::cents($fund->amount);
             if ($fund->category === 'sub_dealer_salary') {
@@ -320,7 +322,7 @@ final class CommissionSettlement
             }
             [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
             $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
-            $fundShares = $this->divide($cents, $qualifiedIds);
+            $fundShares = $split->divide($cents, $qualifiedIds, 'salary');
             $divisions[$label]['pool'] = ($divisions[$label]['pool'] ?? 0) + $cents;
             $divisions[$label]['to_company'] = ($divisions[$label]['to_company'] ?? 0) + $cents - array_sum($fundShares);
             $divisions[$label]['qualifiers'] = max($divisions[$label]['qualifiers'] ?? 0, count($qualifiedIds));
@@ -565,22 +567,6 @@ final class CommissionSettlement
         $buyer = User::query()->whereKey(DB::table('orders')->where('id', $fund->order_id)->value('user_id'))->first();
 
         return $buyer ? $this->geography->forBuyer($buyer) : null;
-    }
-
-    /** @param list<int> $ids @return array<int, int> */
-    private function divide(int $total, array $ids): array
-    {
-        if ($ids === []) {
-            return [];
-        }
-        $base = intdiv($total, count($ids));
-        $remainder = $total % count($ids);
-        $result = [];
-        foreach ($ids as $index => $id) {
-            $result[$id] = $base + ($index < $remainder ? 1 : 0);
-        }
-
-        return $result;
     }
 
     /** @param array<string,mixed> $parameters @return array<int,int> */
