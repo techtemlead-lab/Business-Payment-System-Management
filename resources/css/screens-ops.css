@@ -220,6 +220,34 @@
 .app-shell .ppm-stepper>button{width:28px;height:28px;padding:0;border:0;background:var(--ds-surface-2);color:var(--ds-text);font:inherit;font-weight:700;cursor:pointer}
 .app-shell .ppm-stepper>button:hover{background:var(--ds-surface-3)}
 .app-shell .ppm-stepper>input,.app-shell .ppm-stepper>input:focus{width:44px;height:28px;min-height:28px;padding:0;border:0;border-radius:0;background:var(--ds-surface);box-shadow:none;text-align:center;font-size:var(--ds-fs-xs);font-weight:700}
+.app-shell .table-responsive{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.app-shell button.ppm-chip.is-reset{display:inline-flex;align-items:center;gap:4px}
+/* Payment screenshot picker: a proper button instead of the bare browser control */
+.app-shell .ppm-checkout input[type="file"]{width:100%;padding:6px;border:1px dashed var(--ds-line-strong);border-radius:var(--ds-r-md);background:var(--ds-surface-2);font-size:var(--ds-fs-sm);color:var(--ds-text-2);cursor:pointer}
+.app-shell .ppm-checkout input[type="file"]::file-selector-button{margin-right:10px;padding:8px 12px;border:1px solid var(--ds-line-strong);border-radius:var(--ds-r-sm);background:var(--ds-surface);color:var(--ds-text);font:inherit;font-weight:600;cursor:pointer}
+.app-shell .ppm-checkout input[type="file"]:hover{border-color:var(--ds-brand)}
+.app-shell .ppm-error{scroll-margin:90px}
+.app-shell .ppm-checkout .field-hint.is-warn{color:var(--ds-warn-fg)}
+/* Order page after sending an order: wide tables inside the two-column layout pushed the page
+   sideways on phones (grid items default to their content width), and the order number heading
+   squeezed beside the invoice buttons. */
+.app-shell .two-column>*{min-width:0}
+@media (max-width:640px){
+  .app-shell .order-title{flex-direction:column;align-items:stretch;gap:12px;margin:16px 0}
+  .app-shell .order-title h2{font-size:22px;line-height:1.25;overflow-wrap:anywhere}
+}
+/* Phones: each cart line becomes a small card (name, then price rows, then quantity),
+   instead of an eight-column table that pushed the whole page sideways. */
+@media (max-width:640px){
+  .app-shell .ppm-cart,.app-shell .ppm-cart tbody{display:block}
+  .app-shell .ppm-cart thead{display:none}
+  .app-shell .ppm-cart tr{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px;margin-bottom:10px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);background:var(--ds-surface)}
+  .app-shell .ppm-cart td{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0;border:0;text-align:right}
+  .app-shell .ppm-cart td.ppm-sl{display:none}
+  .app-shell .ppm-cart td.ppm-line{display:block;padding-right:36px;text-align:left}
+  .app-shell .ppm-cart td[data-label]::before{content:attr(data-label);font-size:var(--ds-fs-xs);font-weight:500;color:var(--ds-text-muted);text-align:left}
+  .app-shell .ppm-cart td.ppm-remove{display:block;position:absolute;top:8px;right:6px}
+}
 .app-shell .hub-empty.ppm-empty{padding:36px 16px;text-align:center;color:var(--ds-text-faint)}
 .app-shell .ppm-empty>svg{display:block;margin:0 auto 8px;opacity:.5}
 .app-shell .ppm-checkout{margin-top:var(--ds-s-6);padding-top:var(--ds-s-5);border-top:2px solid var(--ds-line)}

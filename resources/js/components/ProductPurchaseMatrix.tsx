@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useForm, router, Link } from '@inertiajs/react';
 import {
-    Plus, Trash2, ShoppingBag, ArrowRight, CheckCircle2,
+    Trash2, ShoppingBag, ArrowRight, CheckCircle2, RotateCcw,
     AlertCircle, Sparkles, Package, Layers, Info, Search, X
 } from 'lucide-react';
-import { money, type Row, Table, number } from './UI';
+import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface Props {
@@ -182,7 +182,7 @@ export default function ProductPurchaseMatrix({
         });
 
         const strengthLabel = activeProduct.strength ? ` (${activeProduct.strength})` : '';
-        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${qty} ${activeProduct.unit || 'Box'} ${translate('portal', 'b2b_added_success')}`);
+        setAddedBanner(`${activeProduct.name}${strengthLabel} — ${number(qty)} ${activeProduct.unit || translate('portal', 'ppm_box_unit')} ${translate('portal', 'b2b_added_success')}`);
         setTimeout(() => setAddedBanner(null), 4000);
 
         // Intentionally keep selectedCategory, selectedSubCategory, and selectedProductName!
@@ -249,6 +249,18 @@ export default function ProductPurchaseMatrix({
         proof: null as File | null,
     });
 
+    /** Company accounts that take the chosen payment method. */
+    const channelAccounts = useMemo(
+        () => collectionAccounts.filter(account => account.channel === f.data.channel),
+        [collectionAccounts, f.data.channel],
+    );
+    // Only one account takes this method: pick it, so the dealer cannot miss the step.
+    useEffect(() => {
+        if (f.data.payment_account_id === '' && channelAccounts.length === 1) {
+            f.setData('payment_account_id', String(channelAccounts[0].id));
+        }
+    }, [channelAccounts, f.data.payment_account_id]);
+
     const submitOrder = (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) return;
@@ -268,9 +280,19 @@ export default function ProductPurchaseMatrix({
         }));
 
         f.post('/commands/orders', {
+            // Stay where the dealer is when something needs fixing (the page used to jump to the top).
+            preserveScroll: 'errors',
             onSuccess: () => {
                 setCart([]);
                 f.reset('reference', 'amount', 'note', 'proof');
+            },
+            // On a phone the problem list sits below the fold; bring it into view so the
+            // dealer sees what to fix instead of a button that seems to do nothing.
+            onError: () => {
+                requestAnimationFrame(() => {
+                    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+                    document.querySelector('.ppm-error')?.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+                });
             },
         });
     };
@@ -471,7 +493,8 @@ export default function ProductPurchaseMatrix({
                                     className="button dark ppm-add"
                                     disabled={!activeProduct || activeProduct.is_stock_paused || Number(activeProduct.stock || 0) <= 0}
                                 >
-                                    <Plus size={16} /> {translate('portal', 'b2b_add_to_order')}
+                                    {/* The label already starts with "+", so no extra plus icon. */}
+                                    {translate('portal', 'b2b_add_to_order')}
                                 </button>
                             </div>
                             <div className="ops-row is-wrap is-tight">
@@ -490,8 +513,10 @@ export default function ProductPurchaseMatrix({
                                     type="button"
                                     onClick={() => setQuantity(1)}
                                     className="ppm-chip is-reset"
+                                    title={translate('portal', 'b2b_qty_reset')}
+                                    aria-label={translate('portal', 'b2b_qty_reset')}
                                 >
-                                    1
+                                    <RotateCcw size={12} aria-hidden="true" /> {number(1)}
                                 </button>
                             </div>
                         </div>
@@ -508,13 +533,15 @@ export default function ProductPurchaseMatrix({
                                     </span>
                                 </div>
                                 <span className={`hub-pill ${activeProduct.stock > 0 && !activeProduct.is_stock_paused ? 'tone-ok' : 'tone-danger'}`}>
-                                    {activeProduct.stock > 0 && !activeProduct.is_stock_paused ? `Stock: ${activeProduct.stock} ${activeProduct.unit || 'units'}` : 'Stock Awaiting'}
+                                    {activeProduct.stock > 0 && !activeProduct.is_stock_paused
+                                        ? translate('portal', 'ppm_stock_left', { qty: number(activeProduct.stock), unit: String(activeProduct.unit || translate('portal', 'ppm_unit_fallback')) })
+                                        : translate('portal', 'ppm_stock_awaiting')}
                                 </span>
                             </div>
 
                             <div className="ops-row is-wide is-wrap">
                                 <div>
-                                    <small className="ppm-sel-label ops-muted">MRP / Box</small>
+                                    <small className="ppm-sel-label ops-muted">{translate('portal', 'ppm_mrp_per_box')}</small>
                                     <span className={`ops-fs-xs ops-muted${hasDiscount ? ' ppm-struck' : ''}`}>
                                         {money(mrp)}
                                     </span>
@@ -603,20 +630,20 @@ export default function ProductPurchaseMatrix({
                                     return (
                                         <tr key={p.id}>
                                             <td className="ppm-sl">{index + 1}</td>
-                                            <td>
+                                            <td className="ppm-line">
                                                 <div className="ppm-line-name">
                                                     {p.name}
                                                 </div>
                                                 <div className="cell-sub">
                                                     {p.strength ? <strong className="ppm-line-strength">{p.strength}</strong> : null}
                                                     <span>{p.category}{p.sub_category ? ` · ${p.sub_category}` : ''}</span>
-                                                    <span className="ppm-line-unit">({p.unit || 'pack'})</span>
+                                                    <span className="ppm-line-unit">({p.unit || translate('portal', 'ppm_box_unit')})</span>
                                                 </div>
                                             </td>
-                                            <td className="ppm-mrp ops-right">
+                                            <td className="ppm-mrp ops-right" data-label={translate('portal', 'b2b_col_mrp')}>
                                                 {money(itemMrp)}
                                             </td>
-                                            <td className="ops-center">
+                                            <td className="ppm-discount ops-center" data-label={translate('portal', 'b2b_col_discount_pct')}>
                                                 {lineDiscount > 0 ? (
                                                     <span className="hub-pill tone-ok">
                                                         {translate('portal', 'pct_off', { pct: String(lineDiscount) })}
@@ -625,10 +652,10 @@ export default function ProductPurchaseMatrix({
                                                     <span className="ops-faint ops-fs-2xs">—</span>
                                                 )}
                                             </td>
-                                            <td className="ppm-unit ops-right">
+                                            <td className="ppm-unit ops-right" data-label={translate('portal', 'b2b_col_unit_price')}>
                                                 {money(itemPrice)}
                                             </td>
-                                            <td className="ops-center">
+                                            <td className="ppm-qty ops-center" data-label={translate('portal', 'b2b_col_qty')}>
                                                 <div className="ppm-stepper">
                                                     <button
                                                         type="button"
@@ -651,10 +678,10 @@ export default function ProductPurchaseMatrix({
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td className="ppm-total ops-right">
+                                            <td className="ppm-total ops-right" data-label={translate('portal', 'b2b_col_total')}>
                                                 {money(lineTotal)}
                                             </td>
-                                            <td className="ops-center">
+                                            <td className="ppm-remove ops-center">
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFromCart(p.id)}
@@ -737,7 +764,7 @@ export default function ProductPurchaseMatrix({
                                         }}
                                     >
                                         {['Bank', 'bKash', 'Nagad', 'Rocket'].map(x => (
-                                            <option key={x} value={x}>{x}</option>
+                                            <option key={x} value={x}>{translate('portal', `pay_channel_${x.toLowerCase()}`)}</option>
                                         ))}
                                     </select>
                                 </label>
@@ -749,14 +776,16 @@ export default function ProductPurchaseMatrix({
                                         onChange={e => f.setData('payment_account_id', e.target.value)}
                                     >
                                         <option value="">{translate('portal', 'select_collection_account')}</option>
-                                        {collectionAccounts
-                                            .filter(a => a.channel === f.data.channel)
-                                            .map(a => (
-                                                <option key={a.id} value={a.id}>
-                                                    {a.holder} · {a.account_number}
-                                                </option>
-                                            ))}
+                                        {channelAccounts.map(a => (
+                                            <option key={a.id} value={a.id}>
+                                                {a.holder} · {a.account_number}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {channelAccounts.length === 0 && (
+                                        <small className="field-hint is-warn" role="status">{translate('portal', 'ppm_no_collection_account')}</small>
+                                    )}
+                                    {f.errors.payment_account_id && <span className="field-error" role="alert">{f.errors.payment_account_id}</span>}
                                 </label>
 
                                 <label>
@@ -817,11 +846,8 @@ export default function ProductPurchaseMatrix({
                                 />
                             </label>
 
-                            {Object.keys(f.errors).length > 0 && (
-                                <div className="error ppm-error">
-                                    {Object.values(f.errors).join(' ')}
-                                </div>
-                            )}
+                            {/* FormErrors also keeps the page-top message quiet, so errors are not shown twice. */}
+                            <FormErrors errors={f.errors} className="error ppm-error" />
 
                             <div className="ops-row is-end ops-mt-3">
                                 <button

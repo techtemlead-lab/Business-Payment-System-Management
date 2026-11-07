@@ -6673,4 +6673,12 @@ return [
     'acct_export_contacts_full' => 'পুরোটা দেখানো হয়েছে',
     'acct_export_contacts_masked' => 'লুকানো: প্রতিটি ফোনের শুধু শেষ ৪টি সংখ্যা দেখা যাবে। যাঁরা অ্যাকাউন্ট সম্পাদনা করতে পারেন, তাঁরা পুরো তালিকা পান।',
     'event_training_quiz_limit_changed' => 'ঘণ্টায় কুইজ দেওয়ার সংখ্যা বদলানো হয়েছে',
+    'ppm_mrp_per_box' => 'MRP / বক্স',
+    'ppm_stock_left' => 'স্টক: :qty :unit',
+    'ppm_stock_awaiting' => 'এখন স্টকে নেই',
+    'ppm_unit_fallback' => 'টি',
+    'ppm_box_unit' => 'বক্স',
+    'b2b_qty_reset' => 'পরিমাণ আবার ১ করুন',
+    'ppm_no_collection_account' => 'এই মাধ্যমে কোম্পানির কোনো অ্যাকাউন্ট এখনো নেই। অন্য মাধ্যম বেছে নিন।',
+    'stage_payment_fallback' => 'পেমেন্ট',
 ];

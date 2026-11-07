@@ -6673,4 +6673,12 @@ return [
     'acct_export_contacts_full' => 'Shown in full',
     'acct_export_contacts_masked' => 'Hidden: only the last 4 digits of each phone. Staff who may edit accounts get the full list.',
     'event_training_quiz_limit_changed' => 'Quiz tries per hour changed',
+    'ppm_mrp_per_box' => 'MRP / Box',
+    'ppm_stock_left' => 'Stock: :qty :unit',
+    'ppm_stock_awaiting' => 'Out of stock for now',
+    'ppm_unit_fallback' => 'units',
+    'ppm_box_unit' => 'Box',
+    'b2b_qty_reset' => 'Set quantity back to 1',
+    'ppm_no_collection_account' => 'The company has no account for this payment method yet. Please choose another method.',
+    'stage_payment_fallback' => 'Payment',
 ];
