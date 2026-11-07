@@ -73,7 +73,7 @@ class CommandController extends Controller
     public function decision(DecideOrderRequest $r, Order $order, OrderService $s): RedirectResponse
     {
         $d = $r->validated();
-        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->boolean('allow_credit'), $r->replacements());
+        $s->decision($r->user(), $order, $d['status'], $d['reason'], $r->replacements());
 
         return back(fallback: '/orders/'.$order->id)->with('success', __('portal.flash_order_decision'));
     }

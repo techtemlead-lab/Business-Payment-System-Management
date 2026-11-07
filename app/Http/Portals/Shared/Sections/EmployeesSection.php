@@ -43,7 +43,6 @@ final class EmployeesSection implements WorkspaceSection
         $permissionCatalog = [
             ['key' => 'field_sales', 'category' => 'field_sales'],
             ['key' => 'sr_orders', 'category' => 'field_sales'],
-            ['key' => 'sr_dues', 'category' => 'field_sales'],
             ['key' => 'sr_onboarding', 'category' => 'field_sales'],
             ['key' => 'staff_admin', 'category' => 'operations'],
             ['key' => 'payroll', 'category' => 'finance'],

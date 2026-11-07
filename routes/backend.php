@@ -36,7 +36,7 @@ Route::get('/api/v1/openapi.json', [OpenApiController::class, 'spec'])->name('op
 Route::get('/manifest.webmanifest', fn () => response(file_get_contents(public_path('manifest.webmanifest')), 200, ['Content-Type' => 'application/manifest+json']))->name('pwa.manifest');
 Route::get('/sw.js', fn () => response(file_get_contents(public_path('sw.js')), 200, ['Content-Type' => 'application/javascript']))->name('pwa.sw');
 
-Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1', 'agreement'])->group(function (): void {
+Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1', 'agreement', 'authenticator'])->group(function (): void {
     Route::get('/health', [HealthCheckController::class, 'readiness'])->name('health');
     Route::get('/me', fn (Request $request) => response()->json(['data' => [
         'user' => $request->user()->safe(),
@@ -96,7 +96,6 @@ Route::prefix('api/v1')->name('api.v1.')->middleware(['auth', 'active', BackendJ
 /** Both the Inertia screens and independently developed clients use these services. */
 $operations = function (): void {
     $completion = ModuleCompletionController::class;
-    // Due adjustments retired: goods are no longer given on credit.
     Route::post('/settings/withdrawal-minimum', [$completion, 'minimum']);
     Route::post('/settings/auto-approval', [$completion, 'autoApproval']);
     Route::post('/settings/kyc-before-first-withdrawal', [$completion, 'kycBeforeFirstWithdrawal']);
