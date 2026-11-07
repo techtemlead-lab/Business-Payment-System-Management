@@ -21,4 +21,27 @@ final class PhoneIdentity
 
         return strlen($digits) >= 10 && strlen($digits) <= 15 ? $digits : null;
     }
+
+    /** Only the last four digits, as "••••1234"; an empty number stays empty. */
+    public static function masked(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?: '';
+
+        return $digits !== '' ? '••••'.substr($digits, -4) : '';
+    }
+
+    /**
+     * The phone a dealer may see for someone in their own downline (owner decision): the full
+     * number for members they referred directly (sponsor_id = viewer) and for themselves, and
+     * only the last four digits for everyone deeper.
+     */
+    public static function forDownlineViewer(?string $phone, int $memberId, ?int $memberSponsorId, int $viewerId): string
+    {
+        $phone = (string) ($phone ?? '');
+        if ($memberId === $viewerId || ($memberSponsorId !== null && $memberSponsorId === $viewerId)) {
+            return $phone;
+        }
+
+        return self::masked($phone);
+    }
 }

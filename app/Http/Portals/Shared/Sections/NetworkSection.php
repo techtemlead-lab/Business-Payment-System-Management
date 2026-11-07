@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -92,11 +93,16 @@ final class NetworkSection implements WorkspaceSection
         $query = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')
             ->where('ancestor_id', $user->id)->where('depth', '>', 0);
         $members = (clone $query)->orderBy('depth')->orderBy('users.id')->limit(self::DownlineLimit + 1)
-            ->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
+            ->get(['users.id', 'users.name', 'users.dealer_code', 'users.phone', 'users.sponsor_id', 'depth', 'users.created_at']);
         $truncated = $members->count() > self::DownlineLimit;
 
         return [
-            'members' => $members->take(self::DownlineLimit)->values(),
+            // Full numbers only for directly referred members; the rest show the last four digits.
+            'members' => $members->take(self::DownlineLimit)->map(function (object $member) use ($user): object {
+                $member->phone = PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id);
+
+                return $member;
+            })->values(),
             'members_total' => $truncated ? (clone $query)->count() : $members->count(),
             'members_truncated' => $truncated,
         ];
@@ -177,9 +183,11 @@ final class NetworkSection implements WorkspaceSection
         return $partners
             ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer): array {
                 $phone = (string) ($dealer->phone ?? '');
-                if ($maskPhone && $phone !== '') {
-                    $digits = preg_replace('/\D+/', '', $phone) ?: '';
-                    $phone = $digits !== '' ? '••••'.substr($digits, -4) : '';
+                if ($maskPhone) {
+                    $phone = PhoneIdentity::masked($phone);
+                } elseif ($viewer) {
+                    // A dealer sees full numbers only for members they referred directly.
+                    $phone = PhoneIdentity::forDownlineViewer($phone, (int) $dealer->id, $dealer->sponsor_id !== null ? (int) $dealer->sponsor_id : null, (int) $viewer->id);
                 }
 
                 return [

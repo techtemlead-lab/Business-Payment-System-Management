@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\ReferralTreePath;
 use App\Models\User;
 use App\Support\Money;
+use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -123,7 +124,7 @@ final class PartnerFullReport
 
         $teamMembers = $teamIds->isEmpty()
             ? collect()
-            : User::query()->whereIn('id', $teamIds)->orderBy('name')->get(['id', 'name', 'dealer_code', 'role', 'phone', 'status']);
+            : User::query()->whereIn('id', $teamIds)->orderBy('name')->get(['id', 'name', 'dealer_code', 'role', 'phone', 'status', 'sponsor_id']);
 
         $teamOrders = $teamIds->isEmpty()
             ? collect()
@@ -185,7 +186,8 @@ final class PartnerFullReport
                 'name' => $member->name,
                 'dealer_code' => $member->dealer_code,
                 'role' => $member->role,
-                'phone' => $member->phone,
+                // Full numbers only for directly referred members; the rest show the last four digits.
+                'phone' => PhoneIdentity::forDownlineViewer($member->phone, (int) $member->id, $member->sponsor_id !== null ? (int) $member->sponsor_id : null, (int) $user->id),
                 'status' => $member->status,
             ])->values()->all(),
             'team_activity' => $teamActivity,
