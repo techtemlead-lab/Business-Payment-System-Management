@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { number } from './UI';
 import {
@@ -92,10 +92,76 @@ function audienceLabel(audience: string | undefined, translate: (ns: string, key
     return translate('portal', 'tour_live_guide');
 }
 
+const autostartKey = 'madina_tour_autostart';
+const dismissedKey = (userId: unknown) => `madina_tour_dismissed_${userId || 'guest'}`;
+
+function readSession(key: string): string | null {
+    try {
+        return window.sessionStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+function writeSession(key: string, value: string | null): void {
+    try {
+        if (value === null) {
+            window.sessionStorage.removeItem(key);
+        } else {
+            window.sessionStorage.setItem(key, value);
+        }
+    } catch {
+        // Private mode or blocked storage: the tour still works, it just is not remembered.
+    }
+}
+
+/** The tour walks through the dashboard, so it always runs on the portal home page. */
+function onDashboard(portalBase: string | undefined): boolean {
+    return window.location.pathname.replace(/\/+$/, '') === (portalBase || '').replace(/\/+$/, '');
+}
+
+/**
+ * A step target may list several selectors ("desktop place, phone place"). Use the first one
+ * that is really on screen: the side menu, for example, is pushed off-screen on phones.
+ */
+function findVisibleTarget(selector: string): HTMLElement | null {
+    let candidates: HTMLElement[] = [];
+    try {
+        candidates = Array.from(document.querySelectorAll<HTMLElement>(selector));
+    } catch {
+        return null;
+    }
+
+    return candidates.find((el) => {
+        const box = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+
+        return box.width > 0 && box.height > 0 && box.right > 0 && box.left < window.innerWidth
+            && style.visibility !== 'hidden' && style.display !== 'none';
+    }) ?? null;
+}
+
+/**
+ * Start the dashboard tour again from anywhere (Help page, user guide): forget earlier
+ * skips, reset the tour, then open the dashboard and start it there.
+ */
+export function restartOnboardingTour(userId: unknown, portalBase: string | undefined): void {
+    writeSession(dismissedKey(userId), null);
+    writeSession(autostartKey, '1');
+    router.post('/commands/tours/restart', { page: 'overview' }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (!onDashboard(portalBase)) {
+                router.visit(portalBase || '/');
+            }
+        },
+    });
+}
+
 /** Keep the guide card safely inside the viewport and avoid obscuring the target */
-function calculateCardLayout(rect: DOMRect | null): { top: number; left: number; position: 'bottom' | 'top' | 'center' } {
-    const cardWidth = Math.min(380, window.innerWidth - 32);
-    const cardHeight = 290;
+function calculateCardLayout(rect: DOMRect | null, measuredHeight: number): { top: number; left: number; position: 'bottom' | 'top' | 'center' } {
+    const cardWidth = Math.min(420, window.innerWidth - 32);
+    const cardHeight = Math.min(measuredHeight || 290, window.innerHeight - 32);
     const gap = 16;
     const margin = 16;
 
@@ -139,7 +205,8 @@ export default function OnboardingTour({
     onCloseManual,
 }: OnboardingTourProps) {
     const translate = useT();
-    const { auth, manualRuleValues } = usePage<any>().props;
+    const page = usePage<any>();
+    const { auth, manualRuleValues, portalBase } = page.props;
     const user = auth?.user;
 
     const chapters = useMemo<ManualChapter[]>(() => {
@@ -162,6 +229,10 @@ export default function OnboardingTour({
     const [stepIndex, setStepIndex] = useState(0);
     const [rect, setRect] = useState<DOMRect | null>(null);
     const [elementMissing, setElementMissing] = useState(false);
+    /** The steps whose target is on this screen, fixed when the tour starts. */
+    const [liveSteps, setLiveSteps] = useState<TourStep[] | null>(null);
+    const [cardHeight, setCardHeight] = useState(0);
+    const cardRef = useRef<HTMLDivElement | null>(null);
 
     // Sync external forceOpenManual
     useEffect(() => {
@@ -170,15 +241,26 @@ export default function OnboardingTour({
         }
     }, [forceOpenManual]);
 
-    // Handle first-time login trigger
+    // Handle first-time login trigger; a restart from Help starts the tour straight away instead.
     useEffect(() => {
-        const dismissedKey = `madina_tour_dismissed_${user?.id || 'guest'}`;
-        const hasSessionDismissed = sessionStorage.getItem(dismissedKey);
+        if (!activeTour) {
+            return;
+        }
+        if (readSession(autostartKey)) {
+            if (!onDashboard(portalBase)) {
+                // On the way to the dashboard; the tour starts there.
+                return;
+            }
+            writeSession(autostartKey, null);
+            const timer = window.setTimeout(() => startTour(), 250);
 
-        if (isFirstTime && !hasSessionDismissed) {
+            return () => window.clearTimeout(timer);
+        }
+        if (isFirstTime && !readSession(dismissedKey(user?.id))) {
             setWelcomeOpen(true);
         }
-    }, [isFirstTime, user?.id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isFirstTime, user?.id, activeTour?.key, page.url]);
 
     // Set default selected chapter
     useEffect(() => {
@@ -188,7 +270,7 @@ export default function OnboardingTour({
     }, [chapters, selectedChapterKey]);
 
     const tourKey = activeTour?.key;
-    const steps = activeTour?.steps || [];
+    const steps = liveSteps ?? activeTour?.steps ?? [];
     const stepCount = steps.length;
     const currentStep = steps[stepIndex] || null;
 
@@ -197,7 +279,15 @@ export default function OnboardingTour({
         setStepIndex(0);
         setRect(null);
         setElementMissing(false);
+        setLiveSteps(null);
     }, [tourKey]);
+
+    // Measure the real card so it is placed where it fits (the card grows with long Bangla text).
+    useLayoutEffect(() => {
+        if (tourActive && cardRef.current) {
+            setCardHeight(cardRef.current.offsetHeight);
+        }
+    }, [tourActive, stepIndex, rect]);
 
     // Locate target element and compute bounding rect with smooth scroll
     useEffect(() => {
@@ -208,7 +298,7 @@ export default function OnboardingTour({
 
         let isMounted = true;
         const targetSelector = currentStep.target;
-        const el = document.querySelector(targetSelector) as HTMLElement | null;
+        const el = findVisibleTarget(targetSelector);
 
         if (!el) {
             setRect(null);
@@ -228,7 +318,7 @@ export default function OnboardingTour({
 
         const updateRect = () => {
             if (!isMounted) return;
-            const updatedEl = document.querySelector(targetSelector) as HTMLElement | null;
+            const updatedEl = el.isConnected ? el : findVisibleTarget(targetSelector);
             if (updatedEl) {
                 setRect(updatedEl.getBoundingClientRect());
             }
@@ -275,9 +365,11 @@ export default function OnboardingTour({
     const completeTour = () => {
         setTourActive(false);
         if (tourKey) {
+            // async: a click on a link right after "Done" must not cancel saving it.
             router.post(`/commands/tours/${tourKey}/complete`, {}, {
                 preserveScroll: true,
                 preserveState: true,
+                async: true,
             });
         }
     };
@@ -298,26 +390,35 @@ export default function OnboardingTour({
 
     const startTour = () => {
         setWelcomeOpen(false);
-        setTourActive(true);
+        // The steps point at the dashboard: open it first when the tour is started elsewhere.
+        if (!onDashboard(portalBase)) {
+            writeSession(autostartKey, '1');
+            router.visit(portalBase || '/');
+            return;
+        }
+        const all = activeTour?.steps ?? [];
+        const present = all.filter((step) => findVisibleTarget(step.target) !== null);
+        setLiveSteps(present.length > 0 ? present : all);
         setStepIndex(0);
+        setTourActive(true);
     };
 
     const dismissWelcome = () => {
         setWelcomeOpen(false);
-        if (user?.id) {
-            sessionStorage.setItem(`madina_tour_dismissed_${user.id}`, 'true');
-        }
+        writeSession(dismissedKey(user?.id), 'true');
         if (tourKey) {
             router.post(`/commands/tours/${tourKey}/complete`, {}, {
                 preserveScroll: true,
                 preserveState: true,
+                async: true,
             });
         }
     };
 
     const openManualToChapter = (chapterKey?: string) => {
         if (chapterKey) {
-            setSelectedChapterKey(chapterKey);
+            // The dashboard tour has no chapter of its own; "Getting started" covers it.
+            setSelectedChapterKey(chapterKey === 'overview' ? 'getting_started' : chapterKey);
         }
         setWelcomeOpen(false);
         setTourActive(false);
@@ -350,7 +451,7 @@ export default function OnboardingTour({
         return chapters.find((c) => c.key === selectedChapterKey) || filteredChapters[0] || null;
     }, [chapters, selectedChapterKey, filteredChapters]);
 
-    const { top: cardTop, left: cardLeft, position: cardPos } = calculateCardLayout(rect);
+    const { top: cardTop, left: cardLeft, position: cardPos } = calculateCardLayout(rect, cardHeight);
     const progressPercent = stepCount > 0 ? Math.round(((stepIndex + 1) / stepCount) * 100) : 0;
 
     const roleWelcome = useMemo(() => {
@@ -595,8 +696,9 @@ export default function OnboardingTour({
 
                     {/* Floating Walkthrough Card */}
                     <div
+                        ref={cardRef}
                         className={`onboarding-tour-card floating-step-card position-${cardPos}`}
-                        style={{ top: cardTop, left: cardLeft }}
+                        style={{ top: cardTop, left: cardLeft, maxHeight: 'calc(100vh - 32px)', overflowY: 'auto' }}
                     >
                         {/* Directional pointer arrow connecting card to target element */}
                         {rect && <div className={`onboarding-card-pointer pointer-${cardPos}`} />}
@@ -747,9 +849,11 @@ export default function OnboardingTour({
                             </div>
                         </div>
 
-                        <div className="onboarding-keyboard-hint">
-                            <small>{translate('portal', 'tour_keyboard_shortcuts')}</small>
-                        </div>
+                        {window.innerWidth >= 768 && (
+                            <div className="onboarding-keyboard-hint">
+                                <small>{translate('portal', 'tour_keyboard_shortcuts')}</small>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -1001,13 +1105,8 @@ export default function OnboardingTour({
                                 type="button"
                                 className="button"
                                 onClick={() => {
-                                    router.post('/commands/tours/restart', {}, {
-                                        preserveScroll: true,
-                                        onSuccess: () => {
-                                            closeManual();
-                                            startTour();
-                                        },
-                                    });
+                                    closeManual();
+                                    restartOnboardingTour(user?.id, portalBase);
                                 }}
                             >
                                 <RotateCcw size={15} />

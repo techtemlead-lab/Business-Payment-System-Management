@@ -21,11 +21,12 @@ import {
 } from 'lucide-react';
 import { Badge, date, Empty, Table, type Row, number } from './UI';
 import PrerequisiteHelper from './PrerequisiteHelper';
+import { restartOnboardingTour } from './OnboardingTour';
 import { useT } from '../shared/i18n/t';
 
 export default function HelpSupportHub({ data }: { data: Row }) {
     const translate = useT();
-    const { auth } = usePage<any>().props;
+    const { auth, portalBase } = usePage<any>().props;
     const sections: Row[] = data.manual_sections || [];
     const tickets: Row[] = data.support_tickets || [];
     const categories: string[] = data.support_categories || [];
@@ -95,7 +96,7 @@ export default function HelpSupportHub({ data }: { data: Row }) {
                         <button
                             type="button"
                             className="button small dark"
-                            onClick={() => router.post('/commands/tours/restart', {}, { preserveScroll: true })}
+                            onClick={() => restartOnboardingTour(auth?.user?.id, portalBase)}
                         >
                             <Sparkles size={15} />
                             {translate('portal', 'tour_btn_start_tour')}
