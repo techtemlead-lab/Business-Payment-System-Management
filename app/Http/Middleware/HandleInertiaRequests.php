@@ -148,11 +148,14 @@ class HandleInertiaRequests extends Middleware
                     return null;
                 }
 
-                ['preferred' => $preferred, 'branches' => $branches] = app(BranchOperations::class)->branchChoices($u);
-                $viewAll = $request->session()->get(BranchOperations::SessionView) === 'all';
+                $branchOperations = app(BranchOperations::class);
+                ['preferred' => $preferred, 'branches' => $branches] = $branchOperations->branchChoices($u);
+                $canViewAll = $branchOperations->canManageAllBranches($u);
+                $viewAll = $canViewAll && $request->session()->get(BranchOperations::SessionView) === 'all';
 
                 return [
                     'view' => $viewAll ? 'all' : 'branch',
+                    'can_view_all' => $canViewAll,
                     'active_branch_id' => $preferred?->id,
                     'active_branch' => $viewAll
                         ? ['id' => null, 'code' => 'ALL', 'name' => __('portal.branch_view_all')]

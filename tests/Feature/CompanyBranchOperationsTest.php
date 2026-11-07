@@ -284,4 +284,41 @@ class CompanyBranchOperationsTest extends TestCase
                         && $rows->pluck('branch_name')->sort()->values()->all() === ['Head Office · Pirganj', 'Rajshahi Hub'];
                 }));
     }
+
+    public function test_only_all_branch_staff_may_switch_to_all_branches(): void
+    {
+        $dhaka = CompanyBranch::factory()->create(['code' => 'DHK-02', 'name' => 'Dhaka Hub']);
+        $accountant = User::factory()->staff('finance')->create(['active_branch_id' => $dhaka->id]);
+        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $accountant->id, 'duty' => 'storekeeper', 'is_primary' => true]);
+
+        $this->actingAs($accountant)->onPortal('manage')->from('/branch-performance')
+            ->post('/commands/branches/view-all')
+            ->assertForbidden()
+            ->assertSessionMissing(BranchOperations::SessionView);
+
+        $this->actingAs($accountant)->onPortal('manage')
+            ->withSession([BranchOperations::SessionView => 'all'])
+            ->get('/branch-performance')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('workspaceBranches.can_view_all', false)
+                ->where('workspaceBranches.view', 'branch')
+                ->where('workspaceBranches.active_branch.code', 'DHK-02'));
+
+        foreach ([['super_admin', 'sadmin'], ['inventory', 'manage']] as [$role, $portal]) {
+            $manager = User::factory()->staff($role)->create();
+            $this->actingAs($manager)->onPortal($portal)->from('/inventory')
+                ->post('/commands/branches/view-all')
+                ->assertRedirect('/inventory')
+                ->assertSessionHas(BranchOperations::SessionView, 'all');
+
+            $this->actingAs($manager)->onPortal($portal)
+                ->withSession([BranchOperations::SessionView => 'all'])
+                ->get('/inventory')
+                ->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('workspaceBranches.can_view_all', true)
+                    ->where('workspaceBranches.view', 'all'));
+        }
+    }
 }

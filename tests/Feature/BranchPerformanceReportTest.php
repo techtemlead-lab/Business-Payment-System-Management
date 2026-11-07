@@ -245,6 +245,44 @@ class BranchPerformanceReportTest extends TestCase
                 ->where('data.performance.totals.order_value', '900.00'));
     }
 
+    public function test_all_branch_readers_with_no_switcher_choice_open_on_every_branch_and_branch_staff_on_their_own(): void
+    {
+        $partner = User::factory()->dealer()->create();
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $dhaka = CompanyBranch::factory()->create(['code' => 'DHK-02', 'name' => 'Dhaka Hub']);
+        $product = Product::factory()->create(['cost_price' => '10.00']);
+        $this->createFulfilledOrder($partner, $product, $hub->id, '700.00', '700.00');
+        $this->createFulfilledOrder($partner, $product, $dhaka->id, '200.00', '50.00');
+
+        $owner = User::factory()->staff('super_admin')->create(['active_branch_id' => null]);
+        $this->actingAs($owner)->onPortal('sadmin')
+            ->get('/branch-performance?period=month')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.performance.selected_branch_id', null)
+                ->where('data.performance.totals.order_count', 2)
+                ->where('data.performance.totals.order_value', '900.00'));
+
+        $storekeeper = User::factory()->staff('inventory')->create(['active_branch_id' => null]);
+        $this->actingAs($storekeeper)->onPortal('manage')
+            ->get('/branch-performance?period=month')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.performance.selected_branch_id', null)
+                ->where('data.performance.totals.order_count', 2));
+
+        $accountant = User::factory()->staff('finance')->create(['active_branch_id' => null]);
+        BranchStaffAssignment::query()->create(['branch_id' => $dhaka->id, 'user_id' => $accountant->id, 'duty' => 'storekeeper', 'is_primary' => false]);
+        $this->actingAs($accountant)->onPortal('manage')
+            ->withSession([BranchOperations::SessionView => 'all'])
+            ->get('/branch-performance?period=month')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('data.performance.selected_branch_id', $dhaka->id)
+                ->where('data.performance.totals.order_count', 1)
+                ->where('data.performance.totals.order_value', '200.00'));
+    }
+
     public function test_product_editor_public_link_uses_public_portal_host(): void
     {
         $owner = User::factory()->staff('super_admin')->create();

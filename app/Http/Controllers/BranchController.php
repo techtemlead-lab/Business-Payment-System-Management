@@ -91,9 +91,14 @@ class BranchController extends Controller
         return back()->with('success', __('portal.flash_branch_selected', ['name' => $branch->name]));
     }
 
-    public function viewAll(Request $request): RedirectResponse
+    /**
+     * Switch the top bar to "All branches". Only the owner and staff who may manage
+     * every branch can; branch staff stay on the branches they are assigned to.
+     */
+    public function viewAll(Request $request, BranchOperations $operations): RedirectResponse
     {
-        abort_unless($request->user()?->staff() || $request->user()?->owner(), 403);
+        $actor = $request->user();
+        abort_unless($actor !== null && ($actor->staff() || $actor->owner()) && $operations->canManageAllBranches($actor), 403);
         $request->session()->put(BranchOperations::SessionView, 'all');
 
         return back()->with('success', __('portal.flash_branch_view_all'));
