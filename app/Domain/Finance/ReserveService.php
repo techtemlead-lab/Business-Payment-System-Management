@@ -5,6 +5,7 @@ namespace App\Domain\Finance;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Payouts\PayoutReceipts;
 use App\Models\CommissionAllocation;
 use App\Models\User;
 use App\Support\Audit;
@@ -156,14 +157,29 @@ final class ReserveService
         }, 3);
     }
 
-    /** @param array<string, mixed> $data */
-    public function pay(User $actor, int $id, array $data, UploadedFile $receipt): void
+    /**
+     * Marks an approved reserve payout as paid by hand and issues its numbered payout receipt.
+     * Cash needs the name of the person who took the money; every other method needs the payout
+     * account, the transaction reference and the transfer proof.
+     *
+     * @param  array<string, mixed>  $data
+     * @return string The new receipt number.
+     */
+    public function pay(User $actor, int $id, array $data, ?UploadedFile $receipt): string
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        $path = $receipt->storeAs('reserve-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
+        $method = (string) ($data['method'] ?? '');
+        $isCash = $method === 'cash';
+        $reference = trim((string) ($data['payment_reference'] ?? ''));
+        $reference = $reference === '' ? null : Str::upper($reference);
+        if (! $isCash && ($reference === null || $receipt === null || empty($data['payment_account_id']))) {
+            throw ValidationException::withMessages(['payment_reference' => __('portal.err_payout_details_needed')]);
+        }
+        $path = $receipt?->storeAs('reserve-receipts', Str::uuid().'.'.$receipt->guessExtension(), 'local');
+        $issued = null;
         try {
-            DB::transaction(function () use ($actor, $id, $data, $receipt, $path): void {
+            DB::transaction(function () use ($actor, $id, $data, $receipt, $path, $isCash, $reference, &$issued): void {
                 CommissionWallet::lock();
                 abort_unless($actor->fresh()->allows('finance'), 403);
                 $row = DB::table('reserve_disbursements')->where('id', $id)->lockForUpdate()->first();
@@ -179,21 +195,39 @@ final class ReserveService
                         throw ValidationException::withMessages(['reserve' => __('portal.err_reserve_funding_reduced')]);
                     }
                 }
-                $this->accounts->recordReference($actor, $data['payment_reference'], 'reserve:'.$id, (int) $data['payment_account_id']);
+                // Cash is handed over at the office, not sent from a company payout account.
+                if (! $isCash) {
+                    $this->accounts->recordReference($actor, $reference, 'reserve:'.$id, (int) $data['payment_account_id']);
+                } elseif ($reference !== null && DB::table('reserve_disbursements')->where('payment_reference', $reference)->exists()) {
+                    throw ValidationException::withMessages(['payment_reference' => __('portal.err_pay_ref_duplicate')]);
+                }
                 $amount = Money::cents($row->amount);
                 $this->wallets->journal('reserve.expense.'.$id, __('portal.jr_reserve_marketing_paid'), [
                     ['account' => 'company_marketing_expense', 'user_id' => null, 'debit' => $amount, 'credit' => 0],
                     ['account' => 'manual_payout_clearing', 'user_id' => null, 'debit' => 0, 'credit' => $amount],
                 ]);
+                $issued = app(PayoutReceipts::class)->issueForReserve($actor, $row, $data, $reference, (string) $data['paid_at']);
                 DB::table('reserve_disbursements')->where('id', $id)->update(['status' => 'paid', 'paid_by' => $actor->id,
-                    'payment_reference' => Str::upper(trim($data['payment_reference'])), 'payment_account_id' => $data['payment_account_id'],
-                    'paid_at' => $data['paid_at'], 'receipt_path' => $path, 'receipt_hash' => hash_file('sha256', $receipt->getRealPath()), 'updated_at' => now()]);
-                Audit::record($actor->id, 'reserve.paid', (string) $id, ['reason' => $data['reason']]);
+                    'payment_reference' => $reference ?? $issued['number'], 'payment_account_id' => $isCash ? null : $data['payment_account_id'],
+                    'paid_at' => $data['paid_at'], 'receipt_path' => $path, 'receipt_hash' => $receipt ? hash_file('sha256', $receipt->getRealPath()) : null, 'updated_at' => now()]);
+                Audit::record($actor->id, 'reserve.paid', (string) $id, ['reason' => $data['reason'], 'method' => $data['method'], 'payout_receipt' => $issued['number']]);
+                if ($row->user_id) {
+                    $locale = User::find($row->user_id)?->preferredLocale() ?? app()->getLocale();
+                    Audit::notice(
+                        (int) $row->user_id,
+                        __('portal.notice_reserve_paid_title', [], $locale),
+                        __('portal.notice_reserve_paid_body', ['number' => $issued['number'], 'amount' => $row->amount], $locale),
+                    );
+                }
             }, 3);
         } catch (\Throwable $exception) {
-            Storage::disk('local')->delete($path);
+            if ($path !== null) {
+                Storage::disk('local')->delete($path);
+            }
             throw $exception;
         }
+
+        return $issued['number'];
     }
 
     public function cancel(User $actor, int $id, string $reason): void
