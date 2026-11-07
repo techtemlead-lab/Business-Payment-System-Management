@@ -113,6 +113,30 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame($plan['to_company_profit'], $result['total_to_company_profit']);
     }
 
+    public function test_leftover_paisa_take_turns_instead_of_always_going_to_the_lowest_ids(): void
+    {
+        $dealers = User::factory()->count(3)->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        foreach ($dealers as $dealer) {
+            $this->purchase($dealer, '10000.00', '20000.00');
+        }
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        // Each ৳200 pool split three ways leaves 2 paisa over; they must not all go to the same two dealers.
+        $plan = app(CommissionSettlement::class)->salaryPlan('2026-09');
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        $paid = collect($result['distributed'])->pluck('amount', 'user_id')->all();
+        foreach ($dealers as $dealer) {
+            $this->assertSame('200.00', $paid[$dealer->id]);
+        }
+        $this->assertSame('600.00', Money::decimal(array_sum(array_map(fn (string $amount): int => Money::cents($amount), $paid))));
+        $this->assertSame('0.00', $result['total_to_company_profit']);
+        $planned = collect($plan['dealers'])->pluck('share', 'user_id')->all();
+        ksort($paid);
+        ksort($planned);
+        $this->assertSame($planned, $paid);
+    }
+
     public function test_treasury_counts_settled_pool_leftovers_once(): void
     {
         $owner = User::factory()->staff()->create();
