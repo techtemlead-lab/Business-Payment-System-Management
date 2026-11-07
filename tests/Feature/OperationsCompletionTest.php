@@ -248,7 +248,7 @@ class OperationsCompletionTest extends TestCase
             'request_key' => (string) Str::uuid(), 'reason' => 'Approved marketing invoice'])->assertOk()->json('data.id');
         $this->actingAs($reviewer)->postJson('/api/v1/operations/reserves/'.$id.'/review', ['decision' => 'approved', 'reason' => 'Marketing invoice reviewed'])->assertOk();
         $proof = ['payment_account_id' => $account, 'payment_reference' => 'EXPENSE-1', 'paid_at' => now()->subMinute()->toIso8601String(), 'reason' => 'Invoice payment confirmed', 'receipt' => UploadedFile::fake()->create('expense.pdf', 5, 'application/pdf')];
-        $this->actingAs($preparer)->postJson('/api/v1/operations/reserves/'.$id.'/pay', $proof)->assertOk();
+        $this->actingAs($preparer)->postJson('/api/v1/operations/reserves/'.$id.'/pay', [...$proof, 'method' => 'other'])->assertOk();
         app(CommissionReversal::class)->refund($order, 5000, 'Half order return after expense', 'EXPENSE-REFUND');
         $debt = DB::table('reserve_expense_clawbacks')->first();
         $this->assertSame('1.00', $debt->amount);
