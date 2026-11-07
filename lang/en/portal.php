@@ -5734,7 +5734,7 @@ return [
     'ph_birthday_title' => 'Happy birthday!',
     'ph_birthday_body' => 'Happy birthday from the Madina family, :name! Have a lovely day.',
     'dash_mgmt_toggle_birthday_sms' => 'Send birthday SMS',
-    'dash_mgmt_toggle_birthday_sms_desc' => 'Send one short birthday SMS to each dealer and sub-dealer at 9 am on their birthday. Each SMS costs money, so this is off at first.',
+    'dash_mgmt_toggle_birthday_sms_desc' => 'Send one short birthday SMS to each dealer and sub-dealer at 9 am on their birthday. Each SMS costs money. It only sends when SMS is set up.',
     'top_sellers' => 'Top sellers',
     'top_sellers_title' => 'Top sellers of the month',
     'top_sellers_hint' => 'Dealers in order of how much they bought for themselves this month. Only confirmed orders count.',

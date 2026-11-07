@@ -27,14 +27,59 @@ class PartnerBirthdaySmsTest extends TestCase
         Config::set('madina.sms.sent', []);
     }
 
-    public function test_switch_is_off_by_default_and_then_nothing_is_sent(): void
+    public function test_switch_is_on_by_default_and_sends_without_saving_settings(): void
     {
-        $this->assertFalse(DashboardManagement::defaults()['birthday_sms_enabled']);
+        $this->assertTrue(DashboardManagement::defaults()['birthday_sms_enabled']);
+        $this->assertTrue(DashboardManagement::get()['birthday_sms_enabled']);
+        $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
+        $dealer = $this->partner('dealer', '1990-11-05');
+
+        $this->artisan('partners:birthday-sms')->assertSuccessful();
+
+        $this->assertSame([$dealer->id], array_column($this->birthdayTexts(), 'user_id'));
+    }
+
+    public function test_nothing_is_sent_when_the_owner_turns_the_switch_off(): void
+    {
+        DashboardManagement::save(['birthday_sms_enabled' => false]);
         $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
         $this->partner('dealer', '1990-11-05');
 
         $this->artisan('partners:birthday-sms')
             ->expectsOutputToContain('switched off')
+            ->assertSuccessful();
+
+        $this->assertSame([], $this->birthdayTexts());
+        $this->assertSame(0, DB::table('partner_birthday_greetings')->count());
+    }
+
+    public function test_nothing_is_sent_when_no_sms_provider_is_set_up(): void
+    {
+        Config::set('madina.sms.driver', 'log');
+        $this->turnOn();
+        $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
+        $this->partner('dealer', '1990-11-05');
+
+        $this->artisan('partners:birthday-sms')
+            ->expectsOutputToContain('SMS is not set up')
+            ->assertSuccessful();
+
+        $this->assertSame(
+            ['enabled' => false, 'sent' => 0, 'already_sent' => 0, 'failed' => 0, 'sms_ready' => false],
+            app(BirthdayGreetings::class)->sendForToday(),
+        );
+        $this->assertSame(0, DB::table('partner_birthday_greetings')->count());
+    }
+
+    public function test_nothing_is_sent_in_preview_mode(): void
+    {
+        Config::set('madina.preview_mode', true);
+        $this->turnOn();
+        $this->travelTo(CarbonImmutable::parse('2026-11-05 09:00:00', 'Asia/Dhaka'));
+        $this->partner('dealer', '1990-11-05');
+
+        $this->artisan('partners:birthday-sms')
+            ->expectsOutputToContain('SMS is not set up')
             ->assertSuccessful();
 
         $this->assertSame([], $this->birthdayTexts());
