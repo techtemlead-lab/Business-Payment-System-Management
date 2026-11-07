@@ -119,6 +119,7 @@ class WorkspaceController extends Controller
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'period' => $periodRule,
             'branch_id' => 'nullable|integer|min:1',
+            'all_branches' => 'nullable|boolean',
             'category' => 'nullable|string|max:100',
             'sub_category' => 'nullable|string|max:100',
             'unit' => 'nullable|string|max:30',
