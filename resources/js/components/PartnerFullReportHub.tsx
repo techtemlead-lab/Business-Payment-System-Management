@@ -1,4 +1,4 @@
-import { router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Download, FileBarChart2 } from 'lucide-react';
 import { Badge, money, date, label, Table, type Row, DateInput } from './UI';
@@ -204,6 +204,9 @@ export default function PartnerFullReportHub({ report }: { report: Row }) {
                         <h2>{translate('portal', 'report_team_transactions')}</h2>
                         <p>{translate('portal', 'report_team_transactions_hint')}</p>
                     </div>
+                    <Link className="button small" href={`${base}/team-orders${filters.from || filters.to ? `?${new URLSearchParams({ ...(filters.from ? { from: String(filters.from) } : {}), ...(filters.to ? { to: String(filters.to) } : {}) }).toString()}` : ''}`}>
+                        {translate('portal', 'team_orders_open')}
+                    </Link>
                 </div>
                 <Table
                     rows={teamActivity}

@@ -60,6 +60,7 @@ export default function PartnerStatement({ partner, range, statement, staffView,
                     <p className="muted">{partner.name}{partner.dealer_code ? ` · ${partner.dealer_code}` : ''}{partner.district ? ` · ${partner.district}` : ''}</p>
                 </div>
                 <div className="inline-actions">
+                    {staffView && <Link className="button small" href={`${base}/accounts/${partner.id}/team-orders?${query}`}>{translate('portal', 'team_orders_open')}</Link>}
                     <a className="button small" href={`${base}${statementBase}/xlsx?${query}`}><Download size={14} /> {translate('portal', 'stmt_download_excel')}</a>
                     <a className="button small" href={`${base}${statementBase}/pdf?${query}`}><Download size={14} /> {translate('portal', 'stmt_download_pdf')}</a>
                 </div>
