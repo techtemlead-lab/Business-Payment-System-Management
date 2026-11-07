@@ -29,7 +29,7 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
-export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, adjustments=[], replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; adjustments?:Row[]; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean }) {
+export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
@@ -101,8 +101,6 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
             <div className="metric"><span>{translate('portal', 'verified_payment')}</span><strong>{money(order.paid)}</strong></div>
             <div className="metric"><span>{translate('portal', 'remaining_payment')}</span><strong>{money(outstanding)}</strong><small>{translate('portal', 'remaining_payment_hint')}</small></div>
         </div>
-        {Number(order.due_credit)>0&&<div className="notice"><strong>{translate('portal', 'approved_due_credits', { amount: money(order.due_credit) })}</strong><p>{translate('portal', 'approved_due_credits_hint')}</p></div>}
-        {adjustments.length>0&&<section className="panel"><h2>{translate('portal', 'due_adjustment_history')}</h2><Table rows={adjustments} columns={[{key:'reference',title:translate('portal','col_reference')},{key:'kind',title:translate('portal','col_type')},{key:'amount',title:translate('portal','col_amount'),render:r=>money(r.amount)},{key:'status',title:translate('portal','col_status'),render:r=><Badge status={r.status}/>},{key:'before_outstanding',title:translate('portal','due_before'),render:r=>r.before_outstanding==null?'—':money(r.before_outstanding)},{key:'after_outstanding',title:translate('portal','due_after'),render:r=>r.after_outstanding==null?'—':money(r.after_outstanding)},{key:'reason',title:translate('portal','col_reason')},{key:'prepared_by',title:translate('portal','prepared_by')},{key:'reviewed_by',title:translate('portal','reviewed_by')}]}/></section>}
         <section className="panel"><div className="panel-heading"><h2>{translate('portal', 'products_fulfilment')}</h2><span>{translate('portal', 'prices_saved_at_submission')}</span></div>
             <Table rows={order.lines} columns={[
                 { key: 'name', title: translate('portal', 'col_product') }, { key: 'quantity', title: translate('portal', 'report_col_ordered'), align: 'right', render: line => number(line.quantity) }, { key: 'dispatched', title: translate('portal', 'col_dispatched'), align: 'right', render: line => number(line.dispatched) },

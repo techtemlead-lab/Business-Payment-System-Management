@@ -122,7 +122,7 @@ const icons: Record<string, LucideIcon> = {
     overview: LayoutDashboard, orders: ShoppingBag, purchase: ShoppingCart, catalog: Package, 'catalog-products': Package,
     'catalog-taxonomy': Layers, accounts: Users, inventory: Package, stock: Package,
     'product-in': ArrowDownToLine, 'product-out': ArrowUpFromLine,
-    deliveries: Truck, dues: Wallet,
+    deliveries: Truck,
     payments: Coins, network: GitBranch, policies: SlidersHorizontal, salary: BadgeCheck, withdrawals: Wallet, ledger: BookOpen,
     reports: FileText, customization: SlidersHorizontal, website: SlidersHorizontal, content: FileText, enquiries: MessageSquare, feedback: MessageSquare, 'share-feedback': MessageSquare, partnerships: Briefcase, audit: ShieldCheck,
     profile: Users, security: Settings, notifications: Bell, circulars: BookOpen, earnings: Coins, 'full-report': FileBarChart2, ranks: Award,

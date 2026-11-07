@@ -332,7 +332,6 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',
-            'allow_credit' => true,
         ])->assertOk();
 
         // Try to dispatch 10 when only 5 were ordered
@@ -370,7 +369,6 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for stock test',
-            'allow_credit' => true,
         ])->assertOk();
 
         // Dispatch 5 when branch only has 2 in stock
@@ -409,7 +407,6 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'First approval',
-            'allow_credit' => true,
         ])->assertOk();
 
         // Second approval attempt should fail
@@ -417,7 +414,6 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $second = $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Duplicate approval attempt',
-            'allow_credit' => true,
         ]);
 
         $second->assertStatus(422);
@@ -436,11 +432,10 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         ]);
         $orderId = $orderRes->json('data.id');
 
-        // Attempting to approve an unpaid order without allow_credit => true
+        // Attempting to approve an unpaid order
         $response = $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approve without credit check',
-            'allow_credit' => false,
         ]);
 
         // No goods on credit: an unpaid order is refused with a "pay in full first" message.
@@ -516,7 +511,6 @@ class BoundaryAndCornerCasesTest extends E2ETestCase
         $this->actingAs($staff)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for dispatch test',
-            'allow_credit' => true,
         ])->assertOk();
 
         $key = (string) Str::uuid();
