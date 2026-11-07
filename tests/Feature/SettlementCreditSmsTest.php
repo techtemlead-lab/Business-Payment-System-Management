@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -36,7 +37,7 @@ class SettlementCreditSmsTest extends TestCase
 
     public function test_salary_settlement_sends_localized_credit_sms_once_per_run(): void
     {
-        $dealer = User::factory()->create([
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create([
             'role' => 'dealer',
             'status' => 'active',
             'phone' => '01720000101',

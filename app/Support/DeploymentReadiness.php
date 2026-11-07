@@ -150,6 +150,10 @@ final class DeploymentReadiness
         if ($checks['database'] && $this->activePartnersMissingPlaceCodes()) {
             $warnings[] = 'partners_missing_place_codes';
         }
+        $recordsMissingPlaceCodes = $checks['database'] ? $this->recordsMissingPlaceCodes() : [];
+        if (array_filter($recordsMissingPlaceCodes) !== []) {
+            $warnings[] = 'records_missing_place_codes';
+        }
         if ($checks['database'] && ! $this->openingBalancesVerified()) {
             $warnings[] = 'opening_balances_unverified';
         } elseif ($checks['database'] && $this->openingBalancesStale()) {
@@ -218,6 +222,9 @@ final class DeploymentReadiness
         if (in_array('partners_missing_place_codes', $warnings, true)) {
             $details['partners_missing_place_codes'] = $this->partnersMissingPlaceCodeRows();
         }
+        if (in_array('records_missing_place_codes', $warnings, true)) {
+            $details['records_missing_place_codes'] = $recordsMissingPlaceCodes;
+        }
         if (in_array('area_dealer_assignments_missing', $warnings, true)) {
             $details['area_dealer_assignments_missing'] = [
                 'active_assignments' => 0,
@@ -246,7 +253,8 @@ final class DeploymentReadiness
                 ->where('status', 'active')
                 ->where(function ($query): void {
                     $query->whereNull('profile')
-                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''")
+                        ->orWhereRaw("COALESCE(profile->>'place_code_id', '') = ''");
                 })
                 ->orderBy('id')
                 ->limit(50)
@@ -300,7 +308,7 @@ final class DeploymentReadiness
 
     /**
      * Active partners' division/district place paths need exactly one active seat
-     * each (place_code_id or unique legacy name). Missing or ambiguous seats leave
+     * each, by place_code_id. Missing or ambiguous seats leave
      * geographic pools in unassigned reserve or skip wallet credit.
      */
     private function areaDealerCoverageIncomplete(): bool
@@ -344,7 +352,7 @@ final class DeploymentReadiness
             }
 
             foreach ($required as $seat) {
-                if (! $this->areaSeatIsUnique($seat['level'], $seat['place_id'], $seat['name'])) {
+                if (! $this->areaSeatIsUnique($seat['level'], $seat['place_id'])) {
                     return true;
                 }
             }
@@ -357,39 +365,51 @@ final class DeploymentReadiness
         }
     }
 
-    private function areaSeatIsUnique(string $level, int $placeId, string $name): bool
+    /** Exactly one active seat holds this place code (seats are never matched by name). */
+    private function areaSeatIsUnique(string $level, int $placeId): bool
     {
-        $byCode = DB::table('area_dealer_assignments')
+        return DB::table('area_dealer_assignments')
             ->where('is_active', true)
             ->where('level', $level)
             ->where('place_code_id', $placeId)
-            ->count();
-        if ($byCode === 1) {
-            return true;
-        }
-        if ($byCode > 1) {
-            return false;
-        }
+            ->count() === 1;
+    }
 
-        $column = match ($level) {
-            PlaceCode::LevelDivision => 'division',
-            PlaceCode::LevelDistrict => 'district',
-            PlaceCode::LevelUpazila => 'upazila',
-            PlaceCode::LevelUnion => 'union',
-            default => null,
-        };
-        if ($column === null) {
-            return false;
+    /**
+     * Active branches, area seats and staff territories saved without a place code. They are
+     * never matched by name, so each one must be given its place code before go-live.
+     *
+     * @return array{branches: list<array{id: int, label: string}>, area_seats: list<array{id: int, label: string}>, staff_territories: list<array{id: int, label: string}>}
+     */
+    public function recordsMissingPlaceCodes(): array
+    {
+        $empty = ['branches' => [], 'area_seats' => [], 'staff_territories' => []];
+        try {
+            $label = fn (object $row, array $parts): string => collect($parts)
+                ->map(fn (string $column): string => trim((string) ($row->{$column} ?? '')))
+                ->filter()
+                ->implode(' · ');
+
+            return [
+                'branches' => DB::table('company_branches')->where('is_active', true)->whereNull('place_code_id')
+                    ->orderBy('id')->limit(50)->get(['id', 'code', 'name', 'division', 'district', 'upazila'])
+                    ->map(fn (object $row): array => ['id' => (int) $row->id, 'label' => $label($row, ['code', 'name', 'district', 'division'])])->all(),
+                'area_seats' => DB::table('area_dealer_assignments')->join('users', 'users.id', '=', 'area_dealer_assignments.user_id')
+                    ->where('area_dealer_assignments.is_active', true)->whereNull('area_dealer_assignments.place_code_id')
+                    ->orderBy('area_dealer_assignments.id')->limit(50)
+                    ->get(['area_dealer_assignments.id', 'area_dealer_assignments.zone_name', 'area_dealer_assignments.level', 'users.name', 'users.dealer_code'])
+                    ->map(fn (object $row): array => ['id' => (int) $row->id, 'label' => $label($row, ['dealer_code', 'name', 'level', 'zone_name'])])->all(),
+                'staff_territories' => DB::table('staff_territories')->join('users', 'users.id', '=', 'staff_territories.staff_id')
+                    ->where('staff_territories.is_active', true)->whereNull('staff_territories.place_code_id')
+                    ->orderBy('staff_territories.id')->limit(50)
+                    ->get(['staff_territories.id', 'staff_territories.level', 'staff_territories.division', 'staff_territories.district', 'staff_territories.upazila', 'staff_territories.union', 'users.name'])
+                    ->map(fn (object $row): array => ['id' => (int) $row->id, 'label' => $label($row, ['name', 'level', 'division', 'district', 'upazila', 'union'])])->all(),
+            ];
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return $empty;
         }
-
-        $byName = DB::table('area_dealer_assignments')
-            ->where('is_active', true)
-            ->where('level', $level)
-            ->whereNull('place_code_id')
-            ->whereRaw('LOWER(TRIM("'.$column.'")) = ?', [mb_strtolower(trim($name))])
-            ->count();
-
-        return $byName === 1;
     }
 
     /**
@@ -483,7 +503,8 @@ final class DeploymentReadiness
                 ->where('status', 'active')
                 ->where(function ($query): void {
                     $query->whereNull('profile')
-                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''");
+                        ->orWhereRaw("COALESCE(profile->>'place_code', '') = ''")
+                        ->orWhereRaw("COALESCE(profile->>'place_code_id', '') = ''");
                 })
                 ->exists();
         } catch (\Throwable $exception) {

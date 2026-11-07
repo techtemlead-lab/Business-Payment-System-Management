@@ -59,7 +59,7 @@ class CommissionSettlementQueryBudgetTest extends TestCase
     public function test_settling_a_month_runs_the_same_number_of_queries_for_3_or_9_dealers(): void
     {
         $rangpurA = $this->assignedDealer($this->rangpurDistrict);
-        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $rangpurB = User::factory()->inPlace($this->rangpurDistrict)->create();
         $sub = User::factory()->create(['role' => 'sub_dealer']);
         $this->addOutsideDealers(1);
         $this->assertSame(3, User::query()->where('role', 'dealer')->where('status', 'active')->count());
@@ -114,6 +114,7 @@ class CommissionSettlementQueryBudgetTest extends TestCase
             User::factory()->create(['division' => 'Dhaka', 'district' => 'Nowhere']),
             User::factory()->create(['division' => 'Atlantis', 'district' => 'Nowhere', 'profile' => ['upazila' => 'X', 'union' => 'Y']]),
             User::factory()->create(),
+            User::factory()->inPlace($this->dhakaDistrict)->create(),
         ]);
         $resolver = app(PlaceGeographyResolver::class);
 
@@ -125,8 +126,11 @@ class CommissionSettlementQueryBudgetTest extends TestCase
         $this->assertSame('Rangpur', $batch[$dealers[0]->id]['division']);
         $this->assertSame($this->rangpurDistrict->id, $batch[$dealers[1]->id]['place_ids']['district']);
         $this->assertSame('place_code', $batch[$dealers[2]->id]['resolution']);
-        $this->assertSame('name_match', $batch[$dealers[4]->id]['resolution']);
-        $this->assertSame('legacy_names', $batch[$dealers[5]->id]['resolution']);
+        // Names alone ("Dhaka", "Atlantis") never resolve to a place: those dealers stay unplaced.
+        $this->assertSame('unplaced', $batch[$dealers[4]->id]['resolution']);
+        $this->assertNull($batch[$dealers[4]->id]['division']);
+        $this->assertSame('unplaced', $batch[$dealers[5]->id]['resolution']);
+        $this->assertSame($this->dhakaDistrict->id, $batch[$dealers[7]->id]['place_ids']['district']);
     }
 
     /**

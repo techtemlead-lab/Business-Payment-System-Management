@@ -23,6 +23,8 @@ export interface TopSellersPayload {
     months: string[];
     show_amounts: boolean;
     division: string | null;
+    /** The division's place code id: divisions are matched by code, never by name. */
+    division_id?: number | null;
     national: TopSellerEntry[];
     divisional: TopSellerEntry[];
     me?: {
@@ -34,7 +36,7 @@ export interface TopSellersPayload {
     } | null;
     can_rank?: boolean;
     /** Office view only: divisions to compare. */
-    divisions?: string[];
+    divisions?: { id: number; name: string }[];
 }
 
 interface TopSellersBoardProps {
@@ -55,7 +57,7 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
     const visit = (next: { month?: string; division?: string }) => {
         router.get('/top-sellers', {
             month: next.month ?? board.month,
-            division: staff ? ((next.division ?? board.division) || undefined) : undefined,
+            division: staff ? ((next.division ?? (board.division_id != null ? String(board.division_id) : '')) || undefined) : undefined,
         }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
@@ -87,10 +89,10 @@ export default function TopSellersBoard({ board, staff = false }: TopSellersBoar
                 {staff && (
                     <label className="tsb-division-pick">
                         <span><MapPin size={14} /> {translate('portal', 'top_sellers_division_pick')}</span>
-                        <select value={board.division ?? ''} onChange={(event) => visit({ division: event.target.value })}>
+                        <select value={board.division_id != null ? String(board.division_id) : ''} onChange={(event) => visit({ division: event.target.value })}>
                             <option value="">{translate('portal', 'top_sellers_division_none')}</option>
                             {(board.divisions ?? []).map((division) => (
-                                <option key={division} value={division}>{division}</option>
+                                <option key={division.id} value={String(division.id)}>{division.name}</option>
                             ))}
                         </select>
                     </label>

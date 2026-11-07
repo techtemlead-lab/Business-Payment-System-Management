@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Accounts\PartnerAge;
+use App\Models\PlaceCode;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -105,6 +106,7 @@ class PartnerAgeLimitTest extends TestCase
         $this->actingAs($reviewer)->postJson('/api/v1/operations/staff/applications/'.$id.'/review', [
             'decision' => 'approved',
             'reason' => 'Approved after territory and documents review.',
+            'place_code' => PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Dinajpur'])->code,
         ])->assertOk();
 
         $this->assertSame('1995-04-10', User::query()->where('email', 'adult.applicant@example.test')->firstOrFail()->profile['date_of_birth']);

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -63,5 +64,29 @@ class UserFactory extends Factory
     public function suspended(): static
     {
         return $this->state(fn () => ['status' => 'suspended']);
+    }
+
+    /**
+     * A partner keyed to a place code, the way account onboarding saves it:
+     * the place code id on the profile and the place names for display.
+     */
+    public function inPlace(PlaceCode $place): static
+    {
+        return $this->state(function (array $attributes) use ($place): array {
+            $path = $place->loadMissing('parent.parent.parent')->pathNames();
+            $profile = is_array($attributes['profile'] ?? null) ? $attributes['profile'] : [];
+
+            return [
+                'division' => $path['division'],
+                'district' => $path['district'],
+                'profile' => [
+                    ...$profile,
+                    'place_code' => $place->code,
+                    'place_code_id' => $place->id,
+                    'upazila' => $path['upazila'],
+                    'union' => $path['union'],
+                ],
+            ];
+        });
     }
 }

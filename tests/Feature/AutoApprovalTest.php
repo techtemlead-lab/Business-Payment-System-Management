@@ -7,6 +7,7 @@ use App\Domain\Finance\FinanceSettings;
 use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -72,7 +73,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_the_scheduled_run_settles_a_closed_month_salary_on_its_own(): void
     {
-        $dealer = User::factory()->create(['division' => 'Rangpur']);
+        $dealer = $this->rangpurDealer();
         $this->purchase($dealer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
@@ -84,7 +85,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_the_scheduled_run_leaves_months_older_than_two_for_a_person(): void
     {
-        $dealer = User::factory()->create(['division' => 'Rangpur']);
+        $dealer = $this->rangpurDealer();
         $this->purchase($dealer, '10000.00', '20000.00');
         // September's salary is still unpaid in January: too old for the automatic run.
         $this->travelTo(now()->setDate(2027, 1, 5)->setTime(1, 0));
@@ -99,7 +100,7 @@ class AutoApprovalTest extends TestCase
     {
         $owner = User::factory()->staff()->create();
         app(FinanceSettings::class)->saveAutoApproval($owner, false, ['salary' => false, 'royalty' => true, 'rank_incentive' => true], 0, 'Salary needs a finance check');
-        $this->purchase(User::factory()->create(['division' => 'Rangpur']), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
@@ -110,7 +111,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_the_scheduled_run_does_not_settle_the_month_that_is_still_open(): void
     {
-        $this->purchase(User::factory()->create(['division' => 'Rangpur']), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
 
@@ -130,7 +131,7 @@ class AutoApprovalTest extends TestCase
     public function test_nothing_moves_while_money_movement_is_switched_off(): void
     {
         config(['madina.financial_activation' => false]);
-        $this->purchase(User::factory()->create(['division' => 'Rangpur']), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
 
         $this->artisan('finance:auto-approve')->assertSuccessful();
@@ -140,7 +141,7 @@ class AutoApprovalTest extends TestCase
 
     public function test_a_failed_payout_makes_the_scheduled_run_fail_loudly(): void
     {
-        $this->purchase(User::factory()->create(['division' => 'Rangpur']), '10000.00', '20000.00');
+        $this->purchase($this->rangpurDealer(), '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1)->setTime(1, 0));
         // Any database error during the payout; the trigger is rolled back with the test.
         DB::unprepared("CREATE FUNCTION test_reject_payout() RETURNS trigger AS \$\$ BEGIN RAISE EXCEPTION 'Ledger is locked by a long report.'; END; \$\$ LANGUAGE plpgsql;
@@ -151,6 +152,15 @@ class AutoApprovalTest extends TestCase
 
         Log::shouldHaveReceived('critical')->withArgs(fn (string $message, array $context): bool => str_contains($message, 'Automatic payout approval failed')
             && str_contains((string) ($context['failed']['salary:2026-09'] ?? ''), 'Ledger is locked'));
+    }
+
+    /** A dealer keyed to the Rangpur division place code (salary is shared by place code). */
+    private function rangpurDealer(): User
+    {
+        $rangpur = PlaceCode::query()->where('level', PlaceCode::LevelDivision)->where('name', 'Rangpur')->first()
+            ?? PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+
+        return User::factory()->inPlace($rangpur)->create();
     }
 
     private function purchase(User $buyer, string $cash, string $mrp): Order

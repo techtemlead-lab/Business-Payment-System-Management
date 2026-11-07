@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Finance\FinanceSettings;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,9 +111,10 @@ class FullPaymentWhenOrderingTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sr = User::factory()->create(['role' => 'sr']);
-        $partner = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'division' => 'Rangpur', 'district' => 'Rangpur']);
+        $rangpurDistrict = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Rangpur']);
+        $partner = User::factory()->inPlace($rangpurDistrict)->create(['role' => 'dealer', 'status' => 'active']);
         $product = $this->product();
-        $this->actingAs($admin)->postJson('/api/v1/operations/staff/territories', ['staff_id' => $sr->id, 'level' => 'district', 'division' => 'Rangpur', 'district' => 'Rangpur'])->assertOk();
+        $this->actingAs($admin)->postJson('/api/v1/operations/staff/territories', ['staff_id' => $sr->id, 'place_code' => $rangpurDistrict->code])->assertOk();
         $payload = ['user_id' => $partner->id, 'items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()];
 
         $this->actingAs($sr)->postJson('/api/v1/operations/staff/orders', $payload)

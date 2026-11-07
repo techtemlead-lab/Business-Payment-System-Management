@@ -145,7 +145,8 @@ final class PlaceCodeCatalog
             throw ValidationException::withMessages(['place' => __('portal.err_pc_delete_has_assignments')]);
         }
 
-        if (CompanyBranch::query()->where('place_code_id', $place->id)->exists()) {
+        if (CompanyBranch::query()->where('place_code_id', $place->id)->exists()
+            || DB::table('staff_territories')->where('place_code_id', $place->id)->exists()) {
             throw ValidationException::withMessages(['place' => __('portal.err_pc_delete_has_assignments')]);
         }
 
