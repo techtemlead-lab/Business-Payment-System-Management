@@ -1,0 +1,61 @@
+/* ==========================================================================
+   Portal motion layer: entrance stagger for tiles, figures and lists, chart
+   bars that grow in, and smooth opening / closing for every dialog style.
+   Transform and opacity only. Nothing here runs for reduced-motion users
+   (dashboard.css also cuts every portal animation to ~0 for them).
+   ========================================================================== */
+
+@media (prefers-reduced-motion:no-preference){
+  /* Tiles, figure cards and short lists arrive one after another */
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>*{animation:portalStaggerIn .42s cubic-bezier(.16,1,.3,1) backwards}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(2){animation-delay:.04s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(3){animation-delay:.08s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(4){animation-delay:.12s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(5){animation-delay:.16s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(6){animation-delay:.2s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(7){animation-delay:.24s}
+  :where(.app-shell) :is(.office-tiles,.metric-grid,.treasury-kpi-grid,.ph-actions,.ph-today-grid,.office-today-figures,.admin-work-queue>ul,.ph-hero-stats,.office-today-totals)>:nth-child(n+8){animation-delay:.28s}
+
+  /* Home tiles: the round icon gives a small lift on hover (the tile itself stays put) */
+  :where(.app-shell) .office-tile .ph-action-icon,:where(.app-shell) .ph-action .ph-action-icon{transition:transform .25s cubic-bezier(.34,1.56,.64,1),filter .2s ease}
+  :where(.app-shell) .office-tile:hover .ph-action-icon,:where(.app-shell) .ph-action:hover .ph-action-icon{transform:translateY(-2px) scale(1.06)}
+  :where(.app-shell) .office-tile:active .ph-action-icon,:where(.app-shell) .ph-action:active .ph-action-icon{transform:scale(.94)}
+
+  /* Sales chart: bars grow up from the base line, left to right */
+  .admin-trend-chart rect.bar{transform-box:fill-box;transform-origin:50% 100%;animation:portalBarGrow .6s cubic-bezier(.16,1,.3,1) backwards}
+  .admin-trend-chart g:nth-child(2) rect.bar{animation-delay:.03s}
+  .admin-trend-chart g:nth-child(3) rect.bar{animation-delay:.06s}
+  .admin-trend-chart g:nth-child(4) rect.bar{animation-delay:.09s}
+  .admin-trend-chart g:nth-child(5) rect.bar{animation-delay:.12s}
+  .admin-trend-chart g:nth-child(6) rect.bar{animation-delay:.15s}
+  .admin-trend-chart g:nth-child(7) rect.bar{animation-delay:.18s}
+  .admin-trend-chart g:nth-child(8) rect.bar{animation-delay:.21s}
+  .admin-trend-chart g:nth-child(9) rect.bar{animation-delay:.24s}
+  .admin-trend-chart g:nth-child(10) rect.bar{animation-delay:.27s}
+  .admin-trend-chart g:nth-child(11) rect.bar{animation-delay:.3s}
+  .admin-trend-chart g:nth-child(12) rect.bar{animation-delay:.33s}
+  .admin-trend-chart g:nth-child(13) rect.bar{animation-delay:.36s}
+  .admin-trend-chart g:nth-child(n+14) rect.bar{animation-delay:.39s}
+
+  /* Dialogs: every overlay style fades in and its card rises a little */
+  .app-shell :is(.hub-overlay,.pcm-overlay),.pcm-overlay,.onboarding-manual-modal-overlay{animation:portalBackdropIn .2s ease both}
+  .app-shell .hub-overlay>.hub-dialog,.pcm-overlay>*,.onboarding-manual-modal-overlay>.onboarding-manual-modal{animation:portalDialogRise .26s cubic-bezier(.16,1,.3,1) both}
+
+  /* Closing: the standard dialog fades and sinks back before it is removed */
+  /* (the dialog centres itself with an !important transform, so motion uses the separate scale/translate properties) */
+  :root dialog.portal-modal{animation:portalModalPop .24s cubic-bezier(.16,1,.3,1) both}
+  :root dialog.portal-modal.is-closing{animation:portalModalOut .16s ease-in both;pointer-events:none}
+  :root dialog.portal-modal.is-closing::backdrop{animation:portalBackdropOut .16s ease-in both}
+}
+
+/* A page visit is on its way: the current page dims a little (set by shared/navigationFeedback.ts) */
+/* (filter, not opacity: the entrance animation already owns opacity) */
+.app-shell .portal-workspace-body,.app-shell .page-heading{transition:filter .2s ease}
+html.portal-navigating .app-shell :is(.portal-workspace-body,.page-heading){filter:opacity(.55);cursor:progress}
+
+@keyframes portalStaggerIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes portalBarGrow{from{transform:scaleY(0)}to{transform:none}}
+@keyframes portalDialogRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes portalModalPop{from{opacity:0;scale:.97;translate:0 10px}to{opacity:1;scale:1;translate:0 0}}
+@keyframes portalModalOut{from{opacity:1;scale:1;translate:0 0}to{opacity:0;scale:.98;translate:0 8px}}
+@keyframes portalBackdropOut{from{opacity:1}to{opacity:0}}
