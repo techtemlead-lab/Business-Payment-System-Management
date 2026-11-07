@@ -31,7 +31,7 @@ class TrainingItemSeeder extends Seeder
             [
                 'title_bn' => 'কীভাবে অর্ডার দেবেন ও পেমেন্টের স্ক্রিনশট পাঠাবেন',
                 'title_en' => 'How to place an order and send the payment screenshot',
-                'summary' => 'Order, pay and send proof in four easy steps. / চার ধাপে অর্ডার, পেমেন্ট ও প্রমাণ পাঠান।',
+                'summary' => 'চার ধাপে অর্ডার, পেমেন্ট ও প্রমাণ পাঠান। / Order, pay and send proof in four easy steps.',
                 'topic' => 'portal',
                 'audience' => 'all',
                 'body' => implode("\n", [
@@ -51,7 +51,7 @@ class TrainingItemSeeder extends Seeder
             [
                 'title_bn' => 'এমআরপি, আইডি কার্ড এবং আয়ের মিথ্যা প্রতিশ্রুতি নয়',
                 'title_en' => 'MRP, your ID card and no false income promises',
-                'summary' => 'Simple rules that keep customers and your account safe. / গ্রাহক ও আপনার অ্যাকাউন্ট নিরাপদ রাখার সহজ নিয়ম।',
+                'summary' => 'গ্রাহক ও আপনার অ্যাকাউন্ট নিরাপদ রাখার সহজ নিয়ম। / Simple rules that keep customers and your account safe.',
                 'topic' => 'rules',
                 'audience' => 'all',
                 'body' => implode("\n", [
@@ -71,7 +71,7 @@ class TrainingItemSeeder extends Seeder
             [
                 'title_bn' => 'টিম পেজ কীভাবে ব্যবহার করবেন',
                 'title_en' => 'Using the team page',
-                'summary' => 'See who joined under you and how your team is doing. / আপনার অধীনে কারা যোগ দিয়েছেন ও টিম কেমন চলছে দেখুন।',
+                'summary' => 'আপনার অধীনে কারা যোগ দিয়েছেন ও টিম কেমন চলছে দেখুন। / See who joined under you and how your team is doing.',
                 'topic' => 'portal',
                 'audience' => 'dealers',
                 'body' => implode("\n", [

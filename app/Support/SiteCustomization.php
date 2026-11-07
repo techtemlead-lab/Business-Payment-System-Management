@@ -74,21 +74,21 @@ class SiteCustomization
             // Carousel Slides (1 to 5)
             // Carousel Slides (3 Dedicated Hero Banners)
             'slides' => [
-                ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
-                ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => 'Madina Authentic Unani & Herbal Solutions'],
-                ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => 'Madina Holistic Wellness & Physiotherapy Center'],
+                ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => $copy('hero_slide1_alt')],
+                ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => $copy('hero_slide2_alt')],
+                ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => $copy('hero_slide3_alt')],
             ],
 
             // Side Banners (Dedicated Mini-Carousels - 100% Unique to Side Sections)
             'side_banner_1_slides' => [
-                ['image' => '/branding/madina-side-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
-                ['image' => '/branding/madina-top-skincare.jpg', 'link' => '/products', 'alt' => 'Madina Pure Herbal Skincare & Hair Vitality'],
-                ['image' => '/branding/madina-top-immunity.jpg', 'link' => '/products', 'alt' => 'Madina Daily Immunity & Vitality Boosters'],
+                ['image' => '/branding/madina-side-banner-1.jpg', 'link' => '/products', 'alt' => $copy('side_banner_1_slide1_alt')],
+                ['image' => '/branding/madina-top-skincare.jpg', 'link' => '/products', 'alt' => $copy('side_banner_1_slide2_alt')],
+                ['image' => '/branding/madina-top-immunity.jpg', 'link' => '/products', 'alt' => $copy('side_banner_1_slide3_alt')],
             ],
             'side_banner_2_slides' => [
-                ['image' => '/branding/madina-side-banner-2.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Dealer Network - Nationwide Distribution'],
-                ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
-                ['image' => '/branding/madina-bottom-pharmacy.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
+                ['image' => '/branding/madina-side-banner-2.jpg', 'link' => '/dealers', 'alt' => $copy('side_banner_2_slide1_alt')],
+                ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => $copy('side_banner_2_slide2_alt')],
+                ['image' => '/branding/madina-bottom-pharmacy.jpg', 'link' => '/dealers', 'alt' => $copy('side_banner_2_slide3_alt')],
             ],
             'side_banner_1_image' => '/branding/madina-side-banner-1.jpg',
             'side_banner_1_link' => '/products',
@@ -291,7 +291,7 @@ class SiteCustomization
             'footer_directory_icon' => 'fa-solid fa-location-dot',
             'footer_phone' => '+8801730532966',
             'footer_email' => 'holisticnutracare@gmail.com',
-            'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
+            'footer_address' => $copy('footer_address'),
             'footer_link_about' => 'About Us',
             'footer_link_about_url' => '/about',
             'footer_link_vendor' => 'Vendor Program',

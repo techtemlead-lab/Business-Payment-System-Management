@@ -43,6 +43,10 @@
 @section('content')
 @php
     $chrome = fn (string $key, ?string $custom = null): string => \App\Support\SiteChrome::text($key, $custom);
+    // Picture descriptions: the factory English text has a Bangla twin; extra slides the owner adds keep their own text.
+    $slideAlt = fn (string $key, ?string $custom, string $fallback): string => \Illuminate\Support\Facades\Lang::has('site.'.$key)
+        ? $chrome($key, $custom)
+        : (filled($custom) ? (string) $custom : $fallback);
 @endphp
 <main id="main" class="ref-container ref-main">
     <section class="ref-company-intro" aria-labelledby="company-intro-title">
@@ -74,7 +78,7 @@
                 @foreach($slides as $idx => $slide)
                 @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
                 <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
-                    <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: ('Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                    <img src="{{ ($slide['image'] ?: '/branding/madina-hero-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('hero_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Promotion ' . ($idx + 1)) }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                 </a>
                 @endforeach
             </div>
@@ -92,7 +96,7 @@
                     @foreach($sideBanner1Slides as $idx => $slide)
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/products') ?? '#'; @endphp
                     <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
-                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Premium Natural Care' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-1.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('side_banner_1_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Madina Premium Natural Care') }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                     </a>
                     @endforeach
                 </div>
@@ -109,7 +113,7 @@
                     @foreach($sideBanner2Slides as $idx => $slide)
                     @php $slideHref = \App\Support\SiteCustomization::publicHref($slide['link'] ?: '/dealers') ?? '#'; @endphp
                     <a href="{{ $slideHref }}" class="ref-slide {{ $loop->first ? 'is-active' : '' }}" aria-hidden="{{ $loop->first ? 'false' : 'true' }}" @if($slideHref === '#') tabindex="-1" aria-disabled="true" @endif>
-                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $slide['alt'] ?: 'Madina Authorized Dealer Network' }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
+                        <img src="{{ ($slide['image'] ?: '/branding/madina-side-banner-2.jpg') . '?v=20261015' }}" alt="{{ $slideAlt('side_banner_2_slide'.($idx + 1).'_alt', $slide['alt'] ?? null, 'Madina Authorized Dealer Network') }}" @if($loop->first) fetchpriority="high" @else loading="lazy" @endif>
                     </a>
                     @endforeach
                 </div>
@@ -348,8 +352,8 @@
     @if(!empty($videoGallery))
     <section class="ref-video-gallery-section ref-deferred-paint" aria-labelledby="video-gallery-title">
         <div class="ref-section-title">
-            <h2 id="video-gallery-title">{{ $siteCustomization['video_gallery_title'] ?? __('site.video_gallery_title') }}</h2>
-            <p>{{ $siteCustomization['video_gallery_subtitle'] ?? __('site.video_gallery_subtitle') }}</p>
+            <h2 id="video-gallery-title">{{ $chrome('video_gallery_title', $siteCustomization['video_gallery_title'] ?? null) }}</h2>
+            <p>{{ $chrome('video_gallery_subtitle', $siteCustomization['video_gallery_subtitle'] ?? null) }}</p>
         </div>
         <div class="ref-video-gallery-grid">
             @foreach($videoGallery as $idx => $v)
