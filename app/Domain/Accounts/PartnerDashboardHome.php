@@ -18,13 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 final class PartnerDashboardHome
 {
-    public function __construct(private CommissionQualification $qualification) {}
+    public function __construct(private CommissionQualification $qualification, private PartnerProgress $progress) {}
 
     /**
      * @return array{
      *   profile: array<string, mixed>,
      *   snapshot: array{own_sales_today: string, team_sales_today: string, commission_month: string},
-     *   targets: list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>,
+     *   targets: list<array<string, mixed>>,
      *   referral: array{code: string, url: string, qr_url: string}|null,
      *   sponsor: array{id: int, name: string, dealer_code: string|null, phone: string|null}|null,
      *   wallet: array{available: string, pending_withdrawal: string},
@@ -147,9 +147,78 @@ final class PartnerDashboardHome
 
     /**
      * @param  array<string, array<string, mixed>>  $rules
-     * @return list<array{key: string, label: string, current: string, target: string, remaining: string, percent: float, hint: string}>
+     * @return list<array<string, mixed>>
      */
     private function targets(User $user, array $rules, string $month): array
+    {
+        $targets = $user->role === 'sub_dealer'
+            ? $this->subDealerTargets($user, $rules, $month)
+            : $this->dealerTargets($user, $rules, $month);
+
+        if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
+            $bike = RewardMilestoneProgress::query()
+                ->where('user_id', $user->id)
+                ->where('milestone_type', 'bike')
+                ->first();
+            if ($bike === null) {
+                $bikeData = $this->qualification->milestone($user->id, 'bike');
+                $bikeCurrent = Money::cents((string) $bikeData['qualifying_volume']);
+                $bikeTarget = Money::cents((string) $bikeData['target_amount']);
+            } else {
+                $bikeCurrent = Money::cents((string) $bike->qualifying_volume);
+                $bikeTarget = Money::cents((string) $bike->target_amount);
+            }
+            $targets[] = $this->progress(
+                key: 'bike_incentive',
+                label: __('portal.target_bike_incentive'),
+                current: $bikeCurrent,
+                target: $bikeTarget,
+                hint: __('portal.target_bike_incentive_hint'),
+            );
+        }
+
+        return $targets;
+    }
+
+    /**
+     * Sub-dealers have no purchase target and no rank: their salary is a flat share of every
+     * paid and delivered purchase, and a second share is kept in their own tour fund.
+     *
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return list<array<string, mixed>>
+     */
+    private function subDealerTargets(User $user, array $rules, string $month): array
+    {
+        if (! DashboardManagement::partnerFeatureEnabled($user, 'salary')) {
+            return [];
+        }
+        $amountRow = function (string $key, string $label, string $rule, int $value, string $hint) use ($rules): array {
+            $isOn = CommissionPolicy::rate($rules, $rule)->basisPoints > 0;
+
+            return [
+                'key' => $key,
+                'kind' => 'amount',
+                'label' => $label,
+                'value' => Money::decimal($value),
+                'hint' => $isOn
+                    ? __($hint, ['rate' => rtrim(rtrim((string) $rules[$rule]['percentage'], '0'), '.')])
+                    : __('portal.target_switched_off_hint'),
+            ];
+        };
+
+        return [
+            $amountRow('sub_dealer_salary', __('portal.target_subdealer_salary'), 'sub_dealer_salary',
+                $this->progress->subDealerSalarySetAside((int) $user->id, $month), 'portal.target_subdealer_salary_hint'),
+            $amountRow('tour_fund', __('portal.target_tour_fund'), 'sub_dealer_tour',
+                $this->progress->tourFundLeft((int) $user->id), 'portal.target_tour_fund_hint'),
+        ];
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $rules
+     * @return list<array<string, mixed>>
+     */
+    private function dealerTargets(User $user, array $rules, string $month): array
     {
         $targets = [];
         $controls = PartnerBenefitControls::for($user);
@@ -158,9 +227,7 @@ final class PartnerDashboardHome
         if ($controls['unconditional_salary']) {
             $targets[] = [
                 'key' => 'monthly_salary',
-                'label' => $user->role === 'sub_dealer'
-                    ? __('portal.target_monthly_purchase_goal')
-                    : __('portal.target_monthly_salary_volume'),
+                'label' => __('portal.target_monthly_salary_volume'),
                 'current' => Money::decimal($monthlyVolume),
                 'target' => Money::decimal($salaryTarget),
                 'remaining' => '0.00',
@@ -170,20 +237,18 @@ final class PartnerDashboardHome
         } else {
             $targets[] = $this->progress(
                 key: 'monthly_salary',
-                label: $user->role === 'sub_dealer'
-                    ? __('portal.target_monthly_purchase_goal')
-                    : __('portal.target_monthly_salary_volume'),
+                label: __('portal.target_monthly_salary_volume'),
                 current: $monthlyVolume,
                 target: $salaryTarget,
-                hint: $user->role === 'sub_dealer'
-                    ? __('portal.target_subdealer_purchase_hint')
-                    : __('portal.target_dealer_salary_hint'),
+                hint: __('portal.target_dealer_salary_hint'),
             );
         }
 
-        $rank = DealerRank::query()->firstOrCreate(['user_id' => $user->id]);
+        // Read only: a page view never creates the rank row (posting creates it with the first purchase).
+        $rank = DealerRank::query()->where('user_id', $user->id)->first();
+        $currentRank = $rank->current_rank ?? 'dealer';
         $moTarget = Money::cents((string) ($rules['rank_royalty']['parameters']['mo_target'] ?? '250000.00'));
-        $lifetime = Money::cents((string) $rank->lifetime_purchase_total);
+        $lifetime = Money::cents((string) ($rank->lifetime_purchase_total ?? '0'));
 
         if ($controls['unconditional_rank_royalty'] || $controls['unconditional_rank_incentive']) {
             $targets[] = [
@@ -195,38 +260,24 @@ final class PartnerDashboardHome
                 'percent' => 100.0,
                 'hint' => __('portal.target_unconditional_rank_hint'),
             ];
-        } elseif ($user->role === 'sub_dealer' || ($rank->current_rank ?? 'dealer') === 'dealer') {
+        } elseif ($currentRank === 'dealer') {
             $targets[] = $this->progress(
                 key: 'rank_reward',
                 label: __('portal.target_mo_rank_reward'),
                 current: $lifetime,
                 target: $moTarget,
-                hint: $user->role === 'sub_dealer'
-                    ? __('portal.target_subdealer_mo_hint')
-                    : __('portal.target_dealer_mo_hint'),
+                hint: __('portal.target_dealer_mo_hint'),
             );
         } else {
-            $next = match ($rank->current_rank) {
-                'mo' => ['am', 'am_count', 'mo'],
-                'am' => ['sm', 'sm_count', 'am'],
-                'sm' => ['me', 'me_count', 'sm'],
-                default => null,
-            };
-            if ($next) {
-                [$code, $countKey, $requiredRank] = $next;
-                $needed = (int) ($rules['rank_royalty']['parameters'][$countKey] ?? 10);
+            $levels = CommissionQualification::RankLevels;
+            $code = $levels[array_search($currentRank, $levels, true) + 1] ?? null;
+            $requiredRank = $code !== null ? (CommissionQualification::TeamRankRequirements[$code] ?? null) : null;
+            if ($code !== null && $requiredRank !== null) {
+                $needed = (int) ($rules['rank_royalty']['parameters'][$code.'_count'] ?? 10);
                 $depth = (int) ($rules['rank_royalty']['parameters']['qualification_depth'] ?? 3);
-                $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
-                $minimumIndex = (int) array_search($requiredRank, $levels, true);
-                $count = DB::table('referral_tree_paths')
-                    ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-                    ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
-                    ->where('ancestor_id', $user->id)
-                    ->whereBetween('depth', [1, $depth])
-                    ->where('users.status', 'active')
-                    ->where('users.role', 'dealer')
-                    ->whereIn('current_rank', array_slice($levels, $minimumIndex))
-                    ->count();
+                // The same team count rank promotion uses.
+                $counts = $this->qualification->teamRankCounts([(int) $user->id], $depth)[(int) $user->id] ?? [];
+                $count = CommissionQualification::leadersAtOrAbove($counts, $requiredRank);
                 $requiredLabel = strtoupper($requiredRank);
                 $targets[] = [
                     'key' => 'rank_reward',
@@ -252,28 +303,6 @@ final class PartnerDashboardHome
                     'hint' => __('portal.target_highest_rank_hint'),
                 ];
             }
-        }
-
-        if (DashboardManagement::partnerFeatureEnabled($user, 'rewards')) {
-            $bike = RewardMilestoneProgress::query()
-                ->where('user_id', $user->id)
-                ->where('milestone_type', 'bike')
-                ->first();
-            if ($bike === null) {
-                $bikeData = $this->qualification->milestone($user->id, 'bike');
-                $bikeCurrent = Money::cents((string) $bikeData['qualifying_volume']);
-                $bikeTarget = Money::cents((string) $bikeData['target_amount']);
-            } else {
-                $bikeCurrent = Money::cents((string) $bike->qualifying_volume);
-                $bikeTarget = Money::cents((string) $bike->target_amount);
-            }
-            $targets[] = $this->progress(
-                key: 'bike_incentive',
-                label: __('portal.target_bike_incentive'),
-                current: $bikeCurrent,
-                target: $bikeTarget,
-                hint: __('portal.target_bike_incentive_hint'),
-            );
         }
 
         return $targets;

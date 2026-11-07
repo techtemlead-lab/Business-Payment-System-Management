@@ -123,12 +123,7 @@ final class PartnerProgress
      */
     private function subDealerSalary(User $user, array $rules, string $month, int $monthlyVolume): array
     {
-        $earned = Money::cents((string) CommissionAllocation::query()
-            ->where('user_id', $user->id)
-            ->where('category', 'sub_dealer_salary')
-            ->where('status', 'pending')
-            ->where('metadata->period_month', $month)
-            ->sum('amount'));
+        $earned = $this->subDealerSalarySetAside((int) $user->id, $month);
 
         return [
             'kind' => 'sub_dealer_flat',
@@ -263,7 +258,7 @@ final class PartnerProgress
             ->selectRaw('COALESCE(SUM(amount), 0) AS total, COALESCE(SUM(CASE WHEN metadata->>\'period_month\' = ? THEN amount ELSE 0 END), 0) AS this_month', [$month])
             ->first();
         $savedTotal = Money::cents((string) ($saved->total ?? '0'));
-        $available = max(0, $this->reserves->remainingByCategory((int) $user->id)['sub_dealer_tour'] ?? 0);
+        $available = $this->tourFundLeft((int) $user->id);
         $waiting = DB::table('reserve_disbursements')
             ->where('user_id', $user->id)
             ->where('program', 'tour')
@@ -280,6 +275,26 @@ final class PartnerProgress
             'requests_waiting' => $waiting,
             'is_active' => $user->status === 'active',
         ];
+    }
+
+    /**
+     * A sub-dealer's salary for the month that is still waiting to be paid: exactly what the
+     * month-end salary settlement pays them (in paisa).
+     */
+    public function subDealerSalarySetAside(int $userId, string $month): int
+    {
+        return Money::cents((string) CommissionAllocation::query()
+            ->where('user_id', $userId)
+            ->where('category', 'sub_dealer_salary')
+            ->where('status', 'pending')
+            ->where('metadata->period_month', $month)
+            ->sum('amount'));
+    }
+
+    /** Money still in a sub-dealer's own tour fund, in paisa. */
+    public function tourFundLeft(int $userId): int
+    {
+        return max(0, $this->reserves->remainingByCategory($userId)['sub_dealer_tour'] ?? 0);
     }
 
     /**

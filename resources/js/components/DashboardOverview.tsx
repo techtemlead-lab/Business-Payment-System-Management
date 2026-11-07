@@ -2,16 +2,28 @@ import { Link, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import {
     ArrowUpRight, ShoppingBag, Package, Truck, Wallet, Users, ShieldCheck, FileText, Bell, Settings,
-    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
+    GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2, Plane,
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
 import { PartnerProgressButton } from './PartnerProgress';
 import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, humanize, money, type Row, number } from './UI';
+import { localizeDigits } from '../business-date';
 import { useT } from '../shared/i18n/t';
 import { buildStaffAvailable, pick, sectionHref } from '../shared/portalNav';
 
-type TargetRow = { key: string; label: string; current: string; target: string; remaining: string; percent: number; hint: string };
+/** A progress bar row, or (kind "amount") a plain amount with no target, such as a sub-dealer's salary or tour fund. */
+type TargetRow = {
+    key: string;
+    kind?: 'progress' | 'amount';
+    label: string;
+    hint: string;
+    value?: string;
+    current?: string;
+    target?: string;
+    remaining?: string;
+    percent?: number;
+};
 
 
 function ReferralShare({ referral }: { referral: { code?: string; url?: string; qr_url?: string; hint?: string } | null }) {
@@ -241,12 +253,23 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     <div className="ph-card-head ph-targets-head">
                         <div>
                             <h3>{translate('portal', 'targets')}</h3>
-                            <p>{translate('portal', 'targets_hint')}</p>
+                            <p>{translate('portal', profile.role === 'sub_dealer' ? 'targets_hint_subdealer' : 'targets_hint')}</p>
                         </div>
                         <PartnerProgressButton />
                     </div>
                     <div className="partner-home-target-list">
-                        {targets.map((target) => (
+                        {targets.map((target) => target.kind === 'amount' ? (
+                            <article key={target.key} className="partner-home-target-amount">
+                                <div className="partner-home-target-top">
+                                    <b>
+                                        {target.key === 'tour_fund' ? <Plane size={14} /> : <Wallet size={14} />}
+                                        {target.label}
+                                    </b>
+                                    <span>{money(target.value)}</span>
+                                </div>
+                                <small>{localizeDigits(target.hint)}</small>
+                            </article>
+                        ) : (
                             <article key={target.key}>
                                 <div className="partner-home-target-top">
                                     <b>
@@ -263,13 +286,13 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                                     aria-valuemax={100}
                                     aria-valuenow={Math.min(100, Number(target.percent) || 0)}
                                 >
-                                    <i style={{ width: `${Math.min(100, target.percent)}%` }} />
+                                    <i style={{ width: `${Math.min(100, Number(target.percent) || 0)}%` }} />
                                 </div>
                                 <div className="partner-home-target-meta">
                                     <span>{translate('portal', 'target_done')} {target.key === 'rank_reward' && !String(target.current).includes('.') ? target.current : money(target.current)}</span>
                                     <span>{translate('portal', 'target_left')} {target.key === 'rank_reward' && !String(target.remaining).includes('.') ? target.remaining : money(target.remaining)}</span>
                                 </div>
-                                <small>{target.hint}</small>
+                                <small>{localizeDigits(target.hint)}</small>
                             </article>
                         ))}
                     </div>
