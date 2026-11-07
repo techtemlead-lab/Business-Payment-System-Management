@@ -6103,4 +6103,6 @@ return [
     'stock_batch_number_hint' => 'Write the batch printed on the pack. It becomes the product\'s current batch.',
     'inv_batch' => 'Batch: :batch',
     'inv_expiry' => 'Expiry: :date',
+    'notice_join_anniversary_title' => 'Happy partner anniversary!',
+    'notice_join_anniversary_body' => '{1} Dear :name, today is 1 year since you joined Madina Natural Health Care. Thank you for being with us.|[2,*] Dear :name, today is :years years since you joined Madina Natural Health Care. Thank you for being with us.',
 ];

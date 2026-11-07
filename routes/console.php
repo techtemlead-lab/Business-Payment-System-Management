@@ -44,6 +44,11 @@ if (config('madina.backups_enabled')) {
 Schedule::command('partners:birthday-sms')->dailyAt('09:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled birthday SMS run failed.'));
 
+// Join-anniversary greeting for dealers and sub-dealers: an in-app notice only (no SMS, so no cost),
+// at most once a year each.
+Schedule::command('partners:anniversary-greetings')->dailyAt('09:05')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled join anniversary greeting failed.'));
+
 // Orders sent more than a week ago but not marked delivered earn the dealer no commission.
 // Each morning staff with the orders or inventory permission get one portal notice with the count. No SMS.
 Schedule::command('orders:delivery-reminders')->dailyAt('10:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
