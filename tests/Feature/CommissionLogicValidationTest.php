@@ -30,6 +30,17 @@ class CommissionLogicValidationTest extends TestCase
         $this->seed(CommissionRuleSeeder::class);
     }
 
+    /** One balanced journal entry per settlement run, crediting each partner's month total once. */
+    private function assertSettlementJournalCredits(string $kind, string $period, int $userId, string $amount): void
+    {
+        $entries = DB::table('journal_entries')->where('event_key', 'like', 'commissions.settlement.'.$kind.'.'.$period.'.%')->pluck('id');
+        $this->assertCount(1, $entries);
+        $lines = DB::table('journal_lines')->where('entry_id', $entries->first())->get();
+        $this->assertSame((float) $lines->sum('debit'), (float) $lines->sum('credit'));
+        $this->assertSame(1, $lines->where('user_id', $userId)->where('account', 'wallet_liability')->count());
+        $this->assertEquals($amount, $lines->where('user_id', $userId)->where('account', 'wallet_liability')->first()->credit);
+    }
+
     private function commissionOrder(array $data): Order
     {
         $order = Order::create($data);
@@ -645,8 +656,9 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals(0.00, $d2Wallet);
 
         // Double-entry journal entry was posted
-        $journal = DB::table('journal_entries')->where('event_key', 'commissions.settlement.'.CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->value('id').'.'.$dealer1->id.'.salary')->first();
-        $this->assertNotNull($journal);
+        $this->assertSettlementJournalCredits('salary', $period, $dealer1->id, '400.00');
+        $this->assertSame(1, DB::table('commission_settlement_payouts')->where('kind', 'salary')->where('user_id', $dealer1->id)
+            ->where('allocation_id', CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->value('id'))->count());
     }
 
     public function test_rank_royalty_pool_settles_across_four_leadership_tiers(): void
@@ -687,8 +699,8 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals(50.00, (float) DB::table('wallets')->where('user_id', $mo2->id)->value('available'));
 
         // Journal entry was posted
-        $journal = DB::table('journal_entries')->where('event_key', 'commissions.settlement.'.CommissionAllocation::where('order_id', $order->id)->where('category', 'rank_royalty_pool')->value('id').'.'.$mo1->id.'.royalty')->first();
-        $this->assertNotNull($journal);
+        $this->assertSettlementJournalCredits('royalty', $period, $mo1->id, '50.00');
+        $this->assertSettlementJournalCredits('royalty', $period, $mo2->id, '50.00');
     }
 
     public function test_one_time_rank_incentive_claim_and_payout(): void
