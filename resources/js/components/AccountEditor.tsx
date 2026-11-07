@@ -6,6 +6,8 @@ import PartnerBenefitControls from './PartnerBenefitControls';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 
+/** Plain labels for the editable profile fields; the create form keys carry a required marker, so editing uses its own. */
+const profileFieldLabelKeys: Record<string, string> = { name_bn: 'acct_edit_name_bn', father_name: 'acct_edit_father_name', mother_name: 'acct_edit_mother_name', village: 'acct_village', post_office: 'acct_post_office', upazila: 'acct_upazila', union: 'acct_union' };
 const profileFields = ['name_bn', 'father_name', 'mother_name', 'village', 'post_office', 'upazila', 'union', 'pharmacy', 'shop_name', 'area_code'];
 
 type KycDoc = {
@@ -163,10 +165,10 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                         return null;
                     }
                     if (isPartner && ['upazila', 'union', 'area_code'].includes(field)) {
-                        const fieldLabel = label(field, translate);
+                        const fieldLabel = profileFieldLabelKeys[field] ? translate('portal', profileFieldLabelKeys[field]) : label(field, translate);
                         return <label key={field}>{fieldLabel}<input readOnly maxLength={150} value={form.data.profile[field]} /></label>;
                     }
-                    const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : label(field, translate);
+                    const fieldLabel = field === 'shop_name' ? translate('portal', 'acct_shop_name_plain') : field === 'pharmacy' ? translate('portal', 'acct_pharmacy') : profileFieldLabelKeys[field] ? translate('portal', profileFieldLabelKeys[field]) : label(field, translate);
                     return <label key={field}>{fieldLabel}<input maxLength={150} value={form.data.profile[field]} onChange={event => form.setData('profile', { ...form.data.profile, [field]: event.target.value })} /></label>;
                 })}
                 <label>{translate('portal', 'col_status')}<select value={form.data.status} onChange={event => form.setData('status', event.target.value)}><option value="active">{translate('portal', 'status_active')}</option><option value="suspended">{translate('portal', 'status_suspended')}</option></select></label>
@@ -250,7 +252,7 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                 <div className="panel-heading"><div><h2>{translate('portal', 'link_staff_access')}</h2><p className="muted">{translate('portal', 'linked_staff_role')}</p></div></div>
                 {account.linked_staff_role ? (
                     <div className="metric-grid two">
-                        <div className="metric"><span>{translate('portal', 'linked_staff_role')}</span><strong>{account.linked_staff_role}</strong></div>
+                        <div className="metric"><span>{translate('portal', 'linked_staff_role')}</span><strong>{label(String(account.linked_staff_role), translate)}</strong></div>
                         <form onSubmit={event=>{event.preventDefault(); router.post(`/commands/accounts/${account.id}/unlink-staff`);}}>
                             <button className="button" type="submit">{translate('portal', 'unlink_staff_access')}</button>
                         </form>
@@ -263,8 +265,8 @@ export default function AccountEditor({ account, onDone }: { account: Row; onDon
                     }}>
                         <label>{translate('portal', 'linked_staff_role')}
                             <select name="linked_staff_role" defaultValue="employee">
-                                <option value="employee">employee</option>
-                                <option value="sr">sr</option>
+                                <option value="employee">{translate('portal', 'staff_role_employee')}</option>
+                                <option value="sr">{translate('portal', 'staff_role_sr')}</option>
                             </select>
                         </label>
                         <button className="button dark" type="submit">{translate('portal', 'link_staff_access')}</button>
