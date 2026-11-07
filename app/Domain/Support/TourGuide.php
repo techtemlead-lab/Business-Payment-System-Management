@@ -151,163 +151,29 @@ final class TourGuide
      */
     private function partnerDefinitions(string $role): array
     {
+        $sideMenu = '[data-tour="sidebar-nav"], .workspace-menu-button';
+
         $dealerOverviewSteps = [
-            [
-                'target' => '[data-tour="home-profile"]',
-                'category' => __('portal.tour_cat_profile'),
-                'location' => __('portal.tour_dealer_step_profile_loc'),
-                'title' => __('portal.tour_dealer_step_profile_title'),
-                'body' => __('portal.tour_dealer_step_profile_body'),
-                'action' => __('portal.tour_dealer_step_profile_action'),
-                'tip' => __('portal.tour_dealer_step_profile_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-metrics"]',
-                'category' => __('portal.tour_cat_metrics'),
-                'location' => __('portal.tour_dealer_step_metrics_loc'),
-                'title' => __('portal.tour_dealer_step_metrics_title'),
-                'body' => __('portal.tour_dealer_step_metrics_body'),
-                'action' => __('portal.tour_dealer_step_metrics_action'),
-                'tip' => __('portal.tour_dealer_step_metrics_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-chart"]',
-                'category' => __('portal.tour_cat_chart'),
-                'location' => __('portal.tour_dealer_step_chart_loc'),
-                'title' => __('portal.tour_dealer_step_chart_title'),
-                'body' => __('portal.tour_dealer_step_chart_body'),
-                'action' => __('portal.tour_dealer_step_chart_action'),
-                'tip' => __('portal.tour_dealer_step_chart_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-targets"]',
-                'category' => __('portal.tour_cat_targets'),
-                'location' => __('portal.tour_dealer_step_targets_loc'),
-                'title' => __('portal.tour_dealer_step_targets_title'),
-                'body' => __('portal.tour_dealer_step_targets_body'),
-                'action' => __('portal.tour_dealer_step_targets_action'),
-                'tip' => __('portal.tour_dealer_step_targets_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-referral"]',
-                'category' => __('portal.tour_cat_network'),
-                'location' => __('portal.tour_dealer_step_referral_loc'),
-                'title' => __('portal.tour_dealer_step_referral_title'),
-                'body' => __('portal.tour_dealer_step_referral_body'),
-                'action' => __('portal.tour_dealer_step_referral_action'),
-                'tip' => __('portal.tour_dealer_step_referral_tip'),
-            ],
-            [
-                'target' => '[data-tour="recent-orders"]',
-                'category' => __('portal.tour_cat_orders'),
-                'location' => __('portal.tour_dealer_step_orders_loc'),
-                'title' => __('portal.tour_dealer_step_orders_title'),
-                'body' => __('portal.tour_dealer_step_orders_body'),
-                'action' => __('portal.tour_dealer_step_orders_action'),
-                'tip' => __('portal.tour_dealer_step_orders_tip'),
-            ],
-            [
-                'target' => '[data-tour="header-actions"]',
-                'category' => __('portal.tour_cat_controls'),
-                'location' => __('portal.tour_dealer_step_header_loc'),
-                'title' => __('portal.tour_dealer_step_header_title'),
-                'body' => __('portal.tour_dealer_step_header_body'),
-                'action' => __('portal.tour_dealer_step_header_action'),
-                'tip' => __('portal.tour_dealer_step_header_tip'),
-            ],
-            [
-                'target' => '[data-tour="sidebar-nav"]',
-                'category' => __('portal.tour_cat_nav'),
-                'location' => __('portal.tour_dealer_step_sidebar_loc'),
-                'title' => __('portal.tour_dealer_step_sidebar_title'),
-                'body' => __('portal.tour_dealer_step_sidebar_body'),
-                'action' => __('portal.tour_dealer_step_sidebar_action'),
-                'tip' => __('portal.tour_dealer_step_sidebar_tip'),
-            ],
+            $this->overviewStep('[data-tour="home-profile"]', 'tour_dealer_step_profile', 'tour_cat_profile'),
+            $this->overviewStep('.ph-actions', 'tour_dealer_step_buy', 'tour_cat_buy'),
+            $this->overviewStep('[data-tour="home-metrics"]', 'tour_dealer_step_metrics', 'tour_cat_metrics'),
+            $this->overviewStep('[data-tour="home-targets"]', 'tour_dealer_step_targets', 'tour_cat_targets'),
+            $this->overviewStep('[data-tour="recent-orders"]', 'tour_dealer_step_orders', 'tour_cat_orders'),
+            $this->overviewStep('[data-tour="home-referral"]', 'tour_dealer_step_referral', 'tour_cat_network'),
+            $this->overviewStep('[data-tour="header-actions"]', 'tour_dealer_step_header', 'tour_cat_controls'),
+            $this->overviewStep($sideMenu, 'tour_dealer_step_sidebar', 'tour_cat_nav'),
         ];
 
         $subDealerOverviewSteps = [
-            [
-                'target' => '[data-tour="home-profile"]',
-                'category' => __('portal.tour_cat_profile'),
-                'location' => __('portal.tour_subdealer_step_profile_loc'),
-                'title' => __('portal.tour_subdealer_step_profile_title'),
-                'body' => __('portal.tour_subdealer_step_profile_body'),
-                'action' => __('portal.tour_subdealer_step_profile_action'),
-                'tip' => __('portal.tour_subdealer_step_profile_tip'),
-            ],
-            [
-                'target' => '[data-tour="sponsor-contact"]',
-                'category' => __('portal.tour_cat_sponsor'),
-                'location' => __('portal.tour_subdealer_step_sponsor_loc'),
-                'title' => __('portal.tour_subdealer_step_sponsor_title'),
-                'body' => __('portal.tour_subdealer_step_sponsor_body'),
-                'action' => __('portal.tour_subdealer_step_sponsor_action'),
-                'tip' => __('portal.tour_subdealer_step_sponsor_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-metrics"]',
-                'category' => __('portal.tour_cat_metrics'),
-                'location' => __('portal.tour_subdealer_step_metrics_loc'),
-                'title' => __('portal.tour_subdealer_step_metrics_title'),
-                'body' => __('portal.tour_subdealer_step_metrics_body'),
-                'action' => __('portal.tour_subdealer_step_metrics_action'),
-                'tip' => __('portal.tour_subdealer_step_metrics_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-targets"]',
-                'category' => __('portal.tour_cat_targets'),
-                'location' => __('portal.tour_subdealer_step_targets_loc'),
-                'title' => __('portal.tour_subdealer_step_targets_title'),
-                'body' => __('portal.tour_subdealer_step_targets_body'),
-                'action' => __('portal.tour_subdealer_step_targets_action'),
-                'tip' => __('portal.tour_subdealer_step_targets_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-chart"]',
-                'category' => __('portal.tour_cat_chart'),
-                'location' => __('portal.tour_subdealer_step_chart_loc'),
-                'title' => __('portal.tour_subdealer_step_chart_title'),
-                'body' => __('portal.tour_subdealer_step_chart_body'),
-                'action' => __('portal.tour_subdealer_step_chart_action'),
-                'tip' => __('portal.tour_subdealer_step_chart_tip'),
-            ],
-            [
-                'target' => '[data-tour="home-referral"]',
-                'category' => __('portal.tour_cat_network'),
-                'location' => __('portal.tour_subdealer_step_referral_loc'),
-                'title' => __('portal.tour_subdealer_step_referral_title'),
-                'body' => __('portal.tour_subdealer_step_referral_body'),
-                'action' => __('portal.tour_subdealer_step_referral_action'),
-                'tip' => __('portal.tour_subdealer_step_referral_tip'),
-            ],
-            [
-                'target' => '[data-tour="recent-orders"]',
-                'category' => __('portal.tour_cat_orders'),
-                'location' => __('portal.tour_subdealer_step_orders_loc'),
-                'title' => __('portal.tour_subdealer_step_orders_title'),
-                'body' => __('portal.tour_subdealer_step_orders_body'),
-                'action' => __('portal.tour_subdealer_step_orders_action'),
-                'tip' => __('portal.tour_subdealer_step_orders_tip'),
-            ],
-            [
-                'target' => '[data-tour="header-actions"]',
-                'category' => __('portal.tour_cat_controls'),
-                'location' => __('portal.tour_subdealer_step_header_loc'),
-                'title' => __('portal.tour_subdealer_step_header_title'),
-                'body' => __('portal.tour_subdealer_step_header_body'),
-                'action' => __('portal.tour_subdealer_step_header_action'),
-                'tip' => __('portal.tour_subdealer_step_header_tip'),
-            ],
-            [
-                'target' => '[data-tour="sidebar-nav"]',
-                'category' => __('portal.tour_cat_nav'),
-                'location' => __('portal.tour_subdealer_step_sidebar_loc'),
-                'title' => __('portal.tour_subdealer_step_sidebar_title'),
-                'body' => __('portal.tour_subdealer_step_sidebar_body'),
-                'action' => __('portal.tour_subdealer_step_sidebar_action'),
-                'tip' => __('portal.tour_subdealer_step_sidebar_tip'),
-            ],
+            $this->overviewStep('[data-tour="home-profile"]', 'tour_subdealer_step_profile', 'tour_cat_profile'),
+            $this->overviewStep('.ph-actions', 'tour_subdealer_step_buy', 'tour_cat_buy'),
+            $this->overviewStep('[data-tour="sponsor-contact"]', 'tour_subdealer_step_sponsor', 'tour_cat_sponsor'),
+            $this->overviewStep('[data-tour="home-metrics"]', 'tour_subdealer_step_metrics', 'tour_cat_metrics'),
+            $this->overviewStep('[data-tour="home-targets"]', 'tour_subdealer_step_targets', 'tour_cat_targets'),
+            $this->overviewStep('[data-tour="recent-orders"]', 'tour_subdealer_step_orders', 'tour_cat_orders'),
+            $this->overviewStep('[data-tour="home-referral"]', 'tour_subdealer_step_referral', 'tour_cat_network'),
+            $this->overviewStep('[data-tour="header-actions"]', 'tour_subdealer_step_header', 'tour_cat_controls'),
+            $this->overviewStep($sideMenu, 'tour_subdealer_step_sidebar', 'tour_cat_nav'),
         ];
 
         $defs = [
@@ -398,71 +264,7 @@ final class TourGuide
         return [
             'overview' => [
                 'title' => __('portal.tour_staff_overview_title'),
-                'steps' => [
-                    [
-                        'target' => '[data-tour="home-metrics"]',
-                        'category' => __('portal.tour_cat_metrics'),
-                        'location' => __('portal.tour_staff_step_stats_loc'),
-                        'title' => __('portal.tour_staff_step_stats_title'),
-                        'body' => __('portal.tour_staff_step_stats_body'),
-                        'action' => __('portal.tour_staff_step_stats_action'),
-                        'tip' => __('portal.tour_staff_step_stats_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="admin-modules"]',
-                        'category' => __('portal.tour_cat_command'),
-                        'location' => __('portal.tour_staff_step_modules_loc'),
-                        'title' => __('portal.tour_staff_step_modules_title'),
-                        'body' => __('portal.tour_staff_step_modules_body'),
-                        'action' => __('portal.tour_staff_step_modules_action'),
-                        'tip' => __('portal.tour_staff_step_modules_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-domains"]',
-                        'category' => __('portal.tour_cat_domains'),
-                        'location' => __('portal.tour_staff_step_domains_loc'),
-                        'title' => __('portal.tour_staff_step_domains_title'),
-                        'body' => __('portal.tour_staff_step_domains_body'),
-                        'action' => __('portal.tour_staff_step_domains_action'),
-                        'tip' => __('portal.tour_staff_step_domains_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="recent-orders"]',
-                        'category' => __('portal.tour_cat_orders'),
-                        'location' => __('portal.tour_staff_step_orders_loc'),
-                        'title' => __('portal.tour_staff_step_orders_title'),
-                        'body' => __('portal.tour_staff_step_orders_body'),
-                        'action' => __('portal.tour_staff_step_orders_action'),
-                        'tip' => __('portal.tour_staff_step_orders_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="header-actions"]',
-                        'category' => __('portal.tour_cat_controls'),
-                        'location' => __('portal.tour_staff_step_header_loc'),
-                        'title' => __('portal.tour_staff_step_header_title'),
-                        'body' => __('portal.tour_staff_step_header_body'),
-                        'action' => __('portal.tour_staff_step_header_action'),
-                        'tip' => __('portal.tour_staff_step_header_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-nav"]',
-                        'category' => __('portal.tour_cat_nav'),
-                        'location' => __('portal.tour_staff_step_sidebar_loc'),
-                        'title' => __('portal.tour_staff_step_sidebar_title'),
-                        'body' => __('portal.tour_staff_step_sidebar_body'),
-                        'action' => __('portal.tour_staff_step_sidebar_action'),
-                        'tip' => __('portal.tour_staff_step_sidebar_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-help"]',
-                        'category' => __('portal.tour_cat_ops'),
-                        'location' => __('portal.tour_staff_step_help_loc'),
-                        'title' => __('portal.tour_staff_step_help_title'),
-                        'body' => __('portal.tour_staff_step_help_body'),
-                        'action' => __('portal.tour_staff_step_help_action'),
-                        'tip' => __('portal.tour_staff_step_help_tip'),
-                    ],
-                ],
+                'steps' => $this->officeOverviewSteps('tour_staff_step'),
             ],
             'profile' => [
                 'title' => __('portal.tour_profile_title'),
@@ -549,71 +351,7 @@ final class TourGuide
             ...$this->staffDefinitions(),
             'overview' => [
                 'title' => __('portal.tour_owner_overview_title'),
-                'steps' => [
-                    [
-                        'target' => '[data-tour="home-metrics"]',
-                        'category' => __('portal.tour_cat_metrics'),
-                        'location' => __('portal.tour_owner_step_stats_loc'),
-                        'title' => __('portal.tour_owner_step_stats_title'),
-                        'body' => __('portal.tour_owner_step_stats_body'),
-                        'action' => __('portal.tour_owner_step_stats_action'),
-                        'tip' => __('portal.tour_owner_step_stats_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="admin-modules"]',
-                        'category' => __('portal.tour_cat_command'),
-                        'location' => __('portal.tour_owner_step_modules_loc'),
-                        'title' => __('portal.tour_owner_step_modules_title'),
-                        'body' => __('portal.tour_owner_step_modules_body'),
-                        'action' => __('portal.tour_owner_step_modules_action'),
-                        'tip' => __('portal.tour_owner_step_modules_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-domains"]',
-                        'category' => __('portal.tour_cat_domains'),
-                        'location' => __('portal.tour_owner_step_domains_loc'),
-                        'title' => __('portal.tour_owner_step_domains_title'),
-                        'body' => __('portal.tour_owner_step_domains_body'),
-                        'action' => __('portal.tour_owner_step_domains_action'),
-                        'tip' => __('portal.tour_owner_step_domains_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="recent-orders"]',
-                        'category' => __('portal.tour_cat_orders'),
-                        'location' => __('portal.tour_owner_step_orders_loc'),
-                        'title' => __('portal.tour_owner_step_orders_title'),
-                        'body' => __('portal.tour_owner_step_orders_body'),
-                        'action' => __('portal.tour_owner_step_orders_action'),
-                        'tip' => __('portal.tour_owner_step_orders_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="header-actions"]',
-                        'category' => __('portal.tour_cat_controls'),
-                        'location' => __('portal.tour_owner_step_header_loc'),
-                        'title' => __('portal.tour_owner_step_header_title'),
-                        'body' => __('portal.tour_owner_step_header_body'),
-                        'action' => __('portal.tour_owner_step_header_action'),
-                        'tip' => __('portal.tour_owner_step_header_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-nav"]',
-                        'category' => __('portal.tour_cat_nav'),
-                        'location' => __('portal.tour_owner_step_sidebar_loc'),
-                        'title' => __('portal.tour_owner_step_sidebar_title'),
-                        'body' => __('portal.tour_owner_step_sidebar_body'),
-                        'action' => __('portal.tour_owner_step_sidebar_action'),
-                        'tip' => __('portal.tour_owner_step_sidebar_tip'),
-                    ],
-                    [
-                        'target' => '[data-tour="sidebar-help"]',
-                        'category' => __('portal.tour_cat_ops'),
-                        'location' => __('portal.tour_owner_step_help_loc'),
-                        'title' => __('portal.tour_owner_step_help_title'),
-                        'body' => __('portal.tour_owner_step_help_body'),
-                        'action' => __('portal.tour_owner_step_help_action'),
-                        'tip' => __('portal.tour_owner_step_help_tip'),
-                    ],
-                ],
+                'steps' => $this->officeOverviewSteps('tour_owner_step'),
             ],
             'treasury' => [
                 'title' => __('portal.tour_owner_treasury_title'),
@@ -636,6 +374,44 @@ final class TourGuide
                     ['target' => '[data-tour="employees-hub"]', 'title' => __('portal.tour_owner_employees_hub_title'), 'body' => __('portal.tour_owner_employees_hub_body'), 'tip' => __('portal.tour_owner_employees_hub_tip')],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * Dashboard tour steps shared by the owner (sadmin) and office staff (manage) homes.
+     * A target may list a phone fallback: the side menu is hidden on phones, so the
+     * bottom section tabs and the account menu are shown there instead.
+     *
+     * @return list<array{target: string, title: string, body: string, tip: string, category: string, location: string, action: string}>
+     */
+    private function officeOverviewSteps(string $prefix): array
+    {
+        return [
+            $this->overviewStep('[data-tour="home-metrics"]', $prefix.'_stats', 'tour_cat_metrics'),
+            $this->overviewStep('[data-tour="admin-work-queue"]', $prefix.'_work', 'tour_cat_work'),
+            $this->overviewStep('[data-tour="admin-modules"]', $prefix.'_modules', 'tour_cat_command'),
+            $this->overviewStep('[data-tour="recent-orders"]', $prefix.'_orders', 'tour_cat_orders'),
+            $this->overviewStep('[data-tour="sidebar-domains"], .staff-domain-bottom-nav', $prefix.'_domains', 'tour_cat_domains'),
+            $this->overviewStep('[data-tour="header-actions"]', $prefix.'_header', 'tour_cat_controls'),
+            $this->overviewStep('.tour-guide-launcher, .profile-menu-trigger', $prefix.'_help', 'tour_cat_help'),
+        ];
+    }
+
+    /**
+     * One dashboard tour step read from the `portal.{prefix}_title|_loc|_body|_action|_tip` keys.
+     *
+     * @return array{target: string, title: string, body: string, tip: string, category: string, location: string, action: string}
+     */
+    private function overviewStep(string $target, string $prefix, string $category): array
+    {
+        return [
+            'target' => $target,
+            'category' => __('portal.'.$category),
+            'location' => __('portal.'.$prefix.'_loc'),
+            'title' => __('portal.'.$prefix.'_title'),
+            'body' => __('portal.'.$prefix.'_body'),
+            'action' => __('portal.'.$prefix.'_action'),
+            'tip' => __('portal.'.$prefix.'_tip'),
         ];
     }
 }
