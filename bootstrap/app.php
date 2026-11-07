@@ -8,6 +8,7 @@ use App\Http\Middleware\EnforceStaffActions;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PortalArea;
 use App\Http\Middleware\ProtectPrivateResponses;
+use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Http\Middleware\RequirePartnerAgreement;
 use App\Http\Middleware\RestrictAdminIp;
 use App\Http\Middleware\SetLocale;
@@ -48,7 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             EnforceStaffActions::class,
             HandleInertiaRequests::class,
         ]);
-        $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class, 'agreement' => RequirePartnerAgreement::class]);
+        $middleware->alias(['active' => ActiveAccount::class, 'portal' => PortalArea::class, 'agreement' => RequirePartnerAgreement::class, 'authenticator' => RequireAuthenticatorSetup::class]);
         $middleware->redirectGuestsTo(fn (Request $r) => '/login');
         $middleware->redirectUsersTo(fn (Request $r) => $r->user() ? PortalHost::homeUrl($r->user()) : '/');
     })
