@@ -6110,4 +6110,11 @@ return [
     'team_orders_buyers' => 'Members who bought',
     'team_orders_buyers_count' => ':count members bought',
     'team_orders_empty' => 'No team orders in these dates.',
+    'pe_batch_number' => 'Batch number',
+    'pe_batch_number_hint' => 'The batch printed on the pack of the stock you have now. Leave empty if you don\'t know it.',
+    'col_batch_short' => 'Batch :batch',
+    'stock_batch_number' => 'Batch number (optional)',
+    'stock_batch_number_hint' => 'Write the batch printed on the pack. It becomes the product\'s current batch.',
+    'inv_batch' => 'Batch: :batch',
+    'inv_expiry' => 'Expiry: :date',
 ];

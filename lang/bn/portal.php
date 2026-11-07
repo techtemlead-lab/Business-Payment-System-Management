@@ -6110,4 +6110,11 @@ return [
     'team_orders_buyers' => 'যাঁরা কিনেছেন',
     'team_orders_buyers_count' => ':count জন সদস্য কিনেছেন',
     'team_orders_empty' => 'এই তারিখগুলোতে টিমের কোনো অর্ডার নেই।',
+    'pe_batch_number' => 'ব্যাচ নম্বর',
+    'pe_batch_number_hint' => 'এখন যে মাল আছে তার প্যাকেটে লেখা ব্যাচ নম্বর। জানা না থাকলে খালি রাখুন।',
+    'col_batch_short' => 'ব্যাচ :batch',
+    'stock_batch_number' => 'ব্যাচ নম্বর (না দিলেও চলবে)',
+    'stock_batch_number_hint' => 'প্যাকেটে লেখা ব্যাচ নম্বর লিখুন। এটি পণ্যের বর্তমান ব্যাচ হিসেবে দেখাবে।',
+    'inv_batch' => 'ব্যাচ: :batch',
+    'inv_expiry' => 'মেয়াদ শেষ: :date',
 ];

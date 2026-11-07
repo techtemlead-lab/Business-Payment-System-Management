@@ -448,6 +448,14 @@
                             {{ collect([$line['sub_category'], $line['strength']])->filter()->implode(' • ') }}
                         </div>
                     @endif
+                    @if (! empty($line['batch_number']) || ! empty($line['expires_on']))
+                        <div class="product-meta">
+                            {{ collect([
+                                ! empty($line['batch_number']) ? __('portal.inv_batch', ['batch' => $line['batch_number']]) : null,
+                                ! empty($line['expires_on']) ? __('portal.inv_expiry', ['date' => $line['expires_on']]) : null,
+                            ])->filter()->implode(' • ') }}
+                        </div>
+                    @endif
                 </td>
                 <td>{{ $line['pack_size'] }}</td>
                 <td><strong>{{ $line['quantity'] }}</strong></td>
