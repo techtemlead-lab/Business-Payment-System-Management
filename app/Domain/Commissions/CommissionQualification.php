@@ -371,15 +371,30 @@ final class CommissionQualification
                 SELECT id AS leg_id, id AS user_id
                 FROM users
                 WHERE id IN ({$placeholders})
-            ), volumes AS (
-                SELECT orders.user_id, SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)) AS volume
+            ), sales AS (
+                -- Read from the covering delivered-orders index; refunds are subtracted separately
+                -- because only a few orders ever have one.
+                SELECT orders.user_id, SUM(orders.total) AS volume
                 FROM orders
-                LEFT JOIN commission_batches ON commission_batches.order_id = orders.id
                 WHERE orders.is_opening_balance = false
                   AND orders.status = 'delivered'
                   AND orders.paid = orders.total
                   AND orders.user_id IN (SELECT user_id FROM members)
                 GROUP BY orders.user_id
+            ), refunds AS (
+                SELECT orders.user_id, SUM(commission_batches.refunded_amount) AS refunded
+                FROM commission_batches
+                INNER JOIN orders ON orders.id = commission_batches.order_id
+                WHERE commission_batches.refunded_amount > 0
+                  AND orders.is_opening_balance = false
+                  AND orders.status = 'delivered'
+                  AND orders.paid = orders.total
+                  AND orders.user_id IN (SELECT user_id FROM members)
+                GROUP BY orders.user_id
+            ), volumes AS (
+                SELECT sales.user_id, sales.volume - COALESCE(refunds.refunded, 0) AS volume
+                FROM sales
+                LEFT JOIN refunds ON refunds.user_id = sales.user_id
             )
             SELECT members.leg_id, COALESCE(SUM(volumes.volume), 0) AS volume
             FROM members
