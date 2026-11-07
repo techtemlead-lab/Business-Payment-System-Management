@@ -45,6 +45,7 @@ class EnforceStaffActions
                 'FinanceOperationsController' => in_array($method, ['accounts', 'export', 'receipt'], true),
                 'PartnerAgreementController' => $method === 'accept',
                 'PartnerChatController' => $method === 'send',
+                'TrainingController' => $method === 'submitQuiz',
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));

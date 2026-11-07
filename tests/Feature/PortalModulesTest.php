@@ -150,9 +150,9 @@ class PortalModulesTest extends TestCase
         $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('dealer')['home']);
         $this->assertSame(['overview', 'top-sellers'], PortalCatalog::nav('subdealer')['home']);
         $this->assertSame(['orders', 'purchase', 'catalog', 'deliveries'], PortalCatalog::nav('dealer')['commerce']);
-        $this->assertSame(['earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('dealer')['earnings']);
+        $this->assertSame(['earnings', 'full-report', 'withdrawals', 'payment-receipts'], PortalCatalog::nav('dealer')['earnings']);
         $this->assertSame(['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('dealer')['account']);
-        $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals'], PortalCatalog::nav('subdealer')['earnings']);
+        $this->assertSame(['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'], PortalCatalog::nav('subdealer')['earnings']);
         $this->assertSame(['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help'], PortalCatalog::nav('subdealer')['account']);
         $this->assertArrayNotHasKey('owner', PortalCatalog::nav('sadmin'));
         $this->assertSame(['accounts', 'partnerships'], PortalCatalog::nav('manage')['dealer_directory']);

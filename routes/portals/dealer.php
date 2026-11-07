@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PartnerStatementController;
+use App\Http\Controllers\PayoutReceiptController;
 use App\Http\Controllers\TeamOrdersController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Portals\Dealer\DashboardController;
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'active', 'portal:dealer', 'agreement'])->group(funct
     Route::get('/rank-certificate/pdf', [DashboardController::class, 'rankCertificatePdf'])->middleware('throttle:10,1');
     Route::get('/referral-qr.svg', [DashboardController::class, 'referralQrSvg'])->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}/receipt', [WithdrawalController::class, 'receipt'])->whereUuid('id');
+    Route::get('/payment-receipts/{receipt}/print', [PayoutReceiptController::class, 'print'])->whereNumber('receipt')->middleware('throttle:30,1');
     Route::get('/withdrawals/{id}', [WithdrawalController::class, 'show'])->whereUuid('id');
     Route::get('/{section?}', [DashboardController::class, 'index'])->whereIn('section', PortalCatalog::routeSections('dealer'));
 });

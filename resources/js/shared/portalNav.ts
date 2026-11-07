@@ -75,7 +75,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
-    training: 'training', events: 'events',
+    training: 'training', events: 'events', 'payment-receipts': 'payment_receipts',
 };
 
 function defaultHrefPath(section: string): string {
@@ -241,7 +241,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -263,7 +263,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -408,7 +408,7 @@ export function buildDomainMothers(input: {
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
                 mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
-                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
+                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
@@ -417,7 +417,7 @@ export function buildDomainMothers(input: {
             return compactMothers([
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
                 mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
-                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
+                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
             ]);
