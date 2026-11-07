@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PartnerStatementController;
+use App\Http\Controllers\TeamOrdersController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Portals\Dealer\DashboardController;
 use App\Support\PortalCatalog;
@@ -33,6 +34,8 @@ Route::middleware(['auth', 'active', 'portal:dealer', 'agreement'])->group(funct
     Route::get('/full-report/pdf', [DashboardController::class, 'fullReportPdf'])->middleware('throttle:10,1');
     Route::get('/statement', [PartnerStatementController::class, 'show']);
     Route::get('/statement/{format}', [PartnerStatementController::class, 'download'])->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
+    Route::get('/team-orders', [TeamOrdersController::class, 'show']);
+    Route::get('/team-orders/xlsx', [TeamOrdersController::class, 'download'])->middleware('throttle:10,1');
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
     Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');
     Route::get('/income-certificate/pdf', [DashboardController::class, 'incomeCertificatePdf'])->middleware('throttle:10,1');
