@@ -138,7 +138,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
         <div className="two-column">
             <section className="panel"><h2>{translate('portal', 'payment_claims')}</h2>
                 <Table rows={claims} columns={[
-                    { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method') }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
+                    { key: 'reference', title: translate('portal', 'col_reference') }, { key: 'channel', title: translate('portal', 'payment_method'), render: (r: Row) => { const raw = String(r.channel ?? ''); const key = `pay_channel_${raw.toLowerCase()}`; const text = translate('portal', key); return raw === '' ? '—' : (text !== key ? text : raw); } }, { key: 'amount', title: translate('portal', 'col_amount'), render: claim => money(claim.amount) },
                     { key: 'status', title: translate('portal', 'col_status'), render: claim => <Badge status={claim.status} /> }, { key: 'reason', title: translate('portal', 'review_note') },
                 ]} />
                 <p className="muted">{translate('portal', 'claim_not_verified_hint')}</p>

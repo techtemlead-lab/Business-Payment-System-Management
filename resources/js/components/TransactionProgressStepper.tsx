@@ -105,6 +105,11 @@ export default function TransactionProgressStepper({
         const val = translate('portal', k);
         return val !== k ? val : fallback;
     };
+    /** Payment method in the reader's language ("Bank" shows as "ব্যাংক"); unknown methods show as stored. */
+    const channelName = (channel: unknown, fallback: string): string => {
+        const raw = String(channel ?? '').trim();
+        return raw === '' ? fallback : t(`pay_channel_${raw.toLowerCase()}`, raw);
+    };
 
     const status = (currentStatus || order.status || 'submitted').toLowerCase();
     const isTerminal = ['delivered', 'rejected', 'cancelled'].includes(status);
@@ -209,7 +214,7 @@ export default function TransactionProgressStepper({
             stage3Badge = t('stage_badge_verified', 'Verified');
             const verifiedClaim = claims.find((c) => c.status === 'verified');
             if (verifiedClaim) {
-                stage3Desc = `${verifiedClaim.channel || 'Payment'} · ${money(verifiedClaim.amount)}`;
+                stage3Desc = `${channelName(verifiedClaim.channel, t('stage_payment_fallback', 'Payment'))} · ${money(verifiedClaim.amount)}`;
             } else if (orderPaid > 0) {
                 stage3Desc = `${t('stage_settled_paid', 'Verified')} ${money(orderPaid)}`;
             } else {
@@ -220,7 +225,7 @@ export default function TransactionProgressStepper({
             stage3State = 'active';
             stage3Badge = t('stage_badge_inspecting', 'Inspecting');
             const pendingClaim = claims.find((c) => c.status === 'pending');
-            stage3Desc = pendingClaim ? `${pendingClaim.channel} ${money(pendingClaim.amount)} (${pendingClaim.reference})` : t('stage_desc_claim_verifying', 'Claim awaiting verification');
+            stage3Desc = pendingClaim ? `${channelName(pendingClaim.channel, '')} ${money(pendingClaim.amount)} (${pendingClaim.reference})` : t('stage_desc_claim_verifying', 'Claim awaiting verification');
             stage3Icon = <Radio size={16} className="pulsing-icon" />;
         } else if (hasOnlyRejectedClaims) {
             stage3State = 'warning';
@@ -470,6 +475,12 @@ export default function TransactionProgressStepper({
                     color: var(--ds-text-muted, #64748b);
                 }
                 .transaction-progress-stepper .step-badge {
+                    /* undo the round 24px onboarding .step-badge, which squeezed this pill to one word per line */
+                    width: auto;
+                    height: auto;
+                    margin-top: 0;
+                    white-space: nowrap;
+                    line-height: 1.4;
                     font-size: 10px;
                     font-weight: 700;
                     padding: 2px 6px;
