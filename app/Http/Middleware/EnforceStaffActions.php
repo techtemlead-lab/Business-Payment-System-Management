@@ -69,6 +69,11 @@ class EnforceStaffActions
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }
+        // Every staff member may close or replay their own guided tour; it only records that
+        // person's tour progress. Finance, stock and support staff got a 403 pop-up otherwise.
+        if ($controller === 'CommandController' && in_array($method, ['completeTour', 'restartTour'], true)) {
+            return $next($request);
+        }
         // Everyone may turn phone notifications on or off for their own account.
         if ($controller === 'PushSubscriptionController') {
             return $next($request);
@@ -163,7 +168,7 @@ class EnforceStaffActions
                 'settleSalaryPool', 'settleRankRoyaltyPool', 'claimRankIncentive', 'releaseMaturedCommissions', 'financialGate' => [['finance'], 'approve'],
                 'assignAreaDealer', 'removeAreaDealer' => [['accounts'], 'edit'], 'simulateCommissions' => [['finance'], 'view'],
                 'order', 'claim' => [['orders', 'sr_orders'], 'create'],
-                'supportTicket', 'supportTicketReply', 'completeTour', 'restartTour' => [['accounts', 'content'], 'edit'],
+                'supportTicket', 'supportTicketReply' => [['accounts', 'content'], 'edit'],
                 'linkStaffRole', 'unlinkStaffRole' => [['accounts'], 'edit'],
                 default => null,
             },
