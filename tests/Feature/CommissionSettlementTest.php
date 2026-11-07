@@ -101,7 +101,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_settlement_credits_each_partner_once_however_many_source_orders(): void
     {
-        $dealers = User::factory()->count(3)->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
         foreach ($dealers as $dealer) {
             for ($order = 0; $order < 4; $order++) {
                 $this->purchase($dealer, '10000.00', '20000.00');
