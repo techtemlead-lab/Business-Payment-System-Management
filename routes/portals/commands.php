@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountListExportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CommandController;
+use App\Http\Controllers\DataCleanupController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\PartnerAgreementController;
 use App\Http\Controllers\PartnerChatController;
@@ -94,6 +95,7 @@ return function (string $portal): void {
     Route::post('/commands/training/{trainingItem}/publish', [TrainingController::class, 'publish'])->whereNumber('trainingItem');
     Route::delete('/commands/training/{trainingItem}', [TrainingController::class, 'destroy'])->whereNumber('trainingItem');
     Route::get('/training/{trainingItem}/pdf', [TrainingController::class, 'pdf'])->whereNumber('trainingItem')->middleware('throttle:60,1');
+    Route::post('/commands/data-cleanup/delete', [DataCleanupController::class, 'destroy'])->middleware('throttle:20,1');
     Route::post('/commands/events', [PartnerEventController::class, 'store'])->middleware('throttle:30,1');
     Route::patch('/commands/events/{partnerEvent}', [PartnerEventController::class, 'update'])->whereNumber('partnerEvent')->middleware('throttle:30,1');
     Route::post('/commands/events/{partnerEvent}/publish', [PartnerEventController::class, 'publish'])->whereNumber('partnerEvent')->middleware('throttle:20,1');

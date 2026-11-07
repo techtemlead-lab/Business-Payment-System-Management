@@ -24,6 +24,7 @@ use App\Http\Portals\Shared\Sections\BranchesSection;
 use App\Http\Portals\Shared\Sections\CatalogSection;
 use App\Http\Portals\Shared\Sections\CommissionsSection;
 use App\Http\Portals\Shared\Sections\ContentSection;
+use App\Http\Portals\Shared\Sections\DataCleanupSection;
 use App\Http\Portals\Shared\Sections\EmployeesSection;
 use App\Http\Portals\Shared\Sections\EventsSection;
 use App\Http\Portals\Shared\Sections\FeedbackSection;
@@ -88,6 +89,7 @@ class WorkspaceController extends Controller
         AgreementSection::class,
         TrainingSection::class,
         EventsSection::class,
+        DataCleanupSection::class,
     ];
 
     public function index(Request $r, ProductPricing $pricing, string $section = 'overview'): Response|RedirectResponse

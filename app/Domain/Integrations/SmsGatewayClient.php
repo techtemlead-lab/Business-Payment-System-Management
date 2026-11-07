@@ -3,6 +3,7 @@
 namespace App\Domain\Integrations;
 
 use App\Support\RedactedError;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -28,14 +29,36 @@ final class SmsGatewayClient
                     default => $this->sendCustom($config, $phone, $message),
                 };
                 if ($ok) {
+                    $this->log($phone, $message, $provider, true);
+
                     return ['sent' => true, 'provider' => $provider, 'message' => __('portal.si_sms_accepted', ['provider' => $provider])];
                 }
             } catch (\Throwable $exception) {
                 Log::warning('sms.gateway_failed', ['provider' => $provider, 'error' => RedactedError::message($exception)]);
             }
         }
+        $this->log($phone, $message, null, false);
 
         return ['sent' => false, 'provider' => null, 'message' => __('portal.si_sms_none_accepted')];
+    }
+
+    /**
+     * Keep a short record of the attempt (masked number, no message text). A failure to log never stops an SMS.
+     */
+    private function log(string $phone, string $message, ?string $provider, bool $sent): void
+    {
+        try {
+            $digits = preg_replace('/\D+/', '', $phone) ?? '';
+            DB::table('sms_logs')->insert([
+                'phone_masked' => strlen($digits) > 4 ? '••••'.substr($digits, -4) : '••••',
+                'provider' => $provider,
+                'sent' => $sent,
+                'length' => mb_strlen($message),
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('sms.log_failed', ['error' => RedactedError::message($exception)]);
+        }
     }
 
     public function anyEnabled(): bool
