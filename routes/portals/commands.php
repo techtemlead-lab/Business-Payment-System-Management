@@ -96,6 +96,7 @@ return function (string $portal): void {
     Route::delete('/commands/training/{trainingItem}', [TrainingController::class, 'destroy'])->whereNumber('trainingItem');
     Route::get('/training/{trainingItem}/pdf', [TrainingController::class, 'pdf'])->whereNumber('trainingItem')->middleware('throttle:60,1');
     Route::post('/commands/data-cleanup/delete', [DataCleanupController::class, 'destroy'])->middleware('throttle:20,1');
+    Route::get('/training/{trainingItem}/video', [TrainingController::class, 'video'])->whereNumber('trainingItem')->middleware('throttle:240,1');
     Route::post('/commands/events', [PartnerEventController::class, 'store'])->middleware('throttle:30,1');
     Route::patch('/commands/events/{partnerEvent}', [PartnerEventController::class, 'update'])->whereNumber('partnerEvent')->middleware('throttle:30,1');
     Route::post('/commands/events/{partnerEvent}/publish', [PartnerEventController::class, 'publish'])->whereNumber('partnerEvent')->middleware('throttle:20,1');

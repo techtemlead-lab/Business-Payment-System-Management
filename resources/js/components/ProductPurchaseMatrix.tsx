@@ -13,6 +13,8 @@ interface Props {
     subCategories?: string[];
     collectionAccounts: Row[];
     initialProductId?: number | string | null;
+    /** Owner setting "Full payment required when ordering": the whole total and a screenshot go with the order. */
+    fullPaymentRequired?: boolean;
 }
 
 interface CartItem {
@@ -26,6 +28,7 @@ export default function ProductPurchaseMatrix({
     subCategories = [],
     collectionAccounts = [],
     initialProductId = null,
+    fullPaymentRequired = false,
 }: Props) {
     const translate = useT();
 
@@ -259,7 +262,7 @@ export default function ProductPurchaseMatrix({
             reference: f.data.reference,
             payment_account_id: f.data.payment_account_id,
             channel: f.data.channel,
-            amount: f.data.amount,
+            amount: fullPaymentRequired ? cartSummary.totalPayable.toFixed(2) : f.data.amount,
             note: f.data.note,
             proof: f.data.proof,
         }));
@@ -716,6 +719,13 @@ export default function ProductPurchaseMatrix({
                                 {translate('portal', 'ppm_confirm_title')}
                             </h4>
 
+                            {fullPaymentRequired && (
+                                <div className="notice" role="note">
+                                    <Info size={18} className="ops-shrink-0" />
+                                    <p>{translate('portal', 'ppm_full_payment_notice', { amount: money(cartSummary.totalPayable) })}</p>
+                                </div>
+                            )}
+
                             <div className="form-grid">
                                 <label>
                                     {translate('portal', 'payment_method')}
@@ -753,29 +763,43 @@ export default function ProductPurchaseMatrix({
                                     {translate('portal', 'transaction_reference')}
                                     <input
                                         placeholder={translate('portal', 'transaction_reference_placeholder')}
+                                        required={fullPaymentRequired}
                                         value={f.data.reference}
                                         onChange={e => f.setData('reference', e.target.value)}
                                     />
                                 </label>
 
-                                <label>
-                                    {translate('portal', 'claimed_payment_amount')} ({translate('portal', 'optional_label')})
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        placeholder={money(cartSummary.totalPayable)}
-                                        value={f.data.amount}
-                                        onChange={e => f.setData('amount', e.target.value)}
-                                    />
-                                </label>
+                                {fullPaymentRequired ? (
+                                    <label>
+                                        {translate('portal', 'ppm_full_amount_label')}
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            aria-readonly="true"
+                                            value={money(cartSummary.totalPayable)}
+                                        />
+                                        <small className="field-hint">{translate('portal', 'ppm_full_amount_hint')}</small>
+                                    </label>
+                                ) : (
+                                    <label>
+                                        {translate('portal', 'claimed_payment_amount')} ({translate('portal', 'optional_label')})
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder={money(cartSummary.totalPayable)}
+                                            value={f.data.amount}
+                                            onChange={e => f.setData('amount', e.target.value)}
+                                        />
+                                    </label>
+                                )}
 
                                 <label>
                                     {translate('portal', 'payment_proof_label')}
                                     <input
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp,application/pdf"
-                                        required={f.data.reference.trim() !== ''}
+                                        required={fullPaymentRequired || f.data.reference.trim() !== ''}
                                         onChange={e => f.setData('proof', e.target.files?.[0] ?? null)}
                                     />
                                     <small className="field-hint">{translate('portal', 'payment_proof_hint')}</small>

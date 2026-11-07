@@ -19,11 +19,15 @@ $domain = PortalHost::domain();
 Route::domain($domain)->group(base_path('routes/portals/public.php'));
 if (PortalHost::allowsSharedPreview()) {
     // Artisan serve / Cloud Agent previews often use the loopback IP as the Host header.
+    // These copies get their own name prefix, so `products.search` and friends stay unique
+    // (route:cache refuses duplicate names) and route() keeps pointing at the main host.
     foreach (['127.0.0.1', 'localhost'] as $previewHost) {
         if ($previewHost === $domain) {
             continue;
         }
-        Route::domain($previewHost)->group(base_path('routes/portals/public.php'));
+        Route::domain($previewHost)
+            ->name('preview-host.'.str_replace('.', '-', $previewHost).'.')
+            ->group(base_path('routes/portals/public.php'));
     }
 }
 
