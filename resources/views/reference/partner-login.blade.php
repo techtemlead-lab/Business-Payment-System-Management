@@ -1,5 +1,5 @@
 @extends('reference.layout')
-@section('title', __('site.partner_login_title').' · Madina Natural Health Care')
+@section('title', __('site.partner_login_title').' · '.\App\Support\SiteCustomization::brandName())
 @section('bodyClass', 'ref-partner-login-page')
 @section('content')
 <main id="main" class="ref-container ref-auth-main">
