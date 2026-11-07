@@ -80,7 +80,7 @@ class FieldSalesController extends Controller
             'outstanding' => $order->outstanding(),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
-            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])];
+            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])];
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('OrderDetail', $data);
     }
