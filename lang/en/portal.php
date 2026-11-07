@@ -6044,6 +6044,8 @@ return [
     'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
     'acct_val_dob_under_age' => 'Dealers and sub-dealers must be at least :years years old. Please check the date of birth.',
     'acct_dob_age_hint' => 'Must be at least 18 years old.',
+    'shipment_courier_booking_pending' => 'Booking with the courier. The tracking number will show here soon.',
+    'shipment_courier_booking_failed' => 'The courier did not accept this booking. Book it with the courier yourself and tell the partner the tracking number.',
     'flash_totp_setup_required' => 'Your account must use an authenticator app. Set it up here before you continue.',
     'totp_required_body' => 'Owners and finance staff must use an authenticator app. Install Google Authenticator or Authy on your phone, create the secret key below, add it to the app, then enter the 6-digit code. You can use the portal after that.',
     'ops_warn_staff_totp_not_required' => 'Owners and finance staff are not required to use an authenticator app. For your IT person: MADINA_TOTP_REQUIRED=true.',
