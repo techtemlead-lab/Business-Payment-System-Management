@@ -86,6 +86,15 @@
 .events-check{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:var(--ds-s-2);font-weight:500}
 .events-check input{width:auto;margin-top:3px}
 .events-check span{display:flex;flex-direction:column;gap:2px}
+
+/* Lesson quiz: partner answers and the office question editor */
+.training-quiz{display:flex;flex-direction:column;gap:var(--ds-s-2)}
+.training-quiz-form fieldset,.training-quiz-edit{display:flex;flex-direction:column;gap:6px;border:1px solid var(--ds-line);border-radius:var(--ds-r-md);padding:var(--ds-s-3);min-width:0}
+.training-quiz-form legend,.training-quiz-edit legend{padding:0 var(--ds-s-1);font-weight:600;color:var(--ds-text);overflow-wrap:anywhere}
+.training-quiz-option{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:var(--ds-s-2);font-weight:500}
+.training-quiz-option input{width:auto;margin-top:3px}
+.training-quiz-edit-option{display:flex;align-items:center;gap:var(--ds-s-2)}
+.training-quiz-edit-option input[type=text]{flex:1;min-width:0}
 /* Uploaded training videos and file buttons */
 .training-video-file{display:grid;gap:var(--ds-s-2)}
 .training-video-file video{width:100%;max-height:420px;border-radius:var(--ds-r-md);background:var(--ds-surface-3)}
