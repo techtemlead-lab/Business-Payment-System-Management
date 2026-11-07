@@ -224,7 +224,7 @@
                 </tr>
                 <tr>
                     <th>{{ __('site.pd_col_distributor') }}</th>
-                    <td>Madina Natural Health Care</td>
+                    <td>{{ \App\Support\SiteChrome::text('contact_company_title', $siteCustomization['contact_company_title'] ?? null) }}</td>
                 </tr>
             </tbody>
         </table>
