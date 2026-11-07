@@ -6115,4 +6115,5 @@ return [
     'inv_expiry' => 'Expiry: :date',
     'notice_join_anniversary_title' => 'Happy partner anniversary!',
     'notice_join_anniversary_body' => '{1} Dear :name, today is 1 year since you joined Madina Natural Health Care. Thank you for being with us.|[2,*] Dear :name, today is :years years since you joined Madina Natural Health Care. Thank you for being with us.',
+    'ops_warn_error_tracking_not_configured' => 'Error tracking is off, so nobody is told when the site breaks. Ask your technician. For your IT person: create a free Sentry account (sentry.io), make a Laravel project and put its DSN in SENTRY_LARAVEL_DSN.',
 ];

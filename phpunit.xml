@@ -32,6 +32,8 @@
         <env name="MADINA_PREVIEW_MODE" value="false" force="true"/>
         <!-- Owner/finance authenticator-app requirement: off here so other tests can sign staff in; LoginTotpRequiredTest turns it on. -->
         <env name="MADINA_TOTP_REQUIRED" value="false" force="true"/>
+        <env name="SENTRY_LARAVEL_DSN" value="" force="true"/>
+        <env name="SENTRY_DSN" value="" force="true"/>
         <env name="MADINA_SMS_DRIVER" value="array" force="true"/>
         <!-- Older order tests place an order first and pay later. FullPaymentWhenOrderingTest switches the owner setting on itself. -->
         <env name="MADINA_FULL_PAYMENT_WHEN_ORDERING" value="false" force="true"/>
