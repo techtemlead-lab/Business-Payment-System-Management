@@ -11,5 +11,3 @@ parameters:
         - app/
     tmpDir: storage/framework/cache/phpstan
     reportUnmatchedIgnoredErrors: false
-    # PHPDoc shapes describe JSON read from the database; keep runtime guards such as array_values().
-    treatPhpDocTypesAsCertain: false
