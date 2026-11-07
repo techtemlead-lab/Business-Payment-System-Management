@@ -86,6 +86,7 @@ class OperationsController extends Controller
             $territories = app(TerritoryAccess::class);
             $data['regions'] = $territories->territories($actor->id);
             $data['products'] = Product::where('active', true)->where('is_stock_paused', false)->orderBy('name')->get(['id', 'name', 'sku']);
+            $data['fullPaymentWhenOrdering'] = app(FinanceSettings::class)->fullPaymentWhenOrdering();
             $scope = $territories->partners($actor)->select('users.id');
             if ($actor->allows('sr_orders')) {
                 $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
@@ -149,6 +150,7 @@ class OperationsController extends Controller
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->owner()];
+            $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->owner()];
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);
