@@ -6660,4 +6660,13 @@ return [
     'ops_fld_place_code_review' => 'Place code (needed to approve)',
     'branch_place_code_hint' => 'Division, district and upazila are filled in from the place code.',
     'branch_no_place_code' => 'No place code yet',
+    'training_quiz_err_too_many' => 'You have tried this quiz :count times in the last hour. Please read the lesson again and try after :minutes minutes.',
+    'training_quiz_limit_label' => 'Quiz tries per hour for each partner',
+    'training_quiz_limit_hint' => 'Counted for each quiz separately. This stops guessing the answers again and again to get a certificate.',
+    'training_quiz_limit_save' => 'Save limit',
+    'training_quiz_limit_saved' => 'Quiz try limit saved.',
+    'training_quiz_limit_err_stale' => 'Someone changed this limit just now. Please reload the page and try again.',
+    'acct_export_contacts' => 'Phone numbers and emails',
+    'acct_export_contacts_full' => 'Shown in full',
+    'acct_export_contacts_masked' => 'Hidden: only the last 4 digits of each phone. Staff who may edit accounts get the full list.',
 ];

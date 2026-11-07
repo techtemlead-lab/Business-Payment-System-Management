@@ -96,6 +96,7 @@ return function (string $portal): void {
     Route::post('/commands/content', [CommandController::class, 'content']);
     Route::post('/commands/training', [TrainingController::class, 'store'])->middleware('throttle:30,1');
     Route::post('/commands/training/reorder', [TrainingController::class, 'reorder'])->middleware('throttle:60,1');
+    Route::post('/commands/training/quiz-limit', [TrainingController::class, 'saveQuizLimit'])->middleware('throttle:10,1');
     Route::patch('/commands/training/{trainingItem}', [TrainingController::class, 'update'])->whereNumber('trainingItem')->middleware('throttle:30,1');
     Route::post('/commands/training/{trainingItem}/publish', [TrainingController::class, 'publish'])->whereNumber('trainingItem');
     Route::delete('/commands/training/{trainingItem}', [TrainingController::class, 'destroy'])->whereNumber('trainingItem');

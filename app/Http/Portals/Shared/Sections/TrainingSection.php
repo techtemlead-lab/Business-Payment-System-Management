@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Content\TrainingLibrary;
+use App\Domain\Content\TrainingQuiz;
 use App\Models\TrainingItem;
 
 /**
@@ -11,7 +12,7 @@ use App\Models\TrainingItem;
  */
 final class TrainingSection implements WorkspaceSection
 {
-    public function __construct(private TrainingLibrary $library) {}
+    public function __construct(private TrainingLibrary $library, private TrainingQuiz $quiz) {}
 
     public function data(SectionContext $context, array $data): array
     {
@@ -34,6 +35,7 @@ final class TrainingSection implements WorkspaceSection
                 'pdf_max_mb' => TrainingLibrary::pdfMaxMb(),
                 'video_max_mb' => TrainingLibrary::videoMaxMb(),
                 'new_for_days' => TrainingItem::NewForDays,
+                'quiz_limit' => [...$this->quiz->attemptLimit(), 'can_edit' => $user->owner(), 'max' => TrainingQuiz::MaxAttemptsPerHour],
             ]];
         }
 
