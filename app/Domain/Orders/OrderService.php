@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
 use App\Support\Money;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,9 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
+    /** Order states in which items can still be waiting for stock. */
+    public const SupplyDateStatuses = ['submitted', 'held', 'approved', 'partially_dispatched'];
+
     public function __construct(
         private readonly ProductPricing $pricing,
         private readonly CommissionPosting $commissions,
@@ -369,6 +373,7 @@ class OrderService
                 'branch_id' => $fulfillmentBranch->id,
                 'courier' => $courier,
                 'tracking' => $tracking,
+                'courier_contact' => filled($data['courier_contact'] ?? null) ? trim((string) $data['courier_contact']) : null,
                 'eta' => $data['eta'] ?? null,
                 'lines' => json_encode($shipmentLines, JSON_THROW_ON_ERROR),
                 'actor_id' => $actor->id,
@@ -437,6 +442,37 @@ class OrderService
             $this->partnerSms($locked->user_id, 'shipment.delivered', 'sms.delivery_confirmed', [
                 'number' => $locked->number,
             ]);
+        }, 3);
+    }
+
+    /**
+     * Records when the store team expects to send the items still waiting for stock
+     * (back-order date), or clears it. The partner sees the date on the order and gets
+     * a notice. Only open orders with items left to send can carry a date.
+     */
+    public function setSupplyDate(User $actor, Order $order, ?string $eta, ?string $note): void
+    {
+        abort_unless($actor->allows('inventory'), 403);
+        $this->assertNotOwnOrder($actor, $order);
+        DB::transaction(function () use ($actor, $order, $eta, $note): void {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (! in_array($locked->status, self::SupplyDateStatuses, true) || ! $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists()) {
+                throw ValidationException::withMessages(['supply_eta' => __('portal.err_supply_eta_nothing_left')]);
+            }
+            $note = $note !== null && trim($note) !== '' ? trim($note) : null;
+            $raw = $locked->getRawOriginal('supply_eta');
+            $before = $raw === null ? null : CarbonImmutable::parse((string) $raw)->toDateString();
+            if ($before === $eta && $locked->supply_note === $note) {
+                return;
+            }
+            $locked->update(['supply_eta' => $eta, 'supply_note' => $eta === null ? null : $note]);
+            $this->event($locked, $actor, 'order.supply_date_set', ['supply_eta' => $eta, 'previous_supply_eta' => $before, 'note' => $note]);
+            if ($eta !== null) {
+                $this->partnerNotice($locked->user_id, 'portal.notice_supply_eta_title', 'portal.notice_supply_eta_body', [
+                    'number' => $locked->number,
+                    'date' => CarbonImmutable::parse($eta)->format('d/m/Y'),
+                ]);
+            }
         }, 3);
     }
 
