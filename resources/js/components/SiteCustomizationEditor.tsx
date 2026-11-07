@@ -204,6 +204,16 @@ export interface CustomizationData {
     // Homepage Story
     company_intro_title?: string;
     company_intro_body?: string;
+    company_intro_eyebrow?: string;
+    product_range_title?: string;
+    product_range_sub?: string;
+    partner_with_us_title?: string;
+    partner_with_us_sub?: string;
+    our_services_title?: string;
+    our_services_sub?: string;
+    invoice_manufacturer?: string;
+    invoice_marketed_by?: string;
+    invoice_marketed_phones?: string;
     public_products_subtitle?: string;
     about_headline?: string;
     about_lead?: string;
@@ -3859,6 +3869,16 @@ export default function SiteCustomizationEditor({
             // Homepage Story
             company_intro_title: customization.company_intro_title || '',
             company_intro_body: customization.company_intro_body || '',
+            company_intro_eyebrow: customization.company_intro_eyebrow || '',
+            product_range_title: customization.product_range_title || '',
+            product_range_sub: customization.product_range_sub || '',
+            partner_with_us_title: customization.partner_with_us_title || '',
+            partner_with_us_sub: customization.partner_with_us_sub || '',
+            our_services_title: customization.our_services_title || '',
+            our_services_sub: customization.our_services_sub || '',
+            invoice_manufacturer: customization.invoice_manufacturer || '',
+            invoice_marketed_by: customization.invoice_marketed_by || '',
+            invoice_marketed_phones: customization.invoice_marketed_phones || '',
             public_products_subtitle: customization.public_products_subtitle || '',
             about_headline: customization.about_headline || '',
             about_lead: customization.about_lead || '',
@@ -4548,6 +4568,13 @@ export default function SiteCustomizationEditor({
                             <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label={translate('portal', 'sce_f_intro_title')} fieldKey="company_intro_title" value={form.data.customization.company_intro_title} placeholder={defaults.company_intro_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_intro_text')} fieldKey="company_intro_body" value={form.data.customization.company_intro_body} placeholder={defaults.company_intro_body} onChange={updateField} multiline rows={3} span2 />
+                                <Field label={translate('portal', 'sce_fld_company_intro_eyebrow')} fieldKey="company_intro_eyebrow" value={form.data.customization.company_intro_eyebrow} placeholder={defaults.company_intro_eyebrow} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_product_range_title')} fieldKey="product_range_title" value={form.data.customization.product_range_title} placeholder={defaults.product_range_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_product_range_sub')} fieldKey="product_range_sub" value={form.data.customization.product_range_sub} placeholder={defaults.product_range_sub} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_partner_with_us_title')} fieldKey="partner_with_us_title" value={form.data.customization.partner_with_us_title} placeholder={defaults.partner_with_us_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_partner_with_us_sub')} fieldKey="partner_with_us_sub" value={form.data.customization.partner_with_us_sub} placeholder={defaults.partner_with_us_sub} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_our_services_title')} fieldKey="our_services_title" value={form.data.customization.our_services_title} placeholder={defaults.our_services_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_our_services_sub')} fieldKey="our_services_sub" value={form.data.customization.our_services_sub} placeholder={defaults.our_services_sub} onChange={updateField} />
                             </div>
 
                             {/* Brand Trust, Video Showcase & Testimonials Toggle Controls */}
@@ -4679,6 +4706,14 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_map_subtitle')} fieldKey="map_subtitle" value={form.data.customization.map_subtitle} placeholder={defaults.map_subtitle} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_map_place_name')} fieldKey="map_facility" value={form.data.customization.map_facility} placeholder={defaults.map_facility} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_map_directions_btn')} fieldKey="map_directions_text" value={form.data.customization.map_directions_text} placeholder={defaults.map_directions_text} onChange={updateField} />
+                            </div>
+
+                            <h3 className="ed-title">{translate('portal', 'sce_invoice_letterhead_heading')}</h3>
+                            <p className="ed-desc is-sm">{translate('portal', 'sce_invoice_letterhead_hint')}</p>
+                            <div className="form-grid ed-grid ed-mb-lg">
+                                <Field label={translate('portal', 'sce_fld_invoice_manufacturer')} fieldKey="invoice_manufacturer" value={form.data.customization.invoice_manufacturer} placeholder={defaults.invoice_manufacturer} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_invoice_marketed_by')} fieldKey="invoice_marketed_by" value={form.data.customization.invoice_marketed_by} placeholder={defaults.invoice_marketed_by} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_invoice_marketed_phones')} fieldKey="invoice_marketed_phones" value={form.data.customization.invoice_marketed_phones} placeholder={defaults.invoice_marketed_phones} onChange={updateField} span2 />
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_dealer_directory_heading')}</h3>
