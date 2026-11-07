@@ -91,7 +91,10 @@ final class PartnerProgress
         if ($isOn && $isMet) {
             $plan = $this->settlement->salaryPlan($month);
             $mine = collect($plan['dealers'])->firstWhere('user_id', (int) $user->id);
-            $division = $mine !== null ? collect($plan['divisions'])->firstWhere('division', $mine['division']) : null;
+            // The dealer's division row is found by its place code id, never by its name.
+            $division = $mine !== null && $mine['division_id'] !== null
+                ? collect($plan['divisions'])->firstWhere('division_id', $mine['division_id'])
+                : null;
             $estimate = [
                 'share' => $mine['share'] ?? '0.00',
                 'division' => $mine['division'] ?? null,

@@ -83,28 +83,11 @@ final class CommissionPosting
             $geography['place_ids']['upazila'] ?? null,
             $geography['place_ids']['union'] ?? null,
         ]);
-        $areaUsers = AreaDealerAssignment::where('is_active', true)->where(function ($query) use ($geography, $placeIds): void {
-            if ($placeIds !== []) {
-                $query->whereIn('place_code_id', $placeIds);
-            }
-            $path = [];
-            foreach (['division', 'district', 'upazila', 'union'] as $level) {
-                $value = trim((string) ($geography[$level] ?? ''));
-                if ($value === '') {
-                    break;
-                }
-                $path[$level] = mb_strtolower($value);
-                $query->orWhere(function ($inner) use ($level, $path): void {
-                    $inner->where('level', $level)->whereNull('place_code_id');
-                    foreach ($path as $field => $value) {
-                        $inner->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [$value]);
-                    }
-                });
-            }
-            if ($placeIds === [] && $path === []) {
-                $query->whereRaw('1=0');
-            }
-        })->pluck('user_id')->all();
+        // Area seats are matched by place code only; a buyer without one has no area dealers.
+        $areaUsers = $placeIds === [] ? [] : AreaDealerAssignment::where('is_active', true)
+            ->whereIn('place_code_id', $placeIds)
+            ->pluck('user_id')
+            ->all();
         $snapshot['recipient_overrides'] = $this->policies->recipientOverrides([$buyer->id, ...$snapshot['uplines'], ...array_column($snapshot['referral_replacements'], 'user_id'), ...$areaUsers]);
         if ($event === 'approval') {
             $preview = $this->calculate($order, $buyer, $snapshot);
@@ -299,28 +282,20 @@ final class CommissionPosting
         $areaPool = CommissionPolicy::rate($rules, 'area_dealer_pool')->of($cash, 'half_up');
         $areaRemaining = $areaPool;
         $geography = $snapshot['geography'];
-        $path = [];
         foreach (['division', 'district', 'upazila', 'union'] as $level) {
-            $path[$level] = $geography[$level] ?? null;
             $rate = $areaPool > 0 ? (string) $rules['area_dealer_pool']['parameters'][$level.'_share_pct'] : '0.00';
             $share = min($areaRemaining, Percentage::from($rate)->of($cash, 'half_up'));
             $areaRemaining -= $share;
             $placeId = $geography['place_ids'][$level] ?? null;
             $placeCode = $geography['codes'][$level] ?? null;
-            $assignments = collect();
-            if ($placeId) {
-                $assignments = AreaDealerAssignment::where('level', $level)
+            // Only a seat holding this exact place code earns the share. No place code
+            // (or no seat) sends it to the company's geographic reserve below.
+            $assignments = $placeId
+                ? AreaDealerAssignment::where('level', $level)
                     ->where('is_active', true)
                     ->where('place_code_id', $placeId)
-                    ->get();
-            }
-            if ($assignments->isEmpty() && ! collect($path)->contains(fn ($value): bool => trim((string) $value) === '')) {
-                $query = AreaDealerAssignment::where('level', $level)->where('is_active', true)->whereNull('place_code_id');
-                foreach ($path as $field => $value) {
-                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower(trim((string) $value))]);
-                }
-                $assignments = $query->get();
-            }
+                    ->get()
+                : collect();
             $assignment = $assignments->count() === 1 ? $assignments->first() : null;
             $id = $assignment?->user_id;
             $status = $recipient($id);

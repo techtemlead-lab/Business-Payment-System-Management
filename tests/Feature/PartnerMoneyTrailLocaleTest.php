@@ -10,6 +10,7 @@ use App\Domain\Payouts\ManualPayoutService;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -57,20 +58,20 @@ class PartnerMoneyTrailLocaleTest extends TestCase
     public function test_hold_release_journal_and_notice_use_partner_locale(): void
     {
         $admin = User::factory()->create(['role' => 'finance', 'status' => 'active']);
-        $area = User::factory()->create([
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $area = User::factory()->inPlace($rangpur)->create([
             'role' => 'dealer',
             'status' => 'active',
             'locale' => 'bn',
-            'division' => 'Rangpur',
         ]);
-        $buyer = User::factory()->create([
+        $buyer = User::factory()->inPlace($rangpur)->create([
             'role' => 'dealer',
             'status' => 'active',
-            'division' => 'Rangpur',
         ]);
         AreaDealerAssignment::create([
             'user_id' => $area->id,
             'level' => 'division',
+            'place_code_id' => $rangpur->id,
             'division' => 'Rangpur',
             'zone_name' => 'Rangpur',
             'monthly_quota' => '100',

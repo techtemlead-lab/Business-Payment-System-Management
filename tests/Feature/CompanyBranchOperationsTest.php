@@ -7,6 +7,7 @@ use App\Domain\Inventory\StockService;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -192,8 +193,7 @@ class CompanyBranchOperationsTest extends TestCase
             ->post('/commands/branches', [
                 'code' => 'SYL-01',
                 'name' => 'Sylhet Hub',
-                'division' => 'Sylhet',
-                'district' => 'Sylhet',
+                'place_code' => PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Sylhet']))->create(['name' => 'Sylhet'])->code,
                 'is_active' => true,
                 'is_delivery_point' => true,
                 'is_stock_hub' => true,

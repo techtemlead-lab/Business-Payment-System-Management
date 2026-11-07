@@ -2,9 +2,11 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Geography\PlaceTree;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
@@ -65,15 +67,17 @@ final class BranchOperations
                 throw ValidationException::withMessages(['code' => __('portal.err_branch_code_taken')]);
             }
 
+            $place = $this->branchPlace($data, $branch);
+            $names = app(PlaceTree::class)->namesDownTo($place);
             $payload = [
                 'code' => $code,
                 'name' => trim($data['name']),
-                'division' => $data['division'] ?? null,
-                'district' => $data['district'] ?? null,
-                'upazila' => $data['upazila'] ?? null,
+                'division' => $names['division'] ?? null,
+                'district' => $names['district'] ?? null,
+                'upazila' => $names['upazila'] ?? null,
                 'address' => $data['address'] ?? null,
                 'phone' => $data['phone'] ?? null,
-                'place_code_id' => $data['place_code_id'] ?? null,
+                'place_code_id' => $place->id,
                 'latitude' => $data['latitude'] ?? null,
                 'longitude' => $data['longitude'] ?? null,
                 'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : true,
@@ -96,6 +100,24 @@ final class BranchOperations
 
             return $branch->refresh();
         });
+    }
+
+    /**
+     * Every branch must sit on an active place code. A typed code wins; an API may send the
+     * place code id; an edit that sends neither keeps the branch's current code.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function branchPlace(array $data, ?CompanyBranch $branch): PlaceCode
+    {
+        $typed = trim((string) ($data['place_code'] ?? ''));
+        if ($typed !== '') {
+            return PlaceTree::requirePlace($typed);
+        }
+        $placeId = $data['place_code_id'] ?? (array_key_exists('place_code_id', $data) ? null : $branch?->place_code_id);
+        $existing = $placeId !== null ? PlaceCode::query()->find((int) $placeId) : null;
+
+        return PlaceTree::requirePlace($existing?->code);
     }
 
     /**
@@ -159,7 +181,7 @@ final class BranchOperations
     public function deleteBranch(User $actor, CompanyBranch $branch): void
     {
         abort_unless($actor->owner() || $actor->allows('accounts') || $actor->allows('inventory'), 403);
-        if ($branch->code === 'HO-PIRGANJ') {
+        if ($branch->is_head_office) {
             throw ValidationException::withMessages(['branch' => __('portal.err_branch_head_office')]);
         }
 
@@ -461,7 +483,7 @@ final class BranchOperations
             }
         }
 
-        return $branches->first(fn (CompanyBranch $branch): bool => $branch->code === 'HO-PIRGANJ')
+        return $branches->first(fn (CompanyBranch $branch): bool => (bool) $branch->is_head_office)
             ?? $branches->first(fn (CompanyBranch $branch): bool => str_starts_with(mb_strtolower($branch->name), 'head office'))
             ?? $branches->first();
     }

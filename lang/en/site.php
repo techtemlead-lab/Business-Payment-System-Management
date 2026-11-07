@@ -554,7 +554,7 @@ Questions about these terms, partnership rules or the website:
     'side_banner_1_slide3_alt' => 'Madina Daily Immunity & Vitality Boosters',
     'side_banner_2_slide1_alt' => 'Madina Authorized Dealer Network - Nationwide Distribution',
     'side_banner_2_slide2_alt' => 'Madina Natural Health Care & Physiotherapy Center',
-    'side_banner_2_slide3_alt' => 'Madina Authorized Partner Pharmacy Outlets Across All 64 Districts',
+    'side_banner_2_slide3_alt' => 'Madina Authorized Partner Pharmacy Outlets',
     'footer_address' => 'Thana Road, Pirganj 5470, Rangpur',
     'testimonial_role_customer' => 'Customer',
     'testimonial_role_dealer' => 'Dealer',
@@ -567,4 +567,5 @@ Questions about these terms, partnership rules or the website:
     'feedback_no_html' => 'Please write plain text only. Web code like <b> or <script> is not allowed.',
     'partner_help_title' => 'Growing, together.',
     'partner_help_body' => 'One Madina family.',
+    'home_title_tagline' => 'Products & Dealer Network',
 ];

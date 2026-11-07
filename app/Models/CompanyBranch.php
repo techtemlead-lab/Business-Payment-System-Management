@@ -27,11 +27,13 @@ class CompanyBranch extends Model
             'is_active' => 'boolean',
             'is_delivery_point' => 'boolean',
             'is_stock_hub' => 'boolean',
+            'is_head_office' => 'boolean',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
         ];
     }
 
+    /** @return BelongsTo<PlaceCode, $this> */
     public function placeCode(): BelongsTo
     {
         return $this->belongsTo(PlaceCode::class);
@@ -61,7 +63,7 @@ class CompanyBranch extends Model
      * @return array{
      *   id:int,code:string,name:string,division:?string,district:?string,upazila:?string,
      *   address:?string,phone:?string,is_active:bool,is_delivery_point:bool,is_stock_hub:bool,
-     *   latitude:?string,longitude:?string,place_code_id:?int
+     *   latitude:?string,longitude:?string,place_code_id:?int,place_code:?string,is_head_office:bool
      * }
      */
     public function summary(): array
@@ -81,6 +83,8 @@ class CompanyBranch extends Model
             'latitude' => $this->latitude !== null ? (string) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (string) $this->longitude : null,
             'place_code_id' => $this->place_code_id,
+            'place_code' => $this->relationLoaded('placeCode') ? $this->placeCode?->code : null,
+            'is_head_office' => (bool) $this->is_head_office,
         ];
     }
 }

@@ -12,12 +12,34 @@ final class SiteChrome
      * language-file default or the Website CMS factory string. Intentional CMS
      * edits (any locale) win in every language.
      */
+    /**
+     * Owner text that has its own Bangla box in the website editor.
+     *
+     * Bangla visitors see the Bangla box when it is filled. Otherwise they
+     * get the same rule as text(): an owner edit is shown as written, and
+     * untouched factory text shows the built-in Bangla default.
+     */
+    public static function ownerText(string $key, ?string $custom, ?string $customBangla): string
+    {
+        $bangla = trim((string) $customBangla);
+        if (app()->getLocale() === 'bn' && $bangla !== '') {
+            return $bangla;
+        }
+
+        return self::text($key, $custom);
+    }
+
     public static function text(string $key, ?string $custom = null): string
     {
         $translated = (string) __('site.'.$key);
         $custom = $custom !== null ? trim((string) $custom) : '';
 
         if ($custom === '') {
+            return $translated;
+        }
+
+        // Old factory wording saved by an earlier editor save is not an owner edit.
+        if (in_array($custom, SiteCustomizationRetiredDefaults::all()[$key] ?? [], true)) {
             return $translated;
         }
 
