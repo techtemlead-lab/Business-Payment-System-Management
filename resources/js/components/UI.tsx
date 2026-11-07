@@ -864,9 +864,14 @@ export function Pagination({page}:{page?:Row}){
   </nav>
  );
 }
+/** How long the closing fade of a dialog lasts; keep in step with portalModalOut in dashboard CSS. */
+const MODAL_CLOSE_MS=160;
 export function Modal({title,onClose,children}:{title:string,onClose:()=>void,children:React.ReactNode}){
  const translate=useT();
  const ref=useRef<HTMLDialogElement>(null);
+ const [closing,setClosing]=useState(false);
+ const onCloseRef=useRef(onClose);
+ onCloseRef.current=onClose;
  useEffect(()=>{
   const dialog=ref.current;
   dialog?.showModal();
@@ -874,16 +879,34 @@ export function Modal({title,onClose,children}:{title:string,onClose:()=>void,ch
   dialog?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus();
   return ()=>{dialog?.close();previous?.focus?.()};
  },[]);
+ useEffect(()=>{
+  if(!closing){
+   return;
+  }
+  const timer=window.setTimeout(()=>onCloseRef.current(),MODAL_CLOSE_MS);
+  return ()=>window.clearTimeout(timer);
+ },[closing]);
+ /** Close button, Esc and a click outside fade the dialog out first; reduced motion closes at once. */
+ const requestClose=()=>{
+  if(closing){
+   return;
+  }
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+   onClose();
+   return;
+  }
+  setClosing(true);
+ };
  return (
   <dialog
    ref={ref}
-   className="portal-modal"
-   onCancel={onClose}
-   onClick={e=>{if(e.target===ref.current)onClose()}}
+   className={`portal-modal${closing?' is-closing':''}`}
+   onCancel={e=>{e.preventDefault();requestClose()}}
+   onClick={e=>{if(e.target===ref.current)requestClose()}}
   >
    <div className="modal-heading">
     <h2>{title}</h2>
-    <button type="button" aria-label={translate('portal','close_dialog')} title={translate('portal','close_dialog')} className="icon-button" onClick={onClose}><X/></button>
+    <button type="button" aria-label={translate('portal','close_dialog')} title={translate('portal','close_dialog')} className="icon-button" onClick={requestClose}><X/></button>
    </div>
    <div className="modal-body">{children}</div>
   </dialog>

@@ -10,6 +10,7 @@
 @import './screens-cleanup.css';
 @import './screens-office.css';
 @import './screens-auth.css';
+@import './screens-motion.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
 /* Bangla digits ০-৯ come from Noto Sans Bengali, where every digit has the same width, so
@@ -249,7 +250,7 @@ body{font-family:var(--ds-font);background:var(--ds-bg)}
 .app-shell .sidebar.sidebar-premium .nav-section{margin:0;padding:0;border:0}
 .app-shell .nav-section-toggle{width:100%;display:flex;align-items:center;gap:6px;min-height:28px;padding:3px 6px;border:0;border-radius:6px;background:transparent;color:#f3ead6;font:inherit;font-size:12px;font-weight:600;line-height:1.15;text-align:left;cursor:pointer}
 .app-shell .nav-section-toggle>span{flex:1;min-width:0}
-.app-shell .nav-section-toggle .nav-section-badge{margin-left:0}
+.app-shell .nav-section-toggle .nav-section-badge{margin-left:0;flex:0 0 auto}
 .app-shell .nav-section-toggle:hover{background:#ffffff14}
 .app-shell .nav-section-toggle .nav-chevron{margin-left:auto;flex-shrink:0;transition:transform .16s ease}
 .app-shell .nav-section.is-open>.nav-section-toggle{background:rgba(248,241,231,.1)}
@@ -911,6 +912,10 @@ dialog.portal-modal::backdrop{
   .app-shell .order-filters select.order-status-select{width:100%;min-width:0;padding:0 18px 0 8px;font-size:12px}
   .app-shell .order-filters .order-dates{grid-column:1 / -1;width:100%;justify-content:center}
   .app-shell .order-filters .order-filter-actions{grid-column:1 / -1;width:100%;margin-left:0;justify-content:center}
+  /* Same filter bar inside a plain panel (ledger, benefits fund): wrap instead of running off the screen */
+  .app-shell .panel>form.filter-bar.order-filters{flex-wrap:wrap;gap:8px}
+  .app-shell .panel>form.filter-bar.order-filters>.order-search{flex:1 1 100%;width:100%}
+  .app-shell .panel>form.filter-bar.order-filters>select{flex:1 1 140px;width:auto;max-width:none}
 }
 .metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
 @media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
@@ -2148,6 +2153,10 @@ dialog.portal-modal::backdrop{
 .catalog-toolbar-filters select.catalog-sort{min-width:168px}
 @media (max-width:720px){.pcm-grid,.pcm-price-line{grid-template-columns:1fr}.pcm-price-mrp{max-width:none}}
 .treasury-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}
+/* Exactly four figures: 2 x 2, or one row on wide screens, never three plus a lonely fourth */
+.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:1200px){.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:600px){.treasury-kpi-grid:has(>:nth-child(4):last-child){grid-template-columns:1fr}}
 .treasury-kpi-card{min-width:0;container-type:inline-size}
 .treasury-kpi-amount{max-width:100%;font-weight:800;line-height:1.15;letter-spacing:-.03em;font-variant-numeric:tabular-nums;font-size:clamp(13px,1.35vw,24px);overflow-wrap:anywhere}
 .treasury-kpi-card .treasury-kpi-amount{font-size:clamp(13px,5.4cqi,24px)}
@@ -2372,7 +2381,7 @@ html[data-theme="dark"] .admin-work-queue li a{background:#0f1b2d;border-color:#
 html[data-theme="dark"] .admin-work-queue li a:hover{background:#16233a;border-color:#7c83ff}
 html[data-theme="dark"] .admin-month-strip>div{background:#0f1b2d;border-color:#22324a}
 html[data-theme="dark"] .admin-month-strip strong{color:#a5b4fc}
-html[data-theme="dark"] .admin-trend-chart .bar{fill:#7c83ff}
+html[data-theme="dark"] .admin-trend-chart .bar{fill:var(--ds-brand)}
 html[data-theme="dark"] .admin-trend-chart .bar.empty{fill:#22324a}
 html[data-theme="dark"] .admin-trend-chart text{fill:#94a3b8}
 
@@ -2485,7 +2494,7 @@ html[data-theme="dark"] .subdealer-shell{--ds-side-bg:#0c1f19}
 
 /* ---- Top bar ----------------------------------------------------------- */
 .app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header{height:60px;min-height:60px;max-width:none;margin:0;padding:0 24px;gap:12px;border-bottom:1px solid var(--ds-line);background:transparent!important}
-.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header::before{background:color-mix(in srgb,var(--ds-surface) 90%,transparent)}
+.app-shell:is(.owner-shell,.company-shell,.dealer-shell,.subdealer-shell) .workspace-header::before{background:color-mix(in srgb,var(--ds-surface) 95%,transparent)}
 .app-shell .breadcrumb{gap:8px;font-size:var(--ds-fs-sm);color:var(--ds-text-muted)}
 .app-shell .breadcrumb>span:nth-of-type(2){color:var(--ds-line-strong)}
 .app-shell .breadcrumb b{color:var(--ds-text);font-weight:600}
@@ -2934,6 +2943,8 @@ html[data-theme="dark"] .app-shell :is(.portal-workspace-body,dialog) :is([style
 .app-shell .hub .panel-heading{flex-wrap:wrap}
 .app-shell .panel-heading.is-top{align-items:flex-start}
 .app-shell .hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:var(--ds-s-4)}
+/* Rank ladder has five steps: one row of five on wide screens instead of four plus one */
+@media(min-width:1280px){.app-shell .hub-grid:has(>.rk-tier:nth-child(5):last-child){grid-template-columns:repeat(5,minmax(0,1fr))}}
 .app-shell .hub-grid.is-narrow{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:var(--ds-s-3)}
 .app-shell .hub-grid.is-wide{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
 .app-shell .hub-grid.is-xwide{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:var(--ds-s-5)}

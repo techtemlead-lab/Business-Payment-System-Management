@@ -69,3 +69,7 @@
   .pp-bar>i{transition:none}
   .pp-skeleton-block i{animation:none}
 }
+
+/* Sub-dealer salary and tour fund rows on the home Targets card: an amount, no bar. */
+.partner-home-target-amount .partner-home-target-top span{font-size:var(--ds-fs-md,15px);font-weight:700;color:var(--ds-text)}
+.partner-home-target-amount .partner-home-target-top b{display:inline-flex;align-items:center;gap:6px}
