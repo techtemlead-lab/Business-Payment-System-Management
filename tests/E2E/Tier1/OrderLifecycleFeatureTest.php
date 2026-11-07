@@ -406,7 +406,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
     }
 
     /**
-     * F07: Staff approves unpaid order when finance credit authorization is granted.
+     * F07: The retired credit flag sent by an old client cannot approve an unpaid order.
      */
     public function test_credit_is_retired_an_unpaid_order_cannot_be_approved_even_with_the_credit_flag(): void
     {
@@ -431,7 +431,7 @@ class OrderLifecycleFeatureTest extends E2ETestCase
     }
 
     /**
-     * F07: Approving unpaid order without credit authorization fails.
+     * F07: Approving an unpaid order fails.
      */
     public function test_approving_unpaid_order_without_credit_fails(): void
     {
@@ -442,7 +442,6 @@ class OrderLifecycleFeatureTest extends E2ETestCase
         $response = $this->actingAs($staff)->postJson('/api/v1/orders/'.$order->id.'/decision', [
             'status' => 'approved',
             'reason' => 'Attempt approval without credit',
-            'allow_credit' => false,
         ]);
 
         $response->assertUnprocessable();

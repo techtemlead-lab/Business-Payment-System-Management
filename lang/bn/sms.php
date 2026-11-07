@@ -18,7 +18,6 @@ return [
     'payment_reviewed' => 'মদিনা: অর্ডার :number-এর পেমেন্ট :outcome হয়েছে।',
     'shipment_dispatched' => 'মদিনা: অর্ডার :number :courier দিয়ে পাঠানো হয়েছে। ট্র্যাকিং: :tracking।',
     'delivery_confirmed' => 'মদিনা: অর্ডার :number-এর ডেলিভারি নিশ্চিত হয়েছে।',
-    'due_adjustment' => 'মদিনা: অর্ডার :number-এর টাকার হিসাব ঠিক করা :decision হয়েছে (:reference)। এখন পরিশোধ বাকি ৳:amount।',
     'commission_matured' => 'মদিনা: অপেক্ষার সময় শেষ। ৳:amount কমিশন এখন ওয়ালেট থেকে তুলতে পারবেন।',
     'reward_credited' => 'মদিনা: :program-এর জন্য ৳:amount জমা হয়েছে। আপনার আয় দেখুন।',
     'commission_released' => 'মদিনা: আটকে থাকা ৳:amount :category আপনার ওয়ালেটে ছাড়া হয়েছে।',

@@ -26,6 +26,6 @@ class DecideOrderRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['status' => 'required|in:approved,held,rejected', 'reason' => 'required|string|max:1000', 'allow_credit' => 'sometimes|boolean', 'referral_replacement_1' => 'nullable|integer|exists:users,id', 'referral_replacement_2' => 'nullable|integer|exists:users,id', 'referral_replacement_3' => 'nullable|integer|exists:users,id'];
+        return ['status' => 'required|in:approved,held,rejected', 'reason' => 'required|string|max:1000', 'referral_replacement_1' => 'nullable|integer|exists:users,id', 'referral_replacement_2' => 'nullable|integer|exists:users,id', 'referral_replacement_3' => 'nullable|integer|exists:users,id'];
     }
 }

@@ -219,7 +219,6 @@ final class OrderInvoice
                 'due' => $order->outstanding(),
                 'total_display' => Money::grouped((string) $order->total),
                 'paid_display' => Money::grouped(Money::decimal($paidCents)),
-                'credit_display' => Money::grouped((string) ($order->due_credit ?? '0.00')),
                 'due_display' => Money::grouped($order->outstanding()),
                 'payment_state' => $paymentState,
                 'payment_state_label' => __('portal.inv_payment_'.$paymentState),
