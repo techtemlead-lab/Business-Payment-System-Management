@@ -261,7 +261,8 @@ final class BranchOperations
      *   branch_id?:int,
      *   kind?:string,
      *   reason_code?:string,
-     *   expires_on?:string|null
+     *   expires_on?:string|null,
+     *   batch_number?:string|null
      * }  $data
      */
     public function adjustStock(User $actor, array $data): Product
@@ -298,6 +299,10 @@ final class BranchOperations
             ) {
                 $productUpdates['expires_on'] = $data['expires_on'];
             }
+            $batchNumber = trim((string) ($data['batch_number'] ?? ''));
+            if ($kind === self::KindProductIn && $batchNumber !== '') {
+                $productUpdates['batch_number'] = $batchNumber;
+            }
             $product->forceFill($productUpdates)->save();
 
             DB::table('stock_movements')->insert([
@@ -317,6 +322,7 @@ final class BranchOperations
                 'reason' => $reason,
                 'branch_id' => $branch->id,
                 'branch_code' => $branch->code,
+                ...($batchNumber !== '' && $kind === self::KindProductIn ? ['batch_number' => $batchNumber] : []),
             ]);
             $this->notifications->recordChange($product, $previousCompany, $previousCompany > 0 && ! $product->is_stock_paused);
 

@@ -21,6 +21,7 @@ type StockProduct = {
     sub_dealer_price?: string | number | null;
     sub_dealer_discount_pct?: string | null;
     expires_on?: string | null;
+    batch_number?: string | null;
     stock?: number;
     branch_stock?: number;
     company_stock?: number;
@@ -276,7 +277,7 @@ export default function StockOnHand({
                         title: translate('portal', 'col_expiry'),
                         sortable: true,
                         sortValue: (p: ProductStockRow) => p.expires_on || '',
-                        render: (p: ProductStockRow) => p.expires_on ? date(p.expires_on) : '—',
+                        render: (p: ProductStockRow) => <>{p.expires_on ? date(p.expires_on) : '—'}{p.batch_number ? <small className="cell-sub">{translate('portal', 'col_batch_short', { batch: p.batch_number })}</small> : null}</>,
                     },
                     {
                         key: 'available_units',
