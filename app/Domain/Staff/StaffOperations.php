@@ -3,6 +3,7 @@
 namespace App\Domain\Staff;
 
 use App\Domain\Accounts\AccountPhoneRules;
+use App\Domain\Accounts\PartnerAge;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
@@ -134,6 +135,9 @@ final class StaffOperations
                 if ($phones->holders($data['phone']) !== []) {
                     throw ValidationException::withMessages(['phone' => __('portal.acct_val_phone_taken')]);
                 }
+                if (filled($data['date_of_birth'] ?? null) && ! PartnerAge::isAdult($data['date_of_birth'])) {
+                    throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => PartnerAge::MinimumYears])]);
+                }
                 $sponsorId = $data['sponsor_id'] ?? null;
                 if (empty($sponsorId) && ! empty($data['sponsor_code'])) {
                     $sponsorId = User::where('dealer_code', $data['sponsor_code'])->where('role', 'dealer')->where('status', 'active')->value('id');
@@ -154,7 +158,8 @@ final class StaffOperations
                     'locale' => $applicantLocale,
                     'division' => $data['division'], 'district' => $data['district'],
                     'profile' => ['upazila' => $data['upazila'] ?? null, 'union' => $data['union'] ?? null, 'area_code' => $data['area_code'] ?? null,
-                        'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null]]);
+                        'application_source' => $application->source ?? 'staff', 'application_message' => $data['message'] ?? null,
+                        ...(filled($data['date_of_birth'] ?? null) ? ['date_of_birth' => $data['date_of_birth']] : [])]]);
                 $user->save();
                 ReferralTreePath::attachUser($user->id, $user->sponsor_id);
                 DealerRank::firstOrCreate(['user_id' => $user->id]);

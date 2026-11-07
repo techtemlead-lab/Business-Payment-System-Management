@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
@@ -503,6 +504,7 @@ class PublicController extends Controller
             'name' => 'required|string|max:150',
             'email' => 'required|email|max:254',
             'phone' => 'required|string|max:30',
+            'date_of_birth' => ['required', 'date_format:Y-m-d', PartnerAge::rule()],
             'role' => ['required', Rule::in(['dealer', 'sub_dealer'])],
             'division' => 'required|string|max:80',
             'district' => 'required|string|max:80',

@@ -17,11 +17,25 @@ use Illuminate\Validation\ValidationException;
 
 class ManualPayoutService
 {
+    /** @param array<string, mixed> $data */
     public function request(User $actor, array $data): string
+    {
+        return $this->submit($actor, $data)['id'];
+    }
+
+    /**
+     * Creates the withdrawal request, or returns the existing one when the same
+     * idempotency key is sent again. `created` is false for such a replay, so
+     * callers can skip side effects (like the partner SMS) that already happened.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{id: string, created: bool}
+     */
+    public function submit(User $actor, array $data): array
     {
         CommissionWallet::requireActive();
 
-        return DB::transaction(function () use ($actor, $data): string {
+        return DB::transaction(function () use ($actor, $data): array {
             CommissionWallet::lock();
             $actor = User::whereKey($actor->id)->lockForUpdate()->firstOrFail();
             abort_unless($actor->status === 'active' && in_array($actor->role, ['dealer', 'sub_dealer'], true), 403);
@@ -30,7 +44,7 @@ class ManualPayoutService
             if ($existing) {
                 abort_if(Money::cents($existing->amount) !== $amount || $existing->channel !== $data['channel'] || decrypt($existing->destination) !== trim($data['destination']), 409, __('portal.err_idem_withdrawal_key'));
 
-                return $existing->id;
+                return ['id' => $existing->id, 'created' => false];
             }
             $minimum = app(FinanceSettings::class)->withdrawalMinimum()['amount'];
             if ($amount < Money::cents($minimum)) {
@@ -72,7 +86,7 @@ class ManualPayoutService
                 $actor->id
             );
 
-            return $id;
+            return ['id' => $id, 'created' => true];
         }, 3);
     }
 

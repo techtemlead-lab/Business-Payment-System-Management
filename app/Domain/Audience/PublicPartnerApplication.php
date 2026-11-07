@@ -31,6 +31,7 @@ final class PublicPartnerApplication
                     'name' => $data['name'],
                     'email' => $email,
                     'phone' => $data['phone'],
+                    'date_of_birth' => $data['date_of_birth'] ?? null,
                     'role' => $data['role'],
                     'division' => $data['division'],
                     'district' => $data['district'],

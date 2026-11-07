@@ -27,16 +27,19 @@ class WithdrawalController extends Controller
         CommissionWallet::requireActive();
         $data = $r->validate(['amount' => ['required', 'regex:/^\d{1,8}(\.\d{1,2})?$/D'], 'channel' => 'required|in:'.implode(',', PaymentAccounts::channels()),
             'destination' => 'required|string|min:6|max:200', 'idempotency_key' => 'required|uuid']);
-        $id = $service->request($r->user(), $data);
-        $user = $r->user();
-        app(PartnerEventSms::class)->send(
-            $user,
-            'withdrawal.requested',
-            __('sms.withdrawal_requested', [
-                'amount' => $data['amount'],
-                'channel' => $data['channel'],
-            ], $user->preferredLocale()),
-        );
+        ['id' => $id, 'created' => $created] = $service->submit($r->user(), $data);
+        // A replayed request (same idempotency key) already sent its SMS the first time.
+        if ($created) {
+            $user = $r->user();
+            app(PartnerEventSms::class)->send(
+                $user,
+                'withdrawal.requested',
+                __('sms.withdrawal_requested', [
+                    'amount' => $data['amount'],
+                    'channel' => $data['channel'],
+                ], $user->preferredLocale()),
+            );
+        }
         if ($r->expectsJson()) {
             return response()->json(['data' => ['id' => $id, 'status' => 'requested']], 201);
         }
