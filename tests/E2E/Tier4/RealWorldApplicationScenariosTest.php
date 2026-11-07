@@ -242,7 +242,6 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'New recruit introductory terms approved',
-            'allow_credit' => true,
         ])->assertOk();
 
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/dispatch", [
@@ -314,7 +313,6 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved Dhaka order',
-            'allow_credit' => true,
         ])->assertOk();
 
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/dispatch", [
