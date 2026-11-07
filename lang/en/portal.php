@@ -6672,4 +6672,5 @@ return [
     'acct_export_contacts' => 'Phone numbers and emails',
     'acct_export_contacts_full' => 'Shown in full',
     'acct_export_contacts_masked' => 'Hidden: only the last 4 digits of each phone. Staff who may edit accounts get the full list.',
+    'event_training_quiz_limit_changed' => 'Quiz tries per hour changed',
 ];

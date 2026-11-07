@@ -6672,4 +6672,5 @@ return [
     'acct_export_contacts' => 'ফোন নম্বর ও ইমেইল',
     'acct_export_contacts_full' => 'পুরোটা দেখানো হয়েছে',
     'acct_export_contacts_masked' => 'লুকানো: প্রতিটি ফোনের শুধু শেষ ৪টি সংখ্যা দেখা যাবে। যাঁরা অ্যাকাউন্ট সম্পাদনা করতে পারেন, তাঁরা পুরো তালিকা পান।',
+    'event_training_quiz_limit_changed' => 'ঘণ্টায় কুইজ দেওয়ার সংখ্যা বদলানো হয়েছে',
 ];
