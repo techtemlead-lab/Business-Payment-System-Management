@@ -138,11 +138,11 @@ $operations = function (): void {
     Route::get('/views/{section}', [OperationsController::class, 'index']);
 };
 $staffPortal = EnsureStaffPortalHost::class;
-Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal])->group($operations);
-Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1', $staffPortal])->group($operations);
+Route::prefix('commands/operations')->middleware(['auth', 'active', 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);
+Route::prefix('api/v1/operations')->middleware(['auth', 'active', BackendJson::class, 'throttle:60,1', $staffPortal, 'agreement', 'authenticator'])->group($operations);
 
 foreach (['commands' => 'data-imports.', 'api/v1' => 'api.data-imports.'] as $prefix => $name) {
-    Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', $staffPortal, ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
+    Route::prefix($prefix.'/operations/imports')->name($name)->middleware(['auth', 'active', 'throttle:20,1', $staffPortal, 'agreement', 'authenticator', ...($prefix === 'api/v1' ? [BackendJson::class] : [])])->group(function (): void {
         $controller = DataImportController::class;
         Route::get('/', [$controller, 'index'])->name('index');
         Route::get('/templates/{type}', [$controller, 'template'])->name('template');

@@ -5,6 +5,7 @@ import {
     GitBranch, Coins, BadgeCheck, Target, Bike, TrendingUp, Share2, Copy, Check, FileBarChart2,
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
+import { PartnerProgressButton } from './PartnerProgress';
 import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, humanize, money, type Row, number } from './UI';
 import { useT } from '../shared/i18n/t';
@@ -237,9 +238,12 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
 
             {targets.length > 0 && (
                 <section className="ph-card ph-targets" data-tour="home-targets">
-                    <div className="ph-card-head">
-                        <h3>{translate('portal', 'targets')}</h3>
-                        <p>{translate('portal', 'targets_hint')}</p>
+                    <div className="ph-card-head ph-targets-head">
+                        <div>
+                            <h3>{translate('portal', 'targets')}</h3>
+                            <p>{translate('portal', 'targets_hint')}</p>
+                        </div>
+                        <PartnerProgressButton />
                     </div>
                     <div className="partner-home-target-list">
                         {targets.map((target) => (

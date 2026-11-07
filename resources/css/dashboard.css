@@ -3,11 +3,13 @@
 @import './screens-ops.css';
 @import './screens-chat.css';
 @import './screens-partner-home.css';
+@import './screens-partner-progress.css';
 @import './screens-topsellers.css';
 @import './screens-agreement.css';
 @import './screens-training.css';
 @import './screens-cleanup.css';
 @import './screens-office.css';
+@import './screens-auth.css';
 @import './screens-motion.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');

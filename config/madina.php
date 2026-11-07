@@ -72,6 +72,9 @@ return [
         'enabled' => env('MADINA_LOGIN_OTP', true),
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
     ],
+    // Browser push services a subscription may point at (Chrome/Android/Samsung, Firefox,
+    // Edge/Windows, Safari). Anything else is refused, so the server never posts to other hosts.
+    'web_push_hosts' => ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'],
     'roles' => [
         'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat'],
         'md' => ['orders', 'finance', 'reports', 'audit'],
