@@ -4,6 +4,8 @@ namespace App\Domain\Support;
 
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\DashboardManagement;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,6 +18,12 @@ final class SupportTickets
 
     /** @var list<string> */
     public const Statuses = ['pending', 'in_progress', 'resolved'];
+
+    /** The support desk filter value (?status=overdue) for tickets waiting too long. */
+    public const OverdueFilter = 'overdue';
+
+    /** Hours a ticket may wait for the office before it is marked overdue, when the owner has not changed it. */
+    public const DefaultOverdueHours = 24;
 
     /**
      * @return list<array<string, mixed>>
@@ -32,30 +40,81 @@ final class SupportTickets
     }
 
     /**
-     * @return array{tickets: list<array<string, mixed>>, filters: array{status: ?string}}
+     * Every ticket for the support desk, newest first, with how long each open ticket has
+     * waited for the office and whether that is past the owner's limit.
+     *
+     * @return array{tickets: list<array<string, mixed>>, filters: array{status: ?string}, overdue_count: int, overdue_hours: int}
      */
     public function adminIndex(?string $status = null, int $limit = 50): array
     {
+        $hours = self::overdueHours();
+        $now = CarbonImmutable::now('UTC');
+        $cutoff = $now->subHours($hours);
         $rows = DB::table('support_tickets')
             ->join('users', 'users.id', '=', 'support_tickets.user_id')
             ->when($status && in_array($status, self::Statuses, true), fn ($q) => $q->where('support_tickets.status', $status))
+            ->when($status === self::OverdueFilter, fn ($q) => $q->whereRaw('('.self::waitingSinceSql().') < ?', [$cutoff->toDateTimeString()]))
             ->latest('support_tickets.created_at')
             ->limit($limit)
-            ->get([
+            ->select([
                 'support_tickets.*',
                 'users.name as user_name',
                 'users.dealer_code',
                 'users.role as user_role',
             ])
-            ->map(fn ($row) => [
-                ...$this->mapTicket($row),
-                'user_name' => $row->user_name,
-                'dealer_code' => $row->dealer_code,
-                'user_role' => $row->user_role,
-            ])
+            ->selectRaw('('.self::waitingSinceSql().') AS waiting_since')
+            ->get()
+            ->map(function ($row) use ($now, $cutoff): array {
+                $waitingSince = $row->waiting_since ? CarbonImmutable::parse((string) $row->waiting_since, 'UTC') : null;
+
+                return [
+                    ...$this->mapTicket($row),
+                    'user_name' => $row->user_name,
+                    'dealer_code' => $row->dealer_code,
+                    'user_role' => $row->user_role,
+                    'waiting_since' => $waitingSince?->toIso8601String(),
+                    'waiting_hours' => $waitingSince ? (int) floor($waitingSince->diffInMinutes($now) / 60) : null,
+                    'overdue' => $waitingSince !== null && $waitingSince->lessThan($cutoff),
+                ];
+            })
             ->all();
 
-        return ['tickets' => $rows, 'filters' => ['status' => $status]];
+        return ['tickets' => $rows, 'filters' => ['status' => $status], 'overdue_count' => $this->overdueCount(), 'overdue_hours' => $hours];
+    }
+
+    /**
+     * Hours a ticket may wait for the office before it counts as overdue (owner setting, default 24).
+     */
+    public static function overdueHours(): int
+    {
+        $hours = (int) (DashboardManagement::get()['support_overdue_hours'] ?? self::DefaultOverdueHours);
+
+        return $hours > 0 ? $hours : self::DefaultOverdueHours;
+    }
+
+    /**
+     * How many open tickets have waited for the office longer than the owner's limit.
+     */
+    public function overdueCount(): int
+    {
+        $cutoff = CarbonImmutable::now('UTC')->subHours(self::overdueHours())->toDateTimeString();
+
+        return DB::table('support_tickets')->whereRaw('('.self::waitingSinceSql().') < ?', [$cutoff])->count();
+    }
+
+    /**
+     * SQL for when the partner started waiting for the office: when the ticket was opened if no
+     * staff member has replied yet, otherwise the partner's first message after the last staff
+     * reply. NULL when the ticket is resolved or the office has the last word.
+     */
+    private static function waitingSinceSql(): string
+    {
+        $lastStaffReply = '(SELECT MAX(staff_reply.created_at) FROM support_ticket_replies staff_reply WHERE staff_reply.support_ticket_id = support_tickets.id AND staff_reply.is_staff = true)';
+
+        return "CASE WHEN support_tickets.status = 'resolved' THEN NULL"
+            ." WHEN {$lastStaffReply} IS NULL THEN support_tickets.created_at"
+            .' ELSE (SELECT MIN(partner_reply.created_at) FROM support_ticket_replies partner_reply WHERE partner_reply.support_ticket_id = support_tickets.id AND partner_reply.is_staff = false'
+            ." AND partner_reply.created_at > {$lastStaffReply}) END";
     }
 
     /**
