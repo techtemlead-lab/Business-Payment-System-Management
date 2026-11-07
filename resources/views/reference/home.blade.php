@@ -297,7 +297,7 @@
         <div class="ref-featured-tabs" role="tablist" aria-label="{{ __('site.product_category_filters') }}">
             @foreach($featuredCategoryTabs as $tab)
             <button type="button" class="ref-tab-btn {{ $loop->first ? 'is-active' : '' }}" role="tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-category-filter="{{ $tab['slug'] }}">
-                <span>{{ $tab['name'] }}</span>
+                <span>{{ $tab['slug'] === 'all' ? $chrome('all_products', $siteCustomization['catalog_all_products_label'] ?? null) : $tab['name'] }}</span>
                 <span class="ref-tab-count">{{ $tab['count'] }}</span>
             </button>
             @endforeach
