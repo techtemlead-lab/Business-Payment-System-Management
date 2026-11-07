@@ -11,6 +11,7 @@ import {
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
@@ -793,20 +794,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         >
                             <Compass size={19} />
                         </button>
-                        <Link
-                            href={base + '/notifications'}
-                            className="icon-button notice-bell"
-                            aria-label={translate('portal', 'notifications')}
-                            title={translate('portal', 'notifications')}
-                            data-tooltip={translate('portal', 'notifications')}
-                        >
-                            <Bell size={19} />
-                            {unreadCount > 0 && (
-                                <span className="notice-bell-count" aria-hidden="true">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </span>
-                            )}
-                        </Link>
+                        <NotificationBell base={base} unreadCount={unreadCount} />
                         <div className="profile-menu" ref={profileMenu}>
                             <button
                                 type="button"
