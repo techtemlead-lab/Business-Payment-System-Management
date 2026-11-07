@@ -31,7 +31,7 @@ import {
     sectionHref,
 } from '../shared/portalNav';
 
-function BranchWorkspaceSelect({ branches }: { branches: { view?: string; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
+function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_view_all?: boolean; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
     const translate = useT();
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
@@ -98,11 +98,13 @@ function BranchWorkspaceSelect({ branches }: { branches: { view?: string; active
             </button>
             {open && (
                 <ul className="branch-workspace-menu" role="listbox" aria-label={translate('portal', 'branch_select')}>
-                    <li>
-                        <button type="button" role="option" aria-selected={selectedId === 'all'} onClick={() => choose('all')}>
-                            {translate('portal', 'branch_view_all')}
-                        </button>
-                    </li>
+                    {branches.can_view_all && (
+                        <li>
+                            <button type="button" role="option" aria-selected={selectedId === 'all'} onClick={() => choose('all')}>
+                                {translate('portal', 'branch_view_all')}
+                            </button>
+                        </li>
+                    )}
                     {branches.branches.map((branch) => (
                         <li key={branch.id}>
                             <button type="button" role="option" aria-selected={selectedId === String(branch.id)} onClick={() => choose(String(branch.id))}>

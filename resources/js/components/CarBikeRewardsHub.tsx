@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ShieldCheck, Eye } from 'lucide-react';
-import { money, Table } from './UI';
+import { money, number, Table, Pagination, type Row } from './UI';
+import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
 
@@ -42,14 +43,25 @@ interface MilestoneRecord {
 }
 
 interface CarBikeRewardsHubProps {
-    bike_milestones: MilestoneRecord[];
-    car_milestones: MilestoneRecord[];
+    /** One server page (25 rows) of the tab on screen. */
+    milestones?: (Row & { data: MilestoneRecord[]; total: number }) | null;
+    milestone_type: 'bike' | 'car';
+    /** How many leaders are on each tab, over all pages. */
+    milestone_counts: Partial<Record<'bike' | 'car', number>>;
+    query: string;
     rule_params: any;
 }
 
-export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rule_params }: CarBikeRewardsHubProps) {
+export default function CarBikeRewardsHub({ milestones, milestone_type, milestone_counts, query, rule_params }: CarBikeRewardsHubProps) {
     const translate = useT();
-    const [activeTab, setActiveTab] = useState<'bike' | 'car'>('bike');
+    const { url } = usePage();
+    const activeTab = milestone_type;
+    // Switching tabs asks the server for that tab's first page, keeping the search words.
+    const setActiveTab = (type: 'bike' | 'car') => {
+        if (type === activeTab) return;
+        const path = new URL(url || '/', 'http://list.local').pathname;
+        router.get(path, { type, ...(query ? { q: query } : {}) }, { preserveState: true, preserveScroll: true, replace: true, only: ['data', 'filters'] });
+    };
     const [selectedCandidate, setSelectedCandidate] = useState<MilestoneRecord | null>(null);
     useEscape(selectedCandidate !== null, () => setSelectedCandidate(null));
 
@@ -60,7 +72,8 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
     const carTarget = policyAmount(rule_params?.car_target);
     const carCap = policyAmount(rule_params?.car_leg_cap);
 
-    const currentMilestones = activeTab === 'bike' ? bike_milestones : car_milestones;
+    const currentMilestones: MilestoneRecord[] = milestones?.data ?? [];
+    const currentTotal = Number(milestone_counts?.[activeTab] ?? milestones?.total ?? 0);
     const currentTarget = activeTab === 'bike' ? bikeTarget : carTarget;
     const currentCap = activeTab === 'bike' ? bikeCap : carCap;
     const progressPct = (m: MilestoneRecord) => currentTarget === null
@@ -163,7 +176,7 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                         </p>
                     </div>
                     <span className="hub-label tone-brand">
-                        {translate('portal', 'rw_registered', { count: String(currentMilestones.length) })}
+                        {translate('portal', 'rw_registered', { count: number(currentTotal) })}
                     </span>
                 </div>
 
@@ -280,10 +293,12 @@ export default function CarBikeRewardsHub({ bike_milestones, car_milestones, rul
                         },
                     ]}
                     data={currentMilestones}
-                    searchPlaceholder={translate('portal', 'search')}
-                    pageSize={15}
+                    searchable={false}
+                    totalCount={milestones?.total}
+                    extraTools={<ServerListSearch query={query} placeholder={translate('portal', 'search')} keep={{ type: activeTab }} />}
                     emptyMessage={translate('portal', 'rw_empty')}
                 />
+                <Pagination page={milestones ?? undefined} />
             </div>
 
             {/* Anti-Whale Branch Inspection Modal */}

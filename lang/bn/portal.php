@@ -6179,6 +6179,7 @@ return [
     'ops_head_office_open_branches' => 'শাখা খুলুন',
     'branch_perf_counted_note' => 'শুধু অনুমোদিত, পাঠানো ও পৌঁছে যাওয়া অর্ডার গোনা হয়। অপেক্ষায় থাকা, নাকচ করা ও বাতিল অর্ডার বাদ থাকে। মোট হিসাবে এই তারিখের সব অর্ডার আছে; তালিকায় শেষের ২০০টি দেখায়।',
     'branch_perf_own_branches_note' => 'আপনি শুধু নিজের ব্রাঞ্চের হিসাব দেখতে পারেন।',
+    'st_search_placeholder' => 'নাম বা কোড দিয়ে ডিলার বা লিডার খুঁজুন',
     'notice_panel_bell_unread' => 'নোটিশ, :countটি এখনো পড়া হয়নি',
     'notice_panel_mark_all' => 'সব পড়া হয়েছে',
     'notice_panel_close' => 'বন্ধ করুন',
