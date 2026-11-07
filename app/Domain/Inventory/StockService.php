@@ -20,7 +20,8 @@ final class StockService
      *   branch_id?: int,
      *   kind?: string,
      *   reason_code?: string,
-     *   expires_on?: string|null
+     *   expires_on?: string|null,
+     *   batch_number?: string|null
      * }  $data
      */
     public function adjust(User $actor, array $data): Product

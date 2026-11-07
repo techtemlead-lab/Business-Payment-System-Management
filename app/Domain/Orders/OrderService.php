@@ -63,6 +63,7 @@ class OrderService
                 $lineTotal = $price * $item['quantity'];
                 $total += $lineTotal;
                 $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'category_snapshot' => $product->category,
+                    'batch_number' => $product->batch_number, 'expires_on' => $product->expires_on?->toDateString(),
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {

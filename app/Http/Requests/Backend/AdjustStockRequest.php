@@ -47,6 +47,12 @@ class AdjustStockRequest extends FormRequest
                 'date',
                 'after_or_equal:'.now('Asia/Dhaka')->toDateString(),
             ],
+            'batch_number' => [
+                Rule::excludeIf($kind !== BranchOperations::KindProductIn),
+                'nullable',
+                'string',
+                'max:60',
+            ],
         ];
     }
 
