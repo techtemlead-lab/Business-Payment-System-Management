@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Domain\Content\TestimonialLabels;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
@@ -404,12 +405,14 @@ class PublicController extends Controller
     public function storeFeedback(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name' => 'required|string|max:150',
-            'role' => 'nullable|string|max:120',
-            'location' => 'nullable|string|max:120',
+            'name' => ['required', 'string', 'max:150', TestimonialLabels::NoHtmlRule],
+            'role' => ['nullable', 'string', 'max:120', TestimonialLabels::NoHtmlRule],
+            'location' => ['nullable', 'string', 'max:120', TestimonialLabels::NoHtmlRule],
             'rating' => 'required|integer|min:1|max:5',
-            'message' => 'required|string|min:20|max:2000',
+            'message' => ['required', 'string', 'min:20', 'max:2000', TestimonialLabels::NoHtmlRule],
             'website' => 'nullable|max:0',
+        ], [
+            '*.not_regex' => __('site.feedback_no_html'),
         ]);
         unset($data['website']);
 
@@ -421,8 +424,9 @@ class PublicController extends Controller
 
         $feedback = SiteFeedback::query()->create([
             'name' => $data['name'],
-            'role' => filled($data['role'] ?? null) ? $data['role'] : ($user?->role === 'dealer' ? 'Authorized Dealer Partner' : ($user?->role === 'sub_dealer' ? 'Sub-Dealer Partner' : 'Verified Client')),
-            'location' => filled($data['location'] ?? null) ? $data['location'] : 'Bangladesh',
+            // Left empty, the site shows "Customer"/"Dealer" and "Bangladesh" in the visitor's language.
+            'role' => trim((string) ($data['role'] ?? '')),
+            'location' => trim((string) ($data['location'] ?? '')),
             'rating' => (int) $data['rating'],
             'message' => $data['message'],
             'source' => $source,
@@ -431,7 +435,7 @@ class PublicController extends Controller
         ]);
 
         Audit::notifyAdminsAndStaff(
-            ['content', 'accounts'],
+            ['content'],
             __('portal.notice_admin_feedback_title'),
             __('portal.notice_admin_feedback_body', [
                 'name' => $feedback->name,

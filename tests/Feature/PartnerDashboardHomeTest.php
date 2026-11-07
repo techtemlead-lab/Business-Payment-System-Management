@@ -66,7 +66,7 @@ class PartnerDashboardHomeTest extends TestCase
 
         $this->assertSame('Green Care Pharmacy', $home['profile']['shop_name']);
         $this->assertSame('MNHC-501-000001', $home['profile']['area_code']);
-        $this->assertSame(['monthly_salary', 'rank_reward', 'bike_incentive'], array_column($home['targets'], 'key'));
+        $this->assertSame(['sub_dealer_salary', 'tour_fund', 'bike_incentive'], array_column($home['targets'], 'key'));
     }
 
     public function test_partner_home_target_labels_follow_active_locale(): void

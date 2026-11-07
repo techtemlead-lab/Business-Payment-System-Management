@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\PartnerProgressController;
 use App\Http\Controllers\PartnerStatementController;
 use App\Http\Controllers\PayoutReceiptController;
 use App\Http\Controllers\TeamOrdersController;
@@ -36,6 +37,7 @@ Route::middleware(['auth', 'active', 'portal:subdealer', 'agreement'])->group(fu
     Route::get('/statement', [PartnerStatementController::class, 'show']);
     Route::get('/statement/{format}', [PartnerStatementController::class, 'download'])->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
     Route::get('/team-orders', [TeamOrdersController::class, 'show']);
+    Route::get('/my-progress', [PartnerProgressController::class, 'show'])->middleware('throttle:30,1');
     Route::get('/team-orders/xlsx', [TeamOrdersController::class, 'download'])->middleware('throttle:10,1');
     Route::get('/id-card/pdf', [DashboardController::class, 'idCardPdf'])->middleware('throttle:10,1');
     Route::get('/join-poster/pdf', [DashboardController::class, 'joinPosterPdf'])->middleware('throttle:10,1');
