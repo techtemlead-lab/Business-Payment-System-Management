@@ -9,6 +9,7 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Orders\OrderListFilter;
+use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -27,6 +28,7 @@ final class WithdrawalsSection implements WorkspaceSection
             'withdrawals', 'earnings' => $this->earnings($context),
             'full-report' => $this->fullReport($context),
             'payouts-hub' => $this->payoutsHub($context->request),
+            'payment-receipts' => $this->paymentReceipts($context),
             default => [],
         };
     }
@@ -214,6 +216,19 @@ final class WithdrawalsSection implements WorkspaceSection
     }
 
     /**
+     * The dealer's or sub-dealer's own payout receipts. Staff never reach this
+     * section (it exists only in the partner portals).
+     *
+     * @return array{payment_receipts: LengthAwarePaginator}
+     */
+    private function paymentReceipts(SectionContext $context): array
+    {
+        abort_unless(in_array($context->user->role, ['dealer', 'sub_dealer'], true), 403);
+
+        return ['payment_receipts' => app(PayoutReceipts::class)->forPartner($context->user)];
+    }
+
+    /**
      * Finance payout desk. Search and status run on the server, and the summary
      * cards add up every matching request (not just the visible page). The cards
      * ignore the status tab so each card keeps its own count while staff switch tabs.
@@ -260,7 +275,11 @@ final class WithdrawalsSection implements WorkspaceSection
         $status = $request->string('status')->toString();
         $withdrawals = (clone $matching)
             ->when(in_array($status, ['requested', 'approved', 'rejected', 'paid'], true), fn ($rows) => $rows->where('withdrawals.status', $status))
+            ->leftJoin('payout_receipts', 'payout_receipts.withdrawal_id', '=', 'withdrawals.id')
             ->select([
+                'payout_receipts.id as payout_receipt_id',
+                'payout_receipts.number as payout_receipt_number',
+                'payout_receipts.method as payout_method',
                 'withdrawals.id',
                 'withdrawals.user_id',
                 'withdrawals.amount',
@@ -296,6 +315,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'payment_reference' => $row->payment_reference,
                 'paid_at' => $row->paid_at,
                 'created_at' => $row->created_at,
+                'payout_receipt_id' => $row->payout_receipt_id,
+                'payout_receipt_number' => $row->payout_receipt_number,
+                'payout_method' => $row->payout_method,
             ]);
 
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];

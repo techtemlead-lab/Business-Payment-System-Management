@@ -109,7 +109,7 @@ class WithdrawalMoneySmsTest extends TestCase
 
         $this->actingAs($payer)->onPortal('manage')
             ->post('/commands/withdrawals/'.$id.'/record-payment', [
-                'payment_reference' => 'PAY-SMS-1',
+                'method' => 'other', 'payment_reference' => 'PAY-SMS-1',
                 'paid_at' => now()->subHour()->format('Y-m-d H:i:s'),
                 'note' => 'Manually sent and checked',
                 'receipt' => UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf'),

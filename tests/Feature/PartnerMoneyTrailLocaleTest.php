@@ -179,6 +179,7 @@ class PartnerMoneyTrailLocaleTest extends TestCase
         app(ManualPayoutService::class)->settle(
             $payer,
             $id,
+            ['method' => 'other'],
             UploadedFile::fake()->create('proof.pdf', 20, 'application/pdf'),
             'PAY-BN-1',
             now()->subHour()->toDateTimeString(),
