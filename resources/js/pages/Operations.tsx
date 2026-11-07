@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Head, Link, useForm, usePage} from '@inertiajs/react';
+import {Head, Link, router, useForm, usePage} from '@inertiajs/react';
 import Shell from '../components/Shell';
 import StaffAccessEditor from '../components/StaffAccessEditor';
 import {actionAllowed} from '../components/action-permissions';
@@ -27,6 +27,29 @@ const sectionTitleKeys:Record<string,string> = {
     'access-management':'access_management',
     'video-marketing':'video_marketing',
 };
+type TableFilter = {searchable?:boolean;statuses?:string[];q?:string;status?:string};
+/** Search box and status filter for one paged table; both run on the server, so they cover every page. */
+function TableSearch({tableKey,filter}:{tableKey:string;filter?:TableFilter}){
+    const translate=useT();
+    const [q,setQ]=useState(filter?.q??'');
+    const statuses=filter?.statuses??[];
+    if(!filter?.searchable&&statuses.length===0)return null;
+    const apply=(next:{q?:string;status?:string})=>{
+        const params=new URLSearchParams(window.location.search);
+        [...params.keys()].filter(key=>/^page_\d+$/.test(key)).forEach(key=>params.delete(key));
+        const values={q:next.q??q,status:next.status??filter?.status??''};
+        for(const [name,value] of Object.entries(values)){
+            if(value)params.set(`${tableKey}_${name}`,value);else params.delete(`${tableKey}_${name}`);
+        }
+        router.get(window.location.pathname,Object.fromEntries(params.entries()),{preserveState:true,preserveScroll:true});
+    };
+    const filtered=Boolean(filter?.q||filter?.status);
+    return <form className="filter-bar order-filters" onSubmit={e=>{e.preventDefault();apply({q});}}>
+        {filter?.searchable&&<div className="order-search"><div className="search-input"><input aria-label={translate('portal','table_search')} placeholder={translate('portal','table_search')} value={q} onChange={e=>setQ(e.target.value)}/></div><button className="button small dark" type="submit">{translate('portal','search')}</button></div>}
+        {statuses.length>0&&<select className="order-status-select" aria-label={translate('portal','table_status')} value={filter?.status??''} onChange={e=>apply({status:e.target.value})}><option value="">{translate('portal','table_all')}</option>{statuses.map(item=><option key={item} value={item}>{label(item,translate)}</option>)}</select>}
+        {filtered&&<div className="order-filter-actions"><button type="button" className="text-link" onClick={()=>{setQ('');apply({q:'',status:''});}}>{translate('portal','clear')}</button></div>}
+    </form>;
+}
 function parseJson(value: unknown, invalidLabel = 'Invalid stored JSON'): unknown {
     if (typeof value !== 'string') {
         return value;
@@ -327,7 +350,7 @@ export default function Operations({section,tables,paymentAccounts=[],partners=[
         {section==='financial-reports'&&<Reports salesOnly={!capabilities.includes('finance')&&!capabilities.includes('reports')}/>}
         {section==='payment-accounts'&&<section className="panel"><h2>{translate('portal','ops_account_registry')}</h2><Table rows={paymentAccounts} columns={[{key:'label',title:translate('portal','ops_account')},{key:'channel',title:translate('portal','ops_method')},{key:'holder',title:translate('portal','ops_holder')},{key:'account_number',title:translate('portal','ops_number')},{key:'is_active',title:translate('portal','ops_status'),render:r=><Badge status={r.is_active?'active':'inactive'}/>},{key:'edit',title:translate('portal','ops_manage'),render:r=><div className="ops-row"><button className="button small" onClick={()=>setAccount(r)}>{translate('portal','ops_edit_version',{version:String(r.version)})}</button><Link className="button small" href={'/operations/payment-accounts?account_history='+r.id}>{translate('portal','ops_version_history')}</Link></div>}]}/>{account&&<button className="button" onClick={()=>setAccount(null)}>{translate('portal','ops_create_another_account')}</button>}</section>}
         {accountHistory.length>0&&<section className="panel"><h2>{translate('portal','ops_payment_account_history')}</h2><Table rows={accountHistory} columns={[{key:'version',title:translate('portal','ops_version')},{key:'label',title:translate('portal','ops_account')},{key:'account_number',title:translate('portal','ops_number_at_version')},{key:'recorded_at',title:translate('portal','ops_recorded_at'),render:(r:Row)=>dateTime(r.recorded_at)},{key:'reason',title:translate('portal','ops_reason')}]}/></section>}{forms.filter(a=>actionAllowed(a.action,staffActions,a.defaults?._method??'post')).map(a=><section className="panel narrow-panel" key={a.title+(account?.version??'')}><h2>{a.title}</h2><OperationForm {...a} onDone={()=>{if(section==='payment-accounts')setAccount(null);}}/></section>)}
-        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const tableKey=String(table.key??table.title??'');const tableTitle=translate('portal',`ops_tbl_${tableKey}`);const shown=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));const keys=rows.some(r=>r.created_at)?['created_at',...shown]:shown;const multiPage=Number(table.page.last_page??1)>1;return <section className="panel" key={tableKey}><h2>{tableTitle===`ops_tbl_${tableKey}`?label(tableKey,translate):tableTitle}</h2><Table printable totalCount={table.page.total} totalLabel={multiPage?translate('portal','table_page_total'):undefined} rows={rows} columns={[...keys.map(key=>({key,title:columnLabel(key,translate),money:isMoneyKey(key),total:totalKeys.has(key),render:(row:Row)=>['rules','metadata','data','snapshot'].includes(key)?<details><summary>{translate('portal','ops_view_details')}</summary><div className="opr-json"><Detail value={parseJson(row[key], translate('portal','ops_invalid_json'))}/></div></details>:cellValue(key,row[key],translate)})),{key:'actions',title:translate('portal','ops_actions'),render:r=>rowActions(r,tableKey)}]}/><Pagination page={table.page}/></section>;})}
+        {tables.map((table:Row)=>{const rows=table.page.data as Row[];const tableKey=String(table.key??table.title??'');const tableTitle=translate('portal',`ops_tbl_${tableKey}`);const shown=[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>!['staff_id','submitted_by','created_by','approved_by','verified_by','user_id','has_receipt','territory_key','territories','created_at','updated_at'].includes(k));const keys=rows.some(r=>r.created_at)?['created_at',...shown]:shown;const multiPage=Number(table.page.last_page??1)>1;return <section className="panel" key={tableKey}><h2>{tableTitle===`ops_tbl_${tableKey}`?label(tableKey,translate):tableTitle}</h2><TableSearch tableKey={tableKey} filter={table.filter}/><Table searchable={false} printable totalCount={table.page.total} totalLabel={multiPage?translate('portal','table_page_total'):undefined} rows={rows} columns={[...keys.map(key=>({key,title:columnLabel(key,translate),money:isMoneyKey(key),total:totalKeys.has(key),render:(row:Row)=>['rules','metadata','data','snapshot'].includes(key)?<details><summary>{translate('portal','ops_view_details')}</summary><div className="opr-json"><Detail value={parseJson(row[key], translate('portal','ops_invalid_json'))}/></div></details>:cellValue(key,row[key],translate)})),{key:'actions',title:translate('portal','ops_actions'),render:r=>rowActions(r,tableKey)}]}/><Pagination page={table.page}/></section>;})}
         {selected&&<Modal title={selected.title} onClose={()=>setSelected(null)}><OperationForm {...selected} onDone={()=>setSelected(null)}/></Modal>}
     </Shell>;
 }

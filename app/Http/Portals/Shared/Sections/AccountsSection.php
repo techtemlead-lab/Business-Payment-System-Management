@@ -14,14 +14,17 @@ use Illuminate\Support\Facades\DB;
  */
 final class AccountsSection implements WorkspaceSection
 {
+    /** Statuses the application list can be filtered by. */
+    public const ApplicationStatuses = ['pending', 'approved', 'rejected'];
+
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
             'accounts' => $this->partnerAccounts($context->request, 'dealer'),
             'sub-dealers' => $this->partnerAccounts($context->request, 'sub_dealer'),
             'dashboards' => $this->dashboards($context->user),
-            'partnerships' => $this->partnerApplications('dealer'),
-            'sub-dealer-applications' => $this->partnerApplications('sub_dealer'),
+            'partnerships' => $this->partnerApplications($context->request, 'dealer'),
+            'sub-dealer-applications' => $this->partnerApplications($context->request, 'sub_dealer'),
             default => [],
         };
     }
@@ -72,11 +75,21 @@ final class AccountsSection implements WorkspaceSection
     /**
      * @return array{applications: LengthAwarePaginator<int, array<string, mixed>>, application_counts: array{total: int, pending: int, approved: int, rejected: int}}
      */
-    private function partnerApplications(string $role): array
+    private function partnerApplications(Request $request, string $role): array
     {
+        $search = trim($request->string('q')->toString());
+        $status = $request->string('status')->toString();
         $applications = DB::table('dealer_applications')
             ->select(['id', 'email', 'data', 'submitted_by', 'status', 'user_id', 'reason', 'source', 'created_at', 'reviewed_by'])
             ->whereRaw("coalesce(data->>'role', 'dealer') = ?", [$role])
+            ->when($search !== '', function ($query) use ($search): void {
+                $term = '%'.addcslashes($search, '%_\\').'%';
+                $query->where(fn ($match) => $match->where('email', 'ilike', $term)
+                    ->orWhereRaw("data->>'name' ilike ?", [$term])
+                    ->orWhereRaw("data->>'phone' ilike ?", [$term])
+                    ->orWhereRaw("data->>'district' ilike ?", [$term]));
+            })
+            ->when(in_array($status, self::ApplicationStatuses, true), fn ($query) => $query->where('status', $status))
             ->orderByDesc('created_at')
             ->paginate(20)
             ->withQueryString()
