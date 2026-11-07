@@ -6177,4 +6177,5 @@ return [
     'ops_warn_head_office_branch_missing_place_code' => 'হেড অফিস শাখার এখনো প্লেস কোড নেই। প্রোগ্রাম নিজে থেকে কোড ধরে নেয় না। মালিক: শাখা খুলে হেড অফিস এডিট করুন এবং তার প্লেস কোড (MNHC-…) লিখুন।',
     'ops_head_office_branch_label' => 'হেড অফিস শাখা:',
     'ops_head_office_open_branches' => 'শাখা খুলুন',
+    'st_search_placeholder' => 'নাম বা কোড দিয়ে ডিলার বা লিডার খুঁজুন',
 ];

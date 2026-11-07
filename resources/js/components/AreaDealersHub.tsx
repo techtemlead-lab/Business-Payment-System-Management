@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { MapPin, Search, Filter, Building2, Compass } from 'lucide-react';
-import { money, number, Table, type TableColumn } from './UI';
+import { money, number, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 
 interface AreaAssignment {
@@ -50,7 +50,11 @@ interface PlaceCodeOption {
 }
 
 interface AreaDealersHubProps {
-    assignments: AreaAssignment[];
+    /** One server page of dealer seats. */
+    assignments?: (Row & { data: AreaAssignment[]; total: number }) | null;
+    /** Count, quota and per-division figures over every dealer, not just this page. */
+    summary?: { total: number; total_quota: string; divisions: { division: string; count: number; total_quota: string }[] };
+    areaFilters?: { division?: string; level?: string; q?: string };
     divisions: string[];
     dealers_list: DealerOption[];
     place_codes?: PlaceCodeOption[];
@@ -63,38 +67,33 @@ const levelMeta: Record<string, { labelKey: string; tone: string; defaultQuota: 
     union: { labelKey: 'area_lvl_union', tone: 'tone-warn', defaultQuota: 10000 },
 };
 
-export default function AreaDealersHub({ assignments, divisions }: AreaDealersHubProps) {
+export default function AreaDealersHub({ assignments: page, summary, areaFilters = {}, divisions }: AreaDealersHubProps) {
     const translate = useT();
-    const [selectedDivision, setSelectedDivision] = useState<string>('all');
-    const [selectedLevel, setSelectedLevel] = useState<string>('all');
-    const [searchQuery, setSearchQuery] = useState('');
+    const { url } = usePage();
+    // The table is one server page (25 rows); the division cards and totals come from the server over every dealer.
+    const assignments: AreaAssignment[] = page?.data ?? [];
+    const selectedDivision = areaFilters.division || 'all';
+    const selectedLevel = areaFilters.level || 'all';
+    const [searchQuery, setSearchQuery] = useState(areaFilters.q ?? '');
+    useEffect(() => setSearchQuery(areaFilters.q ?? ''), [areaFilters.q]);
 
-    const filteredAssignments = useMemo(() => {
-        return assignments.filter(a => {
-            const matchesDiv = selectedDivision === 'all' || a.division === selectedDivision;
-            const matchesLevel = selectedLevel === 'all' || a.level === selectedLevel;
-            const matchesQuery = !searchQuery ||
-                a.zone_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (a.place_code?.code && a.place_code.code.includes(searchQuery)) ||
-                (a.user?.name && a.user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (a.user?.dealer_code && a.user.dealer_code.toLowerCase().includes(searchQuery.toLowerCase()));
-            return matchesDiv && matchesLevel && matchesQuery;
-        });
-    }, [assignments, selectedDivision, selectedLevel, searchQuery]);
+    const reload = (next: { area_division?: string; level?: string; q?: string }) => {
+        const query = { area_division: selectedDivision === 'all' ? '' : selectedDivision, level: selectedLevel === 'all' ? '' : selectedLevel, q: searchQuery.trim(), ...next };
+        const params = Object.fromEntries(Object.entries(query).filter(([, value]) => value && value !== 'all'));
+        router.get(new URL(url || '/', 'http://list.local').pathname, params, { preserveState: true, preserveScroll: true, replace: true, only: ['data', 'filters'] });
+    };
+    const setSelectedDivision = (division: string) => reload({ area_division: division });
+    const setSelectedLevel = (level: string) => reload({ level });
 
     const divisionStats = useMemo(() => {
         const stats: Record<string, { count: number; totalQuota: number }> = {};
         divisions.forEach(d => { stats[d] = { count: 0, totalQuota: 0 }; });
-        assignments.forEach(a => {
-            const div = a.division || 'Unknown';
-            if (!stats[div]) stats[div] = { count: 0, totalQuota: 0 };
-            stats[div].count += 1;
-            stats[div].totalQuota += Number(a.monthly_quota) || 0;
-        });
+        (summary?.divisions ?? []).forEach(row => { stats[row.division] = { count: row.count, totalQuota: Number(row.total_quota) || 0 }; });
         return stats;
-    }, [assignments, divisions]);
+    }, [summary, divisions]);
 
-    const totalActiveQuota = assignments.reduce((sum, a) => sum + (Number(a.monthly_quota) || 0), 0);
+    const totalCount = summary?.total ?? page?.total ?? 0;
+    const totalActiveQuota = Number(summary?.total_quota ?? 0);
     const levelLabel = (level: string) => translate('portal', levelMeta[level]?.labelKey ?? 'area_lvl_district');
 
     return (
@@ -108,7 +107,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                         <MapPin size={16} /> {translate('portal', 'area_kpi_total')}
                     </div>
                     <div className="ops-figure ops-mt-1">
-                        {number(assignments.length)}
+                        {number(totalCount)}
                     </div>
                     <div className="hub-hint">{translate('portal', 'area_kpi_total_hint')}</div>
                 </div>
@@ -144,7 +143,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                         onClick={() => setSelectedDivision('all')}
                         className={`adh-division is-all${selectedDivision === 'all' ? ' is-selected' : ''}`}
                     >
-                        {translate('portal', 'area_all_divisions', { count: String(assignments.length) })}
+                        {translate('portal', 'area_all_divisions', { count: String(totalCount) })}
                     </button>
                     {divisions.map(div => {
                         const st = divisionStats[div] || { count: 0, totalQuota: 0 };
@@ -168,15 +167,17 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
 
             <div className="ops-card is-tight ops-row is-between is-wrap is-loose">
                 <div className="ops-row is-wrap is-loose">
-                    <div className="adh-search">
+                    <form className="adh-search" role="search" onSubmit={e => { e.preventDefault(); reload({ q: searchQuery.trim() }); }}>
                         <Search size={16} />
                         <input
-                            type="text"
+                            type="search"
+                            maxLength={100}
+                            aria-label={translate('portal', 'area_search_ph')}
                             placeholder={translate('portal', 'area_search_ph')}
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
-                    </div>
+                    </form>
 
                     <div className="ops-row is-snug">
                         <Filter size={15} className="ops-muted" />
@@ -204,7 +205,8 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
             <div className="ops-card adh-table">
                 <Table
                     tools={false}
-                    rows={filteredAssignments}
+                    rows={assignments}
+                    totalCount={page?.total}
                     empty={translate('portal', 'area_empty')}
                     columns={[
                         {
@@ -289,6 +291,7 @@ export default function AreaDealersHub({ assignments, divisions }: AreaDealersHu
                         },
                     ]}
                 />
+                <Pagination page={page ?? undefined} />
             </div>
         </div>
     );

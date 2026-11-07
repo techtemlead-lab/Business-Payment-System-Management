@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { Calendar, CheckCircle2, Clock, Play, RefreshCw } from 'lucide-react';
-import { money, date, Table, Modal } from './UI';
+import { money, date, Table, Modal, Pagination, type Row } from './UI';
+import ServerListSearch from './ServerListSearch';
 import { useT } from '../shared/i18n/t';
 
 type LeaderRank = 'mo' | 'am' | 'sm' | 'me';
+
+/** One server page of a list (25 rows); the counts above the lists cover every row. */
+type Paged<T> = Row & { data: T[]; total: number };
 
 /** A money-moving action that waits for the finance user to say yes. */
 interface PendingConfirmation {
@@ -21,7 +25,7 @@ interface SettlementState {
     sub_dealer_salary_pending: number;
     salary_pool_allocations_count: number;
     qualified_salary_dealers_count: number;
-    qualified_salary_dealers: Array<{
+    qualified_salary_dealers: Paged<{
         id: number;
         user_id: number;
         name: string;
@@ -36,7 +40,7 @@ interface SettlementState {
     rank_pool_pending: number;
     rank_pool_allocations_count: number;
     qualified_rank_leaders_count: number;
-    qualified_rank_leaders: Array<{
+    qualified_rank_leaders: Paged<{
         id: number;
         user_id: number;
         name: string;
@@ -48,6 +52,8 @@ interface SettlementState {
         monthly_volume: number;
         one_time_incentive_paid: boolean;
     }>;
+    /** Search words for both lists. */
+    search?: string;
     maturing_count: number;
     maturing_amount: number;
     settled_history: Array<{
@@ -148,6 +154,12 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             onChange={e => {setSelectedMonth(e.target.value);router.get('/settlements',{period_month:e.target.value},{preserveScroll:true});}}
                         />
                     </label>
+                    <ServerListSearch
+                        query={state.search ?? ''}
+                        placeholder={translate('portal', 'st_search_placeholder')}
+                        keep={{ period_month: selectedMonth }}
+                        resetPages={['salary_page', 'leaders_page']}
+                    />
                 </div>
             </div>
 
@@ -234,11 +246,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             </div>
                         )}
 
-                        {state.qualified_salary_dealers.length > 0 && (
+                        {state.qualified_salary_dealers.data.length > 0 && (
                             <div className="hub-spaced">
                                 <Table
                                     tools={false}
-                                    rows={state.qualified_salary_dealers}
+                                    rows={state.qualified_salary_dealers.data}
                                     columns={[
                                         {
                                             key: 'name',
@@ -270,6 +282,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                         },
                                     ]}
                                 />
+                                <Pagination page={state.qualified_salary_dealers} />
                             </div>
                         )}
                     </div>
@@ -321,11 +334,11 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                             {translate('portal', 'st_rank_hint')}
                         </div>
 
-                        {state.qualified_rank_leaders.length > 0 && (
+                        {state.qualified_rank_leaders.data.length > 0 && (
                             <div className="hub-spaced">
                                 <Table
                                     tools={false}
-                                    rows={state.qualified_rank_leaders}
+                                    rows={state.qualified_rank_leaders.data}
                                     columns={[
                                         {
                                             key: 'name',
@@ -354,6 +367,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                                         },
                                     ]}
                                 />
+                                <Pagination page={state.qualified_rank_leaders} />
                             </div>
                         )}
                     </div>
@@ -385,7 +399,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
 
                 <Table
                     tools={false}
-                    rows={state.qualified_rank_leaders}
+                    rows={state.qualified_rank_leaders.data}
                     empty={translate('portal', 'st_no_incentive')}
                     columns={[
                         {
@@ -457,6 +471,7 @@ export default function SettlementsHub({ state }: { state: SettlementState }) {
                         },
                     ]}
                 />
+                <Pagination page={state.qualified_rank_leaders} />
             </div>
 
             {/* Settled Journal Audit Trail */}
