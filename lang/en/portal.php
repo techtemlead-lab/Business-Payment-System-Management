@@ -3771,31 +3771,6 @@ return [
     // Chapter 8: ranks_royalties
     // Chapter 9: rewards_milestones
     // Chapter 10: subdealer_salary_tour
-    'manual_ch_subdealer_salary_tour_title' => '10. Sub-dealer plan: monthly salary and tour fund',
-    'manual_ch_subdealer_salary_tour_badge' => 'Sub-dealer pay',
-    'manual_ch_subdealer_salary_tour_summary' => 'How sub-dealers earn: a monthly salary on everything they buy (3% to start), a separate tour fund (3% to start), and their sponsor dealer\'s bonus.',
-    'manual_ch_subdealer_salary_tour_purpose' => 'A special earning plan for shopkeepers and local sellers. Each month it gives a salary on the full amount they bought (3% to start) and puts another share (3% to start) into a separate tour fund automatically. The company can change these rates.',
-    'manual_ch_subdealer_salary_tour_why' => 'It gives small shops a steady monthly income, keeps them buying regularly, and builds a fund for company tours.',
-    'manual_ch_subdealer_salary_tour_s1' => 'Log in to your sub-dealer panel and open "Salary" in the left menu.',
-    'manual_ch_subdealer_salary_tour_s2' => 'See this month\'s purchases and the salary you have earned so far.',
-    'manual_ch_subdealer_salary_tour_s3' => 'The "Tour fund" card shows how much has been set aside for your tours.',
-    'manual_ch_subdealer_salary_tour_s4' => 'Every paid and delivered purchase counts. There is no minimum purchase for the sub-dealer salary.',
-    'manual_ch_subdealer_salary_tour_s5' => 'At month end, the accounts team checks the month and pays the salary into your available wallet balance.',
-    'manual_ch_subdealer_salary_tour_s6' => 'You can withdraw your salary right away to your bank or mobile banking account, just like commission.',
-    'manual_ch_subdealer_salary_tour_out1' => 'The salary is added to your account book and your wallet balance goes up.',
-    'manual_ch_subdealer_salary_tour_out2' => 'The tour share is added to your tour fund. The company pays it out as an approved tour reward.',
-    'manual_ch_subdealer_salary_tour_out3' => 'Your sponsor dealer gets a special bonus on your purchases.',
-    'manual_ch_subdealer_salary_tour_rule1' => 'Only paid and delivered orders count. Returned or refunded orders are taken out.',
-    'manual_ch_subdealer_salary_tour_rule2' => 'The tour fund is paid only as a tour reward approved by the company. Ask the office about the current tour plan.',
-    'manual_ch_subdealer_salary_tour_rule3' => 'The salary and the tour fund are kept separately. Neither one is paid twice.',
-    'manual_ch_subdealer_salary_tour_t1' => 'Buy a little every week instead of placing big orders at the last minute of the month.',
-    'manual_ch_subdealer_salary_tour_t2' => 'Check your tour fund on the Salary page from time to time.',
-    'manual_ch_subdealer_salary_tour_warn1' => 'If an order is returned or cancelled, the matching part of your salary is taken back right away.',
-    'manual_ch_subdealer_salary_tour_warn2' => 'Making fake orders to get more salary leads to immediate action on your account.',
-    'manual_ch_subdealer_salary_tour_q1' => 'Can I withdraw my monthly salary to bKash or a bank?',
-    'manual_ch_subdealer_salary_tour_a1' => 'Yes! Once your salary reaches your available wallet balance, you can ask to withdraw it to any checked bank or mobile banking account.',
-    'manual_ch_subdealer_salary_tour_q2' => 'How is the tour fund used?',
-    'manual_ch_subdealer_salary_tour_a2' => 'The company decides the tour plan and who qualifies. Approved tour rewards are paid from your tour fund. Ask the office for the current plan.',
     // Chapter 11: withdrawals
     // Chapter 12: reports
     // Chapter 13: treasury_capital_flow

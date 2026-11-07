@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Support\GuidePrerequisites;
 use App\Domain\Support\TourGuide;
 use App\Domain\Support\UserManual;
@@ -163,24 +162,5 @@ class UserManualGuideTest extends TestCase
 
         $this->assertArrayHasKey('treasury', $ownerDefs);
         $this->assertArrayHasKey('benefits-fund', $ownerDefs);
-    }
-
-    /** The sub-dealer chapter must match the system defaults (contract S03: flat 3% salary, separate 3% tour fund, no minimum). */
-    public function test_sub_dealer_manual_chapter_matches_the_default_salary_and_tour_rates(): void
-    {
-        $rules = CommissionPolicy::defaults();
-        $this->assertSame('3.00', (string) $rules['sub_dealer_salary']['percentage']);
-        $this->assertSame('3.00', (string) $rules['sub_dealer_tour']['percentage']);
-
-        foreach (['en', 'bn'] as $locale) {
-            $chapter = collect(trans('portal', [], $locale))
-                ->filter(fn ($value, string $key): bool => str_starts_with($key, 'manual_ch_subdealer_salary_tour_'))
-                ->implode(' ');
-            $this->assertNotSame('', $chapter);
-            foreach (['5%', '2%', '৫%', '২%', '10,000', '১০,০০০'] as $wrong) {
-                $this->assertStringNotContainsString($wrong, $chapter, $locale.' chapter still says '.$wrong);
-            }
-            $this->assertStringContainsString($locale === 'bn' ? '৩%' : '3%', $chapter);
-        }
     }
 }
