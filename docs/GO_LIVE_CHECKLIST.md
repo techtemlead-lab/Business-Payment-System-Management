@@ -19,6 +19,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] `TRUSTED_PROXIES` lists the real proxy network and is **not** `*`
 - [ ] `example.com` replaced with the real domain in `infra/nginx.production.conf`; `APP_DOMAIN` exported for `docker compose` (used by the web health check)
 - [ ] Critical alerts reach a person: `,slack` added to `LOG_STACK` with `LOG_SLACK_WEBHOOK_URL`, or the hosting log service alerts on `CRITICAL`; send a test alert
+- [ ] Error tracking on: create a free account at [sentry.io](https://sentry.io), add a **Laravel** project, copy its DSN and paste it as `SENTRY_LARAVEL_DSN` on the live server (keep `SENTRY_TRACES_SAMPLE_RATE=0`). Personal data is never sent. `app:readiness` must not warn `error_tracking_not_configured`
 - [ ] Two-factor login (TOTP) enabled for every owner and finance account
 - [ ] Every staff role reviewed: only the Super Admin changes Service integrations; only owners change auto-approval
 

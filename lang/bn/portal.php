@@ -6235,6 +6235,7 @@ return [
     'prc_issued_line' => 'রসিদ :number · :method',
     'notice_join_anniversary_title' => 'পার্টনারশিপের বর্ষপূর্তির শুভেচ্ছা!',
     'notice_join_anniversary_body' => 'প্রিয় :name, আজ মদিনা ন্যাচারাল হেলথ কেয়ারে আপনার যোগ দেওয়ার :years বছর পূর্ণ হলো। আমাদের সাথে থাকার জন্য ধন্যবাদ।',
+    'ops_warn_error_tracking_not_configured' => 'এরর ট্র্যাকিং বন্ধ, তাই সাইটে সমস্যা হলে কেউ খবর পায় না। টেকনিশিয়ানকে জানান। টেকনিশিয়ানের জন্য: sentry.io-তে একটি ফ্রি Sentry অ্যাকাউন্ট খুলে Laravel প্রজেক্ট বানান এবং তার DSN SENTRY_LARAVEL_DSN-এ দিন।',
     'prc_reserve_amount' => 'রিজার্ভ থেকে দেওয়া টাকা',
     'prc_reserve_ref' => 'রিজার্ভ পেআউট',
     'prc_reserve_program_tour' => 'ট্যুর',

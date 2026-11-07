@@ -199,6 +199,9 @@ final class DeploymentReadiness
         if (! $strict && (! is_string(config('app.key')) || strlen((string) config('app.key')) < 32)) {
             $warnings[] = 'app_key_missing_or_weak';
         }
+        if (! $strict && config('app.env') === 'production' && blank(config('sentry.dsn'))) {
+            $warnings[] = 'error_tracking_not_configured';
+        }
         if (! $strict
             && str_starts_with((string) config('app.url'), 'https://')
             && trim((string) config('madina.trusted_proxies')) === '') {
