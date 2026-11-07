@@ -6240,4 +6240,6 @@ return [
     'retained_reason_profit_quota_missed' => 'এরিয়া ডিলার ওই মাসের কেনার কোটা পূরণ করেননি, তাই মাস শেষে আটকে থাকা অংশ কোম্পানির লাভে গেছে।',
     'retained_reason_unclaimed_sub_dealer_salary' => 'মাস শেষে সাব-ডিলার সক্রিয় ছিলেন না, তাই এই বেতন কোম্পানির লাভে গেছে।',
     'retained_reason_unclaimed_additional_rank' => 'এই মাসে সাব-ডিলার অতিরিক্ত র‍্যাঙ্ক তহবিলের যোগ্য কেউ ছিলেন না, তাই এটি কোম্পানির লাভে গেছে।',
+    'event_commission_quota_holds_forfeited' => 'কোটা পূরণ না হওয়া এরিয়া কমিশন কোম্পানির লাভে নেওয়া হয়েছে',
+    'event_commission_additional_rank_closed' => 'অতিরিক্ত র‍্যাঙ্ক তহবিল কোম্পানির লাভে বন্ধ করা হয়েছে',
 ];
