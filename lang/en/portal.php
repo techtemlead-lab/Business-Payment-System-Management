@@ -6179,4 +6179,5 @@ return [
     'ops_head_office_open_branches' => 'Open Branches',
     'branch_perf_counted_note' => 'Only approved, sent and delivered orders count. Waiting, rejected and cancelled orders are left out. The totals cover every order in the dates; the list shows the latest 200.',
     'branch_perf_own_branches_note' => 'You see only the branches you work in.',
+    'net_show_more' => 'Show :count more',
 ];
