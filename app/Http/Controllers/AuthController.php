@@ -7,6 +7,7 @@ use App\Domain\Auth\LoginCaptcha;
 use App\Domain\Auth\LoginOtpChallenge;
 use App\Domain\Auth\TotpAuthenticator;
 use App\Domain\Security\SecuritySettings;
+use App\Http\Middleware\RequireAuthenticatorSetup;
 use App\Models\User;
 use App\Support\Audit;
 use App\Support\PhoneIdentity;
@@ -305,14 +306,16 @@ class AuthController extends Controller
         return $this->afterSecondFactor($r, $candidate, $portal, $security->previewMode() ? 'off_trial_mode' : 'off_by_owner', $security);
     }
 
-    /** Staff who also turned on an authenticator app are asked for it as well; everyone else is signed in. */
+    /**
+     * Staff who turned on an authenticator app are asked for its code as well. Owners and finance
+     * staff who must have the app but have not set it up yet are signed in and sent straight to
+     * the setup page; RequireAuthenticatorSetup keeps them there until the app is on. Everyone
+     * else is signed in.
+     */
     private function afterSecondFactor(Request $r, User $candidate, string $portal, string $method, SecuritySettings $security): Response
     {
-        if (
-            $security->totpChallengesEnabled()
-            && in_array($portal, ['manage', 'sadmin'], true)
-            && $candidate->hasTotpEnabled()
-        ) {
+        $staffPortal = in_array($portal, ['manage', 'sadmin'], true);
+        if ($security->totpChallengesEnabled() && $staffPortal && $candidate->hasTotpEnabled()) {
             $r->session()->put([
                 'pending_totp_id' => $candidate->id,
                 'pending_totp_portal' => $portal,
@@ -320,6 +323,13 @@ class AuthController extends Controller
             ]);
 
             return redirect('/login/2fa')->with('success', __('portal.flash_totp_required'));
+        }
+        if ($staffPortal && $security->totpSetupPending($candidate)) {
+            $this->completeLogin($r, $candidate, $method);
+            $r->session()->put(RequireAuthenticatorSetup::SessionKey, true);
+            Audit::record($candidate->id, 'security.totp_setup_required', 'account', ['portal' => $portal]);
+
+            return redirect(RequireAuthenticatorSetup::SetupPath)->with('success', __('portal.flash_totp_setup_required'));
         }
 
         return $this->completeLogin($r, $candidate, $method);

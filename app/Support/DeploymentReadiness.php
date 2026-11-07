@@ -6,6 +6,7 @@ use App\Domain\Finance\FinancialReadiness;
 use App\Domain\Integrations\SmsGatewayClient;
 use App\Domain\Security\SecuritySettings;
 use App\Models\PlaceCode;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -122,6 +123,11 @@ final class DeploymentReadiness
         }
         if (config('madina.preview_mode') && (bool) config('madina.totp.enabled', true)) {
             $warnings[] = 'staff_totp_forced_off_in_preview';
+        }
+        if (! (bool) config('madina.totp.enabled', true) || ! (bool) config('madina.totp.required', true)) {
+            $warnings[] = 'staff_totp_not_required';
+        } elseif ($checks['database'] && $this->ownersOrFinanceWithoutTotp()) {
+            $warnings[] = 'owners_or_finance_without_totp';
         }
         if (! config('madina.preview_mode') && ! app(SecuritySettings::class)->adminIpRestricted()) {
             $warnings[] = 'admin_ip_allowlist_empty';
@@ -561,6 +567,19 @@ final class DeploymentReadiness
                     ->orWhereRaw("regexp_replace(phone, '[^0-9]', '', 'g') !~ '^(?:88)?01[3-9][0-9]{8}$'");
             })
             ->exists();
+    }
+
+    /** An active owner or finance staff account that has not set up its authenticator app yet. */
+    private function ownersOrFinanceWithoutTotp(): bool
+    {
+        $security = app(SecuritySettings::class);
+
+        return User::query()
+            ->staffAccounts()
+            ->where('status', 'active')
+            ->where(fn ($query) => $query->whereNull('totp_confirmed_at')->orWhereNull('totp_secret'))
+            ->lazyById(200)
+            ->contains(fn (User $user): bool => $security->totpRequiredByRole($user));
     }
 
     /** Two accounts on one mobile number, where no owner approved sharing it. */
