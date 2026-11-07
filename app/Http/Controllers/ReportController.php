@@ -6,6 +6,7 @@ use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Support\Audit;
 use App\Support\DashboardManagement;
+use App\Support\PhoneIdentity;
 use App\Support\SpreadsheetCell;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -203,7 +204,7 @@ class ReportController extends Controller
             ? 'madina-genealogy-company-'.now()->format('Y-m-d').'.csv'
             : 'madina-genealogy-downline-'.now()->format('Y-m-d').'.csv';
 
-        return response()->streamDownload(function () use ($query, $headers, $locale) {
+        return response()->streamDownload(function () use ($query, $headers, $locale, $staff) {
             $f = fopen('php://output', 'w');
             fwrite($f, "\xEF\xBB\xBF");
             fputcsv($f, $headers, ',', '"', '');
@@ -212,10 +213,12 @@ class ReportController extends Controller
                     ? Carbon::parse($row->created_at)->timezone('Asia/Dhaka')->format('Y-m-d H:i')
                     : '';
                 $rank = $row->current_rank ?: 'dealer';
+                // A dealer's own export: full numbers only for directly referred members (depth 1).
+                $phone = $staff || (int) $row->depth === 1 ? $row->phone : PhoneIdentity::masked($row->phone);
                 fputcsv($f, array_map(SpreadsheetCell::text(...), [
                     $row->dealer_code,
                     $row->name,
-                    $row->phone,
+                    $phone,
                     $this->localizedCsvEnum('acct_role_'.$row->role, (string) $row->role, $locale),
                     $this->localizedCsvEnum('net_rank_'.$rank, (string) $rank, $locale),
                     $this->localizedCsvEnum('status_'.$row->status, (string) $row->status, $locale),
