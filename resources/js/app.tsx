@@ -3,9 +3,11 @@ import {createRoot} from 'react-dom/client';
 import {createInertiaApp} from '@inertiajs/react';
 import { applyColorScheme, resolveColorScheme } from './shared/theme';
 import { installBanglaDigitShaping } from './shared/banglaDigits';
+import { installCountUp } from './shared/countUp';
 
 applyColorScheme(resolveColorScheme());
 installBanglaDigitShaping();
+installCountUp();
 
 const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> = {
     Portal: () => import('./pages/Portal'),

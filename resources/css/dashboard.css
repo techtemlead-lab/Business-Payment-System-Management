@@ -8,6 +8,7 @@
 @import './screens-training.css';
 @import './screens-cleanup.css';
 @import './screens-office.css';
+@import './screens-motion.css';
 @import url('https://fonts.bunny.net/css?family=instrument-serif:400,400i,700&display=swap');
 @import url('https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap');
 /* Bangla digits ০-৯ come from Noto Sans Bengali, where every digit has the same width, so
@@ -247,7 +248,7 @@ body{font-family:var(--ds-font);background:var(--ds-bg)}
 .app-shell .sidebar.sidebar-premium .nav-section{margin:0;padding:0;border:0}
 .app-shell .nav-section-toggle{width:100%;display:flex;align-items:center;gap:6px;min-height:28px;padding:3px 6px;border:0;border-radius:6px;background:transparent;color:#f3ead6;font:inherit;font-size:12px;font-weight:600;line-height:1.15;text-align:left;cursor:pointer}
 .app-shell .nav-section-toggle>span{flex:1;min-width:0}
-.app-shell .nav-section-toggle .nav-section-badge{margin-left:0}
+.app-shell .nav-section-toggle .nav-section-badge{margin-left:0;flex:0 0 auto}
 .app-shell .nav-section-toggle:hover{background:#ffffff14}
 .app-shell .nav-section-toggle .nav-chevron{margin-left:auto;flex-shrink:0;transition:transform .16s ease}
 .app-shell .nav-section.is-open>.nav-section-toggle{background:rgba(248,241,231,.1)}
@@ -909,6 +910,10 @@ dialog.portal-modal::backdrop{
   .app-shell .order-filters select.order-status-select{width:100%;min-width:0;padding:0 18px 0 8px;font-size:12px}
   .app-shell .order-filters .order-dates{grid-column:1 / -1;width:100%;justify-content:center}
   .app-shell .order-filters .order-filter-actions{grid-column:1 / -1;width:100%;margin-left:0;justify-content:center}
+  /* Same filter bar inside a plain panel (ledger, benefits fund): wrap instead of running off the screen */
+  .app-shell .panel>form.filter-bar.order-filters{flex-wrap:wrap;gap:8px}
+  .app-shell .panel>form.filter-bar.order-filters>.order-search{flex:1 1 100%;width:100%}
+  .app-shell .panel>form.filter-bar.order-filters>select{flex:1 1 140px;width:auto;max-width:none}
 }
 .metric-grid.four { grid-template-columns: repeat(4, minmax(0,1fr)); }
 @media (max-width: 900px) { .metric-grid.four { grid-template-columns: repeat(2, minmax(0,1fr)); } }
