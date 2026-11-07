@@ -1,0 +1,66 @@
+/* ==========================================================================
+   Staff and owner sign-in, two-step code and captcha screens (company-auth),
+   plus the code boxes on the dealer / sub-dealer sign-in (public layout).
+   Styling only: no behaviour lives here. Motion is transform/opacity and is
+   off for anyone who asks for reduced motion.
+   ========================================================================== */
+
+/* A soft aurora over the navy band at the top of the page: two glow layouts that
+   slowly cross-fade (opacity only, nothing moves outside the band). */
+body.company-auth{position:relative}
+body.company-auth::before,body.company-auth::after{content:'';position:absolute;left:0;right:0;top:0;height:248px;pointer-events:none;z-index:0}
+body.company-auth::before{background:
+  radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px) 0 0/22px 22px,
+  radial-gradient(60% 120% at 16% 10%,rgba(16,185,129,.24),transparent 72%),
+  radial-gradient(45% 100% at 84% 0%,rgba(234,179,8,.12),transparent 72%),
+  radial-gradient(55% 120% at 58% 110%,rgba(59,91,219,.20),transparent 72%)}
+body.company-auth::after{opacity:0;background:
+  radial-gradient(55% 120% at 78% 20%,rgba(16,185,129,.22),transparent 72%),
+  radial-gradient(45% 100% at 22% 100%,rgba(234,179,8,.10),transparent 72%),
+  radial-gradient(50% 110% at 40% 0%,rgba(59,91,219,.20),transparent 72%)}
+body.company-auth .company-auth-main{position:relative;z-index:1}
+
+/* Card and form details */
+.company-auth .company-auth-card{position:relative}
+.company-auth .company-auth-card .action-form>.button{transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .12s ease}
+.company-auth .company-auth-card .action-form>.button:hover{box-shadow:0 10px 22px -8px rgba(0,106,78,.55)}
+.company-auth .company-auth-card .action-form>.button:active,.company-auth .button:active{transform:scale(.98)}
+.company-auth .company-auth-help a{text-underline-offset:3px}
+.company-auth .company-auth-help a:hover{text-decoration:underline}
+
+/* One-time codes (SMS code, authenticator code): big, spaced, easy to check */
+:is(.company-auth,.ref-auth-main) input[name="code"]{font-size:22px;font-weight:600;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums;min-height:52px}
+:is(.company-auth,.ref-auth-main) input[name="code"]:placeholder-shown{font-size:var(--ds-fs-sm,14px);font-weight:400;letter-spacing:normal}
+
+@media(max-width:480px){
+  body.company-auth .company-auth-main{padding-left:14px;padding-right:14px}
+  body.company-auth .company-auth-card{padding:24px 20px}
+}
+
+/* Dealer / sub-dealer sign-in on phones: the floating chat button sat on top of the
+   password box. Move it down to the bottom corner, above the back-to-top button. */
+@media(max-width:767px){
+  body:has(.ref-auth-main) aside.ref-floating-tools{inset:auto 12px calc(148px + env(safe-area-inset-bottom,0px)) auto!important;top:auto!important;bottom:calc(148px + env(safe-area-inset-bottom,0px))!important;transform:none!important}
+}
+
+@media(prefers-reduced-motion:no-preference){
+  body.company-auth::after{animation:authAuroraFade 12s ease-in-out infinite alternate}
+  .company-auth .company-auth-brand img{animation:authLogoIn .7s cubic-bezier(.34,1.56,.64,1) both}
+  .company-auth .company-auth-card{animation:authCardIn .55s cubic-bezier(.16,1,.3,1) .08s both}
+  .company-auth .company-auth-card>*{animation:authRise .5s cubic-bezier(.16,1,.3,1) backwards}
+  .company-auth .company-auth-card>:nth-child(1){animation-delay:.16s}
+  .company-auth .company-auth-card>:nth-child(2){animation-delay:.2s}
+  .company-auth .company-auth-card>:nth-child(3){animation-delay:.24s}
+  .company-auth .company-auth-card>:nth-child(4){animation-delay:.28s}
+  .company-auth .company-auth-card>:nth-child(n+5){animation-delay:.32s}
+  .company-auth .company-auth-card .error[role="alert"]{animation:authNudge .45s cubic-bezier(.36,.07,.19,.97) .3s both}
+
+  .ref-auth-main .ref-auth-card{animation:authCardIn .55s cubic-bezier(.16,1,.3,1) both}
+  .ref-auth-main .ref-auth-brand img{animation:authLogoIn .7s cubic-bezier(.34,1.56,.64,1) .05s both}
+  .ref-auth-main .ref-auth-card .ref-alert.ref-error{animation:authNudge .45s cubic-bezier(.36,.07,.19,.97) .3s both}
+}
+@keyframes authAuroraFade{from{opacity:0}to{opacity:1}}
+@keyframes authLogoIn{from{opacity:0;transform:scale(.82)}to{opacity:1;transform:none}}
+@keyframes authCardIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes authRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes authNudge{0%,100%{transform:none}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
