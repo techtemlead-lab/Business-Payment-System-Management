@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Orders\OrderService;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,11 +25,10 @@ class RetainedFundDetailsTest extends TestCase
 
     public function test_treasury_and_benefits_fund_expose_detailed_retained_amount_rows(): void
     {
-        $buyer = User::factory()->dealer()->create([
-            'division' => 'Rangpur',
-            'district' => 'Pirganj',
-            'profile' => ['upazila' => 'Pirganj', 'union' => 'Khalashpir'],
-        ]);
+        // Area shares and their place names come from the buyer's place code.
+        $district = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Pirganj']);
+        $union = PlaceCode::factory()->union(PlaceCode::factory()->upazila($district)->create(['name' => 'Pirganj']))->create(['name' => 'Khalashpir']);
+        $buyer = User::factory()->dealer()->inPlace($union)->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '120.00']);
         $order = app(OrderService::class)->create($buyer, [
             'items' => [['product_id' => $product->id, 'quantity' => 1]],
