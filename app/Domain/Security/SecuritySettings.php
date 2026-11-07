@@ -98,6 +98,35 @@ final class SecuritySettings
         return ! $this->previewMode() && (bool) config('madina.totp.enabled', true);
     }
 
+    /**
+     * True when owners and finance staff must have an authenticator app (owner decision Q14,
+     * 2026-11-07). On by default; off in preview (trial) mode, when staff 2FA is switched off
+     * (MADINA_TOTP_ENABLED=false), or when MADINA_TOTP_REQUIRED=false.
+     */
+    public function totpRequirementActive(): bool
+    {
+        return $this->totpChallengesEnabled() && (bool) config('madina.totp.required', true);
+    }
+
+    /**
+     * True for the accounts that must use an authenticator app: the owners (Super Admin, MD,
+     * Chairman) and office staff who can see finance. Dealers and sub-dealers never do.
+     */
+    public function totpRequiredByRole(User $user): bool
+    {
+        if ($user->status !== 'active' || ! $user->staff()) {
+            return false;
+        }
+
+        return $user->owner() || $user->allows('finance');
+    }
+
+    /** True when this account must set up its authenticator app before it may use the portal. */
+    public function totpSetupPending(User $user): bool
+    {
+        return $this->totpRequirementActive() && ! $user->hasTotpEnabled() && $this->totpRequiredByRole($user);
+    }
+
     public function previewMode(): bool
     {
         return (bool) config('madina.preview_mode', false);
@@ -143,7 +172,7 @@ final class SecuritySettings
      *   preview_mode: bool,
      *   partner_login_otp: array{enabled: bool, version: int, preview_forced_off: bool, config_default: bool, stored_enabled: bool},
      *   password_reset_notice: array{enabled: bool, version: int},
-     *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool},
+     *   totp: array{challenges_enabled: bool, confirmed: bool, preview_forced_off: bool, required: bool},
      *   admin_ip_allowlist_active: bool,
      *   session_count: int
      * }
@@ -160,6 +189,7 @@ final class SecuritySettings
                 'challenges_enabled' => $this->totpChallengesEnabled(),
                 'confirmed' => filled($user->totp_confirmed_at),
                 'preview_forced_off' => $this->previewMode(),
+                'required' => $this->totpRequirementActive() && $this->totpRequiredByRole($user),
             ],
             'admin_ip_allowlist_active' => $this->adminIpRestricted(),
             'session_count' => (int) DB::table('sessions')->where('user_id', $user->id)->count(),

@@ -30,6 +30,8 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array" force="true"/>
         <env name="MADINA_PREVIEW_MODE" value="false" force="true"/>
+        <!-- Owner/finance authenticator-app requirement: off here so other tests can sign staff in; LoginTotpRequiredTest turns it on. -->
+        <env name="MADINA_TOTP_REQUIRED" value="false" force="true"/>
         <env name="MADINA_SMS_DRIVER" value="array" force="true"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

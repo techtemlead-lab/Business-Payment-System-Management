@@ -7,6 +7,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\PartnerStatementController;
 use App\Http\Controllers\ProductRegistryController;
+use App\Http\Controllers\TeamOrdersController;
 use App\Http\Controllers\WithdrawalController;
 use App\Http\Portals\Manage\DashboardController;
 use App\Support\PortalCatalog;
@@ -31,7 +32,7 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });
 
-Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($registerCommands): void {
+Route::middleware(['auth', 'active', 'portal:manage', 'authenticator'])->group(function () use ($registerCommands): void {
     $registerCommands('manage');
     Route::get('/operations/data-imports', [DataImportController::class, 'index'])->name('company.imports');
     Route::get('/operations/service-integrations', [IntegrationSettingsController::class, 'index'])->name('company.integrations');
@@ -39,6 +40,8 @@ Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($
     Route::get('/accounts/create', [DashboardController::class, 'createAccount']);
     Route::get('/accounts/{partner}/statement', [PartnerStatementController::class, 'show'])->whereNumber('partner');
     Route::get('/accounts/{partner}/statement/{format}', [PartnerStatementController::class, 'downloadFor'])->whereNumber('partner')->whereIn('format', ['xlsx', 'pdf'])->middleware('throttle:10,1');
+    Route::get('/accounts/{partner}/team-orders', [TeamOrdersController::class, 'show'])->whereNumber('partner');
+    Route::get('/accounts/{partner}/team-orders/xlsx', [TeamOrdersController::class, 'downloadFor'])->whereNumber('partner')->middleware('throttle:10,1');
     Route::get('/products/create', [ProductRegistryController::class, 'edit']);
     Route::get('/products/{product}', [ProductRegistryController::class, 'edit']);
     Route::get('/orders/{order}', [DashboardController::class, 'show']);
