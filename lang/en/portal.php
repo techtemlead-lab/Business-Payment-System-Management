@@ -6549,4 +6549,7 @@ return [
     'sce_fld_testimonials_invite_body' => 'Text shown before the first review',
     'sce_fld_feedback_page_title' => 'Review form page title',
     'sce_fld_feedback_page_lead' => 'Review form page intro',
+    'partner_help_call' => 'Call the office:',
+    'sce_fld_partner_help_title' => 'Help box title in the dealer and sub-dealer menu',
+    'sce_fld_partner_help_body' => 'Help box text in the dealer and sub-dealer menu (the office phone comes from the contact page)',
 ];

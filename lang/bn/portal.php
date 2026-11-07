@@ -6549,4 +6549,7 @@ return [
     'sce_fld_testimonials_invite_body' => 'প্রথম মতামতের আগে দেখানো লেখা',
     'sce_fld_feedback_page_title' => 'মতামত ফর্ম পাতার শিরোনাম',
     'sce_fld_feedback_page_lead' => 'মতামত ফর্ম পাতার ভূমিকা',
+    'partner_help_call' => 'অফিসে ফোন করুন:',
+    'sce_fld_partner_help_title' => 'ডিলার ও সাব-ডিলার মেনুর সাহায্য বক্সের শিরোনাম',
+    'sce_fld_partner_help_body' => 'ডিলার ও সাব-ডিলার মেনুর সাহায্য বক্সের লেখা (অফিসের ফোন যোগাযোগ পাতা থেকে নেওয়া হয়)',
 ];

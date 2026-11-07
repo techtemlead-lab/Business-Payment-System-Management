@@ -351,6 +351,9 @@ class SiteCustomization
             'auth_login_subtitle' => 'Welcome back! Please enter your credentials.',
             'auth_dealer_help_text' => 'Need a dealer account?',
             'auth_dealer_contact_text' => 'Contact the company',
+            // Help box in the dealer and sub-dealer side menu (phone comes from contact_phone).
+            'partner_help_title' => $copy('partner_help_title'),
+            'partner_help_body' => $copy('partner_help_body'),
 
             // Partnership / Become a Dealer (/partnership)
             'partnership_hero_title' => 'Become an Authorized Madina Partner',
@@ -453,6 +456,28 @@ class SiteCustomization
 
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
+        ];
+    }
+
+    /**
+     * Website editor text the dealer and sub-dealer panels show: header
+     * links and the help box in the side menu, in the partner's language.
+     *
+     * @return array<string, string>
+     */
+    public static function partnerPanelCopy(): array
+    {
+        $all = self::all();
+        $copy = collect($all)->only([
+            'header_offers_title', 'header_offers_subtitle',
+            'header_projects_title', 'header_projects_subtitle',
+        ])->map(fn (mixed $value): string => (string) $value)->all();
+        $phone = trim((string) ($all['contact_phone'] ?? ''));
+
+        return $copy + [
+            'partner_help_title' => SiteChrome::text('partner_help_title', $all['partner_help_title'] ?? null),
+            'partner_help_body' => SiteChrome::text('partner_help_body', $all['partner_help_body'] ?? null),
+            'partner_help_phone' => $phone !== '' ? $phone : (string) self::defaults()['contact_phone'],
         ];
     }
 
