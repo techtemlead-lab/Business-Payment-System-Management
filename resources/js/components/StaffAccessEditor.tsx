@@ -30,7 +30,7 @@ function PermissionForm({modules,entry,mode,roles}:{modules:string[];entry:Row;m
     const {staffRoles=[]}=usePage<any>().props;
     const form=useForm<Row>({permissions:entry.permissions??{},version:entry.version??0,key:entry.key??'custom_',name:entry.name??'',staff_id:entry.id,role:entry.role??'employee',reason:''});
     const sr=mode==='staff'&&(entry.role==='sr'||form.data.role==='sr');
-    const visible=sr?modules.filter(module=>['field_sales','sr_orders','sr_dues','sr_onboarding'].includes(module)):modules;
+    const visible=sr?modules.filter(module=>['field_sales','sr_orders','sr_onboarding'].includes(module)):modules;
     return <form className="action-form" onSubmit={event=>{
         event.preventDefault();
         form.transform(data=>({...data,permissions:sr?Object.fromEntries(Object.entries(data.permissions).filter(([module])=>visible.includes(module))):data.permissions}));

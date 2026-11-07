@@ -6,13 +6,13 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Finance\PaymentAccounts;
-use App\Domain\Integrations\CourierGatewayClient;
 use App\Domain\Integrations\PaymentGatewayClient;
 use App\Domain\Inventory\BranchOperations;
 use App\Domain\Inventory\StockNotifications;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\TerritoryAccess;
+use App\Jobs\BookShipmentCourier;
 use App\Models\BranchProductStock;
 use App\Models\Order;
 use App\Models\Product;
@@ -64,6 +64,7 @@ class OrderService
                 $lineTotal = $price * $item['quantity'];
                 $total += $lineTotal;
                 $lines[] = ['product_id' => $product->id, 'name' => $product->name, 'sku' => $product->sku, 'category_snapshot' => $product->category,
+                    'batch_number' => $product->batch_number, 'expires_on' => $product->expires_on?->toDateString(),
                     'quantity' => $item['quantity'], 'mrp' => $product->mrp, 'unit_price' => Money::decimal($price), 'total' => Money::decimal($lineTotal)];
             }
             if ($total <= 0 || $total > 9999999999900) {
@@ -170,7 +171,7 @@ class OrderService
         }, 3);
     }
 
-    public function decision(User $actor, Order $order, string $status, string $reason, bool $allowCredit = false, array $replacements = []): void
+    public function decision(User $actor, Order $order, string $status, string $reason, array $replacements = []): void
     {
         abort_unless($actor->allows('order_review'), 403);
         $this->assertNotOwnOrder($actor, $order);
@@ -185,7 +186,7 @@ class OrderService
             }
             $changes = ['status' => $status, 'decision_reason' => $reason];
             // No goods on credit: a dealer pays the full amount (and the payment is
-            // verified) before an order can be approved. $allowCredit is ignored.
+            // verified) before an order can be approved.
             if ($status === 'approved' && Money::cents($locked->outstanding()) > 0) {
                 throw ValidationException::withMessages(['status' => __('portal.err_order_needs_full_payment', ['amount' => Money::grouped($locked->outstanding())])]);
             }
@@ -198,7 +199,7 @@ class OrderService
                 throw ValidationException::withMessages(['replacement' => __('portal.err_order_replacement_on_approve')]);
             }
             $locked->update($changes);
-            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason, 'credit_authorized' => isset($changes['credit_authorized_by']),
+            $this->event($locked, $actor, 'order.'.$status, ['reason' => $reason,
                 'referral_replacements' => $status === 'approved' ? $locked->commission_policy_snapshot['referral_replacements'] ?? [] : []]);
             if ($status === 'approved') {
                 Audit::record($actor->id, 'commissions.policy_approved', $locked->id, ['reason' => $reason, 'revision_id' => $locked->commission_policy_snapshot['revision_id'],
@@ -354,24 +355,13 @@ class OrderService
             $tracking = trim((string) ($data['tracking'] ?? ''));
             $provider = $data['courier_provider'] ?? null;
             $gatewayMeta = null;
-            if (is_string($provider) && $provider !== '') {
-                $partner = User::query()->find($locked->user_id);
-                $created = app(CourierGatewayClient::class)->create($provider, [
-                    'invoice' => $locked->number,
-                    'recipient_name' => $partner?->name,
-                    'recipient_phone' => $partner?->phone,
-                    'recipient_address' => collect([$partner?->union, $partner?->upazila, $partner?->district, $partner?->division])->filter()->implode(', '),
-                    'amount' => $locked->outstanding(),
-                    'note' => $locked->number,
-                ]);
-                if (! $created['success']) {
-                    throw ValidationException::withMessages(['courier_provider' => $created['message']]);
-                }
-                $tracking = $created['tracking'] ?: $tracking;
+            // The courier is booked only after this transaction commits (BookShipmentCourier),
+            // so a rolled-back dispatch never leaves a parcel booked with the courier.
+            $bookCourier = is_string($provider) && $provider !== '';
+            if ($bookCourier) {
                 $courier = $courier !== '' ? $courier : ucfirst($provider);
-                $gatewayMeta = ['provider' => $provider, 'consignment_id' => $created['consignment_id']];
-            }
-            if ($tracking === '') {
+                $gatewayMeta = ['provider' => $provider, 'booking' => 'pending'];
+            } elseif ($tracking === '') {
                 throw ValidationException::withMessages(['tracking' => __('portal.err_shipment_tracking')]);
             }
             $shipmentId = DB::table('shipments')->insertGetId([
@@ -384,9 +374,14 @@ class OrderService
                 'actor_id' => $actor->id,
                 'idempotency_key' => $data['idempotency_key'],
                 'payload_hash' => $hash,
+                'courier_provider' => $bookCourier ? $provider : null,
+                'courier_booking_status' => $bookCourier ? 'pending' : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            if ($bookCourier) {
+                DB::afterCommit(fn () => BookShipmentCourier::dispatch($shipmentId));
+            }
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $locked->update([
                 'status' => $remaining ? 'partially_dispatched' : 'dispatched',
@@ -398,6 +393,10 @@ class OrderService
                 'branch_id' => $fulfillmentBranch->id,
                 'branch_code' => $fulfillmentBranch->code,
             ]);
+            if ($bookCourier) {
+                // The partner hears about it once the courier has given a tracking number.
+                return;
+            }
             $this->partnerNotice($locked->user_id, 'portal.notice_shipment_dispatched_title', 'portal.notice_shipment_dispatched_body', [
                 'number' => $locked->number,
                 'courier' => $courier,

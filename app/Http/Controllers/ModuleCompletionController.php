@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Commissions\CommissionWallet;
-use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Staff\StaffPermissions;
-use App\Models\Order;
 use App\Models\Product;
 use App\Support\Audit;
 use App\Support\ProductVideo;
@@ -17,22 +15,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ModuleCompletionController extends Controller
 {
-    public function adjustment(Request $request, Order $order, DueAdjustments $adjustments): Response
-    {
-        $data = $request->validate(['kind' => 'required|in:credit,debit_correction', 'amount' => [...FinanceOperationsController::Amount, 'gt:0'],
-            'reference' => 'required|string|max:100', 'reason' => FinanceOperationsController::Reason, 'request_key' => 'required|uuid']);
-
-        return $this->done($request, ['id' => $adjustments->request($request->user(), $order, $data)]);
-    }
-
-    public function reviewAdjustment(Request $request, int $id, DueAdjustments $adjustments): Response
-    {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason]);
-        $adjustments->review($request->user(), $id, $data['decision'], $data['reason']);
-
-        return $this->done($request);
-    }
-
     public function minimum(Request $request, FinanceSettings $settings): Response
     {
         $data = $request->validate(['amount' => [...FinanceOperationsController::Amount, 'gt:0'], 'version' => 'required|integer|min:0', 'reason' => FinanceOperationsController::Reason]);

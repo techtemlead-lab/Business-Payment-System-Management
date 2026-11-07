@@ -63,6 +63,7 @@ class ProductRegistryController extends Controller
             $data['expires_on'] = Schema::hasColumn('products', 'expires_on')
                 ? optional($product->expires_on)?->toDateString()
                 : null;
+            $data['batch_number'] = $product->batch_number;
         }
 
         return Inertia::render('ProductEditor', [
@@ -158,6 +159,7 @@ class ProductRegistryController extends Controller
             'product_subcategory_id' => $catalog ? 'sometimes|nullable|integer' : 'prohibited',
             'product_unit_id' => $catalog ? 'sometimes|nullable|integer' : 'prohibited',
             'expires_on' => $catalog && Schema::hasColumn('products', 'expires_on') ? 'sometimes|nullable|date' : 'prohibited',
+            'batch_number' => $catalog ? 'sometimes|nullable|string|max:60' : 'prohibited',
             'redirect_to' => 'nullable|string|max:50',
             'initial_stock' => $inventory ? 'nullable|integer|min:0|max:100000' : 'nullable|integer|in:0'];
         $d = $r->validate($rules);
@@ -262,7 +264,7 @@ class ProductRegistryController extends Controller
                 if ($product && (string) $p->registry_version !== (string) $d['version']) {
                     throw ValidationException::withMessages(['version' => __('portal.err_prod_stale')]);
                 }
-                $attributeKeys = ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at', 'product_subcategory_id', 'product_unit_id'];
+                $attributeKeys = ['name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'active', 'featured', 'mrp', 'dealer_price', 'sub_dealer_price', 'cost_price', 'low_stock_at', 'product_subcategory_id', 'product_unit_id', 'batch_number'];
                 if (Schema::hasColumn('products', 'expires_on')) {
                     $attributeKeys[] = 'expires_on';
                 }

@@ -8,7 +8,6 @@ use App\Domain\Accounts\PartnerEarningsPresenter;
 use App\Domain\Accounts\PartnerFullReport;
 use App\Domain\Accounts\PartnerIdCard;
 use App\Domain\Accounts\PartnerJoinPoster;
-use App\Domain\Finance\DueAdjustments;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Geography\ManagementReferral;
 use App\Domain\Identity\BdrisLookup;
@@ -287,11 +286,11 @@ class WorkspaceController extends Controller
         );
 
         return Inertia::render('OrderDetail', ['replacementSlots' => $replacementSlots, 'replacementCandidates' => $replacementCandidates, 'order' => $order->load(['lines', 'user:id,name,dealer_code']),
-            'outstanding' => $order->outstanding(), 'adjustments' => app(DueAdjustments::class)->history($order),
+            'outstanding' => $order->outstanding(),
             'fullPaymentRequired' => app(FinanceSettings::class)->fullPaymentWhenOrdering()['enabled'],
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
-            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at']),
+            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'courier_booking_status', 'lines', 'delivered_at', 'created_at']),
             'refund' => DB::table('order_refunds as f')->join('users as staff', 'staff.id', '=', 'f.refunded_by')->where('f.order_id', $order->id)
                 ->first(['f.amount', 'f.reason', 'f.created_at', 'staff.name as refunded_by']),
             'canRefund' => OrderRefund::canRefund($u) && (int) $u->id !== (int) $order->user_id

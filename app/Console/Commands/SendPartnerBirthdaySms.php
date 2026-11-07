@@ -17,6 +17,11 @@ class SendPartnerBirthdaySms extends Command
     public function handle(BirthdayGreetings $greetings): int
     {
         $result = $greetings->sendForToday();
+        if (($result['sms_ready'] ?? true) === false) {
+            $this->info('SMS is not set up (or trial mode is on). No birthday SMS sent.');
+
+            return self::SUCCESS;
+        }
         if (! $result['enabled']) {
             $this->info('Birthday SMS is switched off in dashboard management. No SMS sent.');
 
