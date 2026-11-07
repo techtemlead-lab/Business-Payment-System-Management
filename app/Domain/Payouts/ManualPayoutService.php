@@ -143,7 +143,7 @@ class ManualPayoutService
     {
         abort_unless($actor->allows('finance'), 403);
         CommissionWallet::requireActive();
-        $isCash = ($payout['method'] ?? null) === 'cash';
+        $isCash = $payout['method'] === 'cash';
         $reference = ($reference === null || trim($reference) === '') ? null : $reference;
         if (! $isCash && ($reference === null || $receipt === null)) {
             throw ValidationException::withMessages([$reference === null ? 'payment_reference' : 'receipt' => __('portal.err_payout_details_needed')]);

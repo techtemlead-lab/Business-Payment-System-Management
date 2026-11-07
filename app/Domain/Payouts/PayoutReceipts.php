@@ -174,7 +174,7 @@ final class PayoutReceipts
                 'designation' => $partner?->role === 'sub_dealer' ? __('portal.inv_role_sub_dealer') : __('portal.inv_role_dealer'),
                 'phone' => $partner?->phone ?: '—',
             ],
-            'paid_by' => $payer?->name ?? '—',
+            'paid_by' => $payer->name ?? '—',
             'copy_label' => $isPartnerCopy ? __('portal.prc_partner_copy') : __('portal.prc_office_copy'),
             'csp_nonce' => (string) request()->attributes->get('csp_nonce', ''),
         ];

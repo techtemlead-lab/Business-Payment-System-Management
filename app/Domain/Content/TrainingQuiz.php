@@ -27,7 +27,7 @@ final class TrainingQuiz
     /**
      * Replace the item's quiz. An empty question list removes the quiz.
      *
-     * @param  list<array{question: string, options: list<string>, correct_option: int}>  $questions
+     * @param  array<int, array{question: string, options: array<int, string>, correct_option: int}>  $questions
      */
     public function save(User $actor, TrainingItem $item, int $passPercent, array $questions): void
     {
