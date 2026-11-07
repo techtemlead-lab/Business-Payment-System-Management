@@ -6611,4 +6611,7 @@ return [
     'pp_tour_saved_total' => 'মোট জমা',
     'pp_tour_used' => 'ট্যুরে খরচ হয়েছে',
     'pp_tour_available' => 'ফান্ডে বাকি আছে',
+    'partner_help_call' => 'অফিসে ফোন করুন:',
+    'sce_fld_partner_help_title' => 'ডিলার ও সাব-ডিলার মেনুর সাহায্য বক্সের শিরোনাম',
+    'sce_fld_partner_help_body' => 'ডিলার ও সাব-ডিলার মেনুর সাহায্য বক্সের লেখা (অফিসের ফোন যোগাযোগ পাতা থেকে নেওয়া হয়)',
 ];

@@ -6611,4 +6611,7 @@ return [
     'pp_tour_saved_total' => 'Saved in total',
     'pp_tour_used' => 'Already used for tours',
     'pp_tour_available' => 'Still in your fund',
+    'partner_help_call' => 'Call the office:',
+    'sce_fld_partner_help_title' => 'Help box title in the dealer and sub-dealer menu',
+    'sce_fld_partner_help_body' => 'Help box text in the dealer and sub-dealer menu (the office phone comes from the contact page)',
 ];

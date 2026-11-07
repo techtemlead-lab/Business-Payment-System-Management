@@ -565,4 +565,6 @@ Questions about these terms, partnership rules or the website:
     'testimonials_invite_body' => 'Reviews here come only from real customers and partners. Share yours, and after our team checks it, it will be shown on this page.',
     'feedback_location_ph' => 'e.g. Dhaka',
     'feedback_no_html' => 'Please write plain text only. Web code like <b> or <script> is not allowed.',
+    'partner_help_title' => 'Growing, together.',
+    'partner_help_body' => 'One Madina family.',
 ];
