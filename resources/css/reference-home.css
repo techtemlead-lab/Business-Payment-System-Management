@@ -3601,3 +3601,64 @@ html[data-theme="dark"] .ref-home .ref-auth-submit{color:#04140f}
 .ref-contact-link:hover{text-decoration:underline}
 .ref-contact-hours,.ref-empty-note{color:#64748b}
 .ref-empty-note{font-size:14px;margin:0}
+
+/* ==========================================================================
+   Motion layer (final polish). Everything here is transform/opacity only and
+   switches off completely for visitors who ask for reduced motion.
+   ========================================================================== */
+
+/* Hero intro: a soft, slowly drifting glow behind the text */
+.ref-home .ref-company-intro{position:relative;overflow:hidden;isolation:isolate}
+.ref-home .ref-company-intro::before,.ref-home .ref-company-intro::after{content:'';position:absolute;z-index:-1;pointer-events:none;border-radius:50%}
+.ref-home .ref-company-intro::before{width:520px;height:520px;right:-160px;top:-260px;background:radial-gradient(circle,rgba(0,104,55,.16) 0%,rgba(0,104,55,.05) 45%,transparent 70%)}
+.ref-home .ref-company-intro::after{width:420px;height:420px;left:28%;bottom:-300px;background:radial-gradient(circle,rgba(234,179,8,.14) 0%,rgba(243,76,32,.04) 50%,transparent 70%)}
+html[data-theme="dark"] .ref-home .ref-company-intro::before{background:radial-gradient(circle,rgba(16,185,129,.18) 0%,rgba(16,185,129,.05) 45%,transparent 70%)}
+html[data-theme="dark"] .ref-home .ref-company-intro::after{background:radial-gradient(circle,rgba(234,179,8,.12) 0%,transparent 65%)}
+
+/* Company path links: calm hover (no lift, so the edge never flickers) */
+.ref-home .ref-company-paths>a{transition:border-color .2s ease,box-shadow .25s ease,background-color .2s ease}
+.ref-home .ref-company-paths>a:hover{border-color:#9fd2b4;box-shadow:0 12px 26px -10px rgba(1,22,39,.16)}
+.ref-home .ref-company-paths>a>i{transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+
+/* Buttons: arrow nudge on hover, press feedback */
+.ref-home :is(.ref-primary-button,.ref-secondary-button,.ref-dealer-banner-btn,.ref-view-all-link) i{transition:transform .22s cubic-bezier(.16,1,.3,1)}
+.ref-home :is(.ref-primary-button,.ref-view-all-link,.ref-dealer-banner-btn):hover i.fa-arrow-right{transform:translateX(4px)}
+.ref-home :is(.ref-primary-button,.ref-secondary-button,.ref-dealer-banner-btn,.ref-auth-submit,.ref-add-cart,.ref-buy-now,.ref-tab-btn){transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,color .2s ease,transform .12s ease}
+.ref-home :is(.ref-primary-button,.ref-secondary-button,.ref-dealer-banner-btn,.ref-auth-submit,.ref-add-cart,.ref-buy-now,.ref-tab-btn):active{transform:scale(.97)}
+
+/* Phone: the two hero buttons sit side by side at equal width */
+@media(max-width:767px){
+  .ref-home .ref-company-intro-actions{flex-wrap:nowrap;gap:10px}
+  .ref-home .ref-company-intro-actions>a{flex:1 1 0;min-width:0;justify-content:center;text-align:center;line-height:1.3;padding-left:8px;padding-right:8px;white-space:normal}
+}
+@media(max-width:340px){.ref-home .ref-company-intro-actions{flex-wrap:wrap}.ref-home .ref-company-intro-actions>a{flex-basis:100%}}
+
+@media(prefers-reduced-motion:no-preference){
+  .ref-home .ref-company-intro::before{animation:refIntroGlowA 22s ease-in-out infinite alternate}
+  .ref-home .ref-company-intro::after{animation:refIntroGlowB 26s ease-in-out infinite alternate}
+  /* First paint: the hero text and its two links arrive in a short stagger */
+  .ref-home .ref-company-intro>div:first-child>*{animation:refRise .6s cubic-bezier(.16,1,.3,1) backwards}
+  .ref-home .ref-company-intro>div:first-child>:nth-child(2){animation-delay:.06s}
+  .ref-home .ref-company-intro>div:first-child>:nth-child(3){animation-delay:.12s}
+  .ref-home .ref-company-intro>div:first-child>:nth-child(4){animation-delay:.18s}
+  .ref-home .ref-company-paths>a{animation:refSlideIn .6s cubic-bezier(.16,1,.3,1) backwards}
+  .ref-home .ref-company-paths>a:nth-child(1){animation-delay:.14s}
+  .ref-home .ref-company-paths>a:nth-child(2){animation-delay:.22s}
+  .ref-home .ref-company-paths>a:hover>i:first-child{transform:scale(1.12) rotate(-6deg)}
+  .ref-home .ref-company-paths>a:hover>i:last-child{transform:translate(2px,-2px)}
+
+  /* Scroll reveal, brought back gently: sections rise a little, cards stagger in.
+     Animations (not transitions) so card hover effects keep working afterwards. */
+  .ref-home .ref-reveal-init:not(.is-revealed),.ref-home .ref-reveal-card:not(.is-revealed){opacity:0}
+  .ref-home .ref-reveal-init.is-revealed{animation:refRise .6s cubic-bezier(.16,1,.3,1) backwards}
+  .ref-home .ref-reveal-card.is-revealed{animation:refRise .5s cubic-bezier(.16,1,.3,1) backwards;animation-delay:calc(var(--reveal-index,0) * 55ms)}
+
+  /* Main banner: a very slow push-in on the picture that is showing (kept small so
+     text printed near the picture's edge is never cut off) */
+  .ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide img{transform:scale(1.001);transition:transform 7s ease-out}
+  .ref-home .ref-carousel:not(.ref-side-carousel) .ref-slide.is-active img{transform:scale(1.025)}
+}
+@keyframes refRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes refSlideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes refIntroGlowA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-90px,70px,0) scale(1.12)}}
+@keyframes refIntroGlowB{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(110px,-60px,0) scale(1.1)}}
