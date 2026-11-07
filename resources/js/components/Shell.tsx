@@ -11,6 +11,7 @@ import {
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
+import NotificationBell from './NotificationBell';
 import OnboardingTour from './OnboardingTour';
 import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
@@ -30,7 +31,7 @@ import {
     sectionHref,
 } from '../shared/portalNav';
 
-function BranchWorkspaceSelect({ branches }: { branches: { view?: string; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
+function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_view_all?: boolean; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
     const translate = useT();
     const root = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
@@ -97,11 +98,13 @@ function BranchWorkspaceSelect({ branches }: { branches: { view?: string; active
             </button>
             {open && (
                 <ul className="branch-workspace-menu" role="listbox" aria-label={translate('portal', 'branch_select')}>
-                    <li>
-                        <button type="button" role="option" aria-selected={selectedId === 'all'} onClick={() => choose('all')}>
-                            {translate('portal', 'branch_view_all')}
-                        </button>
-                    </li>
+                    {branches.can_view_all && (
+                        <li>
+                            <button type="button" role="option" aria-selected={selectedId === 'all'} onClick={() => choose('all')}>
+                                {translate('portal', 'branch_view_all')}
+                            </button>
+                        </li>
+                    )}
                     {branches.branches.map((branch) => (
                         <li key={branch.id}>
                             <button type="button" role="option" aria-selected={selectedId === String(branch.id)} onClick={() => choose(String(branch.id))}>
@@ -791,20 +794,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         >
                             <Compass size={19} />
                         </button>
-                        <Link
-                            href={base + '/notifications'}
-                            className="icon-button notice-bell"
-                            aria-label={translate('portal', 'notifications')}
-                            title={translate('portal', 'notifications')}
-                            data-tooltip={translate('portal', 'notifications')}
-                        >
-                            <Bell size={19} />
-                            {unreadCount > 0 && (
-                                <span className="notice-bell-count" aria-hidden="true">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
-                                </span>
-                            )}
-                        </Link>
+                        <NotificationBell base={base} unreadCount={unreadCount} />
                         <div className="profile-menu" ref={profileMenu}>
                             <button
                                 type="button"

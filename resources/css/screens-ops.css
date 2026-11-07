@@ -287,6 +287,8 @@
 .app-shell :is(.ntx-search,.adh-search){position:relative;width:260px;max-width:100%}
 .app-shell :is(.ntx-search,.adh-search)>svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ds-text-faint);pointer-events:none}
 .app-shell :is(.ntx-search,.adh-search)>input{width:100%;padding-left:34px}
+/* Server-side list search (ServerListSearch) sits inside table toolbars, whose input padding would hide the icon. */
+.app-shell .server-list-search label.adh-search>input[type=search]{padding-left:34px}
 .app-shell .ntx-main{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ds-s-5);align-items:start}
 .app-shell .ntx-main.has-drawer{grid-template-columns:minmax(0,1fr) 340px}
 .app-shell .ops-card.ntx-tree{min-height:520px;padding:var(--ds-s-6);overflow-x:auto}

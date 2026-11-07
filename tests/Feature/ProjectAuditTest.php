@@ -158,7 +158,7 @@ class ProjectAuditTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'finance']))->get('/company/settlements?period_month=2026-09')
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.settlement_state.qualified_salary_dealers_count', 1)
-            ->where('data.settlement_state.qualified_salary_dealers.0.monthly_volume', 10000));
+            ->where('data.settlement_state.qualified_salary_dealers.data.0.monthly_volume', 10000));
     }
 
     public function test_salary_screen_separates_partner_reserves_and_reports_only_the_amount_actually_distributed(): void
@@ -201,8 +201,8 @@ class ProjectAuditTest extends TestCase
         $this->actingAs(User::factory()->create(['role' => 'finance']))->get('/company/settlements?period_month=2026-10')
             ->assertOk()->assertInertia(fn (AssertableInertia $page) => $page
             ->where('data.settlement_state.qualified_rank_leaders_count', 1)
-            ->where('data.settlement_state.qualified_rank_leaders.0.in_grace_period', true)
-            ->where('data.settlement_state.qualified_rank_leaders.0.is_qualified', false));
+            ->where('data.settlement_state.qualified_rank_leaders.data.0.in_grace_period', true)
+            ->where('data.settlement_state.qualified_rank_leaders.data.0.is_qualified', false));
     }
 
     public function test_area_commissions_match_the_district_place_code_not_a_same_named_district_elsewhere(): void

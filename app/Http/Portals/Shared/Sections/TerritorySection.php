@@ -7,7 +7,9 @@ use App\Domain\Geography\PlaceCodeCatalog;
 use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
+use App\Support\ListPage;
 use App\Support\Money;
+use Illuminate\Http\Request;
 
 /**
  * Territories: area dealer seats and the place-code catalog.
@@ -17,7 +19,7 @@ final class TerritorySection implements WorkspaceSection
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
-            'area-dealers' => $this->areaDealers(),
+            'area-dealers' => $this->areaDealers($context->request),
             'place-codes' => $this->placeCodes($context),
             default => [],
         };
@@ -28,17 +30,17 @@ final class TerritorySection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function areaDealers(): array
+    private function areaDealers(Request $request): array
     {
         $props = [];
-        $props['assignments'] = $this->dealerPlaceSeats();
+        $seats = collect($this->dealerPlaceSeats());
         $catalogDivisions = PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->pluck('name');
-        $dealerDivisions = collect($props['assignments'])->pluck('division');
+        $dealerDivisions = $seats->pluck('division');
         $divisions = [];
         $seen = [];
         foreach ($catalogDivisions->merge($dealerDivisions) as $name) {
@@ -52,6 +54,39 @@ final class TerritorySection implements WorkspaceSection
         }
         natcasesort($divisions);
         $props['divisions'] = array_values($divisions);
+
+        // Totals and the per-division cards cover every dealer; the table gets 25 rows a page,
+        // filtered and searched on the server.
+        $divisionStats = [];
+        foreach ($props['divisions'] as $division) {
+            $divisionStats[$division] = ['count' => 0, 'total_quota_cents' => 0];
+        }
+        $totalQuotaCents = 0;
+        foreach ($seats as $seat) {
+            $division = trim((string) ($seat['division'] ?? '')) ?: 'Unknown';
+            $cents = Money::cents((string) $seat['monthly_quota']);
+            $divisionStats[$division] ??= ['count' => 0, 'total_quota_cents' => 0];
+            $divisionStats[$division]['count']++;
+            $divisionStats[$division]['total_quota_cents'] += $cents;
+            $totalQuotaCents += $cents;
+        }
+        $props['area_summary'] = [
+            'total' => $seats->count(),
+            'total_quota' => Money::decimal($totalQuotaCents),
+            'divisions' => collect($divisionStats)->map(fn (array $stat, string $division): array => [
+                'division' => $division, 'count' => $stat['count'], 'total_quota' => Money::decimal($stat['total_quota_cents']),
+            ])->values()->all(),
+        ];
+        $divisionFilter = trim((string) $request->query('area_division', ''));
+        $levelFilter = in_array($request->query('level'), PlaceCode::AssignmentLevels, true) ? (string) $request->query('level') : '';
+        $filtered = $seats
+            ->when($divisionFilter !== '', fn ($rows) => $rows->filter(fn (array $seat): bool => (string) $seat['division'] === $divisionFilter))
+            ->when($levelFilter !== '', fn ($rows) => $rows->filter(fn (array $seat): bool => $seat['level'] === $levelFilter));
+        $props['assignments'] = ListPage::of(
+            ListPage::search($filtered->values(), ListPage::query($request), ['zone_name', 'place_code.code', 'user.name', 'user.dealer_code', 'district']),
+            $request,
+        );
+        $props['area_filters'] = ['division' => $divisionFilter, 'level' => $levelFilter, 'q' => ListPage::query($request)];
         $props['place_codes'] = PlaceCode::query()
             ->whereIn('level', PlaceCode::AssignmentLevels)
             ->where('is_active', true)
