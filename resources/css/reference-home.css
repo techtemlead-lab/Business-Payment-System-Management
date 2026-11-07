@@ -3720,3 +3720,11 @@ html[data-theme="dark"] .ref-home .ref-company-intro::after{background:radial-gr
 @keyframes refSlideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
 @keyframes refIntroGlowA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-90px,70px,0) scale(1.12)}}
 @keyframes refIntroGlowB{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(110px,-60px,0) scale(1.1)}}
+
+/* Product description paragraph (was an inline style dark mode could not reach) */
+.ref-product-description p.ref-product-description-text{font-size:15px;line-height:1.7;margin:0 0 20px}
+.ref-x-icon{display:inline-block;vertical-align:-.125em}
+html[data-theme="dark"] .ref-product-description p.ref-product-description-text{color:var(--ds-text-2,#cbd5e1)}
+/* Trial-mode note under the header: follow night mode instead of staying a bright strip */
+html[data-theme="dark"] .ref-preview-banner{background:#0f1d33;color:#c7d6ee;border-bottom-color:#1e2d45}
+html[data-theme="dark"] .ref-preview-banner i{color:#4ade80}
