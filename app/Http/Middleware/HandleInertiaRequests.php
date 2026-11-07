@@ -80,10 +80,7 @@ class HandleInertiaRequests extends Middleware
                 ? SiteCustomization::getNavCategories()
                 : [],
             'siteCustomization' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
-                ? collect(SiteCustomization::all())->only([
-                    'header_offers_title', 'header_offers_subtitle',
-                    'header_projects_title', 'header_projects_subtitle',
-                ])->all()
+                ? SiteCustomization::partnerPanelCopy()
                 : [],
             'portalBase' => '',
             'portal' => $portal,

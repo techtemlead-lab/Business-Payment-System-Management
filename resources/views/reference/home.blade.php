@@ -1,41 +1,9 @@
 @php
-    $slides = $siteCustomization['slides'] ?? [];
-    if (empty($slides)) {
-        $slides = [
-            ['image' => '/branding/madina-hero-banner-1.jpg', 'link' => '/products', 'alt' => 'Madina Natural Health Care - Authentic Herbal & Wellness Products'],
-            ['image' => '/branding/madina-hero-banner-2.jpg', 'link' => '/products', 'alt' => 'Madina Authentic Unani & Herbal Solutions'],
-            ['image' => '/branding/madina-hero-banner-3.jpg', 'link' => '/about', 'alt' => 'Madina Holistic Wellness & Physiotherapy Center'],
-        ];
-    }
-
-    $sideBanner1Slides = $siteCustomization['side_banner_1_slides'] ?? [];
-    if (empty($sideBanner1Slides)) {
-        $sideBanner1Slides = [
-            ['image' => $siteCustomization['side_banner_1_image'] ?? '/branding/madina-side-banner-1.jpg', 'link' => $siteCustomization['side_banner_1_link'] ?? '/products', 'alt' => \App\Support\SiteChrome::text('side_banner_1_alt', $siteCustomization['side_banner_1_alt'] ?? null)],
-            ['image' => '/branding/madina-top-skincare.jpg', 'link' => '/products', 'alt' => 'Madina Pure Herbal Skincare & Hair Vitality'],
-            ['image' => '/branding/madina-top-immunity.jpg', 'link' => '/products', 'alt' => 'Madina Daily Immunity & Vitality Boosters'],
-        ];
-    }
-
-    $sideBanner2Slides = $siteCustomization['side_banner_2_slides'] ?? [];
-    if (empty($sideBanner2Slides)) {
-        $sideBanner2Slides = [
-            ['image' => $siteCustomization['side_banner_2_image'] ?? '/branding/madina-side-banner-2.jpg', 'link' => $siteCustomization['side_banner_2_link'] ?? '/dealers', 'alt' => \App\Support\SiteChrome::text('side_banner_2_alt', $siteCustomization['side_banner_2_alt'] ?? null)],
-            ['image' => '/branding/madina-promotion-popup.jpg', 'link' => '/about', 'alt' => 'Madina Natural Health Care & Physiotherapy Center'],
-            ['image' => '/branding/madina-bottom-pharmacy.jpg', 'link' => '/dealers', 'alt' => 'Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
-        ];
-    }
-
-    $shortcuts = $siteCustomization['shortcuts'] ?? [];
-    if (empty($shortcuts)) {
-        $shortcuts = [
-            ['title'=>'Our Products','subtitle'=>'browse wellness items','icon'=>'fa-seedling','link'=>'/products'],
-            ['title'=>'Share Feedback','subtitle'=>'Share your experience','icon'=>'fa-comments','link'=>'/contact?topic=complaint'],
-            ['title'=>'Our Services','subtitle'=>'Natural Health Care and Physiotherapy Center','icon'=>'fa-hand-holding-heart','link'=>'/about'],
-            ['title'=>'Contact Us','subtitle'=>'Support & Inquiries','icon'=>'fa-headset','link'=>'/contact'],
-            ['title'=>'Our Network','subtitle'=>'Dealer Directory','icon'=>'fa-diagram-project','link'=>'/dealers']
-        ];
-    }
+    // Banner pictures come from the website editor; its factory defaults fill any gap.
+    $siteDefaults = \App\Support\SiteCustomization::defaults();
+    $slides = ($siteCustomization['slides'] ?? []) ?: $siteDefaults['slides'];
+    $sideBanner1Slides = ($siteCustomization['side_banner_1_slides'] ?? []) ?: $siteDefaults['side_banner_1_slides'];
+    $sideBanner2Slides = ($siteCustomization['side_banner_2_slides'] ?? []) ?: $siteDefaults['side_banner_2_slides'];
 @endphp
 
 @extends('reference.layout')
@@ -51,7 +19,7 @@
 <main id="main" class="ref-container ref-main">
     <section class="ref-company-intro" aria-labelledby="company-intro-title">
         <div>
-            <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow') }}</span>
+            <span class="ref-company-eyebrow">{{ $chrome('company_intro_eyebrow', $siteCustomization['company_intro_eyebrow'] ?? null) }}</span>
             <h1 id="company-intro-title">{{ $chrome('company_intro_title', $siteCustomization['company_intro_title'] ?? null) }}</h1>
             <p>{{ $chrome('company_intro_body', $siteCustomization['company_intro_body'] ?? null) }}</p>
             <div class="ref-company-intro-actions">
@@ -61,14 +29,14 @@
         </div>
         <div class="ref-company-paths">
             @if($publicPageEnabled['products'] ?? true)
-            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>{{ $chrome('product_range_title') }}</strong><small>{{ $chrome('product_range_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/products"><i class="fa-solid fa-leaf" aria-hidden="true"></i><span><strong>{{ $chrome('product_range_title', $siteCustomization['product_range_title'] ?? null) }}</strong><small>{{ $chrome('product_range_sub', $siteCustomization['product_range_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @elseif($publicPageEnabled['services'] ?? true)
-            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>{{ $chrome('our_services_title') }}</strong><small>{{ $chrome('our_services_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/services"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i><span><strong>{{ $chrome('our_services_title', $siteCustomization['our_services_title'] ?? null) }}</strong><small>{{ $chrome('our_services_sub', $siteCustomization['our_services_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @endif
             @if($publicPageEnabled['partnership'] ?? true)
-            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/partnership"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title', $siteCustomization['partner_with_us_title'] ?? null) }}</strong><small>{{ $chrome('partner_with_us_sub', $siteCustomization['partner_with_us_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @elseif($publicPageEnabled['contact'] ?? true)
-            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title') }}</strong><small>{{ $chrome('partner_with_us_sub') }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+            <a href="/contact#vendor"><i class="fa-solid fa-handshake" aria-hidden="true"></i><span><strong>{{ $chrome('partner_with_us_title', $siteCustomization['partner_with_us_title'] ?? null) }}</strong><small>{{ $chrome('partner_with_us_sub', $siteCustomization['partner_with_us_sub'] ?? null) }}</small></span><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
             @endif
         </div>
     </section>
@@ -232,7 +200,7 @@
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
         </div>
-        <script>
+        <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
         (function() {
             var btn = document.getElementById('refCatToggleBtn');
             var grid = document.getElementById('refCategoryGrid');
@@ -297,7 +265,7 @@
         <div class="ref-featured-tabs" role="tablist" aria-label="{{ __('site.product_category_filters') }}">
             @foreach($featuredCategoryTabs as $tab)
             <button type="button" class="ref-tab-btn {{ $loop->first ? 'is-active' : '' }}" role="tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-category-filter="{{ $tab['slug'] }}">
-                <span>{{ $tab['name'] }}</span>
+                <span>{{ $tab['slug'] === 'all' ? $chrome('all_products', $siteCustomization['catalog_all_products_label'] ?? null) : $tab['name'] }}</span>
                 <span class="ref-tab-count">{{ $tab['count'] }}</span>
             </button>
             @endforeach
@@ -417,7 +385,7 @@
                             <span class="ref-testimonial-meta">{{ $t['role'] }} · {{ $t['location'] }}</span>
                         </div>
                     </div>
-                    <div class="ref-testimonial-stars" aria-label="{{ $t['rating'] }} out of 5 stars">
+                    <div class="ref-testimonial-stars" role="img" aria-label="{{ __('site.testimonial_stars_label', ['count' => \App\Support\LocalDigits::text($t['rating'])]) }}">
                         @for($i = 1; $i <= 5; $i++)
                             <span class="ref-star {{ $i <= $t['rating'] ? 'is-filled' : 'is-empty' }}" aria-hidden="true">★</span>
                         @endfor
@@ -432,6 +400,16 @@
         <div class="ref-testimonials-actions">
             <a href="/feedback" class="ref-secondary-button">{{ __('site.share_feedback_cta') }}</a>
         </div>
+    </section>
+    @elseif(\App\Support\SiteCustomization::testimonialsEnabled($siteCustomization))
+    {{-- No approved review yet: invite the first one instead of showing made-up reviews. --}}
+    <section class="ref-testimonials-invite ref-deferred-paint" aria-labelledby="testimonials-invite-title">
+        <div class="ref-testimonials-invite-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></div>
+        <div class="ref-testimonials-invite-text">
+            <h2 id="testimonials-invite-title">{{ $chrome('testimonials_invite_title', $siteCustomization['testimonials_invite_title'] ?? null) }}</h2>
+            <p>{{ $chrome('testimonials_invite_body', $siteCustomization['testimonials_invite_body'] ?? null) }}</p>
+        </div>
+        <a href="/feedback" class="ref-primary-button">{{ __('site.share_feedback_cta') }}</a>
     </section>
     @endif
 

@@ -78,8 +78,11 @@ final class PortalCatalog
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['accounts', 'sub-dealers', 'employees'], true)) {
             // Owners (Super Admin, MD, Chairman) open the account lists to reset or see passwords.
             abort_unless($user->owner() || $user->allows('accounts'), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['enquiries', 'feedback'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'enquiries') {
             abort_unless($user->allows('content') || $user->allows('accounts'), 403);
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'feedback') {
+            // Reviews go on the public website, so only website (content) staff check them.
+            abort_unless($user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'catalog') {
             abort_unless($user->allows('catalog') || $user->allows('pricing') || $user->allows('inventory') || $user->allows('orders') || $user->allows('finance'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'branches') {

@@ -416,11 +416,12 @@ final class ReserveService
 
     /**
      * What is left in every reserve fund, per category, in cents: the same sum as remaining()
-     * over each fund row, worked out by the database in one query.
+     * over each fund row, worked out by the database in one query. Pass a partner to count only
+     * the funds kept in that partner's name (such as a sub-dealer's own tour fund).
      *
      * @return array<string, int>
      */
-    public function remainingByCategory(): array
+    public function remainingByCategory(?int $userId = null): array
     {
         $paid = DB::table('commission_settlement_payouts')->groupBy('allocation_id')
             ->selectRaw('allocation_id, SUM(amount - reversed_amount) AS total');
@@ -432,6 +433,7 @@ final class ReserveService
             ->leftJoinSub($paid, 'paid', 'paid.allocation_id', '=', 'funds.id')
             ->leftJoinSub($spent, 'spent', 'spent.allocation_id', '=', 'funds.id')
             ->whereIn('funds.category', array_values(array_unique(self::Programs)))
+            ->when($userId !== null, fn ($query) => $query->where('funds.user_id', $userId))
             ->groupBy('funds.category')
             ->selectRaw('funds.category, SUM(funds.amount - COALESCE(paid.total, 0) - COALESCE(spent.total, 0)) AS remaining')
             ->pluck('remaining', 'category')
