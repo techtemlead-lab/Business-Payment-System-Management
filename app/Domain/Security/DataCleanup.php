@@ -4,8 +4,8 @@ namespace App\Domain\Security;
 
 use App\Models\User;
 use App\Support\Audit;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -44,7 +44,7 @@ final class DataCleanup
     /**
      * The rows the owner can delete, oldest first.
      *
-     * @return LengthAwarePaginator<int, array<string, mixed>>
+     * @return LengthAwarePaginator<int|string, array{ref: string, kind: string, label: string, detail: string|null, happened_at: string}>
      */
     public function listing(?string $kind, int $olderThanDays): LengthAwarePaginator
     {
@@ -105,8 +105,8 @@ final class DataCleanup
         $deleted = DB::transaction(function () use ($grouped): array {
             $resetEmails = array_values(array_map(fn (array $ref): string => (string) $ref[1], array_filter($grouped[self::KindLoginCodes], fn (array $ref): bool => $ref[0] === 'reset')));
             $otpKeys = array_values(array_map(fn (array $ref): string => (string) $ref[1], array_filter($grouped[self::KindLoginCodes], fn (array $ref): bool => $ref[0] === 'otp')));
-            $smsIds = array_values(array_map(fn (array $ref): int => (int) $ref[1], $grouped[self::KindSmsLogs]));
-            $enquiryIds = array_values(array_map(fn (array $ref): int => (int) $ref[1], $grouped[self::KindEnquiries]));
+            $smsIds = array_map(fn (array $ref): int => (int) $ref[1], $grouped[self::KindSmsLogs]);
+            $enquiryIds = array_map(fn (array $ref): int => (int) $ref[1], $grouped[self::KindEnquiries]);
 
             $loginCodes = $resetEmails === [] ? 0 : DB::table('password_reset_tokens')->whereIn('email', $resetEmails)->delete();
             if ($otpKeys !== [] && $this->otpTable() !== null) {
