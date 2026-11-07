@@ -427,6 +427,8 @@ export interface CustomizationData {
     auth_login_subtitle?: string;
     auth_dealer_help_text?: string;
     auth_dealer_contact_text?: string;
+    partner_help_title?: string;
+    partner_help_body?: string;
 
     // Copyright
     copyright_text?: string;
@@ -4059,6 +4061,8 @@ export default function SiteCustomizationEditor({
             auth_login_subtitle: customization.auth_login_subtitle || '',
             auth_dealer_help_text: customization.auth_dealer_help_text || '',
             auth_dealer_contact_text: customization.auth_dealer_contact_text || '',
+            partner_help_title: customization.partner_help_title || '',
+            partner_help_body: customization.partner_help_body || '',
 
             // Copyright
             copyright_text: customization.copyright_text || ''
@@ -4926,6 +4930,8 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_partner_login_subtitle')} fieldKey="auth_login_subtitle" value={form.data.customization.auth_login_subtitle} placeholder={defaults.auth_login_subtitle} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_dealer_inquiry_text')} fieldKey="auth_dealer_help_text" value={form.data.customization.auth_dealer_help_text} placeholder={defaults.auth_dealer_help_text} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_dealer_inquiry_link')} fieldKey="auth_dealer_contact_text" value={form.data.customization.auth_dealer_contact_text} placeholder={defaults.auth_dealer_contact_text} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_partner_help_title')} fieldKey="partner_help_title" value={form.data.customization.partner_help_title} placeholder={defaults.partner_help_title} onChange={updateField} />
+                                <Field label={translate('portal', 'sce_fld_partner_help_body')} fieldKey="partner_help_body" value={form.data.customization.partner_help_body} placeholder={defaults.partner_help_body} onChange={updateField} />
                             </div>
                         </div>
                     )}

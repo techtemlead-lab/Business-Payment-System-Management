@@ -6,7 +6,7 @@ import {
     Coins, BadgeCheck, BookOpen, MessageSquare, SlidersHorizontal, MapPin, Award,
     Trophy, TrendingUp, Percent, Store, Landmark, UserCheck, AlertTriangle,
     Briefcase, Hash, FileBarChart2, ChevronDown, UserRound, LifeBuoy, ArrowLeftRight, BarChart3, Compass, Search,
-    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, type LucideIcon
+    Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
 import { DealerHeader, DealerBottomNav } from './PortalHeader';
@@ -136,7 +136,7 @@ const icons: Record<string, LucideIcon> = {
 
 export default function Shell({ section, children, action }: { section: string; children: ReactNode; action?: ReactNode }) {
     const page = usePage<any>();
-    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
+    const { auth, portalBase, portal, demoMode, dashboardNotice, dashboardControls, publicPageEnabled, publicBase, siteCustomization, unreadNotices = 0, navAttention = {}, tour, userManualChapters, workspaceBranches } = page.props;
     const [manualOpen, setManualOpen] = useState(false);
     const [menuQuery, setMenuQuery] = useState('');
     const unreadCount = Number(unreadNotices ?? 0);
@@ -742,8 +742,13 @@ export default function Shell({ section, children, action }: { section: string; 
                     {!staff && (
                         <div className="help-card">
                             <Leaf size={22} />
-                            <b>{translate('portal', 'help_title')}</b>
-                            <span>{translate('portal', 'help_body')}</span>
+                            <b>{siteCustomization?.partner_help_title || translate('portal', 'help_title')}</b>
+                            <span>{siteCustomization?.partner_help_body || translate('portal', 'help_body')}</span>
+                            {siteCustomization?.partner_help_phone && (
+                                <a href={`tel:${String(siteCustomization.partner_help_phone).replace(/[^0-9+]/g, '')}`}>
+                                    {translate('portal', 'partner_help_call')} {siteCustomization.partner_help_phone} <Phone size={14} />
+                                </a>
+                            )}
                             {(publicPageEnabled?.contact ?? true) && (
                                 <a href={`${publicBase || ''}/contact`}>{translate('portal', 'contact_company')} <ArrowUpRight size={14} /></a>
                             )}
