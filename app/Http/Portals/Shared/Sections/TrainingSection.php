@@ -31,7 +31,8 @@ final class TrainingSection implements WorkspaceSection
                 'topics' => TrainingItem::Topics,
                 'types' => TrainingItem::Types,
                 'audiences' => TrainingItem::Audiences,
-                'pdf_max_mb' => 20,
+                'pdf_max_mb' => TrainingLibrary::pdfMaxMb(),
+                'video_max_mb' => TrainingLibrary::videoMaxMb(),
                 'new_for_days' => TrainingItem::NewForDays,
             ]];
         }
