@@ -3,6 +3,8 @@
 namespace App\Domain\Accounts;
 
 use App\Models\DealerRank;
+use App\Models\TrainingCompletion;
+use App\Models\TrainingItem;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -121,6 +123,24 @@ final class PartnerCertificates
             .'<p class="note">'.e($t('cert_rank_note')).'</p></div>';
 
         return $this->render($user, $body, $t('cert_rank_doc_title'), 'Madina-rank-certificate-'.$rank->current_rank, 'A4-L', $locale);
+    }
+
+    /** Completion certificate for a training item whose quiz the partner passed. No money figures. */
+    public function trainingPdf(User $user, TrainingItem $item, TrainingCompletion $completion): BinaryFileResponse
+    {
+        abort_unless($completion->passed_at !== null && (int) $completion->user_id === (int) $user->id, 404);
+        $locale = $user->preferredLocale();
+        $t = static fn (string $key, array $replace = []): string => __('portal.'.$key, $replace, $locale);
+        $title = $locale === 'bn' ? $item->title_bn : $item->title_en;
+        $passed = CarbonImmutable::parse($completion->passed_at)->timezone('Asia/Dhaka')->format('d M Y');
+        $body = '<div class="award"><p class="kicker">'.e($t('cert_training_kicker')).'</p>'
+            .'<h1 class="big">'.e($user->name).'</h1>'
+            .'<p class="lead">'.e($t('cert_training_lead', ['code' => (string) ($user->dealer_code ?? '—'), 'role' => $this->roleLabel($user, $locale)])).'</p>'
+            .'<p class="rank">'.e($title).'</p>'
+            .'<p class="lead">'.e($t('cert_training_score', ['score' => (string) $completion->best_score, 'date' => $passed])).'</p>'
+            .'<p class="note">'.e($t('cert_training_note')).'</p></div>';
+
+        return $this->render($user, $body, $t('cert_training_doc_title'), 'Madina-training-certificate-'.$item->id, 'A4-L', $locale);
     }
 
     private function roleLabel(User $user, string $locale): string
