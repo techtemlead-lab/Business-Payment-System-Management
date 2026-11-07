@@ -91,6 +91,13 @@ export const label=(text:string,translate?:TranslateFn):string=>{
  }
  return humanize(text);
 };
+/** A readable name for an activity-log action such as "order.submitted"; unknown actions fall back to plain words. */
+export const auditActionLabel=(action:string,translate:TranslateFn):string=>{
+ const code=String(action||'').replaceAll('.','_');
+ const key=`event_${code}`;
+ const localized=translate('portal',key);
+ return localized!==key?localized:label(code,translate);
+};
 export function useLabel(){
  const translate=useT();
  return (text:string)=>label(text,translate);

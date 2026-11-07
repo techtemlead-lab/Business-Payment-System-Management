@@ -356,7 +356,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                                 checked={form.data.settings.dealer_announcement_type === t}
                                                 onChange={() => updateField('dealer_announcement_type', t)}
                                             />
-                                            <span className="hub-capital">{t}</span>
+                                            <span>{translate('portal', `dash_mgmt_banner_style_${t}`)}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -473,7 +473,7 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                                 checked={form.data.settings.subdealer_announcement_type === t}
                                                 onChange={() => updateField('subdealer_announcement_type', t)}
                                             />
-                                            <span className="hub-capital">{t}</span>
+                                            <span>{translate('portal', `dash_mgmt_banner_style_${t}`)}</span>
                                         </label>
                                     ))}
                                 </div>
