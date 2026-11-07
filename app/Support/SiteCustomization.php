@@ -60,6 +60,14 @@ class SiteCustomization
             'header_network_title' => 'Dealer Network',
             'company_intro_title' => 'Madina Natural Health Care',
             'company_intro_body' => $copy('company_intro_body'),
+            // Home page intro: small line above the company name and the two link cards beside it.
+            'company_intro_eyebrow' => $copy('company_intro_eyebrow'),
+            'product_range_title' => $copy('product_range_title'),
+            'product_range_sub' => $copy('product_range_sub'),
+            'partner_with_us_title' => $copy('partner_with_us_title'),
+            'partner_with_us_sub' => $copy('partner_with_us_sub'),
+            'our_services_title' => $copy('our_services_title'),
+            'our_services_sub' => $copy('our_services_sub'),
             'public_products_subtitle' => 'Discover our product range and connect with an authorized dealer.',
             'nav_categories' => '',
             // Mobile search overlay — Popular Categories chips (admin-managed)
@@ -232,6 +240,10 @@ class SiteCustomization
             'contact_topic2_title' => 'Products & Support',
             'contact_topic2_desc' => $copy('contact_topic2_desc'),
             'contact_topic3_title' => 'Head Office',
+            // Printed order invoice letterhead (starting values come from config/madina.php).
+            'invoice_manufacturer' => (string) config('madina.invoice_manufacturer', 'Holistic Nutracare'),
+            'invoice_marketed_by' => (string) config('madina.invoice_marketed_by', 'Madina Natural Health Care'),
+            'invoice_marketed_phones' => (string) config('madina.invoice_marketed_phones', '01723-731877, 01730532966'),
             'contact_social_title' => 'Connect With Us Online',
             'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
             // Default pin: Pirganj Upazila, Rangpur District (admin can override in Website CMS).
