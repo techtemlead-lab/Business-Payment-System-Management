@@ -31,7 +31,7 @@ class ReportController extends Controller
             'from' => 'nullable|date_format:Y-m-d',
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'buyer_role' => 'nullable|in:dealer,sub_dealer',
-            'section' => 'nullable|in:orders,deliveries,dues,reports',
+            'section' => 'nullable|in:orders,deliveries,reports',
         ]);
         // Older links sent only from/to; treat them as a custom date range.
         if (! $r->filled('period') && ($r->filled('from') || $r->filled('to'))) {
@@ -82,7 +82,6 @@ class ReportController extends Controller
             $col('csv_col_status'),
             $col('csv_col_total_bdt'),
             $col('csv_col_verified_receipts_bdt'),
-            $col('csv_col_credit_bdt'),
             $col('csv_col_unpaid_bdt'),
             $col('csv_col_payment_method'),
             $col('csv_col_payment_ref'),
@@ -110,7 +109,6 @@ class ReportController extends Controller
                     $this->localizedCsvEnum('status_'.$o->status, (string) $o->status, $locale),
                     $o->total,
                     $o->paid,
-                    $o->due_credit ?? '0.00',
                     $o->outstanding(),
                     $o->verified_channels,
                     $o->verified_references,

@@ -462,7 +462,6 @@ class CrossFeatureCombinationsTest extends E2ETestCase
         $this->actingAs($superAdmin)->postJson("/api/v1/orders/{$orderId}/decision", [
             'status' => 'approved',
             'reason' => 'Approved for Hub A dispatch',
-            'allow_credit' => true,
         ])->assertOk();
 
         // Dispatch 15 units from Hub A

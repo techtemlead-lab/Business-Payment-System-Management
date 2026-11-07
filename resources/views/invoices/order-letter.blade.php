@@ -504,9 +504,6 @@
                 <table>
                     <tr><td>{{ __('portal.inv_bill_total') }}</td><td class="amt">৳ {{ $order['total_display'] }}</td></tr>
                     <tr><td>{{ __('portal.inv_paid') }}</td><td class="amt">৳ {{ $order['paid_display'] }}</td></tr>
-                    @if ($order['credit_display'] !== '0.00')
-                        <tr><td>{{ __('portal.inv_credit') }}</td><td class="amt">৳ {{ $order['credit_display'] }}</td></tr>
-                    @endif
                     <tr class="due"><td>{{ __('portal.inv_due') }}</td><td class="amt">৳ {{ $order['due_display'] }}</td></tr>
                     <tr><td>{{ __('portal.inv_payment_status') }}</td><td class="amt"><span class="pay-state {{ $order['payment_state'] }}">{{ $order['payment_state_label'] }}</span></td></tr>
                 </table>
