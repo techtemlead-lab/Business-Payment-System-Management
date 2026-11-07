@@ -11,7 +11,7 @@
                 : $chrome('in_stock', $siteCustomization['product_in_stock_label'] ?? null)));
 @endphp
 @extends('reference.layout')
-@section('title',$item['name'].' · Madina Natural Health Care')
+@section('title',$item['name'].' · '.\App\Support\SiteCustomization::brandName())
 @section('bodyClass','ref-detail-page')
 @section('content')
 <main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><a href="/products">{{ __('site.products') }}</a><span>/</span><span>{{ $item['name'] }}</span></nav>

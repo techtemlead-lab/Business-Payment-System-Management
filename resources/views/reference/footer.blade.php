@@ -127,7 +127,7 @@
     </section>
 </div>
 <div class="ref-container ref-footer-bottom">
-    <span>@if(app()->getLocale() === 'bn' || blank($siteCustomization['copyright_text'] ?? null)){{ __('site.copyright', ['year' => \App\Support\LocalDigits::text(date('Y'))]) }}@else{{ $siteCustomization['copyright_text'] }}@endif</span>
+    <span>{{ \App\Support\SiteCustomization::copyrightLine() }}</span>
     <span>{{ __('site.timezone_currency') }}</span>
     <nav class="ref-footer-legal" aria-label="{{ __('site.legal_nav') }}">
         @if($href = \App\Support\SiteCustomization::publicHref($siteCustomization['footer_link_privacy_url'] ?? '/privacy'))

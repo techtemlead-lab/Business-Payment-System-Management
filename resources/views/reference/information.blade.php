@@ -18,7 +18,7 @@
     $pageTitle = filled($content->title ?? null) ? $content->title : ($pageTitles[$page] ?? ucfirst($page));
 @endphp
 @extends('reference.layout')
-@section('title',$pageTitle.' · Madina Natural Health Care')
+@section('title', $pageTitle.' · '.\App\Support\SiteCustomization::brandName())
 @section('content')
 <main id="main" class="ref-container ref-inner-main"><nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}"><a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a><span>/</span><span>{{ $pageTitle }}</span></nav>
 @if($notice)<div class="ref-alert ref-notice" role="status"><b>{{ $notice->title }}</b><p>{{ $notice->body }}</p></div>@endif
@@ -687,7 +687,7 @@
     @unless(in_array($page, ['privacy', 'terms'], true) ? false : filled($content->body ?? null))
         <div class="ref-content-prose ref-legal-lead">
             @if(in_array($page, ['notice', 'circular-training', 'circular-price', 'circular-meeting'], true))
-                {{ app()->getLocale() === 'bn' || blank($siteCustomization[$page.'_hero_lead'] ?? null) ? __('site.notice_empty') : $siteCustomization[$page.'_hero_lead'] }}
+                {{ \App\Support\SiteChrome::ownerText('notice_empty', $siteCustomization['notice_empty'] ?? null, $siteCustomization['notice_empty_bn'] ?? null) }}
             @elseif(in_array($page, ['privacy', 'terms'], true))
                 {{ $chrome($page.'_hero_lead', $siteCustomization[$page.'_hero_lead'] ?? null) }}
             @else
