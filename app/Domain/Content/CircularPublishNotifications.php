@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Domain\Notifications\WebPushNotices;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -38,7 +39,7 @@ final class CircularPublishNotifications
             ->select(['id', 'locale'])
             ->chunkById(500, function (Collection $users) use ($title, $kindKey): void {
                 $timestamp = now();
-                DB::table('account_notices')->insert($users->map(function (User $user) use ($title, $kindKey, $timestamp): array {
+                $rows = $users->map(function (User $user) use ($title, $kindKey, $timestamp): array {
                     $locale = $user->preferredLocale();
                     $kind = __($kindKey, [], $locale);
 
@@ -52,7 +53,9 @@ final class CircularPublishNotifications
                         'created_at' => $timestamp,
                         'updated_at' => $timestamp,
                     ];
-                })->all());
+                })->all();
+                DB::table('account_notices')->insert($rows);
+                app(WebPushNotices::class)->send($rows);
             });
     }
 }

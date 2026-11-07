@@ -6267,4 +6267,11 @@ return [
     'acct_edit_name_bn' => 'Name in Bangla',
     'acct_edit_father_name' => 'Father’s name',
     'acct_edit_mother_name' => 'Mother’s name',
+    'push_turn_on' => 'Turn on notifications',
+    'push_turn_off' => 'Turn off notifications',
+    'push_off_hint' => 'Get these updates on this phone or computer, even when the portal is closed.',
+    'push_on_hint' => 'Notifications are on for this phone or computer.',
+    'push_working' => 'Please wait…',
+    'push_blocked' => 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
+    'push_failed' => 'Could not change notifications. Please try again.',
 ];

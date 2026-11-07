@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use NotificationChannels\WebPush\HasPushSubscriptions;
 
 #[Hidden(['password', 'remember_token', 'nid', 'admin_password_cipher', 'totp_secret', 'totp_recovery_codes'])]
 class User extends Authenticatable implements HasLocalePreference
@@ -22,7 +23,7 @@ class User extends Authenticatable implements HasLocalePreference
     public const PasswordManagedByPartner = 'partner';
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasPushSubscriptions, Notifiable;
 
     protected $guarded = [
         'id',

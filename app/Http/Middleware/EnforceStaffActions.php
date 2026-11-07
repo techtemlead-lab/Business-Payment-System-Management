@@ -47,6 +47,7 @@ class EnforceStaffActions
                 'PartnerAgreementController' => $method === 'accept',
                 'PartnerChatController' => $method === 'send',
                 'TrainingController' => $method === 'submitQuiz',
+                'PushSubscriptionController' => true,
                 default => false,
             };
             abort_unless($partnerAllowed, 403, __('portal.err_staff_only_action'));
@@ -66,6 +67,10 @@ class EnforceStaffActions
             return $next($request);
         }
         if ($controller === 'CommandController' && $method === 'readNotice') {
+            return $next($request);
+        }
+        // Everyone may turn phone notifications on or off for their own account.
+        if ($controller === 'PushSubscriptionController') {
             return $next($request);
         }
         if ($controller === 'CommandController' && $method === 'refund' && $actor->owner()) {

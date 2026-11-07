@@ -41,6 +41,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Partner home shows referral share URL; full-report PDF downloads for dealer and sub-dealer
 - [ ] Locale (EN/BN) toggles on each portal without breaking forms
 - [ ] Password reset emails land on the correct portal host
+- [ ] Phone/browser notifications: run `php artisan webpush:vapid --show` once on the server, paste the two keys as `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` (plus `VAPID_SUBJECT=mailto:<owner email>`), keep them unchanged afterwards, and keep the queue worker running. Then on a phone open Notifications → "Turn on notifications" and check that a test notice arrives. With the keys empty the button stays hidden
 
 ## Operations smoke
 

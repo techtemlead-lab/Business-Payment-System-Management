@@ -2,6 +2,7 @@
 
 namespace App\Domain\Inventory;
 
+use App\Domain\Notifications\WebPushNotices;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Audit;
@@ -19,7 +20,7 @@ final class StockNotifications
             User::where('status', 'active')->whereIn('role', ['dealer', 'sub_dealer'])->select(['id', 'locale'])
                 ->chunkById(500, function (Collection $users) use ($product): void {
                     $timestamp = now();
-                    DB::table('account_notices')->insert($users->map(function (User $user) use ($product, $timestamp): array {
+                    $rows = $users->map(function (User $user) use ($product, $timestamp): array {
                         $locale = $user->preferredLocale();
                         $replace = ['name' => $product->name, 'sku' => $product->sku];
 
@@ -30,7 +31,9 @@ final class StockNotifications
                             'created_at' => $timestamp,
                             'updated_at' => $timestamp,
                         ];
-                    })->all());
+                    })->all();
+                    DB::table('account_notices')->insert($rows);
+                    app(WebPushNotices::class)->send($rows);
                 });
         }
         if ($wasAvailable && ($product->stock <= 0 || $product->is_stock_paused)) {
@@ -38,7 +41,7 @@ final class StockNotifications
                 ->chunkById(500, function (Collection $users) use ($product): void {
                     $timestamp = now();
                     $paused = (bool) $product->is_stock_paused;
-                    DB::table('account_notices')->insert($users->map(function (User $user) use ($product, $timestamp, $paused): array {
+                    $rows = $users->map(function (User $user) use ($product, $timestamp, $paused): array {
                         $locale = $user->preferredLocale();
                         $replace = ['name' => $product->name, 'sku' => $product->sku];
 
@@ -57,7 +60,9 @@ final class StockNotifications
                             'created_at' => $timestamp,
                             'updated_at' => $timestamp,
                         ];
-                    })->all());
+                    })->all();
+                    DB::table('account_notices')->insert($rows);
+                    app(WebPushNotices::class)->send($rows);
                 });
         }
         if (($previousStock > $product->low_stock_at && $product->stock <= $product->low_stock_at)
