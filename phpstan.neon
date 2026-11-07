@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # Static analysis for application code. Existing findings live in phpstan-baseline.neon;
+    # new code must pass at this level. Regenerate the baseline only when fixing old findings:
+    # `composer analyse -- --generate-baseline`.
+    level: 5
+    paths:
+        - app/
+    tmpDir: storage/framework/cache/phpstan
+    reportUnmatchedIgnoredErrors: false
