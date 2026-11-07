@@ -146,9 +146,8 @@ final class CommissionReversal
                 $rank->update(['lifetime_purchase_total' => Money::decimal(max(0, Money::cents($rank->lifetime_purchase_total) - $amount)),
                     'monthly_purchase_total' => Money::decimal($this->qualification->monthlyVolume($order->user_id, CommissionQualification::currentMonth())), 'purchase_period' => CommissionQualification::currentMonth()]);
             }
-            foreach (ReferralTreePath::getUplines($order->user_id, 100) as $path) {
-                $this->qualification->refreshMilestones($path->ancestor_id);
-            }
+            $buyerId = (int) $order->user_id;
+            DB::afterCommit(fn () => $this->refreshUplineMilestones($buyerId));
             Audit::record($actorId, 'commissions.reversed', $order->id, [
                 'buyer_id' => $order->user_id, 'reference' => $reference, 'request_key' => $requestKey,
                 'refund_amount' => Money::decimal($amount), 'reason' => $reason,
@@ -185,6 +184,28 @@ final class CommissionReversal
 
             return DB::table('commission_reversals')->where('refund_id', $id)->get()->map(fn ($row): array => (array) $row)->all();
         }, 3);
+    }
+
+    /**
+     * Recount bike and car progress for everyone above the buyer once the refund has been saved.
+     *
+     * Runs after the refund commits so the money lock is not held while up to 100 uplines are
+     * recounted. Each upline gets its own short locked transaction, so a sale posting at the same
+     * time cannot interleave with the recount, and one failing upline does not stop the others.
+     */
+    private function refreshUplineMilestones(int $buyerId): void
+    {
+        foreach (ReferralTreePath::getUplines($buyerId, 100) as $path) {
+            $ancestorId = (int) $path->ancestor_id;
+            try {
+                DB::transaction(function () use ($ancestorId): void {
+                    CommissionWallet::lock();
+                    $this->qualification->refreshMilestones($ancestorId);
+                }, 3);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     private function proportion(int $amount, int $part, int $whole): int
