@@ -29,6 +29,7 @@ export default function PaymentReceiptsList({ receipts }: { receipts?: Row }) {
                 columns={[
                     { key: 'number', title: translate('portal', 'prc_number'), render: (r: Row) => <b>{r.number}</b> },
                     { key: 'paid_at', title: translate('portal', 'prc_date'), render: (r: Row) => dateTime(r.paid_at) },
+                    { key: 'kind', title: translate('portal', 'prc_kind'), render: (r: Row) => translate('portal', r.reserve_disbursement_id ? 'prc_kind_reserve' : 'prc_kind_withdrawal') },
                     { key: 'method', title: translate('portal', 'prc_method'), render: (r: Row) => translate('portal', `payout_method_${r.method}`) },
                     { key: 'reference', title: translate('portal', 'prc_reference'), render: (r: Row) => r.reference || '—' },
                     { key: 'amount', title: translate('portal', 'prc_commission_amount'), money: true, render: (r: Row) => money(r.amount) },

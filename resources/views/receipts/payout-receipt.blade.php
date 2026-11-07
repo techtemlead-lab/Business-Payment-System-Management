@@ -81,6 +81,9 @@
 
     <table class="info">
         <tr><td class="k">{{ __('portal.prc_paid_to') }}</td><td>{{ $partner['name'] }}</td></tr>
+        @if ($partner['payee_name'])
+            <tr><td class="k">{{ __('portal.prc_payee') }}</td><td>{{ $partner['payee_name'] }}</td></tr>
+        @endif
         <tr><td class="k">{{ __('portal.inv_dealer_code') }}</td><td>{{ $partner['code'] }}</td></tr>
         <tr><td class="k">{{ __('portal.inv_designation') }}</td><td>{{ $partner['designation'] }}</td></tr>
         <tr><td class="k">{{ __('portal.inv_mobile') }}</td><td>{{ $partner['phone'] }}</td></tr>
@@ -98,11 +101,11 @@
             <tr><td class="k">{{ __('portal.prc_received_by') }}</td><td>{{ $receipt['received_by'] }}</td></tr>
         @endif
         <tr><td class="k">{{ __('portal.prc_paid_by') }}</td><td>{{ $paid_by }}</td></tr>
-        <tr><td class="k">{{ __('portal.prc_withdrawal_ref') }}</td><td>{{ $receipt['withdrawal_ref'] }}</td></tr>
+        <tr><td class="k">{{ $receipt['source_label'] }}</td><td>{{ $receipt['source_ref'] }}</td></tr>
     </table>
 
     <table class="money">
-        <tr><td>{{ __('portal.prc_commission_amount') }}</td><td class="amt">৳ {{ $receipt['amount'] }}</td></tr>
+        <tr><td>{{ $receipt['amount_label'] }}</td><td class="amt">৳ {{ $receipt['amount'] }}</td></tr>
         @if ($receipt['has_withholding'])
             <tr><td>{{ __('portal.prc_tax_withheld') }}</td><td class="amt">− ৳ {{ $receipt['withheld'] }}</td></tr>
         @endif

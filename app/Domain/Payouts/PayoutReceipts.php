@@ -50,6 +50,44 @@ final class PayoutReceipts
      */
     public function issue(User $actor, object $withdrawal, array $payout, ?string $reference, string $paidAt): array
     {
+        return $this->write($actor, [
+            'withdrawal_id' => $withdrawal->id,
+            'user_id' => $withdrawal->user_id,
+            'payee_name' => null,
+            'amount' => Money::cents((string) $withdrawal->amount),
+            'withheld' => Money::cents((string) ($withdrawal->withheld_amount ?? '0')),
+            'net' => Money::cents((string) ($withdrawal->net_amount ?? $withdrawal->amount)),
+        ], $payout, $reference, $paidAt);
+    }
+
+    /**
+     * Writes the receipt for a reserve payout (rewards and other reserve spending) being
+     * marked paid. The payee is a partner, an outside person or company, or both.
+     *
+     * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
+     * @return array{id: int, number: string}
+     */
+    public function issueForReserve(User $actor, object $reserve, array $payout, ?string $reference, string $paidAt): array
+    {
+        $amount = Money::cents((string) $reserve->amount);
+
+        return $this->write($actor, [
+            'reserve_disbursement_id' => $reserve->id,
+            'user_id' => $reserve->user_id,
+            'payee_name' => $this->clean($reserve->payee_name ?? null),
+            'amount' => $amount,
+            'withheld' => 0,
+            'net' => $amount,
+        ], $payout, $reference, $paidAt);
+    }
+
+    /**
+     * @param  array{withdrawal_id?: string, reserve_disbursement_id?: int, user_id: ?int, payee_name: ?string, amount: int, withheld: int, net: int}  $source
+     * @param  array{method: string, bank_name?: ?string, account_number?: ?string, wallet_number?: ?string, received_by?: ?string}  $payout
+     * @return array{id: int, number: string}
+     */
+    private function write(User $actor, array $source, array $payout, ?string $reference, string $paidAt): array
+    {
         $method = $payout['method'];
         abort_unless(in_array($method, self::Methods, true), 422);
         $account = match ($method) {
@@ -60,16 +98,16 @@ final class PayoutReceipts
         // The number comes from the table's own sequence, so receipt numbers only go up and never repeat.
         $id = (int) DB::selectOne("SELECT nextval(pg_get_serial_sequence('payout_receipts', 'id')) AS id")->id;
         $number = 'MN-PR-'.str_pad((string) $id, 6, '0', STR_PAD_LEFT);
-        $amountCents = Money::cents((string) $withdrawal->amount);
-        $withheldCents = Money::cents((string) ($withdrawal->withheld_amount ?? '0'));
-        $netCents = Money::cents((string) ($withdrawal->net_amount ?? $withdrawal->amount));
+        $netCents = $source['net'];
         DB::table('payout_receipts')->insert([
             'id' => $id,
             'number' => $number,
-            'withdrawal_id' => $withdrawal->id,
-            'user_id' => $withdrawal->user_id,
-            'amount' => Money::decimal($amountCents),
-            'withheld_amount' => Money::decimal($withheldCents),
+            'withdrawal_id' => $source['withdrawal_id'] ?? null,
+            'reserve_disbursement_id' => $source['reserve_disbursement_id'] ?? null,
+            'user_id' => $source['user_id'],
+            'payee_name' => $source['payee_name'],
+            'amount' => Money::decimal($source['amount']),
+            'withheld_amount' => Money::decimal($source['withheld']),
             'net_amount' => Money::decimal($netCents),
             'method' => $method,
             'reference' => $reference,
@@ -82,7 +120,8 @@ final class PayoutReceipts
             'updated_at' => now(),
         ]);
         Audit::record($actor->id, 'payout_receipt.issued', $number, [
-            'receipt_id' => $id, 'withdrawal_id' => $withdrawal->id, 'user_id' => $withdrawal->user_id,
+            'receipt_id' => $id, 'withdrawal_id' => $source['withdrawal_id'] ?? null,
+            'reserve_disbursement_id' => $source['reserve_disbursement_id'] ?? null, 'user_id' => $source['user_id'],
             'method' => $method, 'reference' => $reference, 'net_amount' => Money::decimal($netCents), 'paid_at' => $paidAt,
         ]);
 
@@ -96,7 +135,7 @@ final class PayoutReceipts
             ->where('user_id', $partner->id)
             ->orderByDesc('paid_at')
             ->orderByDesc('id')
-            ->select(['id', 'number', 'withdrawal_id', 'amount', 'withheld_amount', 'net_amount', 'method', 'reference', 'paid_at'])
+            ->select(['id', 'number', 'withdrawal_id', 'reserve_disbursement_id', 'amount', 'withheld_amount', 'net_amount', 'method', 'reference', 'paid_at'])
             ->paginate($perPage)
             ->withQueryString();
     }
@@ -140,7 +179,7 @@ final class PayoutReceipts
         $custom = SiteCustomization::all();
         $paidAt = CarbonImmutable::parse((string) $receipt->paid_at, 'UTC')->timezone((string) config('madina.business_timezone', 'Asia/Dhaka'));
         $account = $receipt->account_number ? (string) decrypt($receipt->account_number) : null;
-        $isPartnerCopy = (int) $actor->id === (int) $receipt->user_id;
+        $isPartnerCopy = $receipt->user_id !== null && (int) $actor->id === (int) $receipt->user_id;
 
         return [
             'company' => [
@@ -166,12 +205,21 @@ final class PayoutReceipts
                 'account_masked' => $account !== null ? $this->masked($account) : null,
                 'account_label' => in_array($receipt->method, ['bkash', 'nagad'], true) ? __('portal.prc_wallet_number') : __('portal.prc_account_number'),
                 'received_by' => $receipt->received_by,
-                'withdrawal_ref' => strtoupper(substr((string) $receipt->withdrawal_id, 0, 8)),
+                'amount_label' => $receipt->reserve_disbursement_id ? __('portal.prc_reserve_amount') : __('portal.prc_commission_amount'),
+                'source_label' => $receipt->reserve_disbursement_id ? __('portal.prc_reserve_ref') : __('portal.prc_withdrawal_ref'),
+                'source_ref' => $receipt->reserve_disbursement_id
+                    ? '#'.$receipt->reserve_disbursement_id.' · '.__('portal.prc_reserve_program_'.DB::table('reserve_disbursements')->where('id', $receipt->reserve_disbursement_id)->value('program'))
+                    : strtoupper(substr((string) $receipt->withdrawal_id, 0, 8)),
             ],
             'partner' => [
-                'name' => $partner?->name,
+                'name' => $partner->name ?? $receipt->payee_name,
+                'payee_name' => $partner && $receipt->payee_name && $receipt->payee_name !== $partner->name ? $receipt->payee_name : null,
                 'code' => $partner?->dealer_code ?: '—',
-                'designation' => $partner?->role === 'sub_dealer' ? __('portal.inv_role_sub_dealer') : __('portal.inv_role_dealer'),
+                'designation' => match ($partner?->role) {
+                    'sub_dealer' => __('portal.inv_role_sub_dealer'),
+                    'dealer' => __('portal.inv_role_dealer'),
+                    default => __('portal.prc_outside_payee'),
+                },
                 'phone' => $partner?->phone ?: '—',
             ],
             'paid_by' => $payer->name ?? '—',

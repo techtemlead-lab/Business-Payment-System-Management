@@ -9,6 +9,7 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\SpreadsheetCell;
@@ -130,9 +131,20 @@ class FinanceOperationsController extends Controller
 
     public function reservePay(Request $request, int $id, ReserveService $reserves): Response
     {
-        $reserves->pay($request->user(), $id, $this->payment($request), $request->file('receipt'));
+        abort_unless($request->user()->allows('finance'), 403);
+        // Owner decision: every manual payout records how it was paid and gets a numbered receipt.
+        $data = $request->validate([...PayoutReceipts::rules(),
+            'payment_account_id' => 'nullable|required_unless:method,cash|integer|exists:payment_accounts,id',
+            'paid_at' => ['required', 'date', function (string $attribute, mixed $value, \Closure $fail): void {
+                if (CarbonImmutable::parse($value, 'Asia/Dhaka')->isFuture()) {
+                    $fail(__('portal.err_wd_paid_at_future'));
+                }
+            }],
+            'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'reason' => self::Reason]);
+        $data['paid_at'] = CarbonImmutable::parse($data['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString();
+        $number = $reserves->pay($request->user(), $id, $data, $request->file('receipt'));
 
-        return $this->done($request);
+        return $this->done($request, ['receipt_number' => $number]);
     }
 
     public function reassignHeld(Request $request, int $id, ReserveService $reserves): Response
