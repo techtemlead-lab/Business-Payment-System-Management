@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Geography\PlaceTree;
 use Database\Factories\PartnerEventFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,7 +22,8 @@ use Illuminate\Support\Carbon;
  * @property string|null $place
  * @property string|null $online_url
  * @property string $audience
- * @property list<string>|null $divisions
+ * @property list<string>|null $divisions Division names, for display only.
+ * @property list<int>|null $division_place_ids Division place code ids the event is for.
  * @property string|null $notes
  * @property string $status
  * @property bool $send_sms
@@ -40,7 +43,7 @@ class PartnerEvent extends Model
     public const Statuses = ['draft', 'published', 'cancelled'];
 
     protected $fillable = [
-        'title_bn', 'title_en', 'starts_at', 'ends_at', 'place', 'online_url', 'audience', 'divisions', 'notes',
+        'title_bn', 'title_en', 'starts_at', 'ends_at', 'place', 'online_url', 'audience', 'divisions', 'division_place_ids', 'notes',
         'status', 'send_sms', 'published_at', 'cancelled_at', 'cancel_reason', 'created_by', 'updated_by',
     ];
 
@@ -51,6 +54,7 @@ class PartnerEvent extends Model
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'divisions' => 'array',
+            'division_place_ids' => 'array',
             'send_sms' => 'boolean',
             'published_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -69,11 +73,11 @@ class PartnerEvent extends Model
             ->whereNotNull('published_at')
             ->where(function (Builder $audience) use ($user): void {
                 $audience->where('audience', 'all');
-                $division = trim((string) $user->division);
-                if ($division !== '') {
+                $division = self::partnerDivisionId($user);
+                if ($division !== null) {
                     $audience->orWhere(fn (Builder $byDivision) => $byDivision
                         ->where('audience', 'divisions')
-                        ->whereJsonContains('divisions', $division));
+                        ->whereJsonContains('division_place_ids', $division));
                 }
             });
     }
@@ -83,8 +87,19 @@ class PartnerEvent extends Model
         if (! in_array($this->status, ['published', 'cancelled'], true) || $this->published_at === null) {
             return false;
         }
+        $division = $this->audience === 'all' ? null : self::partnerDivisionId($user);
 
-        return $this->audience === 'all' || in_array(trim((string) $user->division), $this->divisions ?? [], true);
+        return $this->audience === 'all'
+            || ($division !== null && in_array($division, array_map('intval', $this->division_place_ids ?? []), true));
+    }
+
+    /**
+     * The division place code id a partner's place code lies in; a partner without a
+     * place code is in no division (their typed division name is never used).
+     */
+    public static function partnerDivisionId(User $user): ?int
+    {
+        return PlaceTree::divisionIdOf(PlaceGeographyResolver::profilePlaceId($user));
     }
 
     public function startsInDhaka(): Carbon

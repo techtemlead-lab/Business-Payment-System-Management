@@ -2,7 +2,9 @@
 
 namespace App\Domain\Accounts;
 
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Orders\OrderListFilter;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\Money;
 use App\Support\TableWorkbook;
@@ -41,8 +43,9 @@ final class PartnerAccountList
         return [
             'q' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:40',
-            'division' => 'nullable|string|max:80',
-            'district' => 'nullable|string|max:80',
+            // Place code ids, never names: "Dhaka" can be a division, a district or an upazila.
+            'division' => 'nullable|integer|min:1',
+            'district' => 'nullable|integer|min:1',
             'rank' => 'nullable|in:'.implode(',', self::Ranks),
             'no_order_days' => 'nullable|in:'.implode(',', self::QuietDays),
         ];
@@ -85,8 +88,8 @@ final class PartnerAccountList
                         ->orWhere('users.profile->shop_name', 'ilike', $term);
                 });
             })
-            ->when($filters['division'] !== '', fn (EloquentBuilder $query) => $query->where('users.division', $filters['division']))
-            ->when($filters['district'] !== '', fn (EloquentBuilder $query) => $query->where('users.district', $filters['district']))
+            ->when($filters['division'] !== '', fn (EloquentBuilder $query) => PlaceTree::whereInside($query, [(int) $filters['division']]))
+            ->when($filters['district'] !== '', fn (EloquentBuilder $query) => PlaceTree::whereInside($query, [(int) $filters['district']]))
             ->when($role === 'dealer' && $filters['rank'] !== '', function (EloquentBuilder $query) use ($filters): void {
                 // A dealer without a rank row is still a plain dealer.
                 if ($filters['rank'] === 'dealer') {
@@ -185,25 +188,22 @@ final class PartnerAccountList
     }
 
     /**
-     * Divisions and their districts that partners of this role live in, for the area filters.
+     * Divisions and their districts that partners of this role live in, for the area
+     * filters, worked out from the partners' place codes (values are place code ids).
      *
-     * @return list<array{division: string, districts: list<string>}>
+     * @return list<array{division_id: int, division: string, districts: list<array{id: int, name: string}>}>
      */
     public function areaOptions(string $role): array
     {
-        return User::query()->toBase()
-            ->where('role', $role)
-            ->whereNotNull('division')->where('division', '<>', '')
-            ->select('division', 'district')->distinct()
-            ->orderBy('division')->orderBy('district')
-            ->get()
-            ->groupBy('division')
-            ->map(fn ($rows, $division): array => [
-                'division' => (string) $division,
-                'districts' => $rows->pluck('district')->filter(fn ($district): bool => is_string($district) && $district !== '')->values()->all(),
-            ])
-            ->values()
-            ->all();
+        return PlaceTree::divisionAndDistrictOptions(User::query()->where('users.role', $role));
+    }
+
+    /**
+     * The chosen division/district filter as names for a summary line.
+     */
+    public static function placeName(string $placeId): string
+    {
+        return (string) (PlaceCode::query()->whereKey((int) $placeId)->value('name') ?? $placeId);
     }
 
     /**

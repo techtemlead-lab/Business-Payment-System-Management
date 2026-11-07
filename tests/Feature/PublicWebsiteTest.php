@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -35,11 +36,34 @@ class PublicWebsiteTest extends TestCase
 
     public function test_directory_only_publishes_consented_active_dealers(): void
     {
-        $visible = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'name' => 'Published Partner', 'directory_visible' => true, 'division' => 'Dhaka', 'district' => 'Dhaka', 'phone' => 'PUBLIC-TEST-PHONE', 'nid' => 'PRIVATE-NID', 'profile' => ['father_name' => 'PRIVATE-PARENT']]);
-        User::factory()->create(['name' => 'Hidden Partner', 'directory_visible' => false]);
-        User::factory()->create(['name' => 'Suspended Partner', 'status' => 'suspended', 'directory_visible' => true]);
-        User::factory()->create(['name' => 'Staff Partner', 'role' => 'super_admin', 'directory_visible' => true]);
-        $this->get('/dealers?district=Dhaka')->assertOk()->assertSee('Published Partner')->assertSee('PUBLIC-TEST-PHONE')->assertDontSee('Hidden Partner')->assertDontSee('Suspended Partner')->assertDontSee('Staff Partner')->assertDontSee('PRIVATE-NID')->assertDontSee('PRIVATE-PARENT')->assertDontSee($visible->email);
+        $dhakaDistrict = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create(['name' => 'Dhaka']);
+        $visible = User::factory()->state(['profile' => ['father_name' => 'PRIVATE-PARENT']])->inPlace($dhakaDistrict)
+            ->create(['role' => 'dealer', 'status' => 'active', 'name' => 'Published Partner', 'directory_visible' => true, 'phone' => 'PUBLIC-TEST-PHONE', 'nid' => 'PRIVATE-NID']);
+        User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Hidden Partner', 'directory_visible' => false]);
+        User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Suspended Partner', 'status' => 'suspended', 'directory_visible' => true]);
+        User::factory()->inPlace($dhakaDistrict)->create(['name' => 'Staff Partner', 'role' => 'super_admin', 'directory_visible' => true]);
+        $this->get('/dealers?district='.$dhakaDistrict->id)->assertOk()->assertSee('Published Partner')->assertSee('PUBLIC-TEST-PHONE')->assertDontSee('Hidden Partner')->assertDontSee('Suspended Partner')->assertDontSee('Staff Partner')->assertDontSee('PRIVATE-NID')->assertDontSee('PRIVATE-PARENT')->assertDontSee($visible->email);
+    }
+
+    public function test_directory_area_filters_use_place_codes_not_names(): void
+    {
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $rangpurSadar = PlaceCode::factory()->district($rangpur)->create(['name' => 'Sadar']);
+        $khulnaSadar = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Khulna']))->create(['name' => 'Sadar']);
+        User::factory()->dealer()->inPlace($rangpurSadar)->create(['name' => 'Rangpur Sadar Dealer', 'directory_visible' => true]);
+        User::factory()->dealer()->inPlace($khulnaSadar)->create(['name' => 'Khulna Sadar Dealer', 'directory_visible' => true]);
+        User::factory()->dealer()->create(['name' => 'Names Only Dealer', 'division' => 'Rangpur', 'district' => 'Sadar', 'directory_visible' => true]);
+
+        $this->get('/dealers?district='.$rangpurSadar->id)->assertOk()
+            ->assertSee('Rangpur Sadar Dealer')->assertDontSee('Khulna Sadar Dealer')->assertDontSee('Names Only Dealer');
+        $this->get('/dealers?division='.$rangpur->id)->assertOk()
+            ->assertSee('Rangpur Sadar Dealer')->assertDontSee('Khulna Sadar Dealer')->assertDontSee('Names Only Dealer');
+        $this->get('/dealers?division=Rangpur')->assertOk()->assertDontSee('Rangpur Sadar Dealer');
+        // The pickers send place code ids and show the names of those codes.
+        $this->get('/dealers')->assertOk()
+            ->assertSee('<option value="'.$rangpur->id.'"', false)
+            ->assertSee('<option value="'.$rangpurSadar->id.'"', false)
+            ->assertSee('Sadar (Khulna)');
     }
 
     public function test_enquiry_is_saved_without_creating_an_account_and_rejects_honeypot(): void

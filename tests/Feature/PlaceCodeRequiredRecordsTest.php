@@ -156,6 +156,23 @@ class PlaceCodeRequiredRecordsTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'nameonly@example.test', 'district' => 'Kurigram']);
     }
 
+    public function test_readiness_asks_the_owner_to_set_the_head_office_place_code_and_never_guesses_it(): void
+    {
+        $headOffice = CompanyBranch::query()->where('is_head_office', true)->firstOrFail();
+        $this->assertNull($headOffice->place_code_id, 'The seeded head office starts without a guessed place code.');
+
+        $readiness = app(DeploymentReadiness::class)->inspect();
+        $this->assertContains('head_office_branch_missing_place_code', $readiness['warnings']);
+        $this->assertSame($headOffice->id, $readiness['details']['head_office_branch_missing_place_code']['id']);
+        $this->assertNotContains($headOffice->id, array_column(app(DeploymentReadiness::class)->recordsMissingPlaceCodes()['branches'], 'id'));
+
+        $owner = User::factory()->staff()->create();
+        $this->actingAs($owner)->patchJson('/api/v1/branches/'.$headOffice->id, ['code' => $headOffice->code, 'name' => $headOffice->name,
+            'place_code' => $this->rangpurDistrict->code])->assertOk();
+
+        $this->assertNotContains('head_office_branch_missing_place_code', app(DeploymentReadiness::class)->inspect()['warnings']);
+    }
+
     public function test_readiness_lists_active_records_saved_without_a_place_code(): void
     {
         $unplacedBranch = CompanyBranch::factory()->create(['code' => 'OLD-HUB']);
@@ -164,7 +181,8 @@ class PlaceCodeRequiredRecordsTest extends TestCase
         $missing = app(DeploymentReadiness::class)->recordsMissingPlaceCodes();
 
         $this->assertContains($unplacedBranch->id, array_column($missing['branches'], 'id'));
-        $this->assertCount(1 + CompanyBranch::query()->whereNull('place_code_id')->where('is_active', true)->where('id', '<>', $unplacedBranch->id)->count(), $missing['branches']);
+        $this->assertCount(1 + CompanyBranch::query()->whereNull('place_code_id')->where('is_active', true)->where('is_head_office', false)
+            ->where('id', '<>', $unplacedBranch->id)->count(), $missing['branches']);
         $this->assertContains('records_missing_place_codes', app(DeploymentReadiness::class)->inspect()['warnings']);
     }
 }

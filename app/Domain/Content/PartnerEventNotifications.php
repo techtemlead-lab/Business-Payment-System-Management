@@ -2,6 +2,7 @@
 
 namespace App\Domain\Content;
 
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Notifications\WebPushNotices;
 use App\Jobs\SendPartnerEventSms;
@@ -45,7 +46,8 @@ final class PartnerEventNotifications
         return User::query()
             ->where('status', 'active')
             ->whereIn('role', ['dealer', 'sub_dealer'])
-            ->when($event->audience === 'divisions', fn (Builder $query) => $query->whereIn('division', $event->divisions ?? []));
+            // Partners whose place code lies inside one of the chosen division place codes.
+            ->when($event->audience === 'divisions', fn (Builder $query) => PlaceTree::whereInside($query, array_map('intval', $event->division_place_ids ?? [])));
     }
 
     private function fanOut(PartnerEvent $event, string $titleKey, string $bodyKey, string $smsEvent, string $smsKey): int

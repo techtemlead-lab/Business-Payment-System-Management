@@ -3,7 +3,9 @@
 namespace App\Domain\Geography;
 
 use App\Models\PlaceCode;
+use App\Models\User;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -73,6 +75,54 @@ final class PlaceTree
     }
 
     /**
+     * The divisions (and their districts) that the given partners' place codes lie in,
+     * for filter pickers: values are place code ids, labels are the names of those codes.
+     *
+     * @param  EloquentBuilder<User>  $partners
+     * @return list<array{division_id: int, division: string, districts: list<array{id: int, name: string}>}>
+     */
+    public static function divisionAndDistrictOptions(EloquentBuilder $partners): array
+    {
+        $starts = $partners->clone()->reorder()->select(DB::raw(self::partnerPlaceIdSql('users').' AS place_id'))->toBase();
+        $rows = DB::select('WITH RECURSIVE starts AS ('.$starts->toSql().'), chain AS (
+                SELECT place.id AS start_id, place.id, place.parent_id, place.level, place.name, 0 AS depth
+                FROM place_codes AS place
+                WHERE place.id IN (SELECT place_id FROM starts)
+                UNION ALL
+                SELECT chain.start_id, parent.id, parent.parent_id, parent.level, parent.name, chain.depth + 1
+                FROM chain
+                JOIN place_codes AS parent ON parent.id = chain.parent_id
+                WHERE chain.depth < 8
+            )
+            SELECT DISTINCT division.id AS division_id, division.name AS division_name, district.id AS district_id, district.name AS district_name
+            FROM chain AS division
+            LEFT JOIN chain AS district ON district.start_id = division.start_id AND district.level = ?
+            WHERE division.level = ?
+            ORDER BY division_name, division_id, district_name', [...$starts->getBindings(), PlaceCode::LevelDistrict, PlaceCode::LevelDivision]);
+
+        $options = [];
+        foreach ($rows as $row) {
+            $divisionId = (int) $row->division_id;
+            $options[$divisionId] ??= ['division_id' => $divisionId, 'division' => (string) $row->division_name, 'districts' => []];
+            if ($row->district_id !== null) {
+                $options[$divisionId]['districts'][] = ['id' => (int) $row->district_id, 'name' => (string) $row->district_name];
+            }
+        }
+
+        return array_values($options);
+    }
+
+    /**
+     * A positive place code id from a filter value, or null (names and junk are ignored).
+     */
+    public static function idFrom(mixed $value): ?int
+    {
+        $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $id === false ? null : $id;
+    }
+
+    /**
      * The place itself and every place above it, nearest first.
      *
      * @return list<int>
@@ -103,6 +153,26 @@ final class PlaceTree
             ->whereIn('id', $this->selfAndAncestorIds($placeId))
             ->where('level', PlaceCode::LevelDivision)
             ->first();
+    }
+
+    /**
+     * The id of the division a place lies in (itself when it is a division), in one query.
+     */
+    public static function divisionIdOf(?int $placeId): ?int
+    {
+        if ($placeId === null) {
+            return null;
+        }
+        $row = DB::selectOne('WITH RECURSIVE chain AS (
+                SELECT id, parent_id, level, 0 AS depth FROM place_codes WHERE id = ?
+                UNION ALL
+                SELECT parent.id, parent.parent_id, parent.level, chain.depth + 1
+                FROM chain JOIN place_codes AS parent ON parent.id = chain.parent_id
+                WHERE chain.depth < 8
+            )
+            SELECT id FROM chain WHERE level = ? ORDER BY depth LIMIT 1', [$placeId, PlaceCode::LevelDivision]);
+
+        return $row !== null ? (int) $row->id : null;
     }
 
     /**

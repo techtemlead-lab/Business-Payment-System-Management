@@ -72,10 +72,10 @@ class AccountListExportController extends Controller
             $parts[] = __('portal.col_status').': '.__('portal.status_'.$filters['status']);
         }
         if ($filters['division'] !== '') {
-            $parts[] = __('portal.csv_col_division').': '.$filters['division'];
+            $parts[] = __('portal.csv_col_division').': '.PartnerAccountList::placeName($filters['division']);
         }
         if ($filters['district'] !== '') {
-            $parts[] = __('portal.csv_col_district').': '.$filters['district'];
+            $parts[] = __('portal.csv_col_district').': '.PartnerAccountList::placeName($filters['district']);
         }
         if ($filters['rank'] !== '') {
             $parts[] = __('portal.acct_col_rank').': '.__('portal.net_rank_'.$filters['rank']);

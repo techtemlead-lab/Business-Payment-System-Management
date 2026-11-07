@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Content\PartnerEventNotifications;
 use App\Jobs\SendPartnerEventSms;
 use App\Models\PartnerEvent;
+use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -48,19 +49,25 @@ class PartnerEventCalendarTest extends TestCase
     public function test_publishing_notifies_only_active_partners_in_the_chosen_divisions(): void
     {
         $this->seedClassicPlaceCodes();
+        $dhaka = PlaceCode::query()->where('code', 'MNHC-101')->firstOrFail();
+        $rangpur = PlaceCode::query()->where('code', 'MNHC-102')->firstOrFail();
         $editor = User::factory()->staff('editor')->create();
-        $dhakaDealer = User::factory()->dealer()->create(['division' => 'Dhaka', 'locale' => 'en', 'phone' => '01711000001']);
-        $dhakaSubDealer = User::factory()->subDealer()->create(['division' => 'Dhaka', 'locale' => 'bn', 'phone' => '01711000002']);
-        $rangpurDealer = User::factory()->dealer()->create(['division' => 'Rangpur', 'phone' => '01711000003']);
-        User::factory()->dealer()->suspended()->create(['division' => 'Dhaka']);
+        // Partners are in a division by their place code (a district inside Dhaka counts too).
+        $dhakaDealer = User::factory()->dealer()->inPlace(PlaceCode::factory()->district($dhaka)->create())->create(['locale' => 'en', 'phone' => '01711000001']);
+        $dhakaSubDealer = User::factory()->subDealer()->inPlace($dhaka)->create(['locale' => 'bn', 'phone' => '01711000002']);
+        $rangpurDealer = User::factory()->dealer()->inPlace($rangpur)->create(['phone' => '01711000003']);
+        User::factory()->dealer()->create(['division' => 'Dhaka', 'phone' => '01711000004']);
+        User::factory()->dealer()->suspended()->inPlace($dhaka)->create();
         User::factory()->staff('finance')->create(['division' => 'Dhaka']);
 
         $this->actingAs($editor)->onPortal('manage')->post('/commands/events', $this->eventForm([
             'audience' => 'divisions',
-            'divisions' => ['Dhaka'],
+            'divisions' => [$dhaka->id],
         ]))->assertRedirect()->assertSessionHasNoErrors();
 
         $event = PartnerEvent::query()->sole();
+        $this->assertSame([$dhaka->id], $event->division_place_ids);
+        $this->assertSame(['Dhaka'], $event->divisions);
         $this->assertSame('draft', $event->status);
         $this->assertFalse($event->send_sms, 'SMS is off unless the box is ticked.');
         $this->assertSame(0, DB::table('account_notices')->count(), 'Saving a draft tells nobody.');
@@ -134,16 +141,19 @@ class PartnerEventCalendarTest extends TestCase
 
     public function test_partners_only_see_published_events_for_everyone_or_their_division(): void
     {
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $khulna = PlaceCode::factory()->division()->create(['name' => 'Khulna']);
         $forAll = PartnerEvent::factory()->published()->startingAt('2026-11-20 10:00')->create(['title_en' => 'Everyone']);
-        $forDhaka = PartnerEvent::factory()->published()->startingAt('2026-11-21 10:00')->forDivisions(['Dhaka'])->create(['title_en' => 'Dhaka only']);
-        $forRangpur = PartnerEvent::factory()->published()->startingAt('2026-11-22 10:00')->forDivisions(['Rangpur', 'Khulna'])->create(['title_en' => 'Rangpur and Khulna']);
+        $forDhaka = PartnerEvent::factory()->published()->startingAt('2026-11-21 10:00')->forDivisions([$dhaka])->create(['title_en' => 'Dhaka only']);
+        $forRangpur = PartnerEvent::factory()->published()->startingAt('2026-11-22 10:00')->forDivisions([$rangpur, $khulna])->create(['title_en' => 'Rangpur and Khulna']);
         PartnerEvent::factory()->startingAt('2026-11-23 10:00')->create(['title_en' => 'Draft']);
         PartnerEvent::factory()->startingAt('2026-11-24 10:00')->create(['title_en' => 'Cancelled draft', 'status' => 'cancelled']);
         $cancelled = PartnerEvent::factory()->published()->startingAt('2026-11-25 10:00')->create([
             'title_en' => 'Called off', 'status' => 'cancelled', 'online_url' => 'https://meet.google.com/abc-defg-hij',
         ]);
 
-        $dhakaDealer = User::factory()->dealer()->create(['division' => 'Dhaka']);
+        $dhakaDealer = User::factory()->dealer()->inPlace($dhaka)->create();
         $titles = fn (array $months): array => collect($months)->pluck('days')->flatten(1)->pluck('events')->flatten(1)->pluck('title_en')->all();
 
         $this->actingAs($dhakaDealer)->onPortal('dealer')->get('/events')
@@ -157,7 +167,8 @@ class PartnerEventCalendarTest extends TestCase
                 ->where('data.events_calendar.months.0.days.2.events.0.online_url', null)
                 ->missing('data.events_calendar.months.0.days.0.events.0.divisions'));
 
-        $rangpurSubDealer = User::factory()->subDealer()->create(['division' => 'Rangpur']);
+        $rangpurSubDealer = User::factory()->subDealer()->inPlace(PlaceCode::factory()->union(PlaceCode::factory()->upazila(
+            PlaceCode::factory()->district($rangpur)->create())->create())->create())->create();
         $this->actingAs($rangpurSubDealer)->onPortal('subdealer')->get('/events')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
@@ -170,6 +181,12 @@ class PartnerEventCalendarTest extends TestCase
         $this->assertSame(2, PartnerEvent::query()->visibleTo($noDivision)->count());
         $this->assertFalse($forRangpur->isVisibleTo($dhakaDealer));
         $this->assertTrue($cancelled->isVisibleTo($dhakaDealer));
+        // A typed division name without a place code, or a second division with the same name, never matches.
+        $namesOnly = User::factory()->dealer()->create(['division' => 'Dhaka']);
+        $otherDhaka = User::factory()->dealer()->inPlace(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create();
+        $this->assertFalse($forDhaka->isVisibleTo($namesOnly));
+        $this->assertFalse($forDhaka->isVisibleTo($otherDhaka));
+        $this->assertSame(2, PartnerEvent::query()->visibleTo($otherDhaka)->count());
     }
 
     public function test_dates_and_times_are_entered_and_shown_in_dhaka_time(): void

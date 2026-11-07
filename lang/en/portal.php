@@ -6663,4 +6663,7 @@ return [
     'ops_fld_place_code_review' => 'Place code (needed to approve)',
     'branch_place_code_hint' => 'Division, district and upazila are filled in from the place code.',
     'branch_no_place_code' => 'No place code yet',
+    'ops_warn_head_office_branch_missing_place_code' => 'The head office branch has no place code yet. The program does not guess it. Owner: open Branches, edit the head office and type its place code (MNHC-…).',
+    'ops_head_office_branch_label' => 'Head office branch:',
+    'ops_head_office_open_branches' => 'Open Branches',
 ];

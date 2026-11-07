@@ -6663,4 +6663,7 @@ return [
     'ops_fld_place_code_review' => 'প্লেস কোড (অনুমোদনের জন্য লাগবে)',
     'branch_place_code_hint' => 'বিভাগ, জেলা ও উপজেলা প্লেস কোড থেকে নিজে থেকেই বসে যাবে।',
     'branch_no_place_code' => 'এখনো প্লেস কোড নেই',
+    'ops_warn_head_office_branch_missing_place_code' => 'হেড অফিস শাখার এখনো প্লেস কোড নেই। প্রোগ্রাম নিজে থেকে কোড ধরে নেয় না। মালিক: শাখা খুলে হেড অফিস এডিট করুন এবং তার প্লেস কোড (MNHC-…) লিখুন।',
+    'ops_head_office_branch_label' => 'হেড অফিস শাখা:',
+    'ops_head_office_open_branches' => 'শাখা খুলুন',
 ];

@@ -162,12 +162,14 @@ function accountsExportHref(section:string,filters:Row|undefined):string{
  return `/exports/accounts?${new URLSearchParams(query).toString()}`;
 }
 /** Division, district, rank and "no order lately" drop-downs for the accounts list. */
-function accountFilterSelects(section:string,filters:Row,areas:{division:string,districts:string[]}[],translate:(group:string,key:string,replace?:Record<string,string>)=>string):FilterSelect[]{
+/** Values are place code ids (never names); labels are the names of those place codes. */
+function accountFilterSelects(section:string,filters:Row,areas:{division_id:number,division:string,districts:{id:number,name:string}[]}[],translate:(group:string,key:string,replace?:Record<string,string>)=>string):FilterSelect[]{
  const division=String(filters.division||'');
- const districts=division?(areas.find(area=>area.division===division)?.districts??[]):[...new Set(areas.flatMap(area=>area.districts))].sort();
+ const chosen=areas.find(area=>String(area.division_id)===division);
+ const districts=chosen?chosen.districts.map(district=>({value:String(district.id),label:district.name})):areas.flatMap(area=>area.districts.map(district=>({value:String(district.id),label:`${district.name} (${area.division})`})));
  return [
-  {name:'division',label:translate('portal','acct_filter_division'),options:areas.map(area=>({value:area.division,label:area.division})),resets:['district']},
-  {name:'district',label:translate('portal','acct_filter_district'),options:districts.map(district=>({value:district,label:district}))},
+  {name:'division',label:translate('portal','acct_filter_division'),options:areas.map(area=>({value:String(area.division_id),label:area.division})),resets:['district']},
+  {name:'district',label:translate('portal','acct_filter_district'),options:districts},
   ...(section==='accounts'?[{name:'rank',label:translate('portal','acct_filter_rank'),options:['dealer','mo','am','sm','me'].map(rank=>({value:rank,label:translate('portal',`net_rank_${rank}`)}))}]:[]),
   {name:'no_order_days',label:translate('portal','acct_filter_any_order'),options:['30','60','90'].map(days=>({value:days,label:translate('portal','acct_filter_no_order_days',{days})}))},
  ];
