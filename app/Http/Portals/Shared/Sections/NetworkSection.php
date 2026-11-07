@@ -168,11 +168,13 @@ final class NetworkSection implements WorkspaceSection
             ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at']);
         $ids = $partners->pluck('id')->all();
         $sales = $this->salesByPartner($ids);
+        // The same figure the monthly salary target is checked against: delivered, paid purchases after refunds.
+        $qualifying = app(CommissionQualification::class)->monthlyVolumesFor($ids, CommissionQualification::currentMonth());
         $sponsorEarned = $this->sponsorEarnedByPartner($ids);
         $viewerEarned = $viewer ? $this->viewerEarnedByPartner($viewer, $ids) : [];
 
         return $partners
-            ->map(function (User $dealer) use ($maskPhone, $sales, $sponsorEarned, $viewerEarned, $viewer): array {
+            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer): array {
                 $phone = (string) ($dealer->phone ?? '');
                 if ($maskPhone && $phone !== '') {
                     $digits = preg_replace('/\D+/', '', $phone) ?: '';
@@ -195,6 +197,7 @@ final class NetworkSection implements WorkspaceSection
                     'created_at' => $dealer->created_at?->toIso8601String(),
                     'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),
                     'sales_month' => Money::decimal($sales[$dealer->id]['month'] ?? 0),
+                    'qualifying_volume_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
                     'sponsor_earned' => Money::decimal($sponsorEarned[$dealer->id] ?? 0),
                     ...($viewer ? [
                         'viewer_earned' => Money::decimal(array_sum($viewerEarned[$dealer->id] ?? [])),
