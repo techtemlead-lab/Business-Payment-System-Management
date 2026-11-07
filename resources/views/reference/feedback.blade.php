@@ -3,13 +3,13 @@
     $selectedRating = max(1, min(5, (int) old('rating', 5)));
 @endphp
 @extends('reference.layout')
-@section('title', __('site.feedback_page_title').' · Madina Natural Health Care')
+@section('title', $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null).' · '.__('site.company_bar'))
 @section('content')
 <main id="main" class="ref-container ref-inner-main">
     <nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}">
         <a href="/" aria-label="{{ __('site.home') }}"><i class="fa-solid fa-house" aria-hidden="true"></i></a>
         <span>/</span>
-        <span>{{ __('site.feedback_page_title') }}</span>
+        <span>{{ $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null) }}</span>
     </nav>
 
     @if(session('success'))
@@ -17,8 +17,8 @@
     @endif
 
     <article class="ref-content-card">
-        <h1>{{ __('site.feedback_page_title') }}</h1>
-        <p class="ref-content-prose">{{ __('site.feedback_page_lead') }}</p>
+        <h1>{{ $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null) }}</h1>
+        <p class="ref-content-prose">{{ $chrome('feedback_page_lead', $siteCustomization['feedback_page_lead'] ?? null) }}</p>
 
         <form method="post" action="/feedback" class="ref-feedback-form">
             @csrf
@@ -37,7 +37,7 @@
                 </label>
                 <label class="ref-feedback-field">
                     <span class="ref-feedback-label">{{ __('site.feedback_location') }}</span>
-                    <input type="text" name="location" value="{{ old('location') }}" maxlength="120" placeholder="Dhaka" class="ref-feedback-input">
+                    <input type="text" name="location" value="{{ old('location') }}" maxlength="120" placeholder="{{ __('site.feedback_location_ph') }}" class="ref-feedback-input">
                 </label>
             </div>
 
