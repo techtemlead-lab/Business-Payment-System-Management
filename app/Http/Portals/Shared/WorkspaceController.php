@@ -17,7 +17,6 @@ use App\Domain\Orders\UplineReplacementOptions;
 use App\Domain\Pricing\ProductPricing;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Support\GuidePrerequisites;
-use App\Domain\Support\TourGuide;
 use App\Http\Controllers\Controller;
 use App\Http\Portals\Shared\Sections\AccountsSection;
 use App\Http\Portals\Shared\Sections\AgreementSection;
@@ -152,12 +151,7 @@ class WorkspaceController extends Controller
             $data = array_merge($data, app($workspaceSection)->data($context, $data));
         }
 
-        $tourGuide = app(TourGuide::class);
-        $tourDefinitions = $tourGuide->definitionsFor($u);
-        if ($tourDefinitions !== []) {
-            $tourKey = array_key_exists($section, $tourDefinitions) ? $section : 'overview';
-            $data['tour'] = $tourGuide->forPage($u, $tourKey);
-        }
+        // The page tour is built once, by the shared `tour` prop in HandleInertiaRequests.
         if (in_array($u->role, ['dealer', 'sub_dealer'], true) && ! $staffWorkspace) {
             $data['guide_prerequisites'] = app(GuidePrerequisites::class)->forSection($u, $section);
         }

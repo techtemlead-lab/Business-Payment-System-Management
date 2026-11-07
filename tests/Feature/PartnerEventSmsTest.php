@@ -222,6 +222,25 @@ class PartnerEventSmsTest extends TestCase
         ));
     }
 
+    public function test_replayed_withdrawal_request_does_not_send_a_second_sms(): void
+    {
+        Config::set('madina.sms.driver', 'array');
+        Config::set('madina.sms.sent', []);
+        $this->enableFinancialPosting();
+        $dealer = User::factory()->create(['role' => 'dealer', 'status' => 'active', 'phone' => '01720000141']);
+        DB::table('wallets')->insert(['user_id' => $dealer->id, 'available' => '500.00', 'held' => '0.00', 'commission_held' => '0.00', 'created_at' => now(), 'updated_at' => now()]);
+        $request = ['amount' => '200.00', 'channel' => 'Bank', 'destination' => 'Replay test bank account', 'idempotency_key' => (string) Str::uuid()];
+
+        $first = $this->actingAs($dealer)->onPortal('dealer')->postJson('/api/v1/withdrawals', $request)->assertCreated()->json('data.id');
+        $replay = $this->actingAs($dealer)->onPortal('dealer')->postJson('/api/v1/withdrawals', $request)->assertCreated()->json('data.id');
+
+        $this->assertSame($first, $replay);
+        $this->assertDatabaseCount('withdrawals', 1);
+        $events = collect(config('madina.sms.sent'))->where('event', 'withdrawal.requested');
+        $this->assertCount(1, $events);
+        $this->assertSame('01720000141', $events->first()['phone'] ?? null);
+    }
+
     public function test_matured_commission_release_sends_localized_partner_sms(): void
     {
         Config::set('madina.sms.driver', 'array');
