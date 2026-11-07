@@ -31,7 +31,7 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/reset-password', [AuthController::class, 'reset'])->middleware('throttle:5,1');
 });
 
-Route::middleware(['auth', 'active', 'portal:manage'])->group(function () use ($registerCommands): void {
+Route::middleware(['auth', 'active', 'portal:manage', 'authenticator'])->group(function () use ($registerCommands): void {
     $registerCommands('manage');
     Route::get('/operations/data-imports', [DataImportController::class, 'index'])->name('company.imports');
     Route::get('/operations/service-integrations', [IntegrationSettingsController::class, 'index'])->name('company.integrations');
