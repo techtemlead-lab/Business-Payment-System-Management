@@ -6061,4 +6061,12 @@ return [
     'team_orders_buyers' => 'যাঁরা কিনেছেন',
     'team_orders_buyers_count' => ':count জন সদস্য কিনেছেন',
     'team_orders_empty' => 'এই তারিখগুলোতে টিমের কোনো অর্ডার নেই।',
+    'training_field_video_source' => 'ভিডিওটি কোথায়?',
+    'training_video_source_file' => 'ভিডিও ফাইল আপলোড করুন',
+    'training_video_source_link' => 'ইউটিউব বা ফেসবুক লিংক',
+    'training_field_video_file' => 'ভিডিও ফাইল',
+    'training_field_video_file_hint' => 'শুধু MP4 বা WebM, সর্বোচ্চ :mb MB। পার্টনাররা এখানেই দেখতে ও ডাউনলোড করতে পারবেন।',
+    'training_uploading' => 'আপলোড হচ্ছে',
+    'training_download' => 'ডাউনলোড',
+    'training_video_unsupported' => 'এই ফোন বা ব্রাউজারে ভিডিওটি চলছে না। ডাউনলোড করে দেখুন।',
 ];

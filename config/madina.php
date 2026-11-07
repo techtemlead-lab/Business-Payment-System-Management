@@ -33,6 +33,13 @@ return [
         // Days to retain closed support/enquiry records; 0 disables automated retention guidance.
         'closed_record_retention_days' => (int) env('MADINA_PRIVACY_RETENTION_DAYS', 365),
     ],
+    // Partner training uploads: the disk they are kept on and the largest file staff may upload.
+    // The web server's upload limit (infra/php.production.ini, nginx client_max_body_size) must allow the video size.
+    'training' => [
+        'disk' => env('MADINA_TRAINING_DISK', 'local'),
+        'video_max_mb' => (int) env('MADINA_TRAINING_VIDEO_MAX_MB', 100),
+        'pdf_max_mb' => (int) env('MADINA_TRAINING_PDF_MAX_MB', 20),
+    ],
 
     'business_timezone' => 'Asia/Dhaka',
     'withdrawal_minimum' => '200.00',

@@ -6061,4 +6061,12 @@ return [
     'team_orders_buyers' => 'Members who bought',
     'team_orders_buyers_count' => ':count members bought',
     'team_orders_empty' => 'No team orders in these dates.',
+    'training_field_video_source' => 'Where is the video?',
+    'training_video_source_file' => 'Upload a video file',
+    'training_video_source_link' => 'YouTube or Facebook link',
+    'training_field_video_file' => 'Video file',
+    'training_field_video_file_hint' => 'MP4 or WebM only, up to :mb MB. Partners can play it here and download it.',
+    'training_uploading' => 'Uploading',
+    'training_download' => 'Download',
+    'training_video_unsupported' => 'This phone or browser cannot play this video. Use Download instead.',
 ];
