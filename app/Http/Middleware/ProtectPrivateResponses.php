@@ -55,6 +55,8 @@ class ProtectPrivateResponses
         $formAction = $insecurePreview ? '*' : "'self'{$domainHosts}";
         // Training videos play only from the privacy-enhanced YouTube player and Facebook's video plugin.
         $videoFrames = ' '.implode(' ', TrainingVideoLink::EmbedHosts);
+        // Bunny Fonts serves some font files (Instrument Serif headings) from the jsDelivr fontsource path.
+        $fontFiles = ' https://cdn.jsdelivr.net/fontsource/';
 
         $response->headers->set(
             'Content-Security-Policy',
@@ -64,7 +66,7 @@ class ProtectPrivateResponses
             ."script-src 'self' 'nonce-{$nonce}' 'unsafe-inline'{$domainHosts}{$viteDev}; "
             ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$domainHosts}{$viteDev}; "
             ."img-src 'self' data: blob:{$domainHosts}{$viteDev}; "
-            ."font-src 'self' data: https://fonts.bunny.net{$domainHosts}{$viteDev}; "
+            ."font-src 'self' data: https://fonts.bunny.net{$fontFiles}{$domainHosts}{$viteDev}; "
             ."connect-src 'self'{$previewSource}{$domainHosts}{$viteDev}; media-src 'self' blob:{$domainHosts}; "
             ."worker-src 'self' blob:{$domainHosts}{$upgrade}"
         );
