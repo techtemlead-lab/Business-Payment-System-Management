@@ -123,9 +123,7 @@ final class CommissionQualification
             $milestoneLeaderIds[$leaderId] = $leaderId;
         }
 
-        foreach ($milestoneLeaderIds as $leaderId) {
-            $this->refreshMilestones($leaderId);
-        }
+        $this->refreshMilestonesFor(array_values($milestoneLeaderIds));
     }
 
     /**
@@ -299,10 +297,114 @@ final class CommissionQualification
         if (! in_array($type, ['bike', 'car'], true)) {
             throw ValidationException::withMessages(['milestone_type' => __('portal.err_qual_milestone')]);
         }
-        $parameters = app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
+        $parameters = $this->rewardParameters();
+        $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
+
+        return $this->milestoneFromLegs($type, $parameters, $directLegs, $this->legVolumes($directLegs->pluck('id')->all()));
+    }
+
+    /** @return array<string, mixed> */
+    public function refreshMilestones(int $userId): array
+    {
+        $result = [];
+        foreach (['bike', 'car'] as $type) {
+            $data = $this->milestone($userId, $type);
+            $this->storeMilestone($userId, $type, $data);
+            $result[$type] = $data;
+        }
+
+        return $result;
+    }
+
+    /**
+     * refreshMilestones() for many leaders at once, e.g. every upline of a buyer after a delivery.
+     *
+     * Each leader ends up with exactly what refreshMilestones() would store, but the team volumes
+     * are read in one query for all of them instead of two full team scans per leader. A delivery
+     * deep in a large network therefore holds the money lock for a short, steady time.
+     *
+     * @param  list<int>  $leaderIds
+     */
+    public function refreshMilestonesFor(array $leaderIds): void
+    {
+        $leaderIds = array_values(array_unique(array_map('intval', $leaderIds)));
+        if ($leaderIds === []) {
+            return;
+        }
+        $parameters = $this->rewardParameters();
+        $legs = User::query()->whereIn('sponsor_id', $leaderIds)->orderBy('id')->get(['id', 'name', 'sponsor_id']);
+        $volumes = $this->legVolumes($legs->pluck('id')->all());
+        $legsByLeader = $legs->groupBy(fn (User $leg): int => (int) $leg->sponsor_id);
+        foreach ($leaderIds as $leaderId) {
+            $leaderLegs = $legsByLeader->get($leaderId, collect());
+            foreach (['bike', 'car'] as $type) {
+                $this->storeMilestone($leaderId, $type, $this->milestoneFromLegs($type, $parameters, $leaderLegs, $volumes));
+            }
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function rewardParameters(): array
+    {
+        return app(CommissionPolicy::class)->snapshot()['rules']['car_bike_incentive']['parameters'];
+    }
+
+    /**
+     * Paid, delivered, net-of-refund purchases of each leg's whole team (the leg and everyone under it).
+     *
+     * @param  array<int, int|string>  $legIds
+     * @return array<int, int> leg user id => cents
+     */
+    private function legVolumes(array $legIds): array
+    {
+        $legIds = array_values(array_unique(array_map('intval', $legIds)));
+        if ($legIds === []) {
+            return [];
+        }
+        $placeholders = implode(',', array_fill(0, count($legIds), '?'));
+        $rows = DB::select(<<<SQL
+            WITH members AS (
+                SELECT ancestor_id AS leg_id, descendant_id AS user_id
+                FROM referral_tree_paths
+                WHERE ancestor_id IN ({$placeholders})
+                UNION
+                SELECT id AS leg_id, id AS user_id
+                FROM users
+                WHERE id IN ({$placeholders})
+            ), volumes AS (
+                SELECT orders.user_id, SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)) AS volume
+                FROM orders
+                LEFT JOIN commission_batches ON commission_batches.order_id = orders.id
+                WHERE orders.is_opening_balance = false
+                  AND orders.status = 'delivered'
+                  AND orders.paid = orders.total
+                  AND orders.user_id IN (SELECT user_id FROM members)
+                GROUP BY orders.user_id
+            )
+            SELECT members.leg_id, COALESCE(SUM(volumes.volume), 0) AS volume
+            FROM members
+            INNER JOIN volumes ON volumes.user_id = members.user_id
+            GROUP BY members.leg_id
+        SQL, [...$legIds, ...$legIds]);
+
+        $volumes = [];
+        foreach ($rows as $row) {
+            $volumes[(int) $row->leg_id] = Money::cents((string) $row->volume);
+        }
+
+        return $volumes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     * @param  Collection<int, User>  $directLegs
+     * @param  array<int, int>  $legVolumes
+     * @return array<string, mixed>
+     */
+    private function milestoneFromLegs(string $type, array $parameters, Collection $directLegs, array $legVolumes): array
+    {
         $target = Money::cents((string) $parameters[$type.'_target']);
         $cap = Money::cents((string) $parameters[$type.'_leg_cap']);
-        $directLegs = User::query()->where('sponsor_id', $userId)->orderBy('id')->get(['id', 'name']);
         if ($directLegs->isEmpty()) {
             return [
                 'milestone_type' => $type,
@@ -317,37 +419,11 @@ final class CommissionQualification
             ];
         }
 
-        $legIds = $directLegs->pluck('id')->map(fn ($id): int => (int) $id)->all();
-        $paths = ReferralTreePath::query()
-            ->whereIn('ancestor_id', $legIds)
-            ->get(['ancestor_id', 'descendant_id']);
-        /** @var array<int, list<int>> $treeByLeg */
-        $treeByLeg = [];
-        foreach ($legIds as $legId) {
-            $treeByLeg[$legId] = [$legId];
-        }
-        foreach ($paths as $path) {
-            $treeByLeg[(int) $path->ancestor_id][] = (int) $path->descendant_id;
-        }
-        $allMemberIds = array_values(array_unique(array_merge(...array_values($treeByLeg))));
-        $volumesByUser = DB::table('orders')
-            ->where('orders.is_opening_balance', false)
-            ->leftJoin('commission_batches', 'commission_batches.order_id', '=', 'orders.id')
-            ->whereIn('orders.user_id', $allMemberIds)
-            ->where('orders.status', 'delivered')
-            ->whereColumn('orders.paid', 'orders.total')
-            ->groupBy('orders.user_id')
-            ->selectRaw('orders.user_id, COALESCE(SUM(orders.total - COALESCE(commission_batches.refunded_amount, 0)), 0) AS volume')
-            ->pluck('volume', 'user_id');
-
         $raw = 0;
         $qualified = 0;
         $legs = [];
         foreach ($directLegs as $leg) {
-            $cents = 0;
-            foreach (array_values(array_unique($treeByLeg[(int) $leg->id])) as $memberId) {
-                $cents += Money::cents((string) ($volumesByUser[$memberId] ?? '0'));
-            }
+            $cents = $legVolumes[(int) $leg->id] ?? 0;
             $raw += $cents;
             $qualified += min($cap, $cents);
             $legs[] = [
@@ -374,25 +450,18 @@ final class CommissionQualification
         ];
     }
 
-    /** @return array<string, mixed> */
-    public function refreshMilestones(int $userId): array
+    /** @param array<string, mixed> $data */
+    private function storeMilestone(int $userId, string $type, array $data): void
     {
-        $result = [];
-        foreach (['bike', 'car'] as $type) {
-            $data = $this->milestone($userId, $type);
-            $row = RewardMilestoneProgress::firstOrCreate(['user_id' => $userId, 'milestone_type' => $type],
-                ['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount']]);
-            $wasAchieved = (bool) $row->achieved;
-            $row->update(['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount'],
-                'raw_team_volume' => $data['raw_team_volume'], 'qualifying_volume' => $data['qualifying_volume'], 'achieved' => $data['achieved'],
-                'achieved_at' => $data['achieved'] ? ($row->achieved_at ?? now()) : null, 'leg_breakdown' => $data['legs']]);
-            if ($data['achieved'] && ! $wasAchieved) {
-                $this->notifyMilestoneAchieved($userId, $type);
-            }
-            $result[$type] = $data;
+        $row = RewardMilestoneProgress::firstOrCreate(['user_id' => $userId, 'milestone_type' => $type],
+            ['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount']]);
+        $wasAchieved = (bool) $row->achieved;
+        $row->update(['target_amount' => $data['target_amount'], 'leg_cap_amount' => $data['leg_cap_amount'],
+            'raw_team_volume' => $data['raw_team_volume'], 'qualifying_volume' => $data['qualifying_volume'], 'achieved' => $data['achieved'],
+            'achieved_at' => $data['achieved'] ? ($row->achieved_at ?? now()) : null, 'leg_breakdown' => $data['legs']]);
+        if ($data['achieved'] && ! $wasAchieved) {
+            $this->notifyMilestoneAchieved($userId, $type);
         }
-
-        return $result;
     }
 
     private function notifyMilestoneAchieved(int $userId, string $type): void

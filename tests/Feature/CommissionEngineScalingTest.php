@@ -79,6 +79,66 @@ class CommissionEngineScalingTest extends TestCase
         }
     }
 
+    public function test_batch_milestone_refresh_stores_what_the_single_leader_refresh_stores(): void
+    {
+        $this->enableFinancialPosting();
+        $top = $this->partner(null);
+        $left = $this->partner($top);
+        $right = $this->partner($top);
+        $leftChild = $this->partner($left);
+        $grandChild = $this->partner($leftChild);
+        $sub = $this->partner($right, 'sub_dealer');
+        $this->postedOrder($left, '100.00');
+        $this->postedOrder($grandChild, '100.00');
+        $this->postedOrder($sub, '120.00');
+        $refunded = $this->postedOrder($leftChild, '100.00');
+        app(CommissionReversal::class)->refund($refunded, 2500, 'Part returned', 'BATCH-REFUND');
+
+        $leaders = [$top->id, $left->id, $right->id, $leftChild->id, $grandChild->id];
+        $expected = [];
+        foreach ($leaders as $leaderId) {
+            foreach (['bike', 'car'] as $type) {
+                $expected[$leaderId][$type] = app(CommissionQualification::class)->milestone($leaderId, $type);
+            }
+        }
+        RewardMilestoneProgress::query()->delete();
+
+        app(CommissionQualification::class)->refreshMilestonesFor([...$leaders, $top->id]);
+
+        foreach ($leaders as $leaderId) {
+            foreach (['bike', 'car'] as $type) {
+                $row = RewardMilestoneProgress::query()->where('user_id', $leaderId)->where('milestone_type', $type)->sole();
+                $this->assertSame($expected[$leaderId][$type]['raw_team_volume'], (string) $row->raw_team_volume);
+                $this->assertSame($expected[$leaderId][$type]['qualifying_volume'], (string) $row->qualifying_volume);
+                $this->assertSame($expected[$leaderId][$type]['legs'], $row->leg_breakdown);
+            }
+        }
+        $this->assertSame('395.00', $expected[$top->id]['bike']['raw_team_volume']);
+        $this->assertSame('175.00', $expected[$left->id]['bike']['raw_team_volume']);
+    }
+
+    public function test_milestone_refresh_reads_team_volumes_once_however_deep_the_chain(): void
+    {
+        $this->enableFinancialPosting();
+        $chain = [$this->partner(null)];
+        for ($level = 0; $level < 12; $level++) {
+            $chain[] = $this->partner(end($chain));
+        }
+        $this->postedOrder(end($chain), '100.00');
+        $leaders = array_map(fn (User $user): int => $user->id, array_slice($chain, 0, -1));
+
+        $volumeScans = 0;
+        DB::listen(function ($query) use (&$volumeScans): void {
+            if (str_contains($query->sql, 'FROM orders') || str_contains($query->sql, 'from "orders"')) {
+                $volumeScans++;
+            }
+        });
+        app(CommissionQualification::class)->refreshMilestonesFor($leaders);
+
+        $this->assertSame(1, $volumeScans);
+        $this->assertSame(array_fill(0, 12, '100.00'), array_values($this->bikeVolumes($leaders)));
+    }
+
     public function test_attaching_a_deep_chain_reads_the_sponsors_in_one_query(): void
     {
         $chain = [$this->partner(null)];
