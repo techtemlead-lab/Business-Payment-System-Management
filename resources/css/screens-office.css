@@ -34,6 +34,8 @@ html[data-theme="dark"] .office-today-lead span{color:#a9cfc0}
 
 /* The other figures: translucent chips, each a link to its list */
 .office-today-figures{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px}
+/* Exactly three small figures: one row of three instead of two plus a lonely third (phones keep 2 + full-width) */
+@media(min-width:768px){.office-today-figures:has(>li:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}}
 .office-today-figures a{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:6px;row-gap:2px;align-items:center;min-height:44px;height:100%;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;text-decoration:none}
 .office-today-figures a:hover{background:rgba(255,255,255,.2)}
 .office-today-figures span{grid-column:1;font-size:12.5px;line-height:1.3;opacity:.9}
@@ -57,6 +59,8 @@ html[data-theme="dark"] .office-today-lead span{color:#a9cfc0}
 .office-tile-label{font-size:12.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
 @media (min-width:600px){
   .office-tiles{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));padding:16px 10px}
+  /* Six shortcuts (support staff): two even rows of three, not five plus one */
+  .office-tiles:has(>:nth-child(6):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
 /* ---- Home: layout ----------------------------------------------------- */

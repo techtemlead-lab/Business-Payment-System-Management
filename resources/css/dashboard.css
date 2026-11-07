@@ -815,6 +815,8 @@ dialog.portal-modal::backdrop{
   overscroll-behavior:contain;
 }
 @keyframes portalModalIn{from{opacity:0;transform:translate(-50%,-46%) scale(.98)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+/* Phones: the main button of a dialog form spans the width, like the fields above it */
+@media(max-width:640px){dialog.portal-modal .modal-body>.action-form>button.button:not([type="button"]){width:100%;justify-content:center;min-height:46px}}
 @keyframes portalBackdropIn{from{opacity:0}to{opacity:1}}
 [data-tooltip]{position:relative}
 [data-tooltip]:hover::after,[data-tooltip]:focus-visible::after{
@@ -1241,6 +1243,23 @@ dialog.portal-modal::backdrop{
 .onboarding-start-btn:hover { background: linear-gradient(135deg, #059669 0%, #047857 100%) !important; }
 .onboarding-manual-btn { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
 .onboarding-skip-btn { color: #64748b; }
+/* The welcome box never grows past the screen: on a phone it used to be ~950px tall with its
+   close button and "Start the tour" off-screen. Header and footer stay put, the middle scrolls. */
+.onboarding-welcome-dialog { display: flex; flex-direction: column; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); }
+.onboarding-welcome-header, .onboarding-welcome-footer { flex-shrink: 0; }
+.onboarding-welcome-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+@media (max-width: 640px) {
+  .onboarding-welcome-header { padding: 14px 16px 6px; }
+  .onboarding-welcome-body { padding: 4px 16px 14px; }
+  .onboarding-welcome-body h2 { font-size: 19px; }
+  .onboarding-user-pill { margin-bottom: 14px; }
+  .onboarding-pillars-grid { gap: 8px; }
+  .onboarding-pillar-card { display: grid; grid-template-columns: 36px minmax(0, 1fr); column-gap: 12px; row-gap: 2px; padding: 10px 12px; }
+  .onboarding-pillar-card .pillar-icon { grid-row: 1 / span 2; width: 36px; height: 36px; margin: 0; }
+  .onboarding-welcome-footer { padding: 12px 16px; flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .onboarding-primary-actions { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .onboarding-welcome-footer .button { width: 100%; justify-content: center; }
+}
 
 /* 2. Interactive Spotlight Layer */
 .onboarding-spotlight-layer { position: fixed; inset: 0; z-index: 99998; pointer-events: none; }

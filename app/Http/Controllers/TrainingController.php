@@ -115,6 +115,18 @@ class TrainingController extends Controller
         return back()->with($result['passed'] ? 'success' : 'error', $message);
     }
 
+    /** Owners set how many quiz tries a partner gets per quiz in one hour. */
+    public function saveQuizLimit(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'per_hour' => 'required|integer|min:1|max:'.TrainingQuiz::MaxAttemptsPerHour,
+            'version' => 'required|integer|min:0',
+        ]);
+        $this->quiz->saveAttemptLimit($request->user(), (int) $data['per_hour'], (int) $data['version']);
+
+        return back()->with('success', __('portal.training_quiz_limit_saved'));
+    }
+
     /** Printable completion certificate for a partner who passed the item's quiz. */
     public function certificate(Request $request, TrainingItem $trainingItem): BinaryFileResponse
     {

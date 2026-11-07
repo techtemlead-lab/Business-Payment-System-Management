@@ -52,6 +52,31 @@ export type TourPayload = {
     chapters?: ManualChapter[];
 };
 
+/**
+ * The manual quotes live rates and targets as ":name" placeholders; the values arrive as the
+ * deferred `manualRuleValues` prop (already in Bangla digits on Bangla pages). Until they
+ * arrive, a placeholder shows as "…" rather than as code.
+ */
+function fillManualRates(chapter: ManualChapter, values: Record<string, string> | undefined): ManualChapter {
+    const fill = (text: string) => text.replace(/:([a-z][a-z0-9]*(?:_[a-z0-9]+)+)/g, (match, name: string) =>
+        values ? (values[name] ?? match) : '…');
+    const list = (items?: string[]) => items?.map(fill);
+
+    return {
+        ...chapter,
+        title: fill(chapter.title),
+        summary: fill(chapter.summary),
+        purpose: chapter.purpose ? fill(chapter.purpose) : chapter.purpose,
+        why: chapter.why ? fill(chapter.why) : chapter.why,
+        steps: chapter.steps.map(fill),
+        outcomes: list(chapter.outcomes),
+        rules: list(chapter.rules),
+        tips: chapter.tips.map(fill),
+        warnings: list(chapter.warnings),
+        faqs: chapter.faqs?.map((faq) => ({ q: fill(faq.q), a: fill(faq.a) })),
+    };
+}
+
 interface OnboardingTourProps {
     tour?: TourPayload | null;
     chapters?: ManualChapter[];
@@ -114,14 +139,16 @@ export default function OnboardingTour({
     onCloseManual,
 }: OnboardingTourProps) {
     const translate = useT();
-    const { auth } = usePage<any>().props;
+    const { auth, manualRuleValues } = usePage<any>().props;
     const user = auth?.user;
 
     const chapters = useMemo<ManualChapter[]>(() => {
-        if (manualChaptersProp && manualChaptersProp.length > 0) return manualChaptersProp;
-        if (tour?.chapters && tour.chapters.length > 0) return tour.chapters;
-        return [];
-    }, [manualChaptersProp, tour?.chapters]);
+        const source = manualChaptersProp && manualChaptersProp.length > 0
+            ? manualChaptersProp
+            : (tour?.chapters && tour.chapters.length > 0 ? tour.chapters : []);
+
+        return source.map((chapter) => fillManualRates(chapter, manualRuleValues));
+    }, [manualChaptersProp, tour?.chapters, manualRuleValues]);
 
     const activeTour = tour?.pending?.[0] || null;
     const isFirstTime = Boolean(tour?.is_first_login);

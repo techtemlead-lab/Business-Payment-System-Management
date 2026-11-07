@@ -76,6 +76,10 @@ class HandleInertiaRequests extends Middleware
             'collectionAccounts' => fn () => ($u && $payments->mayReceiveCollectionAccounts($u))
                 ? $payments->listing($u, true, true)
                 : [],
+            // Live rates and targets for the manual's placeholders, loaded after the page and kept.
+            'manualRuleValues' => Inertia::defer(fn () => ($u && $portalShell)
+                ? app(UserManual::class)->ruleValues()
+                : [], 'manual')->once()->as('manualRules:'.app()->getLocale()),
             'navCategories' => fn () => in_array($portal, ['dealer', 'subdealer'], true)
                 ? SiteCustomization::getNavCategories()
                 : [],
@@ -195,8 +199,10 @@ class HandleInertiaRequests extends Middleware
                 ? PortalCatalog::inertiaPayload($portal)
                 : null)->as('portalCatalog:'.$portal),
             'dashboardControls' => Inertia::once(fn () => DashboardManagement::get())->as('dashboardControls'),
+            // Rate placeholders stay in the text here; the live rates follow as a deferred prop,
+            // so no page has to read the commission rules just to send the manual.
             'userManualChapters' => Inertia::once(fn () => ($u && $portalShell)
-                ? app(UserManual::class)->chaptersFor($u)
+                ? app(UserManual::class)->withoutRuleValues()->chaptersFor($u)
                 : [])->as('userManual:'.($u?->id ?? 'guest').':'.$locale),
         ];
     }

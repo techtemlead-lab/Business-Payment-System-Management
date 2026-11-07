@@ -128,6 +128,22 @@ class AutoApprovalTest extends TestCase
         $this->assertDatabaseCount('rank_incentive_awards', 0);
     }
 
+    public function test_the_scheduled_runs_pay_a_skipped_lower_rank_reward_then_the_current_one(): void
+    {
+        $leader = $this->rangpurDealer();
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'am', 'achieved_at' => now(), 'qualification_history' => [
+            ['rank' => 'mo', 'achieved_at' => now()->subMinutes(30)->toIso8601String()],
+            ['rank' => 'am', 'achieved_at' => now()->toIso8601String()],
+        ]]);
+        $this->purchase($leader, '3000000.00', '6000000.00');
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->assertSame(['mo'], DB::table('rank_incentive_awards')->where('user_id', $leader->id)->pluck('rank')->all());
+
+        $this->artisan('finance:auto-approve')->assertSuccessful();
+        $this->assertSame(['am', 'mo'], DB::table('rank_incentive_awards')->where('user_id', $leader->id)->orderBy('rank')->pluck('rank')->all());
+    }
+
     public function test_nothing_moves_while_money_movement_is_switched_off(): void
     {
         config(['madina.financial_activation' => false]);

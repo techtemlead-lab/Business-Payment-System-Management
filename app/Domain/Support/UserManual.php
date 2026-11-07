@@ -2,10 +2,34 @@
 
 namespace App\Domain\Support;
 
+use App\Domain\Commissions\CommissionPolicy;
+use App\Domain\Finance\Percentage;
 use App\Models\User;
+use App\Support\LocalDigits;
+use App\Support\Money;
 
 final class UserManual
 {
+    /** @var array<string, string>|null Rates and targets from the live commission rules, worked out once. */
+    private ?array $ruleValues = null;
+
+    /** False leaves ":rate"-style placeholders in the text for the browser to fill in. */
+    private bool $fillRuleValues = true;
+
+    public function __construct(private CommissionPolicy $policy) {}
+
+    /**
+     * The same manual with rate placeholders left in, so building it reads no commission
+     * rules. Used for the manual sent with every portal page; see ruleValues().
+     */
+    public function withoutRuleValues(): static
+    {
+        $manual = clone $this;
+        $manual->fillRuleValues = false;
+
+        return $manual;
+    }
+
     /**
      * @return list<array{
      *   key: string,
@@ -158,7 +182,10 @@ final class UserManual
 
         $manual = __('manual.'.$key);
         if (is_string($manual) && $manual !== 'manual.'.$key) {
-            return $manual;
+            // Only lines that quote a rate or target pay for reading the live rules.
+            return $this->fillRuleValues && preg_match('/:[a-z]/', $manual) === 1
+                ? (string) __('manual.'.$key, $this->ruleValues())
+                : $manual;
         }
 
         $portal = __('portal.'.$key);
@@ -167,6 +194,74 @@ final class UserManual
         }
 
         return '';
+    }
+
+    /**
+     * The rates and targets the manual quotes, read from the live commission rules so the
+     * manual always says what the system really pays. A rule that is switched off shows 0%.
+     * The portal shell receives these separately (a deferred prop) and fills them in itself.
+     *
+     * @return array<string, string>
+     */
+    public function ruleValues(): array
+    {
+        return $this->ruleValues ??= $this->readRuleValues();
+    }
+
+    /** @return array<string, string> */
+    private function readRuleValues(): array
+    {
+        $rules = $this->policy->snapshot(false)['rules'];
+        $percent = fn (int $basisPoints): string => LocalDigits::text(rtrim(rtrim(number_format($basisPoints / 100, 2, '.', ''), '0'), '.'));
+        $rate = fn (string $key): int => CommissionPolicy::rate($rules, $key)->basisPoints;
+        $share = fn (string $key, string $parameter): int => $rate($key) > 0 ? Percentage::from((string) $rules[$key]['parameters'][$parameter])->basisPoints : 0;
+        $taka = fn (string $amount): string => '৳'.LocalDigits::text(preg_replace('/\.00$/', '', Money::grouped($amount)));
+        $dealerFund = array_sum(array_map($rate, CommissionPolicy::Keys));
+        $subDealerFund = $dealerFund + $rate('additional_rank') + $rate('sub_dealer_salary') + $rate('sub_dealer_tour');
+        $royalty = $rules['rank_royalty']['parameters'];
+        $keep = $rules['rank_maintenance']['parameters'];
+        $awards = $rules['rank_incentive']['parameters'];
+        $rewards = $rules['car_bike_incentive']['parameters'];
+        $area = 'area_dealer_pool';
+
+        return [
+            'dealer_fund_rate' => $percent($dealerFund),
+            'dealer_company_rate' => $percent(10000 - $dealerFund),
+            'sub_fund_rate' => $percent($subDealerFund),
+            'sub_company_rate' => $percent(10000 - $subDealerFund),
+            'sub_salary_rate' => $percent($rate('sub_dealer_salary')),
+            'sub_tour_rate' => $percent($rate('sub_dealer_tour')),
+            'referral_rate' => $percent($rate('direct_referral')),
+            'gen2_rate' => $percent($share('d2d_multitier', 'gen2_pct')),
+            'gen3_rate' => $percent($share('d2d_multitier', 'gen3_pct')),
+            'area_rate' => $percent($rate($area)),
+            'area_management' => $percent($share($area, 'management_share_pct')),
+            'area_division' => $percent($share($area, 'division_share_pct')),
+            'area_district' => $percent($share($area, 'district_share_pct')),
+            'area_upazila' => $percent($share($area, 'upazila_share_pct')),
+            'area_union' => $percent($share($area, 'union_share_pct')),
+            'royalty_rate' => $percent($rate('rank_royalty')),
+            'mo_target' => $taka((string) $royalty['mo_target']),
+            'am_count' => LocalDigits::text((int) $royalty['am_count']),
+            'sm_count' => LocalDigits::text((int) $royalty['sm_count']),
+            'me_count' => LocalDigits::text((int) $royalty['me_count']),
+            'rank_depth' => LocalDigits::text((int) $royalty['qualification_depth']),
+            'mo_bonus' => $taka((string) $awards['mo_bonus']),
+            'am_bonus' => $taka((string) $awards['am_bonus']),
+            'sm_bonus' => $taka((string) $awards['sm_bonus']),
+            'me_bonus' => $taka((string) $awards['me_bonus']),
+            'mo_keep' => $taka((string) $keep['mo_min_monthly_volume']),
+            'am_keep' => $taka((string) $keep['am_min_monthly_volume']),
+            'sm_keep' => $taka((string) $keep['sm_min_monthly_volume']),
+            'me_keep' => $taka((string) $keep['me_min_monthly_volume']),
+            'grace_days' => LocalDigits::text((int) $keep['grace_period_days']),
+            'dealer_salary_rate' => $percent($rate('dealer_monthly_salary')),
+            'dealer_salary_min' => $taka((string) $rules['dealer_monthly_salary']['parameters']['min_monthly_volume']),
+            'bike_target' => $taka((string) $rewards['bike_target']),
+            'bike_cap' => $taka((string) $rewards['bike_leg_cap']),
+            'car_target' => $taka((string) $rewards['car_target']),
+            'car_cap' => $taka((string) $rewards['car_leg_cap']),
+        ];
     }
 
     private function optionalLine(?string $key): ?string
@@ -196,9 +291,9 @@ final class UserManual
             $this->ch('reports', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['report', 'pdf', 'full_report', 'analytics', 'রিপোর্ট', 'অডিট', 'বিবরণী']),
             $this->ch('network_genealogy', ['dealer', 'staff', 'owner'], 10, 3, 3, 2, ['network', 'referral', 'tree', 'genealogy', 'downline', 'qr', 'নেটওয়ার্ক', 'রেফারাল', 'ডাউনলাইন', 'টিম']),
             $this->ch('area_dealers_places', ['dealer', 'staff', 'owner'], 8, 2, 2, 2, ['place_code', 'area_dealer', 'territory', 'division', 'district', 'প্লেস কোড', 'এরিয়া', 'টেরিটোরি']),
-            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 9, 3, 2, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি', 'সম্মাননা']),
-            $this->ch('rewards_milestones', ['dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক', 'গাড়ি', 'বাইক']),
-            $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'reserve', '5%', '2%', 'বেতন', 'সাব-ডিলার', 'ট্যুর']),
+            $this->ch('ranks_royalties', ['dealer', 'staff', 'owner'], 9, 3, 3, 2, ['rank', 'royalty', 'mo', 'am', 'sm', 'me', 'পদবী', 'রয়্যালটি', 'সম্মাননা']),
+            $this->ch('rewards_milestones', ['dealer', 'sub_dealer', 'staff', 'owner'], 7, 2, 2, 1, ['reward', 'bike', 'car', 'milestone', 'পুরস্কার', 'মাইলফলক', 'গাড়ি', 'বাইক']),
+            $this->ch('subdealer_salary_tour', ['sub_dealer', 'dealer', 'staff', 'owner'], 9, 3, 2, 2, ['subdealer', 'salary', 'tour', 'tour fund', 'reserve', 'বেতন', 'সাব-ডিলার', 'ট্যুর', 'ট্যুর ফান্ড']),
             $this->ch('staff_people_accounts', ['staff', 'owner'], 11, 3, 3, 2, ['employees', 'accounts', 'onboarding', 'permissions', 'partner', 'স্টাফ', 'অ্যাকাউন্ট', 'পারমিশন']),
             $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
             $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),

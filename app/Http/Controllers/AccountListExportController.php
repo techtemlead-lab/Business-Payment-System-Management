@@ -3,14 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Accounts\PartnerAccountList;
+use App\Models\User;
 use App\Support\Audit;
+use App\Support\PhoneIdentity;
 use App\Support\TableWorkbook;
+use Generator;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Excel download of the dealer or sub-dealer list with the filters on screen.
  * Only staff who may manage accounts can download it, and it never holds an NID number.
+ *
+ * Full phone numbers and emails are only in the file for owners and for staff who may edit
+ * accounts (they already see and change these numbers on screen). Staff with view-only
+ * access get them masked, so a whole contact list cannot leave the office by accident.
  */
 class AccountListExportController extends Controller
 {
@@ -44,17 +51,43 @@ class AccountListExportController extends Controller
             ['key' => 'last_order_at', 'label' => $label('acct_col_last_order')],
             ['key' => 'month_purchase', 'label' => $label('acct_col_month_purchase'), 'type' => 'money', 'total' => true],
         ];
+        $fullContacts = self::mayExportFullContacts($user);
         $applied = array_filter($filters, fn ($value): bool => $value !== '' && $value !== 0);
-        Audit::record($user->id, 'report.exported', 'accounts', ['section' => $data['section'], ...$applied]);
+        Audit::record($user->id, 'report.exported', 'accounts', ['section' => $data['section'], 'full_contacts' => $fullContacts, ...$applied]);
+        $rows = $list->exportRows($role, $filters);
+        if (! $fullContacts) {
+            $rows = (function (iterable $rows): Generator {
+                foreach ($rows as $row) {
+                    yield [...$row, 'phone' => PhoneIdentity::masked((string) ($row['phone'] ?? '')), 'email' => self::maskedEmail((string) ($row['email'] ?? ''))];
+                }
+            })($rows);
+        }
         $title = $label($role === 'dealer' ? 'acct_export_title_dealers' : 'acct_export_title_sub_dealers');
 
         return TableWorkbook::download(
             'Madina-'.$data['section'].'-'.now('Asia/Dhaka')->format('Y-m-d').'.xlsx',
             $title,
             $columns,
-            $list->exportRows($role, $filters),
-            [[__('portal.acct_export_filters'), $this->describe($filters)]],
+            $rows,
+            [[__('portal.acct_export_filters'), $this->describe($filters)], [__('portal.acct_export_contacts'), __($fullContacts ? 'portal.acct_export_contacts_full' : 'portal.acct_export_contacts_masked')]],
         );
+    }
+
+    /** Owners, and staff who may edit accounts, get full phone numbers and emails in the file. */
+    public static function mayExportFullContacts(User $user): bool
+    {
+        return $user->owner() || $user->canAct('accounts', 'edit');
+    }
+
+    /** "rahim@example.com" becomes "r•••@example.com"; an empty email stays empty. */
+    private static function maskedEmail(string $email): string
+    {
+        if ($email === '' || ! str_contains($email, '@')) {
+            return $email === '' ? '' : '•••';
+        }
+        [$name, $domain] = explode('@', $email, 2);
+
+        return mb_substr($name, 0, 1).'•••@'.$domain;
     }
 
     /**
