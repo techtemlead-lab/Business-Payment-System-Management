@@ -4,10 +4,12 @@ import {createInertiaApp} from '@inertiajs/react';
 import { applyColorScheme, resolveColorScheme } from './shared/theme';
 import { installBanglaDigitShaping } from './shared/banglaDigits';
 import { installCountUp } from './shared/countUp';
+import { installNavigationFeedback } from './shared/navigationFeedback';
 
 applyColorScheme(resolveColorScheme());
 installBanglaDigitShaping();
 installCountUp();
+installNavigationFeedback();
 
 const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> = {
     Portal: () => import('./pages/Portal'),

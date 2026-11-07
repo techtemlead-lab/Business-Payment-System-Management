@@ -47,6 +47,12 @@
   :root dialog.portal-modal.is-closing{animation:portalModalOut .16s ease-in both;pointer-events:none}
   :root dialog.portal-modal.is-closing::backdrop{animation:portalBackdropOut .16s ease-in both}
 }
+
+/* A page visit is on its way: the current page dims a little (set by shared/navigationFeedback.ts) */
+/* (filter, not opacity: the entrance animation already owns opacity) */
+.app-shell .portal-workspace-body,.app-shell .page-heading{transition:filter .2s ease}
+html.portal-navigating .app-shell :is(.portal-workspace-body,.page-heading){filter:opacity(.55);cursor:progress}
+
 @keyframes portalStaggerIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes portalBarGrow{from{transform:scaleY(0)}to{transform:none}}
 @keyframes portalDialogRise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
