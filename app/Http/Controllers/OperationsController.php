@@ -12,11 +12,11 @@ use App\Domain\Finance\ReserveService;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
-use App\Models\CommissionAllocation;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
 use App\Support\Money;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +26,28 @@ use Inertia\Response;
 
 class OperationsController extends Controller
 {
+    /**
+     * Which columns each table's search box looks in, and which status column its filter uses.
+     * Fixed SQL column names only; the search text is always passed as a binding.
+     *
+     * @var array<string, array{search: list<string>, status: string|null, statuses: list<string>}>
+     */
+    private const TableFilters = [
+        'territories' => ['search' => ['u.name', 't.level', 't.division', 't.district', 't.upazila', 't."union"'], 'status' => null, 'statuses' => []],
+        'monthly_targets' => ['search' => ['u.name', 't.period_month'], 'status' => null, 'statuses' => []],
+        'territory_orders' => ['search' => ['o.number', 'u.name'], 'status' => 'o.status', 'statuses' => ['submitted', 'held', 'approved', 'rejected', 'cancelled', 'partially_dispatched', 'dispatched', 'delivered']],
+        'my_targets' => ['search' => ['period_month'], 'status' => null, 'statuses' => []],
+        'dealer_applications' => ['search' => ['email', "data->>'name'", "data->>'phone'", "data->>'district'"], 'status' => 'status', 'statuses' => ['pending', 'approved', 'rejected']],
+        'salary_register' => ['search' => ['u.name', 'p.period_month', 'p.payment_reference'], 'status' => 'p.status', 'statuses' => ['draft', 'approved', 'rejected', 'paid']],
+        'salary_contracts' => ['search' => ['u.name', 'c.effective_month', 'c.reason'], 'status' => null, 'statuses' => []],
+        'policy_schedules' => ['search' => ['u.name', 'proposer.name', 's.reason', 's.scope'], 'status' => 's.status', 'statuses' => ['draft', 'approved', 'rejected', 'cancelled']],
+        'reserve_requests' => ['search' => ['u.name', 'r.payee_name', 'r.program', 'r.payment_reference', 'r.reason'], 'status' => 'r.status', 'statuses' => ['requested', 'approved', 'credited', 'rejected', 'paid', 'cancelled']],
+        'clawback_recoveries' => ['search' => ['payment_reference'], 'status' => null, 'statuses' => []],
+        'held_allocations' => ['search' => ['u.name', 'a.category', 'a.order_id'], 'status' => null, 'statuses' => []],
+        'opening_holds' => ['search' => ['u.name', 'e.reference'], 'status' => null, 'statuses' => []],
+        'opening_reviews' => ['search' => ['fingerprint', 'source_reference'], 'status' => null, 'statuses' => []],
+    ];
+
     public const Sections = ['field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports', 'finance-settings', 'access-management', 'video-marketing'];
 
     public function index(Request $request, string $section): Response|JsonResponse
@@ -64,6 +86,7 @@ class OperationsController extends Controller
             $territories = app(TerritoryAccess::class);
             $data['regions'] = $territories->territories($actor->id);
             $data['products'] = Product::where('active', true)->where('is_stock_paused', false)->orderBy('name')->get(['id', 'name', 'sku']);
+            $data['fullPaymentWhenOrdering'] = app(FinanceSettings::class)->fullPaymentWhenOrdering();
             $scope = $territories->partners($actor)->select('users.id');
             if ($actor->allows('sr_orders')) {
                 $columns = ['o.id', 'o.number', 'u.name', 'o.status', 'o.total', 'o.submitted_by'];
@@ -98,8 +121,14 @@ class OperationsController extends Controller
                 ->select(['r.id', 'r.program', 'u.name', 'r.user_id', 'r.payee_name', 'r.amount', 'r.status', 'r.created_by', 'r.approved_by', 'r.payment_reference', 'r.reason', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('r.id');
             $tables['reserve_clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
             $tables['clawback_recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');
+            $remaining = app(ReserveService::class)->remainingByCategory();
+            // Bike and car draw on the same fund, so it is shown once as the car and bike fund.
+            $programs = [];
             foreach (ReserveService::Programs as $program => $category) {
-                $total = CommissionAllocation::where('category', $category)->get()->sum(fn ($fund) => app(ReserveService::class)->remaining($fund));
+                $programs[in_array($program, ['bike', 'car'], true) ? 'car_bike' : $program] = $category;
+            }
+            foreach ($programs as $program => $category) {
+                $total = $remaining[$category] ?? 0;
                 $data['summary'][$program.'_uncommitted_reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
             }
         }
@@ -121,6 +150,7 @@ class OperationsController extends Controller
             $data['withdrawalSetting'] = app(FinanceSettings::class)->withdrawalMinimum();
             $data['autoApproval'] = app(FinanceSettings::class)->autoApproval();
             $data['kycBeforeFirstWithdrawal'] = [...app(FinanceSettings::class)->kycBeforeFirstWithdrawal(), 'can_edit' => $actor->owner()];
+            $data['fullPaymentWhenOrdering'] = [...app(FinanceSettings::class)->fullPaymentWhenOrdering(), 'can_edit' => $actor->owner()];
         }
         if ($section === 'access-management') {
             abort_unless($actor->role === 'super_admin', 403);
@@ -139,6 +169,7 @@ class OperationsController extends Controller
             $data['videoProducts'] = Product::where('active', true)->whereNotNull('video_source')->where('video_source', '!=', 'none')->orderBy('name')->get(['id', 'name'])->toArray();
         }
         foreach ($tables as $key => $query) {
+            $filter = $this->applyTableFilter($request, $key, $query);
             $page = $query->paginate(20, ['*'], 'page_'.count($data['tables']))->withQueryString();
             if ($key === 'policy_schedules') {
                 $page->through(function (object $row): object {
@@ -148,9 +179,40 @@ class OperationsController extends Controller
                     return $row;
                 });
             }
-            $data['tables'][] = ['key' => $key, 'page' => $page];
+            $data['tables'][] = ['key' => $key, 'page' => $page, 'filter' => $filter];
         }
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('Operations', $data);
+    }
+
+    /**
+     * Search and status filter for one table, run on the server so they cover every page.
+     * Each table reads its own "{key}_q" and "{key}_status" from the address.
+     *
+     * @return array{searchable: bool, statuses: list<string>, q: string, status: string}
+     */
+    private function applyTableFilter(Request $request, string $key, Builder $query): array
+    {
+        $config = self::TableFilters[$key] ?? ['search' => [], 'status' => null, 'statuses' => []];
+        $search = trim(Str::limit($request->string($key.'_q')->toString(), 100, ''));
+        $status = $request->string($key.'_status')->toString();
+        if ($search !== '' && $config['search'] !== []) {
+            $term = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(function (Builder $match) use ($config, $term): void {
+                foreach ($config['search'] as $column) {
+                    $match->orWhereRaw('('.$column.')::text ilike ?', [$term]);
+                }
+            });
+        }
+        if ($config['status'] !== null && in_array($status, $config['statuses'], true)) {
+            $query->where($config['status'], $status);
+        }
+
+        return [
+            'searchable' => $config['search'] !== [],
+            'statuses' => $config['status'] !== null ? $config['statuses'] : [],
+            'q' => $config['search'] !== [] ? $search : '',
+            'status' => in_array($status, $config['statuses'], true) ? $status : '',
+        ];
     }
 }

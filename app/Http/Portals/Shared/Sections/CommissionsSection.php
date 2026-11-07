@@ -6,7 +6,6 @@ use App\Domain\Commissions\CommissionPolicy;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Commissions\CommissionSettlement;
-use App\Domain\Commissions\RetainedFundLedger;
 use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
@@ -33,24 +32,16 @@ final class CommissionsSection implements WorkspaceSection
     }
 
     /**
-     * Commission rules, pool limits, allocations and totals per pool. Benefits-fund rows stay owner-only.
+     * Commission rules and pool limits. The page shows only the rules, so no allocation rows are loaded.
      *
      * @return array<string, mixed>
      */
     private function commissions(SectionContext $context): array
     {
-        $user = $context->user;
         $props = [];
-        $ownerBenefits = $user->owner() && $context->portal === 'sadmin';
         $commissionSnapshot = app(CommissionPolicy::class)->snapshot(false);
         $props['rules'] = array_values($commissionSnapshot['rules']);
         $props['policy_limits'] = $this->commissionPoolLimits($commissionSnapshot);
-        $props['allocations'] = CommissionAllocation::with(['order:id,number,total', 'user:id,name,dealer_code'])
-            ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', RetainedFundLedger::BenefitsCategory))
-            ->latest()->paginate(20);
-        $props['pools_summary'] = CommissionAllocation::query()
-            ->when(! $ownerBenefits, fn ($q) => $q->where('category', '!=', RetainedFundLedger::BenefitsCategory))
-            ->selectRaw('category, sum(amount) as total_amount, count(*) as count')->groupBy('category')->get();
 
         return $props;
     }

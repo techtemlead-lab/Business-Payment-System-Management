@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,6 +23,9 @@ final class NetworkSection implements WorkspaceSection
 
     /** Commission statuses that count as money earned, held or already paid; reversals are left out. */
     private const EarnedStatuses = ['pending', 'available', 'maturing', 'held', 'reserved', 'settled', 'partially_settled'];
+
+    /** The most downline members or partner nodes sent to one page; the CSV export lists everyone. */
+    private const DownlineLimit = 2500;
 
     public function data(SectionContext $context, array $data): array
     {
@@ -46,23 +50,24 @@ final class NetworkSection implements WorkspaceSection
         $request = $context->request;
         $user = $context->user;
         $props = [];
-        $props['members'] = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')->where('ancestor_id', $user->id)
-            ->where('depth', '>', 0)->orderBy('depth')->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
         if (! $context->isStaff && $user->role === 'dealer') {
-            $networkIds = DB::table('referral_tree_paths')
-                ->where('ancestor_id', $user->id)
-                ->pluck('descendant_id')
-                ->push($user->id)
-                ->unique()
-                ->values()
-                ->all();
+            // Dealers see their network in the tree explorer; the plain member list is only drawn for sub-dealers.
+            $props['team_summary'] = $this->teamSummary($user);
+            $total = $props['team_summary']['members'] + 1;
             $props['dealers'] = $this->networkDealerNodes(
-                User::query()->whereIn('id', $networkIds),
+                User::query()
+                    ->where(fn (Builder $query) => $query->whereKey($user->id)->orWhereIn('id', DB::table('referral_tree_paths')
+                        ->where('ancestor_id', $user->id)->select('descendant_id')))
+                    ->orderByRaw('(SELECT depth FROM referral_tree_paths WHERE ancestor_id = ? AND descendant_id = users.id) ASC NULLS FIRST', [$user->id])
+                    ->orderBy('id')
+                    ->limit(self::DownlineLimit),
                 maskPhone: false,
                 viewer: $user,
             );
-            $props['dealers_truncated'] = false;
-            $props['team_summary'] = $this->teamSummary($user);
+            $props['dealers_truncated'] = $total > self::DownlineLimit;
+            $props['dealers_total'] = $total;
+        } elseif (! $context->isStaff) {
+            $props = [...$props, ...$this->members($user)];
         }
         if ($request->filled('member_id')) {
             $member = $request->validate(['member_id' => 'required|integer'])['member_id'];
@@ -72,6 +77,28 @@ final class NetworkSection implements WorkspaceSection
         }
 
         return $props;
+    }
+
+    /**
+     * The viewer's downline as a plain list, nearest levels first, capped so a large team stays fast.
+     *
+     * One extra row is read to tell whether the list was cut; only then are all members counted.
+     *
+     * @return array{members: Collection<int, object>, members_total: int, members_truncated: bool}
+     */
+    private function members(User $user): array
+    {
+        $query = DB::table('referral_tree_paths')->join('users', 'users.id', '=', 'descendant_id')
+            ->where('ancestor_id', $user->id)->where('depth', '>', 0);
+        $members = (clone $query)->orderBy('depth')->orderBy('users.id')->limit(self::DownlineLimit + 1)
+            ->get(['users.id', 'users.name', 'users.dealer_code', 'users.sponsor_id', 'depth', 'users.created_at']);
+        $truncated = $members->count() > self::DownlineLimit;
+
+        return [
+            'members' => $members->take(self::DownlineLimit)->values(),
+            'members_total' => $truncated ? (clone $query)->count() : $members->count(),
+            'members_truncated' => $truncated,
+        ];
     }
 
     /**
@@ -141,11 +168,13 @@ final class NetworkSection implements WorkspaceSection
             ->get(['id', 'name', 'dealer_code', 'phone', 'district', 'division', 'sponsor_id', 'role', 'status', 'created_at']);
         $ids = $partners->pluck('id')->all();
         $sales = $this->salesByPartner($ids);
+        // The same figure the monthly salary target is checked against: delivered, paid purchases after refunds.
+        $qualifying = app(CommissionQualification::class)->monthlyVolumesFor($ids, CommissionQualification::currentMonth());
         $sponsorEarned = $this->sponsorEarnedByPartner($ids);
         $viewerEarned = $viewer ? $this->viewerEarnedByPartner($viewer, $ids) : [];
 
         return $partners
-            ->map(function (User $dealer) use ($maskPhone, $sales, $sponsorEarned, $viewerEarned, $viewer): array {
+            ->map(function (User $dealer) use ($maskPhone, $sales, $qualifying, $sponsorEarned, $viewerEarned, $viewer): array {
                 $phone = (string) ($dealer->phone ?? '');
                 if ($maskPhone && $phone !== '') {
                     $digits = preg_replace('/\D+/', '', $phone) ?: '';
@@ -168,6 +197,7 @@ final class NetworkSection implements WorkspaceSection
                     'created_at' => $dealer->created_at?->toIso8601String(),
                     'sales_total' => Money::decimal($sales[$dealer->id]['total'] ?? 0),
                     'sales_month' => Money::decimal($sales[$dealer->id]['month'] ?? 0),
+                    'qualifying_volume_month' => Money::decimal($qualifying[$dealer->id] ?? 0),
                     'sponsor_earned' => Money::decimal($sponsorEarned[$dealer->id] ?? 0),
                     ...($viewer ? [
                         'viewer_earned' => Money::decimal(array_sum($viewerEarned[$dealer->id] ?? [])),

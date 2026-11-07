@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Models\SiteFeedback;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -11,12 +12,15 @@ use Illuminate\Support\Facades\DB;
  */
 final class FeedbackSection implements WorkspaceSection
 {
+    /** Statuses the enquiry list can be filtered by. */
+    public const EnquiryStatuses = ['new', 'contacted', 'closed'];
+
     public function data(SectionContext $context, array $data): array
     {
         return match ($context->section) {
             'feedback' => $this->feedback(),
             'share-feedback' => $this->ownFeedback($context->user),
-            'enquiries' => $this->enquiries(),
+            'enquiries' => $this->enquiries($context->request),
             default => [],
         };
     }
@@ -86,13 +90,24 @@ final class FeedbackSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function enquiries(): array
+    private function enquiries(Request $request): array
     {
         $props = [];
+        $search = trim($request->string('q')->toString());
+        $status = $request->string('status')->toString();
         $props['enquiries'] = DB::table('enquiries')->select(['id', 'name', 'phone', 'topic', 'message', 'status', 'created_at', 'updated_at'])
+            ->when($search !== '', function ($query) use ($search): void {
+                $term = '%'.addcslashes($search, '%_\\').'%';
+                $query->where(fn ($match) => $match->where('name', 'ilike', $term)
+                    ->orWhere('phone', 'ilike', $term)
+                    ->orWhere('topic', 'ilike', $term)
+                    ->orWhere('message', 'ilike', $term));
+            })
+            ->when(in_array($status, self::EnquiryStatuses, true), fn ($query) => $query->where('status', $status))
             ->orderByDesc('created_at')
             ->orderByDesc('id')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
         $props['enquiry_counts'] = [
             'total' => (int) DB::table('enquiries')->count(),
             'new' => (int) DB::table('enquiries')->where('status', 'new')->count(),

@@ -44,10 +44,20 @@ if (config('madina.backups_enabled')) {
 Schedule::command('partners:birthday-sms')->dailyAt('09:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled birthday SMS run failed.'));
 
+// Join-anniversary greeting for dealers and sub-dealers: an in-app notice only (no SMS, so no cost),
+// at most once a year each.
+Schedule::command('partners:anniversary-greetings')->dailyAt('09:05')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled join anniversary greeting failed.'));
+
 // Orders sent more than a week ago but not marked delivered earn the dealer no commission.
 // Each morning staff with the orders or inventory permission get one portal notice with the count. No SMS.
 Schedule::command('orders:delivery-reminders')->dailyAt('10:00')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled overdue delivery reminder failed.'));
+
+// Support tickets that have waited longer than the owner's limit (24 hours unless changed) for an
+// office reply. Each morning staff with the accounts permission get one portal notice with the count. No SMS.
+Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled overdue support ticket reminder failed.'));
 
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();

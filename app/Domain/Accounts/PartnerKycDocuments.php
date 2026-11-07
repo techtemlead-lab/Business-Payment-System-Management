@@ -141,13 +141,22 @@ final class PartnerKycDocuments
         ];
     }
 
-    public function download(User $partner, string $documentId): StreamedResponse
+    /**
+     * Streams one ID paper to staff. Every opening is written to the audit log so the
+     * owner can see who looked at a partner's identity documents and when.
+     */
+    public function download(User $actor, User $partner, string $documentId): StreamedResponse
     {
         $row = DB::table('kyc_documents')
             ->where('id', $documentId)
             ->where('user_id', $partner->id)
             ->first();
         abort_unless($row && Storage::disk('local')->exists($row->disk_path), 404);
+
+        Audit::record($actor->id, 'account.kyc_document_viewed', (string) $partner->id, [
+            'document_id' => $row->id,
+            'kind' => $row->kind,
+        ]);
 
         return Storage::disk('local')->download(
             $row->disk_path,
