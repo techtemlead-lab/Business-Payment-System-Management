@@ -6042,6 +6042,7 @@ return [
     'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
     'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
     'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
+    'ops_chk_car_bike_uncommitted_reserve' => 'Car and bike fund not yet promised',
     'net_qualifying_volume_month' => 'Counts for salary this month',
     'net_qualifying_volume_hint' => 'Paid orders delivered this month, minus refunds. This is the amount checked against the monthly salary target.',
     'shipment_courier_booking_pending' => 'Booking with the courier. The tracking number will show here soon.',
