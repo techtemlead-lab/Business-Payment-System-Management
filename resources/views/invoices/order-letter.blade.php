@@ -448,6 +448,14 @@
                             {{ collect([$line['sub_category'], $line['strength']])->filter()->implode(' • ') }}
                         </div>
                     @endif
+                    @if (! empty($line['batch_number']) || ! empty($line['expires_on']))
+                        <div class="product-meta">
+                            {{ collect([
+                                ! empty($line['batch_number']) ? __('portal.inv_batch', ['batch' => $line['batch_number']]) : null,
+                                ! empty($line['expires_on']) ? __('portal.inv_expiry', ['date' => $line['expires_on']]) : null,
+                            ])->filter()->implode(' • ') }}
+                        </div>
+                    @endif
                 </td>
                 <td>{{ $line['pack_size'] }}</td>
                 <td><strong>{{ $line['quantity'] }}</strong></td>
@@ -504,9 +512,6 @@
                 <table>
                     <tr><td>{{ __('portal.inv_bill_total') }}</td><td class="amt">৳ {{ $order['total_display'] }}</td></tr>
                     <tr><td>{{ __('portal.inv_paid') }}</td><td class="amt">৳ {{ $order['paid_display'] }}</td></tr>
-                    @if ($order['credit_display'] !== '0.00')
-                        <tr><td>{{ __('portal.inv_credit') }}</td><td class="amt">৳ {{ $order['credit_display'] }}</td></tr>
-                    @endif
                     <tr class="due"><td>{{ __('portal.inv_due') }}</td><td class="amt">৳ {{ $order['due_display'] }}</td></tr>
                     <tr><td>{{ __('portal.inv_payment_status') }}</td><td class="amt"><span class="pay-state {{ $order['payment_state'] }}">{{ $order['payment_state_label'] }}</span></td></tr>
                 </table>

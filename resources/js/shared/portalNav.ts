@@ -35,7 +35,7 @@ type CapabilityContext = {
 export const OPERATIONS_SECTIONS = new Set([
     'data-imports', 'service-integrations', 'field-sales', 'staff-operations', 'payroll', 'my-payroll', 'payment-accounts',
     'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'financial-reports',
-    'dues-adjustments', 'finance-settings', 'access-management', 'video-marketing',
+    'finance-settings', 'access-management', 'video-marketing',
 ]);
 
 export const DEALER_ONLY_SECTIONS = ['accounts', 'partnerships', 'area-dealers'];
@@ -44,9 +44,9 @@ export const SHARED_PARTNER_SECTIONS = ['commissions', 'policies', 'simulator', 
 export const ACCOUNT_SECTIONS = ['profile', 'security', 'notifications', 'help'];
 export const MANAGEMENT_SECTIONS = [
     'overview', 'employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales',
-    'orders', 'order', 'deliveries', 'dues', 'sub-dealer-orders',
+    'orders', 'order', 'deliveries', 'sub-dealer-orders',
     'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
-    'financial-readiness', 'dues-adjustments', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
+    'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
     'training', 'events',
@@ -61,10 +61,10 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'payment-accounts': 'payment_accounts', 'policy-schedules': 'policy_schedules', 'reserve-payouts': 'reserve_payouts',
     'data-imports': 'data_imports', 'service-integrations': 'service_integrations', 'commission-holds': 'commission_holds',
     'financial-readiness': 'financial_readiness', 'financial-reports': 'financial_reports',
-    'dues-adjustments': 'dues_adjustments', 'finance-settings': 'finance_settings',
+    'finance-settings': 'finance_settings',
     'access-management': 'access_management', 'video-marketing': 'video_marketing',
     overview: 'overview', orders: 'orders', order: 'order_details', purchase: 'purchase', catalog: 'catalog', accounts: 'accounts',
-    inventory: 'inventory', deliveries: 'deliveries', dues: 'dues', payments: 'payments', network: 'network',
+    inventory: 'inventory', deliveries: 'deliveries', payments: 'payments', network: 'network',
     policies: 'policies', salary: 'salary', withdrawals: 'withdrawals', ledger: 'ledger', reports: 'reports',
     customization: 'website', website: 'website', content: 'content', enquiries: 'enquiries', feedback: 'feedback',
     'share-feedback': 'share_feedback', partnerships: 'partnerships', audit: 'audit', profile: 'profile',
@@ -170,17 +170,11 @@ export function sectionHref(base: string, item: string): string {
     return `${base}/${path}`;
 }
 
-/**
- * Sections switched off by a business rule. Goods are no longer given on
- * credit — dealers pay in full before an order is approved — so the dues list
- * and due adjustments are gone from every menu.
- */
-export const RetiredSections = new Set(['dues', 'dues-adjustments']);
 
 export function pick(available: Set<string>, items: string[]): string[] {
     return items.filter((item) => {
         const section = resolveNavLink(item).section;
-        return available.has(section) && !RetiredSections.has(section) && !RetiredSections.has(item);
+        return available.has(section);
     });
 }
 
@@ -207,7 +201,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
-        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'dues-adjustments', 'finance-settings', 'treasury',
+        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury',
             'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
@@ -241,7 +235,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     }
     if (capabilities.includes('audit')) items.add('audit');
     if (capabilities.includes('orders') || capabilities.includes('finance')) {
-        ['orders', 'deliveries', 'dues'].forEach((item) => items.add(item));
+        ['orders', 'deliveries'].forEach((item) => items.add(item));
     }
     return items;
 }
@@ -249,7 +243,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -267,12 +261,11 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
             items.delete('orders');
             items.delete('purchase');
             items.delete('deliveries');
-            items.delete('dues');
         }
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'dues', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -289,7 +282,6 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         if (controls.subdealer_orders_enabled === false) {
             items.delete('orders');
             items.delete('purchase');
-            items.delete('dues');
         }
         return items;
     }
@@ -338,9 +330,9 @@ function staffNavigation(staffAvailable: Set<string>): {
             mother('stock', 'nav_module_stock', pick(staffAvailable, [
                 'stock', 'product-in', 'product-out', 'branches', 'branch-performance', 'place-codes',
             ])),
-            mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries', 'dues'])),
+            mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [
-                'treasury', 'payment-accounts', 'ledger', 'dues-adjustments', 'financial-readiness', 'finance-settings',
+                'treasury', 'payment-accounts', 'ledger', 'financial-readiness', 'finance-settings',
             ])),
             mother('payouts', 'nav_module_payouts', pick(staffAvailable, [
                 'withdrawals', 'payouts-hub', 'payments', 'settlements', 'reserve-payouts',
@@ -416,7 +408,7 @@ export function buildDomainMothers(input: {
         if (role === 'dealer') {
             return compactMothers([
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
-                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
+                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
                 mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
@@ -426,7 +418,7 @@ export function buildDomainMothers(input: {
         if (role === 'sub_dealer') {
             return compactMothers([
                 mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
-                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries', 'dues'])),
+                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
                 mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals'])),
                 mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
                 mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),

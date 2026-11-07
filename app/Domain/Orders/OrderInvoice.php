@@ -9,6 +9,7 @@ use App\Support\AmountInWords;
 use App\Support\Money;
 use App\Support\PortalHost;
 use App\Support\SiteCustomization;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -158,6 +159,8 @@ final class OrderInvoice
                 'sub_category' => $product?->sub_category,
                 'category' => $product?->category,
                 'pack_size' => (string) ($product?->unit ?: 'pack'),
+                'batch_number' => $line->batch_number,
+                'expires_on' => $line->expires_on ? CarbonImmutable::parse((string) $line->expires_on)->format('d/m/Y') : null,
                 'quantity' => $qty,
                 'mrp' => Money::decimal($mrpCents),
                 'rate' => Money::decimal($rateCents),
@@ -219,7 +222,6 @@ final class OrderInvoice
                 'due' => $order->outstanding(),
                 'total_display' => Money::grouped((string) $order->total),
                 'paid_display' => Money::grouped(Money::decimal($paidCents)),
-                'credit_display' => Money::grouped((string) ($order->due_credit ?? '0.00')),
                 'due_display' => Money::grouped($order->outstanding()),
                 'payment_state' => $paymentState,
                 'payment_state_label' => __('portal.inv_payment_'.$paymentState),
