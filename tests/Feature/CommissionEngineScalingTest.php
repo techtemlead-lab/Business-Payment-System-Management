@@ -139,6 +139,15 @@ class CommissionEngineScalingTest extends TestCase
         $this->assertSame(array_fill(0, 12, '100.00'), array_values($this->bikeVolumes($leaders)));
     }
 
+    public function test_wallet_credit_debt_lookup_uses_the_partial_deficit_index(): void
+    {
+        $definition = DB::table('pg_indexes')->where('tablename', 'commission_allocations')
+            ->where('indexname', 'commission_allocations_user_unrecovered_deficit_index')->value('indexdef');
+
+        $this->assertNotNull($definition);
+        $this->assertStringContainsString("(metadata ->> 'unrecovered_deficit'::text) IS NOT NULL", (string) $definition);
+    }
+
     public function test_attaching_a_deep_chain_reads_the_sponsors_in_one_query(): void
     {
         $chain = [$this->partner(null)];

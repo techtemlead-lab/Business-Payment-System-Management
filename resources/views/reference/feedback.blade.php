@@ -3,7 +3,7 @@
     $selectedRating = max(1, min(5, (int) old('rating', 5)));
 @endphp
 @extends('reference.layout')
-@section('title', $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null).' · '.__('site.company_bar'))
+@section('title', $chrome('feedback_page_title', $siteCustomization['feedback_page_title'] ?? null).' · '.\App\Support\SiteCustomization::brandName())
 @section('content')
 <main id="main" class="ref-container ref-inner-main">
     <nav class="ref-breadcrumb" aria-label="{{ __('site.breadcrumb') }}">

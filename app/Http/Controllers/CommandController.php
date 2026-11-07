@@ -17,6 +17,7 @@ use App\Domain\Content\CircularPublishNotifications;
 use App\Domain\Content\TestimonialLabels;
 use App\Domain\Finance\PolicyDraftService;
 use App\Domain\Geography\ManagementReferral;
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Inventory\StockService;
 use App\Domain\Notifications\AccountCreatedSms;
 use App\Domain\Notifications\PartnerEventSms;
@@ -342,11 +343,19 @@ class CommandController extends Controller
         unset($d['phone_share_reason']);
         $placeCode = isset($d['place_code']) ? trim((string) $d['place_code']) : '';
         unset($d['place_code']);
-        if ($isPartner && $placeCode !== '') {
-            // Catalog place code is the geography source of truth — ignore free-text geo overrides on the same request.
+        if ($isPartner) {
+            // A partner's place names always come from their place code (changed only through
+            // the place code below), so free-text place names are never saved for partners.
             unset($d['division'], $d['district']);
             if (isset($d['profile']) && is_array($d['profile'])) {
-                unset($d['profile']['upazila'], $d['profile']['union'], $d['profile']['area_code']);
+                foreach (['upazila', 'union', 'area_code'] as $placeKey) {
+                    $saved = data_get($user->profile, $placeKey);
+                    if ($saved !== null) {
+                        $d['profile'][$placeKey] = $saved;
+                    } else {
+                        unset($d['profile'][$placeKey]);
+                    }
+                }
             }
         }
         $statusChange = null;
@@ -934,6 +943,19 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_delivery_recorded'));
     }
 
+    /** Back-order date: when the items still waiting for stock are expected to go out. */
+    public function supplyDate(Request $r, Order $order, OrderService $service): RedirectResponse
+    {
+        $this->permit($r, 'inventory');
+        $data = $r->validate([
+            'supply_eta' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:today', 'before:'.now()->addYear()->toDateString()],
+            'supply_note' => ['nullable', 'string', 'max:300'],
+        ]);
+        $service->setSupplyDate($r->user(), $order, $data['supply_eta'] ?? null, $data['supply_note'] ?? null);
+
+        return back()->with('success', __('portal.flash_supply_eta_saved'));
+    }
+
     public function invite(Request $r, User $user): RedirectResponse
     {
         $this->permit($r, 'accounts');
@@ -1189,100 +1211,60 @@ class CommandController extends Controller
         $d = $r->validate([
             'user_id' => 'required|exists:users,id',
             'level' => 'required|in:division,district,upazila,union',
-            'place_code_id' => 'nullable|integer|exists:place_codes,id',
+            // An area seat is always a place code; names are filled in from it, never typed.
+            'place_code_id' => 'required|integer|exists:place_codes,id',
             'zone_name' => 'nullable|string|max:128',
-            'division' => 'nullable|string|max:64',
-            'district' => 'nullable|string|max:64',
-            'upazila' => 'nullable|string|max:64',
-            'union' => 'nullable|string|max:64',
             'monthly_quota' => 'required|numeric|min:0|max:99999999999|decimal:0,2',
+        ], [
+            'place_code_id.required' => __('portal.place_code_required'),
         ]);
 
-        $place = null;
-        if (! empty($d['place_code_id'])) {
-            $place = PlaceCode::query()
-                ->whereKey($d['place_code_id'])
-                ->where('level', $d['level'])
-                ->where('is_active', true)
-                ->first();
-            if (! $place) {
-                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
+        $place = PlaceCode::query()
+            ->whereKey($d['place_code_id'])
+            ->where('level', $d['level'])
+            ->where('is_active', true)
+            ->first();
+        if (! $place) {
+            throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_level_mismatch')]);
+        }
+        if (! $place->isReadyForAssignment()) {
+            throw ValidationException::withMessages(['place_code_id' => __('portal.err_pc_placeholder_assignment')]);
+        }
+        $path = app(PlaceTree::class)->namesDownTo($place);
+        foreach (['division', 'district', 'upazila', 'union'] as $field) {
+            $value = $path[$field] ?? '';
+            if (trim($value) === '' || PlaceCode::isPlaceholderLabel($value)) {
+                throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
             }
-            if (! $place->isReadyForAssignment()) {
-                throw ValidationException::withMessages(['place_code_id' => __('portal.err_pc_placeholder_assignment')]);
-            }
-            $path = $place->loadMissing('parent.parent.parent')->pathNames();
-            foreach (['division', 'district', 'upazila', 'union'] as $field) {
-                if ($field === $d['level']) {
-                    $trimmed = [];
-                    foreach (['division', 'district', 'upazila', 'union'] as $step) {
-                        $trimmed[$step] = $path[$step];
-                        if ($step === $field) {
-                            break;
-                        }
-                    }
-                    $path = $trimmed;
-                    break;
-                }
-            }
-            foreach ($path as $field => $value) {
-                if (trim((string) $value) === '' || PlaceCode::isPlaceholderLabel($value)) {
-                    throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_place_hierarchy')]);
-                }
-                $d[$field] = $value;
-            }
-            $d['zone_name'] = trim((string) ($d['zone_name'] ?? '')) !== ''
-                ? trim((string) $d['zone_name'])
-                : $place->name.' ('.$place->code.')';
-        } else {
-            $path = [];
-            foreach (['division', 'district', 'upazila', 'union'] as $field) {
-                if (empty($d[$field])) {
-                    throw ValidationException::withMessages([$field => __('portal.cmd_val_territory_required')]);
-                }
-                $d[$field] = trim($d[$field]);
-                $path[$field] = $d[$field];
-                if ($field === $d['level']) {
-                    break;
-                }
-            }
-            if (trim((string) ($d['zone_name'] ?? '')) === '') {
-                throw ValidationException::withMessages(['zone_name' => __('portal.cmd_val_zone_name_required')]);
+            $d[$field] = $value;
+            if ($field === $d['level']) {
+                break;
             }
         }
+        $d['zone_name'] = trim((string) ($d['zone_name'] ?? '')) !== ''
+            ? trim((string) $d['zone_name'])
+            : $place->name.' ('.$place->code.')';
 
-        DB::transaction(function () use ($d, $path, $place): void {
+        DB::transaction(function () use ($d, $place): void {
             CommissionWallet::lock();
             $user = User::whereKey($d['user_id'])->lockForUpdate()->firstOrFail();
             if ($user->role !== 'dealer' || $user->status !== 'active') {
                 throw ValidationException::withMessages(['user_id' => __('portal.cmd_val_active_dealer')]);
             }
-            $query = AreaDealerAssignment::where('level', $d['level'])->where('is_active', true);
-            if ($place) {
-                $query->where('place_code_id', $place->id);
-            } else {
-                $query->whereNull('place_code_id');
-                foreach ($path as $field => $value) {
-                    $query->whereRaw('LOWER(TRIM("'.$field.'")) = ?', [mb_strtolower($value)]);
-                }
-            }
-            if ($query->exists()) {
+            if (AreaDealerAssignment::where('level', $d['level'])->where('is_active', true)->where('place_code_id', $place->id)->exists()) {
                 throw ValidationException::withMessages(['place_code_id' => __('portal.cmd_val_territory_taken')]);
             }
-            $territoryKey = $place
-                ? hash('sha256', $d['level'].'|code:'.$place->code)
-                : hash('sha256', $d['level'].'|'.mb_strtolower(implode('|', $path)));
             AreaDealerAssignment::create([
                 ...collect($d)->only(['user_id', 'level', 'zone_name', 'division', 'district', 'upazila', 'union', 'monthly_quota'])->all(),
-                'place_code_id' => $place?->id,
-                'territory_key' => $territoryKey,
+                'place_code_id' => $place->id,
+                'territory_key' => hash('sha256', $d['level'].'|code:'.$place->code),
                 'is_active' => true,
             ]);
         }, 3);
         Audit::record($r->user()->id, 'area_dealer.assigned', (string) $d['user_id'], [
             'level' => $d['level'],
             'zone' => $d['zone_name'],
-            'place_code' => $place?->code,
+            'place_code' => $place->code,
         ]);
         $dealer = User::find($d['user_id']);
         if ($dealer) {

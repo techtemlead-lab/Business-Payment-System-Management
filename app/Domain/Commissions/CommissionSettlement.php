@@ -15,6 +15,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class CommissionSettlement
@@ -31,6 +32,9 @@ final class CommissionSettlement
      * benefit fund (RetainedFundLedger::BenefitsCategory).
      */
     public const CompanyProfitCategory = 'company_profit_fund';
+
+    /** Settlement payout rows written per insert statement. */
+    private const PayoutInsertChunk = 2000;
 
     /** @return list<string> */
     public static function settlementReserveCategories(): array
@@ -104,6 +108,8 @@ final class CommissionSettlement
                 ->keys()->map(fn ($id): int => (int) $id)->values()->all(), $month);
             $payees = $dealers->keyBy('id')->union($partners)->all();
             $split = FairPaisaSplit::forMonth($month);
+            $refundedBasis = $this->refundedBasisByOrder($funds);
+            $payoutRows = [];
             foreach ($funds as $fund) {
                 [$rules, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, $kind, $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
                 $cents = Money::cents($fund->amount);
@@ -119,9 +125,10 @@ final class CommissionSettlement
                     }
                 } elseif ($kind === 'salary') {
                     $shares = $split->divide($cents, $qualifiedIds, 'salary');
-                    $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
-                    $divisionSummary[$label]['pool_cents'] = ($divisionSummary[$label]['pool_cents'] ?? 0) + $cents;
-                    $divisionSummary[$label]['qualifiers'] = max($divisionSummary[$label]['qualifiers'] ?? 0, count($qualifiedIds));
+                    [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
+                    $divisionSummary[$divisionKey]['name'] = $label;
+                    $divisionSummary[$divisionKey]['pool_cents'] = ($divisionSummary[$divisionKey]['pool_cents'] ?? 0) + $cents;
+                    $divisionSummary[$divisionKey]['qualifiers'] = max($divisionSummary[$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
                 } else {
                     $buckets = $this->rankBuckets($cents, $rules['rank_royalty']['parameters']);
                     $rulesKey = hash('xxh3', json_encode($rules['rank_maintenance']['parameters'] ?? [], JSON_THROW_ON_ERROR));
@@ -142,11 +149,18 @@ final class CommissionSettlement
                         $tiers[$code]['reserve_cents'] = ($tiers[$code]['reserve_cents'] ?? 0) + $buckets[$index] - array_sum($tierShares);
                     }
                 }
+                // Every source fund keeps its own payout rows (refunds claw back per source),
+                // but wallets, the journal and notices are written once per partner below.
                 foreach ($shares as $id => $amount) {
                     if ($amount > 0) {
-                        $this->pay($fund, $id, $amount, $month, $kind, $payees[$id] ?? null);
+                        $payoutRows[] = ['allocation_id' => $fund->id, 'user_id' => $id, 'kind' => $kind,
+                            'refunded_basis' => $refundedBasis[$fund->order_id] ?? '0.00', 'period_month' => $month,
+                            'amount' => Money::decimal($amount), 'created_at' => now(), 'updated_at' => now()];
                         $distributed[$id] = ($distributed[$id] ?? 0) + $amount;
                     }
+                }
+                if (count($payoutRows) >= self::PayoutInsertChunk) {
+                    $this->insertPayouts($payoutRows);
                 }
                 $paidCents = array_sum($shares);
                 $remainder = $cents - $paidCents;
@@ -161,8 +175,9 @@ final class CommissionSettlement
                         $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
                         $toCompanyProfit += $remainder;
                         if ($kind === 'salary') {
-                            $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
-                            $divisionSummary[$label]['to_company_profit_cents'] = ($divisionSummary[$label]['to_company_profit_cents'] ?? 0) + $remainder;
+                            [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
+                            $divisionSummary[$divisionKey]['name'] = $label;
+                            $divisionSummary[$divisionKey]['to_company_profit_cents'] = ($divisionSummary[$divisionKey]['to_company_profit_cents'] ?? 0) + $remainder;
                         }
                     }
                 }
@@ -170,6 +185,8 @@ final class CommissionSettlement
                     'settled_period' => $month, 'distributed' => Money::decimal($paidCents), 'reserved' => Money::decimal($remainder),
                     'settlement_reserve_allocation_id' => $reserveId]]);
             }
+            $this->insertPayouts($payoutRows);
+            $this->creditSettlement($distributed, $month, $kind, $payees);
             $totalPaid = array_sum($distributed);
             $result = [];
             $names = $dealerNames + $subDealerNames;
@@ -191,9 +208,9 @@ final class CommissionSettlement
                 unset($tier['allocated_cents'], $tier['reserve_cents']);
             }
             $divisions = [];
-            foreach ($divisionSummary as $name => $row) {
+            foreach ($divisionSummary as $row) {
                 $divisions[] = [
-                    'division' => $name,
+                    'division' => $row['name'],
                     'pool' => Money::decimal($row['pool_cents'] ?? 0),
                     'qualifiers' => (int) ($row['qualifiers'] ?? 0),
                     'to_company_profit' => Money::decimal($row['to_company_profit_cents'] ?? 0),
@@ -289,8 +306,8 @@ final class CommissionSettlement
      *
      * @param  Collection<int, CommissionAllocation>|null  $pendingFunds
      * @return array{
-     *   divisions: list<array{division: string, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
-     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, monthly_volume: string, share: string}>,
+     *   divisions: list<array{division: string, division_id: int|null, pool: string, qualifiers: int, per_head: string, to_company_profit: string}>,
+     *   dealers: list<array{user_id: int, name: string, dealer_code: string|null, division: string, division_id: int|null, monthly_volume: string, share: string}>,
      *   dealer_pool: string, sub_dealer_salary: string, to_company_profit: string
      * }
      */
@@ -311,6 +328,7 @@ final class CommissionSettlement
         $divisions = [];
         $shares = [];
         $shareDivision = [];
+        $shareDivisionId = [];
         $subDealerCents = 0;
         $split = FairPaisaSplit::forMonth($month);
         foreach ($funds as $fund) {
@@ -321,17 +339,20 @@ final class CommissionSettlement
                 continue;
             }
             [, $fundDivision, $qualifiedIds] = $this->fundQualifiers($fund, 'salary', $dealers, $dealerDivisions, $volumes, $batchPolicies, $buyerGeographies);
-            $label = $fundDivision['name'] ?? __('portal.report_area_unknown');
+            [$divisionKey, $label] = $this->divisionSummaryKey($fundDivision);
             $fundShares = $split->divide($cents, $qualifiedIds, 'salary');
-            $divisions[$label]['pool'] = ($divisions[$label]['pool'] ?? 0) + $cents;
-            $divisions[$label]['to_company'] = ($divisions[$label]['to_company'] ?? 0) + $cents - array_sum($fundShares);
-            $divisions[$label]['qualifiers'] = max($divisions[$label]['qualifiers'] ?? 0, count($qualifiedIds));
+            $divisions[$divisionKey]['name'] = $label;
+            $divisions[$divisionKey]['id'] = $fundDivision['id'] ?? null;
+            $divisions[$divisionKey]['pool'] = ($divisions[$divisionKey]['pool'] ?? 0) + $cents;
+            $divisions[$divisionKey]['to_company'] = ($divisions[$divisionKey]['to_company'] ?? 0) + $cents - array_sum($fundShares);
+            $divisions[$divisionKey]['qualifiers'] = max($divisions[$divisionKey]['qualifiers'] ?? 0, count($qualifiedIds));
             foreach ($fundShares as $id => $amount) {
                 $shares[$id] = ($shares[$id] ?? 0) + $amount;
                 $shareDivision[$id] = $label;
+                $shareDivisionId[$id] = $fundDivision['id'] ?? null;
             }
         }
-        ksort($divisions);
+        uasort($divisions, fn (array $a, array $b): int => $a['name'] <=> $b['name']);
         $byId = $dealers->keyBy('id');
         $dealerRows = [];
         foreach ($shares as $id => $amount) {
@@ -341,6 +362,7 @@ final class CommissionSettlement
                 'name' => (string) $dealer?->name,
                 'dealer_code' => $dealer?->dealer_code,
                 'division' => $shareDivision[$id],
+                'division_id' => $shareDivisionId[$id] ?? null,
                 'monthly_volume' => Money::decimal($volumes[$id] ?? 0),
                 'share' => Money::decimal($amount),
             ];
@@ -348,13 +370,14 @@ final class CommissionSettlement
         usort($dealerRows, fn (array $a, array $b): int => [$a['division'], $a['name']] <=> [$b['division'], $b['name']]);
 
         return [
-            'divisions' => array_map(fn (string $name, array $row): array => [
-                'division' => $name,
+            'divisions' => array_map(fn (array $row): array => [
+                'division' => $row['name'],
+                'division_id' => $row['id'],
                 'pool' => Money::decimal($row['pool']),
                 'qualifiers' => (int) $row['qualifiers'],
                 'per_head' => Money::decimal($row['qualifiers'] > 0 ? intdiv($row['pool'] - $row['to_company'], $row['qualifiers']) : 0),
                 'to_company_profit' => Money::decimal($row['to_company']),
-            ], array_keys($divisions), array_values($divisions)),
+            ], array_values($divisions)),
             'dealers' => $dealerRows,
             'dealer_pool' => Money::decimal(array_sum(array_column($divisions, 'pool'))),
             'sub_dealer_salary' => Money::decimal($subDealerCents),
@@ -380,7 +403,7 @@ final class CommissionSettlement
      * Each dealer's division, resolved the same way an order resolves its buyer's.
      *
      * @param  Collection<int, User>  $dealers
-     * @return array<int, array{id: int|null, key: string|null, name: string|null}>
+     * @return array<int, array{id: int|null, name: string|null}>
      */
     private function dealerDivisions(Collection $dealers): array
     {
@@ -522,43 +545,50 @@ final class CommissionSettlement
     }
 
     /**
-     * A division identified by its place code when known, and by its
-     * normalised name as well — older orders saved only the name.
+     * A division identified only by its place code id. The name is kept for display and
+     * only when it came with that id; a name on its own (older orders, partners with no
+     * place code) is never used to match, because "Dhaka" can be several places.
      *
      * @param  array<string, mixed>|null  $geography
-     * @return array{id: int|null, key: string|null, name: string|null}
+     * @return array{id: int|null, name: string|null}
      */
     private function divisionOf(?array $geography): array
     {
-        $name = trim((string) ($geography['division'] ?? ''));
         $id = $geography['place_ids']['division'] ?? null;
+        $id = is_numeric($id) && (int) $id > 0 ? (int) $id : null;
+        $name = $id !== null ? trim((string) ($geography['division'] ?? '')) : '';
 
         return [
-            'id' => $id !== null ? (int) $id : null,
-            'key' => $name === '' ? null : mb_strtolower($name),
+            'id' => $id,
             'name' => $name === '' ? null : $name,
         ];
     }
 
     /**
-     * @param  array{id: int|null, key: string|null, name: string|null}|null  $dealer
-     * @param  array{id: int|null, key: string|null, name: string|null}|null  $fund
+     * Same division only when both sides carry the same division place code. A fund or a
+     * dealer without one never matches, so that fund's salary goes to company profit.
+     *
+     * @param  array{id: int|null, name: string|null}|null  $dealer
+     * @param  array{id: int|null, name: string|null}|null  $fund
      */
     private function sameDivision(?array $dealer, ?array $fund): bool
     {
-        if ($dealer === null || $fund === null) {
-            return false;
-        }
-        if ($dealer['id'] !== null && $fund['id'] !== null) {
-            return $dealer['id'] === $fund['id'];
-        }
-        // Neither side has a division on file: share within that "no division" group
-        // rather than sending the money to company profit over a missing address.
-        if ($dealer['key'] === null && $fund['key'] === null) {
-            return true;
-        }
+        return $dealer !== null && $fund !== null
+            && $dealer['id'] !== null && $dealer['id'] === $fund['id'];
+    }
 
-        return $dealer['key'] !== null && $dealer['key'] === $fund['key'];
+    /**
+     * The row key and label of a fund's division in the salary summary: keyed by place
+     * code id so two divisions that share a name never merge.
+     *
+     * @param  array{id: int|null, name: string|null}|null  $division
+     * @return array{0: string, 1: string}
+     */
+    private function divisionSummaryKey(?array $division): array
+    {
+        $label = $division['name'] ?? __('portal.report_area_unknown');
+
+        return [($division['id'] ?? null) !== null ? 'place:'.$division['id'] : 'unplaced', $label];
     }
 
     /** @return array<string, mixed>|null Fallback for funds whose order kept no geography snapshot. */
@@ -598,6 +628,71 @@ final class CommissionSettlement
     }
 
     /** @param  User|null  $payee  the partner when already loaded, so a batch of payouts skips looking each one up */
+    /**
+     * The refunded part of each source order at the time of this settlement, so a later
+     * refund never claws back the same money twice.
+     *
+     * @param  Collection<int, CommissionAllocation>  $funds
+     * @return array<string, string> order id => refunded amount
+     */
+    private function refundedBasisByOrder(Collection $funds): array
+    {
+        $basis = [];
+        foreach ($funds->pluck('order_id')->unique()->values()->chunk(5000) as $orderIds) {
+            foreach (DB::table('commission_batches')->whereIn('order_id', $orderIds->all())->get(['order_id', 'refunded_amount']) as $batch) {
+                $basis[(string) $batch->order_id] = (string) $batch->refunded_amount;
+            }
+        }
+
+        return $basis;
+    }
+
+    /** @param list<array<string, mixed>> $rows */
+    private function insertPayouts(array &$rows): void
+    {
+        foreach (array_chunk($rows, self::PayoutInsertChunk) as $chunk) {
+            DB::table('commission_settlement_payouts')->insert($chunk);
+        }
+        $rows = [];
+    }
+
+    /**
+     * Credits each partner's settled total once: one wallet credit and one notice per
+     * partner, and one balanced journal entry for the whole run.
+     *
+     * @param  array<int, int>  $distributed  user id => cents
+     * @param  array<int, User>  $payees
+     */
+    private function creditSettlement(array $distributed, string $month, string $kind, array $payees): void
+    {
+        $distributed = array_filter($distributed, fn (int $amount): bool => $amount > 0);
+        if ($distributed === []) {
+            return;
+        }
+        $lines = [['user_id' => null, 'account' => 'commission_expense', 'debit' => array_sum($distributed), 'credit' => 0]];
+        foreach ($distributed as $userId => $amount) {
+            $lines[] = ['user_id' => $userId, 'account' => 'wallet_liability', 'debit' => 0, 'credit' => $amount];
+        }
+        $this->wallets->journal('commissions.settlement.'.$kind.'.'.$month.'.'.Str::uuid(), __('portal.jr_commission_settlement', [
+            'kind' => __('portal.settle_kind_'.$kind),
+            'month' => $month,
+        ]), $lines);
+        foreach ($distributed as $userId => $amount) {
+            $this->wallets->credit($userId, $amount);
+            $partner = $payees[$userId] ?? User::find($userId);
+            $locale = $partner?->preferredLocale() ?? app()->getLocale();
+            Audit::notice(
+                $userId,
+                __('portal.notice_settle_title', [], $locale),
+                __('portal.notice_settle_body', [
+                    'amount' => Money::decimal($amount),
+                    'kind' => __('portal.settle_kind_'.$kind, [], $locale),
+                    'month' => $month,
+                ], $locale),
+            );
+        }
+    }
+
     private function pay(CommissionAllocation $fund, int $userId, int $amount, string $month, string $kind, ?User $payee = null): void
     {
         DB::table('commission_settlement_payouts')->insert(['allocation_id' => $fund->id, 'user_id' => $userId, 'kind' => $kind,

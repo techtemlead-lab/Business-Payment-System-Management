@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
 use App\Models\AreaDealerAssignment;
 use App\Models\DealerRank;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -146,7 +147,7 @@ class ProjectAuditTest extends TestCase
     {
         $this->enableFinancialPosting();
         $this->travelTo(now()->setDate(2026, 9, 15)->setTime(12, 0));
-        $buyer = User::factory()->create();
+        $buyer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
         $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 100]], 'idempotency_key' => (string) Str::uuid()]);
         $order->update(['paid' => '10000.00', 'status' => 'delivered']);
@@ -204,17 +205,19 @@ class ProjectAuditTest extends TestCase
             ->where('data.settlement_state.qualified_rank_leaders.0.is_qualified', false));
     }
 
-    public function test_area_commissions_match_the_full_territory_path_ignoring_case_and_surrounding_spaces(): void
+    public function test_area_commissions_match_the_district_place_code_not_a_same_named_district_elsewhere(): void
     {
         $this->enableFinancialPosting();
         $recipient = User::factory()->create();
         $other = User::factory()->create();
         $admin = User::factory()->create(['role' => 'super_admin']);
+        $districts = [];
         foreach ([$recipient->id => 'Dhaka', $other->id => 'Other division'] as $id => $division) {
-            $this->actingAs($admin)->postJson('/commands/area-dealers', ['user_id' => $id, 'level' => 'district', 'zone_name' => 'Test district',
-                'division' => $division, 'district' => 'Gazipur', 'monthly_quota' => '0.00'])->assertRedirect();
+            $districts[$id] = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => $division]))->create(['name' => 'Gazipur']);
+            $this->actingAs($admin)->postJson('/commands/area-dealers', ['user_id' => $id, 'level' => 'district',
+                'place_code_id' => $districts[$id]->id, 'monthly_quota' => '0.00'])->assertRedirect();
         }
-        $buyer = User::factory()->create(['division' => ' DHAKA ', 'district' => ' gazipur ']);
+        $buyer = User::factory()->inPlace($districts[$recipient->id])->create();
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
         $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);
         $order->update(['paid' => '100.00', 'status' => 'delivered']);
@@ -229,11 +232,15 @@ class ProjectAuditTest extends TestCase
     public function test_ambiguous_case_variant_legacy_area_assignments_do_not_receive_wallet_credits(): void
     {
         $this->enableFinancialPosting();
+        // Name-only seats saved before place codes were required: new ones are refused by the
+        // database, so recreate the old rows the way they exist in a live database.
+        DB::statement('ALTER TABLE area_dealer_assignments DROP CONSTRAINT area_dealer_assignments_active_needs_place_code');
         foreach (['Dhaka', ' DHAKA '] as $division) {
             $recipient = User::factory()->create();
             AreaDealerAssignment::create(['user_id' => $recipient->id, 'level' => 'division', 'zone_name' => 'Legacy zone',
                 'division' => $division, 'monthly_quota' => '0.00', 'is_active' => true]);
         }
+        DB::statement('ALTER TABLE area_dealer_assignments ADD CONSTRAINT area_dealer_assignments_active_needs_place_code CHECK (is_active = false OR place_code_id IS NOT NULL) NOT VALID');
         $buyer = User::factory()->create(['division' => 'Dhaka']);
         $product = Product::factory()->create(['mrp' => '200.00', 'dealer_price' => '100.00']);
         $order = app(OrderService::class)->create($buyer, ['items' => [['product_id' => $product->id, 'quantity' => 1]], 'idempotency_key' => (string) Str::uuid()]);

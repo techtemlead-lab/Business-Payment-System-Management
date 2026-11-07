@@ -468,6 +468,12 @@ class SiteCustomization
 
             // Copyright
             'copyright_text' => '© '.date('Y').' Madina Natural Health Care. All rights reserved.',
+            // Bangla wording for Bangla visitors; empty = the built-in Bangla line.
+            'copyright_text_bn' => '',
+
+            // Text on the notice and circular pages while nothing is published.
+            'notice_empty' => $copy('notice_empty'),
+            'notice_empty_bn' => '',
         ];
     }
 
@@ -491,6 +497,49 @@ class SiteCustomization
             'partner_help_body' => SiteChrome::text('partner_help_body', $all['partner_help_body'] ?? null),
             'partner_help_phone' => $phone !== '' ? $phone : (string) self::defaults()['contact_phone'],
         ];
+    }
+
+    /**
+     * Company name for browser tab titles: the "company name" on the
+     * website editor's contact page (Bangla name for Bangla visitors until
+     * the owner types their own).
+     */
+    public static function brandName(): string
+    {
+        return SiteChrome::text('contact_company_title', self::all()['contact_company_title'] ?? null);
+    }
+
+    /**
+     * Name after the page title in dealer and staff panel tabs. Stays the
+     * short "Madina" until the owner changes the company name.
+     */
+    public static function panelTabName(): string
+    {
+        $custom = trim((string) (self::all()['contact_company_title'] ?? ''));
+        $factory = [trim((string) self::defaults()['contact_company_title']), (string) trans('site.contact_company_title', [], 'en')];
+
+        return $custom === '' || in_array($custom, $factory, true) ? 'Madina' : $custom;
+    }
+
+    /**
+     * Footer copyright line. A Bangla line typed in the editor wins for
+     * Bangla visitors; an owner edit is never dropped; untouched factory
+     * text (any year) uses the built-in line with the current year.
+     */
+    public static function copyrightLine(): string
+    {
+        $all = self::all();
+        $bangla = trim((string) ($all['copyright_text_bn'] ?? ''));
+        if (app()->getLocale() === 'bn' && $bangla !== '') {
+            return $bangla;
+        }
+        $custom = trim((string) ($all['copyright_text'] ?? ''));
+        $isFactory = (bool) preg_match('/^© \d{4} Madina Natural Health Care\. All rights reserved\.$/u', $custom);
+        if ($custom === '' || $isFactory) {
+            return (string) __('site.copyright', ['year' => LocalDigits::text(date('Y'))]);
+        }
+
+        return $custom;
     }
 
     /** @return list<string> */

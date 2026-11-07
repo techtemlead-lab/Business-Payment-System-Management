@@ -8,6 +8,7 @@ use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -260,12 +261,12 @@ class CommissionEngineTest extends TestCase
         ]);
 
         // 1. Assign territory
+        $gazipur = PlaceCode::factory()->district(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create(['name' => 'Gazipur']);
         $response = $this->actingAs($admin)->post('/commands/area-dealers', [
             'user_id' => $dealer->id,
             'level' => 'district',
             'zone_name' => 'Gazipur Sadar Hub',
-            'division' => 'Dhaka',
-            'district' => 'Gazipur',
+            'place_code_id' => $gazipur->id,
             'monthly_quota' => 40000.00,
         ]);
 

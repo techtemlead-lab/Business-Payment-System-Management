@@ -554,7 +554,7 @@ return [
     'side_banner_1_slide3_alt' => 'মদিনার রোজকার রোগ প্রতিরোধ ও শক্তির পণ্য',
     'side_banner_2_slide1_alt' => 'মদিনার অনুমোদিত ডিলার নেটওয়ার্ক - সারা দেশে',
     'side_banner_2_slide2_alt' => 'মদিনা ন্যাচারাল হেলথ কেয়ার ও ফিজিওথেরাপি সেন্টার',
-    'side_banner_2_slide3_alt' => '৬৪ জেলায় মদিনার অনুমোদিত পার্টনার ফার্মেসি',
+    'side_banner_2_slide3_alt' => 'মদিনার অনুমোদিত পার্টনার ফার্মেসি',
     'footer_address' => 'থানা রোড, পীরগঞ্জ ৫৪৭০, রংপুর',
     'testimonial_role_customer' => 'গ্রাহক',
     'testimonial_role_dealer' => 'ডিলার',
@@ -567,4 +567,5 @@ return [
     'feedback_no_html' => 'শুধু সাধারণ লেখা লিখুন। <b> বা <script> এর মতো ওয়েব কোড লেখা যাবে না।',
     'partner_help_title' => 'একসাথে এগিয়ে চলি।',
     'partner_help_body' => 'এক মদিনা পরিবার।',
+    'home_title_tagline' => 'পণ্য ও ডিলার নেটওয়ার্ক',
 ];

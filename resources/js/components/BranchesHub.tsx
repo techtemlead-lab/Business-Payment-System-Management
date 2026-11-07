@@ -18,6 +18,7 @@ interface BranchRow extends Row {
     id: number;
     code: string;
     name: string;
+    place_code?: string | null;
     division?: string | null;
     district?: string | null;
     upazila?: string | null;
@@ -70,9 +71,7 @@ export default function BranchesHub({
     const createForm = useForm({
         code: 'BR-',
         name: '',
-        division: '',
-        district: '',
-        upazila: '',
+        place_code: '',
         address: '',
         phone: '',
         is_active: true,
@@ -84,9 +83,7 @@ export default function BranchesHub({
     const editForm = useForm({
         code: '',
         name: '',
-        division: '',
-        district: '',
-        upazila: '',
+        place_code: '',
         address: '',
         phone: '',
         is_active: true,
@@ -106,9 +103,7 @@ export default function BranchesHub({
         editForm.setData({
             code: row.code,
             name: row.name,
-            division: row.division || '',
-            district: row.district || '',
-            upazila: row.upazila || '',
+            place_code: row.place_code || '',
             address: row.address || '',
             phone: row.phone || '',
             is_active: !!row.is_active,
@@ -119,7 +114,7 @@ export default function BranchesHub({
     };
 
     const location = (row: BranchRow) =>
-        [row.upazila, row.district, row.division].filter(Boolean).join(', ') || '—';
+        [[row.upazila, row.district, row.division].filter(Boolean).join(', '), row.place_code || translate('portal', 'branch_no_place_code')].filter(Boolean).join(' · ');
 
     return (
         <div data-tour="branches-hub">
@@ -280,9 +275,7 @@ export default function BranchesHub({
                     >
                         <label>{translate('portal', 'branch_code')}<input value={createForm.data.code} onChange={(e) => createForm.setData('code', e.target.value)} required /></label>
                         <label>{translate('portal', 'branch_name')}<input value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required /></label>
-                        <label>{translate('portal', 'profile_division')}<input value={createForm.data.division} onChange={(e) => createForm.setData('division', e.target.value)} /></label>
-                        <label>{translate('portal', 'profile_district')}<input value={createForm.data.district} onChange={(e) => createForm.setData('district', e.target.value)} /></label>
-                        <label>{translate('portal', 'profile_upazila')}<input value={createForm.data.upazila} onChange={(e) => createForm.setData('upazila', e.target.value)} /></label>
+                        <label>{translate('portal', 'ops_fld_place_code')}<input value={createForm.data.place_code} onChange={(e) => createForm.setData('place_code', e.target.value)} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{createForm.errors.place_code && <span className="field-error">{createForm.errors.place_code}</span>}</label>
                         <label>{translate('portal', 'branch_phone')}<input value={createForm.data.phone} onChange={(e) => createForm.setData('phone', e.target.value)} /></label>
                         <label className="full">{translate('portal', 'branch_address')}<input value={createForm.data.address} onChange={(e) => createForm.setData('address', e.target.value)} /></label>
                         <label><input type="checkbox" checked={createForm.data.is_stock_hub} onChange={(e) => createForm.setData('is_stock_hub', e.target.checked)} /> {translate('portal', 'branch_stock_hub')}</label>
@@ -309,9 +302,7 @@ export default function BranchesHub({
                     >
                         <label>{translate('portal', 'branch_code')}<input value={editForm.data.code} onChange={(e) => editForm.setData('code', e.target.value)} required /></label>
                         <label>{translate('portal', 'branch_name')}<input value={editForm.data.name} onChange={(e) => editForm.setData('name', e.target.value)} required /></label>
-                        <label>{translate('portal', 'profile_division')}<input value={editForm.data.division} onChange={(e) => editForm.setData('division', e.target.value)} /></label>
-                        <label>{translate('portal', 'profile_district')}<input value={editForm.data.district} onChange={(e) => editForm.setData('district', e.target.value)} /></label>
-                        <label>{translate('portal', 'profile_upazila')}<input value={editForm.data.upazila} onChange={(e) => editForm.setData('upazila', e.target.value)} /></label>
+                        <label>{translate('portal', 'ops_fld_place_code')}<input value={editForm.data.place_code} onChange={(e) => editForm.setData('place_code', e.target.value)} placeholder="MNHC-" required /><span className="muted">{translate('portal', 'branch_place_code_hint')}</span>{editForm.errors.place_code && <span className="field-error">{editForm.errors.place_code}</span>}</label>
                         <label>{translate('portal', 'branch_phone')}<input value={editForm.data.phone} onChange={(e) => editForm.setData('phone', e.target.value)} /></label>
                         <label className="full">{translate('portal', 'branch_address')}<input value={editForm.data.address} onChange={(e) => editForm.setData('address', e.target.value)} /></label>
                         <label><input type="checkbox" checked={editForm.data.is_active} onChange={(e) => editForm.setData('is_active', e.target.checked)} /> {translate('portal', 'branch_active')}</label>

@@ -19,8 +19,8 @@ class FieldSalesController extends Controller
 {
     public function territory(Request $request, TerritoryAccess $territories): Response
     {
-        $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'level' => 'required|in:division,district,upazila,union',
-            'division' => 'required|string|max:80', 'district' => 'nullable|string|max:80', 'upazila' => 'nullable|string|max:80', 'union' => 'nullable|string|max:80']);
+        $data = $request->validate(['staff_id' => 'required|integer|exists:users,id', 'level' => 'nullable|in:division,district,upazila,union',
+            'place_code' => 'required|string|max:32'], ['place_code.required' => __('portal.place_code_required')]);
 
         return $this->done($request, ['id' => $territories->assign($request->user(), $data)]);
     }
@@ -44,17 +44,17 @@ class FieldSalesController extends Controller
     public function application(Request $request, StaffOperations $operations): Response
     {
         $data = $request->validate(['name' => 'required|string|max:150', 'email' => 'required|email|max:254', 'phone' => 'required|string|max:30',
-            'role' => 'required|in:dealer,sub_dealer', 'division' => 'required|string|max:80', 'district' => 'required|string|max:80',
-            'upazila' => 'nullable|string|max:80', 'union' => 'nullable|string|max:80', 'area_code' => 'nullable|string|max:40', 'sponsor_id' => 'nullable|integer|exists:users,id',
-            'date_of_birth' => ['nullable', 'date_format:Y-m-d', PartnerAge::rule()]]);
+            'role' => 'required|in:dealer,sub_dealer', 'place_code' => 'required|string|max:32', 'sponsor_id' => 'nullable|integer|exists:users,id',
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d', PartnerAge::rule()]], ['place_code.required' => __('portal.place_code_required')]);
 
         return $this->done($request, ['id' => $operations->apply($request->user(), $data)]);
     }
 
     public function reviewApplication(Request $request, string $id, StaffOperations $operations): Response
     {
-        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason]);
-        $operations->review($request->user(), $id, $data['decision'], $data['reason']);
+        $data = $request->validate(['decision' => 'required|in:approved,rejected', 'reason' => FinanceOperationsController::Reason,
+            'place_code' => 'nullable|string|max:32']);
+        $operations->review($request->user(), $id, $data['decision'], $data['reason'], $data['place_code'] ?? null);
 
         return $this->done($request);
     }
@@ -80,7 +80,7 @@ class FieldSalesController extends Controller
             'outstanding' => $order->outstanding(),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
-            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])];
+            'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'courier_contact', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])];
 
         return $request->expectsJson() ? response()->json(['data' => $data]) : Inertia::render('OrderDetail', $data);
     }

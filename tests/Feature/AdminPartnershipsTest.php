@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Audience\PublicPartnerApplication;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\SiteCustomization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,10 +60,14 @@ class AdminPartnershipsTest extends TestCase
         ]);
 
         $reviewer = User::factory()->create(['role' => 'super_admin', 'status' => 'active']);
+        $union = PlaceCode::factory()->union(PlaceCode::factory()->upazila(PlaceCode::factory()->district(
+            PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create(['name' => 'Thakurgaon']))->create())->create();
+        // The public form only has names, so the reviewer gives the place code when approving.
         $this->actingAs($reviewer)->onPortal('sadmin')
             ->post('/commands/operations/staff/applications/'.$id.'/review', [
                 'decision' => 'approved',
                 'reason' => 'Territory and documents verified for delivery readiness.',
+                'place_code' => $union->code,
             ])
             ->assertRedirect()
             ->assertSessionHas('success');

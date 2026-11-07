@@ -112,8 +112,11 @@ class BranchController extends Controller
     }
 
     /**
+     * A branch is placed by its place code (typed as MNHC-…, or a place code id from the API);
+     * its division/district/upazila names are filled in from that code, never typed.
+     *
      * @return array{
-     *   code:string,name:string,division?:?string,district?:?string,upazila?:?string,
+     *   code:string,name:string,place_code?:?string,
      *   address?:?string,phone?:?string,place_code_id?:?int,latitude?:?float,longitude?:?float,
      *   is_active?:bool,is_delivery_point?:bool,is_stock_hub?:bool,notes?:?string
      * }
@@ -125,12 +128,10 @@ class BranchController extends Controller
         return $request->validate([
             'code' => $required.'|string|max:32',
             'name' => $required.'|string|max:150',
-            'division' => 'nullable|string|max:80',
-            'district' => 'nullable|string|max:80',
-            'upazila' => 'nullable|string|max:80',
+            'place_code' => 'nullable|string|max:32',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:30',
-            'place_code_id' => 'nullable|integer|exists:place_codes,id',
+            'place_code_id' => 'nullable|integer',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'is_active' => 'nullable|boolean',

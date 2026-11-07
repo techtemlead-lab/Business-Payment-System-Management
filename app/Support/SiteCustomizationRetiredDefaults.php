@@ -24,6 +24,8 @@ final class SiteCustomizationRetiredDefaults
             'announcement_text' => ['For product availability and dealership enquiries, please contact the company.'],
             'side_banner_1_alt' => ['Madina Premium Natural Care - 100% Pure Botanical Ingredients'],
             'side_banner_2_alt' => ['Madina Authorized Dealer Network - Nationwide Distribution'],
+            // Banner picture description; stated a 64-district reach nobody had checked.
+            'side_banner_2_slide3_alt' => ['Madina Authorized Partner Pharmacy Outlets Across All 64 Districts'],
             'campaign_subtitle' => ['Explore limited-time wellness packages, bulk entrepreneur offers and seasonal healthcare discounts.'],
             'dealer_banner_subtitle' => ['Connect with an authorized local dealer for product information and purchase enquiries.'],
             'featured_products_badge' => ['POPULAR SELECTION'],

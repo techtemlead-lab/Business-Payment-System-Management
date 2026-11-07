@@ -26,8 +26,11 @@ const pages: Record<string, () => Promise<{default: React.ComponentType<any>}>> 
     ServiceIntegrations: () => import('./pages/ServiceIntegrations'),
 };
 
+// Company name for tab titles; the server sets it from the website editor (default "Madina").
+const panelTabName = (typeof document === 'undefined' ? null : document.querySelector<HTMLMetaElement>('meta[name="application-name"]'))?.content || 'Madina';
+
 createInertiaApp({
-    title: (title) => `${title} · Madina`,
+    title: (title) => `${title} · ${panelTabName}`,
     resolve: async (name) => (await pages[name]()).default,
     setup({el, App, props}) {
         createRoot(el).render(<App {...props} />);

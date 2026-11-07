@@ -7,7 +7,7 @@ import TransactionProgressStepper from '../components/TransactionProgressStepper
 
 function DispatchForm({ order }: { order: Row }) {
     const translate = useT();
-    const form = useForm({ courier: '', tracking: '', eta: '', idempotency_key: crypto.randomUUID(),
+    const form = useForm({ courier: '', tracking: '', courier_contact: '', eta: '', idempotency_key: crypto.randomUUID(),
         items: order.lines.filter((line: Row) => line.dispatched < line.quantity).map((line: Row) => ({ line_id: line.id, quantity: line.quantity - line.dispatched })) });
     return <form className="action-form" onSubmit={event => {
         event.preventDefault();
@@ -18,6 +18,7 @@ function DispatchForm({ order }: { order: Row }) {
         <div className="form-grid">
             <label>{translate('portal', 'courier')}<input required aria-label={translate('portal', 'courier')} value={form.data.courier} onChange={event => form.setData('courier', event.target.value)} /></label>
             <label>{translate('portal', 'tracking_reference')}<input required aria-label={translate('portal', 'tracking_reference')} value={form.data.tracking} onChange={event => form.setData('tracking', event.target.value)} /></label>
+            <label>{translate('portal', 'courier_contact_label')}<input maxLength={120} aria-label={translate('portal', 'courier_contact_label')} value={form.data.courier_contact} onChange={event => form.setData('courier_contact', event.target.value)} /></label>
             <label>{translate('portal', 'estimated_delivery')}<DateInput value={form.data.eta} onChange={event => form.setData('eta', event.target.value)} /></label>
         </div>
         {form.data.items.map((item: Row, index: number) => <label key={item.line_id}>
@@ -29,12 +30,33 @@ function DispatchForm({ order }: { order: Row }) {
     </form>;
 }
 
+/** Store team: when the items still waiting for stock are expected to go out (back-order date). */
+function SupplyDateForm({ order }: { order: Row }) {
+    const translate = useT();
+    const form = useForm({ supply_eta: order.supply_eta ?? '', supply_note: order.supply_note ?? '' });
+    return <div className="panel"><form className="action-form" onSubmit={event => {
+        event.preventDefault();
+        form.transform(data => ({ supply_eta: data.supply_eta || null, supply_note: data.supply_note || null }));
+        form.post(`/commands/orders/${order.id}/supply-date`, { preserveScroll: true });
+    }}>
+        <h3>{translate('portal', 'supply_eta_form_title')}</h3>
+        <p className="muted">{translate('portal', 'supply_eta_form_hint')}</p>
+        <div className="form-grid">
+            <label>{translate('portal', 'supply_eta_label')}<DateInput value={form.data.supply_eta} onChange={event => form.setData('supply_eta', event.target.value)} /></label>
+            <label>{translate('portal', 'supply_note_label')}<input maxLength={300} value={form.data.supply_note} onChange={event => form.setData('supply_note', event.target.value)} /></label>
+        </div>
+        <FormErrors errors={form.errors}/>
+        <button className="button" disabled={form.processing}>{translate('portal', 'supply_eta_save')}</button>
+    </form></div>;
+}
+
 export default function OrderDetail({ order, claims, shipments, events = [], outstanding, backUrl, replacementSlots=[], replacementCandidates=[], refund=null, canRefund=false, fullPaymentRequired=false }: { order: Row; claims: Row[]; shipments: Row[]; events: Row[]; outstanding: string; backUrl?:string; replacementSlots?:Row[]; replacementCandidates?:Row[]; refund?:Row|null; canRefund?:boolean; fullPaymentRequired?:boolean }) {
     const translate = useT();
     const { auth,staffActions,portalBase:base,collectionAccounts=[] } = usePage<any>().props;
     const capabilities: string[] = auth.capabilities;
     const owner = auth.user.id === order.user_id && capabilities.length === 0;
     const open = !['rejected', 'cancelled'].includes(order.status);
+    const itemsLeft = (order.lines ?? []).some((line: Row) => Number(line.dispatched) < Number(line.quantity));
     const [shareOpen, setShareOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const printUrl = `/orders/${order.id}/invoice/print`;
@@ -107,6 +129,11 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                 { key: 'remaining', title: translate('portal', 'col_remaining'), align: 'right', render: line => number(line.quantity - line.dispatched) },
                 { key: 'unit_price', title: translate('portal', 'unit_price'), render: line => money(line.unit_price) }, { key: 'total', title: translate('portal', 'col_total'), render: line => money(line.total) },
             ]} />
+            {itemsLeft && open && <p className="muted">
+                <b>{translate('portal', 'supply_eta_label')}:</b> {order.supply_eta ? date(order.supply_eta) : translate('portal', 'supply_eta_unknown')}
+                {order.supply_eta && order.supply_note ? ` · ${order.supply_note}` : ''}
+            </p>}
+            {itemsLeft && capabilities.includes('inventory') && ['submitted', 'held', 'approved', 'partially_dispatched'].includes(order.status) && auth.user.id !== order.user_id && <SupplyDateForm key={`${order.supply_eta ?? ''}|${order.supply_note ?? ''}`} order={order} />}
         </section>
         <div className="two-column">
             <section className="panel"><h2>{translate('portal', 'payment_claims')}</h2>
@@ -128,6 +155,7 @@ export default function OrderDetail({ order, claims, shipments, events = [], out
                     const lines = typeof shipment.lines === 'string' ? JSON.parse(shipment.lines) : shipment.lines;
                     return <div className="timeline-item" key={shipment.id}><i /><div>
                         <b>{shipment.courier}{shipment.tracking ? ` · ${shipment.tracking}` : ''}</b>
+                        {shipment.courier_contact && <p>{translate('portal', 'courier_contact_shown')}: {shipment.courier_contact}</p>}
                         {['pending', 'booking'].includes(shipment.courier_booking_status) && <p className="muted">{translate('portal', 'shipment_courier_booking_pending')}</p>}
                         {shipment.courier_booking_status === 'failed' && <p className="muted">{translate('portal', 'shipment_courier_booking_failed')}</p>}
                         <p>{date(shipment.created_at)} · {shipment.eta ? `${translate('portal', 'expected')} ${date(shipment.eta)}` : translate('portal', 'eta_to_be_confirmed')}</p>

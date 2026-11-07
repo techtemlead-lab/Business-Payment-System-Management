@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Content\PartnerEventNotifications;
+use App\Jobs\SendPartnerEventSms;
 use App\Models\PartnerEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -276,5 +279,36 @@ class PartnerEventCalendarTest extends TestCase
         $this->actingAs($editor)->onPortal('manage')->delete('/commands/events/'.$event->id)->assertSessionHasErrors('status');
         $this->actingAs($editor)->onPortal('manage')->delete('/commands/events/'.$draft->id)->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseMissing('partner_events', ['id' => $draft->id]);
+    }
+
+    public function test_event_sms_is_queued_after_saving_instead_of_sent_inside_the_request(): void
+    {
+        Queue::fake();
+        $editor = User::factory()->staff('editor')->create();
+        $dealer = User::factory()->dealer()->create(['phone' => '01711000020', 'locale' => 'en']);
+        $subDealer = User::factory()->subDealer()->create(['phone' => '01811000021']);
+
+        $this->actingAs($editor)->onPortal('manage')->post('/commands/events', $this->eventForm(['send_sms' => true, 'publish' => true]))
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame([], config('madina.sms.sent'), 'No SMS is sent while the office screen waits.');
+        $this->assertSame(2, DB::table('account_notices')->count(), 'Portal notices are still written straight away.');
+        $event = PartnerEvent::query()->sole();
+        Queue::assertPushed(SendPartnerEventSms::class, fn (SendPartnerEventSms $job): bool => $job->eventId === $event->id
+            && $job->smsEvent === 'event.published'
+            && collect($job->userIds)->sort()->values()->all() === [$dealer->id, $subDealer->id]);
+
+        Queue::pushedJobs()[SendPartnerEventSms::class][0]['job']->handle(app(PartnerEventNotifications::class));
+        $this->assertSame([$dealer->id, $subDealer->id], collect(config('madina.sms.sent'))->pluck('user_id')->sort()->values()->all());
+    }
+
+    public function test_a_queued_published_text_is_dropped_when_the_meeting_was_cancelled_first(): void
+    {
+        $dealer = User::factory()->dealer()->create(['phone' => '01711000030']);
+        $event = PartnerEvent::factory()->create(['status' => 'cancelled', 'send_sms' => true]);
+
+        (new SendPartnerEventSms($event->id, [$dealer->id], 'event.published', 'portal.events_sms_published'))->handle(app(PartnerEventNotifications::class));
+
+        $this->assertSame([], config('madina.sms.sent'));
     }
 }

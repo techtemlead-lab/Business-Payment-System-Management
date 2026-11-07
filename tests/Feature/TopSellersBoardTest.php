@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Orders\TopSellersBoard;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Carbon\CarbonImmutable;
@@ -30,7 +31,7 @@ class TopSellersBoardTest extends TestCase
         $karim = $this->dealer('Karim', 'MNHC-102', 'Dhaka', null);
         $suspended = $this->dealer('Suspended Seller', 'MNHC-103', 'Dhaka', 'Dhaka');
         $suspended->forceFill(['status' => 'suspended'])->save();
-        $subDealer = User::factory()->subDealer()->create(['sponsor_id' => $rahim->id, 'division' => 'Dhaka', 'directory_visible' => true]);
+        $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $rahim->id, 'directory_visible' => true]);
 
         foreach (['approved' => '500.00', 'delivered' => '300.00', 'submitted' => '1000.00', 'rejected' => '900.00', 'cancelled' => '700.00'] as $status => $total) {
             $this->order($rahim, $status, $total, '2026-11-10 10:00:00');
@@ -97,6 +98,28 @@ class TopSellersBoardTest extends TestCase
         $this->assertSame(3, $board['me']['division_rank']);
     }
 
+    public function test_the_division_board_groups_by_division_place_code_not_by_name(): void
+    {
+        $viewer = $this->dealer('Anis', 'MNHC-801', 'Dhaka', 'Gazipur');
+        $sameDivision = $this->dealer('Babul', 'MNHC-802', 'Dhaka', 'Tangail');
+        $otherDhaka = User::factory()->dealer()->inPlace(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))
+            ->create(['name' => 'Other Dhaka', 'dealer_code' => 'MNHC-803']);
+        $namesOnly = User::factory()->dealer()->create(['name' => 'Names Only', 'dealer_code' => 'MNHC-804', 'division' => 'Dhaka', 'district' => 'Gazipur']);
+        foreach ([$viewer, $sameDivision, $otherDhaka, $namesOnly] as $dealer) {
+            $this->order($dealer, 'approved', '100.00');
+        }
+
+        $board = app(TopSellersBoard::class)->forPartner($viewer, null);
+
+        $this->assertSame('Dhaka', $board['division']);
+        $this->assertSame($this->place('Dhaka', null)->id, $board['division_id']);
+        $this->assertSame(['Anis', 'Babul'], array_column($board['divisional'], 'name'));
+        $this->assertCount(4, $board['national']);
+        $namesOnlyBoard = app(TopSellersBoard::class)->forPartner($namesOnly, null);
+        $this->assertNull($namesOnlyBoard['division']);
+        $this->assertSame([], $namesOnlyBoard['divisional']);
+    }
+
     public function test_viewer_outside_the_top_ten_sees_their_own_place(): void
     {
         foreach (range(1, 22) as $index) {
@@ -136,9 +159,11 @@ class TopSellersBoardTest extends TestCase
         $this->assertSame([['Unlisted Leader', 1, true], ['Listed Second', 2, false]], array_map(fn (array $row) => [$row['name'], $row['rank'], $row['is_me']], $ownBoard['national']));
         $this->assertSame(1, $ownBoard['me']['national_rank']);
 
-        $staffBoard = app(TopSellersBoard::class)->forStaff(null, 'Sylhet');
+        $sylhet = $this->place('Sylhet', null);
+        $staffBoard = app(TopSellersBoard::class)->forStaff(null, (string) $sylhet->id);
         $this->assertSame(['Unlisted Leader', 'Listed Second'], array_column($staffBoard['national'], 'name'));
-        $this->assertSame(['Sylhet'], $staffBoard['divisions']);
+        $this->assertSame([['id' => $sylhet->id, 'name' => 'Sylhet']], $staffBoard['divisions']);
+        $this->assertSame('Sylhet', $staffBoard['division']);
     }
 
     public function test_sub_dealers_see_the_dealer_board_for_their_division(): void
@@ -147,7 +172,7 @@ class TopSellersBoardTest extends TestCase
         $rangpur = $this->dealer('Selim', 'MNHC-701', 'Rangpur', 'Dinajpur');
         $this->order($dhaka, 'approved', '300.00');
         $this->order($rangpur, 'approved', '800.00');
-        $subDealer = User::factory()->subDealer()->create(['sponsor_id' => $dhaka->id, 'division' => 'Dhaka']);
+        $subDealer = User::factory()->subDealer()->inPlace($this->place('Dhaka', null))->create(['sponsor_id' => $dhaka->id]);
 
         $this->actingAs($subDealer)->onPortal('subdealer')->get('/top-sellers')
             ->assertOk()
@@ -212,7 +237,7 @@ class TopSellersBoardTest extends TestCase
 
         $response = $this->actingAs($rahim)->onPortal('dealer')->get('/top-sellers')->assertOk();
         $board = $response->original->getData()['page']['props']['data']['top_sellers'];
-        $staffBoard = app(TopSellersBoard::class)->forStaff(null, 'Dhaka');
+        $staffBoard = app(TopSellersBoard::class)->forStaff(null, (string) $this->place('Dhaka', null)->id);
 
         foreach ([$board, $staffBoard] as $payload) {
             $encoded = mb_strtolower((string) json_encode($payload));
@@ -229,7 +254,7 @@ class TopSellersBoardTest extends TestCase
         $reports = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['reports']]]);
         $inventory = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['inventory']]]);
 
-        $this->actingAs($reports)->onPortal('manage')->get('/top-sellers?month=2026-10&division=Dhaka')
+        $this->actingAs($reports)->onPortal('manage')->get('/top-sellers?month=2026-10&division='.$this->place('Dhaka', null)->id)
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.top_sellers.month', '2026-10')
@@ -238,15 +263,37 @@ class TopSellersBoardTest extends TestCase
         $this->actingAs($inventory)->onPortal('manage')->get('/top-sellers')->assertForbidden();
     }
 
+    /**
+     * A dealer keyed to a place code: the district under the named division, or the
+     * division itself when no district is given, or no place at all.
+     */
     private function dealer(string $name, string $code, ?string $division, ?string $district, bool $visible = true): User
     {
-        return User::factory()->dealer()->create([
+        $place = $this->place($division, $district);
+        $factory = User::factory()->dealer();
+
+        return ($place !== null ? $factory->inPlace($place) : $factory)->create([
             'name' => $name,
             'dealer_code' => $code,
-            'division' => $division,
-            'district' => $district,
             'directory_visible' => $visible,
         ]);
+    }
+
+    /** @var array<string, PlaceCode> */
+    private array $places = [];
+
+    /** One place code per division (and district) name used by these tests. */
+    private function place(?string $division, ?string $district): ?PlaceCode
+    {
+        if ($division === null) {
+            return null;
+        }
+        $divisionPlace = $this->places['division:'.$division] ??= PlaceCode::factory()->division()->create(['name' => $division]);
+        if ($district === null) {
+            return $divisionPlace;
+        }
+
+        return $this->places['district:'.$division.'|'.$district] ??= PlaceCode::factory()->district($divisionPlace)->create(['name' => $district]);
     }
 
     /** One order placed at a Dhaka wall-clock time (stored in UTC like the app does). */

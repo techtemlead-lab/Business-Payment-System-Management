@@ -11,6 +11,7 @@ use App\Domain\Orders\OrderService;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
@@ -53,11 +54,27 @@ class CommissionSettlementTest extends TestCase
         return $order;
     }
 
+    /**
+     * Two Rangpur-division dealers (in different districts) and one Dhaka-division dealer,
+     * each keyed to a place code.
+     *
+     * @return array{0: User, 1: User, 2: User}
+     */
+    private function rangpurAndDhakaDealers(): array
+    {
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+
+        return [
+            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create(),
+            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Dinajpur']))->create(),
+            User::factory()->inPlace(PlaceCode::factory()->district($dhaka)->create(['name' => 'Gazipur']))->create(),
+        ];
+    }
+
     public function test_salary_pool_is_shared_within_each_division_and_unclaimed_division_money_becomes_company_profit(): void
     {
-        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
         $this->purchase($rangpurA, '10000.00', '20000.00');
         $this->purchase($rangpurB, '10000.00', '20000.00');
         $this->purchase($dhaka, '5000.00', '10000.00');
@@ -82,11 +99,46 @@ class CommissionSettlementTest extends TestCase
         $this->assertSame('100.00', $divisions['dhaka']['to_company_profit']);
     }
 
+    public function test_settlement_credits_each_partner_once_however_many_source_orders(): void
+    {
+        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
+        foreach ($dealers as $dealer) {
+            for ($order = 0; $order < 4; $order++) {
+                $this->purchase($dealer, '10000.00', '20000.00');
+            }
+        }
+        $walletsBefore = DB::table('wallets')->whereIn('user_id', $dealers->pluck('id'))->pluck('available', 'user_id');
+        $this->travelTo(now()->setDate(2026, 10, 1));
+
+        $result = app(CommissionService::class)->settleMonthlySalaryPool('2026-09');
+
+        // 12 orders x 2% = ৳2,400, shared by the three qualified dealers.
+        $this->assertSame('2400.00', $result['total_distributed']);
+        foreach ($dealers as $dealer) {
+            $paid = (int) DB::table('commission_settlement_payouts')->where('user_id', $dealer->id)->where('kind', 'salary')
+                ->get()->sum(fn ($row) => Money::cents((string) $row->amount));
+            $this->assertSame(80000, $paid);
+            // Each source order keeps its own payout row, so a refund can recover from that order's pool.
+            $this->assertSame(12, DB::table('commission_settlement_payouts')->where('user_id', $dealer->id)->where('kind', 'salary')->count());
+            $this->assertSame(
+                Money::cents((string) $walletsBefore[$dealer->id]) + 80000,
+                Money::cents((string) DB::table('wallets')->where('user_id', $dealer->id)->value('available')),
+            );
+            $this->assertSame(1, DB::table('account_notices')->where('user_id', $dealer->id)->where('title', __('portal.notice_settle_title'))->count());
+        }
+        $entries = DB::table('journal_entries')->where('event_key', 'like', 'commissions.settlement.salary.2026-09.%')->pluck('id');
+        $this->assertCount(1, $entries);
+        $lines = DB::table('journal_lines')->where('entry_id', $entries->first())->get();
+        $this->assertSame(240000, $lines->sum(fn ($line) => Money::cents((string) $line->debit)));
+        $this->assertSame(240000, $lines->sum(fn ($line) => Money::cents((string) $line->credit)));
+        // The books still balance: journals, wallets and allocations agree (this helper marks orders paid without receipts).
+        $failed = array_keys(array_filter(app(FinancialReadiness::class)->inspect()['checks'], fn (bool $passed): bool => ! $passed));
+        $this->assertSame([], array_values(array_diff($failed, ['order_receipts'])));
+    }
+
     public function test_salary_preview_shows_exactly_what_settlement_then_pays(): void
     {
-        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
         $this->purchase($rangpurA, '10000.00', '20000.00');
         $this->purchase($rangpurB, '10000.00', '20000.00');
         $this->purchase($dhaka, '5000.00', '10000.00');
@@ -115,7 +167,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_leftover_paisa_take_turns_instead_of_always_going_to_the_lowest_ids(): void
     {
-        $dealers = User::factory()->count(3)->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
         foreach ($dealers as $dealer) {
             $this->purchase($dealer, '10000.00', '20000.00');
         }
@@ -140,7 +192,7 @@ class CommissionSettlementTest extends TestCase
     public function test_treasury_counts_settled_pool_leftovers_once(): void
     {
         $owner = User::factory()->staff()->create();
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $dhaka = User::factory()->inPlace(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create();
         $this->purchase($dhaka, '5000.00', '10000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
@@ -160,8 +212,9 @@ class CommissionSettlementTest extends TestCase
 
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void
     {
-        $dealer = User::factory()->create();
-        $sub = User::factory()->create(['role' => 'sub_dealer']);
+        $division = PlaceCode::factory()->division()->create();
+        $dealer = User::factory()->inPlace($division)->create();
+        $sub = User::factory()->inPlace($division)->create(['role' => 'sub_dealer']);
         $this->purchase($dealer, '10000.00', '20000.00');
         $this->purchase($sub, '12000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
@@ -177,7 +230,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_settlement_refunds_recover_both_direct_earnings_and_source_pool_payouts_without_repeating(): void
     {
-        $dealer = User::factory()->create();
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
         $order = $this->purchase($dealer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $service = app(CommissionService::class);
@@ -320,7 +373,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_monthly_salary_retains_the_qualification_rule_captured_by_its_source_order(): void
     {
-        $buyer = User::factory()->create();
+        $buyer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
         $this->purchase($buyer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $this->actingAs(User::factory()->create(['role' => 'super_admin']))->patchJson('/api/v1/finance/policy',

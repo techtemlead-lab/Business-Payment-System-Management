@@ -7,6 +7,7 @@ use App\Models\CommissionAllocation;
 use App\Models\CommissionRuleParameter;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -28,6 +29,17 @@ class CommissionLogicValidationTest extends TestCase
         $this->withoutVite();
         $this->enableFinancialPosting();
         $this->seed(CommissionRuleSeeder::class);
+    }
+
+    /** One balanced journal entry per settlement run, crediting each partner's month total once. */
+    private function assertSettlementJournalCredits(string $kind, string $period, int $userId, string $amount): void
+    {
+        $entries = DB::table('journal_entries')->where('event_key', 'like', 'commissions.settlement.'.$kind.'.'.$period.'.%')->pluck('id');
+        $this->assertCount(1, $entries);
+        $lines = DB::table('journal_lines')->where('entry_id', $entries->first())->get();
+        $this->assertSame((float) $lines->sum('debit'), (float) $lines->sum('credit'));
+        $this->assertSame(1, $lines->where('user_id', $userId)->where('account', 'wallet_liability')->count());
+        $this->assertEquals($amount, $lines->where('user_id', $userId)->where('account', 'wallet_liability')->first()->credit);
     }
 
     private function commissionOrder(array $data): Order
@@ -595,9 +607,10 @@ class CommissionLogicValidationTest extends TestCase
         $this->travelTo(now()->startOfMonth()->subMonth()->addDays(14));
         $period = now()->format('Y-m');
 
-        // Setup 2 dealers
-        $dealer1 = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
-        $dealer2 = User::factory()->create(['role' => 'dealer', 'status' => 'active']);
+        // Setup 2 dealers in the same division (salary is shared by division place code)
+        $division = PlaceCode::factory()->division()->create();
+        $dealer1 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
+        $dealer2 = User::factory()->inPlace($division)->create(['role' => 'dealer', 'status' => 'active']);
 
         // Dealer 1 has ৳15,000 monthly purchases (qualified >= ৳10,000)
         DealerRank::create([
@@ -645,8 +658,9 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals(0.00, $d2Wallet);
 
         // Double-entry journal entry was posted
-        $journal = DB::table('journal_entries')->where('event_key', 'commissions.settlement.'.CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->value('id').'.'.$dealer1->id.'.salary')->first();
-        $this->assertNotNull($journal);
+        $this->assertSettlementJournalCredits('salary', $period, $dealer1->id, '400.00');
+        $this->assertSame(1, DB::table('commission_settlement_payouts')->where('kind', 'salary')->where('user_id', $dealer1->id)
+            ->where('allocation_id', CommissionAllocation::where('order_id', $order->id)->where('category', 'dealer_monthly_salary_pool')->value('id'))->count());
     }
 
     public function test_rank_royalty_pool_settles_across_four_leadership_tiers(): void
@@ -687,8 +701,8 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals(50.00, (float) DB::table('wallets')->where('user_id', $mo2->id)->value('available'));
 
         // Journal entry was posted
-        $journal = DB::table('journal_entries')->where('event_key', 'commissions.settlement.'.CommissionAllocation::where('order_id', $order->id)->where('category', 'rank_royalty_pool')->value('id').'.'.$mo1->id.'.royalty')->first();
-        $this->assertNotNull($journal);
+        $this->assertSettlementJournalCredits('royalty', $period, $mo1->id, '50.00');
+        $this->assertSettlementJournalCredits('royalty', $period, $mo2->id, '50.00');
     }
 
     public function test_one_time_rank_incentive_claim_and_payout(): void

@@ -4,6 +4,7 @@ namespace App\Http\Portals\Shared\Sections;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Support\LocalDigits;
 use App\Support\SiteCustomization;
 use Illuminate\Support\Facades\DB;
 
@@ -83,6 +84,11 @@ final class ContentSection implements WorkspaceSection
         $props = [];
         $props['customization'] = SiteCustomization::raw();
         $props['defaults'] = SiteCustomization::defaults();
+        // Built-in Bangla wording, shown as the hint in the editor's Bangla boxes.
+        $props['bangla_defaults'] = [
+            'copyright' => __('site.copyright', ['year' => LocalDigits::text(date('Y'), 'bn')], 'bn'),
+            'notice_empty' => __('site.notice_empty', [], 'bn'),
+        ];
         $enabled = SiteCustomization::enabledPagesMap();
         $props['websitePages'] = collect([
             ['key' => 'home', 'slug' => '/', 'label' => __('portal.website_page_home'), 'toggleable' => false],
