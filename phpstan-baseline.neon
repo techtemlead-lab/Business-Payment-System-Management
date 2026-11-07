@@ -19,6 +19,12 @@ parameters:
 			path: app/Console/Commands/PrepareDemo.php
 
 		-
+			message: '#^Match expression does not handle remaining value\: string$#'
+			identifier: match.unhandled
+			count: 1
+			path: app/Console/Commands/PurgeOldPersonalData.php
+
+		-
 			message: '#^Parameter \#3 \$templates of method App\\Console\\Commands\\SeedVolumeHistory\:\:seedOrders\(\) expects array\<string, array\{account_type\: string, company\: int, allocated\: int, unallocated\: int, rows\: list\<array\<string, mixed\>\>, policy\: array\<string, mixed\>\}\>, array\<string, array\{account_type\: string, company\: int, allocated\: int, unallocated\: int, rows\: list\<array\<string, mixed\>\>\}\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -525,13 +531,13 @@ parameters:
 		-
 			message: '#^Using nullsafe property access "\?\-\>created_at" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
-			count: 3
+			count: 4
 			path: app/Domain/Finance/FinanceSettings.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>version" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
-			count: 3
+			count: 4
 			path: app/Domain/Finance/FinanceSettings.php
 
 		-
@@ -709,7 +715,25 @@ parameters:
 			path: app/Domain/Notifications/BirthdayGreetings.php
 
 		-
+			message: '#^Call to function is_array\(\) with string\|null will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Domain/Notifications/JoinAnniversaryGreetings.php
+
+		-
+			message: '#^Offset ''name_bn'' on array\{\} on left side of \?\? does not exist\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Domain/Notifications/JoinAnniversaryGreetings.php
+
+		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$amount\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$batch_number\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Domain/Orders/OrderInvoice.php
@@ -740,6 +764,12 @@ parameters:
 
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$division\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Domain/Orders/OrderInvoice.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$expires_on\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Domain/Orders/OrderInvoice.php
@@ -855,6 +885,12 @@ parameters:
 		-
 			message: '#^Cannot access property \$order_id on array\<mixed\>\|object\.$#'
 			identifier: property.nonObject
+			count: 1
+			path: app/Domain/Orders/OrderService.php
+
+		-
+			message: '#^Cannot call method toDateString\(\) on string\.$#'
+			identifier: method.nonObject
 			count: 1
 			path: app/Domain/Orders/OrderService.php
 
@@ -1435,18 +1471,6 @@ parameters:
 			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
 
 		-
-			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
-
-		-
-			message: '#^Relation ''user'' is not found in App\\Models\\CommissionAllocation model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Http/Portals/Shared/Sections/CommissionsSection.php
-
-		-
 			message: '#^Relation ''user'' is not found in App\\Models\\DealerRank model\.$#'
 			identifier: larastan.relationExistence
 			count: 3
@@ -1479,13 +1503,13 @@ parameters:
 		-
 			message: '#^Relation ''order'' is not found in App\\Models\\CommissionAllocation model\.$#'
 			identifier: larastan.relationExistence
-			count: 1
+			count: 2
 			path: app/Http/Portals/Shared/Sections/FinanceSection.php
 
 		-
 			message: '#^Relation ''user'' is not found in App\\Models\\CommissionAllocation model\.$#'
 			identifier: larastan.relationExistence
-			count: 1
+			count: 2
 			path: app/Http/Portals/Shared/Sections/FinanceSection.php
 
 		-
@@ -1501,7 +1525,13 @@ parameters:
 			path: app/Http/Portals/Shared/Sections/NetworkSection.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\} given\.$#'
+			message: '#^Method App\\Http\\Portals\\Shared\\Sections\\NetworkSection\:\:members\(\) should return array\{members\: Illuminate\\Support\\Collection\<int, object\>, members_total\: int, members_truncated\: bool\} but returns array\{members\: Illuminate\\Support\\Collection\<int, stdClass\>, members_total\: int\<0, max\>, members_truncated\: bool\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Portals/Shared/Sections/NetworkSection.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\}, Closure\(App\\Models\\User\)\: array\{id\: int\<0, max\>, name\: string, dealer_code\: string\|null, phone\: string, district\: string\|null, division\: string\|null, sponsor_id\: int\<0, max\>\|null, sponsor_name\: mixed, role\: string, status\: string, rank\: mixed, lifetime_purchases\: float, created_at\: string\|null, sales_total\: string, sales_month\: string, qualifying_volume_month\: string, sponsor_earned\: string, viewer_earned\?\: string, viewer_earned_by_type\?\: array\<int, array\{category\: string, amount\: string\}\>\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Portals/Shared/Sections/NetworkSection.php
