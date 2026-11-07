@@ -3,6 +3,7 @@
 namespace App\Domain\Finance;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Payouts\PayoutReceipts;
@@ -261,6 +262,64 @@ final class ReserveService
      *
      * @return array{status: string, released_count: int, total_amount: string}
      */
+    /**
+     * Month close for area commission (owner rule): a share still held at the end of its month
+     * because the area dealer missed that month's quota goes to the company profit fund.
+     * Shares whose quota was met are released first; holds for other reasons (a suspended
+     * dealer, cooling-off) are left alone. Running it again moves nothing twice.
+     *
+     * @return array{status: string, period: string, forfeited_count: int, total_amount: string}
+     */
+    public function forfeitUnmetQuotaHolds(string $month, ?int $actorId = null): array
+    {
+        CommissionWallet::requireActive();
+        [, $end] = CommissionQualification::period($month);
+        if ($end->isFuture()) {
+            return ['status' => 'month_open', 'period' => $month, 'forfeited_count' => 0, 'total_amount' => '0.00'];
+        }
+        if (config('madina.auto_release_quota_holds')) {
+            $this->releaseQualifiedQuotaHolds($actorId);
+        }
+
+        return DB::transaction(function () use ($month, $actorId): array {
+            CommissionWallet::lock();
+            $funds = CommissionAllocation::query()
+                ->where('status', 'held')
+                ->where('category', 'like', 'area_%')
+                ->whereNotNull('user_id')
+                ->where('metadata->period_month', $month)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $partners = User::query()->whereIn('id', $funds->pluck('user_id')->unique()->values())->get()->keyBy('id');
+            $volumes = $this->qualification->monthlyVolumesFor($funds->pluck('user_id')->map(fn ($id): int => (int) $id)->unique()->values()->all(), $month);
+            $settlement = app(CommissionSettlement::class);
+            $count = 0;
+            $total = 0;
+            foreach ($funds as $fund) {
+                $partner = $partners->get($fund->user_id);
+                $quota = $fund->metadata['monthly_quota'] ?? null;
+                $quotaHold = ($fund->metadata['hold_reason'] ?? 'quota') === 'quota';
+                if (! $partner || $partner->status !== 'active' || $quota === null || ! $quotaHold
+                    || ($volumes[$partner->id] ?? 0) >= Money::cents((string) $quota)) {
+                    continue;
+                }
+                $amount = Money::cents($fund->amount);
+                $profitId = $settlement->toCompanyProfit($fund, $amount, $month, 'area_quota', null, 'retained_reason_profit_quota_missed');
+                $fund->update(['status' => 'forfeited', 'metadata' => [...$fund->metadata, 'forfeited_at' => now()->toIso8601String(),
+                    'forfeited_to' => CommissionSettlement::CompanyProfitCategory, 'company_profit_allocation_id' => $profitId]]);
+                $count++;
+                $total += $amount;
+            }
+            if ($count > 0) {
+                Audit::record($actorId, 'commission.quota_holds_forfeited', $month, ['count' => $count, 'amount' => Money::decimal($total)]);
+            }
+
+            return ['status' => $count > 0 ? 'forfeited' : 'nothing_to_forfeit', 'period' => $month,
+                'forfeited_count' => $count, 'total_amount' => Money::decimal($total)];
+        }, 3);
+    }
+
     public function releaseQualifiedQuotaHolds(?int $actorId = null): array
     {
         CommissionWallet::requireActive();

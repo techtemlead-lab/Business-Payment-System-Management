@@ -6217,4 +6217,8 @@ return [
     'tour_staff_step_work_body' => 'Work waiting for you, with how many of each: payments to check, orders to send and more.',
     'tour_staff_step_work_action' => 'Press a line to open that list.',
     'tour_staff_step_work_tip' => 'Start each morning with this box so deliveries are not late.',
+    'retained_reason_profit_no_upline' => 'No referrer at this level for this order, so this share is company profit.',
+    'retained_reason_profit_no_area_seat' => 'No area dealer holds place code :place at this level, so this share is company profit.',
+    'retained_reason_profit_quota_missed' => 'The area dealer missed that month’s purchase quota, so the held share went to company profit at month end.',
+    'retained_reason_unclaimed_sub_dealer_salary' => 'The sub-dealer was not active at month end, so this salary went to company profit.',
 ];

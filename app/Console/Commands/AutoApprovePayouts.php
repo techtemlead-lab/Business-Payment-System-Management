@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Domain\Commissions\CommissionQualification;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Finance\FinanceSettings;
+use App\Domain\Finance\ReserveService;
 use App\Models\DealerRank;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -57,6 +58,14 @@ class AutoApprovePayouts extends Command
                     ? $commissions->settleMonthlySalaryPool($month)['status']
                     : $commissions->settleRankRoyaltyPool($month)['status']);
             }
+        }
+
+        // Month close for area commission: shares still held because the quota was missed go to
+        // company profit once their month has ended (last month, plus one for a missed run).
+        $current = CarbonImmutable::createFromFormat('!Y-m', CommissionQualification::currentMonth());
+        foreach ([2, 1] as $back) {
+            $month = $current->subMonthsNoOverflow($back)->format('Y-m');
+            $summary['area_quota_close:'.$month] = $this->attempt(fn () => app(ReserveService::class)->forfeitUnmetQuotaHolds($month)['status']);
         }
 
         if ($settings->isAutoApproved('rank_incentive')) {
