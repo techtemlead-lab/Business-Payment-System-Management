@@ -3,6 +3,7 @@
 namespace App\Http\Portals\Shared\Sections;
 
 use App\Domain\Orders\OrderListFilter;
+use App\Domain\Orders\OverdueDeliveries;
 use App\Support\Money;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +29,14 @@ final class OrdersSection implements WorkspaceSection
             $orderWith[] = 'fulfillmentBranch:id,name,code';
         }
 
+        $listQuery = clone $filteredOrders;
+        if ($context->section === 'deliveries' && OrderListFilter::wantsOverdueDeliveries($request)) {
+            // Overdue rows also show the latest courier, tracking number and days since sending.
+            app(OverdueDeliveries::class)->withShipmentDetails($listQuery);
+        }
+
         $props = [
-            'orders' => $filteredOrders->with($orderWith)
+            'orders' => $listQuery->with($orderWith)
                 ->latest()
                 ->paginate(12)
                 ->withQueryString(),

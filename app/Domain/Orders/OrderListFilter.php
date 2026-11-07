@@ -33,7 +33,8 @@ final class OrderListFilter
             });
         }
 
-        if ($request->filled('status')) {
+        $overdueDeliveries = $section === 'deliveries' && self::wantsOverdueDeliveries($request);
+        if ($request->filled('status') && ! $overdueDeliveries) {
             $query->where('status', $request->string('status')->toString());
         }
 
@@ -54,7 +55,10 @@ final class OrderListFilter
             $query->whereHas('user', fn (Builder $users) => $users->where('role', $buyerRole));
         }
 
-        if ($section === 'deliveries') {
+        if ($overdueDeliveries) {
+            // Sent but not marked delivered: every unit may already be on the road.
+            app(OverdueDeliveries::class)->apply($query);
+        } elseif ($section === 'deliveries') {
             $query->whereIn('status', self::AwaitingDispatch)
                 ->whereHas('lines', fn (Builder $lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
         }
@@ -99,6 +103,14 @@ final class OrderListFilter
         }
 
         return ['from' => $start->utc(), 'until' => $end->utc()];
+    }
+
+    /**
+     * Whether the deliveries list asks for orders sent but not marked delivered.
+     */
+    public static function wantsOverdueDeliveries(Request $request): bool
+    {
+        return $request->string('status')->toString() === OverdueDeliveries::Filter;
     }
 
     /**
