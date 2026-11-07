@@ -9,6 +9,7 @@ use App\Domain\Commissions\CommissionSettlement;
 use App\Domain\Orders\OrderService;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\ReferralTreePath;
 use App\Models\User;
@@ -66,9 +67,11 @@ class PartnerProgressPopupTest extends TestCase
 
     public function test_dealer_who_met_the_target_sees_the_share_settlement_then_pays(): void
     {
-        $dealer = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $neighbour = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
-        $belowTarget = User::factory()->create(['division' => 'Rangpur', 'district' => 'Nilphamari']);
+        // The salary pool is shared inside the division place code the dealers' districts belong to.
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create();
+        $neighbour = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Dinajpur']))->create();
+        $belowTarget = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Nilphamari']))->create();
         $this->purchase($dealer, '12000.00', '24000.00');
         $this->purchase($neighbour, '10000.00', '20000.00');
         $this->purchase($belowTarget, '3000.00', '6000.00');
