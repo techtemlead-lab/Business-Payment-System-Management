@@ -34,6 +34,7 @@ return function (string $portal): void {
     Route::post('/security/totp/disable', [AuthController::class, 'disableTotp'])->middleware('throttle:5,1');
     Route::post('/security/sessions/revoke-others', [AuthController::class, 'revokeOtherSessions'])->middleware('throttle:5,1');
     Route::post('/security/privacy-export', [AuthController::class, 'privacyExport'])->middleware('throttle:3,1');
+    Route::get('/commands/notices/latest', [CommandController::class, 'latestNotices'])->middleware('throttle:60,1');
     Route::post('/commands/notices/{id}/read', [CommandController::class, 'readNotice']);
     Route::post('/commands/notices/read-all', [CommandController::class, 'readAllNotices'])->middleware('throttle:30,1');
     Route::post('/commands/push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:20,1');

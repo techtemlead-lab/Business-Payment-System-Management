@@ -163,4 +163,40 @@ class UserManualGuideTest extends TestCase
         $this->assertArrayHasKey('treasury', $ownerDefs);
         $this->assertArrayHasKey('benefits-fund', $ownerDefs);
     }
+
+    public function test_every_dashboard_tour_step_has_bangla_and_english_text_and_a_live_target(): void
+    {
+        $tours = app(TourGuide::class);
+        $people = [
+            'owner' => User::factory()->create(['role' => 'super_admin', 'status' => 'active']),
+            'staff' => User::factory()->create(['role' => 'account_manager', 'status' => 'active']),
+            'dealer' => User::factory()->create(['role' => 'dealer', 'status' => 'active']),
+            'sub_dealer' => User::factory()->create(['role' => 'sub_dealer', 'status' => 'active']),
+        ];
+        // These were removed from the dashboards; a step pointing at them shows an empty card.
+        $goneTargets = ['home-chart', 'sidebar-help', 'catalog-cart'];
+
+        foreach (['en', 'bn'] as $locale) {
+            app()->setLocale($locale);
+            foreach ($people as $audience => $user) {
+                $this->assertSame($audience, $tours->audience($user));
+                $steps = $tours->definitionsFor($user)['overview']['steps'];
+                $this->assertGreaterThanOrEqual(5, count($steps));
+
+                foreach ($steps as $step) {
+                    foreach (['title', 'body', 'action', 'tip', 'location', 'category'] as $field) {
+                        $this->assertNotSame('', trim($step[$field] ?? ''), "$locale $audience {$step['target']} $field");
+                        $this->assertStringStartsNotWith('portal.', $step[$field], "$locale $audience missing text for {$step['target']} $field");
+                    }
+                    foreach ($goneTargets as $gone) {
+                        $this->assertStringNotContainsString($gone, $step['target']);
+                    }
+                }
+            }
+        }
+
+        app()->setLocale('en');
+        $partnerText = collect($tours->definitionsFor($people['dealer'])['overview']['steps'])->pluck('action')->implode(' ');
+        $this->assertStringContainsString('full amount', $partnerText, 'The dealer tour must say orders are paid in full first.');
+    }
 }

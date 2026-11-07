@@ -60,7 +60,7 @@ final class BranchPerformance
      * {@see OrderListFilter::Confirmed} rule the staff dashboard and sales reports use),
      * so they stay right however many orders there are. Only the order list is capped.
      *
-     * Staff who may not manage every branch see only the branches they are assigned to
+     * Staff who may not view every branch see only the branches they are assigned to
      * ({@see BranchOperations::visibleBranches()}); asking for any other branch is refused.
      *
      * @param  array{period?:string|null,from?:string|null,to?:string|null,branch_id?:int|string|null,follow_workspace_branch?:bool}  $filters
@@ -86,7 +86,7 @@ final class BranchPerformance
         );
 
         $branchOperations = app(BranchOperations::class);
-        $canViewAllBranches = $branchOperations->canManageAllBranches($actor);
+        $canViewAllBranches = $branchOperations->canViewAllBranches($actor);
         $branches = $branchOperations->visibleBranches($actor)->keyBy('id');
 
         $branchFilter = isset($filters['branch_id']) ? (int) $filters['branch_id'] : null;

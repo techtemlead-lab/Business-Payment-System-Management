@@ -255,7 +255,8 @@ final class BranchOperations
         abort_unless($actor->staff() || $actor->owner(), 403);
         abort_unless($branch->is_active, 422, __('portal.err_branch_inactive'));
 
-        if (! $actor->owner() && ! $actor->allows('inventory') && ! $actor->allows('accounts')) {
+        // Picking the branch to look at is a viewing choice; stock writes still check canManageAllBranches().
+        if (! $this->canViewAllBranches($actor)) {
             $assigned = BranchStaffAssignment::query()
                 ->where('branch_id', $branch->id)
                 ->where('user_id', $actor->id)
@@ -449,6 +450,16 @@ final class BranchOperations
         return $actor->owner() || $actor->allows('accounts') || $actor->allows('inventory');
     }
 
+    /**
+     * Who may look at every branch: everyone who may manage all branches, plus
+     * finance staff (accountants), who read every branch's figures but get no
+     * extra right to change stock at a branch they are not assigned to.
+     */
+    public function canViewAllBranches(User $actor): bool
+    {
+        return $this->canManageAllBranches($actor) || $actor->allows('finance');
+    }
+
     public function preferredBranch(User $actor): ?CompanyBranch
     {
         return $this->preferredAmong($this->visibleBranches($actor), $actor);
@@ -501,15 +512,16 @@ final class BranchOperations
     }
 
     /**
-     * Branches the actor may see: every branch for the owner and all-branch staff,
-     * otherwise only the branches the actor is assigned to.
+     * Branches the actor may see: every branch for the owner and staff who may view
+     * all branches ({@see canViewAllBranches()}), otherwise only the branches the
+     * actor is assigned to.
      *
      * @return Collection<int, CompanyBranch>
      */
     public function visibleBranches(User $actor): Collection
     {
         $query = CompanyBranch::query()->orderBy('name');
-        if (! $this->canManageAllBranches($actor) && ! $actor->owner()) {
+        if (! $this->canViewAllBranches($actor)) {
             $ids = BranchStaffAssignment::query()->where('user_id', $actor->id)->pluck('branch_id');
             $query->whereIn('id', $ids);
         }

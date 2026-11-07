@@ -86,8 +86,10 @@ final class BranchesSection implements WorkspaceSection
     /**
      * Branch sales report for the chosen period and branch. With no branch in the
      * address, the report follows the top-bar switcher: the active branch, or every
-     * branch the reader may see when "All branches" is chosen there. `all_branches=1`
-     * asks for every visible branch whatever the switcher says.
+     * branch when "All branches" is chosen there. The owner and all-branch staff who
+     * have not used the switcher yet start on every branch; branch staff start on
+     * their own branch. `all_branches=1` asks for every visible branch whatever the
+     * switcher says.
      *
      * @return array<string, mixed>
      */
@@ -95,13 +97,17 @@ final class BranchesSection implements WorkspaceSection
     {
         $request = $context->request;
         $user = $context->user;
-        $switcherShowsAll = $request->session()->get(BranchOperations::SessionView) === 'all';
+        $canViewAllBranches = app(BranchOperations::class)->canViewAllBranches($user);
+        $switcherView = $request->session()->get(BranchOperations::SessionView);
+        $noSwitcherChoiceYet = $switcherView === null && $user->active_branch_id === null;
+        $opensOnAllBranches = $request->boolean('all_branches')
+            || ($canViewAllBranches && ($switcherView === 'all' || $noSwitcherChoiceYet));
         $performance = app(BranchPerformance::class)->summary($user, [
             'period' => $request->query('period'),
             'from' => $request->query('from'),
             'to' => $request->query('to'),
             'branch_id' => $request->query('branch_id'),
-            'follow_workspace_branch' => ! $request->boolean('all_branches') && ! $switcherShowsAll,
+            'follow_workspace_branch' => ! $opensOnAllBranches,
         ]);
         $branchOptions = $performance['branch_options'];
         unset($performance['branch_options']);

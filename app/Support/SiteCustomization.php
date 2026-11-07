@@ -233,6 +233,21 @@ class SiteCustomization
             'about_btn_dealers' => 'Find a Dealer',
             'about_btn_contact' => 'Contact Head Office',
 
+            // Managing Director's message (/about and the home page).
+            // Each text has a Bangla box; empty = the built-in Bangla wording.
+            'md_message_enabled' => '1',
+            'md_message_heading' => $copy('md_message_heading'),
+            'md_message_heading_bn' => '',
+            'md_message_name' => $copy('md_message_name'),
+            'md_message_name_bn' => '',
+            'md_message_title' => $copy('md_message_title'),
+            'md_message_title_bn' => '',
+            'md_message_company' => $copy('md_message_company'),
+            'md_message_company_bn' => '',
+            'md_message_body' => $copy('md_message_body'),
+            'md_message_body_bn' => '',
+            'md_message_image' => '/branding/md-message/managing-director.webp',
+
             // Contact Page (/contact)
             'contact_title' => 'Contact Us',
             'contact_company_title' => 'Madina Natural Health Care',
@@ -1447,6 +1462,51 @@ class SiteCustomization
         $all = $customization ?? self::all();
 
         return filter_var($all['testimonials_section_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * The Managing Director's message in the visitor's language, or null when
+     * the owner has switched it off. Bangla visitors see the Bangla boxes when
+     * they are filled; otherwise the same rule as other website text applies.
+     *
+     * @param  array<string, mixed>|null  $customization
+     * @return array{heading: string, name: string, title: string, company: string, paragraphs: list<string>, image: string, image_alt: string}|null
+     */
+    public static function managingDirectorMessage(?array $customization = null): ?array
+    {
+        $all = $customization ?? self::all();
+        if (! filter_var($all['md_message_enabled'] ?? '1', FILTER_VALIDATE_BOOLEAN)) {
+            return null;
+        }
+
+        $text = static fn (string $key): string => SiteChrome::ownerText(
+            $key,
+            isset($all[$key]) ? (string) $all[$key] : null,
+            isset($all[$key.'_bn']) ? (string) $all[$key.'_bn'] : null,
+        );
+
+        $paragraphs = array_values(array_filter(
+            array_map('trim', preg_split('/\R\s*\R/u', $text('md_message_body')) ?: []),
+            static fn (string $paragraph): bool => $paragraph !== '',
+        ));
+        if ($paragraphs === []) {
+            return null;
+        }
+
+        $image = trim((string) ($all['md_message_image'] ?? ''));
+        $name = $text('md_message_name');
+        $title = $text('md_message_title');
+        $company = $text('md_message_company');
+
+        return [
+            'heading' => $text('md_message_heading'),
+            'name' => $name,
+            'title' => $title,
+            'company' => $company,
+            'paragraphs' => $paragraphs,
+            'image' => $image !== '' ? $image : (string) self::defaults()['md_message_image'],
+            'image_alt' => (string) __('site.md_message_photo_alt', ['name' => $name, 'title' => $title, 'company' => $company]),
+        ];
     }
 
     /** @return list<array<string, mixed>> */

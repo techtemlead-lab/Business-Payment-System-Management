@@ -51,6 +51,7 @@ use App\Support\SiteCustomization;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
@@ -655,7 +656,11 @@ class CommandController extends Controller
 
         $data = $r->validate([
             'image' => 'required|file|image|mimes:jpg,jpeg,png,webp|max:2048|dimensions:max_width=2048,max_height=2048',
+            // Website photos (such as the Managing Director's photo) are kept apart from category icons.
+            'purpose' => 'nullable|in:category_icon,site_photo',
         ]);
+        $isSitePhoto = ($data['purpose'] ?? null) === 'site_photo';
+        $folder = $isSitePhoto ? 'site-photos' : 'category-icons';
 
         $file = $data['image'];
         $extension = strtolower((string) ($file->guessExtension() ?: 'png'));
@@ -663,7 +668,7 @@ class CommandController extends Controller
             $extension = 'png';
         }
 
-        $directory = public_path('branding/category-icons');
+        $directory = public_path('branding/'.$folder);
         if (! is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -671,8 +676,8 @@ class CommandController extends Controller
         $filename = Str::uuid()->toString().'.'.$extension;
         $file->move($directory, $filename);
 
-        $url = '/branding/category-icons/'.$filename;
-        Audit::record($r->user()->id, 'customization.category_icon_uploaded', 'frontend', ['path' => $url]);
+        $url = '/branding/'.$folder.'/'.$filename;
+        Audit::record($r->user()->id, $isSitePhoto ? 'customization.site_photo_uploaded' : 'customization.category_icon_uploaded', 'frontend', ['path' => $url]);
 
         return response()->json([
             'ok' => true,
@@ -852,21 +857,62 @@ class CommandController extends Controller
         return back()->with('success', __('portal.flash_enquiry_updated'));
     }
 
-    public function readNotice(Request $r, int $id): RedirectResponse
+    /**
+     * The signed-in account's newest notices for the top-bar bell panel, loaded only when the panel opens.
+     */
+    public function latestNotices(Request $r): JsonResponse
+    {
+        $userId = $r->user()->id;
+        $notices = DB::table('account_notices')
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(15)
+            ->get(['id', 'title', 'body', 'read_at', 'created_at'])
+            ->map(fn (object $notice): array => [
+                'id' => (int) $notice->id,
+                'title' => (string) $notice->title,
+                'body' => Str::limit((string) $notice->body, 280),
+                'read_at' => $notice->read_at !== null ? Carbon::parse($notice->read_at)->toIso8601String() : null,
+                'created_at' => $notice->created_at !== null ? Carbon::parse($notice->created_at)->toIso8601String() : null,
+            ])
+            ->all();
+
+        return response()->json(['data' => [
+            'notices' => $notices,
+            'unread' => $this->unreadNoticeCount($userId),
+        ]]);
+    }
+
+    public function readNotice(Request $r, int $id): RedirectResponse|JsonResponse
     {
         abort_unless(DB::table('account_notices')->where('id', $id)->where('user_id', $r->user()->id)->update(['read_at' => now()]), 404);
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['unread' => $this->unreadNoticeCount($r->user()->id)]]);
+        }
 
         return back();
     }
 
-    public function readAllNotices(Request $r): RedirectResponse
+    public function readAllNotices(Request $r): RedirectResponse|JsonResponse
     {
         DB::table('account_notices')
             ->where('user_id', $r->user()->id)
             ->whereNull('read_at')
             ->update(['read_at' => now(), 'updated_at' => now()]);
+        if ($r->expectsJson()) {
+            return response()->json(['data' => ['unread' => 0]]);
+        }
 
         return back()->with('success', __('portal.flash_notices_read'));
+    }
+
+    /**
+     * How many of the account's notices are still unread, for the bell badge.
+     */
+    private function unreadNoticeCount(int $userId): int
+    {
+        return (int) DB::table('account_notices')->where('user_id', $userId)->whereNull('read_at')->count();
     }
 
     public function partnerSupport(Request $r): RedirectResponse

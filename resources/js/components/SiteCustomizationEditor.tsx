@@ -435,6 +435,125 @@ export interface CustomizationData {
     copyright_text_bn?: string;
     notice_empty?: string;
     notice_empty_bn?: string;
+
+    // Managing Director's message (/about and the home page)
+    md_message_enabled?: string;
+    md_message_heading?: string;
+    md_message_heading_bn?: string;
+    md_message_name?: string;
+    md_message_name_bn?: string;
+    md_message_title?: string;
+    md_message_title_bn?: string;
+    md_message_company?: string;
+    md_message_company_bn?: string;
+    md_message_body?: string;
+    md_message_body_bn?: string;
+    md_message_image?: string;
+}
+
+type MdMessageBanglaCopy = {
+    md_message_heading?: string;
+    md_message_name?: string;
+    md_message_title?: string;
+    md_message_company?: string;
+    md_message_body?: string;
+};
+
+/**
+ * Photo box for the Managing Director's message: a picture link the owner can
+ * type, or a picture uploaded from the computer, with a small preview.
+ */
+function MdPhotoField({
+    value,
+    placeholder,
+    onChange,
+}: {
+    value?: string;
+    placeholder?: string;
+    onChange: (val: string) => void;
+}) {
+    const translate = useT();
+    const [uploading, setUploading] = useState(false);
+    const preview = (value || '').trim() || placeholder || '';
+
+    const upload = async (file: File | null) => {
+        if (!file) {
+            return;
+        }
+        setUploading(true);
+        try {
+            const body = new FormData();
+            body.append('image', file);
+            body.append('purpose', 'site_photo');
+            const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || (document.querySelector('input[name="_token"]') as HTMLInputElement | null)?.value
+                || '';
+            if (token) {
+                body.append('_token', token);
+            }
+            const response = await fetch('/commands/customization/category-icon', {
+                method: 'POST',
+                body,
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+                },
+            });
+            const payload = await response.json().catch(() => null) as { ok?: boolean; url?: string; message?: string } | null;
+            if (!response.ok || !payload?.ok || !payload.url) {
+                throw new Error(payload?.message || translate('portal', 'sce_md_photo_upload_failed'));
+            }
+            onChange(payload.url);
+        } catch (error) {
+            notify(error instanceof Error ? error.message : translate('portal', 'sce_md_photo_upload_failed'), 'error');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="ed-block hub-span-all">
+            <span className="ed-label">{translate('portal', 'sce_fld_md_message_image')}</span>
+            <div className="ed-row is-top is-loose">
+                {preview ? (
+                    <img src={preview} alt="" width={72} height={90} className="ed-md-photo-preview" />
+                ) : null}
+                <div className="ed-grow">
+                    <input
+                        type="text"
+                        value={value || ''}
+                        placeholder={placeholder}
+                        onChange={e => onChange(e.target.value)}
+                        className="ed-input"
+                    />
+                    <div className="ed-row is-wrap ed-mt-sm">
+                        <label className={`button small light${uploading ? ' ed-busy' : ''}`}>
+                            {uploading ? translate('portal', 'sce_uploading_category_image') : translate('portal', 'sce_md_photo_upload')}
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                disabled={uploading}
+                                className="ed-hidden"
+                                onChange={e => {
+                                    const file = e.target.files?.[0] ?? null;
+                                    e.target.value = '';
+                                    void upload(file);
+                                }}
+                            />
+                        </label>
+                        {value ? (
+                            <button type="button" className="button small" onClick={() => onChange('')}>
+                                {translate('portal', 'sce_md_photo_use_default')}
+                            </button>
+                        ) : null}
+                    </div>
+                    <small className="ed-hint ed-mt-xs">{translate('portal', 'sce_md_photo_hint')}</small>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function Field({
@@ -3646,7 +3765,7 @@ export default function SiteCustomizationEditor({
 }: {
     customization: CustomizationData;
     defaults: CustomizationData;
-    bnCopy?: { copyright?: string; notice_empty?: string };
+    bnCopy?: { copyright?: string; notice_empty?: string } & MdMessageBanglaCopy;
     products?: { id: number; name: string; sku?: string; mrp: string; dealer_price?: string; category: string; featured?: boolean; stock?: number; image?: string }[];
     websitePages?: { key: string; slug: string; label: string; toggleable?: boolean; enabled?: boolean; flag?: string | null }[];
 }) {
@@ -4073,7 +4192,21 @@ export default function SiteCustomizationEditor({
             copyright_text: customization.copyright_text || '',
             copyright_text_bn: customization.copyright_text_bn || '',
             notice_empty: customization.notice_empty || '',
-            notice_empty_bn: customization.notice_empty_bn || ''
+            notice_empty_bn: customization.notice_empty_bn || '',
+
+            // Managing Director's message
+            md_message_enabled: customization.md_message_enabled !== undefined ? customization.md_message_enabled : '1',
+            md_message_heading: customization.md_message_heading || '',
+            md_message_heading_bn: customization.md_message_heading_bn || '',
+            md_message_name: customization.md_message_name || '',
+            md_message_name_bn: customization.md_message_name_bn || '',
+            md_message_title: customization.md_message_title || '',
+            md_message_title_bn: customization.md_message_title_bn || '',
+            md_message_company: customization.md_message_company || '',
+            md_message_company_bn: customization.md_message_company_bn || '',
+            md_message_body: customization.md_message_body || '',
+            md_message_body_bn: customization.md_message_body_bn || '',
+            md_message_image: customization.md_message_image || ''
         }
     });
 
@@ -4685,6 +4818,36 @@ export default function SiteCustomizationEditor({
                                 <Field label={translate('portal', 'sce_f_button_1')} fieldKey="about_btn_products" value={form.data.customization.about_btn_products} placeholder={defaults.about_btn_products} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_button_2')} fieldKey="about_btn_dealers" value={form.data.customization.about_btn_dealers} placeholder={defaults.about_btn_dealers} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_button_3')} fieldKey="about_btn_contact" value={form.data.customization.about_btn_contact} placeholder={defaults.about_btn_contact} onChange={updateField} />
+                            </div>
+
+                            <div className="ed-card ed-mb-lg" id="md-message-editor">
+                                <div className="ed-head">
+                                    <div>
+                                        <strong className="ed-strong">{translate('portal', 'sce_md_message_heading')}</strong>
+                                        <p className="ed-desc is-sm">{translate('portal', 'sce_md_message_hint')}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className={`button small ${form.data.customization.md_message_enabled !== '0' ? 'dark' : ''}`}
+                                        aria-pressed={form.data.customization.md_message_enabled !== '0'}
+                                        onClick={() => updateField('md_message_enabled', form.data.customization.md_message_enabled !== '0' ? '0' : '1')}
+                                    >
+                                        {form.data.customization.md_message_enabled !== '0' ? `✓ ${translate('portal', 'sce_status_on')}` : `✕ ${translate('portal', 'sce_status_off')}`}
+                                    </button>
+                                </div>
+                                <div className="form-grid ed-grid is-md">
+                                    <MdPhotoField value={form.data.customization.md_message_image} placeholder={defaults.md_message_image} onChange={val => updateField('md_message_image', val)} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_heading')} fieldKey="md_message_heading" value={form.data.customization.md_message_heading} placeholder={defaults.md_message_heading} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_heading_bn')} fieldKey="md_message_heading_bn" value={form.data.customization.md_message_heading_bn} placeholder={bnCopy.md_message_heading} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_name')} fieldKey="md_message_name" value={form.data.customization.md_message_name} placeholder={defaults.md_message_name} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_name_bn')} fieldKey="md_message_name_bn" value={form.data.customization.md_message_name_bn} placeholder={bnCopy.md_message_name} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_title')} fieldKey="md_message_title" value={form.data.customization.md_message_title} placeholder={defaults.md_message_title} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_title_bn')} fieldKey="md_message_title_bn" value={form.data.customization.md_message_title_bn} placeholder={bnCopy.md_message_title} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_company')} fieldKey="md_message_company" value={form.data.customization.md_message_company} placeholder={defaults.md_message_company} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_company_bn')} fieldKey="md_message_company_bn" value={form.data.customization.md_message_company_bn} placeholder={bnCopy.md_message_company} onChange={updateField} />
+                                    <Field label={translate('portal', 'sce_fld_md_message_body')} fieldKey="md_message_body" value={form.data.customization.md_message_body} placeholder={defaults.md_message_body} onChange={updateField} multiline rows={10} span2 />
+                                    <Field label={translate('portal', 'sce_fld_md_message_body_bn')} fieldKey="md_message_body_bn" value={form.data.customization.md_message_body_bn} placeholder={bnCopy.md_message_body} onChange={updateField} multiline rows={10} span2 />
+                                </div>
                             </div>
 
                             <h3 className="ed-title">{translate('portal', 'sce_contact_page_heading')}</h3>
