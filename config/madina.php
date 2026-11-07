@@ -22,9 +22,12 @@ return [
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
     // Comma/space-separated IPs or CIDRs for manage/sadmin. Empty = unrestricted (preview-safe).
     'admin_ip_allowlist' => env('MADINA_ADMIN_IP_ALLOWLIST', ''),
-    // Staff/owner TOTP after optional post-login enrollment. Forced off while MADINA_PREVIEW_MODE=true.
+    // Staff/owner TOTP (authenticator app). Forced off while MADINA_PREVIEW_MODE=true.
     'totp' => [
         'enabled' => env('MADINA_TOTP_ENABLED', true),
+        // Owners (Super Admin, MD, Chairman) and finance staff must set up the app at their next
+        // sign-in (owner decision Q14). Also off while MADINA_PREVIEW_MODE=true.
+        'required' => env('MADINA_TOTP_REQUIRED', true),
     ],
     'privacy' => [
         // Days to retain closed support/enquiry records; 0 disables automated retention guidance.
@@ -60,10 +63,10 @@ return [
         'ttl' => (int) env('MADINA_LOGIN_OTP_TTL', 300),
     ],
     'roles' => [
-        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding', 'payroll', 'partner_chat'],
+        'super_admin' => ['pricing', 'cost_read', 'accounts', 'catalog', 'inventory', 'orders', 'order_review', 'finance', 'content', 'reports', 'audit', 'identity_write', 'staff_admin', 'field_sales', 'sr_orders', 'sr_onboarding', 'payroll', 'partner_chat'],
         'md' => ['orders', 'finance', 'reports', 'audit'],
         'chairman' => ['orders', 'finance', 'reports', 'audit'],
-        'sr' => ['field_sales', 'sr_orders', 'sr_dues', 'sr_onboarding'],
+        'sr' => ['field_sales', 'sr_orders', 'sr_onboarding'],
         'account_manager' => ['accounts', 'orders', 'order_review'],
         'inventory' => ['inventory', 'orders'],
         'finance' => ['cost_read', 'finance', 'orders', 'order_review', 'reports', 'payroll'],

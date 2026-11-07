@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 final class OrderListFilter
 {
     /** Sections whose list honours the period / date range filter. */
-    public const DatedSections = ['orders', 'deliveries', 'dues', 'reports'];
+    public const DatedSections = ['orders', 'deliveries', 'reports'];
 
     /** Order states that still have goods waiting to be sent. */
     public const AwaitingDispatch = ['approved', 'partially_dispatched', 'dispatched'];
@@ -61,10 +61,6 @@ final class OrderListFilter
         } elseif ($section === 'deliveries') {
             $query->whereIn('status', self::AwaitingDispatch)
                 ->whereHas('lines', fn (Builder $lines) => $lines->whereColumn('dispatched', '<', 'quantity'));
-        }
-
-        if ($section === 'dues') {
-            $query->whereIn('status', self::Confirmed)->whereRaw('paid < total-due_credit');
         }
 
         return $query;

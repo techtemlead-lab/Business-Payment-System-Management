@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Domain\Finance\DueAdjustments;
 use App\Domain\Orders\OrderService;
 use App\Domain\Staff\StaffOperations;
 use App\Domain\Staff\TerritoryAccess;
@@ -74,7 +73,7 @@ class FieldSalesController extends Controller
         $order->load(['lines', 'user:id,name,dealer_code']);
         $safeOrder = [...(new OrderResource($order))->resolve($request), 'user' => $order->user->only(['id', 'name', 'dealer_code'])];
         $data = ['order' => $safeOrder, 'backUrl' => '/operations/field-sales',
-            'outstanding' => $order->outstanding(), 'adjustments' => app(DueAdjustments::class)->history($order),
+            'outstanding' => $order->outstanding(),
             'claims' => DB::table('payment_claims')->where('order_id', $order->id)->get(['id', 'channel', 'reference', 'amount', 'status', 'reason', 'created_at']),
             'events' => DB::table('order_events')->where('order_id', $order->id)->orderBy('id')->get(['id', 'action', 'metadata', 'created_at']),
             'shipments' => DB::table('shipments')->where('order_id', $order->id)->orderBy('id')->get(['id', 'courier', 'tracking', 'eta', 'status', 'lines', 'delivered_at', 'created_at'])];
