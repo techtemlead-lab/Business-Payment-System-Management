@@ -1709,6 +1709,24 @@ html[data-theme="dark"] .ref-trust-pillar-icon {
     color: #6ee7b7 !important;
 }
 
+html[data-theme="dark"] .ref-testimonials-invite {
+    background: var(--ds-surface, #121a28) !important;
+    border-color: var(--ds-line, #2a3648) !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-invite-text h2 {
+    color: #f8fafc !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-invite-text p {
+    color: #94a3b8 !important;
+}
+
+html[data-theme="dark"] .ref-testimonials-invite-icon {
+    background: #064e3b !important;
+    color: #6ee7b7 !important;
+}
+
 html[data-theme="dark"] .ref-testimonials-section,
 html[data-theme="dark"] .ref-video-gallery-section {
     background: linear-gradient(180deg, var(--ds-surface, #121a28) 0%, var(--ds-surface-2, #0f1724) 100%) !important;

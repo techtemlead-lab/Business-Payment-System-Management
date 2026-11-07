@@ -116,7 +116,8 @@ return function (string $portal): void {
     Route::post('/commands/dashboards/reset', [CommandController::class, 'resetDashboardSettings']);
     Route::post('/commands/enquiries/{id}', [CommandController::class, 'enquiry']);
     Route::post('/commands/feedback', [CommandController::class, 'storeSiteFeedback'])->middleware('throttle:8,1');
-    Route::post('/commands/feedback/{id}', [CommandController::class, 'moderateSiteFeedback']);
+    Route::post('/commands/feedback/{id}', [CommandController::class, 'moderateSiteFeedback'])->whereNumber('id');
+    Route::post('/commands/testimonials', [CommandController::class, 'storeStaffTestimonial'])->middleware('throttle:30,1');
     Route::post('/commands/withdrawals/{id}/review', [WithdrawalController::class, 'review'])->whereUuid('id');
     Route::post('/commands/withdrawals/{id}/record-payment', [WithdrawalController::class, 'settle'])->whereUuid('id');
     Route::post('/commands/policies/{id}/publish', [CommandController::class, 'publishPolicy']);
