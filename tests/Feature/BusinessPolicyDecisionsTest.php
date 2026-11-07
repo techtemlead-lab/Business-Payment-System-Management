@@ -7,6 +7,7 @@ use App\Domain\Commissions\CommissionPosting;
 use App\Domain\Commissions\CommissionService;
 use App\Domain\Orders\OrderService;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\PortalHost;
@@ -269,7 +270,8 @@ class BusinessPolicyDecisionsTest extends TestCase
     public function test_partner_salary_and_royalty_use_direct_authorized_settlement_without_a_second_reviewer(): void
     {
         // 2500 × ৳100 dealer price reaches the ৳2.5L MO threshold so royalty settles with cashback + salary.
-        $order = $this->purchase(User::factory()->dealer()->create(), 2500);
+        // The dealer has a division place code, so they share their own division's salary pool.
+        $order = $this->purchase(User::factory()->dealer()->inPlace(PlaceCode::factory()->division()->create())->create(), 2500);
         $this->approve($order);
         $this->postEarnings($order);
         $this->travelTo(CarbonImmutable::parse('2026-10-01T06:00:00Z'));
