@@ -304,6 +304,42 @@ class CommissionSettlementTest extends TestCase
         $this->assertDatabaseHas('wallets', ['user_id' => $leader->id, 'available' => '5000.00']);
     }
 
+    public function test_a_leader_promoted_twice_before_the_reward_runs_still_gets_the_lower_rank_reward(): void
+    {
+        $leader = User::factory()->create();
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'am', 'achieved_at' => now(), 'qualification_history' => [
+            ['rank' => 'mo', 'achieved_at' => now()->subMinutes(20)->toIso8601String()],
+            ['rank' => 'am', 'achieved_at' => now()->toIso8601String()],
+        ]]);
+        // Enough volume to keep AM this month and a reserve that funds both rewards (2% of ৳30 lakh = ৳60,000).
+        $this->purchase($leader, '3000000.00', '6000000.00');
+        $service = app(CommissionService::class);
+
+        $first = $service->claimOneTimeRankIncentive($leader->id);
+        $second = $service->claimOneTimeRankIncentive($leader->id);
+        $third = $service->claimOneTimeRankIncentive($leader->id);
+
+        $this->assertSame(['mo', '5000.00'], [$first['rank'], $first['amount']]);
+        $this->assertSame(['am', '50000.00'], [$second['rank'], $second['amount']]);
+        $this->assertFalse($third['success']);
+        $this->assertSame(['am', 'mo'], DB::table('rank_incentive_awards')->where('user_id', $leader->id)->orderBy('rank')->pluck('rank')->all());
+    }
+
+    public function test_a_rank_never_reached_is_not_rewarded(): void
+    {
+        // Promoted to AM by team size without ever buying the MO target: no MO reward.
+        $leader = User::factory()->create();
+        DealerRank::create(['user_id' => $leader->id, 'current_rank' => 'am', 'achieved_at' => now(), 'qualification_history' => [
+            ['rank' => 'am', 'achieved_at' => now()->toIso8601String()],
+        ]]);
+        $this->purchase($leader, '3000000.00', '6000000.00');
+        $service = app(CommissionService::class);
+
+        $this->assertSame('am', $service->claimOneTimeRankIncentive($leader->id)['rank']);
+        $this->assertFalse($service->claimOneTimeRankIncentive($leader->id)['success']);
+        $this->assertDatabaseMissing('rank_incentive_awards', ['user_id' => $leader->id, 'rank' => 'mo']);
+    }
+
     public function test_rank_incentive_is_blocked_when_maintenance_demotes_the_leader(): void
     {
         $leader = User::factory()->create();

@@ -720,6 +720,36 @@ final class CommissionSettlement
         );
     }
 
+    /** Leadership ranks from lowest to highest. */
+    public const LeadershipRanks = ['mo', 'am', 'sm', 'me'];
+
+    public static function rankAtLeast(string $held, string $wanted): bool
+    {
+        $heldIndex = array_search($held, self::LeadershipRanks, true);
+        $wantedIndex = array_search($wanted, self::LeadershipRanks, true);
+
+        return $heldIndex !== false && $wantedIndex !== false && $heldIndex >= $wantedIndex;
+    }
+
+    /**
+     * The lowest rank this leader actually reached (rank history, up to the current rank)
+     * whose one-time reward has not been paid yet.
+     */
+    private function firstUnpaidRank(DealerRank $rank): ?string
+    {
+        $reached = collect($rank->qualification_history ?? [])->pluck('rank')->push($rank->current_rank)
+            ->filter(fn ($code): bool => is_string($code) && self::rankAtLeast((string) $rank->current_rank, $code))
+            ->unique();
+        $paid = DB::table('rank_incentive_awards')->where('user_id', $rank->user_id)->pluck('rank')->all();
+        foreach (self::LeadershipRanks as $code) {
+            if ($reached->contains($code) && ! in_array($code, $paid, true)) {
+                return $code;
+            }
+        }
+
+        return null;
+    }
+
     /** @return array<string, mixed> */
     public function incentive(int $userId, ?int $actorId = null, ?string $requestKey = null): array
     {
@@ -754,7 +784,9 @@ final class CommissionSettlement
             $user = User::whereKey($userId)->lockForUpdate()->firstOrFail();
             $rank = DealerRank::where('user_id', $userId)->lockForUpdate()->firstOrFail();
             $unconditionalIncentive = PartnerBenefitControls::waivesRankIncentive($user);
-            $awardRank = $rank->current_rank;
+            // A leader promoted twice before the reward ran (e.g. MO and AM within the hour) still
+            // earned the lower rank: its unpaid reward is paid first, then the next run pays the next.
+            $awardRank = $this->firstUnpaidRank($rank) ?? $rank->current_rank;
             if ($unconditionalIncentive && ($awardRank === 'dealer' || $awardRank === null)) {
                 $awardRank = PartnerBenefitControls::forcedRoyaltyRank($user) ?? 'mo';
             }
@@ -770,7 +802,7 @@ final class CommissionSettlement
             $rules = $this->policies->snapshot()['rules'];
             if (! $unconditionalIncentive) {
                 $paidAs = $this->qualification->paidAs($userId, $period, $rules);
-                if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank) {
+                if (($paidAs['paid_as_rank'] ?? 'dealer') !== $rank->current_rank || ! self::rankAtLeast($rank->current_rank, $awardRank)) {
                     return ['success' => false, 'message' => __('portal.cmd_val_incentive_qualification', [
                         'rank' => $rank->current_rank,
                     ])];

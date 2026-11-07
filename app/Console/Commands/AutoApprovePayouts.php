@@ -115,9 +115,23 @@ class AutoApprovePayouts extends Command
         return DealerRank::query()
             ->whereNotIn('current_rank', ['dealer'])
             ->whereIn('user_id', User::query()->where('role', 'dealer')->where('status', 'active')->select('id'))
-            ->whereNotExists(fn ($query) => $query->from('rank_incentive_awards')
-                ->whereColumn('rank_incentive_awards.user_id', 'dealer_ranks.user_id')
-                ->whereColumn('rank_incentive_awards.rank', 'dealer_ranks.current_rank'))
+            // The current rank, or any lower rank reached on the way (MO then AM within one run),
+            // whose one-time reward is still unpaid.
+            ->where(fn ($query) => $query
+                ->whereNotExists(fn ($awards) => $awards->from('rank_incentive_awards')
+                    ->whereColumn('rank_incentive_awards.user_id', 'dealer_ranks.user_id')
+                    ->whereColumn('rank_incentive_awards.rank', 'dealer_ranks.current_rank'))
+                ->orWhereRaw(<<<'SQL'
+                    EXISTS (
+                        SELECT 1 FROM jsonb_array_elements(COALESCE(dealer_ranks.qualification_history::jsonb, '[]'::jsonb)) AS reached(entry)
+                        WHERE reached.entry->>'rank' IN ('mo', 'am', 'sm', 'me')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM rank_incentive_awards
+                              WHERE rank_incentive_awards.user_id = dealer_ranks.user_id
+                                AND rank_incentive_awards.rank = reached.entry->>'rank'
+                          )
+                    )
+                SQL))
             ->orderBy('user_id')
             ->pluck('user_id')
             ->map(fn ($id): int => (int) $id)
