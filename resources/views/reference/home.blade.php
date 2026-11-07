@@ -232,7 +232,7 @@
                 <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
             </button>
         </div>
-        <script>
+        <script @if($cspNonce = request()?->attributes?->get('csp_nonce')) nonce="{{ $cspNonce }}" @endif>
         (function() {
             var btn = document.getElementById('refCatToggleBtn');
             var grid = document.getElementById('refCategoryGrid');
@@ -417,7 +417,7 @@
                             <span class="ref-testimonial-meta">{{ $t['role'] }} · {{ $t['location'] }}</span>
                         </div>
                     </div>
-                    <div class="ref-testimonial-stars" aria-label="{{ $t['rating'] }} out of 5 stars">
+                    <div class="ref-testimonial-stars" role="img" aria-label="{{ __('site.testimonial_stars_label', ['count' => \App\Support\LocalDigits::text($t['rating'])]) }}">
                         @for($i = 1; $i <= 5; $i++)
                             <span class="ref-star {{ $i <= $t['rating'] ? 'is-filled' : 'is-empty' }}" aria-hidden="true">★</span>
                         @endfor
@@ -432,6 +432,16 @@
         <div class="ref-testimonials-actions">
             <a href="/feedback" class="ref-secondary-button">{{ __('site.share_feedback_cta') }}</a>
         </div>
+    </section>
+    @elseif(\App\Support\SiteCustomization::testimonialsEnabled($siteCustomization))
+    {{-- No approved review yet: invite the first one instead of showing made-up reviews. --}}
+    <section class="ref-testimonials-invite ref-deferred-paint" aria-labelledby="testimonials-invite-title">
+        <div class="ref-testimonials-invite-icon" aria-hidden="true"><i class="fa-solid fa-comments"></i></div>
+        <div class="ref-testimonials-invite-text">
+            <h2 id="testimonials-invite-title">{{ $chrome('testimonials_invite_title', $siteCustomization['testimonials_invite_title'] ?? null) }}</h2>
+            <p>{{ $chrome('testimonials_invite_body', $siteCustomization['testimonials_invite_body'] ?? null) }}</p>
+        </div>
+        <a href="/feedback" class="ref-primary-button">{{ __('site.share_feedback_cta') }}</a>
     </section>
     @endif
 
