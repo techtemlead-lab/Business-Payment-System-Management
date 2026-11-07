@@ -27,7 +27,7 @@ final class TrainingQuiz
     /**
      * Replace the item's quiz. An empty question list removes the quiz.
      *
-     * @param  list<array{question: string, options: list<string>, correct_option: int}>  $questions
+     * @param  array<int, array{question: string, options: array<int, string>, correct_option: int}>  $questions  Request order; keys need not be 0, 1, 2.
      */
     public function save(User $actor, TrainingItem $item, int $passPercent, array $questions): void
     {
@@ -128,7 +128,7 @@ final class TrainingQuiz
             'questions' => $questions->map(fn (TrainingQuizQuestion $question): array => [
                 'id' => $question->id,
                 'question' => $question->question,
-                'options' => array_values($question->options ?? []),
+                'options' => $question->options,
                 ...($forStaff ? ['correct_option' => $question->correct_option] : []),
             ])->all(),
         ];
