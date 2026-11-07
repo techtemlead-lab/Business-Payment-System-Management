@@ -24,6 +24,8 @@ export type PartnerEventRow = {
     is_past: boolean;
     audience?: 'all' | 'divisions';
     divisions?: string[];
+    /** Division place code ids the event is for (names above are only for reading). */
+    division_ids?: number[];
     send_sms?: boolean;
     published_at?: string | null;
     cancelled_at?: string | null;
@@ -45,7 +47,8 @@ type StaffData = {
     can_edit: boolean;
     can_create: boolean;
     events: PartnerEventRow[];
-    divisions: string[];
+    /** Coded divisions to pick from: the value is the place code id. */
+    divisions: { id: number; name: string }[];
     today_date: string;
     timezone: string;
 };
@@ -192,7 +195,7 @@ type FormShape = {
     place: string;
     online_url: string;
     audience: 'all' | 'divisions';
-    divisions: string[];
+    divisions: number[];
     notes: string;
     send_sms: boolean;
     publish: boolean;
@@ -209,7 +212,7 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
         place: event?.place ?? '',
         online_url: event?.online_url ?? '',
         audience: event?.audience ?? 'all',
-        divisions: event?.divisions ?? [],
+        divisions: event?.division_ids ?? [],
         notes: event?.notes ?? '',
         send_sms: event?.send_sms ?? false,
         publish: false,
@@ -223,10 +226,10 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
             form.post('/commands/events', options);
         }
     };
-    const toggleDivision = (name: string) => {
-        form.setData('divisions', form.data.divisions.includes(name)
-            ? form.data.divisions.filter((value) => value !== name)
-            : [...form.data.divisions, name]);
+    const toggleDivision = (id: number) => {
+        form.setData('divisions', form.data.divisions.includes(id)
+            ? form.data.divisions.filter((value) => value !== id)
+            : [...form.data.divisions, id]);
     };
     const error = (name: string) => {
         const message = (form.errors as Record<string, string | undefined>)[name];
@@ -269,9 +272,9 @@ function EventForm({ data, event, onDone }: { data: StaffData; event: PartnerEve
                 <fieldset className="events-divisions">
                     <legend>{translate('portal', 'events_field_divisions')}</legend>
                     {data.divisions.length === 0 && <p className="muted">{translate('portal', 'events_no_divisions')}</p>}
-                    {data.divisions.map((name) => (
-                        <label key={name} className="events-check">
-                            <input type="checkbox" checked={form.data.divisions.includes(name)} onChange={() => toggleDivision(name)} />{name}
+                    {data.divisions.map((division) => (
+                        <label key={division.id} className="events-check">
+                            <input type="checkbox" checked={form.data.divisions.includes(division.id)} onChange={() => toggleDivision(division.id)} />{division.name}
                         </label>
                     ))}
                     {error('divisions')}

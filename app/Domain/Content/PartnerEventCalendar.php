@@ -46,20 +46,21 @@ final class PartnerEventCalendar
     }
 
     /**
-     * Division names staff can pick for an event audience.
+     * Divisions staff can pick for an event audience: active, coded division place codes.
+     * The value saved is the place code id; the name is only shown.
      *
-     * @return list<string>
+     * @return list<array{id: int, name: string}>
      */
     public function divisionOptions(): array
     {
         return PlaceCode::query()
             ->where('level', PlaceCode::LevelDivision)
             ->where('is_active', true)
+            ->whereNotNull('code')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->pluck('name')
-            ->filter()
-            ->unique()
+            ->get(['id', 'name'])
+            ->map(fn (PlaceCode $place): array => ['id' => (int) $place->id, 'name' => (string) $place->name])
             ->values()
             ->all();
     }
@@ -144,6 +145,7 @@ final class PartnerEventCalendar
             ...($forStaff ? [
                 'audience' => $event->audience,
                 'divisions' => $event->divisions ?? [],
+                'division_ids' => array_map('intval', $event->division_place_ids ?? []),
                 'send_sms' => $event->send_sms,
                 'published_at' => $event->published_at?->toIso8601String(),
                 'cancelled_at' => $event->cancelled_at?->toIso8601String(),
@@ -170,6 +172,9 @@ final class PartnerEventCalendar
         $saved = DB::transaction(function () use ($actor, $event, $data, $startsAt, $endsAt): PartnerEvent {
             $event ??= new PartnerEvent(['created_by' => $actor->id, 'status' => 'draft']);
             $audience = (string) $data['audience'];
+            // Chosen divisions are place code ids; their names are kept only for display.
+            $divisionIds = $audience === 'divisions' ? array_values(array_unique(array_map('intval', (array) $data['divisions']))) : [];
+            $divisionNames = PlaceCode::query()->whereIn('id', $divisionIds)->orderBy('name')->pluck('name')->map(fn ($name): string => (string) $name)->all();
             $event->fill([
                 'title_bn' => trim((string) $data['title_bn']),
                 'title_en' => trim((string) $data['title_en']),
@@ -178,7 +183,8 @@ final class PartnerEventCalendar
                 'place' => filled($data['place'] ?? null) ? trim((string) $data['place']) : null,
                 'online_url' => filled($data['online_url'] ?? null) ? trim((string) $data['online_url']) : null,
                 'audience' => $audience,
-                'divisions' => $audience === 'divisions' ? array_values(array_unique(array_map('strval', (array) $data['divisions']))) : null,
+                'divisions' => $audience === 'divisions' ? $divisionNames : null,
+                'division_place_ids' => $audience === 'divisions' ? $divisionIds : null,
                 'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
                 'send_sms' => (bool) ($data['send_sms'] ?? false),
                 'updated_by' => $actor->id,
@@ -190,6 +196,7 @@ final class PartnerEventCalendar
                 'starts_at' => $event->starts_at->toIso8601String(),
                 'audience' => $event->audience,
                 'divisions' => $event->divisions,
+                'division_place_ids' => $event->division_place_ids,
             ]);
 
             return $event;

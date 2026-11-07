@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Accounts\PartnerAge;
 use App\Domain\Audience\PublicPartnerApplication;
 use App\Domain\Content\TestimonialLabels;
+use App\Domain\Geography\PlaceTree;
 use App\Domain\Integrations\MapsPresentation;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Models\Product;
@@ -16,6 +17,7 @@ use App\Support\ProductVideo;
 use App\Support\SiteCustomization;
 use App\Support\SocialShareMeta;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -200,7 +202,7 @@ class PublicController extends Controller
     }
 
     /**
-     * @return array{0: LengthAwarePaginator, 1: Collection<int, string>, 2: Collection<int, string>}
+     * @return array{0: LengthAwarePaginator, 1: Collection<int, array{id: int, name: string}>, 2: Collection<int, array{id: int, name: string}>}
      */
     private function dealerDirectory(Request $request): array
     {
@@ -210,8 +212,7 @@ class PublicController extends Controller
             $userLat = (float) $request->input('lat');
             $userLng = (float) $request->input('lng');
             $allDealers = (clone $directory)
-                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
-                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $request))
                 ->get($dealerCols)
                 ->map(function ($dealer) use ($userLat, $userLng) {
                     if ($dealer->latitude !== null && $dealer->longitude !== null) {
@@ -246,14 +247,39 @@ class PublicController extends Controller
             $dealers = new LengthAwarePaginator($allDealers->slice(($pageNumber - 1) * 12, 12)->values(), $allDealers->count(), 12, $pageNumber, ['path' => '/dealers', 'query' => $request->query()]);
         } else {
             $dealers = (clone $directory)
-                ->when($request->filled('division'), fn ($query) => $query->where('division', $request->string('division')))
-                ->when($request->filled('district'), fn ($query) => $query->where('district', $request->string('district')))
+                ->tap(fn ($query) => $this->directoryPlaceFilter($query, $request))
                 ->orderBy('name')->paginate(12, $dealerCols)->withQueryString();
         }
-        $districts = (clone $directory)->whereNotNull('district')->orderBy('district')->distinct()->pluck('district');
-        $divisions = (clone $directory)->whereNotNull('division')->orderBy('division')->distinct()->pluck('division');
+        // Pickers list the divisions and districts the listed dealers' place codes lie in:
+        // the value is the place code id, the label is that code's name.
+        $areas = PlaceTree::divisionAndDistrictOptions(clone $directory);
+        $chosenDivision = PlaceTree::idFrom($request->query('division'));
+        $divisions = collect($areas)->map(fn (array $area): array => ['id' => $area['division_id'], 'name' => $area['division']]);
+        $districts = collect($areas)
+            ->filter(fn (array $area): bool => $chosenDivision === null || $area['division_id'] === $chosenDivision)
+            ->flatMap(fn (array $area): array => array_map(fn (array $district): array => [
+                'id' => $district['id'],
+                'name' => $chosenDivision === null ? $district['name'].' ('.$area['division'].')' : $district['name'],
+            ], $area['districts']))
+            ->values();
 
         return [$dealers, $districts, $divisions];
+    }
+
+    /**
+     * Narrow the directory to dealers whose place code lies in the chosen division or
+     * district (place code ids from the pickers). Names are never matched.
+     *
+     * @param  Builder<User>  $query
+     */
+    private function directoryPlaceFilter(Builder $query, Request $request): void
+    {
+        foreach (['division', 'district'] as $field) {
+            $placeId = PlaceTree::idFrom($request->query($field));
+            if ($request->filled($field)) {
+                PlaceTree::whereInside($query, $placeId !== null ? [$placeId] : []);
+            }
+        }
     }
 
     /** @return array<string, object|null> */

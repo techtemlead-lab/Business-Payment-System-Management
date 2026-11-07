@@ -154,6 +154,10 @@ final class DeploymentReadiness
         if (array_filter($recordsMissingPlaceCodes) !== []) {
             $warnings[] = 'records_missing_place_codes';
         }
+        $headOfficeWithoutPlace = $checks['database'] ? $this->headOfficeWithoutPlaceCode() : null;
+        if ($headOfficeWithoutPlace !== null) {
+            $warnings[] = 'head_office_branch_missing_place_code';
+        }
         if ($checks['database'] && ! $this->openingBalancesVerified()) {
             $warnings[] = 'opening_balances_unverified';
         } elseif ($checks['database'] && $this->openingBalancesStale()) {
@@ -224,6 +228,9 @@ final class DeploymentReadiness
         }
         if (in_array('records_missing_place_codes', $warnings, true)) {
             $details['records_missing_place_codes'] = $recordsMissingPlaceCodes;
+        }
+        if ($headOfficeWithoutPlace !== null) {
+            $details['head_office_branch_missing_place_code'] = $headOfficeWithoutPlace;
         }
         if (in_array('area_dealer_assignments_missing', $warnings, true)) {
             $details['area_dealer_assignments_missing'] = [
@@ -365,6 +372,29 @@ final class DeploymentReadiness
         }
     }
 
+    /**
+     * The seeded head-office branch without a place code. The program never guesses one
+     * (its old address names fit more than one coded place); the owner sets it in Branches.
+     *
+     * @return array{id: int, code: string, name: string}|null
+     */
+    public function headOfficeWithoutPlaceCode(): ?array
+    {
+        try {
+            $branch = DB::table('company_branches')
+                ->where('is_head_office', true)
+                ->whereNull('place_code_id')
+                ->orderBy('id')
+                ->first(['id', 'code', 'name']);
+
+            return $branch === null ? null : ['id' => (int) $branch->id, 'code' => (string) $branch->code, 'name' => (string) $branch->name];
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
+    }
+
     /** Exactly one active seat holds this place code (seats are never matched by name). */
     private function areaSeatIsUnique(string $level, int $placeId): bool
     {
@@ -391,7 +421,8 @@ final class DeploymentReadiness
                 ->implode(' · ');
 
             return [
-                'branches' => DB::table('company_branches')->where('is_active', true)->whereNull('place_code_id')
+                // The head office has its own instruction (head_office_branch_missing_place_code).
+                'branches' => DB::table('company_branches')->where('is_active', true)->where('is_head_office', false)->whereNull('place_code_id')
                     ->orderBy('id')->limit(50)->get(['id', 'code', 'name', 'division', 'district', 'upazila'])
                     ->map(fn (object $row): array => ['id' => (int) $row->id, 'label' => $label($row, ['code', 'name', 'district', 'division'])])->all(),
                 'area_seats' => DB::table('area_dealer_assignments')->join('users', 'users.id', '=', 'area_dealer_assignments.user_id')

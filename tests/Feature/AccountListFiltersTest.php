@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,19 +32,39 @@ class AccountListFiltersTest extends TestCase
         $narayanganj = $this->dealer('Narayanganj Dealer', 'Dhaka', 'Narayanganj');
         $jessore = $this->dealer('Jessore Dealer', 'Khulna', 'Jessore', 'dealer');
 
-        $this->assertSame([$narayanganj->id, $gazipur->id], $this->ids($owner, '/accounts?division=Dhaka'));
-        $this->assertSame([$gazipur->id], $this->ids($owner, '/accounts?division=Dhaka&district=Gazipur'));
+        $dhaka = $this->place('Dhaka')->id;
+        $this->assertSame([$narayanganj->id, $gazipur->id], $this->ids($owner, '/accounts?division='.$dhaka));
+        $this->assertSame([$gazipur->id], $this->ids($owner, '/accounts?division='.$dhaka.'&district='.$this->place('Dhaka', 'Gazipur')->id));
         $this->assertSame([$gazipur->id], $this->ids($owner, '/accounts?rank=mo'));
         $this->assertSame([$jessore->id, $narayanganj->id], $this->ids($owner, '/accounts?rank=dealer'));
 
-        $data = $this->page($owner, '/accounts?division=Dhaka&rank=mo');
+        $data = $this->page($owner, '/accounts?division='.$dhaka.'&rank=mo');
         $this->assertSame(['active' => 1], $data['props']['data']['account_status_counts']);
-        $this->assertSame('Dhaka', $data['props']['filters']['division']);
+        $this->assertSame((string) $dhaka, (string) $data['props']['filters']['division']);
         $this->assertSame('mo', $data['props']['filters']['rank']);
         $this->assertSame([
-            ['division' => 'Dhaka', 'districts' => ['Gazipur', 'Narayanganj']],
-            ['division' => 'Khulna', 'districts' => ['Jessore']],
+            ['division_id' => $dhaka, 'division' => 'Dhaka', 'districts' => [
+                ['id' => $this->place('Dhaka', 'Gazipur')->id, 'name' => 'Gazipur'],
+                ['id' => $this->place('Dhaka', 'Narayanganj')->id, 'name' => 'Narayanganj'],
+            ]],
+            ['division_id' => $this->place('Khulna')->id, 'division' => 'Khulna', 'districts' => [
+                ['id' => $this->place('Khulna', 'Jessore')->id, 'name' => 'Jessore'],
+            ]],
         ], $data['props']['data']['account_areas']);
+    }
+
+    public function test_area_filters_match_place_codes_never_names(): void
+    {
+        $owner = User::factory()->staff()->create();
+        $placed = $this->dealer('Sadar Dealer', 'Rangpur', 'Sadar');
+        $sameNameElsewhere = $this->dealer('Other Sadar Dealer', 'Khulna', 'Sadar');
+        $namesOnly = User::factory()->dealer()->create(['name' => 'Names Only', 'division' => 'Rangpur', 'district' => 'Sadar']);
+
+        $this->assertSame([$placed->id], $this->ids($owner, '/accounts?district='.$this->place('Rangpur', 'Sadar')->id));
+        $this->assertSame([$placed->id], $this->ids($owner, '/accounts?division='.$this->place('Rangpur')->id));
+        $this->assertNotContains($namesOnly->id, $this->ids($owner, '/accounts?division='.$this->place('Rangpur')->id));
+        $this->assertNotContains($sameNameElsewhere->id, $this->ids($owner, '/accounts?district='.$this->place('Rangpur', 'Sadar')->id));
+        $this->actingAs($owner)->onPortal('sadmin')->get('/accounts?division=Rangpur')->assertSessionHasErrors('division');
     }
 
     public function test_quiet_partner_filter_uses_confirmed_orders_only(): void
@@ -91,7 +112,7 @@ class AccountListFiltersTest extends TestCase
         $this->dealer('Khulna Dealer', 'Khulna', 'Jessore', 'mo');
         $this->dealer('Unranked Dealer', 'Dhaka', 'Gazipur');
 
-        $response = $this->actingAs($manager)->onPortal('manage')->get('/exports/accounts?section=accounts&division=Dhaka&rank=mo')
+        $response = $this->actingAs($manager)->onPortal('manage')->get('/exports/accounts?section=accounts&division='.$this->place('Dhaka')->id.'&rank=mo')
             ->assertOk()
             ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         [$list, $summary] = $this->sheets($response);
@@ -104,6 +125,8 @@ class AccountListFiltersTest extends TestCase
         $everything = json_encode([$list, $summary]);
         $this->assertStringNotContainsString('19901234567890123', $everything);
         $this->assertStringNotContainsString('Khulna Dealer', $everything);
+        // The summary names the chosen division (from its place code), not its id.
+        $this->assertStringContainsString(__('portal.csv_col_division').': Dhaka', $everything);
         $this->assertDatabaseHas('audit_events', ['action' => 'report.exported', 'subject' => 'accounts']);
     }
 
@@ -138,9 +161,24 @@ class AccountListFiltersTest extends TestCase
         $this->assertContains('rahim@example.test', $list[1]);
     }
 
+    /** @var array<string, PlaceCode> */
+    private array $places = [];
+
+    /** One place code per division (and district) name used by these tests. */
+    private function place(string $division, ?string $district = null): PlaceCode
+    {
+        $divisionPlace = $this->places['division:'.$division] ??= PlaceCode::factory()->division()->create(['name' => $division]);
+        if ($district === null) {
+            return $divisionPlace;
+        }
+
+        return $this->places['district:'.$division.'|'.$district] ??= PlaceCode::factory()->district($divisionPlace)->create(['name' => $district]);
+    }
+
+    /** A dealer keyed to the place code of a district inside a division. */
     private function dealer(string $name, string $division, string $district, ?string $rank = null): User
     {
-        $dealer = User::factory()->dealer()->create(['name' => $name, 'division' => $division, 'district' => $district, 'status' => 'active']);
+        $dealer = User::factory()->dealer()->inPlace($this->place($division, $district))->create(['name' => $name, 'status' => 'active']);
         if ($rank !== null) {
             DB::table('dealer_ranks')->insert(['user_id' => $dealer->id, 'current_rank' => $rank, 'created_at' => now(), 'updated_at' => now()]);
         }

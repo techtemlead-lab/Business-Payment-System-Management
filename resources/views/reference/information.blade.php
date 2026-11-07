@@ -252,7 +252,7 @@
             <select name="division">
                 <option value="">{{ $chrome('directory_all_divisions') }}</option>
                 @foreach($divisions as $division)
-                <option @selected(request('division')===$division)>{{ $division }}</option>
+                <option value="{{ $division['id'] }}" @selected((string) request('division') === (string) $division['id'])>{{ $division['name'] }}</option>
                 @endforeach
             </select>
         </label>
@@ -260,7 +260,7 @@
             <select name="district">
                 <option value="">{{ $chrome('directory_all_districts') }}</option>
                 @foreach($districts as $district)
-                <option @selected(request('district')===$district)>{{ $district }}</option>
+                <option value="{{ $district['id'] }}" @selected((string) request('district') === (string) $district['id'])>{{ $district['name'] }}</option>
                 @endforeach
             </select>
         </label>

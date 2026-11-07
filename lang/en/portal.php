@@ -6174,4 +6174,7 @@ return [
     'b2b_qty_reset' => 'Set quantity back to 1',
     'ppm_no_collection_account' => 'The company has no account for this payment method yet. Please choose another method.',
     'stage_payment_fallback' => 'Payment',
+    'ops_warn_head_office_branch_missing_place_code' => 'The head office branch has no place code yet. The program does not guess it. Owner: open Branches, edit the head office and type its place code (MNHC-…).',
+    'ops_head_office_branch_label' => 'Head office branch:',
+    'ops_head_office_open_branches' => 'Open Branches',
 ];

@@ -6174,4 +6174,7 @@ return [
     'b2b_qty_reset' => 'পরিমাণ আবার ১ করুন',
     'ppm_no_collection_account' => 'এই মাধ্যমে কোম্পানির কোনো অ্যাকাউন্ট এখনো নেই। অন্য মাধ্যম বেছে নিন।',
     'stage_payment_fallback' => 'পেমেন্ট',
+    'ops_warn_head_office_branch_missing_place_code' => 'হেড অফিস শাখার এখনো প্লেস কোড নেই। প্রোগ্রাম নিজে থেকে কোড ধরে নেয় না। মালিক: শাখা খুলে হেড অফিস এডিট করুন এবং তার প্লেস কোড (MNHC-…) লিখুন।',
+    'ops_head_office_branch_label' => 'হেড অফিস শাখা:',
+    'ops_head_office_open_branches' => 'শাখা খুলুন',
 ];

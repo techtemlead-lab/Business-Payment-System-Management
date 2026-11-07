@@ -83,7 +83,7 @@ class PartnerEventController extends Controller
             'online_url' => 'nullable|string|max:500|url:https',
             'audience' => ['required', Rule::in(PartnerEvent::Audiences)],
             'divisions' => 'nullable|required_if:audience,divisions|array|max:20',
-            'divisions.*' => ['string', 'max:80', Rule::in($this->calendar->divisionOptions())],
+            'divisions.*' => ['integer', Rule::in(array_column($this->calendar->divisionOptions(), 'id'))],
             'notes' => 'nullable|string|max:5000',
             'send_sms' => 'sometimes|boolean',
         ];

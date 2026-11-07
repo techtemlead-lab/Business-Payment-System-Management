@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\PartnerEvent;
+use App\Models\PlaceCode;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
@@ -54,9 +55,17 @@ class PartnerEventFactory extends Factory
         ]);
     }
 
-    /** @param list<string> $divisions */
+    /**
+     * An event for some divisions, targeted by their place code ids (names kept for display).
+     *
+     * @param  list<PlaceCode>  $divisions
+     */
     public function forDivisions(array $divisions): static
     {
-        return $this->state(fn (): array => ['audience' => 'divisions', 'divisions' => $divisions]);
+        return $this->state(fn (): array => [
+            'audience' => 'divisions',
+            'divisions' => array_map(fn (PlaceCode $place): string => (string) $place->name, $divisions),
+            'division_place_ids' => array_map(fn (PlaceCode $place): int => (int) $place->id, $divisions),
+        ]);
     }
 }
