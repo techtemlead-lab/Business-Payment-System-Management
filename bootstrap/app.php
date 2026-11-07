@@ -14,12 +14,14 @@ use App\Http\Middleware\RestrictAdminIp;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\UseSharedPreviewPortal;
 use App\Support\DatabaseConnectionFailure;
+use App\Support\ErrorPageLocale;
 use App\Support\PortalHost;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Sentry\Laravel\Integration;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -61,6 +63,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Addresses that match no route skip the web middleware, so pick the visitor's language here.
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if ($e instanceof HttpExceptionInterface && $request->route() === null) {
+                ErrorPageLocale::apply($request);
+            }
+
+            return null;
+        });
 
         // Prefer the branded responsive 503 over Ignition when Postgres is unreachable so
         // phones/tablets still get a readable page instead of a broken debug layout.
