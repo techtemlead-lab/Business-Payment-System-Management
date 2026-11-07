@@ -34,7 +34,7 @@
                 @if(!empty($siteCustomization['footer_address']))
                 <span class="ref-footer-contact-link is-address">
                     <i class="fa-solid fa-map-pin" aria-hidden="true"></i>
-                    <span>{{ $siteCustomization['footer_address'] }}</span>
+                    <span>{{ $chrome('footer_address', $siteCustomization['footer_address']) }}</span>
                 </span>
                 @endif
             </div>
