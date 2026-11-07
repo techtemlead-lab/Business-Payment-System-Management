@@ -51,7 +51,7 @@ class DashboardManagement
             'company_audit_enabled' => true,
 
             // Birthday SMS to dealers and sub-dealers. Off by default: every SMS costs money.
-            'birthday_sms_enabled' => false,
+            'birthday_sms_enabled' => true,
         ];
     }
 

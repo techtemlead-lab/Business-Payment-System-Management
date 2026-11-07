@@ -2,6 +2,8 @@
 
 namespace App\Domain\Notifications;
 
+use App\Domain\Integrations\SmsGatewayClient;
+use App\Domain\Security\SecuritySettings;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use Carbon\CarbonImmutable;
@@ -63,6 +65,11 @@ final class BirthdayGreetings
         $result = ['enabled' => false, 'sent' => 0, 'already_sent' => 0, 'failed' => 0];
         if (! (bool) (DashboardManagement::get()['birthday_sms_enabled'] ?? false)) {
             return $result;
+        }
+        // Turned on by the owner (2026-11-05), but a greeting only goes out when SMS can really be
+        // sent: never in trial mode, and only through a configured SMS provider.
+        if (! $this->smsReady()) {
+            return [...$result, 'sms_ready' => false];
         }
         $result['enabled'] = true;
         $today ??= self::today();
@@ -152,5 +159,18 @@ final class BirthdayGreetings
         }
 
         return null;
+    }
+
+    /** True when an SMS would really reach a phone: the test driver, or a configured provider outside trial mode. */
+    private function smsReady(): bool
+    {
+        if (app(SecuritySettings::class)->previewMode()) {
+            return false;
+        }
+        if ((string) config('madina.sms.driver', 'log') === 'array') {
+            return true;
+        }
+
+        return app(SmsGatewayClient::class)->isConfigured();
     }
 }
