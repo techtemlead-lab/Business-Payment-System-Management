@@ -44,21 +44,47 @@ class ReferralTreePath extends Model
         }, 3);
     }
 
-    /** @return list<int> */
+    /**
+     * The sponsor chain above a user, nearest first, read in one query.
+     *
+     * Walks users.sponsor_id (the source of truth the closure rows are built from) with a
+     * recursive query instead of one query per level. The walk stops at the first repeated id,
+     * so a loop in the data is reported as a circular hierarchy, as before.
+     *
+     * @return list<int>
+     */
     private static function ancestors(int $userId, ?int $sponsorId): array
     {
         if ($sponsorId === $userId) {
             throw new InvalidArgumentException(__('portal.err_tree_self_sponsor'));
         }
-        $seen = [$userId];
+        if (! $sponsorId) {
+            return [];
+        }
+        $chain = DB::select(<<<'SQL'
+            WITH RECURSIVE chain (id, sponsor_id, depth, seen, is_cycle) AS (
+                SELECT u.id, u.sponsor_id, 0, ARRAY[CAST(? AS bigint), u.id], false
+                FROM users u WHERE u.id = ?
+                UNION ALL
+                SELECT u.id, u.sponsor_id, c.depth + 1, c.seen || u.id, u.id = ANY(c.seen)
+                FROM users u JOIN chain c ON u.id = c.sponsor_id
+                WHERE NOT c.is_cycle
+            )
+            SELECT id, sponsor_id, is_cycle FROM chain ORDER BY depth
+            SQL, [$userId, $sponsorId]);
+        if ($chain === []) {
+            User::whereKey($sponsorId)->firstOrFail();
+        }
         $ids = [];
-        while ($sponsorId) {
-            if (in_array($sponsorId, $seen, true)) {
+        foreach ($chain as $row) {
+            if ($row->is_cycle) {
                 throw new InvalidArgumentException(__('portal.err_tree_circular_hierarchy'));
             }
-            $seen[] = $sponsorId;
-            $ids[] = $sponsorId;
-            $sponsorId = User::whereKey($sponsorId)->firstOrFail()->sponsor_id;
+            $ids[] = (int) $row->id;
+        }
+        $top = end($chain);
+        if ($top->sponsor_id) {
+            User::whereKey($top->sponsor_id)->firstOrFail();
         }
 
         return $ids;
