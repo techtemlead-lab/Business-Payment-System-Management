@@ -5,7 +5,7 @@ import {
     Lock, Mail, Phone, Key, AlertCircle, Sparkles, Filter, CheckCircle2,
     XCircle, Clock, ArrowRight, ShieldAlert, Award
 } from 'lucide-react';
-import { Table, Pagination, Badge, Empty, date, type Row, number } from './UI';
+import { Table, Pagination, Badge, Empty, date, label, type Row, number } from './UI';
 import AccountPasswordManager from './AccountPasswordManager';
 import { useT } from '../shared/i18n/t';
 
@@ -259,7 +259,7 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                         {
                             key: 'role',
                             title: translate('portal', 'col_role'),
-                            render: (r: Row) => r.role || '—',
+                            render: (r: Row) => r.role ? label(String(r.role), translate) : '—',
                         },
                         {
                             key: 'branch',
