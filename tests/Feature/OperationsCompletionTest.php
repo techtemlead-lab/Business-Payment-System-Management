@@ -12,6 +12,7 @@ use App\Domain\Staff\TerritoryAccess;
 use App\Models\AreaDealerAssignment;
 use App\Models\CommissionAllocation;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\CommissionRuleSeeder;
@@ -203,7 +204,8 @@ class OperationsCompletionTest extends TestCase
         $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'super_admin']);
         $sr = User::factory()->create(['role' => 'sr']);
-        $buyer = User::factory()->create(['division' => 'RANGPUR', 'district' => 'Kurigram']);
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $buyer = User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Kurigram']))->create();
         $territory = app(TerritoryAccess::class)->assign($admin, ['staff_id' => $sr->id, 'level' => 'division', 'division' => 'Rangpur']);
         $this->actingAs($admin)->postJson('/api/v1/operations/staff/targets', ['staff_id' => $sr->id, 'period_month' => '2026-10', 'target' => '50', 'bonus' => '1000'])->assertOk();
         $order = $this->postedOrder($buyer);
@@ -223,9 +225,10 @@ class OperationsCompletionTest extends TestCase
     {
         $this->enableFinancialPosting();
         $admin = User::factory()->create(['role' => 'finance']);
-        $area = User::factory()->create(['division' => 'Rangpur']);
-        $buyer = User::factory()->create(['division' => 'Rangpur']);
-        $assignment = AreaDealerAssignment::create(['user_id' => $area->id, 'level' => 'division', 'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => '100', 'is_active' => true]);
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $area = User::factory()->inPlace($rangpur)->create();
+        $buyer = User::factory()->inPlace($rangpur)->create();
+        $assignment = AreaDealerAssignment::create(['user_id' => $area->id, 'level' => 'division', 'place_code_id' => $rangpur->id, 'division' => 'Rangpur', 'zone_name' => 'Rangpur', 'monthly_quota' => '100', 'is_active' => true]);
         $order = $this->postedOrder($buyer);
         $hold = CommissionAllocation::where('order_id', $order->id)->where('category', 'area_division')->firstOrFail();
         $url = '/api/v1/operations/holds/'.$hold->id.'/release';

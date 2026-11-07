@@ -6,11 +6,13 @@ use App\Models\AreaDealerAssignment;
 use App\Models\PlaceCode;
 use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves purchase geography from place codes and the designated base-place chain
- * ("last serial") so area commissions can be matched by code rather than free-text names.
+ * ("last serial") so area commissions are matched by code, never by free-text names.
+ * A buyer with no usable place code gets an empty "unplaced" geography: their area
+ * shares go to the company reserve instead of guessing a place from a name such as
+ * "Dhaka", which can be a division, a district or an upazila.
  */
 final class PlaceGeographyResolver
 {
@@ -29,25 +31,9 @@ final class PlaceGeographyResolver
      */
     public function forBuyer(User $buyer): array
     {
-        $empty = $this->emptyGeography();
         $anchor = $this->anchorPlaceForBuyer($buyer);
-        if ($anchor) {
-            return $this->expandFromAnchor($anchor, 'place_code');
-        }
 
-        $byName = $this->matchByBuyerNames($buyer);
-        if ($byName) {
-            return $this->expandFromAnchor($byName, 'name_match');
-        }
-
-        return [
-            ...$empty,
-            'division' => $buyer->division,
-            'district' => $buyer->district,
-            'upazila' => $buyer->profile['upazila'] ?? null,
-            'union' => $buyer->profile['union'] ?? null,
-            'resolution' => 'legacy_names',
-        ];
+        return $anchor ? $this->expandFromAnchor($anchor, 'place_code') : $this->unplacedGeography();
     }
 
     /**
@@ -63,24 +49,14 @@ final class PlaceGeographyResolver
             return [];
         }
         $anchors = $this->anchorPlacesForBuyers($buyers);
-        $byName = $this->matchByBuyersNames($buyers->reject(fn (User $buyer): bool => isset($anchors[(int) $buyer->id])));
-        $this->primeChains([...array_values($anchors), ...array_values($byName)]);
+        $this->primeChains(array_values($anchors));
 
         $geographies = [];
         foreach ($buyers as $buyer) {
             $id = (int) $buyer->id;
-            $geographies[$id] = match (true) {
-                isset($anchors[$id]) => $this->expandFromAnchor($anchors[$id], 'place_code'),
-                isset($byName[$id]) => $this->expandFromAnchor($byName[$id], 'name_match'),
-                default => [
-                    ...$this->emptyGeography(),
-                    'division' => $buyer->division,
-                    'district' => $buyer->district,
-                    'upazila' => $buyer->profile['upazila'] ?? null,
-                    'union' => $buyer->profile['union'] ?? null,
-                    'resolution' => 'legacy_names',
-                ],
-            };
+            $geographies[$id] = isset($anchors[$id])
+                ? $this->expandFromAnchor($anchors[$id], 'place_code')
+                : $this->unplacedGeography();
         }
 
         return $geographies;
@@ -139,12 +115,31 @@ final class PlaceGeographyResolver
             }
         }
 
+        $profilePlaceId = self::profilePlaceId($buyer);
+        if ($profilePlaceId !== null) {
+            $place = PlaceCode::query()->whereKey($profilePlaceId)->where('is_active', true)->first();
+            if ($place && $place->level !== PlaceCode::LevelManagement) {
+                return $place;
+            }
+        }
+
         $profileCode = trim((string) ($buyer->profile['place_code'] ?? $buyer->profile['area_code'] ?? ''));
         if ($profileCode !== '') {
             $place = PlaceCode::findByCode($profileCode);
             if ($place && $place->level !== PlaceCode::LevelManagement) {
                 return $place;
             }
+        }
+
+        return null;
+    }
+
+    /** The place code id saved on a partner's profile, when it is a usable number. */
+    public static function profilePlaceId(User $user): ?int
+    {
+        $value = is_array($user->profile) ? ($user->profile['place_code_id'] ?? null) : null;
+        if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+            return (int) $value > 0 ? (int) $value : null;
         }
 
         return null;
@@ -181,6 +176,25 @@ final class PlaceGeographyResolver
             }
         }
 
+        $profileIds = [];
+        foreach ($buyers as $buyer) {
+            $placeId = isset($anchors[(int) $buyer->id]) ? null : self::profilePlaceId($buyer);
+            if ($placeId !== null) {
+                $profileIds[(int) $buyer->id] = $placeId;
+            }
+        }
+        $placesById = $profileIds === [] ? collect() : PlaceCode::query()
+            ->whereIn('id', array_values(array_unique($profileIds)))
+            ->where('is_active', true)
+            ->get()
+            ->keyBy('id');
+        foreach ($profileIds as $userId => $placeId) {
+            $place = $placesById->get($placeId);
+            if ($place && $place->level !== PlaceCode::LevelManagement) {
+                $anchors[$userId] = $place;
+            }
+        }
+
         /** @var array<int, array{0: string, 1: string}> $profileCodes */
         $profileCodes = [];
         foreach ($buyers as $buyer) {
@@ -210,63 +224,6 @@ final class PlaceGeographyResolver
         }
 
         return $anchors;
-    }
-
-    /**
-     * matchByBuyerNames() for many buyers: one query per level instead of per buyer.
-     *
-     * @param  Collection<int, User>  $buyers
-     * @return array<int, PlaceCode> user id => the single place matching their most specific name
-     */
-    private function matchByBuyersNames(Collection $buyers): array
-    {
-        $levels = [PlaceCode::LevelUnion, PlaceCode::LevelUpazila, PlaceCode::LevelDistrict, PlaceCode::LevelDivision];
-        $namesByBuyer = [];
-        $keysByLevel = array_fill_keys($levels, []);
-        foreach ($buyers as $buyer) {
-            $names = [
-                PlaceCode::LevelUnion => trim((string) ($buyer->profile['union'] ?? '')),
-                PlaceCode::LevelUpazila => trim((string) ($buyer->profile['upazila'] ?? '')),
-                PlaceCode::LevelDistrict => trim((string) ($buyer->district ?? '')),
-                PlaceCode::LevelDivision => trim((string) ($buyer->division ?? '')),
-            ];
-            $namesByBuyer[(int) $buyer->id] = $names;
-            foreach ($names as $level => $name) {
-                if ($name !== '') {
-                    $keysByLevel[$level][mb_strtolower($name)] = true;
-                }
-            }
-        }
-
-        /** @var array<string, array<string, Collection<int, PlaceCode>>> $placesByLevel */
-        $placesByLevel = [];
-        foreach ($keysByLevel as $level => $keys) {
-            $placesByLevel[$level] = $keys === [] ? [] : PlaceCode::query()
-                ->select('place_codes.*')
-                ->selectRaw('LOWER(TRIM(name)) AS name_match_key')
-                ->where('level', $level)
-                ->where('is_active', true)
-                ->whereIn(DB::raw('LOWER(TRIM(name))'), array_map('strval', array_keys($keys)))
-                ->get()
-                ->groupBy('name_match_key')
-                ->all();
-        }
-
-        $matches = [];
-        foreach ($namesByBuyer as $userId => $names) {
-            foreach ($levels as $level) {
-                if ($names[$level] === '') {
-                    continue;
-                }
-                $found = $placesByLevel[$level][mb_strtolower($names[$level])] ?? null;
-                if ($found !== null && $found->count() === 1) {
-                    $matches[$userId] = $found->first();
-                    break;
-                }
-            }
-        }
-
-        return $matches;
     }
 
     /**
@@ -335,36 +292,6 @@ final class PlaceGeographyResolver
         }
     }
 
-    private function matchByBuyerNames(User $buyer): ?PlaceCode
-    {
-        $union = trim((string) ($buyer->profile['union'] ?? ''));
-        $upazila = trim((string) ($buyer->profile['upazila'] ?? ''));
-        $district = trim((string) ($buyer->district ?? ''));
-        $division = trim((string) ($buyer->division ?? ''));
-
-        foreach ([
-            [PlaceCode::LevelUnion, $union],
-            [PlaceCode::LevelUpazila, $upazila],
-            [PlaceCode::LevelDistrict, $district],
-            [PlaceCode::LevelDivision, $division],
-        ] as [$level, $name]) {
-            if ($name === '') {
-                continue;
-            }
-            $matches = PlaceCode::query()
-                ->where('level', $level)
-                ->where('is_active', true)
-                ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
-                ->limit(2)
-                ->get();
-            if ($matches->count() === 1) {
-                return $matches->first();
-            }
-        }
-
-        return null;
-    }
-
     /** @param  array<string, mixed>  $geography */
     private function writeLevel(array &$geography, PlaceCode $place): void
     {
@@ -381,6 +308,17 @@ final class PlaceGeographyResolver
         $geography[$place->level] = $place->name;
         $geography['codes'][$place->level] = $place->code;
         $geography['place_ids'][$place->level] = $place->id;
+    }
+
+    /**
+     * The geography of a buyer with no usable place code: no names and no ids,
+     * so nothing downstream can match it by name.
+     *
+     * @return array<string, mixed>
+     */
+    private function unplacedGeography(): array
+    {
+        return [...$this->emptyGeography(), 'resolution' => 'unplaced'];
     }
 
     /** @return array<string, mixed> */

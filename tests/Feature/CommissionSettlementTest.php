@@ -11,6 +11,7 @@ use App\Domain\Orders\OrderService;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\DealerRank;
 use App\Models\Order;
+use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Money;
@@ -53,11 +54,27 @@ class CommissionSettlementTest extends TestCase
         return $order;
     }
 
+    /**
+     * Two Rangpur-division dealers (in different districts) and one Dhaka-division dealer,
+     * each keyed to a place code.
+     *
+     * @return array{0: User, 1: User, 2: User}
+     */
+    private function rangpurAndDhakaDealers(): array
+    {
+        $rangpur = PlaceCode::factory()->division()->create(['name' => 'Rangpur']);
+        $dhaka = PlaceCode::factory()->division()->create(['name' => 'Dhaka']);
+
+        return [
+            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Rangpur']))->create(),
+            User::factory()->inPlace(PlaceCode::factory()->district($rangpur)->create(['name' => 'Dinajpur']))->create(),
+            User::factory()->inPlace(PlaceCode::factory()->district($dhaka)->create(['name' => 'Gazipur']))->create(),
+        ];
+    }
+
     public function test_salary_pool_is_shared_within_each_division_and_unclaimed_division_money_becomes_company_profit(): void
     {
-        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
         $this->purchase($rangpurA, '10000.00', '20000.00');
         $this->purchase($rangpurB, '10000.00', '20000.00');
         $this->purchase($dhaka, '5000.00', '10000.00');
@@ -84,9 +101,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_salary_preview_shows_exactly_what_settlement_then_pays(): void
     {
-        $rangpurA = User::factory()->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
-        $rangpurB = User::factory()->create(['division' => 'Rangpur', 'district' => 'Dinajpur']);
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        [$rangpurA, $rangpurB, $dhaka] = $this->rangpurAndDhakaDealers();
         $this->purchase($rangpurA, '10000.00', '20000.00');
         $this->purchase($rangpurB, '10000.00', '20000.00');
         $this->purchase($dhaka, '5000.00', '10000.00');
@@ -115,7 +130,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_leftover_paisa_take_turns_instead_of_always_going_to_the_lowest_ids(): void
     {
-        $dealers = User::factory()->count(3)->create(['division' => 'Rangpur', 'district' => 'Rangpur']);
+        $dealers = User::factory()->count(3)->inPlace(PlaceCode::factory()->division()->create(['name' => 'Rangpur']))->create();
         foreach ($dealers as $dealer) {
             $this->purchase($dealer, '10000.00', '20000.00');
         }
@@ -140,7 +155,7 @@ class CommissionSettlementTest extends TestCase
     public function test_treasury_counts_settled_pool_leftovers_once(): void
     {
         $owner = User::factory()->staff()->create();
-        $dhaka = User::factory()->create(['division' => 'Dhaka', 'district' => 'Gazipur']);
+        $dhaka = User::factory()->inPlace(PlaceCode::factory()->division()->create(['name' => 'Dhaka']))->create();
         $this->purchase($dhaka, '5000.00', '10000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $version = (string) (new HandleInertiaRequests)->version(Request::create('/'));
@@ -160,8 +175,9 @@ class CommissionSettlementTest extends TestCase
 
     public function test_closed_month_salary_uses_actual_period_volume_and_sub_dealer_receives_flat_three_percent_once(): void
     {
-        $dealer = User::factory()->create();
-        $sub = User::factory()->create(['role' => 'sub_dealer']);
+        $division = PlaceCode::factory()->division()->create();
+        $dealer = User::factory()->inPlace($division)->create();
+        $sub = User::factory()->inPlace($division)->create(['role' => 'sub_dealer']);
         $this->purchase($dealer, '10000.00', '20000.00');
         $this->purchase($sub, '12000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
@@ -177,7 +193,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_settlement_refunds_recover_both_direct_earnings_and_source_pool_payouts_without_repeating(): void
     {
-        $dealer = User::factory()->create();
+        $dealer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
         $order = $this->purchase($dealer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $service = app(CommissionService::class);
@@ -320,7 +336,7 @@ class CommissionSettlementTest extends TestCase
 
     public function test_monthly_salary_retains_the_qualification_rule_captured_by_its_source_order(): void
     {
-        $buyer = User::factory()->create();
+        $buyer = User::factory()->inPlace(PlaceCode::factory()->division()->create())->create();
         $this->purchase($buyer, '10000.00', '20000.00');
         $this->travelTo(now()->setDate(2026, 10, 1));
         $this->actingAs(User::factory()->create(['role' => 'super_admin']))->patchJson('/api/v1/finance/policy',
