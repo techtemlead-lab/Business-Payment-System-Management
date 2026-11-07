@@ -22,9 +22,12 @@ return [
     'force_built_assets' => (bool) env('MADINA_FORCE_BUILT_ASSETS', false),
     // Comma/space-separated IPs or CIDRs for manage/sadmin. Empty = unrestricted (preview-safe).
     'admin_ip_allowlist' => env('MADINA_ADMIN_IP_ALLOWLIST', ''),
-    // Staff/owner TOTP after optional post-login enrollment. Forced off while MADINA_PREVIEW_MODE=true.
+    // Staff/owner TOTP (authenticator app). Forced off while MADINA_PREVIEW_MODE=true.
     'totp' => [
         'enabled' => env('MADINA_TOTP_ENABLED', true),
+        // Owners (Super Admin, MD, Chairman) and finance staff must set up the app at their next
+        // sign-in (owner decision Q14). Also off while MADINA_PREVIEW_MODE=true.
+        'required' => env('MADINA_TOTP_REQUIRED', true),
     ],
     'privacy' => [
         // Days to retain closed support/enquiry records; 0 disables automated retention guidance.

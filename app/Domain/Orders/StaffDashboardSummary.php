@@ -63,14 +63,23 @@ final class StaffDashboardSummary
                 'section' => 'withdrawals',
             ];
         }
+        $deliveryCounts = $this->deliveryCounts($viewer);
         if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'orders_to_dispatch',
-                'count' => Order::whereIn('status', OrderListFilter::AwaitingDispatch)
-                    ->whereHas('lines', fn ($lines) => $lines->whereColumn('dispatched', '<', 'quantity'))
-                    ->count(),
+                'count' => $deliveryCounts['to_dispatch'],
                 'section' => 'deliveries',
             ];
+        }
+        if (OverdueDeliveries::visibleTo($viewer)) {
+            $queue[] = [
+                'key' => 'deliveries_overdue',
+                'count' => $deliveryCounts['overdue'],
+                'section' => 'deliveries',
+                'query' => ['status' => OverdueDeliveries::Filter],
+            ];
+        }
+        if ($viewer->allows('inventory')) {
             $queue[] = [
                 'key' => 'low_stock_products',
                 'count' => Product::where('active', true)->whereColumn('stock', '<=', 'low_stock_at')->count(),
@@ -86,6 +95,30 @@ final class StaffDashboardSummary
         }
 
         return $queue;
+    }
+
+    /**
+     * Orders still to send and orders sent but not marked delivered, counted in one query
+     * so the home screen does not grow a query for the overdue list.
+     *
+     * @return array{to_dispatch: int, overdue: int}
+     */
+    private function deliveryCounts(User $viewer): array
+    {
+        if (! $viewer->allows('inventory') && ! OverdueDeliveries::visibleTo($viewer)) {
+            return ['to_dispatch' => 0, 'overdue' => 0];
+        }
+        $awaiting = "'".implode("', '", OrderListFilter::AwaitingDispatch)."'";
+        $row = Order::query()->toBase()
+            ->whereIn('status', OrderListFilter::AwaitingDispatch)
+            ->selectRaw(
+                "COUNT(*) FILTER (WHERE orders.status IN ({$awaiting}) AND EXISTS (SELECT 1 FROM order_lines WHERE order_lines.order_id = orders.id AND order_lines.dispatched < order_lines.quantity)) AS to_dispatch, "
+                .'COUNT(*) FILTER (WHERE '.OverdueDeliveries::conditionSql().') AS overdue',
+                OverdueDeliveries::bindings(),
+            )
+            ->first();
+
+        return ['to_dispatch' => (int) ($row->to_dispatch ?? 0), 'overdue' => (int) ($row->overdue ?? 0)];
     }
 
     /**
