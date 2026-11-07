@@ -24,6 +24,31 @@ final class WebPushNotices
         return filled(config('webpush.vapid.public_key')) && filled(config('webpush.vapid.private_key'));
     }
 
+    /**
+     * True when the endpoint is an https address on a known browser push service
+     * (config madina.web_push_hosts or one of its subdomains). Other addresses are refused,
+     * because the server later posts to the saved endpoint.
+     */
+    public static function isPushServiceEndpoint(string $endpoint): bool
+    {
+        $parts = parse_url($endpoint);
+        if (! is_array($parts) || ($parts['scheme'] ?? '') !== 'https' || isset($parts['port']) || isset($parts['user'])) {
+            return false;
+        }
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if ($host === '') {
+            return false;
+        }
+        foreach ((array) config('madina.web_push_hosts', []) as $allowed) {
+            $allowed = strtolower((string) $allowed);
+            if ($allowed !== '' && ($host === $allowed || str_ends_with($host, '.'.$allowed))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function publicKey(): ?string
     {
         return self::enabled() ? (string) config('webpush.vapid.public_key') : null;

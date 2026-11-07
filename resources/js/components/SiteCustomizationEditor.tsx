@@ -196,6 +196,10 @@ export interface CustomizationData {
     testimonials_section_enabled?: string;
     testimonials_title?: string;
     testimonials_subtitle?: string;
+    testimonials_invite_title?: string;
+    testimonials_invite_body?: string;
+    feedback_page_title?: string;
+    feedback_page_lead?: string;
 
     // Homepage Story
     company_intro_title?: string;
@@ -3855,6 +3859,10 @@ export default function SiteCustomizationEditor({
             testimonials_section_enabled: customization.testimonials_section_enabled !== undefined ? customization.testimonials_section_enabled : '1',
             testimonials_title: customization.testimonials_title || '',
             testimonials_subtitle: customization.testimonials_subtitle || '',
+            testimonials_invite_title: customization.testimonials_invite_title || '',
+            testimonials_invite_body: customization.testimonials_invite_body || '',
+            feedback_page_title: customization.feedback_page_title || '',
+            feedback_page_lead: customization.feedback_page_lead || '',
 
             // Homepage Story
             company_intro_title: customization.company_intro_title || '',
@@ -4631,6 +4639,10 @@ export default function SiteCustomizationEditor({
                                     <div className="form-grid ed-grid is-md">
                                         <Field label={translate('portal', 'sce_f_testimonials_title')} fieldKey="testimonials_title" value={form.data.customization.testimonials_title} placeholder={defaults.testimonials_title} onChange={updateField} />
                                         <Field label={translate('portal', 'sce_f_testimonials_subtitle')} fieldKey="testimonials_subtitle" value={form.data.customization.testimonials_subtitle} placeholder={defaults.testimonials_subtitle} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_fld_testimonials_invite_title')} fieldKey="testimonials_invite_title" value={form.data.customization.testimonials_invite_title} placeholder={defaults.testimonials_invite_title} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_fld_testimonials_invite_body')} fieldKey="testimonials_invite_body" value={form.data.customization.testimonials_invite_body} placeholder={defaults.testimonials_invite_body} onChange={updateField} multiline rows={2} />
+                                        <Field label={translate('portal', 'sce_fld_feedback_page_title')} fieldKey="feedback_page_title" value={form.data.customization.feedback_page_title} placeholder={defaults.feedback_page_title} onChange={updateField} />
+                                        <Field label={translate('portal', 'sce_fld_feedback_page_lead')} fieldKey="feedback_page_lead" value={form.data.customization.feedback_page_lead} placeholder={defaults.feedback_page_lead} onChange={updateField} multiline rows={2} />
                                     </div>
                                 </div>
                             </div>

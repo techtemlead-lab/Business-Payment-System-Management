@@ -71,6 +71,22 @@ class LoginTotpRequiredTest extends TestCase
         $this->onPortal('manage')->get('/')->assertRedirect(RequireAuthenticatorSetup::SetupPath);
     }
 
+    public function test_money_and_import_operations_also_wait_for_the_authenticator_app(): void
+    {
+        $finance = $this->staffAccount('finance', '01912345675');
+        $this->signInThroughForm('manage', $finance->email, self::Password)->assertRedirect(RequireAuthenticatorSetup::SetupPath);
+
+        $this->onPortal('manage')->post('/commands/operations/payment-accounts', ['label' => 'Main bKash'])
+            ->assertRedirect(RequireAuthenticatorSetup::SetupPath);
+        $this->onPortal('manage')->get('/commands/operations/views/payroll')
+            ->assertRedirect(RequireAuthenticatorSetup::SetupPath);
+        $this->onPortal('manage')->postJson('/api/v1/operations/payroll/prepare', ['month' => now()->format('Y-m')])
+            ->assertForbidden();
+        $this->onPortal('manage')->getJson('/api/v1/operations/imports')->assertForbidden();
+        $this->onPortal('manage')->get('/commands/operations/imports')->assertRedirect(RequireAuthenticatorSetup::SetupPath);
+        $this->assertDatabaseCount('payment_accounts', 0);
+    }
+
     public function test_md_and_chairman_must_set_up_the_app_too(): void
     {
         foreach (['md' => '01912345673', 'chairman' => '01912345674'] as $role => $phone) {
