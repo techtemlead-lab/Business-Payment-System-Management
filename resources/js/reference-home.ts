@@ -57,6 +57,36 @@ function toast(message:string){const node=document.querySelector<HTMLElement>('.
 function initCarousel(root:HTMLElement,intervalMs:number=6000){const slides=[...root.querySelectorAll<HTMLElement>('.ref-slides > .ref-slide')];const dots=[...root.querySelectorAll<HTMLButtonElement>('.ref-carousel-dots > [data-slide]')];if(!slides.length)return;let current=0;let timer:ReturnType<typeof setInterval>;function show(index:number){current=(index+slides.length)%slides.length;slides.forEach((slide,i)=>{slide.classList.toggle('is-active',i===current);slide.setAttribute('aria-hidden',String(i!==current));slide.tabIndex=i===current?0:-1;});dots.forEach((dot,i)=>{dot.classList.toggle('is-active',i===current);dot.setAttribute('aria-current',String(i===current));});}function start(){clearInterval(timer);if(slides.length>1&&!matchMedia('(prefers-reduced-motion: reduce)').matches)timer=setInterval(()=>show(current+1),intervalMs);}root.querySelector('.ref-carousel-arrow.prev')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(current-1);start();});root.querySelector('.ref-carousel-arrow.next')?.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(current+1);start();});dots.forEach(dot=>dot.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();show(Number(dot.dataset.slide));start();}));root.addEventListener('mouseenter',()=>clearInterval(timer));root.addEventListener('mouseleave',start);root.addEventListener('focusin',()=>clearInterval(timer));root.addEventListener('focusout',start);let touchStartX=0;let touchStartY=0;root.addEventListener('touchstart',e=>{if(e.changedTouches?.[0]){touchStartX=e.changedTouches[0].clientX;touchStartY=e.changedTouches[0].clientY;}},{passive:true});root.addEventListener('touchend',e=>{if(e.changedTouches?.[0]){const diffX=e.changedTouches[0].clientX-touchStartX;const diffY=e.changedTouches[0].clientY-touchStartY;if(Math.abs(diffX)>35&&Math.abs(diffX)>Math.abs(diffY)){if(diffX<0)show(current+1);else show(current-1);start();}}},{passive:true});document.addEventListener('visibilitychange',()=>{if(document.hidden)clearInterval(timer);else start();});show(0);start();}
 document.querySelectorAll<HTMLElement>('.ref-carousel-instance').forEach((el,idx)=>{initCarousel(el,idx===0?6000:(idx===1?4800:6400));});
 const topButton=document.querySelector<HTMLElement>('.ref-back-top');window.addEventListener('scroll',()=>topButton?.classList.toggle('visible',window.scrollY>360),{passive:true});topButton?.addEventListener('click',()=>window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));
+
+/**
+ * Phones and tablets: tuck the WhatsApp button away while the visitor scrolls down to read,
+ * and bring it back as soon as they scroll up (or are near the top). The CSS only acts on
+ * this class below 1024px, where the bottom menu shows.
+ */
+function initFloatingChatTuck(): void {
+    if (!document.querySelector('aside.ref-floating-tools')) {
+        return;
+    }
+    let lastY = window.scrollY;
+    let ticking = false;
+    const update = () => {
+        ticking = false;
+        const y = window.scrollY;
+        const delta = y - lastY;
+        if (Math.abs(delta) < 6) {
+            return;
+        }
+        document.body.classList.toggle('ref-fab-tucked', delta > 0 && y > 160);
+        lastY = y;
+    };
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(update);
+        }
+    }, { passive: true });
+}
+initFloatingChatTuck();
 document.querySelectorAll<HTMLSelectElement>('[data-autosubmit]').forEach(select=>select.addEventListener('change',()=>select.form?.requestSubmit()));
 const tabs=[...document.querySelectorAll<HTMLButtonElement>('[data-info-tab]')];
 function activateTab(tab:HTMLButtonElement){tabs.forEach(other=>{const selected=other===tab;other.setAttribute('aria-selected',String(selected));other.tabIndex=selected?0:-1;const panel=document.getElementById(other.dataset.infoTab!);if(panel)panel.hidden=!selected;});}
