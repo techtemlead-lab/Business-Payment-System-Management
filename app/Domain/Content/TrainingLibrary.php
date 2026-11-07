@@ -158,7 +158,7 @@ final class TrainingLibrary
             ...(! $forStaff && $quiz !== null ? ['progress' => [
                 'completed' => $completion?->passed_at !== null,
                 'completed_at' => $completion?->passed_at?->toIso8601String(),
-                'attempts' => (int) ($completion?->attempts ?? 0),
+                'attempts' => (int) ($completion->attempts ?? 0),
                 'last_score' => $completion?->attempts ? $completion->last_score : null,
                 'certificate_url' => $completion?->passed_at !== null ? '/training/'.$item->id.'/certificate' : null,
             ]] : []),
