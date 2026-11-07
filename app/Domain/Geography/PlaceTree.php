@@ -91,6 +91,21 @@ final class PlaceTree
     }
 
     /**
+     * The division a place lies in (the place itself when it is a division), by place code id.
+     */
+    public function divisionOf(?int $placeId): ?PlaceCode
+    {
+        if ($placeId === null) {
+            return null;
+        }
+
+        return PlaceCode::query()
+            ->whereIn('id', $this->selfAndAncestorIds($placeId))
+            ->where('level', PlaceCode::LevelDivision)
+            ->first();
+    }
+
+    /**
      * Whether the place is one of the roots or lies inside one of them.
      *
      * @param  list<int>  $rootIds

@@ -3,6 +3,9 @@
 namespace App\Domain\Orders;
 
 use App\Domain\Commissions\CommissionQualification;
+use App\Domain\Geography\PlaceGeographyResolver;
+use App\Domain\Geography\PlaceTree;
+use App\Models\PlaceCode;
 use App\Models\User;
 use App\Support\DashboardManagement;
 use App\Support\Money;
@@ -70,6 +73,7 @@ final class TopSellersBoard
      *   months: list<string>,
      *   show_amounts: bool,
      *   division: string|null,
+     *   division_id: int|null,
      *   national: list<BoardEntry>,
      *   divisional: list<BoardEntry>,
      *   me: array{national_rank: int, division_rank: int|null, amount: string|null, percent: float, in_top: bool}|null,
@@ -79,7 +83,9 @@ final class TopSellersBoard
     public function forPartner(User $viewer, ?string $month): array
     {
         $month = self::resolveMonth($month);
-        $division = $this->cleanDivision($viewer->division);
+        // The viewer's division is the division their place code lies in, never their typed name.
+        $divisionPlace = app(PlaceTree::class)->divisionOf(PlaceGeographyResolver::profilePlaceId($viewer));
+        $division = $divisionPlace !== null ? (int) $divisionPlace->id : null;
         $showAmounts = (bool) (DashboardManagement::get()['top_sellers_show_amounts'] ?? true);
         $viewerId = $viewer->role === 'dealer' ? (int) $viewer->id : null;
         $rows = $this->rankedRows($month, $division, $viewerId);
@@ -95,13 +101,13 @@ final class TopSellersBoard
             if ($listed && (int) $row->national_rank <= self::Size) {
                 $national[] = $this->entry($row, (int) $row->national_rank, (string) $row->national_top, $isMe, $showAmounts);
             }
-            if ($listed && $division !== null && $row->division === $division && (int) $row->division_rank <= self::Size) {
+            if ($listed && $this->inDivision($row, $division) && (int) $row->division_rank <= self::Size) {
                 $divisional[] = $this->entry($row, (int) $row->division_rank, (string) $row->division_top, $isMe, $showAmounts);
             }
             if ($isMe) {
                 $me = [
                     'national_rank' => (int) $row->national_rank,
-                    'division_rank' => $division !== null && $row->division === $division ? (int) $row->division_rank : null,
+                    'division_rank' => $this->inDivision($row, $division) ? (int) $row->division_rank : null,
                     'amount' => $showAmounts ? Money::decimal(Money::cents((string) $row->amount)) : null,
                     'percent' => $this->percent((string) $row->amount, (string) $row->national_top),
                     'in_top' => (int) $row->national_rank <= self::Size,
@@ -113,7 +119,8 @@ final class TopSellersBoard
             'month' => $month,
             'months' => self::months(),
             'show_amounts' => $showAmounts,
-            'division' => $division,
+            'division' => $divisionPlace?->name,
+            'division_id' => $division,
             'national' => $national,
             'divisional' => $this->sortByRank($divisional),
             'me' => $me,
@@ -130,15 +137,24 @@ final class TopSellersBoard
      *   months: list<string>,
      *   show_amounts: bool,
      *   division: string|null,
-     *   divisions: list<string>,
+     *   division_id: int|null,
+     *   divisions: list<array{id: int, name: string}>,
      *   national: list<BoardEntry>,
      *   divisional: list<BoardEntry>
      * }
      */
-    public function forStaff(?string $month, ?string $division): array
+    public function forStaff(?string $month, ?string $divisionId): array
     {
         $month = self::resolveMonth($month);
-        $division = $this->cleanDivision($division);
+        $divisions = PlaceCode::query()
+            ->where('level', PlaceCode::LevelDivision)
+            ->where('is_active', true)
+            ->whereNotNull('code')
+            ->orderBy('name')
+            ->get(['id', 'name']);
+        $chosen = filter_var($divisionId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $divisionPlace = $chosen === false ? null : $divisions->firstWhere('id', $chosen);
+        $division = $divisionPlace !== null ? (int) $divisionPlace->id : null;
         $rows = $this->rankedRows($month, $division, null);
 
         $national = [];
@@ -147,7 +163,7 @@ final class TopSellersBoard
             if ((int) $row->national_rank <= self::Size) {
                 $national[] = $this->entry($row, (int) $row->national_rank, (string) $row->national_top, false, true) + ['hidden' => ! $row->directory_visible];
             }
-            if ($division !== null && $row->division === $division && (int) $row->division_rank <= self::Size) {
+            if ($this->inDivision($row, $division) && (int) $row->division_rank <= self::Size) {
                 $divisional[] = $this->entry($row, (int) $row->division_rank, (string) $row->division_top, false, true) + ['hidden' => ! $row->directory_visible];
             }
         }
@@ -156,59 +172,75 @@ final class TopSellersBoard
             'month' => $month,
             'months' => self::months(),
             'show_amounts' => true,
-            'division' => $division,
-            'divisions' => DB::table('users')
-                ->where('role', 'dealer')
-                ->where('status', 'active')
-                ->whereNotNull('division')
-                ->where('division', '<>', '')
-                ->distinct()
-                ->orderBy('division')
-                ->pluck('division')
-                ->map(fn ($name): string => (string) $name)
-                ->values()
-                ->all(),
+            'division' => $divisionPlace?->name,
+            'division_id' => $division,
+            'divisions' => $divisions->map(fn (PlaceCode $place): array => ['id' => (int) $place->id, 'name' => (string) $place->name])->values()->all(),
             'national' => $national,
             'divisional' => $this->sortByRank($divisional),
         ];
     }
 
+    /** Whether a ranked row's dealer lies in the given division place (by place code id). */
+    private function inDivision(object $row, ?int $division): bool
+    {
+        return $division !== null && $row->division_id !== null && (int) $row->division_id === $division;
+    }
+
     /**
      * One grouped query: each active dealer's confirmed purchases in the month,
-     * ranked nationally and inside their division. Only the rows a board can show
-     * come back: the national top, the asked division's top and the viewer.
+     * ranked nationally and inside their division. A dealer's division is the division
+     * place their place code lies in (walked up the place tree by id); dealers without a
+     * place code rank nationally only. Only the rows a board can show come back: the
+     * national top, the asked division's top and the viewer.
      *
      * @return list<object>
      */
-    private function rankedRows(string $month, ?string $division, ?int $viewerId): array
+    private function rankedRows(string $month, ?int $division, ?int $viewerId): array
     {
         [$start, $end] = CommissionQualification::period($month);
         $statuses = OrderListFilter::Confirmed;
         $statusPlaceholders = implode(', ', array_fill(0, count($statuses), '?'));
+        $userPlace = PlaceTree::partnerPlaceIdSql('users');
 
         $sql = <<<SQL
-            WITH totals AS (
+            WITH RECURSIVE totals AS (
                 SELECT orders.user_id, SUM(orders.total) AS amount
                 FROM orders
                 WHERE orders.status IN ({$statusPlaceholders})
                   AND orders.created_at >= ?
                   AND orders.created_at < ?
                 GROUP BY orders.user_id
+            ), chain AS (
+                SELECT users.id AS user_id, place_codes.id AS place_id, place_codes.parent_id, place_codes.level, 0 AS depth
+                FROM users
+                JOIN place_codes ON place_codes.id = {$userPlace}
+                WHERE users.id IN (SELECT user_id FROM totals)
+                UNION ALL
+                SELECT chain.user_id, parent.id, parent.parent_id, parent.level, chain.depth + 1
+                FROM chain
+                JOIN place_codes AS parent ON parent.id = chain.parent_id
+                WHERE chain.depth < 8
+            ), divisions AS (
+                SELECT DISTINCT ON (user_id) user_id, place_id AS division_id
+                FROM chain
+                WHERE level = 'division'
+                ORDER BY user_id, depth
             ), ranked AS (
-                SELECT users.id, users.name, users.dealer_code, users.district, users.division, users.directory_visible, totals.amount,
+                SELECT users.id, users.name, users.dealer_code, users.district, users.division, divisions.division_id, users.directory_visible, totals.amount,
                     RANK() OVER (ORDER BY totals.amount DESC) AS national_rank,
-                    RANK() OVER (PARTITION BY users.division ORDER BY totals.amount DESC) AS division_rank,
+                    RANK() OVER (PARTITION BY divisions.division_id ORDER BY totals.amount DESC) AS division_rank,
                     MAX(totals.amount) OVER () AS national_top,
-                    MAX(totals.amount) OVER (PARTITION BY users.division) AS division_top
+                    MAX(totals.amount) OVER (PARTITION BY divisions.division_id) AS division_top
                 FROM totals
                 JOIN users ON users.id = totals.user_id
+                LEFT JOIN divisions ON divisions.user_id = users.id
                 WHERE users.role = 'dealer'
                   AND users.status = 'active'
                   AND totals.amount > 0
             )
             SELECT * FROM ranked
             WHERE national_rank <= ?
-               OR (division = ? AND division_rank <= ?)
+               OR (division_id = ? AND division_rank <= ?)
                OR id = ?
             ORDER BY national_rank, name, id
             SQL;
@@ -264,12 +296,5 @@ final class TopSellersBoard
         usort($entries, fn (array $left, array $right): int => [$left['rank'], $left['name']] <=> [$right['rank'], $right['name']]);
 
         return $entries;
-    }
-
-    private function cleanDivision(?string $division): ?string
-    {
-        $division = trim((string) $division);
-
-        return $division === '' ? null : $division;
     }
 }
