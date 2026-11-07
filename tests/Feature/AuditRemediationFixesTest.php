@@ -6,6 +6,7 @@ use App\Domain\Auth\LoginOtpChallenge;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AuditRemediationFixesTest extends TestCase
@@ -61,6 +62,33 @@ class AuditRemediationFixesTest extends TestCase
         $server = $this->view('errors.500');
         $server->assertSee(__('site.error_500_heading'), false)
             ->assertSee(__('site.error_back_home'), false);
+    }
+
+    public function test_branded_error_pages_render_for_419_and_429_in_both_languages(): void
+    {
+        foreach (['en', 'bn'] as $locale) {
+            app()->setLocale($locale);
+            foreach (['419', '429'] as $code) {
+                $this->assertNotSame('site.error_'.$code.'_heading', __('site.error_'.$code.'_heading'));
+                $this->view('errors.'.$code)
+                    ->assertSee($code, false)
+                    ->assertSee(__('site.error_'.$code.'_title'), false)
+                    ->assertSee(__('site.error_'.$code.'_heading'), false)
+                    ->assertSee(__('site.error_'.$code.'_body'), false)
+                    ->assertSee(__('site.error_back_home'), false);
+            }
+        }
+        $this->assertNotSame(__('site.error_419_heading', [], 'en'), __('site.error_419_heading', [], 'bn'));
+    }
+
+    public function test_too_many_requests_uses_the_branded_429_page(): void
+    {
+        Route::get('/__throttle-probe', fn () => abort(429));
+
+        $this->onPortal('public')->get('/__throttle-probe')
+            ->assertStatus(429)
+            ->assertSee(__('site.error_429_heading'), false)
+            ->assertSee(__('site.company_bar'), false);
     }
 
     public function test_login_is_stopped_when_sms_gateway_is_unconfigured_except_for_the_super_admin(): void

@@ -309,6 +309,7 @@ class AdversarialMilestone1Test extends TestCase
         $this->assertArrayHasKey('payment_claims', $byTable);
         $paymentClaimsIndexes = implode(' ', array_keys($byTable['payment_claims']));
         $this->assertTrue(
+            isset($byTable['payment_claims']['payment_claims_order_status_index']) ||
             isset($byTable['payment_claims']['payment_claims_order_id_status_index']) ||
             isset($byTable['payment_claims']['payment_claims_order_status_idx']),
             "payment_claims composite index missing. Existing indexes: {$paymentClaimsIndexes}"

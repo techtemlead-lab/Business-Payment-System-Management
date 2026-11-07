@@ -71,9 +71,18 @@ class PartnerKycDocumentsTest extends TestCase
         $this->assertCount(1, $list);
         $this->assertSame('nid_front', $list[0]['kind']);
 
+        $this->assertDatabaseMissing('audit_events', ['action' => 'account.kyc_document_viewed']);
         $this->actingAs($staff)->onPortal('manage')
             ->get('/commands/accounts/'.$partner->id.'/kyc-documents/'.$list[0]['id'])
             ->assertOk();
+        $this->assertDatabaseHas('audit_events', [
+            'actor_id' => $staff->id,
+            'action' => 'account.kyc_document_viewed',
+            'subject' => (string) $partner->id,
+        ]);
+        $viewed = json_decode((string) DB::table('audit_events')->where('action', 'account.kyc_document_viewed')->value('metadata'), true);
+        $this->assertSame($list[0]['id'], $viewed['document_id']);
+        $this->assertSame('nid_front', $viewed['kind']);
     }
 
     public function test_accounts_staff_without_identity_write_cannot_upload_kyc(): void

@@ -45,6 +45,18 @@ class HotPathIndexesTest extends TestCase
         }
     }
 
+    public function test_payment_claims_order_status_is_indexed_exactly_once(): void
+    {
+        $indexes = DB::table('pg_indexes')
+            ->where('schemaname', 'public')
+            ->where('tablename', 'payment_claims')
+            ->where('indexdef', 'like', '%(order_id, status)')
+            ->pluck('indexname')
+            ->all();
+
+        $this->assertSame(['payment_claims_order_status_index'], $indexes);
+    }
+
     public function test_monthly_pool_query_matches_the_expression_index(): void
     {
         $sql = DB::table('commission_allocations')

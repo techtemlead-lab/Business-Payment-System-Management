@@ -110,10 +110,11 @@ class UserManualGuideTest extends TestCase
         $this->actingAs($dealer)->onPortal('dealer')->get('/')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('data.tour.is_first_login', true)
-                ->has('data.tour.pending', 1)
-                ->has('data.tour.all_tours')
-                ->where('data.tour.chapters', [])
+                ->where('tour.is_first_login', true)
+                ->missing('data.tour')
+                ->has('tour.pending', 1)
+                ->has('tour.all_tours')
+                ->where('tour.chapters', [])
                 ->has('userManualChapters'));
 
         // Once completed, pending is cleared and is_first_login becomes false
