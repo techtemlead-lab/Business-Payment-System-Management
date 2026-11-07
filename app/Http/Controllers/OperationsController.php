@@ -12,7 +12,6 @@ use App\Domain\Finance\ReserveService;
 use App\Domain\Integrations\IntegrationSettings;
 use App\Domain\Staff\StaffPermissions;
 use App\Domain\Staff\TerritoryAccess;
-use App\Models\CommissionAllocation;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\DeploymentReadiness;
@@ -99,8 +98,14 @@ class OperationsController extends Controller
                 ->select(['r.id', 'r.program', 'u.name', 'r.user_id', 'r.payee_name', 'r.amount', 'r.status', 'r.created_by', 'r.approved_by', 'r.payment_reference', 'r.reason', DB::raw('r.receipt_path IS NOT NULL AS has_receipt')])->orderByDesc('r.id');
             $tables['reserve_clawbacks'] = DB::table('reserve_expense_clawbacks')->orderByDesc('id');
             $tables['clawback_recoveries'] = DB::table('reserve_recoveries')->select(['id', 'clawback_id', 'amount', 'payment_reference', 'paid_at', DB::raw('true AS has_receipt')])->orderByDesc('id');
+            $remaining = app(ReserveService::class)->remainingByCategory();
+            // Bike and car draw on the same fund, so it is shown once as the car and bike fund.
+            $programs = [];
             foreach (ReserveService::Programs as $program => $category) {
-                $total = CommissionAllocation::where('category', $category)->get()->sum(fn ($fund) => app(ReserveService::class)->remaining($fund));
+                $programs[in_array($program, ['bike', 'car'], true) ? 'car_bike' : $program] = $category;
+            }
+            foreach ($programs as $program => $category) {
+                $total = $remaining[$category] ?? 0;
                 $data['summary'][$program.'_uncommitted_reserve'] = ($total < 0 ? '-' : '').Money::decimal(abs($total));
             }
         }

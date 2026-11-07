@@ -487,6 +487,17 @@ export default function HelpSupportHub({ data }: { data: Row }) {
     );
 }
 
+/** How long a ticket has waited, in hours under two days and in days after that. */
+function waitingTime(hours: number, translate: ReturnType<typeof useT>): string {
+    if (hours < 1) {
+        return translate('portal', 'support_wait_under_hour');
+    }
+    if (hours < 48) {
+        return translate('portal', 'support_wait_hours', { count: String(hours) });
+    }
+    return translate('portal', 'support_wait_days', { count: String(Math.floor(hours / 24)) });
+}
+
 export function SupportAdminHub({ data }: { data: Row }) {
     const translate = useT();
     const admin = data.support_admin || { tickets: [], filters: {} };
@@ -515,16 +526,28 @@ export function SupportAdminHub({ data }: { data: Row }) {
                         <option value="pending">{translate('portal', 'status_pending')}</option>
                         <option value="in_progress">{translate('portal', 'status_in_progress')}</option>
                         <option value="resolved">{translate('portal', 'status_resolved')}</option>
+                        <option value="overdue">{translate('portal', 'support_filter_overdue')}</option>
                     </select>
                 </label>
                 <button className="button small" type="submit">{translate('portal', 'apply_dates')}</button>
             </form>
+            {Number(admin.overdue_count || 0) > 0 && (
+                <div className="notice warning ops-mt-3" role="status">
+                    <p>{translate('portal', 'support_overdue_notice', { count: String(admin.overdue_count), hours: String(admin.overdue_hours ?? 24) })}</p>
+                    <button type="button" className="text-link" onClick={() => router.get('/support-admin', { status: 'overdue' }, { preserveState: true })}>{translate('portal', 'support_show_overdue')}</button>
+                </div>
+            )}
             {tickets.map((ticket) => (
                 <article key={ticket.id} className="panel ops-mt-3">
                     <div className="panel-heading">
                         <div>
                             <h3>{ticket.subject}</h3>
                             <p className="muted">{ticket.user_name} · {ticket.dealer_code} · {translate('portal', `support_cat_${ticket.category}`)}</p>
+                            {ticket.waiting_hours !== null && ticket.waiting_hours !== undefined && (
+                                <p className={ticket.overdue ? 'field-error' : 'muted'}>
+                                    {translate('portal', ticket.overdue ? 'support_waiting_overdue' : 'support_waiting', { time: waitingTime(Number(ticket.waiting_hours), translate) })}
+                                </p>
+                            )}
                         </div>
                         <Badge status={ticket.status} />
                     </div>
