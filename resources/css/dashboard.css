@@ -2381,7 +2381,7 @@ html[data-theme="dark"] .admin-work-queue li a{background:#0f1b2d;border-color:#
 html[data-theme="dark"] .admin-work-queue li a:hover{background:#16233a;border-color:#7c83ff}
 html[data-theme="dark"] .admin-month-strip>div{background:#0f1b2d;border-color:#22324a}
 html[data-theme="dark"] .admin-month-strip strong{color:#a5b4fc}
-html[data-theme="dark"] .admin-trend-chart .bar{fill:#7c83ff}
+html[data-theme="dark"] .admin-trend-chart .bar{fill:var(--ds-brand)}
 html[data-theme="dark"] .admin-trend-chart .bar.empty{fill:#22324a}
 html[data-theme="dark"] .admin-trend-chart text{fill:#94a3b8}
 
