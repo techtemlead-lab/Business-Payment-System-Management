@@ -2,6 +2,7 @@
 
 namespace App\Http\Portals\Shared\Sections;
 
+use App\Domain\Support\ChatRouting;
 use App\Domain\Support\PartnerChat;
 use App\Domain\Support\SupportTickets;
 use App\Domain\Support\UserManual;
@@ -61,10 +62,13 @@ final class SupportSection implements WorkspaceSection
         }
         $props = [
             'chat_inbox' => $chat->inbox(
+                $context->user,
                 $request->filled('q') ? (string) $request->input('q') : null,
                 $request->input('status') === 'unread',
             ),
             'chat_thread' => $thread,
+            // Only owners choose who answers chat.
+            'chat_routing' => $context->user->owner() ? app(ChatRouting::class)->ownerPanel() : null,
         ];
 
         return $props;

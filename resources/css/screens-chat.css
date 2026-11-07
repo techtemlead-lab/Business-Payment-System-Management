@@ -55,3 +55,10 @@
   .chat-bubble{max-width:88%}
   .chat-send span{display:none}
 }
+/* Owner: who answers partner chat */
+.chat-routing{margin-bottom:12px}
+.chat-routing summary{cursor:pointer;color:var(--ds-text)}
+.chat-routing table{width:100%;border-collapse:collapse}
+.chat-routing th,.chat-routing td{padding:8px;border-bottom:1px solid var(--ds-line);text-align:left;vertical-align:top}
+.chat-routing select{min-width:180px;max-width:100%}
+.chat-routing .actions{margin-top:12px}

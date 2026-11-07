@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Support\ChatRouting;
 use App\Models\User;
 use App\Support\PortalCatalog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -59,6 +61,15 @@ class EveryPageSmokeTest extends TestCase
     public function test_every_office_staff_page_opens_for_staff_with_every_permission(string $locale): void
     {
         $staff = User::factory()->staff('employee')->create(['profile' => ['permissions' => config('madina.roles.super_admin')]]);
+        // Partner chat opens only for staff the owner nominated to answer it.
+        DB::table('business_settings')->insert([
+            'key' => ChatRouting::SettingKey,
+            'value' => json_encode(['answerers' => [['user_id' => $staff->id, 'scope' => ChatRouting::ScopeCompany]]]),
+            'version' => 1,
+            'updated_by' => User::factory()->staff('md')->create()->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         $failures = array_filter(
             $this->visit($staff, 'manage', $locale),

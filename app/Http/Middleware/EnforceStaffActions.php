@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Support\PartnerChat;
 use App\Models\User;
 use App\Support\PortalHost;
 use Closure;
@@ -55,8 +56,9 @@ class EnforceStaffActions
         if ($actor->role === 'super_admin') {
             return $next($request);
         }
-        // Owners always answer partner chat; other staff need the partner_chat permission.
-        if ($controller === 'PartnerChatController' && $actor->owner()) {
+        // Owners always answer partner chat; other staff answer when the owner nominated them.
+        // PartnerChat and ChatRouting check again which partners each person may answer.
+        if ($controller === 'PartnerChatController' && ($actor->owner() || ($method === 'reply' && PartnerChat::canAnswer($actor)))) {
             return $next($request);
         }
         if ($controller === 'CommandController' && $method === 'readNotice') {

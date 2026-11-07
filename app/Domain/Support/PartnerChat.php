@@ -16,9 +16,10 @@ use Illuminate\Validation\ValidationException;
 /**
  * Chat between a dealer or sub-dealer and the company office.
  *
- * Every partner has exactly one conversation. The partner always writes to "the office";
- * owners and the staff the owner allows (the partner_chat permission) all see and answer the
- * same conversation. Partners can never message each other.
+ * Every partner has exactly one conversation. The partner always writes to "the office".
+ * Owners see and answer every chat. Staff the owner nominated answer the chats of partners
+ * in their own branches, or every chat when nominated company-wide (see ChatRouting).
+ * Partners can never message each other.
  */
 final class PartnerChat
 {
@@ -35,10 +36,16 @@ final class PartnerChat
         return in_array($user->role, ['dealer', 'sub_dealer'], true) && ! $user->usingStaffWorkspace();
     }
 
-    /** Owners always; other staff only with the partner_chat permission. */
+    /** Owners always; other staff only when the owner nominated them to answer chat. */
     public static function canAnswer(User $user): bool
     {
-        return $user->status === 'active' && ($user->owner() || ($user->staff() && $user->canAct('partner_chat', 'create')));
+        return app(ChatRouting::class)->canAnswer($user);
+    }
+
+    /** The viewer may answer chat and this partner's chat is routed to them. */
+    public static function canSeePartner(User $viewer, User $partner): bool
+    {
+        return app(ChatRouting::class)->canSeePartner($viewer, $partner);
     }
 
     public function conversationFor(User $partner): PartnerConversation
@@ -57,6 +64,7 @@ final class PartnerChat
     {
         abort_unless(self::canAnswer($staff), 403);
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
+        abort_unless(self::canSeePartner($staff, $partner), 403);
 
         return $this->send($this->conversationFor($partner), $staff, PartnerMessage::SideOffice, $body, $photo);
     }
@@ -80,14 +88,15 @@ final class PartnerChat
     }
 
     /**
-     * Office inbox: one row per partner, newest message first, unread first.
+     * Office inbox: one row per partner the viewer may answer, newest message first, unread first.
      *
      * @return LengthAwarePaginator<int, array<string, mixed>>
      */
-    public function inbox(?string $search, bool $unreadOnly): LengthAwarePaginator
+    public function inbox(User $viewer, ?string $search, bool $unreadOnly): LengthAwarePaginator
     {
         $query = PartnerConversation::query()
             ->join('users', 'users.id', '=', 'partner_conversations.partner_id')
+            ->tap(fn ($rows) => app(ChatRouting::class)->constrainToViewer($rows, $viewer))
             ->whereNotNull('partner_conversations.last_message_at')
             ->when($unreadOnly, fn ($rows) => $rows->where('partner_conversations.office_unread', '>', 0))
             ->when(filled($search), function ($rows) use ($search): void {
@@ -137,6 +146,7 @@ final class PartnerChat
     {
         abort_unless(self::canAnswer($staff), 403);
         abort_unless(in_array($partner->role, ['dealer', 'sub_dealer'], true), 404);
+        abort_unless(self::canSeePartner($staff, $partner), 403);
         $conversation = PartnerConversation::query()->where('partner_id', $partner->id)->first();
         if ($conversation && $conversation->office_unread > 0) {
             $conversation->forceFill(['office_unread' => 0])->save();
@@ -161,17 +171,24 @@ final class PartnerChat
         return (int) PartnerConversation::query()->where('partner_id', $partner->id)->value('partner_unread');
     }
 
-    public function officeUnread(): int
+    /** Unread partner messages in the chats this viewer may answer. */
+    public function officeUnread(User $viewer): int
     {
-        return (int) PartnerConversation::query()->sum('office_unread');
+        return (int) PartnerConversation::query()
+            ->join('users', 'users.id', '=', 'partner_conversations.partner_id')
+            ->tap(fn ($rows) => app(ChatRouting::class)->constrainToViewer($rows, $viewer))
+            ->sum('partner_conversations.office_unread');
     }
 
-    /** A message's photo, for the partner who owns the chat or office staff who may answer. */
+    /** A message's photo, for the partner who owns the chat or office staff the chat is routed to. */
     public function attachmentFor(User $viewer, PartnerMessage $message): PartnerMessage
     {
         abort_if($message->attachment_path === null, 404);
         $partnerId = (int) $message->conversation()->value('partner_id');
-        abort_unless($viewer->id === $partnerId || self::canAnswer($viewer), 404);
+        if ($viewer->id !== $partnerId) {
+            $partner = User::query()->find($partnerId);
+            abort_unless($partner && self::canSeePartner($viewer, $partner), 404);
+        }
 
         return $message;
     }

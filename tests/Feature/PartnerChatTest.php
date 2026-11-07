@@ -64,6 +64,10 @@ class PartnerChatTest extends TestCase
         $md = User::factory()->staff('md')->create();
         $chosen = User::factory()->staff('employee')->create(['profile' => ['permissions' => ['partner_chat']]]);
         $support = User::factory()->staff('support')->create();
+        $this->actingAs($md)->onPortal('sadmin')->post('/commands/chat-answerers', [
+            'answerers' => [['user_id' => $chosen->id, 'scope' => 'company']],
+            'version' => 0,
+        ])->assertRedirect();
 
         $this->actingAs($support)->onPortal('manage')->get('/partner-messages')->assertForbidden();
         $this->actingAs($support)->onPortal('manage')->post('/commands/partner-messages/'.$dealer->id, ['body' => 'Hi'])->assertForbidden();
