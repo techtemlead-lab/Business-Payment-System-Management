@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { money, date, Table, Pagination, type Row } from './UI';
 import { useT } from '../shared/i18n/t';
 import { useEscape } from '../shared/useEscape';
+import { methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
 type WithdrawalStatus = 'requested' | 'approved' | 'paid' | 'rejected';
 
@@ -23,6 +24,9 @@ interface WithdrawalRecord {
     payment_reference: string | null;
     paid_at: string | null;
     created_at: string;
+    payout_receipt_id?: number | null;
+    payout_receipt_number?: string | null;
+    payout_method?: string | null;
 }
 
 interface WithdrawalPage extends Row {
@@ -89,6 +93,12 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
     const [settleNote, setSettleNote] = useState('');
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [processingSettle, setProcessingSettle] = useState(false);
+    const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('bank');
+    const [bankName, setBankName] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
+    const [walletNumber, setWalletNumber] = useState('');
+    const [receivedBy, setReceivedBy] = useState('');
+    const isCash = payoutMethod === 'cash';
 
     const records = withdrawals?.data ?? [];
 
@@ -138,15 +148,27 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
         setPaidAt(new Date().toLocaleString('sv-SE',{timeZone:'Asia/Dhaka'}).slice(0,16).replace(' ','T'));
         setSettleNote('');
         setReceiptFile(null);
+        setPayoutMethod(methodForChannel(record.channel));
+        setBankName('');
+        setAccountNumber('');
+        setWalletNumber('');
+        setReceivedBy('');
     };
 
     const handleSubmitSettle = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!settleModalRecord || !receiptFile) return;
+        if (!settleModalRecord || (!isCash && !receiptFile)) return;
 
         const formData = new FormData();
-        formData.append('receipt', receiptFile);
+        if (receiptFile) formData.append('receipt', receiptFile);
+        formData.append('method', payoutMethod);
         formData.append('payment_reference', paymentReference);
+        if (payoutMethod === 'bank' || payoutMethod === 'other') {
+            formData.append('bank_name', bankName);
+            formData.append('account_number', accountNumber);
+        }
+        if (payoutMethod === 'bkash' || payoutMethod === 'nagad') formData.append('wallet_number', walletNumber);
+        if (isCash) formData.append('received_by', receivedBy);
         formData.append('paid_at', paidAt);
         formData.append('note', settleNote || translate('portal', 'pay_reason_paid'));
 
@@ -415,6 +437,17 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
                                         </a>
                                     )}
 
+                                    {w.status === 'paid' && w.payout_receipt_id && (
+                                        <a
+                                            href={`${portalBase ?? ''}/payment-receipts/${w.payout_receipt_id}/print`}
+                                            target="_blank"
+                                            rel="noopener"
+                                            className="button small"
+                                        >
+                                            {translate('portal', 'prc_view_print')}
+                                        </a>
+                                    )}
+
                                     {w.status === 'rejected' && w.reason && (
                                         <span className="pay-reason" title={w.reason}>
                                             {w.reason}
@@ -534,12 +567,50 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
 
                         <form onSubmit={handleSubmitSettle}>
                             <div className="hub-field">
+                                <label htmlFor="payout-method">
+                                    {translate('portal', 'pay_fld_method')}
+                                </label>
+                                <select id="payout-method" required value={payoutMethod} onChange={(e) => setPayoutMethod(e.target.value as PayoutMethod)}>
+                                    {payoutMethods.map((method) => (
+                                        <option key={method} value={method}>{translate('portal', `payout_method_${method}`)}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {(payoutMethod === 'bank' || payoutMethod === 'other') && (
+                                <>
+                                    <div className="hub-field">
+                                        <label htmlFor="payout-bank">{translate('portal', payoutMethod === 'bank' ? 'pay_fld_bank_name' : 'pay_fld_provider')}</label>
+                                        <input id="payout-bank" type="text" maxLength={100} required={payoutMethod === 'bank'} value={bankName} onChange={(e) => setBankName(e.target.value)} />
+                                    </div>
+                                    <div className="hub-field">
+                                        <label htmlFor="payout-account">{translate('portal', 'pay_fld_account_number')}</label>
+                                        <input id="payout-account" type="text" maxLength={60} required={payoutMethod === 'bank'} value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} />
+                                    </div>
+                                </>
+                            )}
+
+                            {(payoutMethod === 'bkash' || payoutMethod === 'nagad') && (
+                                <div className="hub-field">
+                                    <label htmlFor="payout-wallet">{translate('portal', 'pay_fld_wallet_number')}</label>
+                                    <input id="payout-wallet" type="tel" inputMode="numeric" maxLength={20} required value={walletNumber} onChange={(e) => setWalletNumber(e.target.value)} placeholder="01XXXXXXXXX" />
+                                </div>
+                            )}
+
+                            {isCash && (
+                                <div className="hub-field">
+                                    <label htmlFor="payout-received-by">{translate('portal', 'pay_fld_received_by')}</label>
+                                    <input id="payout-received-by" type="text" maxLength={100} required value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} placeholder={translate('portal', 'pay_ph_received_by')} />
+                                </div>
+                            )}
+
+                            <div className="hub-field">
                                 <label>
-                                    {translate('portal', 'pay_fld_reference')}
+                                    {translate('portal', isCash ? 'pay_fld_reference_cash' : 'pay_fld_reference')}
                                 </label>
                                 <input
                                     type="text"
-                                    required
+                                    required={!isCash}
                                     placeholder={translate('portal', 'pay_ph_reference')}
                                     value={paymentReference}
                                     onChange={(e) => setPaymentReference(e.target.value)}
@@ -560,11 +631,11 @@ export default function PayoutDisbursementHub({ withdrawals, tdsRate = 0, totals
 
                             <div className="hub-field">
                                 <label>
-                                    {translate('portal', 'pay_fld_receipt')}
+                                    {translate('portal', isCash ? 'pay_fld_receipt_cash' : 'pay_fld_receipt')}
                                 </label>
                                 <input
                                     type="file"
-                                    required
+                                    required={!isCash}
                                     accept=".pdf,.jpg,.jpeg,.png"
                                     onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                                 />

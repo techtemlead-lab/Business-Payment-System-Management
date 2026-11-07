@@ -384,7 +384,7 @@ class RealWorldApplicationScenariosTest extends E2ETestCase
         $receiptFile = UploadedFile::fake()->create('bkash_payout_receipt.pdf', 300, 'application/pdf');
 
         $payRes = $this->actingAs($payer)->onPortal('manage')->post("/commands/withdrawals/{$withdrawalId}/record-payment", [
-            'payment_reference' => 'BKASH-MANUAL-PAY-'.Str::random(6),
+            'method' => 'other', 'payment_reference' => 'BKASH-MANUAL-PAY-'.Str::random(6),
             'paid_at' => now()->format('Y-m-d H:i:s'),
             'receipt' => $receiptFile,
             'note' => 'Manual bKash corporate wallet payout executed',

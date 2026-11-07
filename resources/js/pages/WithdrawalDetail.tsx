@@ -1,9 +1,10 @@
 import React from 'react';
 import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
-import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote } from 'lucide-react';
+import { Download, Upload, ShieldCheck, Check, Clock, Radio, XCircle, Banknote, Printer } from 'lucide-react';
 import Shell from '../components/Shell';
 import { Row, Badge, ActionForm, money, date, FormErrors, label } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { methodForChannel, payoutMethods, type PayoutMethod } from '../shared/payoutMethods';
 
 function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row; events: Row[] }) {
     const translate = useT();
@@ -346,16 +347,18 @@ function WithdrawalProgressStepper({ withdrawal: w, events }: { withdrawal: Row;
     );
 }
 
-export default function WithdrawalDetail({ withdrawal: w, events = [] }: { withdrawal: Row; events: Row[] }) {
+export default function WithdrawalDetail({ withdrawal: w, events = [], payoutReceipt = null }: { withdrawal: Row; events: Row[]; payoutReceipt?: Row | null }) {
     const translate = useT();
     const { auth, financeActive, staffActions, portalBase: base, paymentAccounts = [] } = usePage<any>().props;
     const finance = financeActive && auth.capabilities.includes('finance') && (staffActions?.finance?.approve ?? true);
-    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string }>({
+    const form = useForm<{ payment_account_id: string; receipt: File | null; payment_reference: string; paid_at: string; note: string; method: PayoutMethod; bank_name: string; account_number: string; wallet_number: string; received_by: string }>({
         payment_account_id: '', receipt: null, payment_reference: '', paid_at: '', note: '',
+        method: methodForChannel(String(w.channel ?? '')), bank_name: '', account_number: '', wallet_number: '', received_by: '',
     });
+    const isCash = form.data.method === 'cash';
 
     const inFlight = ['requested', 'processing', 'approved'].includes(w.status);
-    const { stop } = usePoll(5000, { only: ['withdrawal'] }, { autoStart: inFlight });
+    const { stop } = usePoll(5000, { only: ['withdrawal', 'payoutReceipt'] }, { autoStart: inFlight });
     React.useEffect(() => {
         if (!inFlight) {
             stop();
@@ -384,6 +387,10 @@ export default function WithdrawalDetail({ withdrawal: w, events = [] }: { withd
                 {w.has_receipt
                     ? <a className="button" href={`${base}/withdrawals/${w.id}/receipt`}><Download size={17} />{translate('portal', 'wd_download_receipt')}</a>
                     : <p className="muted">{translate('portal', 'wd_receipt_pending')}</p>}
+                {payoutReceipt && <p className="ops-mt-3">
+                    {translate('portal', 'prc_issued_line', { number: String(payoutReceipt.number), method: translate('portal', `payout_method_${payoutReceipt.method}`) })}{' '}
+                    <a className="button small" href={`${base}/payment-receipts/${payoutReceipt.id}/print`} target="_blank" rel="noopener"><Printer size={15} />{translate('portal', 'prc_view_print')}</a>
+                </p>}
             </section>
             <section className="panel">
                 <h2>{translate('portal', 'wd_history_title')}</h2>
@@ -425,17 +432,28 @@ export default function WithdrawalDetail({ withdrawal: w, events = [] }: { withd
                         e.preventDefault();
                         form.post(`/commands/withdrawals/${w.id}/record-payment`, { forceFormData: true });
                     }}>
-                        <label>{translate('portal', 'wd_payout_account')}
+                        <label>{translate('portal', 'pay_fld_method')}
+                            <select required value={form.data.method} onChange={e => form.setData('method', e.target.value as PayoutMethod)}>
+                                {payoutMethods.map(method => <option key={method} value={method}>{translate('portal', `payout_method_${method}`)}</option>)}
+                            </select>
+                        </label>
+                        {!isCash && <label>{translate('portal', 'wd_payout_account')}
                             <select required={paymentAccounts.some((a: Row) => a.is_active && a.pays_out)} value={form.data.payment_account_id} onChange={e => form.setData('payment_account_id', e.target.value)}>
                                 <option value="">{translate('portal', 'wd_choose_account')}</option>
                                 {paymentAccounts.filter((a: Row) => a.is_active && a.pays_out).map((a: Row) => (
                                     <option key={a.id} value={a.id}>{a.label} · {a.channel}</option>
                                 ))}
                             </select>
-                        </label>
-                        <label>{translate('portal', 'wd_payment_ref')}<input required maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
+                        </label>}
+                        {(form.data.method === 'bank' || form.data.method === 'other') && <>
+                            <label>{translate('portal', form.data.method === 'bank' ? 'pay_fld_bank_name' : 'pay_fld_provider')}<input required={form.data.method === 'bank'} maxLength={100} value={form.data.bank_name} onChange={e => form.setData('bank_name', e.target.value)} /></label>
+                            <label>{translate('portal', 'pay_fld_account_number')}<input required={form.data.method === 'bank'} maxLength={60} value={form.data.account_number} onChange={e => form.setData('account_number', e.target.value)} /></label>
+                        </>}
+                        {(form.data.method === 'bkash' || form.data.method === 'nagad') && <label>{translate('portal', 'pay_fld_wallet_number')}<input required type="tel" inputMode="numeric" maxLength={20} placeholder="01XXXXXXXXX" value={form.data.wallet_number} onChange={e => form.setData('wallet_number', e.target.value)} /></label>}
+                        {isCash && <label>{translate('portal', 'pay_fld_received_by')}<input required maxLength={100} placeholder={translate('portal', 'pay_ph_received_by')} value={form.data.received_by} onChange={e => form.setData('received_by', e.target.value)} /></label>}
+                        <label>{translate('portal', isCash ? 'pay_fld_reference_cash' : 'wd_payment_ref')}<input required={!isCash} maxLength={100} value={form.data.payment_reference} onChange={e => form.setData('payment_reference', e.target.value)} /></label>
                         <label>{translate('portal', 'wd_paid_at')}<input required type="datetime-local" value={form.data.paid_at} onChange={e => form.setData('paid_at', e.target.value)} /></label>
-                        <label>{translate('portal', 'wd_upload_receipt')}<input required type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
+                        <label>{translate('portal', isCash ? 'pay_fld_receipt_cash' : 'wd_upload_receipt')}<input required={!isCash} type="file" accept="application/pdf,image/jpeg,image/png" onChange={e => form.setData('receipt', e.target.files?.[0] ?? null)} /></label>
                         <label>{translate('portal', 'wd_payment_note')}<textarea required maxLength={1000} value={form.data.note} onChange={e => form.setData('note', e.target.value)} /></label>
                         {form.progress && <progress max={100} value={form.progress.percentage} aria-label={translate('portal', 'wd_upload_progress')} />}
                         <FormErrors errors={form.errors}/>

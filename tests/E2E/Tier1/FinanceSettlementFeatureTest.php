@@ -244,7 +244,7 @@ class FinanceSettlementFeatureTest extends E2ETestCase
 
         $response = $this->actingAs($payer)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/record-payment', [
             'receipt' => $receipt,
-            'payment_reference' => 'EFT-TXN-998811',
+            'method' => 'other', 'payment_reference' => 'EFT-TXN-998811',
             'paid_at' => now()->toDateString(),
             'note' => 'Disbursed via corporate EFT',
         ]);
@@ -290,7 +290,7 @@ class FinanceSettlementFeatureTest extends E2ETestCase
 
         $response = $this->actingAs($payer)->onPortal('manage')->post('/commands/withdrawals/'.$id.'/record-payment', [
             'receipt' => $receipt,
-            'payment_reference' => 'REF-FUTURE',
+            'method' => 'other', 'payment_reference' => 'REF-FUTURE',
             'paid_at' => now()->addDays(2)->toDateString(), // Future date
             'note' => 'Invalid future date test',
         ]);

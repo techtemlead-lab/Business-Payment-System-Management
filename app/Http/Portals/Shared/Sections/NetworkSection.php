@@ -33,7 +33,8 @@ final class NetworkSection implements WorkspaceSection
         if ($context->section === 'network') {
             $props = $this->downline($context);
         }
-        if ($context->section === 'network-tree' || ($context->isStaff && $context->section === 'network')) {
+        // The whole company's partner tree is for staff only; partners get their own downline above.
+        if ($context->isStaff && in_array($context->section, ['network', 'network-tree'], true)) {
             $props = array_merge($props, $this->partnerTree());
         }
 

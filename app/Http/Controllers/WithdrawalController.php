@@ -6,6 +6,7 @@ use App\Domain\Commissions\CommissionWallet;
 use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Notifications\PartnerEventSms;
 use App\Domain\Payouts\ManualPayoutService;
+use App\Domain\Payouts\PayoutReceipts;
 use App\Models\User;
 use App\Support\Audit;
 use Carbon\Carbon;
@@ -57,6 +58,7 @@ class WithdrawalController extends Controller
 
         return Inertia::render('WithdrawalDetail', ['withdrawal' => collect((array) $w)->except(['receipt_path', 'receipt_sha256', 'destination', 'idempotency_key'])->all() + ['destination_masked' => str_repeat('•', max(0, strlen($destination) - 4)).substr($destination, -4), 'destination_for_payment' => $r->user()->allows('finance') ? $destination : null, 'has_receipt' => (bool) $w->receipt_path],
             'paymentAccounts' => $r->user()->allows('finance') ? app(PaymentAccounts::class)->listing($r->user()) : [],
+            'payoutReceipt' => app(PayoutReceipts::class)->forWithdrawal($id),
             'events' => DB::table('withdrawal_events')->join('users', 'users.id', '=', 'actor_id')->where('withdrawal_id', $id)->orderBy('withdrawal_events.id')->get(['event', 'note', 'withdrawal_events.created_at', 'users.name'])]);
     }
 
@@ -73,15 +75,17 @@ class WithdrawalController extends Controller
     public function settle(Request $r, string $id, ManualPayoutService $s): RedirectResponse
     {
         abort_unless($r->user()->allows('finance'), 403);
-        $d = $r->validate(['payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120', 'payment_reference' => 'required|string|max:100', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
+        // Owner decision: every manual payout records how it was paid, and a numbered receipt is issued.
+        $d = $r->validate([...PayoutReceipts::rules(), 'payment_account_id' => 'nullable|integer|exists:payment_accounts,id', 'receipt' => 'nullable|required_unless:method,cash|file|mimes:pdf,jpg,jpeg,png|max:5120', 'paid_at' => ['required', 'date', function ($attribute, $value, $fail) {
             if (Carbon::parse($value, 'Asia/Dhaka')->isFuture()) {
                 $fail(__('portal.err_wd_paid_at_future'));
             }
         }], 'note' => 'required|string|max:1000']);
-        $s->settle($r->user(), $id, $r->file('receipt'), strtoupper(trim($d['payment_reference'])), Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
+        $reference = isset($d['payment_reference']) ? strtoupper(trim($d['payment_reference'])) : null;
+        $number = $s->settle($r->user(), $id, $d, $r->file('receipt'), $reference, Carbon::parse($d['paid_at'], 'Asia/Dhaka')->utc()->toDateTimeString(), $d['note'], isset($d['payment_account_id']) ? (int) $d['payment_account_id'] : null);
         $this->notifyPartnerWithdrawal($id, 'paid');
 
-        return back()->with('success', __('portal.flash_withdrawal_paid'));
+        return back()->with('success', __('portal.flash_withdrawal_paid_receipt', ['number' => $number]));
     }
 
     private function notifyPartnerWithdrawal(string $id, string $event): void
