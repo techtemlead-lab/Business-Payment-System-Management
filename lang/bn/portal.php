@@ -6626,4 +6626,9 @@ return [
     'sce_fld_invoice_manufacturer' => 'প্রস্তুতকারক',
     'sce_fld_invoice_marketed_by' => 'বাজারজাতকারী',
     'sce_fld_invoice_marketed_phones' => 'বাজারজাতকারীর ফোন নম্বর',
+    'ops_report_account_type' => 'পার্টনার',
+    'ops_report_account_all' => 'সব ডিলার ও সাব-ডিলার',
+    'ops_report_account_dealer' => 'শুধু ডিলার',
+    'ops_report_account_sub_dealer' => 'শুধু সাব-ডিলার',
+    'ops_report_account_hint' => 'পার্টনারদের রিপোর্টে কাজ করে: অর্ডার, পেমেন্ট, কমিশন, মাসিক জমা, টাকা তোলা, কর, পুরস্কার, র‍্যাঙ্ক ও টাকা ফেরত।',
 ];

@@ -6626,4 +6626,9 @@ return [
     'sce_fld_invoice_manufacturer' => 'Made by (manufacturer)',
     'sce_fld_invoice_marketed_by' => 'Marketed by',
     'sce_fld_invoice_marketed_phones' => 'Marketing phone numbers',
+    'ops_report_account_type' => 'Partners',
+    'ops_report_account_all' => 'All dealers and sub-dealers',
+    'ops_report_account_dealer' => 'Dealers only',
+    'ops_report_account_sub_dealer' => 'Sub-dealers only',
+    'ops_report_account_hint' => 'Works for partner reports: orders, payments, commissions, monthly credits, withdrawals, tax, rewards, ranks and refunds.',
 ];
