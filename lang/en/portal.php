@@ -6179,6 +6179,7 @@ return [
     'ops_head_office_open_branches' => 'Open Branches',
     'branch_perf_counted_note' => 'Only approved, sent and delivered orders count. Waiting, rejected and cancelled orders are left out. The totals cover every order in the dates; the list shows the latest 200.',
     'branch_perf_own_branches_note' => 'You see only the branches you work in.',
+    'st_search_placeholder' => 'Search dealer or leader by name or code',
     'sce_md_message_heading' => 'Managing Director\'s message',
     'sce_md_message_hint' => 'Shown on the About us page and on the home page, above customer reviews. Leave a box empty to keep the built-in text. Bangla visitors see the Bangla boxes; an empty Bangla box shows the built-in Bangla text.',
     'sce_fld_md_message_image' => 'Photo',

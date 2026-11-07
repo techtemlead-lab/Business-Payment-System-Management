@@ -231,6 +231,10 @@ final class UserManual
             'sub_company_rate' => $percent(10000 - $subDealerFund),
             'sub_salary_rate' => $percent($rate('sub_dealer_salary')),
             'sub_tour_rate' => $percent($rate('sub_dealer_tour')),
+            'cashback_rate' => $percent($rate('own_dealer_cashback')),
+            'incentive_rate' => $percent($rate('rank_incentive')),
+            'marketing_rate' => $percent($rate('company_marketing')),
+            'vehicle_rate' => $percent($rate('car_bike_incentive')),
             'referral_rate' => $percent($rate('direct_referral')),
             'gen2_rate' => $percent($share('d2d_multitier', 'gen2_pct')),
             'gen3_rate' => $percent($share('d2d_multitier', 'gen3_pct')),
@@ -272,7 +276,7 @@ final class UserManual
     }
 
     /**
-     * Complete, fully comprehensive 28-chapter enterprise user manual.
+     * The user manual chapters, each shown only to the roles listed with it.
      *
      * @return list<array<string, mixed>>
      */
@@ -298,7 +302,7 @@ final class UserManual
             $this->ch('staff_fulfillment', ['staff', 'owner'], 10, 3, 2, 2, ['orders', 'approve', 'dispatch', 'deliveries', 'claims', 'অনুমোদন', 'ডিসপ্যাচ', 'ফুলফিলমেন্ট']),
             $this->ch('inventory_branches', ['staff', 'owner'], 11, 3, 3, 2, ['inventory', 'stock', 'branch', 'warehouse', 'hub', 'স্টক', 'ব্রাঞ্চ', 'গুদাম']),
             $this->ch('branch_performance', ['staff', 'owner'], 9, 3, 2, 1, ['branch-performance', 'profit', 'income', 'today', 'month', 'প্রফিট', 'ইনকাম', 'ব্রাঞ্চ']),
-            $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'উপজেলা']),
+            $this->ch('place_codes_admin', ['staff', 'owner'], 8, 2, 2, 2, ['place-codes', 'geography', 'bangladesh', 'union', 'pourashava', 'upazila', 'ভূগোল', 'ইউনিয়ন', 'পৌরসভা', 'উপজেলা']),
             $this->ch('finance_treasury', ['staff', 'owner'], 10, 3, 3, 2, ['treasury', 'capital', '60%', 'retained', 'collection', 'ট্রেজারি', 'মূলধন', 'ক্যাশ']),
             $this->ch('finance_policies_simulator', ['staff', 'owner'], 9, 3, 2, 2, ['policy', 'commission', 'simulator', 'preview', 'rate', 'পলিসি', 'সিমুলেটর', 'স্যান্ডবক্স']),
             $this->ch('payouts_settlements', ['staff', 'owner'], 10, 3, 3, 2, ['payouts-hub', 'settlement', 'salary', 'rewards', 'পেআউট', 'সেটেলমেন্ট', 'নিষ্পত্তি']),
@@ -308,6 +312,10 @@ final class UserManual
             $this->ch('dual_dashboard', ['dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['dual', 'switch', 'staff', 'partner', 'ড্যাশবোর্ড সুইচ', 'ডুয়াল']),
             $this->ch('financial_activation_gates', ['staff', 'owner'], 8, 3, 3, 3, ['activation', 'preview', 'opening_balance', 'readiness', 'আর্থিক সক্রিয়করণ', 'গো-লাইভ']),
             $this->ch('support', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 8, 2, 2, 1, ['support', 'ticket', 'help', 'manual', 'সাপোর্ট', 'টিকেট', 'হেল্প']),
+            $this->ch('money_rules', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 10, 2, 2, 1, ['cashback', 'month', 'close', 'target', 'profit', 'carry', 'ক্যাশব্যাক', 'মাস', 'টার্গেট', 'লাভ']),
+            $this->ch('my_progress', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 7, 2, 2, 1, ['progress', 'target', 'popup', 'salary', 'rank', 'অগ্রগতি', 'টার্গেট', 'বেতন', 'র‍্যাঙ্ক']),
+            $this->ch('office_chat', ['partner', 'dealer', 'sub_dealer', 'staff', 'owner'], 6, 2, 2, 1, ['chat', 'message', 'answer', 'staff', 'চ্যাট', 'মেসেজ', 'অফিস']),
+            $this->ch('data_cleanup', ['owner'], 5, 2, 2, 1, ['cleanup', 'delete', 'sms', 'login code', 'enquiry', 'মুছুন', 'পুরোনো', 'এসএমএস']),
         ];
     }
 
