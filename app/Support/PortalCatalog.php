@@ -67,7 +67,8 @@ final class PortalCatalog
         if (in_array($user->role, ['dealer', 'sub_dealer'], true)) {
             DashboardManagement::assertPartnerSection($user, $section);
         }
-        if ($section === 'benefits-fund') {
+        if ($section === 'benefits-fund' || $section === 'data-cleanup') {
+            // Owner-only pages on the owner panel: the owners' fund and the manual data clean-up.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
         if (in_array($portal, ['manage', 'sadmin'], true) && $section === 'agreement') {

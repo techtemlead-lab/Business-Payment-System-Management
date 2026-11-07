@@ -61,6 +61,10 @@ class EnforceStaffActions
         if ($controller === 'PartnerChatController' && ($actor->owner() || ($method === 'reply' && PartnerChat::canAnswer($actor)))) {
             return $next($request);
         }
+        if ($controller === 'DataCleanupController' && $actor->owner()) {
+            // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
+            return $next($request);
+        }
         if ($controller === 'CommandController' && $method === 'readNotice') {
             return $next($request);
         }

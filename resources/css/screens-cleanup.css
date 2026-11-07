@@ -1,0 +1,10 @@
+/* Owner: manual data clean-up */
+.cleanup-hub{display:grid;gap:var(--ds-s-3)}
+.cleanup-filters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--ds-s-2);margin-top:var(--ds-s-3)}
+.cleanup-filters label{display:grid;gap:4px;min-width:160px}
+.cleanup-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ds-s-2);margin-bottom:var(--ds-s-2)}
+.cleanup-toolbar .button{margin-left:auto}
+.cleanup-check{display:inline-flex;align-items:center;gap:6px}
+.cleanup-table{width:100%;border-collapse:collapse}
+.cleanup-table th,.cleanup-table td{padding:8px;border-bottom:1px solid var(--ds-line);text-align:left;vertical-align:top}
+.cleanup-table tr.is-selected td{background:var(--ds-surface-2)}
