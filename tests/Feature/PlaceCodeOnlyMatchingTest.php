@@ -71,7 +71,7 @@ class PlaceCodeOnlyMatchingTest extends TestCase
             $share = $this->areaShare($order, $level);
             $this->assertNull($share->user_id, $level);
             $this->assertSame('unassigned_reserve', $share->status, $level);
-            $this->assertSame('company_geographic_reserve', $share->metadata['retained_by'], $level);
+            $this->assertSame('company_profit_fund', $share->metadata['retained_by'], $level);
         }
         $this->assertSame(0, CommissionAllocation::query()->where('user_id', $legacySeat->id)->count());
     }

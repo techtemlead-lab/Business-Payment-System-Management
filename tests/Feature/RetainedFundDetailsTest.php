@@ -46,13 +46,13 @@ class RetainedFundDetailsTest extends TestCase
         $this->actingAs($finance)->onPortal('manage')->get('/treasury')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('data.retained_fund_details.unassigned_geographic')
+                ->has('data.retained_fund_details.company_profit')
                 ->has('data.retained_fund_details.company_share_batches', 1)
                 ->where('data.retained_fund_details.company_share_batches.0.order_number', $order->number)
                 ->where('data.retained_fund_details.company_share_batches.0.company_share', '60.00')
                 ->where('data.retained_fund_details.company_share_batches.0.division', 'Rangpur')
-                ->where('data.retained_fund_details.unassigned_geographic.0.district', 'Pirganj')
-                ->where('data.retained_fund_details.unassigned_geographic.0.amount', '2.40')
+                // Owner rule: an area level with no dealer seat is company profit at order time.
+                ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['district'] ?? null) === 'Pirganj' && $row['amount'] === '2.40'))
                 ->where('data.flow.gross_cash_inflow', 120)
                 ->where('data.flow.dealer_cash_inflow', 120)
                 ->where('data.flow.sub_dealer_cash_inflow', 0)
@@ -124,8 +124,7 @@ class RetainedFundDetailsTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('data.retained_fund_details.company_share_batches.0.buyer_role', 'sub_dealer')
-                ->where('data.retained_fund_details.unassigned_geographic.0.buyer_role', 'sub_dealer')
-                ->where('data.retained_fund_details.unassigned_geographic.0.amount', '2.80')
+                ->where('data.retained_fund_details.company_profit', fn ($rows): bool => collect($rows)->contains(fn ($row): bool => ($row['buyer_role'] ?? null) === 'sub_dealer' && $row['amount'] === '2.80'))
                 ->where('data.retained_fund_details.benefits_fund.0.amount', '10.00')
                 ->where('data.retained_fund_details.benefits_fund.0.buyer_role', 'sub_dealer')
                 ->where('data.flow.gross_cash_inflow', 140)

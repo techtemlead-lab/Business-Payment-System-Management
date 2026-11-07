@@ -6235,4 +6235,11 @@ return [
     'sce_fld_md_message_body' => 'বাণী (ইংরেজি)। প্রতিটি অনুচ্ছেদের মাঝে একটি খালি লাইন রাখুন।',
     'sce_fld_md_message_body_bn' => 'বাণী বাংলায় (খালি রাখলে নিজস্ব বাংলা লেখা)। প্রতিটি অনুচ্ছেদের মাঝে একটি খালি লাইন রাখুন।',
     'event_customization_site_photo_uploaded' => 'ওয়েবসাইটের ছবি আপলোড হয়েছে',
+    'retained_reason_profit_no_upline' => 'এই অর্ডারে এই স্তরে কোনো রেফারার নেই, তাই এই অংশ কোম্পানির লাভ।',
+    'retained_reason_profit_no_area_seat' => 'এই স্তরে প্লেস কোড :place-এ কোনো এরিয়া ডিলার নেই, তাই এই অংশ কোম্পানির লাভ।',
+    'retained_reason_profit_quota_missed' => 'এরিয়া ডিলার ওই মাসের কেনার কোটা পূরণ করেননি, তাই মাস শেষে আটকে থাকা অংশ কোম্পানির লাভে গেছে।',
+    'retained_reason_unclaimed_sub_dealer_salary' => 'মাস শেষে সাব-ডিলার সক্রিয় ছিলেন না, তাই এই বেতন কোম্পানির লাভে গেছে।',
+    'retained_reason_unclaimed_additional_rank' => 'এই মাসে সাব-ডিলার অতিরিক্ত র‍্যাঙ্ক তহবিলের যোগ্য কেউ ছিলেন না, তাই এটি কোম্পানির লাভে গেছে।',
+    'event_commission_quota_holds_forfeited' => 'কোটা পূরণ না হওয়া এরিয়া কমিশন কোম্পানির লাভে নেওয়া হয়েছে',
+    'event_commission_additional_rank_closed' => 'অতিরিক্ত র‍্যাঙ্ক তহবিল কোম্পানির লাভে বন্ধ করা হয়েছে',
 ];

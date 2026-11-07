@@ -69,7 +69,9 @@ final class RetainedFundLedger
 
         foreach ($allocations as $allocation) {
             $row = $this->allocationRow($allocation);
-            if ($this->inManagementFund($allocation)) {
+            if (($allocation->metadata['retained_by'] ?? null) === CommissionPosting::CompanyProfit) {
+                $groups['company_profit'][] = $row;
+            } elseif ($this->inManagementFund($allocation)) {
                 $groups['management_area'][] = $row;
             } elseif ($allocation->status === 'unassigned_reserve' || str_starts_with((string) $allocation->category, 'area_')) {
                 if ($allocation->status === 'unassigned_reserve') {
@@ -261,6 +263,12 @@ final class RetainedFundLedger
         if ($allocation->category === self::BenefitsCategory) {
             return __('portal.retained_reason_benefits_surplus', ['account' => $accountLabel]);
         }
+        if (($metadata['retained_by'] ?? null) === CommissionPosting::CompanyProfit && isset($metadata['reason_key'])) {
+            $localized = __('portal.'.$metadata['reason_key'], ['place' => (string) ($metadata['place_code'] ?? '')]);
+            if ($localized !== 'portal.'.$metadata['reason_key']) {
+                return $localized;
+            }
+        }
         if ($allocation->status === 'unassigned_reserve') {
             $place = trim(implode(' / ', array_filter([
                 $geography['division'] ?? null,
@@ -332,6 +340,7 @@ final class RetainedFundLedger
         return match (true) {
             $allocation->category === self::BenefitsCategory => __('portal.retained_fund_benefits'),
             $this->inManagementFund($allocation) => __('portal.retained_fund_area_management'),
+            ($allocation->metadata['retained_by'] ?? null) === CommissionPosting::CompanyProfit => __('portal.retained_fund_company_profit'),
             $allocation->status === 'unassigned_reserve' => __('portal.retained_fund_unassigned'),
             $allocation->category === 'company_marketing_fund' => __('portal.retained_fund_marketing'),
             $allocation->category === 'car_bike_incentive_fund' => __('portal.retained_fund_vehicle'),

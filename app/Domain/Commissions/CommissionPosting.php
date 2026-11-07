@@ -16,6 +16,9 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionPosting
 {
+    /** Marks a share that belongs to the company profit fund from the moment the order posts. */
+    public const CompanyProfit = 'company_profit_fund';
+
     public function __construct(
         private CommissionPolicy $policies,
         private CommissionWallet $wallets,
@@ -256,8 +259,12 @@ final class CommissionPosting
         } else {
             $add('direct_referral_breakage', 'direct_referral', null, 'unassigned_reserve', null, null, [
                 'unassigned' => true,
-                'retained_by' => 'referral_unassigned_reserve',
+                // Owner rule: money with nobody to receive it is company profit straight away.
+                'retained_by' => self::CompanyProfit,
+                'reason_key' => 'retained_reason_profit_no_upline',
+                'source_category' => 'direct_referral',
                 'account_type' => $type,
+                'generation' => 1,
             ]);
         }
         foreach ([2, 3] as $depth) {
@@ -273,7 +280,9 @@ final class CommissionPosting
             } else {
                 $add('d2d_gen'.$depth.'_breakage', 'd2d_multitier', null, 'unassigned_reserve', $rate, null, [
                     'unassigned' => true,
-                    'retained_by' => 'referral_unassigned_reserve',
+                    'retained_by' => self::CompanyProfit,
+                    'reason_key' => 'retained_reason_profit_no_upline',
+                    'source_category' => 'd2d_gen'.$depth,
                     'account_type' => $type,
                     'generation' => $depth,
                 ]);
@@ -299,15 +308,23 @@ final class CommissionPosting
             $assignment = $assignments->count() === 1 ? $assignments->first() : null;
             $id = $assignment?->user_id;
             $status = $recipient($id);
+            $quotaHold = false;
             if ($assignment && $this->qualification->monthlyVolume($id, CommissionQualification::currentMonth()) < Money::cents($assignment->monthly_quota)) {
                 $status = 'held';
+                $quotaHold = true;
             }
             $add('area_'.$level, 'area_dealer_pool', $id, $id ? $status : 'unassigned_reserve', $rate, $share,
                 [
                     'assignment_id' => $assignment?->id,
                     'monthly_quota' => $assignment?->monthly_quota,
                     'unassigned' => ! $id,
-                    'retained_by' => $id ? null : 'company_geographic_reserve',
+                    // No dealer holds this place code at this level (yet): the share is company
+                    // profit at order time. A dealer seated later earns only on later orders.
+                    'retained_by' => $id ? null : self::CompanyProfit,
+                    'reason_key' => $id ? null : 'retained_reason_profit_no_area_seat',
+                    'source_category' => 'area_'.$level,
+                    'level' => $level,
+                    'hold_reason' => $quotaHold ? 'quota' : null,
                     'account_type' => $type,
                     'place_code' => $placeCode,
                     'place_code_id' => $placeId,

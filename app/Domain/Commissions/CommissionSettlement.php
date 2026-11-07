@@ -166,11 +166,11 @@ final class CommissionSettlement
                 $remainder = $cents - $paidCents;
                 $reserveId = null;
                 if ($remainder > 0) {
-                    // Sub-dealer salary keeps its own reserve (unchanged). Unclaimed dealer
-                    // salary and rank royalty go to the company's general profit fund.
+                    // Owner rule: every month closes in that month. Salary or royalty nobody earned
+                    // (including a sub-dealer who is no longer active) goes to the company profit fund.
                     if ($fund->category === 'sub_dealer_salary') {
-                        $reserveId = $this->rollUndistributed($fund, $remainder, $month, $kind);
-                        $rolled += $remainder;
+                        $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, null, 'retained_reason_unclaimed_sub_dealer_salary');
+                        $toCompanyProfit += $remainder;
                     } else {
                         $reserveId = $this->toCompanyProfit($fund, $remainder, $month, $kind, $fundDivision['name'] ?? null);
                         $toCompanyProfit += $remainder;
@@ -481,43 +481,11 @@ final class CommissionSettlement
         return [$rules, $fundDivision, $qualifiedIds];
     }
 
-    private function rollUndistributed(CommissionAllocation $fund, int $remainder, string $month, string $kind): int
-    {
-        $category = match ($fund->category) {
-            'sub_dealer_salary' => self::SubDealerSalaryReserve,
-            'dealer_monthly_salary_pool' => self::DealerSalaryReserve,
-            default => self::RankRoyaltyReserve,
-        };
-
-        return CommissionAllocation::query()->create([
-            'order_id' => $fund->order_id,
-            'user_id' => null,
-            'category' => $category,
-            'rate_percentage' => $fund->rate_percentage,
-            'cash_basis' => $fund->cash_basis,
-            'amount' => Money::decimal($remainder),
-            'original_amount' => Money::decimal($remainder),
-            'status' => 'reserved',
-            'metadata' => [
-                'basis' => 'purchase_value',
-                'period_month' => $month,
-                'source_allocation_id' => $fund->id,
-                'source_category' => $fund->category,
-                'settlement_kind' => $kind,
-                'retained_by' => 'settlement_rollover',
-                'reason_key' => $kind === 'salary' ? 'retained_reason_settle_rollover_salary' : 'retained_reason_settle_rollover_royalty',
-                'reason' => $kind === 'salary'
-                    ? __('portal.retained_reason_settle_rollover_salary')
-                    : __('portal.retained_reason_settle_rollover_royalty'),
-            ],
-        ])->id;
-    }
-
     /**
      * Money nobody qualified for (a division with no qualifying dealer, or a
      * royalty rank with nobody at it) becomes company profit.
      */
-    private function toCompanyProfit(CommissionAllocation $fund, int $amount, string $month, string $kind, ?string $division): int
+    public function toCompanyProfit(CommissionAllocation $fund, int $amount, string $month, string $kind, ?string $division, ?string $reasonKey = null): int
     {
         return CommissionAllocation::query()->create([
             'order_id' => $fund->order_id,
@@ -535,11 +503,16 @@ final class CommissionSettlement
                 'source_category' => $fund->category,
                 'settlement_kind' => $kind,
                 'division' => $division,
+                'intended_user_id' => $fund->user_id,
+                'place_code' => $fund->metadata['place_code'] ?? null,
+                'place_code_id' => $fund->metadata['place_code_id'] ?? null,
                 'retained_by' => 'company_profit_unclaimed',
-                'reason_key' => $kind === 'salary' ? 'retained_reason_unclaimed_division_salary' : 'retained_reason_unclaimed_royalty',
-                'reason' => $kind === 'salary'
-                    ? __('portal.retained_reason_unclaimed_division_salary', ['division' => $division ?? __('portal.report_area_unknown')])
-                    : __('portal.retained_reason_unclaimed_royalty'),
+                'reason_key' => $reasonKey ?? ($kind === 'salary' ? 'retained_reason_unclaimed_division_salary' : 'retained_reason_unclaimed_royalty'),
+                'reason' => $reasonKey !== null
+                    ? __('portal.'.$reasonKey)
+                    : ($kind === 'salary'
+                        ? __('portal.retained_reason_unclaimed_division_salary', ['division' => $division ?? __('portal.report_area_unknown')])
+                        : __('portal.retained_reason_unclaimed_royalty')),
             ],
         ])->id;
     }

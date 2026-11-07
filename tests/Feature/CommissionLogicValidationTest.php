@@ -394,7 +394,8 @@ class CommissionLogicValidationTest extends TestCase
         $this->assertEquals('unassigned_reserve', $divAlloc->status);
         $this->assertNull($divAlloc->user_id);
         $this->assertTrue($divAlloc->metadata['unassigned'] ?? false);
-        $this->assertEquals('company_geographic_reserve', $divAlloc->metadata['retained_by'] ?? '');
+        $this->assertEquals('company_profit_fund', $divAlloc->metadata['retained_by'] ?? '');
+        $this->assertSame('retained_reason_profit_no_area_seat', $divAlloc->metadata['reason_key'] ?? null);
     }
 
     public function test_order_cancellation_and_clawback_reverses_commissions_and_updates_ledger(): void

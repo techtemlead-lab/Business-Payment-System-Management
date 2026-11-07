@@ -6235,4 +6235,11 @@ return [
     'sce_fld_md_message_body' => 'Message (English). Leave an empty line between paragraphs.',
     'sce_fld_md_message_body_bn' => 'Message in Bangla (empty = built-in Bangla). Leave an empty line between paragraphs.',
     'event_customization_site_photo_uploaded' => 'Website photo uploaded',
+    'retained_reason_profit_no_upline' => 'No referrer at this level for this order, so this share is company profit.',
+    'retained_reason_profit_no_area_seat' => 'No area dealer holds place code :place at this level, so this share is company profit.',
+    'retained_reason_profit_quota_missed' => 'The area dealer missed that month’s purchase quota, so the held share went to company profit at month end.',
+    'retained_reason_unclaimed_sub_dealer_salary' => 'The sub-dealer was not active at month end, so this salary went to company profit.',
+    'retained_reason_unclaimed_additional_rank' => 'Nobody qualified for the sub-dealer additional rank fund this month, so it went to company profit.',
+    'event_commission_quota_holds_forfeited' => 'Missed-quota area commission moved to company profit',
+    'event_commission_additional_rank_closed' => 'Additional rank fund closed into company profit',
 ];

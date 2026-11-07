@@ -96,7 +96,7 @@ class PlaceCodeCommissionRoutingTest extends TestCase
         $this->assertNull($districtAlloc->user_id);
         $this->assertSame('unassigned_reserve', $districtAlloc->status);
         $this->assertSame('MNHC-301', $districtAlloc->metadata['place_code'] ?? null);
-        $this->assertSame('company_geographic_reserve', $districtAlloc->metadata['retained_by'] ?? null);
+        $this->assertSame('company_profit_fund', $districtAlloc->metadata['retained_by'] ?? null);
     }
 
     public function test_unassigned_named_district_code_does_not_pay_district_commission(): void
