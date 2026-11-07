@@ -17,6 +17,15 @@ use Illuminate\Validation\ValidationException;
 
 final class CommissionQualification
 {
+    /** Dealer ranks from lowest to highest. */
+    public const RankLevels = ['dealer', 'mo', 'am', 'sm', 'me'];
+
+    /**
+     * Ranks won by building a team: the rank => the rank each counted team leader must hold
+     * (or beat). The "{rank}_count" rule parameter says how many such leaders are needed.
+     */
+    public const TeamRankRequirements = ['am' => 'mo', 'sm' => 'am', 'me' => 'sm'];
+
     public static function currentMonth(): string
     {
         return now(config('madina.business_timezone'))->format('Y-m');
@@ -91,31 +100,8 @@ final class CommissionQualification
         /** @var Collection<int, DealerRank> $leaders */
         $leaders = DealerRank::query()->whereIn('user_id', $ancestorIds)->get()->keyBy('user_id');
 
-        $levels = ['dealer', 'mo', 'am', 'sm', 'me'];
-        $depth = (int) $parameters['qualification_depth'];
-        $rankCounts = DB::table('referral_tree_paths')
-            ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
-            ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
-            ->whereIn('referral_tree_paths.ancestor_id', $ancestorIds)
-            ->whereBetween('referral_tree_paths.depth', [1, $depth])
-            ->where('users.status', 'active')
-            ->where('users.role', 'dealer')
-            ->groupBy('referral_tree_paths.ancestor_id', 'dealer_ranks.current_rank')
-            ->selectRaw('referral_tree_paths.ancestor_id, dealer_ranks.current_rank, COUNT(*) AS aggregate_count')
-            ->get();
-        /** @var array<int, array<string, int>> $countsByLeader */
-        $countsByLeader = [];
-        foreach ($ancestorIds as $ancestorId) {
-            $countsByLeader[$ancestorId] = array_fill_keys($levels, 0);
-        }
-        foreach ($rankCounts as $row) {
-            $ancestorId = (int) $row->ancestor_id;
-            $currentRank = (string) $row->current_rank;
-            if (! isset($countsByLeader[$ancestorId][$currentRank])) {
-                continue;
-            }
-            $countsByLeader[$ancestorId][$currentRank] = (int) $row->aggregate_count;
-        }
+        $levels = self::RankLevels;
+        $countsByLeader = $this->teamRankCounts($ancestorIds, (int) $parameters['qualification_depth']);
 
         $milestoneLeaderIds = [];
         foreach ($ancestors as $path) {
@@ -124,15 +110,11 @@ final class CommissionQualification
             if ($leader === null) {
                 continue;
             }
-            foreach (['am' => 'mo', 'sm' => 'am', 'me' => 'sm'] as $target => $required) {
+            foreach (self::TeamRankRequirements as $target => $required) {
                 if (array_search($leader->current_rank, $levels, true) >= array_search($target, $levels, true)) {
                     continue;
                 }
-                $minimumIndex = array_search($required, $levels, true);
-                $count = 0;
-                foreach (array_slice($levels, $minimumIndex) as $eligibleRank) {
-                    $count += $countsByLeader[$leaderId][$eligibleRank] ?? 0;
-                }
+                $count = self::leadersAtOrAbove($countsByLeader[$leaderId] ?? [], $required);
                 if ($count >= (int) $parameters[$target.'_count']) {
                     $this->promote($leader, $target);
                     $leader->refresh();
@@ -144,6 +126,60 @@ final class CommissionQualification
         foreach ($milestoneLeaderIds as $leaderId) {
             $this->refreshMilestones($leaderId);
         }
+    }
+
+    /**
+     * How many active dealers of each rank sit within $depth levels under each leader:
+     * the count rank promotion is decided on, worked out in one query.
+     *
+     * @param  list<int>  $leaderIds
+     * @return array<int, array<string, int>> leader id => rank => count
+     */
+    public function teamRankCounts(array $leaderIds, int $depth): array
+    {
+        $countsByLeader = [];
+        foreach ($leaderIds as $leaderId) {
+            $countsByLeader[(int) $leaderId] = array_fill_keys(self::RankLevels, 0);
+        }
+        if ($countsByLeader === []) {
+            return [];
+        }
+        $rankCounts = DB::table('referral_tree_paths')
+            ->join('dealer_ranks', 'dealer_ranks.user_id', '=', 'referral_tree_paths.descendant_id')
+            ->join('users', 'users.id', '=', 'dealer_ranks.user_id')
+            ->whereIn('referral_tree_paths.ancestor_id', array_keys($countsByLeader))
+            ->whereBetween('referral_tree_paths.depth', [1, $depth])
+            ->where('users.status', 'active')
+            ->where('users.role', 'dealer')
+            ->groupBy('referral_tree_paths.ancestor_id', 'dealer_ranks.current_rank')
+            ->selectRaw('referral_tree_paths.ancestor_id, dealer_ranks.current_rank, COUNT(*) AS aggregate_count')
+            ->get();
+        foreach ($rankCounts as $row) {
+            $ancestorId = (int) $row->ancestor_id;
+            $currentRank = (string) $row->current_rank;
+            if (! isset($countsByLeader[$ancestorId][$currentRank])) {
+                continue;
+            }
+            $countsByLeader[$ancestorId][$currentRank] = (int) $row->aggregate_count;
+        }
+
+        return $countsByLeader;
+    }
+
+    /**
+     * Team leaders holding $requiredRank or any higher rank.
+     *
+     * @param  array<string, int>  $counts  rank => count, from teamRankCounts()
+     */
+    public static function leadersAtOrAbove(array $counts, string $requiredRank): int
+    {
+        $minimumIndex = (int) array_search($requiredRank, self::RankLevels, true);
+        $count = 0;
+        foreach (array_slice(self::RankLevels, $minimumIndex) as $eligibleRank) {
+            $count += $counts[$eligibleRank] ?? 0;
+        }
+
+        return $count;
     }
 
     /** @return array<string, mixed> */
