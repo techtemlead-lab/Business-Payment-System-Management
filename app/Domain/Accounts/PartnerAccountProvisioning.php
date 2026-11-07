@@ -174,6 +174,9 @@ final class PartnerAccountProvisioning
         if ($profile['date_of_birth'] === '') {
             throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_required')]);
         }
+        if (! PartnerAge::isAdult($profile['date_of_birth'])) {
+            throw ValidationException::withMessages(['date_of_birth' => __('portal.acct_val_dob_under_age', ['years' => PartnerAge::MinimumYears])]);
+        }
         foreach ([
             'name' => 'portal.acct_val_name_en_required',
             'name_bn' => 'portal.acct_val_name_bn_required',

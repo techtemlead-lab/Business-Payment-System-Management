@@ -538,6 +538,8 @@ Questions about these terms, partnership rules or the website:
     'pd_col_distributor' => 'Licensed distributor',
     'form_fix_errors' => 'Please fix these:',
     'partner_message_placeholder' => 'Tell us briefly about your business, your shop or pharmacy, and your plans...',
+    'partner_date_of_birth' => 'Date of birth',
+    'partner_date_of_birth_hint' => 'You must be at least 18 years old to become a partner.',
     'error_419_title' => 'Page expired',
     'error_419_heading' => 'This page was open too long',
     'error_419_body' => 'For your safety, the page stopped working after some time. Go back, refresh the page and try again. If you were logged out, log in again.',

@@ -486,6 +486,17 @@
                 </div>
 
                 <div class="ref-field-group">
+                    <label for="partner-dob" class="ref-field-label">
+                        <span>{{ __('site.partner_date_of_birth') }} <span class="ref-req">*</span></span>
+                    </label>
+                    <div class="ref-input-wrap">
+                        <i class="fa-solid fa-cake-candles ref-input-icon" aria-hidden="true"></i>
+                        <input id="partner-dob" type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required max="{{ \App\Domain\Accounts\PartnerAge::latestAllowedBirthDate() }}" autocomplete="bday" class="ref-input-control">
+                    </div>
+                    <small class="ref-field-hint">{{ __('site.partner_date_of_birth_hint') }}</small>
+                </div>
+
+                <div class="ref-field-group">
                     <label for="partner-sponsor" class="ref-field-label">
                         <span>{{ __('site.sponsor_code_optional') }}</span>
                         <span class="ref-badge-optional">{{ __('site.optional') }}</span>

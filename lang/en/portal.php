@@ -6042,6 +6042,8 @@ return [
     'ops_warn_accounts_sharing_mobile' => 'Some accounts share a mobile number without an owner’s approval. Give each account its own number.',
     'order_val_company_only_seller' => 'Orders always go to the company. You cannot choose a dealer, sub-dealer or branch as the seller.',
     'err_partner_cannot_sell' => 'Only the company can send goods or move stock. Dealers and sub-dealers cannot sell or move stock to each other.',
+    'acct_val_dob_under_age' => 'Dealers and sub-dealers must be at least :years years old. Please check the date of birth.',
+    'acct_dob_age_hint' => 'Must be at least 18 years old.',
     'ops_chk_car_bike_uncommitted_reserve' => 'Car and bike fund not yet promised',
     'net_qualifying_volume_month' => 'Counts for salary this month',
     'net_qualifying_volume_hint' => 'Paid orders delivered this month, minus refunds. This is the amount checked against the monthly salary target.',
