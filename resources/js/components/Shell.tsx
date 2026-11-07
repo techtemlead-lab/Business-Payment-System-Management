@@ -632,11 +632,17 @@ export default function Shell({ section, children, action }: { section: string; 
     const currentSectionTitle = section === 'overview' || section === ''
         ? dashboardTitle
         : sectionLabel(headingItem);
+    /** Each page has its own short subtitle; staff and partners get different wording. */
+    const sectionHint = (item: string): string => {
+        const key = `${staff ? 'section_hint_' : 'section_hint_partner_'}${item.replaceAll('-', '_')}`;
+        const localized = translate('portal', key);
+        return localized !== key ? localized : translate('portal', 'section_hint');
+    };
     const currentSectionHint = section === 'overview' || section === ''
         ? translate('portal', 'welcome_back', { name: user.name.split(' ')[0], scope: translate('portal', staff ? 'business' : 'account') })
         : (section === 'catalog' && staff
             ? translate('portal', 'catalog_staff_hint')
-            : translate('portal', 'section_hint'));
+            : sectionHint(headingItem));
 
     const signOut = () => {
         setProfileOpen(false);

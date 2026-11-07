@@ -278,13 +278,16 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                     <div className="ops-row is-wrap is-tight emp-perms">
                                         {perms.map(p => {
                                             const info = availablePermissions.find(ap => ap.key === p);
+                                            const permKey = `perm_${p}`;
+                                            const permName = translate('portal', permKey);
+                                            const name = info?.label || (permName !== permKey ? permName : label(p, translate));
                                             return (
                                                 <span
                                                     key={p}
-                                                    title={info?.description || p}
+                                                    title={info?.description || name}
                                                     className="emp-perm"
                                                 >
-                                                    {info?.label || p}
+                                                    {name}
                                                 </span>
                                             );
                                         })}
@@ -486,9 +489,6 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                                         <div>
                                                             <div className="ops-row is-snug">
                                                                 <b className="emp-option-title">{p.label}</b>
-                                                                <code className="emp-code">
-                                                                    {p.key}
-                                                                </code>
                                                             </div>
                                                             <small className="ops-block ops-meta emp-option-hint">
                                                                 {p.description}
@@ -662,9 +662,6 @@ export default function EmployeesHub({ employees, availablePermissions, stats, f
                                                         <div>
                                                             <div className="ops-row is-snug">
                                                                 <b className="emp-option-title">{p.label}</b>
-                                                                <code className="emp-code">
-                                                                    {p.key}
-                                                                </code>
                                                             </div>
                                                             <small className="ops-block ops-meta emp-option-hint">
                                                                 {p.description}
