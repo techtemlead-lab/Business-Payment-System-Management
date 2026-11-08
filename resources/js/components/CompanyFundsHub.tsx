@@ -9,7 +9,8 @@ type Translate = ReturnType<typeof useT>;
 
 type FundRow = { key: string; money_in: string; money_out: string; pending: string; balance: string; available: string; spendable: boolean; award_only: boolean };
 type Head = { id: number; name_en: string; name_bn: string; is_active: boolean; for_tours: boolean };
-type Approval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean };
+type Approval = Row & { id: number; fund_key: string; amount: string; can_review: boolean; can_cancel?: boolean; can_self_approve?: boolean; over_budget?: boolean };
+type Budget = { head_id: number; name_en: string; name_bn: string; budget: string; used: string; left: string; over: boolean };
 type ReportData = {
     by_fund: { fund: string; total: string; spends: number }[];
     by_head: { head_id: number | null; name_en: string | null; name_bn: string | null; total: string; spends: number }[];
@@ -26,6 +27,8 @@ export type CompanyFundsData = {
     approvals: Approval[];
     approvals_waiting: number;
     heads: Head[];
+    budgets: Budget[];
+    budget_month: string;
     methods: string[];
     filters: { from: string; to: string; fund: string | null; head: number | null };
     report: ReportData | null;
@@ -71,6 +74,7 @@ export default function CompanyFundsHub({ data }: { data?: CompanyFundsData | nu
             {data.tab === 'funds' && <FundsTab data={data} translate={translate} open={open} onSpend={setSpending} selectedFund={selectedFund} headName={headName} />}
             {data.tab === 'approvals' && <ApprovalsTab approvals={data.approvals} translate={translate} headName={headName} />}
             {data.tab === 'heads' && <HeadsTab heads={data.heads} translate={translate} />}
+            {data.tab === 'heads' && <FundBudgetsPanel heads={data.heads} budgets={data.budgets} month={data.budget_month} translate={translate} headName={headName} />}
             {data.tab === 'report' && data.report && <ReportTab data={data} report={data.report} translate={translate} open={open} headName={headName} />}
             {spending && <SpendForm fund={spending} heads={data.heads} methods={data.methods} translate={translate} headName={headName} onClose={() => setSpending(null)} />}
         </div>
@@ -258,7 +262,7 @@ function ApprovalsTab({ approvals, translate, headName }: { approvals: Approval[
                             <tr key={row.id}>
                                 <td>{date(row.spent_on)}</td>
                                 <td>{translate('funds', `fund_${row.fund_key}`)}</td>
-                                <td>{headName(row)}{row.reason && <small className="cell-sub">{row.reason}</small>}</td>
+                                <td>{headName(row)}{row.over_budget && <small className="cell-sub text-amber">{translate('funds', 'budget_status_over')}</small>}{row.reason && <small className="cell-sub">{row.reason}</small>}</td>
                                 <td>{row.payee_name}</td>
                                 <td>{translate('funds', `method_${row.payment_method}`)}</td>
                                 <td>{row.payment_reference || '—'}{row.has_receipt && <small className="cell-sub"><a href={`/commands/operations/receipts/reserve/${row.id}`}>{translate('funds', 'col_receipt')}</a></small>}</td>
@@ -350,6 +354,51 @@ function HeadsTab({ heads, translate }: { heads: Head[]; translate: Translate })
                 </table>
             </div>
             {editing && <HeadForm head={editing === 'new' ? null : editing} translate={translate} onClose={() => setEditing(null)} />}
+        </section>
+    );
+}
+
+/** Optional monthly budgets. Going over only warns; nothing here can stop a spend. */
+function FundBudgetsPanel({ heads, budgets, month, translate, headName }: { heads: Head[]; budgets: Budget[]; month: string; translate: Translate; headName: (head: Head | Budget) => string }) {
+    const { portalBase: base } = usePage<any>().props;
+    const form = useForm<{ expense_head_id: string; amount: string }>({ expense_head_id: '', amount: '' });
+    const submit = (event: React.FormEvent) => {
+        event.preventDefault();
+        form.transform((data) => ({ ...data, month }));
+        form.post(`${ROOT}/budgets`, { preserveScroll: true, onSuccess: () => form.reset() });
+    };
+    return (
+        <section className="panel">
+            <h2>{translate('funds', 'budget_title')}</h2>
+            <p className="muted">{translate('funds', 'budget_hint')}</p>
+            <label className="muted ptl-date-field">{translate('funds', 'budget_month')}<input type="month" value={month} onChange={(event) => event.target.value && router.get(`${base}/company-funds`, { tab: 'heads', budget_month: event.target.value }, { preserveState: true, preserveScroll: true })} /></label>
+            {budgets.length === 0 ? <Empty title={translate('funds', 'budget_none')} /> : (
+                <div className="table-wrap">
+                    <table className="rx-table">
+                        <thead><tr><th>{translate('funds', 'budget_head')}</th><th className="num">{translate('funds', 'budget_col_budget')}</th><th className="num">{translate('funds', 'budget_col_used')}</th><th className="num">{translate('funds', 'budget_col_left')}</th><th>{translate('funds', 'col_status')}</th></tr></thead>
+                        <tbody>
+                            {budgets.map((row) => (
+                                <tr key={row.head_id}>
+                                    <td>{headName(row)}</td>
+                                    <td className="num">{money(row.budget)}</td>
+                                    <td className="num">{money(row.used)}</td>
+                                    <td className="num">{money(row.left)}</td>
+                                    <td>{row.over ? <b className="text-amber">{translate('funds', 'budget_status_over')}</b> : translate('funds', 'budget_status_ok')}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            <form className="action-form" onSubmit={submit}>
+                <label>{translate('funds', 'budget_head')}<select required value={form.data.expense_head_id} onChange={(event) => form.setData('expense_head_id', event.target.value)}>
+                    <option value="">—</option>
+                    {heads.filter((head) => head.is_active).map((head) => <option key={head.id} value={head.id}>{headName(head)}</option>)}
+                </select></label>
+                <label>{translate('funds', 'budget_amount')}<input inputMode="decimal" value={form.data.amount} onChange={(event) => form.setData('amount', event.target.value)} /><small className="muted">{translate('funds', 'budget_amount_hint')}</small></label>
+                <FormErrors errors={form.errors} />
+                <button type="submit" className="button dark" disabled={form.processing}>{translate('funds', 'budget_save')}</button>
+            </form>
         </section>
     );
 }

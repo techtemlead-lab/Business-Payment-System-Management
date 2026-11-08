@@ -101,6 +101,7 @@ class HandleInertiaRequests extends Middleware
             'locales' => config('madina.locales', ['en', 'bn']),
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'warning' => fn () => $request->session()->get('warning'),
                 'totp_setup' => fn () => $request->session()->get('totp_setup'),
                 'totp_recovery_codes' => fn () => $request->session()->get('totp_recovery_codes'),
             ],

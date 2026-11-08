@@ -6318,7 +6318,7 @@ return [
     'event_privacy_request_resolved' => 'Owner answered a data request',
     'accounting' => 'Accounting',
     'section_hint_accounting' => 'Trial balance, profit and loss, balance sheet, statement checks and the payout file.',
-    'event_finance_withdrawal_approval_limit_changed' => 'Withdrawal approval limit changed',
+    'event_finance_withdrawal_approval_limit_changed' => 'Large withdrawal limit changed',
     'purchasing_nav' => 'Purchasing',
     'section_hint_purchasing' => 'Suppliers, purchase orders and goods received.',
     'status_partly_received' => 'Partly received',
@@ -6406,4 +6406,6 @@ return [
     'event_stock_lot_held' => 'Batch put on hold',
     'event_stock_lot_released' => 'Batch released from hold',
     'event_stock_lot_written_off' => 'Held batch written off',
+    'event_stock_lot_details_filled' => 'Batch details filled in',
+    'event_fund_budget_saved' => 'Expense head budget saved',
 ];

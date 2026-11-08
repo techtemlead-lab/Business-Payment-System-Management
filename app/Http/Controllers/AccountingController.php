@@ -8,6 +8,7 @@ use App\Domain\Finance\WithdrawalApprovalLimit;
 use App\Domain\Payouts\PayoutBatch;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\PortalHost;
 use App\Support\SpreadsheetCell;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -45,7 +46,7 @@ class AccountingController extends Controller
         if ($tab === 'statements') {
             [$from, $to] = $this->period($request);
             $data['filters'] = ['from' => $from, 'to' => $to];
-            $data['statements'] = $statements->build($from, $to);
+            $data['statements'] = $statements->build($from, $to, $this->showOwnerHeads($actor));
             $data['exportBase'] = '/commands/operations/accounting/export';
         }
         if ($tab === 'import') {
@@ -94,10 +95,10 @@ class AccountingController extends Controller
         [$from, $to] = $this->period($request);
         $type = $request->string('type')->toString();
         $format = $request->string('format')->toString();
-        $report = $statements->report($type, $from, $to);
+        $report = $statements->report($type, $from, $to, $this->showOwnerHeads($request->user()));
         $name = __('accounting.statement_'.str_replace('-', '_', $type));
         $notice = __('accounting.management_notice');
-        $scope = __('accounting.journal_scope_notice');
+        $scope = implode(' ', [__('accounting.journal_scope_notice'), __('accounting.accountant_title'), ...AccountingStatements::accountantChecks()]);
         $generatedAt = now()->timezone('Asia/Dhaka')->format('d M Y H:i');
         Storage::disk('local')->makeDirectory('report-exports');
         $path = Storage::disk('local')->path('report-exports/'.Str::uuid().'.'.$format);
@@ -196,6 +197,12 @@ class AccountingController extends Controller
         $data = $request->validate(['month' => 'nullable|date_format:Y-m', 'channel' => ['nullable', Rule::in(PayoutBatch::Channels)]]);
 
         return [$data['month'] ?? now()->timezone('Asia/Dhaka')->format('Y-m'), $data['channel'] ?? null];
+    }
+
+    /** Spends from the owners' own fund are named by head only on the owner panel. */
+    private function showOwnerHeads(User $actor): bool
+    {
+        return $actor->owner() && PortalHost::current() === 'sadmin';
     }
 
     /** Owner and finance staff only; the money figures here are company-wide. */
