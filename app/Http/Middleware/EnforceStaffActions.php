@@ -68,6 +68,10 @@ class EnforceStaffActions
             // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'FundSpendingController' && $actor->owner()) {
+            // Owners record and approve spends from company funds; FundSpending checks again.
+            return $next($request);
+        }
         if ($controller === 'DataCleanupController' && $actor->owner()) {
             // Only owners delete old login codes, SMS records and closed enquiries; the controller checks again.
             return $next($request);
@@ -148,6 +152,11 @@ class EnforceStaffActions
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
+            },
+            'FundSpendingController' => match ($method) {
+                'review' => [['finance'], 'approve'],
+                'storeHead', 'updateHead' => [['finance'], 'edit'],
+                default => [['finance'], 'create'],
             },
             'FieldSalesController' => match ($method) {
                 'order' => [['sr_orders'], 'create'], 'application' => [['sr_onboarding'], 'create'],

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 final class ReportData
 {
-    public const Types = ['orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
+    public const Types = ['fund-spending', 'orders', 'products', 'product-summary', 'category-summary', 'district-summary', 'commissions', 'settlements', 'payroll', 'withdrawals', 'ledger', 'rewards', 'rank-achievements', 'rank-incentives', 'refunds', 'collections', 'tds-register', 'order-refunds'];
 
     /** Money still to collect on one order; never negative. */
     private const OutstandingSql = 'GREATEST(o.total-o.due_credit-o.paid, 0)';
@@ -26,8 +26,11 @@ final class ReportData
     /** Partner kinds a report can be narrowed to. */
     public const AccountTypes = ['dealer', 'sub_dealer'];
 
-    /** @return array{query: Builder, columns: list<string>, money: list<string>} */
-    public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null): array
+    /**
+     * @param  array{fund?: ?string, head?: ?int}  $filters  Only the fund-spending report uses these.
+     * @return array{query: Builder, columns: list<string>, money: list<string>}
+     */
+    public function query(User $actor, string $type, string $from, string $to, ?string $accountType = null, array $filters = []): array
     {
         $company = $actor->allows('finance') || $actor->allows('reports');
         $sales = $actor->allows('field_sales');
@@ -61,7 +64,7 @@ final class ReportData
                 ['w.id', 'w.created_at as requested_at', 'u.dealer_code', 'u.name', 'u.phone', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.status', 'w.payment_reference', 'w.paid_at'], ['amount', 'withheld_amount', 'net_amount'], 'w.created_at', 'w.user_id'],
             'ledger' => [DB::table('journal_lines as l')->join('journal_entries as j', 'j.id', '=', 'l.entry_id')->leftJoin('users as u', 'u.id', '=', 'l.user_id'),
                 ['j.event_key', 'j.description', 'u.name', 'l.account', 'l.debit', 'l.credit', 'j.created_at'], ['debit', 'credit'], 'j.created_at', 'l.user_id'],
-            'rewards' => [DB::table('reserve_disbursements as r')->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
+            'rewards' => [DB::table('reserve_disbursements as r')->where('r.program', '!=', FundSpending::Program)->leftJoin('users as u', 'u.id', '=', 'r.user_id'),
                 ['r.id', 'u.dealer_code', 'u.name', 'r.payee_name', 'r.program', 'r.amount', 'r.status', 'r.payment_reference', 'r.created_at'], ['amount'], 'r.created_at', 'r.user_id'],
             // Every payment a partner sent with its TrxID, who checked it and when: the daily collection sheet.
             'collections' => [DB::table('payment_claims as c')->join('orders as o', 'o.id', '=', 'c.order_id')->join('users as u', 'u.id', '=', 'o.user_id')
@@ -70,6 +73,9 @@ final class ReportData
                     DB::raw('checker.name AS checked_by'), DB::raw("CASE WHEN c.status <> 'pending' THEN c.updated_at END AS checked_at")],
                 ['amount'], 'c.created_at', 'o.user_id'],
             // Tax cut (TDS) on money sent to partners, for the tax return.
+            'fund-spending' => [CompanyFunds::paidSpendRows(['from' => $from, 'to' => $to, ...$filters], $actor->owner() && PortalHost::current() === 'sadmin'),
+                [DB::raw('COALESCE(r.spent_on, r.paid_at::date) AS spent_on'), DB::raw("COALESCE(r.fund_key, 'marketing') AS fund"), DB::raw('COALESCE(h.name_en, \'\') AS head'), DB::raw('r.payee_name AS payee'), 'r.payment_method', 'r.payment_reference', 'r.amount', 'r.reason', 'r.status'],
+                ['amount'], DB::raw('COALESCE(r.spent_on, r.paid_at::date)'), 'r.created_by'],
             'tds-register' => [DB::table('withdrawals as w')->join('users as u', 'u.id', '=', 'w.user_id')->where('w.status', 'paid'),
                 ['w.paid_at', 'u.dealer_code', 'u.name', 'u.phone', 'u.role', 'w.amount', 'w.withheld_amount', 'w.net_amount', 'w.channel', 'w.payment_reference'],
                 ['amount', 'withheld_amount', 'net_amount'], 'w.paid_at', 'w.user_id'],
