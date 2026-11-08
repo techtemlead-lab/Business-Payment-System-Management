@@ -202,9 +202,8 @@ final class PlaceCodeCatalog
         }
 
         if ($code === null) {
-            $name = $existing !== null && PlaceCode::isPlaceholderLabel($existing->code) && ! PlaceCode::isPlaceholderLabel($rawName)
-                ? $rawName
-                : PlaceCode::PlaceholderLabel;
+            $waitingForCode = $existing === null || PlaceCode::isPlaceholderLabel($existing->code);
+            $name = $waitingForCode && ! PlaceCode::isPlaceholderLabel($rawName) ? $rawName : PlaceCode::PlaceholderLabel;
         } else {
             if (PlaceCode::isPlaceholderLabel($rawName)) {
                 throw ValidationException::withMessages(['name' => __('portal.err_pc_name_required')]);
