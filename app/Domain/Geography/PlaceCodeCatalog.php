@@ -181,6 +181,9 @@ final class PlaceCodeCatalog
     }
 
     /**
+     * A place still waiting for its code keeps its name when saved; taking a code
+     * away blanks the row. The base place is only checked when it is being changed.
+     *
      * @param  array<string, mixed>  $input
      * @return array{code:?string,name:string,parent_id:?int,base_place_id:?int,sort_order:int,is_active:bool}
      */
