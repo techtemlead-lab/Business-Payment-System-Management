@@ -90,6 +90,34 @@ final class PortalHost
         return self::domain() === 'localhost' || app()->environment('local', 'testing');
     }
 
+    /**
+     * Host name patterns this request may use. Loopback names are only allowed on local
+     * previews and for the web container's own health check.
+     *
+     * @return list<string>
+     */
+    public static function trustedHostPatterns(Request $request): array
+    {
+        $patterns = ['^(.+\.)?'.preg_quote(self::domain(), '/').'$'];
+        if (self::allowsSharedPreview() || self::isContainerHealthProbe($request)) {
+            array_push($patterns, '^127\.0\.0\.1$', '^localhost$', '^\[::1\]$');
+        }
+
+        return $patterns;
+    }
+
+    /**
+     * The health check inside the web container calls /up on 127.0.0.1, so it cannot send the
+     * public domain. Visitors arrive through the proxy on the Docker network, so their connection
+     * address is never loopback, whatever Host header they send. REMOTE_ADDR is read directly
+     * because it cannot be set by the caller, unlike the forwarded headers.
+     */
+    private static function isContainerHealthProbe(Request $request): bool
+    {
+        return $request->getPathInfo() === '/up'
+            && in_array($request->server->get('REMOTE_ADDR'), ['127.0.0.1', '::1'], true);
+    }
+
     public static function isSharedPreviewHost(?Request $request = null): bool
     {
         if (! self::allowsSharedPreview()) {

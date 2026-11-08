@@ -50,6 +50,7 @@ class EnforceStaffActions
                 'TrainingController' => $method === 'submitQuiz',
                 // Verified prescribers only; PrescriptionAccess checks again.
                 'PrescriptionController' => in_array($method, ['storePatient', 'updatePatient', 'store'], true),
+                'PrescriptionToolsController' => true,
                 'PushSubscriptionController' => true,
                 default => false,
             };
@@ -69,7 +70,9 @@ class EnforceStaffActions
             // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
             return $next($request);
         }
-        if ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true) && PrescriptionAccess::usesCompanyStock($actor)) {
+        $prescribing = $controller === 'PrescriptionToolsController'
+            || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
+        if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
             // Office accounts switched on for company stock prescribe and dispense; the domain checks again.
             return $next($request);
         }

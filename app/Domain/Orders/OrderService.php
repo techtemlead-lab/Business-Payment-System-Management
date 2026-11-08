@@ -403,6 +403,10 @@ class OrderService
                 return;
             }
             abort_unless($shipment->status === 'dispatched', 422);
+            // The parcel came back, so confirming it would release commission for goods the dealer never got.
+            if ($shipment->courier_status === 'returned') {
+                throw ValidationException::withMessages(['shipment' => __('courier.returned_cannot_confirm')]);
+            }
             DB::table('shipments')->where('id', $shipmentId)->update(['status' => 'delivered', 'delivered_at' => now(), 'delivered_by' => $actor->id, 'updated_at' => now()]);
             $remaining = $locked->lines()->whereColumn('dispatched', '<', 'quantity')->exists();
             $openShipment = DB::table('shipments')->where('order_id', $locked->id)->where('status', '!=', 'delivered')->exists();

@@ -7,6 +7,7 @@ use App\Domain\Geography\PlaceTree;
 use App\Models\BranchProductStock;
 use App\Models\BranchStaffAssignment;
 use App\Models\CompanyBranch;
+use App\Models\Order;
 use App\Models\PlaceCode;
 use App\Models\Product;
 use App\Models\User;
@@ -503,6 +504,23 @@ final class BranchOperations
     public function canViewAllBranches(User $actor): bool
     {
         return $this->canManageAllBranches($actor) || $actor->allows('finance');
+    }
+
+    /**
+     * Whether a staff member may open this order. The owner and all-branch staff always may;
+     * branch staff may open orders of the branches they work at. An order that has no branch
+     * yet belongs to no other branch, so it stays open to them.
+     */
+    public function mayOpenOrder(User $actor, Order $order): bool
+    {
+        if ($this->canViewAllBranches($actor) || $order->fulfillment_branch_id === null) {
+            return true;
+        }
+
+        return BranchStaffAssignment::query()
+            ->where('branch_id', $order->fulfillment_branch_id)
+            ->where('user_id', $actor->id)
+            ->exists();
     }
 
     /**

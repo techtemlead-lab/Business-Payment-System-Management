@@ -18,7 +18,7 @@ function readCookie(name: string): string | null {
     if (typeof document === 'undefined') {
         return null;
     }
-    const parts = (';' + document.cookie).split('; ' + name + '=');
+    const parts = ('; ' + document.cookie).split('; ' + name + '=');
     if (parts.length < 2) {
         return null;
     }

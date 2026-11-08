@@ -17,7 +17,7 @@ Use this before enabling financial posting on a production deployment. Keep `MAD
 - [ ] Frontend built: `npm ci --ignore-scripts && npm run build`
 - [ ] Off-site backup copy configured: `MADINA_BACKUP_OFFSITE_DISK=backups-offsite` with `MADINA_BACKUP_OFFSITE_PATH` on a volume from another machine; one backup restored on a separate database (restore drill in `docs/RUNBOOK.md`)
 - [ ] `TRUSTED_PROXIES` lists the real proxy network and is **not** `*`
-- [ ] `example.com` replaced with the real domain in `infra/nginx.production.conf`; `APP_DOMAIN` exported for `docker compose` (used by the web health check)
+- [ ] `example.com` replaced with the real domain in `infra/nginx.production.conf`
 - [ ] Critical alerts reach a person: `,slack` added to `LOG_STACK` with `LOG_SLACK_WEBHOOK_URL`, or the hosting log service alerts on `CRITICAL`; send a test alert
 - [ ] Error tracking on: create a free account at [sentry.io](https://sentry.io), add a **Laravel** project, copy its DSN and paste it as `SENTRY_LARAVEL_DSN` on the live server (keep `SENTRY_TRACES_SAMPLE_RATE=0`). Personal data is never sent. `app:readiness` must not warn `error_tracking_not_configured`
 - [ ] Two-factor login (TOTP) enabled for every owner and finance account

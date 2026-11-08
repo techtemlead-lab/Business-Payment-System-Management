@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Orders\OrderListFilter;
 use App\Models\Order;
 use App\Support\Audit;
@@ -33,6 +34,8 @@ class ReportController extends Controller
             'to' => 'nullable|date_format:Y-m-d|after_or_equal:from',
             'buyer_role' => 'nullable|in:dealer,sub_dealer',
             'section' => 'nullable|in:orders,deliveries,reports',
+            'branch_id' => 'nullable|integer|min:1',
+            'all_branches' => 'nullable|boolean',
         ]);
         // Older links sent only from/to; treat them as a custom date range.
         if (! $r->filled('period') && ($r->filled('from') || $r->filled('to'))) {
@@ -43,9 +46,14 @@ class ReportController extends Controller
             ]);
         }
         $section = $d['section'] ?? 'orders';
+        // The file follows the same branch as the list on screen.
+        $visibleOrders = Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id));
+        if ($staff) {
+            app(BranchOperations::class)->scopeFor($u, $r)->restrict($visibleOrders, 'orders.fulfillment_branch_id');
+        }
 
         $q = $filter->apply(
-            Order::query()->when(! $staff, fn ($q) => $q->where('user_id', $u->id)),
+            $visibleOrders,
             $r,
             $section,
             $staff,

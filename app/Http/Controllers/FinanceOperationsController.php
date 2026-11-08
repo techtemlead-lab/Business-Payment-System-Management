@@ -9,11 +9,13 @@ use App\Domain\Finance\PaymentAccounts;
 use App\Domain\Finance\PayrollService;
 use App\Domain\Finance\ReportData;
 use App\Domain\Finance\ReserveService;
+use App\Domain\Inventory\BranchOperations;
 use App\Domain\Payouts\PayoutReceipts;
 use App\Support\Audit;
 use App\Support\Money;
 use App\Support\SpreadsheetCell;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -249,6 +251,7 @@ class FinanceOperationsController extends Controller
         }
         $accountType = in_array($data['type'], ReportData::AccountTypeReports, true) ? ($data['account_type'] ?? null) : null;
         $report = $reports->query($request->user(), $data['type'], $data['from'], $data['to'], $accountType);
+        $this->limitReportToBranch($request, $data['type'], $report['query']);
         $partnerScope = in_array($data['type'], ReportData::AccountTypeReports, true) ? __('portal.ops_report_account_'.($accountType ?? 'all')) : null;
         $reportKey = str_replace('-', '_', $data['type']);
         $reportNameKey = 'portal.ops_export_name_'.$reportKey;
@@ -392,6 +395,22 @@ class FinanceOperationsController extends Controller
         return $request->expectsJson()
             ? response()->json(['data' => $data, 'message' => __('portal.flash_finance_operation')])
             : back()->with('success', __('portal.flash_finance_operation'));
+    }
+
+    /**
+     * The payments page's file follows the top-bar branch switcher. Any other order-based
+     * report stays inside the branch for branch staff, and is unchanged for everyone else.
+     */
+    private function limitReportToBranch(Request $request, string $type, Builder $report): void
+    {
+        $actor = $request->user();
+        $branches = app(BranchOperations::class);
+        if (! $actor->staff() || ! ($actor->allows('finance') || $actor->allows('reports'))
+            || ! in_array($type, ReportData::OrderBasedReports, true)
+            || ($type !== 'collections' && $branches->canViewAllBranches($actor))) {
+            return;
+        }
+        $branches->scopeFor($actor, $request)->restrict($report, 'o.fulfillment_branch_id');
     }
 
     /** Report column header in the viewer's language, e.g. "dealer_code" → "Dealer code". */
