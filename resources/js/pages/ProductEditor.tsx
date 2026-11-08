@@ -290,7 +290,7 @@ export default function ProductEditor({
     className="button small pe-danger-button"
     onClick={() => {
      const reason = window.prompt(translate('portal','delete_product_prompt',{name:String(p.name)}));
-     if (reason !== null && reason.trim().length >= 3) {
+     if (reason !== null) {
       router.delete(`/commands/products/${p.id}`, {
        data: { reason },
       });

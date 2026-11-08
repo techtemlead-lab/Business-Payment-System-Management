@@ -4,7 +4,7 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(!matrix)return true;
     const path=url.split('?')[0];
     const any=(modules:string[],action:string)=>modules.some(module=>matrix[module]?.[action]);
-    if(path.startsWith('/security/')||path==='/commands/owner/contact'||path==='/commands/owner/partner-login-otp'||path==='/logout'||/\/notices\/[^/]+\/read$/.test(path))return true;
+    if(path.startsWith('/security/')||path==='/commands/owner/contact'||path==='/commands/owner/partner-login-otp'||path==='/commands/owner/password-reset-notice'||path==='/logout'||/\/notices\/[^/]+\/read$/.test(path))return true;
     if(path.startsWith('/commands/operations/')) {
         const part=path.slice('/commands/operations/'.length);
         if(part.startsWith('staff/roles')||part.startsWith('staff/action-permissions'))return any(['staff_admin'],'edit');
@@ -18,7 +18,9 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
         if(/\/(review|pay|verify|release|recover|reassign)$/.test(part))return any(['finance'],'approve');
         return any(['finance'],method==='patch'?'edit':'create');
     }
-    if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/(invite|benefit-controls)$/.test(path)?'edit':'create');
+    // A partner's special salary and royalty rules need finance approval on the server, not account editing.
+    if(/^\/commands\/accounts\/[^/]+\/benefit-controls$/.test(path))return any(['finance'],'approve');
+    if(path.startsWith('/commands/accounts'))return any(['accounts'],method==='patch'||/\/invite$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/products'))return any(['catalog','pricing','inventory'],method==='post'&&path==='/commands/products'?'create':'edit');
     if(path.startsWith('/commands/area-dealers')||path.startsWith('/commands/dashboards'))return any(['accounts'],'edit');
     if(path==='/commands/stock')return any(['inventory'],'create');
@@ -35,11 +37,14 @@ export function actionAllowed(url:string,matrix:Matrix|undefined,method='post'):
     if(path.startsWith('/commands/commissions'))return any(['finance'],path.endsWith('/rules')?'edit':path.endsWith('/simulate')?'view':'approve');
     if(path==='/commands/policies')return any(['finance'],'create');
     if(/^\/commands\/policies\/\d+\/publish$/.test(path))return any(['finance'],'approve');
-    if(path.startsWith('/commands/customization')||path==='/commands/content')return any(['content','catalog'],'edit');
+    if(path==='/commands/content'||path==='/commands/customization/reset')return any(['content'],'edit');
+    if(path.startsWith('/commands/customization'))return any(['content','catalog'],'edit');
     if(path.startsWith('/commands/public-trust'))return any(['content'],'edit');
-    if(path.startsWith('/commands/enquiries'))return any(['content','catalog','accounts'],'edit');
+    if(path.startsWith('/commands/enquiries'))return any(['content','accounts','support_desk'],'edit');
     if(/^\/commands\/feedback\/\d+$/.test(path)||path==='/commands/testimonials')return any(['content'],'edit');
     if(path.startsWith('/commands/purchasing/'))return any(['inventory'],method==='patch'||/\/(send|cancel)$/.test(path)?'edit':'create');
     if(path.startsWith('/commands/stock-counts'))return any(['inventory'],/\/(approve|reject)$/.test(path)?'approve':/\/cancel$/.test(path)?'edit':'create');
+    // Partner tools on the owner panel: only owners reach these pages and the server checks again.
+    if(path==='/commands/sales-kit'||path==='/commands/contests')return true;
     return false;
 }
