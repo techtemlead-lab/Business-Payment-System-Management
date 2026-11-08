@@ -41,6 +41,7 @@ class GreenwebSmsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Http::preventStrayRequests();
         $this->withoutVite();
         $this->seedClassicPlaceCodes();
         config(['madina.financial_activation' => false, 'madina.bdris.enabled' => false]);

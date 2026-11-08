@@ -6290,4 +6290,5 @@ return [
     'sms_compose_rules_note' => 'SMS rules: write in Bangla. A few English words are fine, but English-only text or Bangla written in English letters (Banglish) is not. No personal or political messages, and no abuse, threats or indecent words.',
     'sms_compose_counter' => ':chars characters · :segments SMS',
     'sms_compose_counter_hint' => 'One Bangla SMS holds 70 characters. Longer messages are charged at 67 characters per SMS.',
+    'cleanup_detail_refused' => 'Not sent (no Bangla letters)',
 ];

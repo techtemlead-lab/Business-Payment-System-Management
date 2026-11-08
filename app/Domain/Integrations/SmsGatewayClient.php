@@ -237,8 +237,8 @@ final class SmsGatewayClient
     }
 
     /**
-     * Greenweb answers HTTP 200 even when it rejects an SMS, so only a reply that
-     * starts with "Ok:" and has no "Error:" line counts as sent. The token goes in the
+     * Greenweb reports the result in the reply text, so only a reply that starts
+     * with "Ok:" and has no "Error:" line counts as sent. The token goes in the
      * form body, never in the URL. See https://bdbulksms.com/bd-bulk-sms-api.php.
      *
      * @param  array<string, mixed>  $config
