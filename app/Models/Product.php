@@ -13,11 +13,35 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class Product extends Model
 {
     use HasFactory;
+
+    /**
+     * Columns in other tables that hold a product's id. A row in any of them means the product is
+     * in use, so it is archived and not deleted: the database would refuse the delete, or would
+     * quietly remove or empty that row. Every foreign key to products must be listed here.
+     *
+     * @var array<string, string> table name => column name
+     */
+    public const ReferencingColumns = [
+        'branch_product_stocks' => 'product_id',
+        'dated_schemes' => 'free_product_id',
+        'goods_receipt_lines' => 'product_id',
+        'order_lines' => 'product_id',
+        'prescription_lines' => 'product_id',
+        'product_concern_product' => 'product_id',
+        'purchase_order_lines' => 'product_id',
+        'site_feedback' => 'product_id',
+        'stock_count_lines' => 'product_id',
+        'stock_lot_movements' => 'product_id',
+        'stock_lots' => 'product_id',
+        'stock_movements' => 'product_id',
+        'stock_transfers' => 'product_id',
+    ];
 
     protected $guarded = ['id'];
 
@@ -129,6 +153,19 @@ class Product extends Model
         $sellable = $this->sellableStock();
 
         return $sellable <= 0 ? 'out_of_stock' : ($sellable <= $this->low_stock_at ? 'low_stock' : 'in_stock');
+    }
+
+    /** Whether any other record still points at this product, by foreign key or in a saved list. */
+    public function isReferenced(): bool
+    {
+        foreach (self::ReferencingColumns as $table => $column) {
+            if (DB::table($table)->where($column, $this->id)->exists()) {
+                return true;
+            }
+        }
+
+        return DB::table('dated_schemes')->whereJsonContains('product_ids', $this->id)->exists()
+            || DB::table('prescription_templates')->whereJsonContains('lines', [['product_id' => $this->id]])->exists();
     }
 
     public function registerName(): string

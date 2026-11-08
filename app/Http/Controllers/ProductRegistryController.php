@@ -103,8 +103,7 @@ class ProductRegistryController extends Controller
         $data = $r->validate(['reason' => 'required|string|min:5|max:1000']);
         $archived = DB::transaction(function () use ($r, $product, $data): bool {
             $locked = Product::whereKey($product->id)->lockForUpdate()->firstOrFail();
-            $hasHistory = DB::table('order_lines')->where('product_id', $locked->id)->exists()
-                || DB::table('stock_movements')->where('product_id', $locked->id)->exists() || $locked->stock > 0;
+            $hasHistory = $locked->stock > 0 || $locked->isReferenced();
             if ($hasHistory) {
                 $locked->update(['active' => false, 'featured' => false, 'registry_version' => $locked->registry_version + 1]);
                 Audit::record($r->user()->id, 'product.archived', (string) $locked->id, ['reason' => $data['reason']]);
