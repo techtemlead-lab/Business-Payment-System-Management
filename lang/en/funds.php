@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'title' => 'Company funds',
+    'title' => 'Fund balances',
     'intro' => 'See how much money each fund has, record money taken out, and see what it was spent on.',
     'tab_funds' => 'Funds',
     'tab_approvals' => 'Waiting for approval',
@@ -119,7 +119,7 @@ return [
     'err_award_only' => 'This fund can only be paid out through its own award rules.',
     'err_head_inactive' => 'This expense head is switched off. Please choose another one.',
     'err_tour_head' => 'The tour fund can only be spent on a company tour head.',
-    'err_tour_company_only' => 'Tour money cannot go to one partner. Only the company spends it, on company tours, from Company funds.',
+    'err_tour_company_only' => 'Tour money cannot go to one partner. Only the company spends it, on company tours, from the Fund balances page.',
     'err_reference_used' => 'This reference has already been used for another payment.',
     'err_already_reviewed' => 'This spend has already been checked.',
     'err_own_spend' => 'You recorded this spend, so someone else must check it.',
@@ -135,7 +135,7 @@ return [
     'tr_old_area_title' => 'Older area reserve rows',
     'tr_old_area_hint' => 'Only rows from before the company profit rule are listed here. Newer shares with no dealer are in the company profit fund.',
     'retained_old_area' => 'Older area reserve',
-    'link_manage' => 'See money in and out, or take money out',
+    'link_manage' => 'See fund balances or take money out',
     'budget_title' => 'Monthly budgets',
     'budget_hint' => 'Optional. Set how much you plan to spend on a head in a month. Going over only shows a warning; the spend still goes through. Spending from the owners\' own fund is not counted.',
     'budget_month' => 'Month',

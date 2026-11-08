@@ -16,6 +16,18 @@ final class UserManual
     /** False leaves ":rate"-style placeholders in the text for the browser to fill in. */
     private bool $fillRuleValues = true;
 
+    /**
+     * Lines of the shared chapters that name the owner and staff logins, and the lines
+     * dealers and sub-dealers read instead. Owner and staff keep the original wording.
+     */
+    private const PartnerWording = [
+        'getting_started_purpose' => 'getting_started_partner_purpose',
+        'getting_started_s1' => 'getting_started_partner_s1',
+        'getting_started_s8' => 'getting_started_partner_s8',
+        'getting_started_s9' => 'getting_started_partner_s9',
+        'getting_started_why' => 'getting_started_partner_why',
+    ];
+
     public function __construct(private CommissionPolicy $policy) {}
 
     /**
@@ -54,6 +66,9 @@ final class UserManual
             $this->chapters(),
             fn (array $chapter): bool => count(array_intersect($chapter['audience'], $audience)) > 0,
         ));
+        if (array_intersect($audience, ['owner', 'staff']) === []) {
+            $chapters = array_map(fn (array $chapter): array => $this->withPartnerWording($chapter), $chapters);
+        }
 
         $query = trim((string) $query);
         if ($query === '') {
@@ -130,6 +145,20 @@ final class UserManual
         }
 
         return ['dealer', 'partner'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $chapter
+     * @return array<string, mixed>
+     */
+    private function withPartnerWording(array $chapter): array
+    {
+        $partnerLine = fn (string $key): string => self::PartnerWording[$key] ?? $key;
+        $chapter['purpose_key'] = $partnerLine($chapter['purpose_key']);
+        $chapter['why_key'] = $partnerLine($chapter['why_key']);
+        $chapter['step_keys'] = array_map($partnerLine, $chapter['step_keys']);
+
+        return $chapter;
     }
 
     /**

@@ -286,6 +286,11 @@
 @media(max-width:1023px){
   .app-shell .ws-save-bar{bottom:calc(76px + env(safe-area-inset-bottom))}
 }
+/* Status pills on the website page drop to their own line on a phone, and long ones wrap, so none runs off the screen. */
+@media(max-width:640px){
+  .app-shell .ws-page .ed-row:has(>:is(.hub-pill,.ed-state-pill)){flex-wrap:wrap}
+  .app-shell .ws-page :is(.hub-pill,.ed-state-pill){max-width:100%;white-space:normal;overflow-wrap:anywhere}
+}
 
 /* Tables that show their key columns on phones and open the rest on tap. */
 .app-shell .table-phone-toggle,.app-shell .table-phone-detail{display:none}
