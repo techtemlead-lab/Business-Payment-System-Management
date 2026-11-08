@@ -76,7 +76,7 @@
     </section>
     <section>
         <h2>{{ $chrome('footer_stay_connected', $siteCustomization['footer_stay_connected_heading'] ?? null) }}</h2>
-        <div style="margin-bottom:14px;"><a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=9' }}" alt="{{ __('site.company_bar') }}" width="200" height="56" decoding="async" loading="lazy" style="height:56px;width:auto;max-width:200px;background:transparent;padding:0;border-radius:0;box-shadow:none;object-fit:contain;display:inline-block;"></a></div>
+        <div style="margin-bottom:14px;"><a href="/" aria-label="{{ __('site.brand_home') }}"><img src="{{ $siteCustomization['footer_logo_url'] ?? '/madina-header-logo-white.png?v=10' }}" alt="{{ __('site.company_bar') }}" width="200" height="56" decoding="async" loading="lazy" style="height:56px;width:auto;max-width:200px;background:transparent;padding:0;border-radius:0;box-shadow:none;object-fit:contain;display:inline-block;"></a></div>
         <h3>{{ $chrome('company_intro_title', $siteCustomization['footer_about_title'] ?? null) }}</h3>
         <p>{{ $chrome('footer_about_desc', $siteCustomization['footer_about_desc'] ?? null) }}</p>
         @include('reference.partials.business-identity')
@@ -194,7 +194,7 @@
     @endif
     <a href="/" class="ref-mobile-home" aria-label="{{ __('site.home') }}">
         <span class="ref-mobile-home-icon">
-            <img src="/madina-header-logo.png?v=9" alt="" width="40" height="40" decoding="async">
+            <img src="/madina-header-logo.png?v=10" alt="" width="40" height="40" decoding="async">
         </span>
         <span class="ref-mobile-home-label">{{ __('site.home') }}</span>
     </a>

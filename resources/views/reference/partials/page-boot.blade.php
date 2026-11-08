@@ -15,7 +15,7 @@ html.ref-boot-visible:not(.ref-boot-ready) .ref-page-boot{opacity:1;visibility:v
 </style>
 <div class="ref-page-progress" id="refPageProgress" role="progressbar" aria-hidden="true" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
 <div class="ref-page-boot" id="refPageBoot" aria-hidden="true">
-    <img src="/madina-header-logo.png?v=9" width="88" height="88" alt="" decoding="async" fetchpriority="high">
+    <img src="/madina-header-logo.png?v=10" width="88" height="88" alt="" decoding="async" fetchpriority="high">
     <div class="ref-page-boot-bar" aria-hidden="true"><i></i></div>
     <span class="ref-sr-only">{{ __('site.loading_experience') }}</span>
 </div>

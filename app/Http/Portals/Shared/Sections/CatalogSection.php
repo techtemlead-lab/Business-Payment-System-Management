@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Support\CatalogCms;
 use App\Support\Money;
 use App\Support\SiteCustomization;
+use App\Support\StockImage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -63,7 +64,7 @@ final class CatalogSection implements WorkspaceSection
         // Each Schema::hasColumn() call reads the database catalogue, so ask once per request, not once per product.
         $supportsProductExpiry = $context->section === 'inventory' && Schema::hasColumn('products', 'expires_on');
         $props['products'] = $products->map(function ($p) use ($user, $context, $revealStock, $revealDealerPrice, $supportsProductExpiry) {
-            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
+            $base = [...$p->only(['id', 'sku', 'name', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'tone', 'is_stock_paused']), 'stock_status' => $p->stockStatus(), ...$p->media(), 'image_fallback' => $p->image_path ? null : StockImage::forCategory($p->category, $p->name), ...($user->allows('cost_read') ? ['cost_price' => $p->cost_price] : [])];
             if (! $context->isStaff) {
                 try {
                     $base['price'] = Money::decimal($context->pricing->unitPrice($p, $user));
