@@ -37,7 +37,7 @@ class OperationsHardeningTest extends TestCase
         ));
         Log::spy();
 
-        $result = app(SmsGatewayClient::class)->send('01711223344', 'Your code is 482913');
+        $result = app(SmsGatewayClient::class)->send('01711223344', 'আপনার কোড 482913');
 
         $this->assertFalse($result['sent']);
         Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context): bool {

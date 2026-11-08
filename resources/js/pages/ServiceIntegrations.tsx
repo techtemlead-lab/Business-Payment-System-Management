@@ -25,6 +25,17 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
     }, [group, provider, version]);
     const form = useForm(defaults);
 
+    /** A provider can name a field its own way, such as Greenweb's "token". */
+    const fieldLabel = (field: string): string => {
+        for (const key of [`si_field_${provider.key}_${field}`, `si_field_${field}`]) {
+            const label = translate('portal', key);
+            if (label !== key) {
+                return label;
+            }
+        }
+        return humanize(field);
+    };
+
     const checkBalance = async () => {
         setBalanceBusy(true);
         setBalanceMsg('');
@@ -63,7 +74,7 @@ function ProviderForm({ group, provider, version, canEdit }: { group: string; pr
                 </select>
             </label>
             {provider.fields.filter(field => field !== 'enabled').map(field => (
-                <label key={field}>{translate('portal', `si_field_${field}`) === `si_field_${field}` ? humanize(field) : translate('portal', `si_field_${field}`)}
+                <label key={field}>{fieldLabel(field)}
                     {field === 'mode' ? (
                         <select value={String(form.data[field] ?? 'sandbox')} onChange={e => form.setData(field, e.target.value)} disabled={!canEdit}>
                             <option value="sandbox">{translate('portal', 'si_mode_sandbox')}</option>

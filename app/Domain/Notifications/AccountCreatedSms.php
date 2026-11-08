@@ -33,13 +33,16 @@ final class AccountCreatedSms
     {
         $phone = preg_replace('/\D+/', '', (string) $user->phone) ?: '';
         $locale = $this->localeFor($user);
-        $message = __('sms.'.$messageKey, [
+        $replace = [
             'username' => $phone !== '' ? $phone : (string) $user->email,
             'password' => $plainPassword,
-        ], $locale);
+        ];
+        $message = SmsText::make('sms.'.$messageKey, $replace);
+        $refused = false;
 
         if ($phone !== '' && $this->gateway->anyEnabled()) {
             $remote = $this->gateway->send($phone, $message);
+            $refused = $remote['refused'];
             if ($remote['sent']) {
                 Log::info($logPrefix.'.sms.gateway', [
                     'user_id' => $user->id,
@@ -55,7 +58,7 @@ final class AccountCreatedSms
         if ($this->smtp->enabled() && filled($user->email)) {
             $this->smtp->apply();
             try {
-                Mail::raw($message, function ($mail) use ($user): void {
+                Mail::raw((string) __('sms.'.$messageKey, $replace, $locale), function ($mail) use ($user): void {
                     $mail->to((string) $user->email)
                         ->subject(__('portal.notice_account_invite_title', [], $this->localeFor($user)));
                 });
@@ -74,7 +77,7 @@ final class AccountCreatedSms
             }
         }
 
-        if ($phone === '') {
+        if ($phone === '' || $refused) {
             return false;
         }
 
@@ -91,9 +94,9 @@ final class AccountCreatedSms
                 'user_id' => $user->id,
                 'phone' => $phone,
                 'password_delivered' => true,
-                'message_redacted' => __('sms.'.$redactedKey, [
+                'message_redacted' => SmsText::make('sms.'.$redactedKey, [
                     'username' => $phone,
-                ], $locale),
+                ]),
             ]);
             if ($driver === 'array') {
                 $bag = config('madina.sms.sent', []);
