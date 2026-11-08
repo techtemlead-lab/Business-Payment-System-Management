@@ -25,8 +25,9 @@ class ProtectPrivateResponses
         $request->attributes->set('csp_nonce', $nonce);
 
         $response = $next($request);
-        // L1: consistent Referrer-Policy on every response.
-        $response->headers->set('Referrer-Policy', 'no-referrer');
+        // Keeps the page address on our own site, so back() returns to the page the person was on
+        // even with two tabs open. Other sites get nothing, and each portal counts as its own origin.
+        $response->headers->set('Referrer-Policy', 'same-origin');
         if ($request->user() || $request->is('login', 'login/*', 'forgot-password', 'reset-password*', 'exports*') || in_array(PortalHost::current($request), ['dealer', 'subdealer', 'manage', 'sadmin'], true)) {
             $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
         }

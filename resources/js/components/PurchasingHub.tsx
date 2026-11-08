@@ -120,6 +120,7 @@ function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
             }}
         >
             <p className="muted">{text('receive_hint')}</p>
+            <p className="muted">{text('batch_blank_hint')}</p>
             <FormErrors errors={form.errors} />
             {dueLines.map((line, index) => {
                 const row = form.data.lines[index];
@@ -129,7 +130,7 @@ function ReceiveForm({ order, onDone }: { order: Row; onDone: () => void }) {
                         <legend>{line.sku} · {line.name} ({text('due')}: {number(line.due)})</legend>
                         <div className="ops-row is-wrap">
                             <label>{text('quantity_now')}<input type="number" min={1} max={line.due} value={row.quantity} onChange={(event) => setLine(index, 'quantity', event.target.value)} /></label>
-                            <label>{text('batch')}<input maxLength={60} required={required} value={row.batch_number} onChange={(event) => setLine(index, 'batch_number', event.target.value)} /></label>
+                            <label>{text('batch_optional')}<input maxLength={60} value={row.batch_number} onChange={(event) => setLine(index, 'batch_number', event.target.value)} /></label>
                             <label>{text('expiry')}<DateInput required={required} value={row.expires_on} onChange={(event) => setLine(index, 'expires_on', event.target.value)} /></label>
                             <label>{text('unit_cost')}<input type="number" min={0} step="0.01" required={required} value={row.unit_cost} onChange={(event) => setLine(index, 'unit_cost', event.target.value)} /></label>
                         </div>
@@ -195,7 +196,7 @@ function OrderDetail({ order, data, onClose }: { order: Row; data: PurchasingDat
                         columns={[
                             { key: 'product', title: text('product'), render: (line: Row) => line.name },
                             { key: 'quantity', title: text('quantity'), align: 'right', render: (line: Row) => number(line.quantity) },
-                            { key: 'batch', title: text('batch'), render: (line: Row) => line.batch_number },
+                            { key: 'batch', title: text('batch'), render: (line: Row) => line.batch_number || '—' },
                             { key: 'expiry', title: text('expiry'), render: (line: Row) => date(line.expires_on) },
                             ...(data.show_cost ? [{ key: 'cost', title: text('unit_cost'), money: true, render: (line: Row) => money(line.unit_cost) }] : []),
                         ]}

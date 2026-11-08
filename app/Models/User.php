@@ -22,6 +22,9 @@ class User extends Authenticatable implements HasLocalePreference
 
     public const PasswordManagedByPartner = 'partner';
 
+    /** The language a new account starts in; the person can change it at any time. */
+    public const DefaultLocale = 'bn';
+
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasPushSubscriptions, Notifiable;
 
@@ -45,7 +48,7 @@ class User extends Authenticatable implements HasLocalePreference
         'can_prescribe',
     ];
 
-    protected $attributes = ['status' => 'active', 'role' => 'dealer'];
+    protected $attributes = ['status' => 'active', 'role' => 'dealer', 'locale' => self::DefaultLocale];
 
     public function owner(): bool
     {
@@ -54,10 +57,10 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function preferredLocale(): string
     {
-        $locale = is_string($this->locale ?? null) ? $this->locale : (string) config('app.fallback_locale', 'en');
+        $locale = is_string($this->locale ?? null) ? $this->locale : self::DefaultLocale;
         $supported = config('madina.locales', ['en', 'bn']);
 
-        return in_array($locale, $supported, true) ? $locale : (string) config('app.fallback_locale', 'en');
+        return in_array($locale, $supported, true) ? $locale : self::DefaultLocale;
     }
 
     public function loginPath(): string

@@ -34,6 +34,8 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'role' => 'dealer',
             'status' => 'active',
+            // Tests compare English wording unless they ask for Bangla; real accounts default to Bangla.
+            'locale' => 'en',
         ];
     }
 

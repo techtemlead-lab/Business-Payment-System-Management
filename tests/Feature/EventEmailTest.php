@@ -398,7 +398,7 @@ class EventEmailTest extends TestCase
             'union' => 'Chapair', 'village' => 'Ratanpur', 'post_office' => 'Kaliakair-1750', 'latitude' => '24.0667000', 'longitude' => '90.2167000',
             'status' => 'active', 'reason' => 'Contract verified and authorised.',
         ])->assertRedirect();
-        Mail::assertSent(EventNoticeMail::class, fn (EventNoticeMail $mail): bool => $mail->hasTo('rafiq.dealer@gmail.com') && $mail->noticeTitle === __('event_emails.account_created_title'));
+        Mail::assertSent(EventNoticeMail::class, fn (EventNoticeMail $mail): bool => $mail->hasTo('rafiq.dealer@gmail.com') && $mail->noticeTitle === __('event_emails.account_created_title', [], 'bn'));
 
         $dealer = User::query()->where('email', 'rafiq.dealer@gmail.com')->firstOrFail();
         $this->actingAs($admin)->onPortal('sadmin')->postJson('/commands/accounts/'.$dealer->id.'/reset-password', ['password' => 'Chosen-Password-77'])->assertOk();

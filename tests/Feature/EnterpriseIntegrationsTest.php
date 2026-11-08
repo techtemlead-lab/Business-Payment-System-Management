@@ -68,7 +68,7 @@ class EnterpriseIntegrationsTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertHeader('Referrer-Policy', 'no-referrer');
+        $response->assertHeader('Referrer-Policy', 'same-origin');
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
         $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
 

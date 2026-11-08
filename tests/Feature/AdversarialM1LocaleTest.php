@@ -187,6 +187,9 @@ class AdversarialM1LocaleTest extends TestCase
         app(OrderService::class)->decision($admin, $order->fresh(), 'approved', 'Paid in full');
         $line = $order->lines()->first();
 
+        // The header only decides when no language of the account's own is loaded.
+        unset($admin->locale);
+
         // 1. Accept-Language: bn
         $this->actingAs($admin)
             ->withHeader('Accept-Language', 'bn')

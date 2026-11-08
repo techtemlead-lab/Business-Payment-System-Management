@@ -63,7 +63,7 @@ class PurchasingController extends Controller
             'lines' => ['required', 'array', 'min:1', 'max:200'],
             'lines.*.purchase_order_line_id' => ['required', 'integer'],
             'lines.*.quantity' => ['required', 'integer', 'min:1', 'max:100000'],
-            'lines.*.batch_number' => ['required', 'string', 'max:60'],
+            'lines.*.batch_number' => ['nullable', 'string', 'max:60'],
             'lines.*.expires_on' => ['required', 'date', 'after_or_equal:'.now('Asia/Dhaka')->toDateString()],
             'lines.*.unit_cost' => ['required', 'numeric', 'min:0', 'max:999999999.99', 'decimal:0,2'],
         ], [

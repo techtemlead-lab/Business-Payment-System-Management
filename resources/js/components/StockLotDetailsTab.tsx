@@ -4,7 +4,7 @@ import { ActionForm, Modal, Table, date, number, type Field, type Row } from './
 import { actionAllowed } from './action-permissions';
 import { useT } from '../shared/i18n/t';
 
-/** Lots a stock count recorded without a batch number or expiry date, for staff to fill in. */
+/** Lots a stock count or goods receipt recorded without a batch number or expiry date, for staff to fill in. */
 export default function StockLotDetailsTab({ data }: { data: Row }) {
     const translate = useT();
     const t = (key: string) => translate('stock_lots', key);

@@ -91,6 +91,9 @@ class ManagingDirectorMessageTest extends TestCase
             'md_message_image' => '/branding/site-photos/new-md.webp',
         ]])->assertSessionHasNoErrors()->assertSessionHas('success');
 
+        // The owner signs out: a visitor reads the page in the language they picked.
+        $this->app['auth']->forgetGuards();
+
         $this->withSession(['locale' => 'en'])->get('/about')->assertOk()
             ->assertSee('Md Anowar Hossain')
             ->assertSee('<p>First paragraph from the owner.</p>', false)
