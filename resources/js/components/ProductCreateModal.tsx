@@ -4,6 +4,7 @@ import { router } from '@inertiajs/react';
 import { X, Upload, AlertCircle } from 'lucide-react';
 import { useT } from '../shared/i18n/t';
 import { suggestSku } from '../shared/sku';
+import ProductPhotoCutout from './ProductPhotoCutout';
 
 type CatalogSubcategory = { id: number; name: string; is_active?: boolean };
 type CatalogCategory = { id: number; name: string; is_active?: boolean; subcategories?: CatalogSubcategory[] };
@@ -84,6 +85,7 @@ export default function ProductCreateModal({
     const [strength, setStrength] = useState('');
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [cutoutFile, setCutoutFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [mrp, setMrp] = useState('');
     const [dealerPct, setDealerPct] = useState('');
@@ -119,6 +121,7 @@ export default function ProductCreateModal({
         setStrength('');
         setDescription('');
         setImageFile(null);
+        setCutoutFile(null);
         setImagePreview(null);
         setMrp('');
         setDealerPct('');
@@ -277,7 +280,10 @@ export default function ProductCreateModal({
         formData.append('reason', translate('portal', 'pcm_created_reason'));
         formData.append('redirect_to', 'catalog');
         if (imageFile) {
-            formData.append('image', imageFile);
+            formData.append('image', cutoutFile ?? imageFile);
+        }
+        if (imageFile && cutoutFile) {
+            formData.append('image_original', imageFile);
         }
 
         setSubmitting(true);
@@ -388,12 +394,26 @@ export default function ProductCreateModal({
                                         <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
                                             const file = event.target.files?.[0] ?? null;
                                             setImageFile(file);
+                                            setCutoutFile(null);
                                             setImagePreview(file ? URL.createObjectURL(file) : null);
                                         }} />
                                         <small>{translate('portal', 'pcm_image_hint')}</small>
                                     </span>
                                 </span>
                             </label>
+                            <div className="pcm-span">
+                                <ProductPhotoCutout
+                                    photo={imageFile}
+                                    onUse={(cutout) => {
+                                        setCutoutFile(cutout);
+                                        setImagePreview(URL.createObjectURL(cutout));
+                                    }}
+                                    onUndo={() => {
+                                        setCutoutFile(null);
+                                        setImagePreview(imageFile ? URL.createObjectURL(imageFile) : null);
+                                    }}
+                                />
+                            </div>
                             <label className="pcm-field pcm-span">
                                 <span>{translate('portal', 'pcm_description')}</span>
                                 <textarea rows={3} value={description} placeholder={translate('portal', 'pcm_description_ph')} onChange={(event) => setDescription(event.target.value)} />

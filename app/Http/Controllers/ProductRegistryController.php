@@ -48,6 +48,9 @@ class ProductRegistryController extends Controller
             $product->loadMissing(['subcategory.category', 'productUnit']);
         }
         $data = $product ? [...$product->only(['id', 'name', 'sku', 'category', 'sub_category', 'strength', 'description', 'unit', 'mrp', 'active', 'featured', 'video_source', 'product_subcategory_id', 'product_unit_id']), ...$product->media(), 'youtube_url' => $product->video_youtube_id ? 'https://www.youtube.com/watch?v='.$product->video_youtube_id : '', 'version' => (string) $product->registry_version, 'stock_status' => $product->stockStatus()] : null;
+        if ($data) {
+            $data['has_original_image'] = (bool) $product->image_original_path;
+        }
         if ($data && ($r->user()->allows('pricing') || $r->user()->allows('orders') || $r->user()->allows('finance'))) {
             $data['dealer_price'] = $product->dealer_price;
             $data['sub_dealer_price'] = $product->sub_dealer_price;
@@ -110,7 +113,7 @@ class ProductRegistryController extends Controller
 
                 return true;
             }
-            $media = array_filter([$locked->image_path, $locked->video_path]);
+            $media = array_filter([$locked->image_path, $locked->image_original_path, $locked->video_path]);
             $locked->delete();
             DB::afterCommit(function () use ($media): void {
                 foreach ($media as $path) {
@@ -156,8 +159,8 @@ class ProductRegistryController extends Controller
         $maxSubDealerPct = $isOwner ? 70 : 40;
         $hasCmsSubcategory = $catalog && $r->filled('product_subcategory_id');
         $hasCmsUnit = $catalog && $r->filled('product_unit_id');
-        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
-            'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
+        $rules = ['name' => $catalog ? $required.'|string|max:150' : 'prohibited', 'sku' => $catalog ? [...explode('|', $required), 'string', 'max:60', Rule::unique('products')->ignore($product?->id)] : 'prohibited', 'category' => $catalog ? ($hasCmsSubcategory ? 'nullable|string|max:100' : $required.'|string|max:100') : 'prohibited', 'sub_category' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'strength' => $catalog ? 'nullable|string|max:100' : 'prohibited', 'description' => $catalog ? 'nullable|string|max:3000' : 'prohibited', 'unit' => $catalog ? ($hasCmsUnit ? 'nullable|string|max:30' : $required.'|string|max:30') : 'prohibited', 'active' => $catalog ? 'sometimes|boolean' : 'prohibited', 'featured' => $catalog ? 'sometimes|boolean' : 'prohibited', 'mrp' => $pricing ? $required.'|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'cost_price' => ($pricing && $r->user()->allows('cost_read')) ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited', 'low_stock_at' => $inventory ? 'sometimes|integer|min:0|max:100000' : 'prohibited', 'reason' => 'required|string|min:5|max:1000', 'version' => $product ? 'required|string|max:80' : 'nullable', 'stock' => 'prohibited', 'image_path' => 'prohibited', 'image_original_path' => 'prohibited', 'video_path' => 'prohibited', 'video_youtube_id' => 'prohibited',
+            'image' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'image_original' => $catalog ? 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120|dimensions:max_width=4096,max_height=4096' : 'prohibited', 'restore_original_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'remove_image' => $catalog ? 'sometimes|boolean' : 'prohibited', 'video_source' => $catalog ? 'sometimes|in:none,youtube,vimeo,url,upload' : 'prohibited', 'youtube_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'vimeo_url' => $catalog ? 'nullable|string|max:500' : 'prohibited', 'external_video_url' => $catalog ? 'nullable|string|max:2000' : 'prohibited', 'video' => $catalog ? 'nullable|file|mimetypes:video/mp4,video/webm|max:102400' : 'prohibited',
             'dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxDealerPct.'|decimal:0,2' : 'prohibited',
             'sub_dealer_price' => $pricing ? 'nullable|regex:/^\d{1,8}(\.\d{1,2})?$/D' : 'prohibited',
             'sub_dealer_discount_pct' => $pricing ? 'nullable|numeric|between:0,'.$maxSubDealerPct.'|decimal:0,2' : 'prohibited',
@@ -245,16 +248,25 @@ class ProductRegistryController extends Controller
         if ($r->boolean('remove_image') && $r->hasFile('image')) {
             throw ValidationException::withMessages(['image' => __('portal.err_prod_image_action')]);
         }
+        if ($r->hasFile('image_original') && ! $r->hasFile('image')) {
+            throw ValidationException::withMessages(['image_original' => __('portal.err_prod_original_needs_photo')]);
+        }
+        if ($r->boolean('restore_original_image') && ($r->hasFile('image') || $r->boolean('remove_image'))) {
+            throw ValidationException::withMessages(['image' => __('portal.err_prod_image_action')]);
+        }
+        if ($r->boolean('restore_original_image') && ! $product?->image_original_path) {
+            throw ValidationException::withMessages(['restore_original_image' => __('portal.err_prod_no_original')]);
+        }
         $stored = [];
         $old = [];
         try {
-            foreach (['image', 'video'] as $field) {
+            foreach (['image' => 'images', 'image_original' => 'originals', 'video' => 'videos'] as $field => $folder) {
                 if ($r->hasFile($field)) {
                     $file = $r->file($field);
                     $extension = match ($file->getMimeType()) {
                         'image/jpeg' => 'jpg','image/png' => 'png','image/webp' => 'webp','video/mp4' => 'mp4','video/webm' => 'webm',default => throw ValidationException::withMessages([$field => __('portal.err_prod_media_format')])
                     };
-                    $path = $file->storeAs('product-media/'.($field === 'image' ? 'images' : 'videos'), Str::uuid().'.'.$extension, 'local');
+                    $path = $file->storeAs('product-media/'.$folder, Str::uuid().'.'.$extension, 'local');
                     if (! $path) {
                         throw ValidationException::withMessages([$field => __('portal.err_prod_media_storage')]);
                     }
@@ -279,8 +291,13 @@ class ProductRegistryController extends Controller
                     $attributes['stock'] = $initialStock;
                 }
                 if (isset($stored['image']) || $r->boolean('remove_image')) {
-                    $old[] = $p->image_path;
+                    array_push($old, $p->image_path, $p->image_original_path);
                     $attributes['image_path'] = $stored['image'] ?? null;
+                    $attributes['image_original_path'] = $stored['image_original'] ?? null;
+                } elseif ($r->boolean('restore_original_image') && $p->image_original_path) {
+                    $old[] = $p->image_path;
+                    $attributes['image_path'] = $p->image_original_path;
+                    $attributes['image_original_path'] = null;
                 }
                 if (array_key_exists('video_source', $d)) {
                     $attributes['video_source'] = $source === 'none' ? null : $source;

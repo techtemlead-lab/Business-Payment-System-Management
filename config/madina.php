@@ -6,6 +6,18 @@ return [
     'default_locale' => env('APP_LOCALE', 'en'),
     'financial_activation' => env('MADINA_FINANCIAL_ACTIVATION', false),
     'preview_mode' => env('MADINA_PREVIEW_MODE', false),
+    // Removes product photo backgrounds in the office browser. The files are too large for git:
+    // `php artisan madina:install-product-photo-model` puts them on each server.
+    'product_photo_model' => [
+        'repository' => 'wonfy/BiRefNet_lite-ONNX-webgpu',
+        'revision' => 'c40eaa22fb1af9edcf75c7b79d25ed8a8e901140',
+        'directory' => 'product-photo-model/cutout',
+        'files' => [
+            'config.json' => 'ea376925bd57077446df1e74ffdc0742c2368b7e912dd176fd2aa877af0a7ddc',
+            'preprocessor_config.json' => 'f17fdced4118a9be40e3a32c5e456ef0d5234c01c7ff860889497423ec96e3da',
+            'onnx/model_fp16.onnx' => '2290313b335cfdb867eefac47b46aa2b225793fc3deb4da8dbc86e71e9cff2d7',
+        ],
+    ],
     'auto_release_matured' => env('MADINA_AUTO_RELEASE_MATURED', false),
     'auto_release_quota_holds' => env('MADINA_AUTO_RELEASE_QUOTA_HOLDS', false),
     'backups_enabled' => env('MADINA_BACKUPS_ENABLED', false),

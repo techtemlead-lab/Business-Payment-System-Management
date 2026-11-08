@@ -585,6 +585,7 @@ class OperationalReadinessTest extends TestCase
         config(['madina.backup_password' => str_repeat('Private-backup-secret-', 3)]);
         Storage::disk('local')->put('test-evidence/receipt.txt', 'Synthetic receipt evidence');
         Storage::disk('public')->put('test-media/logo.txt', 'Synthetic logo media');
+        Storage::disk('local')->put('product-photo-model/cutout/config.json', '{}');
         Storage::fake('backups-offsite');
         config(['madina.backup_offsite_disk' => 'backups-offsite']);
         $this->artisan('app:backup')->assertSuccessful();
@@ -597,6 +598,7 @@ class OperationalReadinessTest extends TestCase
         $zip->setPassword(config('madina.backup_password'));
         $this->assertSame('Synthetic receipt evidence', $zip->getFromName('private/test-evidence/receipt.txt'));
         $this->assertSame('Synthetic logo media', $zip->getFromName('public/test-media/logo.txt'));
+        $this->assertFalse($zip->getFromName('private/product-photo-model/cutout/config.json'));
         $dump = $zip->getFromName('database.dump');
         $this->assertTrue(Process::input($dump)->timeout(30)->run(['pg_restore', '--list'])->successful());
         $zip->close();
