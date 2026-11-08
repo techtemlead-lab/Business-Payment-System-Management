@@ -70,7 +70,7 @@ final class PortalCatalog
             // Owner-only pages on the owner panel: the owners' fund, the manual data clean-up, the login switches and data requests.
             abort_unless($portal === 'sadmin' && $user->owner(), 403);
         }
-        if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes'], true)) {
+        if ($portal === 'sadmin' && in_array($section, ['sales-kit', 'schemes', 'contests'], true)) {
             // Owner-managed partner tools: staff on the owner panel do not edit these.
             abort_unless($user->owner(), 403);
         }
@@ -100,7 +100,7 @@ final class PortalCatalog
             abort_unless($user->owner() || $user->allows('content'), 403);
         } elseif (in_array($portal, ['manage', 'sadmin'], true) && $section === 'partner-messages') {
             abort_unless(PartnerChat::canAnswer($user), 403);
-        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['reports', 'top-sellers'], true)) {
+        } elseif (in_array($portal, ['manage', 'sadmin'], true) && in_array($section, ['reports', 'top-sellers', 'partner-scorecard'], true)) {
             abort_unless($user->allows('reports') || $user->allows('orders') || $user->allows('finance'), 403);
         } else {
             $capability = self::staffCapabilities($portal)[$section] ?? null;

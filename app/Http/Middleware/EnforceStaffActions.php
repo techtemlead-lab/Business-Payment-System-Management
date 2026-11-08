@@ -113,7 +113,7 @@ class EnforceStaffActions
             // The owners decided they may refund a paid order themselves; OrderRefund checks again.
             return $next($request);
         }
-        if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController'], true) && $actor->owner()) {
+        if (in_array($controller, ['TrainingController', 'PartnerEventController', 'SalesKitController', 'DatedSchemeController', 'PartnerContestController'], true) && $actor->owner()) {
             // Owners manage the partner training library and meetings calendar; the controllers check again.
             return $next($request);
         }
