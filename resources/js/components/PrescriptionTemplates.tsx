@@ -32,6 +32,27 @@ export type PrescriptionTools = {
     report: PrescriberReportData;
 };
 
+/** Turns saved lines into form lines; a product no longer sold is left blank to choose again. */
+export function linesFromSaved(saved: TemplateRow['lines'], products: { id: number }[]): { lines: LineForm[]; productMissing: boolean } {
+    let productMissing = false;
+    const lines = saved.map((line): LineForm => {
+        const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
+        productMissing = productMissing || !stillSold;
+        return {
+            product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
+            medicine_name: line.medicine_name,
+            dose: line.dose ?? '',
+            frequency: line.frequency ?? '',
+            duration: line.duration ?? '',
+            instructions: line.instructions ?? '',
+            unit_price: line.unit_price,
+            quantity: String(line.quantity),
+            discount: Number(line.discount) > 0 ? line.discount : '',
+        };
+    });
+    return { lines, productMissing };
+}
+
 /** Fills the new-prescription form from a saved template; nothing is saved until the form is. */
 export function TemplatePicker({ templates, products, isDirty, onApply, translate }: {
     templates: TemplateRow[];
@@ -51,22 +72,7 @@ export function TemplatePicker({ templates, products, isDirty, onApply, translat
         if (!template || (isDirty && !window.confirm(translate('prescription', 'tpl_replace_confirm')))) {
             return;
         }
-        let missing = false;
-        const lines = template.lines.map((line): LineForm => {
-            const stillSold = line.product_id === null || products.some((product) => product.id === line.product_id);
-            missing = missing || !stillSold;
-            return {
-                product_id: line.product_id !== null && stillSold ? String(line.product_id) : '',
-                medicine_name: line.medicine_name,
-                dose: line.dose ?? '',
-                frequency: line.frequency ?? '',
-                duration: line.duration ?? '',
-                instructions: line.instructions ?? '',
-                unit_price: line.unit_price,
-                quantity: String(line.quantity),
-                discount: Number(line.discount) > 0 ? line.discount : '',
-            };
-        });
+        const { lines, productMissing: missing } = linesFromSaved(template.lines, products);
         setProductMissing(missing);
         onApply({ advice: template.advice ?? '', lines });
     };

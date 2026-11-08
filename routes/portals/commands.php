@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccountListExportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClinicRecordsController;
 use App\Http\Controllers\CommandController;
 use App\Http\Controllers\CourierShipmentController;
 use App\Http\Controllers\DataCleanupController;
@@ -177,4 +178,8 @@ return function (string $portal): void {
     Route::get('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'show'])->middleware('throttle:60,1');
     Route::post('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'enable'])->middleware('throttle:20,1');
     Route::delete('/commands/accounts/{user}/prescriber', [PrescriberVerificationController::class, 'disable'])->middleware('throttle:20,1');
+
+    // A prescriber's own clinical records; ClinicRecordsController answers 404 to anyone else.
+    Route::get('/prescriptions/patients/{patient}', [ClinicRecordsController::class, 'patient'])->whereNumber('patient')->middleware('throttle:60,1');
+    Route::get('/commands/prescriptions/patients/{patient}/repeat', [ClinicRecordsController::class, 'repeatDraft'])->whereNumber('patient')->middleware('throttle:60,1');
 };
