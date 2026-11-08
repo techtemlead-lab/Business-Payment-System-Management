@@ -64,7 +64,7 @@ final class StaffDashboardSummary
             $queue[] = [
                 'key' => 'withdrawals_to_review',
                 'count' => (int) $this->withdrawalsOf($branchScope)->where('withdrawals.status', 'requested')->count(),
-                'section' => 'withdrawals',
+                'section' => 'payouts-hub',
             ];
         }
         $deliveryCounts = $this->deliveryCounts($viewer, $branchScope);

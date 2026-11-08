@@ -9,7 +9,7 @@ import {
     Layers, ArrowDownToLine, ArrowUpFromLine, ScrollText, GraduationCap, CalendarDays, ReceiptText, Phone, Globe, Stethoscope, type LucideIcon
 } from 'lucide-react';
 import { Flash, label } from './UI';
-import { DealerHeader, DealerBottomNav } from './PortalHeader';
+import { DealerBottomNav, PartnerProductSearch } from './PortalHeader';
 import LanguageSwitcher from './LanguageSwitcher';
 import NotificationBell from './NotificationBell';
 import GlobalSearchLauncher from './GlobalSearchLauncher';
@@ -18,9 +18,7 @@ import ThemeToggle from './ThemeToggle';
 import { t, useT, useTranslations } from '../shared/i18n/t';
 import {
     type NavMother,
-    type StaffDomain,
-    buildDomainMothers,
-    buildStaffDomainGroups,
+    buildNavMothers,
     buildPartnerAvailable,
     buildStaffAvailable,
     compactMothers,
@@ -28,8 +26,8 @@ import {
     labelKeyForNavItem,
     mother,
     resolveNavLink,
-    resolveStaffDomain,
     sectionHref,
+    staffBottomLinks,
 } from '../shared/portalNav';
 
 function BranchWorkspaceSelect({ branches }: { branches: { view?: string; can_view_all?: boolean; active_branch_id?: number | string | null; branches: Array<{ id: number | string; name: string }> } }) {
@@ -134,7 +132,7 @@ const icons: Record<string, LucideIcon> = {
     settlements: BadgeCheck, simulator: SlidersHorizontal, 'payouts-hub': Wallet,
     treasury: Landmark, 'benefits-fund': ShieldCheck, 'sub-dealers': Store, 'sub-dealer-orders': ShoppingBag, 'sub-dealer-applications': Briefcase,
     employees: UserCheck, dashboards: SlidersHorizontal, help: LifeBuoy, 'support-admin': MessageSquare, agreement: ScrollText, 'top-sellers': Trophy,
-    finance: Landmark, payouts: Wallet,
+    finance: Landmark, payouts: Wallet, 'partner-messages': MessageSquare, messages: MessageSquare, partners: Users, people: UserCheck, settings: Settings, 'login-rules': ShieldCheck,
     training: GraduationCap, learning: GraduationCap, events: CalendarDays, 'payment-receipts': ReceiptText, 'data-cleanup': Settings, prescriptions: Stethoscope, clinic: Stethoscope,
 };
 
@@ -147,7 +145,7 @@ export default function Shell({ section, children, action }: { section: string; 
     const attention = {
         notifications: Number(navAttention?.notifications ?? unreadCount ?? 0),
         enquiries: Number(navAttention?.enquiries ?? 0),
-        withdrawals: Number(navAttention?.withdrawals ?? 0),
+        'payouts-hub': Number(navAttention?.withdrawals ?? 0),
         'support-admin': Number(navAttention?.['support-admin'] ?? 0),
     } as Record<string, number>;
     const translate = useT();
@@ -254,31 +252,6 @@ export default function Shell({ section, children, action }: { section: string; 
         };
     }, [profileOpen]);
 
-    const readDomainPin = (): StaffDomain | null => {
-        if (typeof window === 'undefined') {
-            return null;
-        }
-        try {
-            const pin = window.sessionStorage.getItem('madina.staff.domain');
-            return pin === 'company' || pin === 'dealers' || pin === 'sub_dealers' ? pin : null;
-        } catch {
-            return null;
-        }
-    };
-
-    const writeDomainPin = (domain: StaffDomain) => {
-        if (typeof window === 'undefined') {
-            return;
-        }
-        try {
-            window.sessionStorage.setItem('madina.staff.domain', domain);
-        } catch {
-            // Ignore private-mode storage failures.
-        }
-    };
-
-    const currentDomain = resolveStaffDomain(section, readDomainPin);
-
     const staffAvailable = useMemo(
         () => buildStaffAvailable({ capabilities, role: user.role, ownerPortal, chatAnswerer: Boolean(auth.chatAnswerer), prescriber: Boolean(auth.prescriber) }),
         [capabilities, ownerPortal, user.role, auth.chatAnswerer, auth.prescriber],
@@ -289,32 +262,10 @@ export default function Shell({ section, children, action }: { section: string; 
         [user.role, dashboardControls, auth.prescriber],
     );
 
-    const domainMothers = useMemo(
-        () => buildDomainMothers({
-            staff,
-            role: user.role,
-            staffAvailable,
-            partnerAvailable,
-            currentDomain,
-        }),
-        [staff, user.role, partnerAvailable, staffAvailable, currentDomain],
+    const navMothers = useMemo(
+        () => buildNavMothers({ staff, role: user.role, staffAvailable, partnerAvailable }),
+        [staff, user.role, partnerAvailable, staffAvailable],
     );
-
-    const staffDomains = useMemo(
-        () => (staff ? buildStaffDomainGroups({ staffAvailable, ownerPortal }) : []),
-        [ownerPortal, staff, staffAvailable],
-    );
-
-    const activeSectionKey = useMemo(() => {
-        for (const domain of staffDomains) {
-            for (const entry of domain.mothers) {
-                if (entry.items.some((item) => isNavItemActive(item, section, locationSearch))) {
-                    return `${domain.id}:${entry.id}`;
-                }
-            }
-        }
-        return null;
-    }, [locationSearch, section, staffDomains]);
 
     const itemBadge = (item: string): number => {
         const sectionKey = resolveNavLink(item).section;
@@ -324,8 +275,8 @@ export default function Shell({ section, children, action }: { section: string; 
         if (sectionKey === 'enquiries' || item === 'enquiries') {
             return attention.enquiries;
         }
-        if (sectionKey === 'withdrawals' || item === 'withdrawals') {
-            return attention.withdrawals;
+        if (sectionKey === 'payouts-hub') {
+            return attention['payouts-hub'];
         }
         if (sectionKey === 'support-admin' || item === 'support-admin') {
             return attention['support-admin'];
@@ -338,21 +289,19 @@ export default function Shell({ section, children, action }: { section: string; 
     const formatBadge = (count: number): string => (count > 99 ? '99+' : String(count));
 
     const activeMotherIds = useMemo(
-        () => domainMothers.filter((entry) => entry.items.some((item) => isNavItemActive(item, section, locationSearch))).map((entry) => entry.id),
-        [domainMothers, section, locationSearch],
+        () => navMothers.filter((entry) => entry.items.some((item) => isNavItemActive(item, section, locationSearch))).map((entry) => entry.id),
+        [navMothers, section, locationSearch],
     );
 
-    const [expandedMothers, setExpandedMothers] = useState<string[]>(() => activeMotherIds.slice(0, 1));
-    const [openDomain, setOpenDomain] = useState<StaffDomain | null>(currentDomain);
-    const [openSectionKey, setOpenSectionKey] = useState<string | null>(activeSectionKey);
+    const [expandedMother, setExpandedMother] = useState<string | null>(() => activeMotherIds[0] ?? null);
 
     const filteredMothers = useMemo(() => {
         const query = menuQuery.trim().toLowerCase();
         if (!query) {
-            return domainMothers;
+            return navMothers;
         }
 
-        return compactMothers(domainMothers.map((entry) => {
+        return compactMothers(navMothers.map((entry) => {
             const motherLabel = t(translations, 'portal', entry.labelKey).toLowerCase();
             if (motherLabel.includes(query)) {
                 return entry;
@@ -363,59 +312,16 @@ export default function Shell({ section, children, action }: { section: string; 
             });
             return mother(entry.id, entry.labelKey, items);
         }));
-    }, [domainMothers, menuQuery, staff, translations]);
+    }, [navMothers, menuQuery, staff, translations]);
 
     const searchingMenu = menuQuery.trim().length > 0;
 
-    const visibleStaffDomains = useMemo(() => {
-        const query = menuQuery.trim().toLowerCase();
-        if (!query) {
-            return staffDomains;
-        }
-
-        return staffDomains.flatMap((domain) => {
-            const domainHit = t(translations, 'portal', domain.labelKey).toLowerCase().includes(query);
-            const mothers = domain.mothers.flatMap((entry) => {
-                const sectionHit = t(translations, 'portal', entry.labelKey).toLowerCase().includes(query);
-                if (domainHit || sectionHit) {
-                    return [entry];
-                }
-                const items = entry.items.filter((item) => {
-                    const label = t(translations, 'portal', labelKeyForNavItem(item, true)).toLowerCase();
-                    return label.includes(query) || item.toLowerCase().includes(query);
-                });
-                return items.length > 0 ? [{ ...entry, items }] : [];
-            });
-
-            return mothers.length > 0 ? [{ ...domain, mothers }] : [];
-        });
-    }, [menuQuery, staffDomains, translations]);
-
     useEffect(() => {
-        if (staff) {
-            return;
-        }
-        if (menuQuery.trim()) {
-            setExpandedMothers(filteredMothers.map((entry) => entry.id));
-            return;
-        }
-        const activeId = activeMotherIds[0] ?? domainMothers[0]?.id ?? null;
-        setExpandedMothers(activeId ? [activeId] : []);
-    }, [activeMotherIds, domainMothers, filteredMothers, menuQuery, staff]);
-
-    useEffect(() => {
-        if (!staff || menuQuery.trim()) {
-            return;
-        }
-        const domain = activeSectionKey?.split(':')[0];
-        if (domain === 'company' || domain === 'dealers' || domain === 'sub_dealers') {
-            setOpenDomain(domain);
-        }
-        setOpenSectionKey(activeSectionKey);
-    }, [activeSectionKey, menuQuery, staff]);
+        setExpandedMother(activeMotherIds[0] ?? null);
+    }, [activeMotherIds]);
 
     const toggleMother = (id: string) => {
-        setExpandedMothers((previous) => (previous.length === 1 && previous[0] === id ? [] : [id]));
+        setExpandedMother((current) => (current === id ? null : id));
     };
 
     const renderLink = (item: string) => {
@@ -430,12 +336,7 @@ export default function Shell({ section, children, action }: { section: string; 
                 href={sectionHref(base, item)}
                 key={item}
                 prefetch
-                onClick={() => {
-                    if (staff) {
-                        writeDomainPin(currentDomain);
-                    }
-                    setOpen(false);
-                }}
+                onClick={() => setOpen(false)}
                 data-tour={item === 'help' ? 'sidebar-help' : undefined}
                 data-nav-item={item}
             >
@@ -451,45 +352,14 @@ export default function Shell({ section, children, action }: { section: string; 
         );
     };
 
-    const toggleDomain = (id: StaffDomain) => {
-        if (searchingMenu) {
-            return;
-        }
-        setOpenDomain((current) => {
-            if (current === id) {
-                setOpenSectionKey(null);
-                return null;
-            }
-            setOpenSectionKey(null);
-            return id;
-        });
-    };
-
-    const toggleSection = (key: string) => {
-        if (searchingMenu) {
-            return;
-        }
-        setOpenSectionKey((current) => (current === key ? null : key));
-    };
-
-    const renderStaffSection = (domainId: StaffDomain, entry: NavMother) => {
-        const key = `${domainId}:${entry.id}`;
+    const renderStaffSection = (entry: NavMother) => {
         const hasActive = entry.items.some((item) => isNavItemActive(item, section, locationSearch));
         const badge = motherBadge(entry.items);
         const Icon = icons[entry.id] || icons[entry.items[0]] || LayoutDashboard;
-        const label = translate('portal', entry.labelKey);
 
         if (entry.items.length === 1 && !searchingMenu) {
             return (
-                <div
-                    key={key}
-                    className={`nav-section nav-section-single ${hasActive ? 'has-active' : ''}`}
-                    data-nav-section={entry.id}
-                    onClick={() => {
-                        setOpenDomain(domainId);
-                        setOpenSectionKey(key);
-                    }}
-                >
+                <div key={entry.id} className={`nav-section nav-section-single ${hasActive ? 'has-active' : ''}`} data-nav-section={entry.id}>
                     <div className="nav-section-body">
                         {renderLink(entry.items[0])}
                     </div>
@@ -497,18 +367,18 @@ export default function Shell({ section, children, action }: { section: string; 
             );
         }
 
-        const expanded = searchingMenu || openSectionKey === key;
+        const expanded = searchingMenu || expandedMother === entry.id;
 
         return (
-            <div key={key} className={`nav-section ${expanded ? 'is-open' : ''} ${hasActive ? 'has-active' : ''}`} data-nav-section={entry.id}>
+            <div key={entry.id} className={`nav-section ${expanded ? 'is-open' : ''} ${hasActive ? 'has-active' : ''}`} data-nav-section={entry.id}>
                 <button
                     type="button"
                     className="nav-section-toggle"
                     aria-expanded={expanded}
-                    onClick={() => toggleSection(key)}
+                    onClick={() => toggleMother(entry.id)}
                 >
                     <Icon size={15} />
-                    <span>{label}</span>
+                    <span>{translate('portal', entry.labelKey)}</span>
                     {badge > 0 && (
                         <span className="nav-attention-badge nav-section-badge" aria-hidden="true">
                             {formatBadge(badge)}
@@ -525,15 +395,20 @@ export default function Shell({ section, children, action }: { section: string; 
         );
     };
 
-    const domainIcon: Record<StaffDomain, LucideIcon> = {
-        company: Briefcase,
-        dealers: Users,
-        sub_dealers: Store,
-    };
-
     const renderPartnerMothers = (mothers: NavMother[]) => mothers.map((entry) => {
-        const expanded = expandedMothers.includes(entry.id) || Boolean(menuQuery.trim());
         const hasActive = entry.items.some((item) => isNavItemActive(item, section, locationSearch));
+
+        if (entry.items.length === 1 && !searchingMenu) {
+            return (
+                <nav key={entry.id} className={`nav-group nav-mother nav-mother-single ${hasActive ? 'has-active' : ''}`} aria-label={translate('portal', entry.labelKey)}>
+                    <div className="nav-mother-body">
+                        {renderLink(entry.items[0])}
+                    </div>
+                </nav>
+            );
+        }
+
+        const expanded = searchingMenu || expandedMother === entry.id;
         const badge = motherBadge(entry.items);
         return (
             <nav
@@ -563,62 +438,6 @@ export default function Shell({ section, children, action }: { section: string; 
             </nav>
         );
     });
-
-    const canDealerDomain = capabilities.some((c) => ['accounts', 'orders', 'finance'].includes(c));
-
-    const domainTabs = staff ? (
-        <>
-            <Link
-                href="/"
-                onClick={() => {
-                    writeDomainPin('company');
-                    setOpen(false);
-                }}
-                className={`sidebar-domain-tab domain-tab-company ${currentDomain === 'company' ? 'active' : ''}`}
-                aria-current={currentDomain === 'company' ? 'page' : undefined}
-            >
-                <Briefcase size={14} />
-                <span className="domain-tab-copy">
-                    <span className="domain-tab-full">{ownerPortal ? translate('portal', 'nav_management_section') : translate('portal', 'nav_company_section')}</span>
-                    <span className="domain-tab-short">{ownerPortal ? translate('portal', 'nav_owner') : translate('portal', 'nav_company')}</span>
-                </span>
-            </Link>
-            {canDealerDomain && (
-                <Link
-                    href={capabilities.includes('accounts') ? '/accounts' : '/commissions'}
-                    onClick={() => {
-                        writeDomainPin('dealers');
-                        setOpen(false);
-                    }}
-                    className={`sidebar-domain-tab domain-tab-dealers ${currentDomain === 'dealers' ? 'active' : ''}`}
-                    aria-current={currentDomain === 'dealers' ? 'page' : undefined}
-                >
-                    <Users size={14} />
-                    <span className="domain-tab-copy">
-                        <span className="domain-tab-full">{translate('portal', 'nav_dealer_section')}</span>
-                        <span className="domain-tab-short">{translate('portal', 'nav_dealers')}</span>
-                    </span>
-                </Link>
-            )}
-            {canDealerDomain && (
-                <Link
-                    href={capabilities.includes('accounts') ? '/sub-dealers' : (capabilities.includes('finance') ? '/salary' : '/commissions')}
-                    onClick={() => {
-                        writeDomainPin('sub_dealers');
-                        setOpen(false);
-                    }}
-                    className={`sidebar-domain-tab domain-tab-subdealers ${currentDomain === 'sub_dealers' ? 'active' : ''}`}
-                    aria-current={currentDomain === 'sub_dealers' ? 'page' : undefined}
-                >
-                    <Store size={14} />
-                    <span className="domain-tab-copy">
-                        <span className="domain-tab-full">{translate('portal', 'nav_subdealer_section')}</span>
-                        <span className="domain-tab-short">{translate('portal', 'nav_sub_dealers')}</span>
-                    </span>
-                </Link>
-            )}
-        </>
-    ) : null;
 
     const headingItem = (() => {
         if (section === 'catalog' && staff) {
@@ -693,42 +512,11 @@ export default function Shell({ section, children, action }: { section: string; 
                 </label>
 
                 <div className="sidebar-nav-container" data-tour="sidebar-nav">
-                    {staff ? (
-                        visibleStaffDomains.length > 0 ? (
-                            <div className="sidebar-domain-switch" data-tour="sidebar-domains">
-                                {visibleStaffDomains.map((domain) => {
-                                    const DomainIcon = domainIcon[domain.id];
-                                    const expanded = searchingMenu || openDomain === domain.id;
-                                    const domainActive = domain.mothers.some((entry) => entry.items.some((item) => isNavItemActive(item, section, locationSearch)));
-                                    return (
-                                        <section key={domain.id} className={`sidebar-domain ${expanded ? 'is-open' : ''} ${domainActive ? 'has-active' : ''}`}>
-                                            <button
-                                                type="button"
-                                                className={`sidebar-domain-tab ${expanded ? 'active' : ''}`}
-                                                aria-expanded={expanded}
-                                                onClick={() => toggleDomain(domain.id)}
-                                            >
-                                                <DomainIcon size={15} />
-                                                <span className="domain-tab-copy">
-                                                    <span className="domain-tab-full">{translate('portal', domain.labelKey)}</span>
-                                                </span>
-                                                <ChevronDown size={14} className="nav-chevron" aria-hidden="true" />
-                                            </button>
-                                            {expanded && (
-                                                <div className="sidebar-domain-pocket">
-                                                    {domain.mothers.map((entry) => renderStaffSection(domain.id, entry))}
-                                                </div>
-                                            )}
-                                        </section>
-                                    );
-                                })}
-                            </div>
-                        ) : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>
-                    ) : (
-                        filteredMothers.length > 0
-                            ? renderPartnerMothers(filteredMothers)
-                            : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>
-                    )}
+                    {filteredMothers.length > 0 ? (
+                        staff
+                            ? <nav className="sidebar-section-list" aria-label={translate('portal', 'company_navigation')}>{filteredMothers.map(renderStaffSection)}</nav>
+                            : renderPartnerMothers(filteredMothers)
+                    ) : <p className="sidebar-menu-empty">{translate('portal', 'search_menu_empty')}</p>}
                 </div>
 
                 <div className="sidebar-footer">
@@ -762,7 +550,6 @@ export default function Shell({ section, children, action }: { section: string; 
             </aside>
 
             <div className="workspace" inert={open}>
-                {!staff && <DealerHeader />}
                 <header className="workspace-header glass-header">
                     <div className="breadcrumb">
                         <button
@@ -779,6 +566,7 @@ export default function Shell({ section, children, action }: { section: string; 
                         <span>/</span>
                         <b>{currentSectionTitle}</b>
                     </div>
+                    {!staff && <PartnerProductSearch />}
                     {staff && workspaceBranches?.branches?.length > 0 && (
                         <BranchWorkspaceSelect branches={workspaceBranches} />
                     )}
@@ -847,17 +635,16 @@ export default function Shell({ section, children, action }: { section: string; 
                                         <Bell size={16} />
                                         {translate('portal', 'notifications')}
                                     </Link>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={() => {
-                                            setProfileOpen(false);
-                                            setManualOpen(true);
-                                        }}
-                                    >
-                                        <Compass size={16} />
-                                        {translate('portal', 'tour_guide_launcher')}
-                                    </button>
+                                    <Link href={base + '/help'} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                        <LifeBuoy size={16} />
+                                        {translate('portal', 'help')}
+                                    </Link>
+                                    {staff && staffAvailable.has('my-payroll') && (
+                                        <Link href={sectionHref(base, 'my-payroll')} role="menuitem" onClick={() => setProfileOpen(false)}>
+                                            <Wallet size={16} />
+                                            {translate('portal', 'my_payroll')}
+                                        </Link>
+                                    )}
                                     {user.has_linked_staff && (
                                         <button
                                             type="button"
@@ -925,8 +712,21 @@ export default function Shell({ section, children, action }: { section: string; 
                 </main>
                 {!staff && <DealerBottomNav onMenu={() => setOpen(true)} />}
                 {staff && (
-                    <nav className="staff-domain-bottom-nav" aria-label={translate('portal', 'domain_switch')}>
-                        {domainTabs}
+                    <nav className="portal-bottom-nav" aria-label={translate('portal', 'company_navigation')}>
+                        <button type="button" onClick={() => setOpen(true)} aria-label={translate('portal', 'open_navigation')} title={translate('portal', 'open_navigation')}>
+                            <Menu size={20} />{translate('portal', 'menu')}
+                        </button>
+                        {staffBottomLinks(staffAvailable).map((item) => {
+                            const spec = resolveNavLink(item);
+                            const Icon = icons[spec.iconKey] || LayoutDashboard;
+                            const active = isNavItemActive(item, section, locationSearch);
+                            return (
+                                <Link key={item} href={sectionHref(base, item)} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined}>
+                                    <Icon size={20} />
+                                    {sectionLabel(item)}
+                                </Link>
+                            );
+                        })}
                     </nav>
                 )}
             </div>

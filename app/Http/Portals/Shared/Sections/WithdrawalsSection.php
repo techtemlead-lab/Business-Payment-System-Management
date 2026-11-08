@@ -256,6 +256,9 @@ final class WithdrawalsSection implements WorkspaceSection
                     ->orWhere('withdrawals.payment_reference', 'ilike', $term);
             });
         }
+        if ($request->filled('buyer_role')) {
+            $matching->where('users.role', $request->string('buyer_role')->toString());
+        }
         // Method and request dates, so finance can work one bKash or bank batch at a time.
         $channel = $request->string('channel')->toString();
         if (in_array($channel, PaymentAccounts::channels(), true)) {
@@ -303,6 +306,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'users.name as user_name',
                 'users.dealer_code',
                 'users.phone',
+                'users.role',
+                'users.district',
+                'users.division',
             ])
             ->latest('withdrawals.created_at')
             ->paginate(20)
@@ -326,6 +332,9 @@ final class WithdrawalsSection implements WorkspaceSection
                 'payout_receipt_id' => $row->payout_receipt_id,
                 'payout_receipt_number' => $row->payout_receipt_number,
                 'payout_method' => $row->payout_method,
+                'role' => $row->role,
+                'district' => $row->district,
+                'division' => $row->division,
             ]);
 
         $rules = app(CommissionPolicy::class)->snapshot()['rules'];

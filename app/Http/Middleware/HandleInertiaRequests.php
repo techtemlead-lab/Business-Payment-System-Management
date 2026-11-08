@@ -128,13 +128,13 @@ class HandleInertiaRequests extends Middleware
 
                 return [
                     'notifications' => $unreadNotices(),
-                    'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts'))
+                    'enquiries' => $staffWorkspace && ($u->allows('content') || $u->allows('accounts') || $u->allows('support_desk'))
                         ? (int) DB::table('enquiries')->where('status', 'new')->count()
                         : 0,
                     'withdrawals' => $staffWorkspace && $u->allows('finance')
                         ? (int) DB::table('withdrawals')->where('status', 'requested')->count()
                         : 0,
-                    'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->owner())
+                    'support-admin' => $staffWorkspace && ($u->allows('accounts') || $u->allows('support_desk') || $u->owner())
                         ? (int) DB::table('support_tickets')->whereIn('status', ['pending', 'in_progress'])->count()
                         : 0,
                     // Unread chat: office replies for a partner, partner messages for staff who may answer.

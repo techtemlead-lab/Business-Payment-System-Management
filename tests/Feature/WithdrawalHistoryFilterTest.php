@@ -50,10 +50,10 @@ class WithdrawalHistoryFilterTest extends TestCase
             'created_at' => now()->subYear(),
         ]);
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/withdrawals?q=WD-DEALER-1')->assertOk()
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?q=WD-DEALER-1')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.withdrawals.data', 1)
-                ->where('data.withdrawals.data.0.name', 'History Dealer')
+                ->where('data.withdrawals.data.0.user_name', 'History Dealer')
                 ->where('data.withdrawals.data.0.phone', '01715550021')
                 ->where('data.withdrawals.data.0.district', 'Bogura')
                 ->where('data.withdrawals.data.0.division', 'Rajshahi')
@@ -63,13 +63,13 @@ class WithdrawalHistoryFilterTest extends TestCase
                 ->missing('data.withdrawals.data.0.destination')
                 ->where('filters.q', 'WD-DEALER-1'));
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/withdrawals?buyer_role=sub_dealer&status=paid&channel=Bank')->assertOk()
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?buyer_role=sub_dealer&status=paid&channel=Bank')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.withdrawals.data', 1)
                 ->where('data.withdrawals.data.0.payment_reference', 'WD-SUB-1')
                 ->where('data.withdrawals.data.0.role', 'sub_dealer'));
 
-        $this->actingAs($owner)->onPortal('sadmin')->get('/withdrawals?period=year')->assertOk()
+        $this->actingAs($owner)->onPortal('sadmin')->get('/payouts-hub?period=year')->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->has('data.withdrawals.data', 1)
                 ->where('data.withdrawals.data.0.payment_reference', 'WD-DEALER-1'));

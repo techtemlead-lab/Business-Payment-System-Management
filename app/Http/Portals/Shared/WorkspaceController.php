@@ -153,6 +153,10 @@ class WorkspaceController extends Controller
                 'page' => $r->query('page'),
             ], fn ($value) => $value !== null && $value !== '')));
         }
+        if ($staff && $section === 'withdrawals') {
+            // One desk for office withdrawal work; old links and saved filters still arrive there.
+            return redirect('/payouts-hub'.rtrim('?'.http_build_query($r->only(['q', 'status', 'channel', 'buyer_role', 'period', 'from', 'to', 'page', 'branch_id', 'all_branches'])), '?'));
+        }
         if ($staff && $section === 'reports') {
             return redirect(OfficeHubs::oldReportsAddress($u, in_array($portal, ['manage', 'sadmin'], true), $r->query()));
         }

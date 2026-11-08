@@ -79,7 +79,7 @@ class EmployeesSubDealerLocaleTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('portals/sadmin/Dashboard')
                 ->where('section', 'payouts-hub')
-                ->where('translations.portal.pay_heading', 'পার্টনার পেমেন্ট')
+                ->where('translations.portal.pay_heading', 'টাকা তোলার অনুরোধ')
                 ->where('translations.portal.pay_review_title', 'পার্টনারের টাকা তোলার অনুরোধ যাচাই')
                 ->where('translations.portal.pay_record_ledger', 'খাতায় রেকর্ড করুন')
                 ->where('translations.portal.pco_title', 'কাস্টম কমিশন প্ল্যান')

@@ -1,43 +1,33 @@
-import {Link, usePage} from '@inertiajs/react';
-import {Search, Gift, Layers, UserRound, Store, Menu, ShoppingBag, Home, Network, Wallet, Banknote} from 'lucide-react';
+import {useState} from 'react';
+import {Link, router, usePage} from '@inertiajs/react';
+import {Search, Store, Menu, ShoppingBag, Home, Network, Wallet, Banknote} from 'lucide-react';
 import {useT} from '../shared/i18n/t';
 import {partnerChromeEnabled} from '../shared/partnerChromeNav';
 
-export function DealerHeader(){
-    const page = usePage<any>().props;
+/** Product search in the partner top bar. It opens the portal's own product list, so nobody leaves the panel. */
+export function PartnerProductSearch(){
     const translate = useT();
-    const locale = String(page.locale ?? 'en');
-    const publicBase = String(page.publicBase ?? '');
-    const customize = page.siteCustomization ?? {};
-    const role = String(page.auth?.user?.role ?? 'dealer');
-    const showShop = partnerChromeEnabled(role, page.dashboardControls, 'catalog');
-    const chrome = (custom: unknown, key: string) =>
-        locale === 'bn' || !custom ? translate('portal', key) : String(custom);
-    const offersTitle = chrome(customize.header_offers_title, 'header_offers');
-    const offersSubtitle = chrome(customize.header_offers_subtitle, 'header_offers_sub');
-    const networkTitle = chrome(customize.header_projects_title, 'header_network');
-    const networkSubtitle = chrome(customize.header_projects_subtitle, 'header_network_sub');
+    const page = usePage<any>();
+    const role = String(page.props.auth?.user?.role ?? 'dealer');
+    const [query, setQuery] = useState('');
+    if (!partnerChromeEnabled(role, page.props.dashboardControls, 'catalog')) {
+        return null;
+    }
 
-    return <>
-        <div className="portal-company-bar">{translate('portal', 'brand_company_bar')}</div>
-        <header className="portal-site-header">
-            <div className="portal-container portal-header-inner">
-                <a href={`${publicBase}/`} className="portal-logo" aria-label={translate('portal', 'brand_home_aria')}>
-                    <img src="/madina-header-logo.png?v=8" alt={translate('portal', 'brand_alt')}/>
-                </a>
-                <form method="get" action={`${publicBase}/products`} className="portal-site-search">
-                    <input name="q" placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>
-                    <button aria-label={translate('portal', 'search_products')} title={translate('portal', 'search_products')}><Search size={22}/></button>
-                </form>
-                <div className="portal-header-links">
-                    <a href={`${publicBase}/#featured-products`}><Gift/><span><b>{offersTitle}</b><small>{offersSubtitle}</small></span></a>
-                    <a href={`${publicBase}/dealers`}><Layers/><span><b>{networkTitle}</b><small>{networkSubtitle}</small></span></a>
-                    <Link href="/profile" title={translate('portal', 'profile')}><UserRound/><span><b>{translate('portal', 'nav_module_account')}</b><small>{translate('portal', 'profile')}</small></span></Link>
-                    {showShop && <Link href="/catalog" className="portal-shop" title={translate('portal', 'shop')}><Store size={18}/><b>{translate('portal', 'shop')}</b></Link>}
-                </div>
-            </div>
-        </header>
-    </>;
+    return (
+        <form
+            className="portal-product-search"
+            role="search"
+            onSubmit={(event) => {
+                event.preventDefault();
+                const term = query.trim();
+                router.get('/catalog', term ? {q: term} : {});
+            }}
+        >
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={translate('portal', 'search_products')} aria-label={translate('portal', 'search_products')}/>
+            <button type="submit" aria-label={translate('portal', 'search_products')} title={translate('portal', 'search_products')}><Search size={16}/></button>
+        </form>
+    );
 }
 
 export function DealerBottomNav({onMenu}:{onMenu:()=>void}){

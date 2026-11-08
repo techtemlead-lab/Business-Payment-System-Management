@@ -3,8 +3,6 @@
  * Virtual items deep-link into existing section routes/query keys.
  */
 
-export type StaffDomain = 'company' | 'dealers' | 'sub_dealers';
-
 export type NavMother = {
     id: string;
     labelKey: string;
@@ -27,7 +25,7 @@ type CapabilityContext = {
     capabilities: string[];
     role: string;
     ownerPortal: boolean;
-    /** The owner nominated this staff member to answer partner chat. */
+    /** May answer partner chat: an owner, the Support role, or someone the owner nominated. */
     chatAnswerer?: boolean;
     /** Verified prescriber (partner or office account) or the owner-doctor: shows the Prescriptions menu. */
     prescriber?: boolean;
@@ -40,19 +38,7 @@ export const OPERATIONS_SECTIONS = new Set([
     'finance-settings', 'access-management', 'video-marketing',
 ]);
 
-export const DEALER_ONLY_SECTIONS = ['accounts', 'partnerships', 'area-dealers'];
-export const SUB_DEALER_ONLY_SECTIONS = ['sub-dealers', 'sub-dealer-applications', 'salary'];
-export const SHARED_PARTNER_SECTIONS = ['commissions', 'policies', 'simulator', 'network-tree', 'ranks'];
-export const ACCOUNT_SECTIONS = ['profile', 'security', 'notifications', 'help'];
-export const MANAGEMENT_SECTIONS = [
-    'overview', 'employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales',
-    'orders', 'order', 'deliveries', 'sub-dealer-orders',
-    'treasury', 'company-funds', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
-    'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
-    'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
-    'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
-    'training', 'events', 'data-cleanup', 'prescriptions',
-];
+const OWNER_ROLES = ['super_admin', 'md', 'chairman'];
 
 const tabOf = (search: string): string | null => new URLSearchParams(search).get('tab');
 const actionOf = (search: string): string | null => new URLSearchParams(search).get('action');
@@ -76,7 +62,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
     settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
-    'sub-dealer-applications': 'partnerships',
+    'sub-dealer-applications': 'sub_dealer_applications', 'login-rules': 'login_rules',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
     messages: 'chat_nav_partner', 'partner-messages': 'chat_nav_office', 'top-sellers': 'top_sellers',
     training: 'training', events: 'events', 'payment-receipts': 'payment_receipts', 'data-cleanup': 'cleanup_nav', prescriptions: 'prescriptions',
@@ -109,13 +95,22 @@ function defaultSpec(id: string): NavLinkSpec {
  */
 export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
     overview: defaultSpec('overview'),
+    /** One row for the commission page; its tabs keep their own addresses. */
+    commissions: {
+        id: 'commissions',
+        section: 'commissions',
+        labelKey: 'nav_commission_hub',
+        hrefPath: 'commissions',
+        iconKey: 'commissions',
+        match: ({ section }) => ['commissions', 'policies', 'simulator', 'policy-schedules'].includes(section),
+    },
     'catalog-products': {
         id: 'catalog-products',
         section: 'catalog',
         labelKey: 'nav_products',
         hrefPath: 'catalog',
         iconKey: 'catalog',
-        match: ({ section, search }) => section === 'catalog' && tabOf(search) !== 'taxonomy',
+        match: ({ section }) => section === 'catalog',
     },
     'catalog-taxonomy': {
         id: 'catalog-taxonomy',
@@ -128,10 +123,10 @@ export const NAV_LINK_SPECS: Record<string, NavLinkSpec> = {
     stock: {
         id: 'stock',
         section: 'inventory',
-        labelKey: 'stock_on_hand',
+        labelKey: 'inventory',
         hrefPath: 'inventory',
         iconKey: 'inventory',
-        match: ({ section, search }) => section === 'inventory' && !actionOf(search),
+        match: ({ section }) => section === 'inventory',
     },
     'product-in': {
         id: 'product-in',
@@ -195,20 +190,23 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
         items.add('support-admin');
         items.add('agreement');
     }
+    if (capabilities.includes('support_desk')) {
+        items.add('support-admin');
+        items.add('enquiries');
+    }
     if (chatAnswerer || ownerPortal) items.add('partner-messages');
     if (capabilities.includes('field_sales')) items.add('field-sales');
     if (capabilities.includes('staff_admin')) items.add('staff-operations');
     if (capabilities.includes('payroll')) items.add('payroll');
-    items.add('my-payroll');
+    if (!OWNER_ROLES.includes(role)) items.add('my-payroll');
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
         ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds',
-            'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary'].forEach((item) => items.add(item));
+            'commissions', 'policies', 'ledger', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'salary'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
     if (capabilities.some((cap) => ['reports', 'orders', 'finance'].includes(cap))) {
-        items.add('reports');
         items.add('top-sellers');
     }
     if (role === 'super_admin') items.add('access-management');
@@ -220,6 +218,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (['super_admin', 'md', 'chairman'].includes(role)) ['accounts', 'sub-dealers', 'employees'].forEach((item) => items.add(item));
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('benefits-fund');
     if (ownerPortal && ['super_admin', 'md', 'chairman'].includes(role)) items.add('data-cleanup');
+    if (ownerPortal && OWNER_ROLES.includes(role)) items.add('login-rules');
     if (prescriber) items.add('prescriptions');
     if (capabilities.some((cap) => ['catalog', 'pricing', 'inventory', 'orders', 'finance'].includes(cap))) items.add('catalog');
     if (capabilities.includes('inventory')) {
@@ -247,7 +246,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
 export function buildPartnerAvailable(role: string, dashboardControls?: Record<string, unknown> | null, prescriber = false): Set<string> {
     const controls = dashboardControls || {};
     if (role === 'dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'network', 'ranks', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.dealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -272,7 +271,7 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
         return items;
     }
     if (role === 'sub_dealer') {
-        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help', 'messages', 'training', 'events']);
+        const items = new Set(['overview', 'orders', 'purchase', 'deliveries', 'catalog', 'salary', 'top-sellers', 'earnings', 'full-report', 'withdrawals', 'payment-receipts', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'share-feedback', 'help', 'messages', 'training', 'events']);
         if (controls.subdealer_catalog_enabled === false) {
             items.delete('catalog');
             items.delete('purchase');
@@ -298,167 +297,111 @@ export function buildPartnerAvailable(role: string, dashboardControls?: Record<s
     return new Set(['profile', 'security', 'notifications']);
 }
 
-export function resolveStaffDomain(section: string, readPin: () => StaffDomain | null): StaffDomain {
-    if (DEALER_ONLY_SECTIONS.includes(section)) {
-        return 'dealers';
-    }
-    if (SUB_DEALER_ONLY_SECTIONS.includes(section)) {
-        return 'sub_dealers';
-    }
-    if (SHARED_PARTNER_SECTIONS.includes(section)) {
-        const pin = readPin();
-        if (pin === 'dealers' || pin === 'sub_dealers') {
-            return pin;
-        }
-        return 'dealers';
-    }
-    if (ACCOUNT_SECTIONS.includes(section)) {
-        return readPin() ?? 'company';
-    }
-    if (MANAGEMENT_SECTIONS.includes(section) || section === '') {
-        return 'company';
-    }
-    return readPin() ?? 'company';
+/** The office menu: one list of groups, daily work first and rarely used settings last. */
+function staffMothers(available: Set<string>): NavMother[] {
+    return compactMothers([
+        mother('overview', 'nav_module_overview', pick(available, ['overview'])),
+        mother('orders', 'nav_module_orders', pick(available, ['orders', 'payments', 'deliveries'])),
+        mother('messages', 'nav_module_messages', pick(available, ['partner-messages', 'support-admin', 'enquiries', 'feedback'])),
+        mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
+        mother('payouts', 'nav_module_payouts', pick(available, ['payouts-hub', 'settlements', 'salary'])),
+        mother('partners', 'nav_module_partners', pick(available, [
+            'accounts', 'sub-dealers', 'partnerships', 'sub-dealer-applications', 'network-tree', 'area-dealers', 'ranks', 'agreement',
+        ])),
+        mother('stock', 'nav_module_stock', pick(available, ['catalog-products', 'stock', 'branches'])),
+        mother('finance', 'nav_module_finance', pick(available, ['treasury', 'company-funds', 'reserve-payouts', 'benefits-fund', 'ledger', 'payment-accounts'])),
+        mother('commissions', 'nav_module_commissions', pick(available, [
+            'commissions', 'commission-holds', 'rewards',
+        ])),
+        mother('people', 'nav_module_people', pick(available, ['employees', 'payroll', 'staff-operations', 'field-sales', 'access-management'])),
+        mother('reports', 'nav_module_reports', pick(available, ['financial-reports', 'top-sellers', 'branch-performance'])),
+        mother('website', 'nav_module_website', pick(available, ['website', 'content', 'video-marketing', 'training', 'events'])),
+        mother('settings', 'nav_module_settings', pick(available, [
+            'finance-settings', 'place-codes', 'dashboards', 'login-rules', 'audit', 'service-integrations', 'data-imports', 'financial-readiness', 'data-cleanup',
+        ])),
+    ]);
 }
 
-export type StaffDomainGroup = {
-    id: StaffDomain;
-    labelKey: string;
-    mothers: NavMother[];
-};
-
-/** Opened from the tabs on their merged page, so they get no sidebar row of their own. */
-const MERGED_TAB_SECTIONS = ['policies', 'simulator', 'policy-schedules', 'reports'];
-
-function staffNavigation(available: Set<string>): {
-    company: NavMother[];
-    dealers: NavMother[];
-    subDealers: NavMother[];
-    account: NavMother | null;
-} {
-    const staffAvailable = new Set([...available].filter((item) => !MERGED_TAB_SECTIONS.includes(item)));
-    return {
-        company: compactMothers([
-            mother('overview', 'nav_module_overview', pick(staffAvailable, ['overview'])),
-            mother('catalog', 'nav_module_catalog', pick(staffAvailable, ['catalog-products', 'catalog-taxonomy'])),
-            mother('stock', 'nav_module_stock', pick(staffAvailable, [
-                'stock', 'product-in', 'product-out', 'branches', 'branch-performance', 'place-codes',
-            ])),
-            mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
-            mother('finance', 'nav_module_finance', pick(staffAvailable, [
-                'treasury', 'company-funds', 'payment-accounts', 'ledger', 'financial-readiness', 'finance-settings',
-            ])),
-            mother('payouts', 'nav_module_payouts', pick(staffAvailable, [
-                'withdrawals', 'payouts-hub', 'payments', 'settlements', 'reserve-payouts',
-            ])),
-            mother('commissions', 'nav_module_commissions', pick(staffAvailable, [
-                'policy-schedules', 'commission-holds', 'rewards',
-            ])),
-            mother('benefits-fund', 'benefits_fund', pick(staffAvailable, ['benefits-fund'])),
-            mother('people', 'nav_module_people', pick(staffAvailable, [
-                'employees', 'staff-operations', 'payroll', 'my-payroll', 'field-sales', 'access-management',
-            ])),
-            mother('reports', 'nav_module_reports', pick(staffAvailable, [
-                'reports', 'top-sellers', 'financial-reports', 'dashboards', 'data-imports',
-            ])),
-            mother('learning', 'nav_module_learning', pick(staffAvailable, ['training', 'events'])),
-            mother('clinic', 'nav_module_clinic', pick(staffAvailable, ['prescriptions'])),
-            mother('settings', 'nav_module_settings', pick(staffAvailable, [
-                'website', 'content', 'video-marketing', 'enquiries', 'feedback', 'service-integrations', 'audit', 'support-admin', 'agreement', 'partner-messages', 'data-cleanup',
-            ])),
-            mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
-        ]),
-        dealers: compactMothers([
-            mother('directory', 'nav_module_directory', pick(staffAvailable, ['accounts', 'partnerships'])),
-            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
-            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'area-dealers', 'ranks'])),
-        ]),
-        subDealers: compactMothers([
-            mother('directory', 'nav_module_directory', pick(staffAvailable, ['sub-dealers', 'sub-dealer-applications'])),
-            mother('commission', 'nav_module_commission', pick(staffAvailable, ['commissions', 'policies', 'simulator'])),
-            mother('network', 'nav_module_network', pick(staffAvailable, ['network-tree', 'ranks'])),
-            mother('compensation', 'nav_module_compensation', pick(staffAvailable, ['salary'])),
-        ]),
-        account: mother('account', 'nav_module_account', pick(staffAvailable, ['profile', 'security', 'notifications', 'help'])),
+/** The dealer and sub-dealer menu: the day's work first. A group with one page shows as a plain link. */
+function partnerMothers(role: string, available: Set<string>): NavMother[] {
+    const shared = {
+        home: mother('home', 'nav_module_home', pick(available, ['overview'])),
+        newOrder: mother('new-order', 'purchase', pick(available, ['purchase'])),
+        orders: mother('commerce', 'nav_module_commerce', pick(available, ['orders', 'deliveries', 'catalog'])),
+        money: mother('earnings', 'nav_module_earnings', pick(available, ['earnings', 'withdrawals', 'payment-receipts', 'full-report'])),
+        clinic: mother('clinic', 'nav_module_clinic', pick(available, ['prescriptions'])),
+        office: mother('office', 'nav_module_office', pick(available, ['messages', 'circulars', 'share-feedback', 'help'])),
+        account: mother('account', 'nav_module_account', pick(available, ['profile', 'security', 'agreement'])),
     };
+    if (role === 'dealer') {
+        return compactMothers([
+            shared.home,
+            shared.newOrder,
+            shared.orders,
+            shared.money,
+            mother('network', 'nav_module_network', pick(available, ['network', 'ranks', 'top-sellers'])),
+            mother('learning', 'nav_module_learning', pick(available, ['training', 'events'])),
+            shared.clinic,
+            shared.office,
+            shared.account,
+        ]);
+    }
+    return compactMothers([
+        shared.home,
+        shared.newOrder,
+        shared.orders,
+        mother('compensation', 'nav_module_compensation', pick(available, ['salary'])),
+        shared.money,
+        mother('learning', 'nav_module_learning', pick(available, ['training', 'events', 'top-sellers'])),
+        shared.clinic,
+        shared.office,
+        shared.account,
+    ]);
 }
 
-export function buildStaffDomainGroups(input: {
-    staffAvailable: Set<string>;
-    ownerPortal: boolean;
-}): StaffDomainGroup[] {
-    const navigation = staffNavigation(input.staffAvailable);
-
-    const groups: StaffDomainGroup[] = [
-        {
-            id: 'company',
-            labelKey: input.ownerPortal ? 'nav_management_section' : 'nav_company_section',
-            mothers: navigation.company,
-        },
-        {
-            id: 'dealers',
-            labelKey: 'nav_dealer_section',
-            mothers: navigation.dealers,
-        },
-        {
-            id: 'sub_dealers',
-            labelKey: 'nav_subdealer_section',
-            mothers: navigation.subDealers,
-        },
-    ];
-
-    return groups.filter((group) => group.mothers.length > 0);
-}
-
-export function buildDomainMothers(input: {
+export function buildNavMothers(input: {
     staff: boolean;
     role: string;
     staffAvailable: Set<string>;
     partnerAvailable: Set<string>;
-    currentDomain: StaffDomain;
 }): NavMother[] {
-    const { staff, role, staffAvailable, partnerAvailable, currentDomain } = input;
-
-    if (!staff) {
-        if (role === 'dealer') {
-            return compactMothers([
-                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
-                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
-                mother('network', 'nav_module_network', pick(partnerAvailable, ['network', 'ranks'])),
-                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
-                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
-                mother('clinic', 'nav_module_clinic', pick(partnerAvailable, ['prescriptions'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
-            ]);
-        }
-        if (role === 'sub_dealer') {
-            return compactMothers([
-                mother('home', 'nav_module_home', pick(partnerAvailable, ['overview', 'top-sellers'])),
-                mother('commerce', 'nav_module_commerce', pick(partnerAvailable, ['orders', 'purchase', 'catalog', 'deliveries'])),
-                mother('earnings', 'nav_module_earnings', pick(partnerAvailable, ['salary', 'earnings', 'full-report', 'withdrawals', 'payment-receipts'])),
-                mother('learning', 'nav_module_learning', pick(partnerAvailable, ['training', 'events'])),
-                mother('clinic', 'nav_module_clinic', pick(partnerAvailable, ['prescriptions'])),
-                mother('account', 'nav_module_account', pick(partnerAvailable, ['messages', 'profile', 'security', 'notifications', 'circulars', 'agreement', 'help'])),
-            ]);
-        }
-        return compactMothers([
-            mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'help'])),
-        ]);
+    const { staff, role, staffAvailable, partnerAvailable } = input;
+    if (staff) {
+        return staffMothers(staffAvailable);
+    }
+    if (role === 'dealer' || role === 'sub_dealer') {
+        return partnerMothers(role, partnerAvailable);
     }
 
-    const navigation = staffNavigation(staffAvailable);
-    const domainModules = currentDomain === 'dealers'
-        ? navigation.dealers
-        : currentDomain === 'sub_dealers'
-            ? navigation.subDealers
-            : navigation.company;
-
-    return compactMothers([...domainModules, navigation.account]);
+    return compactMothers([
+        mother('account', 'nav_module_account', pick(partnerAvailable, ['profile', 'security', 'notifications', 'help'])),
+    ]);
 }
+
+/** Phone bottom bar for office staff: home, then up to three of the pages this person can really open. */
+export function staffBottomLinks(available: Set<string>): string[] {
+    const daily = pick(available, ['orders', 'stock', 'payouts-hub', 'partner-messages', 'website', 'accounts', 'field-sales']);
+
+    return [...pick(available, ['overview']), ...daily.slice(0, 3)];
+}
+
+/** Partners read shorter names for the pages they share with the office. */
+const PARTNER_LABEL_KEYS: Record<string, string> = {
+    orders: 'nav_partner_orders',
+    catalog: 'nav_partner_catalog',
+    earnings: 'nav_partner_earnings',
+    network: 'nav_partner_network',
+    profile: 'nav_partner_profile',
+    security: 'nav_partner_security',
+    salary: 'nav_partner_salary',
+};
 
 export function labelKeyForNavItem(item: string, staff: boolean): string {
     if (item === 'catalog' && staff) {
         return 'product_management';
+    }
+    if (!staff && PARTNER_LABEL_KEYS[item]) {
+        return PARTNER_LABEL_KEYS[item];
     }
     return resolveNavLink(item).labelKey;
 }

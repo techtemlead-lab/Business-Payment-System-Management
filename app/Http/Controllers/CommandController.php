@@ -822,7 +822,7 @@ class CommandController extends Controller
 
     public function enquiry(Request $r, int $id): RedirectResponse
     {
-        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts'), 403);
+        abort_unless($r->user()->allows('content') || $r->user()->allows('accounts') || $r->user()->allows('support_desk'), 403);
         $d = $r->validate(['status' => 'required|in:new,contacted,closed']);
         $enquiry = DB::table('enquiries')->where('id', $id)->first();
         abort_unless($enquiry, 404);
