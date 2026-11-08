@@ -52,8 +52,11 @@ html[data-theme="dark"] .am-scene {
         radial-gradient(120% 80% at 50% -10%, var(--am-mist) 0%, transparent 60%),
         linear-gradient(165deg, var(--am-dew) 0%, #0a1914 55%, #06100d 100%);
 }
-/* Staff / owner sign-in keeps its navy band: only the mesh and leaves show. */
+/* Staff / owner sign-in keeps its navy band: only the mesh and leaves show,
+   and the card is a little more solid so the band does not muddy it. */
 body.company-auth .am-scene { z-index: 0; background: none; }
+body.am-auth.company-auth { --am-glass: rgba(255, 255, 255, .93); }
+html[data-theme="dark"] body.am-auth.company-auth { --am-glass: rgba(14, 26, 22, .9); }
 
 .am-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
