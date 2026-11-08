@@ -115,9 +115,10 @@ final class ManagementFigures
     }
 
     /**
-     * Each stock_lot_movements row with a value. A lot's own cost counts as real; a lot that
-     * only copied the product's price when opening balances were made, or has no cost at all,
-     * is an estimate; with no price anywhere the value stays zero and is reported as missing.
+     * Each stock_lot_movements row with a value. Only a cost from a supplier goods receipt, or
+     * carried over by a transfer from such a batch, counts as real. Any other batch cost may be
+     * the product's price copied in when the batch was made, and the two cannot be told apart,
+     * so it is an estimate. With no price anywhere the value stays zero and is reported as missing.
      */
     private function valuedMovements(): Builder
     {
@@ -125,12 +126,15 @@ final class ManagementFigures
             ->join('stock_lots as l', 'l.id', '=', 'm.lot_id')
             ->join('products as p', 'p.id', '=', 'm.product_id')
             ->leftJoin('goods_receipt_lines as gr', 'gr.stock_reference', '=', 'm.reference')
+            ->leftJoin('goods_receipt_lines as lot_receipt', 'lot_receipt.stock_reference', '=', 'l.reference')
+            ->leftJoin('stock_lots as parent', 'parent.id', '=', 'l.parent_lot_id')
+            ->leftJoin('goods_receipt_lines as parent_receipt', 'parent_receipt.stock_reference', '=', 'parent.reference')
             ->where('m.created_at', '<', $this->end)
             ->selectRaw(
                 'm.created_at AS moved_at, m.order_id, m.quantity, '
                 .'m.quantity * COALESCE(NULLIF(l.unit_cost, 0), NULLIF(p.cost_price, 0), 0) AS value, '
                 ."CASE WHEN COALESCE(NULLIF(l.unit_cost, 0), NULLIF(p.cost_price, 0)) IS NULL THEN 'missing' "
-                ."WHEN NULLIF(l.unit_cost, 0) IS NULL OR l.source = 'opening' THEN 'estimate' ELSE 'actual' END AS basis, "
+                ."WHEN NULLIF(l.unit_cost, 0) IS NOT NULL AND (lot_receipt.id IS NOT NULL OR parent_receipt.id IS NOT NULL) THEN 'actual' ELSE 'estimate' END AS basis, "
                 ."CASE WHEN m.kind = 'opening' THEN 'opening' "
                 ."WHEN m.kind = 'stock_in' AND gr.id IS NOT NULL THEN 'purchase' "
                 ."WHEN m.kind = 'stock_in' THEN 'other_in' "

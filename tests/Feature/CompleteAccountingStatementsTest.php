@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Clinic\ClinicDispensing;
 use App\Domain\Finance\AccountingStatements;
+use App\Domain\Inventory\PurchasingService;
+use App\Domain\Inventory\StockService;
+use App\Domain\Orders\OrderService;
 use App\Models\CompanyBranch;
 use App\Models\Prescription;
+use App\Models\PrescriptionPatient;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
@@ -125,6 +130,74 @@ class CompleteAccountingStatementsTest extends TestCase
         $this->assertNull($this->amount($november['balance_sheet']['assets'], 'goods_in_transit'));
         // Earlier result now carries October's 680 on top of September's -80.
         $this->assertSame('600.00', $november['balance_sheet']['earlier_result']);
+    }
+
+    /**
+     * The same figures from the app's real flows, not inserted rows: 10 units received at 55,
+     * 2 added by hand at the product's 30, 3 sold and 1 dispensed from the received batch.
+     */
+    public function test_the_real_flows_from_goods_receipt_to_delivery_tie_out(): void
+    {
+        $this->travelTo(now()->setDate(2026, 11, 8)->setTime(12, 0));
+        $day = '2026-11-08';
+        $hub = CompanyBranch::query()->where('code', 'HO-PIRGANJ')->firstOrFail();
+        $owner = User::factory()->staff('super_admin')->create(['active_branch_id' => $hub->id]);
+        $product = Product::factory()->create(['stock' => 0, 'cost_price' => '30.00', 'mrp' => '200.00', 'batch_number' => null, 'expires_on' => null]);
+        $purchasing = app(PurchasingService::class);
+        $purchase = $purchasing->createOrder($owner, ['supplier_id' => Supplier::factory()->create(['created_by' => $owner->id])->id, 'branch_id' => $hub->id, 'lines' => [['product_id' => $product->id, 'quantity' => 10]]]);
+        $purchasing->sendOrder($owner, $purchase);
+        $purchasing->receive($owner, $purchase, ['reference' => (string) Str::uuid(), 'lines' => [[
+            'purchase_order_line_id' => (int) $purchase->lines()->value('id'), 'quantity' => 10, 'batch_number' => 'GRN-1', 'expires_on' => '2028-01-01', 'unit_cost' => '55.00',
+        ]]]);
+        app(StockService::class)->stockIn($owner, ['product_id' => $product->id, 'quantity' => 2, 'reference' => (string) Str::uuid(), 'branch_id' => $hub->id]);
+
+        $orders = app(OrderService::class);
+        $order = $orders->create(User::factory()->dealer()->create(['status' => 'active']), ['items' => [['product_id' => $product->id, 'quantity' => 3]], 'idempotency_key' => (string) Str::uuid()]);
+        DB::table('orders')->where('id', $order->id)->update(['paid' => $order->total]);
+        $this->receipt($order->id, (string) $order->total, now()->toDateTimeString());
+        $orders->decision($owner, $order->fresh(), 'approved', 'Paid in full');
+        $orders->dispatch($owner, $order->fresh(), ['items' => [['line_id' => (int) $order->lines()->value('id'), 'quantity' => 3]], 'idempotency_key' => (string) Str::uuid(), 'courier' => 'Test courier', 'tracking' => 'TRK-1', 'branch_id' => $hub->id]);
+
+        // On the road: no sale yet, and the 3 x 55 is an asset rather than a cost.
+        $sent = app(AccountingStatements::class)->build($day, $day);
+        $this->assertNull($this->amount($sent['profit_loss']['income'], 'product_sales'));
+        $this->assertSame('165.00', $this->amount($sent['balance_sheet']['assets'], 'goods_in_transit'));
+        $this->assertSame('firm', collect($sent['balance_sheet']['assets'])->firstWhere('account', 'goods_in_transit')['reliability']);
+        $this->assertSame('385.00', $this->amount($sent['balance_sheet']['assets'], 'stock_at_cost'));
+        $this->assertSame('60.00', $this->amount($sent['balance_sheet']['assets'], 'stock_estimated'), 'Stock added by hand carries a copied price, so it is an estimate.');
+        $this->assertSame((string) $order->total, $this->amount($sent['balance_sheet']['liabilities'], 'paid_not_delivered'));
+        $this->assertSame('550.00', $this->amount($sent['balance_sheet']['liabilities'], 'supplier_due'));
+        $this->assertSame('60.00', $this->amount($sent['balance_sheet']['equity'], 'stock_without_receipt'));
+        $this->assertSame('0.00', $sent['balance_sheet']['difference']);
+
+        $orders->deliver($owner, $order->fresh(), (int) DB::table('shipments')->where('order_id', $order->id)->value('id'), 'Received by dealer');
+
+        $patient = PrescriptionPatient::factory()->create(['prescriber_id' => $owner->id]);
+        $this->actingAs($owner)->onPortal('sadmin')->post('/commands/prescriptions', [
+            'patient_id' => $patient->id, 'prescribed_on' => $day, 'diagnosis' => 'Test',
+            'lines' => [['product_id' => $product->id, 'dose' => '1', 'unit_price' => '150', 'quantity' => 1]],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        app(ClinicDispensing::class)->dispense($owner, Prescription::query()->where('prescriber_id', $owner->id)->firstOrFail(), $hub->id);
+
+        $done = app(AccountingStatements::class)->build($day, $day);
+        $pl = $done['profit_loss'];
+        $sheet = $done['balance_sheet'];
+        $this->assertSame((string) $order->total, $this->amount($pl['income'], 'product_sales'));
+        $this->assertSame('165.00', $this->amount($pl['cost_of_sales'], 'cost_of_goods'));
+        // 150 price, 60 manufacturer share at 30% of the 200 MRP, and the 90 is not added again.
+        $this->assertSame('150.00', $this->amount($pl['income'], 'clinic_sales'));
+        $this->assertSame('60.00', $this->amount($pl['cost_of_sales'], 'clinic_manufacturer_share'));
+        $this->assertNull($this->amount($pl['income'], 'clinic_fund'));
+        $this->assertNull($this->amount($sheet['assets'], 'goods_in_transit'));
+        $this->assertNull($this->amount($sheet['liabilities'], 'paid_not_delivered'));
+        // 6 received units left at 55; the manufacturer's 60 less the 55 the goods cost.
+        $this->assertSame('330.00', $this->amount($sheet['assets'], 'stock_at_cost'));
+        $this->assertSame('5.00', $this->amount($sheet['liabilities'], 'manufacturer_fund'));
+        $this->assertSame('0.00', $sheet['difference']);
+        $this->assertTrue($done['checks']['result_reconciled']);
+        $this->assertTrue($done['checks']['ties_to_journal']);
+        $this->assertNotContains(__('accounting.note_lots_do_not_match'), $done['notes']);
+        $this->assertNotContains(__('accounting.note_purchases_do_not_match'), $done['notes']);
     }
 
     public function test_every_line_names_its_source_and_a_reliability(): void
