@@ -7,7 +7,6 @@ import type { CustomizationData } from './types';
 export function buildCustomizationFormData(customization: CustomizationData, defaults: CustomizationData): CustomizationData {
     return {
             // Header
-            top_bar_text: customization.top_bar_text || '',
             search_placeholder: customization.search_placeholder || '',
             header_about_title: customization.header_about_title || '',
             header_about_subtitle: customization.header_about_subtitle || '',
@@ -323,7 +322,6 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             terms_body: customization.terms_body || '',
             legal_meta_effective: customization.legal_meta_effective || '',
             legal_meta_governance: customization.legal_meta_governance || '',
-            legal_meta_location: customization.legal_meta_location || '',
 
             footer_link_services: customization.footer_link_services || '',
             footer_link_services_url: customization.footer_link_services_url || '',
@@ -384,8 +382,6 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             footer_about_heading: customization.footer_about_heading || '',
             footer_stay_connected_heading: customization.footer_stay_connected_heading || '',
             footer_support_subtitle: customization.footer_support_subtitle || '',
-            footer_support_title: customization.footer_support_title || '',
-            footer_support_link: customization.footer_support_link || '',
             footer_directory_subtitle: customization.footer_directory_subtitle || '',
             footer_directory_title: customization.footer_directory_title || '',
             footer_directory_link: customization.footer_directory_link || '',
@@ -395,7 +391,6 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             footer_link_blog: customization.footer_link_blog || '',
             footer_link_contact: customization.footer_link_contact || '',
             footer_link_dealer_apply: customization.footer_link_dealer_apply || '',
-            footer_about_title: customization.footer_about_title || '',
             footer_about_desc: customization.footer_about_desc || '',
 
             // Floating Tools & Dialogs
@@ -414,7 +409,6 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             social_linkedin: customization.social_linkedin || '',
             social_instagram: customization.social_instagram || '',
             social_whatsapp: customization.social_whatsapp || '',
-            whatsapp_link: customization.whatsapp_link || '',
 
             // Auth
             auth_login_title: customization.auth_login_title || '',
@@ -453,9 +447,7 @@ export function buildCustomizationFormData(customization: CustomizationData, def
             contact_social_title: customization.contact_social_title || '',
             footer_support_icon: customization.footer_support_icon || '',
             footer_directory_icon: customization.footer_directory_icon || '',
-            footer_phone: customization.footer_phone || '',
-            footer_email: customization.footer_email || '',
-            footer_address: customization.footer_address || '',
+            footer_phone: customization.footer_phone ?? defaults.footer_phone ?? '',
             footer_location: customization.footer_location || '',
             footer_link_about_url: customization.footer_link_about_url || '',
             footer_link_contact_url: customization.footer_link_contact_url || '',

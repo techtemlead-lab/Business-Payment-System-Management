@@ -13,7 +13,6 @@ export default function HomePageSection({ form, defaults, products, updateField,
         <WebsiteSection id="home" title={translate('website_admin', 'section_home')} hint={translate('website_admin', 'section_home_hint')}>
         <WebsiteGroup title={translate('portal', 'cms_tab_header')}>
                             <div className="form-grid ed-grid">
-                                <Field label={translate('portal', 'sce_f_top_bar_text')} fieldKey="top_bar_text" value={form.data.customization.top_bar_text} placeholder={defaults.top_bar_text} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_search_placeholder')} fieldKey="search_placeholder" value={form.data.customization.search_placeholder} placeholder={defaults.search_placeholder} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_catalog_link')} fieldKey="header_catalog_title" value={form.data.customization.header_catalog_title} placeholder={defaults.header_catalog_title} onChange={updateField} />
                                 

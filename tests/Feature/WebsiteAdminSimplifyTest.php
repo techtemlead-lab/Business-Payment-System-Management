@@ -22,7 +22,7 @@ class WebsiteAdminSimplifyTest extends TestCase
     /** Every box the old 5,143-line editor showed, by its stored setting name. */
     private const OldEditorBoxes = [
         'featured_products_badge', 'featured_products_title', 'public_products_subtitle', 'featured_products_view_all', 'featured_products_view_all_link', 'products_empty_title',
-        'top_bar_text', 'search_placeholder', 'header_catalog_title', 'header_about_title', 'header_contact_title', 'header_network_title', 'header_account_title', 'header_account_subtitle',
+        'search_placeholder', 'header_catalog_title', 'header_about_title', 'header_contact_title', 'header_network_title', 'header_account_title', 'header_account_subtitle',
         'announcement_text', 'dealer_banner_title', 'dealer_banner_subtitle', 'dealer_banner_btn_text',
         'catalog_categories_title', 'catalog_all_products_label', 'catalog_price_title', 'catalog_instock_label', 'catalog_apply_filters_btn', 'catalog_clear_filters_btn', 'catalog_sort_by_label', 'catalog_empty_title', 'catalog_empty_desc', 'catalog_empty_btn',
         'product_in_stock_label', 'product_out_of_stock_label', 'product_share_label', 'product_video_title', 'product_tab_description', 'product_tab_specification',
@@ -36,10 +36,10 @@ class WebsiteAdminSimplifyTest extends TestCase
         'invoice_manufacturer', 'invoice_marketed_by', 'invoice_marketed_phones', 'directory_title', 'directory_subtitle', 'directory_gps_btn', 'directory_empty_title', 'directory_empty_desc',
         'partnership_hero_title', 'partnership_hero_lead', 'partnership_why_title', 'partnership_steps_title', 'partnership_cta_title', 'partnership_cta_btn', 'partnership_cta_body', 'partnership_cta_link',
         'services_hero_title', 'services_hero_lead', 'services_cta_btn', 'services_cta_link', 'quality_hero_title', 'quality_hero_lead', 'quality_cta_btn', 'quality_cta_link',
-        'faq_hero_title', 'faq_hero_lead', 'privacy_hero_title', 'privacy_hero_lead', 'privacy_body', 'terms_hero_title', 'terms_hero_lead', 'terms_body', 'legal_meta_effective', 'legal_meta_governance', 'legal_meta_location',
-        'footer_support_heading', 'footer_support_title', 'footer_support_subtitle', 'footer_support_link', 'footer_support_icon', 'footer_directory_title', 'footer_directory_subtitle', 'footer_directory_link', 'footer_directory_icon', 'footer_phone', 'footer_email',
-        'footer_about_heading', 'footer_link_about', 'footer_link_about_url', 'footer_link_contact', 'footer_link_contact_url', 'footer_link_dealer_apply', 'footer_link_dealer_apply_url', 'footer_stay_connected_heading', 'footer_logo_url', 'footer_about_title', 'footer_about_desc',
-        'social_facebook', 'social_youtube', 'social_linkedin', 'social_instagram', 'social_whatsapp', 'whatsapp_link', 'social_twitter', 'social_tiktok', 'social_telegram', 'app_google_play_link', 'app_apple_store_link',
+        'faq_hero_title', 'faq_hero_lead', 'privacy_hero_title', 'privacy_hero_lead', 'privacy_body', 'terms_hero_title', 'terms_hero_lead', 'terms_body', 'legal_meta_effective', 'legal_meta_governance',
+        'footer_support_heading', 'footer_support_subtitle', 'footer_support_icon', 'footer_directory_title', 'footer_directory_subtitle', 'footer_directory_link', 'footer_directory_icon', 'footer_phone',
+        'footer_about_heading', 'footer_link_about', 'footer_link_about_url', 'footer_link_contact', 'footer_link_contact_url', 'footer_link_dealer_apply', 'footer_link_dealer_apply_url', 'footer_stay_connected_heading', 'footer_logo_url', 'footer_about_desc',
+        'social_facebook', 'social_youtube', 'social_linkedin', 'social_instagram', 'social_whatsapp', 'social_twitter', 'social_tiktok', 'social_telegram', 'app_google_play_link', 'app_apple_store_link',
         'copyright_text', 'copyright_text_bn', 'notice_empty', 'notice_empty_bn', 'floating_chat_label', 'auth_login_title', 'auth_login_subtitle', 'auth_dealer_help_text', 'auth_dealer_contact_text', 'partner_help_title', 'partner_help_body',
     ];
 
@@ -48,7 +48,11 @@ class WebsiteAdminSimplifyTest extends TestCase
         'header_about_subtitle', 'header_contact_subtitle', 'featured_categories_title', 'featured_categories_subtitle',
         'company_intro_title', 'company_intro_body', 'company_intro_eyebrow', 'product_range_title', 'product_range_sub',
         'partner_with_us_title', 'partner_with_us_sub', 'our_services_title', 'our_services_sub', 'trust_pillars_title',
-        'footer_address',
+    ];
+
+    /** A fact shown in several places has one box. These names only repeat a fact and are never stored. */
+    private const RepeatedFactBoxes = [
+        'top_bar_text', 'legal_meta_location', 'footer_support_title', 'footer_support_link', 'footer_email', 'footer_about_title', 'whatsapp_link', 'footer_address',
     ];
 
     /** Settings that other parts of the page change with buttons or lists. */
@@ -113,6 +117,22 @@ class WebsiteAdminSimplifyTest extends TestCase
         }
     }
 
+    public function test_a_repeated_fact_has_no_box_of_its_own_and_is_not_stored(): void
+    {
+        $source = $this->websitePageSource();
+        $editor = User::factory()->create(['role' => 'editor']);
+
+        $this->actingAs($editor)->post('/commands/customization', ['customization' => ['contact_phone' => '01700000000', 'footer_support_title' => '01800000000']])
+            ->assertSessionHasNoErrors();
+
+        $saved = SiteCustomization::raw();
+        foreach (self::RepeatedFactBoxes as $key) {
+            $this->assertStringNotContainsString("fieldKey=\"{$key}\"", $source, "{$key} should not have its own box.");
+            $this->assertArrayNotHasKey($key, $saved, "{$key} should not be stored.");
+        }
+        $this->assertSame('01700000000', $saved['contact_phone']);
+    }
+
     public function test_every_box_starts_from_what_is_saved(): void
     {
         $startingValues = file_get_contents(resource_path('js/components/website/initialCustomization.ts'));
@@ -136,7 +156,7 @@ class WebsiteAdminSimplifyTest extends TestCase
         $editor = User::factory()->create(['role' => 'editor']);
         $sent = [];
         foreach (SiteCustomization::defaults() as $key => $default) {
-            if (is_array($default)) {
+            if (is_array($default) || SiteCustomization::isRepeatedFact($key)) {
                 continue;
             }
             $isLink = preg_match('/(^|_)(url|link|image|image_path)$/D', $key) === 1 || str_starts_with($key, 'social_');

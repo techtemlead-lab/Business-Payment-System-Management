@@ -32,9 +32,9 @@ class BanglaOwnerEditsAndBrandTest extends TestCase
         $year = date('Y');
 
         $this->withSession(['locale' => 'en'])->get('/')->assertOk()
-            ->assertSee(__('site.copyright', ['year' => $year], 'en'));
+            ->assertSee('© '.$year.' Madina Natural Health Care. All rights reserved.');
         $this->withSession(['locale' => 'bn'])->get('/')->assertOk()
-            ->assertSee(__('site.copyright', ['year' => LocalDigits::text($year, 'bn')], 'bn'));
+            ->assertSee('© '.LocalDigits::text($year, 'bn').' মদিনা ন্যাচারাল হেলথ কেয়ার। সর্বস্বত্ব সংরক্ষিত।');
     }
 
     public function test_an_owner_copyright_edit_is_not_dropped_for_bangla_visitors(): void
@@ -65,7 +65,7 @@ class BanglaOwnerEditsAndBrandTest extends TestCase
         SiteCustomization::save(['copyright_text' => '© 2020 Madina Natural Health Care. All rights reserved.']);
 
         $this->withSession(['locale' => 'en'])->get('/')->assertOk()
-            ->assertSee(__('site.copyright', ['year' => date('Y')], 'en'))
+            ->assertSee('© '.date('Y').' Madina Natural Health Care. All rights reserved.')
             ->assertDontSee('© 2020 Madina');
     }
 

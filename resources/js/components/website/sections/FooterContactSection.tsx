@@ -40,9 +40,7 @@ export default function FooterContactSection({ form, defaults, bnCopy, updateFie
         <WebsiteGroup title={translate('portal', 'sce_footer_column_1_heading')}>
                             <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label={translate('portal', 'sce_f_column_1_heading')} fieldKey="footer_support_heading" value={form.data.customization.footer_support_heading} placeholder={defaults.footer_support_heading} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_support_box1_title')} fieldKey="footer_support_title" value={form.data.customization.footer_support_title} placeholder={defaults.footer_support_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_support_box1_subtitle')} fieldKey="footer_support_subtitle" value={form.data.customization.footer_support_subtitle} placeholder={defaults.footer_support_subtitle} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_support_box1_link')} fieldKey="footer_support_link" value={form.data.customization.footer_support_link} placeholder={defaults.footer_support_link} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_support_box1_icon')} fieldKey="footer_support_icon" value={form.data.customization.footer_support_icon} placeholder={defaults.footer_support_icon} onChange={updateField} />
 
                                 <Field label={translate('portal', 'sce_f_dir_box2_title')} fieldKey="footer_directory_title" value={form.data.customization.footer_directory_title} placeholder={defaults.footer_directory_title} onChange={updateField} />
@@ -51,7 +49,6 @@ export default function FooterContactSection({ form, defaults, bnCopy, updateFie
                                 <Field label={translate('portal', 'sce_f_dir_box2_icon')} fieldKey="footer_directory_icon" value={form.data.customization.footer_directory_icon} placeholder={defaults.footer_directory_icon} onChange={updateField} />
 
                                 <Field label={translate('portal', 'sce_f_footer_phone')} fieldKey="footer_phone" value={form.data.customization.footer_phone} placeholder={defaults.footer_phone} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_footer_email')} fieldKey="footer_email" value={form.data.customization.footer_email} placeholder={defaults.footer_email} onChange={updateField} />
                                 <Field label={translate('website_admin', 'field_footer_location')} fieldKey="footer_location" value={form.data.customization.footer_location} placeholder={defaults.footer_location} onChange={updateField} span2 />
                             </div>
         </WebsiteGroup>
@@ -75,7 +72,6 @@ export default function FooterContactSection({ form, defaults, bnCopy, updateFie
                             <div className="form-grid ed-grid ed-mb-lg">
                                 <Field label={translate('portal', 'sce_f_column_3_heading')} fieldKey="footer_stay_connected_heading" value={form.data.customization.footer_stay_connected_heading} placeholder={defaults.footer_stay_connected_heading} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_footer_logo_url')} fieldKey="footer_logo_url" value={form.data.customization.footer_logo_url} placeholder={defaults.footer_logo_url} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_footer_brand_title')} fieldKey="footer_about_title" value={form.data.customization.footer_about_title} placeholder={defaults.footer_about_title} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_footer_brand_desc')} fieldKey="footer_about_desc" value={form.data.customization.footer_about_desc} placeholder={defaults.footer_about_desc} onChange={updateField} />
                             </div>
         </WebsiteGroup>
@@ -87,7 +83,6 @@ export default function FooterContactSection({ form, defaults, bnCopy, updateFie
                                 <Field label={translate('portal', 'sce_f_linkedin_url')} fieldKey="social_linkedin" value={form.data.customization.social_linkedin} placeholder={defaults.social_linkedin} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_instagram_url')} fieldKey="social_instagram" value={form.data.customization.social_instagram} placeholder={defaults.social_instagram} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_whatsapp_link')} fieldKey="social_whatsapp" value={form.data.customization.social_whatsapp} placeholder={defaults.social_whatsapp} onChange={updateField} />
-                                <Field label={translate('portal', 'sce_f_whatsapp_button_link')} fieldKey="whatsapp_link" value={form.data.customization.whatsapp_link} placeholder={defaults.whatsapp_link} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_x_url')} fieldKey="social_twitter" value={form.data.customization.social_twitter} placeholder={defaults.social_twitter || 'https://x.com/...'} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_tiktok_url')} fieldKey="social_tiktok" value={form.data.customization.social_tiktok} placeholder={defaults.social_tiktok || 'https://tiktok.com/@...'} onChange={updateField} />
                                 <Field label={translate('portal', 'sce_f_telegram_url')} fieldKey="social_telegram" value={form.data.customization.social_telegram} placeholder={defaults.social_telegram || 'https://t.me/...'} onChange={updateField} />

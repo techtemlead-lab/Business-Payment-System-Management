@@ -212,8 +212,8 @@ We use necessary login and security cookies, and setting cookies for language an
 
 10. Updates & Contact
 We may change this policy when our work or the law changes. The date on this page changes when a new version is published. For privacy questions or data requests, contact Madina Natural Health Care:
-• Office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer care: +8801730532966 / 01723731877
+• Office: {address}
+• Customer care: {phones}
 • Or use the public Contact form',
     'terms_hero_title' => 'Terms of Use',
     'terms_hero_lead' => 'Rules for using the Madina Natural Health Care website, product list and dealer services — including accounts, orders and TrxID payments.',
@@ -249,11 +249,11 @@ These terms follow the laws of Bangladesh. Please raise any problem about the we
 
 9. Contact
 Questions about these terms, partnership rules or the website:
-• Head office: Thana Road, Pirganj 5470, Rangpur, Bangladesh
-• Customer care: +8801730532966 / 01723731877
+• Head office: {address}
+• Customer care: {phones}
 • Or use the public Contact form',
     'legal_meta_effective' => 'Effective: October 2026',
-    'legal_meta_governance' => 'Madina Natural Health Care · Operational policy',
+    'legal_meta_governance' => '{company} · Operational policy',
     'legal_meta_location' => 'Pirganj, Rangpur, Bangladesh',
 
     'footer_support' => 'SUPPORT',
@@ -267,8 +267,8 @@ Questions about these terms, partnership rules or the website:
     'quality_promise' => 'Quality Promise',
     'company_notice' => 'Company Notice',
     'apply_for_dealership' => 'Apply for Dealership',
-    'footer_about_desc' => 'Licensed distributor (Trade License 2026-00563, Pirganj Municipality). Natural herbal and nutrition products across Bangladesh.',
-    'copyright' => '© :year Madina Natural Health Care. All rights reserved.',
+    'footer_about_desc' => 'Licensed distributor (Trade License {licence}, Pirganj Municipality). Natural herbal and nutrition products across Bangladesh.',
+    'copyright' => '© :year {company}. All rights reserved.',
     'privacy_policy' => 'Privacy Policy',
     'terms_of_use' => 'Terms of Use',
     'faq' => 'FAQ',
@@ -281,7 +281,7 @@ Questions about these terms, partnership rules or the website:
     'contact_head_office' => 'Contact Head Office',
 
     'about_hero_title' => 'About Madina Natural Health Care',
-    'about_hero_lead' => 'Madina Natural Health Care is a licensed, single-owner distributor (Trade License 2026-00563, Pirganj Municipality) with its head office on Thana Road, Pirganj 5470, Rangpur. We supply herbal and nutrition products through authorized dealers and sub-dealers across Bangladesh.',
+    'about_hero_lead' => '{company} is a licensed, single-owner distributor (Trade License {licence}, Pirganj Municipality) with its head office on {address}. We supply herbal and nutrition products through authorized dealers and sub-dealers across Bangladesh.',
     'about_history_title' => 'Company History',
     'about_history' => 'Madina Natural Health Care was started by its owner, Md Anowar Hossain, as a licensed natural health distributor in Pirganj, Rangpur. It began as a small local business and grew into a steady supply network for nutrition and herbal products. Today the company connects its head office with authorized dealers and sub-dealers, so genuine health products reach pharmacies, dealer shops and homes across the country.',
     'about_mission_title' => 'Our Mission',
@@ -327,8 +327,8 @@ Questions about these terms, partnership rules or the website:
     'contact_topic_support' => 'Support',
     'contact_topic_complaint' => 'Complaint',
     'map_title' => 'Office & Healthcare Center Location',
-    'map_subtitle' => 'Visit Madina Natural Health Care at our registered center or navigate with map directions.',
-    'map_facility' => 'Madina Natural Health Care & Physiotherapy Center',
+    'map_subtitle' => 'Visit {company} at our registered center or navigate with map directions.',
+    'map_facility' => '{company} & Physiotherapy Center',
     'map_directions_text' => 'Open Map Directions',
     'office_address' => 'Thana Road, Pirganj 5470, Rangpur, Bangladesh',
 
@@ -552,7 +552,7 @@ Questions about these terms, partnership rules or the website:
     'md_message_heading' => 'Managing Director\'s Message',
     'md_message_name' => 'Mohammad Anwar Hossain',
     'md_message_title' => 'Managing Director',
-    'md_message_company' => 'Madina Natural Health Care',
+    'md_message_company' => '{company}',
     'md_message_body' => 'In the Name of Allah, the Most Gracious, the Most Merciful.
 
 All praise belongs to Allah. Through His magnificent creation, Allah has placed countless blessings and beneficial resources in nature for humanity. Our vision is to responsibly utilize these natural resources and encourage a healthier way of life inspired by the Sunnah of Prophet Muhammad (peace be upon him).
@@ -577,5 +577,6 @@ We humbly ask for everyone\'s prayers and support.',
     'prescribers_title' => 'Registered practitioners',
     'prescribers_lead' => 'Find a registered practitioner in your area and send them a request.',
     'prescribers_emergency_note' => 'In an emergency, go to the nearest hospital now. Do not wait for a reply here.',
+    'trade_licence_number' => '2026-00563',
     'prescribers_consent_line' => 'I agree that my name, phone number and this problem will go only to this practitioner, so they can contact me.',
 ];
