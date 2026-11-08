@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\InventoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DataImportController;
+use App\Http\Controllers\EmailEventSwitchesController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
 use App\Http\Controllers\FundSpendingController;
@@ -109,6 +110,7 @@ $operations = function (): void {
     Route::post('/integrations/providers', [$integrations, 'saveProvider']);
     Route::post('/integrations/startup-mode', [$integrations, 'saveStartup']);
     Route::get('/integrations/sms-balance', [$integrations, 'smsBalance'])->middleware('throttle:20,1');
+    Route::post('/integrations/email-events', [EmailEventSwitchesController::class, 'store']);
     $finance = FinanceOperationsController::class;
     $sales = FieldSalesController::class;
     Route::get('/payment-accounts', [$finance, 'accounts']);

@@ -174,6 +174,9 @@ final class IntegrationSettings
                 if ($needsConnection && in_array($group, ['sms', 'couriers'], true) && blank($next['api_key'] ?? null)) {
                     throw ValidationException::withMessages(['api_key' => __('portal.si_err_api_key')]);
                 }
+                if ($provider === 'mim_sms' && (blank($next['username'] ?? null) || blank($next['sender_id'] ?? null))) {
+                    throw ValidationException::withMessages(['username' => __('portal.si_err_credentials')]);
+                }
                 if ($group === 'payments' && blank($next['api_key'] ?? null) && blank($next['app_key'] ?? null) && blank($next['store_id'] ?? null)) {
                     throw ValidationException::withMessages(['api_key' => __('portal.si_err_credentials')]);
                 }

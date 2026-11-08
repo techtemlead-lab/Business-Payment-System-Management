@@ -3,6 +3,7 @@ import { Head, Link, useForm, usePage, usePoll } from '@inertiajs/react';
 import Shell from '../components/Shell';
 import { Row, Table, Badge, money, number, date, label, ActionForm, DateInput, FormErrors } from '../components/UI';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 import TransactionProgressStepper from '../components/TransactionProgressStepper';
 import CourierTrackingPanel from '../components/CourierTrackingPanel';
 import { shipmentArrivalText } from '../components/orderShipmentArrival';
@@ -11,12 +12,12 @@ function DispatchForm({ order, courierChoices }: { order: Row; courierChoices: {
     const translate = useT();
     // A manual courier the dealer picked is filled in; staff only type the consignment number.
     const chosenManual = courierChoices.find(option => option.manual && option.key === order.courier_choice);
-    const form = useForm({ courier: chosenManual?.label ?? '', tracking: '', courier_contact: '', eta: '', courier_provider: chosenManual?.key ?? '', idempotency_key: crypto.randomUUID(),
+    const form = useForm({ courier: chosenManual?.label ?? '', tracking: '', courier_contact: '', eta: '', courier_provider: chosenManual?.key ?? '', idempotency_key: randomUuid(),
         items: order.lines.filter((line: Row) => line.dispatched < line.quantity).map((line: Row) => ({ line_id: line.id, quantity: line.quantity - line.dispatched })) });
     return <form className="action-form" onSubmit={event => {
         event.preventDefault();
         form.transform(data => ({ ...data, courier_provider: data.courier_provider || null, items: data.items.filter((item: Row) => Number(item.quantity) > 0) }));
-        form.post(`/commands/orders/${order.id}/dispatch`, { onSuccess: () => form.setData('idempotency_key', crypto.randomUUID()) });
+        form.post(`/commands/orders/${order.id}/dispatch`, { onSuccess: () => form.setData('idempotency_key', randomUuid()) });
     }}>
         <p className="muted">{translate('portal', 'dispatch_hint')}</p>
         <div className="form-grid">
