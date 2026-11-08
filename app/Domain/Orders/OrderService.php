@@ -438,7 +438,7 @@ class OrderService
         DB::transaction(function () use ($actor, $order, $shipmentId, $note): void {
             $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $shipment = DB::table('shipments')->where('id', $shipmentId)->where('order_id', $locked->id)->lockForUpdate()->first();
-            abort_unless($shipment, 404);
+            abort_unless($shipment !== null, 404);
             if ($shipment->status === 'returned') {
                 return;
             }
@@ -450,7 +450,7 @@ class OrderService
             $orderLines = $locked->lines()->whereIn('id', array_column($shipmentLines, 'line_id'))->get()->keyBy('id');
             foreach ($shipmentLines as $line) {
                 $this->branches->adjustStock($actor, [
-                    'product_id' => $orderLines[$line['line_id']]->product_id,
+                    'product_id' => (int) $orderLines[$line['line_id']]->getAttribute('product_id'),
                     'quantity' => (int) $line['quantity'],
                     'kind' => BranchOperations::KindProductIn,
                     'reason_code' => 'return',
