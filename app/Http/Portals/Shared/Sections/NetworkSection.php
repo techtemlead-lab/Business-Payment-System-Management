@@ -11,6 +11,7 @@ use App\Support\Money;
 use App\Support\PhoneIdentity;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +29,9 @@ final class NetworkSection implements WorkspaceSection
     /** The most downline members or partner nodes sent to one page; the CSV export lists everyone. */
     private const DownlineLimit = 2500;
 
+    /** Partners on the first load of the staff tree; each "Show more" adds the same again. */
+    public const TreeFirstLoad = 300;
+
     public function data(SectionContext $context, array $data): array
     {
         $props = [];
@@ -36,7 +40,7 @@ final class NetworkSection implements WorkspaceSection
         }
         // The whole company's partner tree is for staff only; partners get their own downline above.
         if ($context->isStaff && in_array($context->section, ['network', 'network-tree'], true)) {
-            $props = array_merge($props, $this->partnerTree());
+            $props = array_merge($props, $this->partnerTree($context->request));
         }
 
         return $props;
@@ -149,20 +153,72 @@ final class NetworkSection implements WorkspaceSection
      *
      * @return array<string, mixed>
      */
-    private function partnerTree(): array
+    private function partnerTree(Request $request): array
     {
         $props = [];
         $networkQuery = User::query()->whereIn('role', ['dealer', 'sub_dealer']);
         $totalPartners = (clone $networkQuery)->count();
-        $limit = 2500;
+        // The page opens with the top of the tree (level by level) and grows by "Show more",
+        // so a phone never downloads thousands of partners at once.
+        $requested = (int) $request->query('tree_limit', (string) self::TreeFirstLoad);
+        $limit = min(self::DownlineLimit, max(self::TreeFirstLoad, $requested));
         $props['dealers_truncated'] = $totalPartners > $limit;
         $props['dealers_total'] = $totalPartners;
-        $props['dealers'] = $this->networkDealerNodes(
-            $networkQuery->orderBy('id')->limit($limit),
+        $props['dealers_limit'] = $limit;
+        $props['dealers_next_limit'] = $totalPartners > $limit && $limit < self::DownlineLimit ? min(self::DownlineLimit, $limit + self::TreeFirstLoad) : null;
+        $nodes = $this->networkDealerNodes(
+            $networkQuery
+                ->orderByRaw('(SELECT COUNT(*) FROM referral_tree_paths AS levels WHERE levels.descendant_id = users.id AND levels.depth > 0) ASC')
+                ->orderBy('id')
+                ->limit($limit),
             maskPhone: true,
         );
+        // Team size and direct referrals come from the tree table, so they are right even for
+        // branches whose lower levels are not loaded yet.
+        $teams = DB::table('referral_tree_paths')
+            ->whereIn('ancestor_id', array_column($nodes, 'id'))
+            ->where('depth', '>', 0)
+            ->groupBy('ancestor_id')
+            ->selectRaw('ancestor_id, COUNT(*) AS team, COUNT(*) FILTER (WHERE depth = 1) AS direct')
+            ->get()
+            ->keyBy('ancestor_id');
+        $props['dealers'] = array_map(fn (array $node): array => [
+            ...$node,
+            'team_size' => (int) ($teams->get($node['id'])->team ?? 0),
+            'direct_count' => (int) ($teams->get($node['id'])->direct ?? 0),
+        ], $nodes);
+        $props['tree_stats'] = $this->treeStats();
 
         return $props;
+    }
+
+    /**
+     * Partner count, partners per rank and completed purchases over the whole tree,
+     * not just the part loaded on the page.
+     *
+     * @return array{total: int, ranks: array<string, int>, sales_total: string}
+     */
+    private function treeStats(): array
+    {
+        $ranks = DB::table('users')
+            ->leftJoin('dealer_ranks', 'dealer_ranks.user_id', '=', 'users.id')
+            ->whereIn('users.role', ['dealer', 'sub_dealer'])
+            ->groupByRaw("COALESCE(dealer_ranks.current_rank, 'dealer')")
+            ->selectRaw("COALESCE(dealer_ranks.current_rank, 'dealer') AS rank, COUNT(*) AS total")
+            ->pluck('total', 'rank')
+            ->map(fn ($total): int => (int) $total)
+            ->all();
+        $sales = DB::table('orders')
+            ->join('users', 'users.id', '=', 'orders.user_id')
+            ->whereIn('users.role', ['dealer', 'sub_dealer'])
+            ->whereIn('orders.status', self::PurchaseStatuses)
+            ->sum('orders.total');
+
+        return [
+            'total' => array_sum($ranks),
+            'ranks' => $ranks,
+            'sales_total' => Money::decimal(Money::cents((string) $sales)),
+        ];
     }
 
     /**
