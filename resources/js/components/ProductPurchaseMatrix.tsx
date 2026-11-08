@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { money, type Row, Table, number, FormErrors } from './UI';
 import { useT } from '../shared/i18n/t';
+import { randomUuid } from '../shared/randomUuid';
 import RepeatOrderPanel, { repeatChangeNotes, type RepeatOption } from './dealertools/RepeatOrderPanel';
 import SchemeNotices, { type RunningScheme } from './dealertools/SchemeNotices';
 
@@ -260,7 +261,7 @@ export default function ProductPurchaseMatrix({
     // Checkout form
     const f = useForm({
         items: [] as { product_id: number; quantity: number }[],
-        idempotency_key: crypto.randomUUID(),
+        idempotency_key: randomUuid(),
         reference: '',
         payment_account_id: '',
         channel: 'Bank',
@@ -291,7 +292,7 @@ export default function ProductPurchaseMatrix({
                 product_id: item.product.id,
                 quantity: item.quantity,
             })),
-            idempotency_key: crypto.randomUUID(),
+            idempotency_key: randomUuid(),
             reference: f.data.reference,
             payment_account_id: f.data.payment_account_id,
             channel: f.data.channel,
