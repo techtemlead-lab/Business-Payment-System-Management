@@ -43,9 +43,9 @@ class DashboardManagement
             'employee_announcement' => 'All actions on customer accounts, inventory, and orders are logged in the append-only company audit trail.',
             'employee_announcement_type' => 'info',
 
-            // Birthday SMS to dealers and sub-dealers. On by default (owner decision, 2026-11-05); it only
-            // sends once a real SMS provider is set up and trial mode is off.
-            'birthday_sms_enabled' => true,
+            // Birthday SMS to dealers and sub-dealers. Each SMS costs money, so it stays off until the
+            // owner or responsible staff turn it on (owner decision, 2026-11-08).
+            'birthday_sms_enabled' => false,
 
             // Support tickets waiting longer than this many hours for an office reply are marked overdue.
             'support_overdue_hours' => 24,

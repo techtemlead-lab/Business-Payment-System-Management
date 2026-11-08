@@ -701,8 +701,13 @@ class CommandController extends Controller
         if (! is_array($payload)) {
             $payload = [];
         }
+        $wasSendingBirthdaySms = (bool) DashboardManagement::get()['birthday_sms_enabled'];
         DashboardManagement::save($payload);
         Audit::record($r->user()->id, 'dashboard.updated', 'control_center');
+        $isSendingBirthdaySms = (bool) DashboardManagement::get()['birthday_sms_enabled'];
+        if ($wasSendingBirthdaySms !== $isSendingBirthdaySms) {
+            Audit::record($r->user()->id, 'dashboard.birthday_sms_changed', 'control_center', ['from' => $wasSendingBirthdaySms, 'to' => $isSendingBirthdaySms]);
+        }
 
         return back()->with('success', __('portal.flash_dashboard_saved'));
     }
