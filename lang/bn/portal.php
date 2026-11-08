@@ -4960,7 +4960,7 @@ return [
     'sce_f_email_title' => 'ইমেইল বক্স: শিরোনাম',
     'sce_f_account_link_subtitle' => '"পার্টনার লগইন" লিংক: ছোট লেখা',
     'sce_f_account_link_title' => '"পার্টনার লগইন" লিংক: শিরোনাম',
-    'sce_f_partner_login_heading' => 'পার্টনার লগইন বক্স: শিরোনাম',
+    'sce_f_partner_login_heading' => 'ডিলার লগইন বক্স: শিরোনাম',
     'sce_f_partner_login_subtitle' => 'পার্টনার লগইন বক্স: ছোট লেখা',
     'sce_f_price_filter_title' => 'দামের ফিল্টার: শিরোনাম',
     'sce_f_privacy_body' => 'গোপনীয়তা পাতা: মূল লেখা',

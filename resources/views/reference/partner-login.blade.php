@@ -19,6 +19,7 @@
             <p class="ref-auth-subtitle">{{ __('site.preview_portal_note') }}</p>
         @endif
         <div class="ref-partner-login-options" role="list">
+            @if(\App\Support\PortalHost::sharedPreviewRoot())
             <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('sadmin', '/login') }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-user-shield"></i></span>
                 <span class="ref-partner-login-copy">
@@ -27,6 +28,7 @@
                 </span>
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
+            @endif
             <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('dealer', '/login') }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
                 <span class="ref-partner-login-copy">
@@ -43,6 +45,7 @@
                 </span>
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
+            @if(\App\Support\PortalHost::sharedPreviewRoot())
             <a class="ref-partner-login-option" role="listitem" href="{{ \App\Support\PortalHost::url('manage', '/login') }}">
                 <span class="ref-partner-login-icon" aria-hidden="true"><i class="fa-solid fa-briefcase"></i></span>
                 <span class="ref-partner-login-copy">
@@ -51,6 +54,7 @@
                 </span>
                 <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
             </a>
+            @endif
         </div>
         <div class="ref-auth-bottom"><a href="/">{{ __('site.back_home') }}</a></div>
     </section>

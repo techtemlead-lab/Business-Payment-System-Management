@@ -4960,7 +4960,7 @@ return [
     'sce_f_email_title' => 'Email box: title',
     'sce_f_account_link_subtitle' => '"Partner login" link: small text',
     'sce_f_account_link_title' => '"Partner login" link: title',
-    'sce_f_partner_login_heading' => 'Partner login box: title',
+    'sce_f_partner_login_heading' => 'Dealer login box: title',
     'sce_f_partner_login_subtitle' => 'Partner login box: small text',
     'sce_f_price_filter_title' => 'Price filter: title',
     'sce_f_privacy_body' => 'Privacy page: main text',
