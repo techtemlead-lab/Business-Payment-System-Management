@@ -160,7 +160,7 @@ class DataCleanupTest extends TestCase
     {
         Http::fake();
 
-        app(SmsGatewayClient::class)->send('+8801711223344', 'Your login code is 123456');
+        app(SmsGatewayClient::class)->send('+8801711223344', 'আপনার লগইন কোড 123456');
 
         $row = DB::table('sms_logs')->sole();
         $this->assertSame('••••3344', $row->phone_masked);

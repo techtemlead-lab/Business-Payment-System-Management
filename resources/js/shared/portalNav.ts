@@ -47,7 +47,7 @@ export const ACCOUNT_SECTIONS = ['profile', 'security', 'notifications', 'help']
 export const MANAGEMENT_SECTIONS = [
     'overview', 'employees', 'dashboards', 'access-management', 'my-payroll', 'payroll', 'staff-operations', 'field-sales',
     'orders', 'order', 'deliveries', 'sub-dealer-orders',
-    'treasury', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
+    'treasury', 'company-funds', 'benefits-fund', 'payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds',
     'financial-readiness', 'finance-settings', 'financial-reports', 'data-imports', 'service-integrations',
     'rewards', 'settlements', 'payouts-hub', 'payments', 'withdrawals', 'ledger', 'reports', 'top-sellers',
     'catalog', 'inventory', 'branches', 'branch-performance', 'place-codes', 'video-marketing', 'website', 'content', 'enquiries', 'feedback', 'audit', 'support-admin', 'agreement', 'partner-messages',
@@ -75,7 +75,7 @@ export const SECTION_LABEL_KEYS: Record<string, string> = {
     'full-report': 'full_report', ranks: 'ranks', commissions: 'commissions', 'network-tree': 'network_tree',
     'area-dealers': 'area_dealers', 'place-codes': 'place_codes', branches: 'branches',
     'branch-performance': 'branch_performance', rewards: 'rewards', 'capital-flow': 'capital_flow',
-    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury',
+    settlements: 'settlements', simulator: 'simulator', 'payouts-hub': 'payouts_hub', treasury: 'treasury', 'company-funds': 'company_funds',
     'benefits-fund': 'benefits_fund', 'sub-dealers': 'sub_dealers', 'sub-dealer-orders': 'sub_dealer_orders',
     'sub-dealer-applications': 'partnerships',
     employees: 'employees', dashboards: 'dashboards', help: 'help', 'support-admin': 'support_admin', agreement: 'agreement',
@@ -204,7 +204,7 @@ export function buildStaffAvailable(ctx: CapabilityContext): Set<string> {
     if (capabilities.some((cap) => ['finance', 'accounts'].includes(cap))) items.add('data-imports');
     if (capabilities.includes('finance') || role === 'super_admin') items.add('service-integrations');
     if (capabilities.includes('finance')) {
-        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury',
+        ['payment-accounts', 'policy-schedules', 'reserve-payouts', 'commission-holds', 'financial-readiness', 'finance-settings', 'treasury', 'company-funds',
             'commissions', 'policies', 'ledger', 'reports', 'rewards', 'settlements', 'simulator', 'payouts-hub', 'payments', 'withdrawals', 'salary', 'accounting'].forEach((item) => items.add(item));
     }
     if (capabilities.some((cap) => ['finance', 'reports', 'field_sales'].includes(cap))) items.add('financial-reports');
@@ -343,7 +343,7 @@ function staffNavigation(staffAvailable: Set<string>): {
             ])),
             mother('orders', 'nav_module_orders', pick(staffAvailable, ['orders', 'deliveries'])),
             mother('finance', 'nav_module_finance', pick(staffAvailable, [
-                'treasury', 'payment-accounts', 'ledger', 'accounting', 'financial-readiness', 'finance-settings',
+                'treasury', 'company-funds', 'payment-accounts', 'ledger', 'accounting', 'financial-readiness', 'finance-settings',
             ])),
             mother('payouts', 'nav_module_payouts', pick(staffAvailable, [
                 'withdrawals', 'payouts-hub', 'payments', 'settlements', 'reserve-payouts',

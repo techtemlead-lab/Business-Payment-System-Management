@@ -70,6 +70,14 @@ class EnforceStaffActions
             // Owners (Super Admin, MD, Chairman) switch prescribing on or off; the controller checks again.
             return $next($request);
         }
+        if ($controller === 'FundSpendingController' && $actor->owner()) {
+            // Owners record and approve spends from company funds; FundSpending checks again.
+            return $next($request);
+        }
+        if ($controller === 'FinanceOperationsController' && $method === 'receipt' && $actor->owner()) {
+            // Owners check the bill before approving a spend; the controller checks again.
+            return $next($request);
+        }
         $prescribing = $controller === 'PrescriptionToolsController'
             || ($controller === 'PrescriptionController' && in_array($method, ['storePatient', 'updatePatient', 'store', 'dispense'], true));
         if ($prescribing && PrescriptionAccess::usesCompanyStock($actor)) {
@@ -160,6 +168,11 @@ class EnforceStaffActions
                 'account' => [['finance'], $request->isMethod('PATCH') ? 'edit' : 'create'],
                 'accounts' => [['finance'], 'view'],
                 'contract' => [['finance'], 'edit'], default => [['finance'], 'create'],
+            },
+            'FundSpendingController' => match ($method) {
+                'review' => [['finance'], 'approve'],
+                'storeHead', 'updateHead' => [['finance'], 'edit'],
+                default => [['finance'], 'create'],
             },
             'FieldSalesController' => match ($method) {
                 'order' => [['sr_orders'], 'create'], 'application' => [['sr_onboarding'], 'create'],

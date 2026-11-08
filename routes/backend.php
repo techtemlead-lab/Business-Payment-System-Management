@@ -10,6 +10,7 @@ use App\Http\Controllers\BranchController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\FieldSalesController;
 use App\Http\Controllers\FinanceOperationsController;
+use App\Http\Controllers\FundSpendingController;
 use App\Http\Controllers\HealthCheckController;
 use App\Http\Controllers\IdentityLookupController;
 use App\Http\Controllers\IntegrationSettingsController;
@@ -130,6 +131,10 @@ $operations = function (): void {
     Route::post('/reserves/{id}/review', [$finance, 'reserveReview'])->whereNumber('id');
     Route::post('/reserves/{id}/pay', [$finance, 'reservePay'])->whereNumber('id');
     Route::post('/reserves/clawbacks/{id}/recover', [$finance, 'recover'])->whereNumber('id');
+    Route::post('/company-funds/spends', [FundSpendingController::class, 'store']);
+    Route::post('/company-funds/spends/{id}/review', [FundSpendingController::class, 'review'])->whereNumber('id');
+    Route::post('/company-funds/heads', [FundSpendingController::class, 'storeHead']);
+    Route::patch('/company-funds/heads/{id}', [FundSpendingController::class, 'updateHead'])->whereNumber('id');
     Route::post('/holds/{id}/release', [$finance, 'release'])->whereNumber('id');
     Route::post('/holds/{id}/reassign', [$finance, 'reassignHeld'])->whereNumber('id');
     Route::post('/opening-balances', [$finance, 'opening']);

@@ -129,7 +129,7 @@ class PartnerAccountOnboardingTest extends TestCase
         $sent = config('madina.sms.sent');
         $this->assertNotEmpty($sent);
         $this->assertStringContainsString('01712345678', $sent[0]['message']);
-        $this->assertStringContainsString('Password:', $sent[0]['message']);
+        $this->assertStringContainsString('পাসওয়ার্ড:', $sent[0]['message']);
     }
 
     public function test_admin_can_override_refer_code_away_from_dealer_code(): void

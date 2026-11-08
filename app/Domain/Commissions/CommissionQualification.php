@@ -5,6 +5,7 @@ namespace App\Domain\Commissions;
 use App\Domain\Accounts\PartnerBenefitControls;
 use App\Domain\Finance\FinanceSettings;
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\DealerRank;
 use App\Models\ReferralTreePath;
 use App\Models\RewardMilestoneProgress;
@@ -305,7 +306,7 @@ final class CommissionQualification
             __('portal.notice_rank_achieved_body', ['rank' => $rankLabel], $locale),
         );
         $userId = (int) $rank->user_id;
-        DB::afterCommit(function () use ($userId, $rankLabel, $locale): void {
+        DB::afterCommit(function () use ($userId, $code): void {
             $partner = User::find($userId);
             if (! $partner) {
                 return;
@@ -313,7 +314,7 @@ final class CommissionQualification
             app(PartnerEventSms::class)->send(
                 $partner,
                 'rank.achieved',
-                __('sms.rank_achieved', ['rank' => $rankLabel], $partner->preferredLocale() ?: $locale),
+                SmsText::make('sms.rank_achieved', ['rank' => SmsText::label('portal.net_rank_'.$code, strtoupper($code))]),
             );
         });
     }
@@ -519,7 +520,7 @@ final class CommissionQualification
             __('portal.notice_milestone_achieved_title', [], $locale),
             __('portal.notice_milestone_achieved_body', ['milestone' => $milestoneLabel], $locale),
         );
-        DB::afterCommit(function () use ($userId, $milestoneLabel, $locale): void {
+        DB::afterCommit(function () use ($userId, $type): void {
             $partner = User::find($userId);
             if (! $partner) {
                 return;
@@ -527,7 +528,7 @@ final class CommissionQualification
             app(PartnerEventSms::class)->send(
                 $partner,
                 'milestone.achieved',
-                __('sms.milestone_achieved', ['milestone' => $milestoneLabel], $partner->preferredLocale() ?: $locale),
+                SmsText::make('sms.milestone_achieved', ['milestone' => SmsText::label('portal.milestone_label_'.$type, $type)]),
             );
         });
     }

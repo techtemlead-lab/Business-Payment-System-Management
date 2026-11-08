@@ -33,6 +33,11 @@ final class IntegrationCatalog
                 'label' => __('portal.si_group_sms_label'),
                 'description' => __('portal.si_group_sms_desc'),
                 'providers' => [
+                    'greenweb' => [
+                        'label' => __('portal.si_provider_greenweb'),
+                        'fields' => ['enabled', 'base_url', 'api_key', 'balance_url'],
+                        'defaults' => ['enabled' => false, 'base_url' => 'https://api.bdbulksms.net/api.php', 'api_key' => '', 'balance_url' => 'https://api.bdbulksms.net/g_api.php'],
+                    ],
                     'ssl_wireless' => [
                         'label' => __('portal.si_provider_ssl_wireless'),
                         'fields' => ['enabled', 'base_url', 'api_key', 'api_secret', 'sender_id', 'balance_url'],

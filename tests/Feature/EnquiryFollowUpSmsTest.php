@@ -82,9 +82,9 @@ class EnquiryFollowUpSmsTest extends TestCase
         $this->assertSame('enquiry.closed', $sent[0]['event'] ?? null);
         $this->assertSame(
             __('sms.enquiry_follow_up_closed', [
-                'topic' => __('portal.support_topic_support', [], 'en'),
-                'status' => __('portal.enquiry_status_closed', [], 'en'),
-            ], 'en'),
+                'topic' => __('portal.support_topic_support', [], 'bn'),
+                'status' => __('portal.enquiry_status_closed', [], 'bn'),
+            ], 'bn'),
             $sent[0]['message'] ?? null,
         );
 
