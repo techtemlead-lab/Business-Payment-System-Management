@@ -20,7 +20,7 @@ final readonly class BranchScope
      *
      * @var list<string>
      */
-    public const Sections = ['orders', 'deliveries', 'payments', 'withdrawals', 'payouts-hub', 'reports', 'overview', 'top-sellers', 'accounts', 'sub-dealers', 'employees'];
+    public const Sections = ['orders', 'deliveries', 'payments', 'withdrawals', 'payouts-hub', 'reports', 'overview', 'top-sellers', 'partner-scorecard', 'accounts', 'sub-dealers', 'employees'];
 
     /**
      * @param  list<int>  $branchIds  Branches the page shows; ignored when $allBranches is true.

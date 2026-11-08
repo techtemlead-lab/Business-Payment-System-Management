@@ -6390,4 +6390,11 @@ return [
     'event_stock_transfer_cancelled' => 'ব্রাঞ্চ ট্রান্সফার বাতিল হয়েছে',
     'stock_received_on' => 'গ্রহণের তারিখ',
     'stock_unit_cost' => 'প্রতি ইউনিটের খরচ',
+    'contests' => 'প্রতিযোগিতা',
+    'section_hint_contests' => 'প্রতিযোগিতা তৈরি করুন এবং পার্টনারদের অবস্থান দেখুন। পুরস্কার হাতে দেওয়া হয়।',
+    'section_hint_partner_contests' => 'চলমান প্রতিযোগিতা ও কে কোন অবস্থানে আছেন।',
+    'event_contest_added' => 'প্রতিযোগিতা যোগ হয়েছে',
+    'event_contest_removed' => 'প্রতিযোগিতা সরানো হয়েছে',
+    'partner_scorecard' => 'পার্টনার স্কোরকার্ড',
+    'section_hint_partner_scorecard' => 'প্রতিটি পার্টনারের পেমেন্ট, বাতিল ও ফেরত।',
 ];
