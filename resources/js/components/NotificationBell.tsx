@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import { createPortal } from 'react-dom';
 import { Link, router, usePage } from '@inertiajs/react';
 import { Bell, CheckCheck, X } from 'lucide-react';
-import { date } from './UI';
+import { date, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 /** Phones get a sheet over the whole screen; wider screens get a panel under the bell. */
@@ -282,7 +282,7 @@ export default function NotificationBell({ base, unreadCount }: { base: string; 
                 <Bell size={19} />
                 {unreadCount > 0 && (
                     <span className="notice-bell-count" aria-hidden="true">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+                        {unreadCount > 99 ? `${number(99)}+` : number(unreadCount)}
                     </span>
                 )}
             </button>

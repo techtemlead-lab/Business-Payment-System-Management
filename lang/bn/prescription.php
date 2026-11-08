@@ -55,7 +55,7 @@ return [
     'place_division' => 'বিভাগ',
     'place_district' => 'জেলা',
     'place_upazila' => 'উপজেলা',
-    'place_union' => 'ইউনিয়ন',
+    'place_union' => 'ইউনিয়ন / পৌরসভা',
     'place_choose' => 'বেছে নিন',
 
     'rx_new' => 'নতুন প্রেসক্রিপশন',
@@ -140,7 +140,7 @@ return [
     'verify_enabled_by' => ':name চালু করেছেন, :date',
     'verify_disabled_by' => ':name বন্ধ করেছেন, :date',
     'verify_loading' => 'লোড হচ্ছে…',
-    'verify_failed' => 'লোড করা গেল না। আবার চেষ্টা করুন।',
+    'verify_failed' => 'লোড করা গেল না।',
 
     'print_title' => 'প্রেসক্রিপশন',
     'print_patient' => 'রোগী',

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
-import { Row, Table, Pagination, dateTime } from './UI';
+import { Row, Table, Pagination, dateTime, number } from './UI';
 import { useT } from '../shared/i18n/t';
 
 const STEPS = ['waiting_pickup', 'picked_up', 'in_transit', 'delivered', 'returned'];
@@ -18,7 +18,7 @@ export default function CourierBoard({ board }: { board: Row }) {
             return translate('courier', 'filter_booking');
         }
         if (row.courier_booking_status === 'failed') {
-            return translate('courier', 'failed_title');
+            return translate('courier', 'step_booking_failed');
         }
         return translate('courier', `status_${row.courier_status ?? 'waiting_pickup'}`);
     };
@@ -43,12 +43,12 @@ export default function CourierBoard({ board }: { board: Row }) {
         </section>
         <section className="panel table-panel" data-testid="courier-board">
             <div className="panel-heading"><h2>{translate('courier', 'board_title')}</h2><span>{translate('courier', 'board_hint')}</span></div>
-            <form className="ops-row is-wrap" onSubmit={apply}>
+            <form className="ops-row is-wrap courier-board-filters" onSubmit={apply}>
                 <label>{translate('courier', 'filter_status')}
                     <select value={status} onChange={event => setStatus(event.target.value)}>
                         <option value="">{translate('courier', 'filter_all')}</option>
-                        <option value="booking">{translate('courier', 'filter_booking')}{counts.booking ? ` (${counts.booking})` : ''}</option>
-                        {STEPS.map(step => <option key={step} value={step}>{translate('courier', `status_${step}`)}{counts[step] ? ` (${counts[step]})` : ''}</option>)}
+                        <option value="booking">{translate('courier', 'filter_booking')}{counts.booking ? ` (${number(counts.booking)})` : ''}</option>
+                        {STEPS.map(step => <option key={step} value={step}>{translate('courier', `status_${step}`)}{counts[step] ? ` (${number(counts[step])})` : ''}</option>)}
                     </select>
                 </label>
                 <label>{translate('courier', 'filter_courier')}

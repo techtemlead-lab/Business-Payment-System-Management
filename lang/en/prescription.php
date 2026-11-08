@@ -55,7 +55,7 @@ return [
     'place_division' => 'Division',
     'place_district' => 'District',
     'place_upazila' => 'Upazila',
-    'place_union' => 'Union',
+    'place_union' => 'Union / Pourashava',
     'place_choose' => 'Choose',
 
     'rx_new' => 'New prescription',
@@ -140,7 +140,7 @@ return [
     'verify_enabled_by' => 'Turned on by :name on :date',
     'verify_disabled_by' => 'Turned off by :name on :date',
     'verify_loading' => 'Loading…',
-    'verify_failed' => 'Could not load. Try again.',
+    'verify_failed' => 'Could not load.',
 
     'print_title' => 'Prescription',
     'print_patient' => 'Patient',

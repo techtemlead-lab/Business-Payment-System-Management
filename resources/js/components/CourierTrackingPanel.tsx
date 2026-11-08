@@ -92,9 +92,16 @@ export default function CourierTrackingPanel({ order, shipments, events, courier
         : ['submitted', 'held', 'approved'].includes(order.status) && shipments.length === 0);
     const current = latestCourierShipment?.courier_provider ?? order.courier_choice;
     const others = courierChoices.filter(choice => choice.key !== current);
+    /** Dealers get no courier list, so their chosen courier's name comes from the shared provider names. */
+    const providerName = (provider: string): string => {
+        const key = `si_provider_${provider}`;
+        const name = translate('portal', key);
+
+        return name !== key ? name : provider.charAt(0).toUpperCase() + provider.slice(1);
+    };
     const chosenLabel = latestCourierShipment?.courier
         ?? courierChoices.find(choice => choice.key === order.courier_choice)?.label
-        ?? (order.courier_choice ? String(order.courier_choice) : translate('courier', 'company_decides'));
+        ?? (order.courier_choice ? providerName(String(order.courier_choice)) : translate('courier', 'company_decides'));
 
     if (!order.courier_choice && courierShipments.length === 0 && changes.length === 0) {
         return null;

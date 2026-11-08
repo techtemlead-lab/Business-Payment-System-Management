@@ -104,4 +104,7 @@ return [
     // Manual dispatch form.
     'dispatch_provider_label' => 'Book with a courier (optional)',
     'dispatch_provider_none' => 'No, I will type the tracking number',
+
+    // Deliveries board: the step shown for one parcel.
+    'step_booking_failed' => 'Booking failed',
 ];
