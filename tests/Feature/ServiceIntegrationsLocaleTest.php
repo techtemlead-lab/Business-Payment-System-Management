@@ -68,7 +68,7 @@ class ServiceIntegrationsLocaleTest extends TestCase
     {
         app()->setLocale('bn');
 
-        $result = app(SmsGatewayClient::class)->send('01700000000', 'Locale smoke');
+        $result = app(SmsGatewayClient::class)->send('01700000000', 'মদিনা পরীক্ষা');
 
         $this->assertFalse($result['sent']);
         $this->assertSame(__('portal.si_sms_none_accepted', [], 'bn'), $result['message']);

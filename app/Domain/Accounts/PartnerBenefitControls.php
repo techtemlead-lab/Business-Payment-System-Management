@@ -3,6 +3,7 @@
 namespace App\Domain\Accounts;
 
 use App\Domain\Notifications\PartnerEventSms;
+use App\Domain\Notifications\SmsText;
 use App\Models\DealerRank;
 use App\Models\User;
 use App\Support\Audit;
@@ -95,14 +96,16 @@ final class PartnerBenefitControls
         ]);
 
         $locale = $partner->preferredLocale();
-        $enabled = collect([
-            $controls['unconditional_salary'] ? __('portal.pbc_flag_salary', [], $locale) : null,
-            $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => strtoupper($rank)], $locale) : null,
-            $controls['unconditional_rank_incentive'] ? __('portal.pbc_flag_incentive', [], $locale) : null,
-        ])->filter()->implode(', ');
-        $summary = $enabled !== ''
-            ? $enabled
-            : __('portal.pbc_flag_none', [], $locale);
+        $summaryIn = function (string $language) use ($controls, $rank): string {
+            $enabled = collect([
+                $controls['unconditional_salary'] ? __('portal.pbc_flag_salary', [], $language) : null,
+                $controls['unconditional_rank_royalty'] ? __('portal.pbc_flag_royalty', ['rank' => strtoupper($rank)], $language) : null,
+                $controls['unconditional_rank_incentive'] ? __('portal.pbc_flag_incentive', [], $language) : null,
+            ])->filter()->implode(', ');
+
+            return $enabled !== '' ? $enabled : (string) __('portal.pbc_flag_none', [], $language);
+        };
+        $summary = $summaryIn($locale);
         $reason = trim((string) ($input['reason'] ?? ''));
         Audit::notice(
             $partner->id,
@@ -112,13 +115,13 @@ final class PartnerBenefitControls
                 'reason' => $reason,
             ], $locale),
         );
-        DB::afterCommit(function () use ($partner, $locale, $summary): void {
+        DB::afterCommit(function () use ($partner, $summaryIn): void {
             app(PartnerEventSms::class)->send(
                 $partner->fresh() ?? $partner,
                 'accounts.benefit_controls_updated',
-                __('sms.benefit_controls_updated', [
-                    'summary' => $summary,
-                ], $locale),
+                SmsText::make('sms.benefit_controls_updated', [
+                    'summary' => $summaryIn(SmsText::Locale),
+                ]),
             );
         });
 

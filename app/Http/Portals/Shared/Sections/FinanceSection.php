@@ -225,6 +225,7 @@ final class FinanceSection implements WorkspaceSection
             "COALESCE(SUM(amount) FILTER (WHERE status <> 'reversed' AND category <> 'company_commission_benefits_fund' AND (metadata->>'source_allocation_id') IS NULL), 0) AS allocated, "
             ."COALESCE(SUM(amount) FILTER (WHERE status <> 'reversed' AND category = ?), 0) AS unclaimed_to_company, "
             ."COALESCE(SUM(amount) FILTER (WHERE status = 'unassigned_reserve'), 0) AS unassigned, "
+            ."COALESCE(SUM(amount) FILTER (WHERE status = 'unassigned_reserve' AND (metadata->>'retained_by') IS DISTINCT FROM 'company_profit_fund'), 0) AS old_unassigned, "
             ."COALESCE(SUM(amount) FILTER (WHERE status = 'maturing'), 0) AS maturing, "
             ."COALESCE(SUM(amount) FILTER (WHERE category = 'company_marketing_fund'), 0) AS marketing_fund, "
             ."COALESCE(SUM(amount) FILTER (WHERE category = 'car_bike_incentive_fund'), 0) AS car_bike_fund",
@@ -252,6 +253,7 @@ final class FinanceSection implements WorkspaceSection
             'company_share_60' => round((float) $company, 2),
             'management_reserve_2' => (float) $management,
             'unassigned_territory_reserve' => (float) $unassigned,
+            'old_area_reserve' => (float) $pools->old_unassigned,
             'total_company_deposits' => round((float) $company + (float) $management + (float) $unassigned, 2),
             'commission_pool_40' => (float) $allocated,
             'allocated_so_far' => (float) $allocated,
