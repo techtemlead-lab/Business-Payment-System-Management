@@ -21,6 +21,7 @@
 <link rel="preload" href="/reference/fonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/reference/fontawesome-local.css">
 @vite(['resources/css/reference-home.css','resources/js/reference-home.ts'])
+@stack('head')
 @include('reference.partials.page-boot')
 </head>
 <body class="ref-home locale-{{ app()->getLocale() }} @yield('bodyClass')">

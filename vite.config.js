@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/dashboard.css', 'resources/css/app.css', 'resources/js/app.tsx', 'resources/css/reference-home.css', 'resources/js/reference-home.ts', 'resources/js/theme-boot.ts'],
+            input: ['resources/css/dashboard.css', 'resources/css/app.css', 'resources/js/app.tsx', 'resources/css/reference-home.css', 'resources/js/reference-home.ts', 'resources/js/theme-boot.ts', 'resources/css/auth-motion.css', 'resources/js/auth-motion.ts'],
             refresh: true,
         }),
         react(),

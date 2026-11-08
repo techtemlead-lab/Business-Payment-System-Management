@@ -28,9 +28,10 @@
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=hind-siliguri:400,500,600,700&display=swap">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=noto-sans-bengali:400,500,600,700&display=swap" rel="stylesheet">
-    @vite(['resources/css/app.css','resources/css/dashboard.css','resources/js/theme-boot.ts'])
+    @vite(['resources/css/app.css','resources/css/dashboard.css','resources/js/theme-boot.ts','resources/css/auth-motion.css','resources/js/auth-motion.ts'])
 </head>
-<body class="company-auth locale-{{ app()->getLocale() }}">
+<body class="company-auth locale-{{ app()->getLocale() }} am-auth">
+@include('partials.auth-motion-scene')
 <main class="company-auth-main">
     <div class="company-auth-toolbar">
         <button type="button" class="theme-toggle compact" data-theme-toggle data-label-day="{{ __('portal.day_mode') }}" data-label-night="{{ __('portal.night_mode') }}" aria-label="{{ __('portal.night_mode') }}" title="{{ __('portal.night_mode') }}">
