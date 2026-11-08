@@ -69,6 +69,11 @@ Schedule::command('support:overdue-reminders')->dailyAt('09:30')->timezone('Asia
 Schedule::command('prescriptions:follow-up-reminders')->dailyAt('08:30')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
     ->onFailure(fn () => Log::critical('Scheduled prescription follow-up reminder failed.'));
 
+// Partner alerts: direct partners who went quiet, salary or rank targets at risk, ranks nearly reached.
+// Portal notice only (no SMS); each one at most once a month, or once a week for inactive partners.
+Schedule::command('partners:progress-alerts')->dailyAt('09:15')->timezone('Asia/Dhaka')->withoutOverlapping()->onOneServer()
+    ->onFailure(fn () => Log::critical('Scheduled partner alert run failed.'));
+
 // Failed background jobs are kept for a week to investigate, then removed.
 Schedule::command('queue:prune-failed --hours=168')->dailyAt('04:15')->timezone('Asia/Dhaka')->withoutOverlapping(30)->onOneServer();
 

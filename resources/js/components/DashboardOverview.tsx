@@ -6,6 +6,7 @@ import {
     Phone, MessageCircle, ListChecks, BarChart3, Banknote, Boxes, UserPlus, History,
 } from 'lucide-react';
 import { PartnerProgressButton } from './PartnerProgress';
+import PartnerAlertsCard from './dealertools/PartnerAlertsCard';
 import { ProfilePhoto } from './ProfilePhoto';
 import { Badge, humanize, money, type Row, number } from './UI';
 import { localizeDigits } from '../business-date';
@@ -180,7 +181,7 @@ function QuickActions({ base }: { base: string }) {
     );
 }
 
-function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
+function PartnerHome({ home, orders, tools }: { home: Row; orders: React.ReactNode; tools?: Row }) {
     const { portalBase: base } = usePage<any>().props;
     const translate = useT();
     const profile = home.profile ?? {};
@@ -247,6 +248,8 @@ function PartnerHome({ home, orders }: { home: Row; orders: React.ReactNode }) {
                     </div>
                 </div>
             </section>
+
+            <PartnerAlertsCard alerts={tools?.alerts ?? []} inactivePartners={tools?.inactive_partners ?? []} />
 
             {targets.length > 0 && (
                 <section className="ph-card ph-targets" data-tour="home-targets">
@@ -633,7 +636,7 @@ export default function DashboardOverview({ data, orders }: { data: Row; orders:
     const staff = caps.length > 0;
 
     if (data.partner_home && (u.role === 'dealer' || u.role === 'sub_dealer')) {
-        return <PartnerHome home={data.partner_home} orders={orders} />;
+        return <PartnerHome home={data.partner_home} orders={orders} tools={data.partner_tools} />;
     }
     if (data.admin_home && staff) {
         return <AdminHome home={data.admin_home} data={data} orders={orders} />;

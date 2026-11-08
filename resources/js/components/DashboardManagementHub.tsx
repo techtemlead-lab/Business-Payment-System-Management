@@ -632,6 +632,19 @@ export default function DashboardManagementHub({ settings, defaults, stats, rece
                                 />
                                 <small className="muted">{translate('portal','dash_mgmt_support_overdue_hours_hint')}</small>
                             </label>
+                            <label className="ops-block ops-mt-3">
+                                {translate('dealer_tools','setting_inactive_days')}
+                                <input
+                                    type="number"
+                                    min={7}
+                                    max={365}
+                                    step={1}
+                                    value={form.data.settings.partner_inactive_days ?? 30}
+                                    onChange={e => updateField('partner_inactive_days', e.target.value)}
+                                    className="ops-full ops-mt-1"
+                                />
+                                <small className="muted">{translate('dealer_tools','setting_inactive_days_hint')}</small>
+                            </label>
                         </section>
                     </div>
                 )}
