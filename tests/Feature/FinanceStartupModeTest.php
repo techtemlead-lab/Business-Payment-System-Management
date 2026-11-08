@@ -105,7 +105,7 @@ class FinanceStartupModeTest extends TestCase
                 ->component('ServiceIntegrations')
                 ->where('startup.label', 'এখনো নির্বাচিত হয়নি')
                 ->where('startup.description', 'এই সেটআপ খালি শুরু হবে, নাকি আগের ব্যালেন্স আনবেন—বেছে নিন। এটা একা টাকার হিসাব চালু করে না।')
-                ->where('translations.portal.si_heading', 'সংযুক্ত সেবা')
+                ->where('translations.portal.si_heading', 'এসএমএস ও কুরিয়ার সংযোগ')
                 ->where('translations.portal.imp_heading', 'আপনার রেকর্ড একত্র করুন'));
 
         app(IntegrationSettings::class)->saveStartupMode(
