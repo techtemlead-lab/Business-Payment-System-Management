@@ -436,6 +436,40 @@ class CourierAutoBookingTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('events', fn (mixed $events): bool => $metadata($events, 'order.courier_booked')['consignment_id'] === 'CN-90'));
     }
 
+    public function test_a_parcel_the_courier_returned_cannot_be_confirmed_as_delivered(): void
+    {
+        $returned = $this->bookedOrder('SF-95');
+        $returnedShipmentId = (int) DB::table('shipments')->where('order_id', $returned->id)->value('id');
+        $this->assertSame('returned', app(ShipmentTracking::class)->apply($returnedShipmentId, 'returned', 'Paid_Return', null));
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$returned->id.'/shipments/'.$returnedShipmentId.'/delivered', ['reason' => 'Dealer says it arrived'])
+            ->assertSessionHasErrors('shipment');
+
+        $shipment = DB::table('shipments')->where('id', $returnedShipmentId)->first();
+        $this->assertSame('dispatched', $shipment->status);
+        $this->assertNull($shipment->delivered_at);
+        $this->assertSame('dispatched', $returned->fresh()->status);
+        $this->assertDatabaseMissing('order_events', ['order_id' => $returned->id, 'action' => 'shipment.delivered']);
+
+        // The order page gets the step that hides the button and shows why.
+        $this->actingAs($this->owner)->onPortal('sadmin')->get('/orders/'.$returned->id)->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('shipments.0.courier_status', 'returned'));
+
+        // A parcel the courier did not return is still confirmed by staff as before.
+        $delivered = $this->bookedOrder('SF-95');
+        $deliveredShipmentId = (int) DB::table('shipments')->where('order_id', $delivered->id)->value('id');
+        app(ShipmentTracking::class)->apply($deliveredShipmentId, 'delivered', 'Delivered', null);
+
+        $this->actingAs($store)->onPortal('manage')
+            ->post('/commands/orders/'.$delivered->id.'/shipments/'.$deliveredShipmentId.'/delivered', ['reason' => 'Courier delivered it'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('delivered', DB::table('shipments')->where('id', $deliveredShipmentId)->value('status'));
+        $this->assertSame('delivered', $delivered->fresh()->status);
+    }
+
     private function enableCourier(string $provider): void
     {
         $settings = app(IntegrationSettings::class);
