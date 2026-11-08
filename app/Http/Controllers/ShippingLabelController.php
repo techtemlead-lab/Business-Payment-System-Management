@@ -15,7 +15,10 @@ class ShippingLabelController extends Controller
     public function print(Request $request, Order $order, ShippingLabels $labels): Response
     {
         return response()
-            ->view('invoices.shipping-label', $labels->printFor($request->user(), $order))
+            ->view('invoices.shipping-label', [
+                ...$labels->printFor($request->user(), $order),
+                'csp_nonce' => (string) $request->attributes->get('csp_nonce', ''),
+            ])
             ->header('Cache-Control', 'no-store, private');
     }
 }

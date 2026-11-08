@@ -148,6 +148,17 @@ class ShippingLabelPrintTest extends TestCase
         $this->assertStringContainsString('017****5678', $slip);
     }
 
+    public function test_the_print_script_is_allowed_by_the_page_security_rules(): void
+    {
+        $store = User::factory()->staff('inventory')->create(['status' => 'active']);
+
+        $response = $this->actingAs($store)->onPortal('manage')->get($this->url())->assertOk();
+
+        preg_match("/'nonce-([^']+)'/", (string) $response->headers->get('Content-Security-Policy'), $matches);
+        $this->assertNotEmpty($matches[1] ?? null);
+        $response->assertSee('nonce="'.$matches[1].'"', false);
+    }
+
     public function test_the_label_is_not_cached_by_the_browser(): void
     {
         $store = User::factory()->staff('inventory')->create(['status' => 'active']);

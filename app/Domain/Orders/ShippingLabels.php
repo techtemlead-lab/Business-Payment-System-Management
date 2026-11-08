@@ -3,6 +3,7 @@
 namespace App\Domain\Orders;
 
 use App\Domain\Inventory\BranchOperations;
+use App\Models\CompanyBranch;
 use App\Models\Order;
 use App\Models\User;
 use App\Support\Audit;
@@ -57,21 +58,24 @@ final class ShippingLabels
             'shipment_id' => $shipment?->id,
         ]);
         $company = SiteCustomization::all();
+        $consignment = trim((string) ($shipment->tracking ?? ''));
+        $receiver = $order->user instanceof User ? $order->user : null;
+        $branch = $order->fulfillmentBranch instanceof CompanyBranch ? $order->fulfillmentBranch : null;
 
         return [
             'order' => $order,
             'receiver' => [
-                'name' => (string) $order->user?->name,
-                'address' => self::deliveryAddress($order->user),
-                'phone' => (string) $order->user?->phone,
+                'name' => (string) $receiver?->name,
+                'address' => self::deliveryAddress($receiver),
+                'phone' => (string) $receiver?->phone,
             ],
             'sender' => [
                 'name' => SiteCustomization::brandName(),
-                'address' => (string) ($order->fulfillmentBranch?->address ?: ($company['office_address'] ?? '')),
-                'phone' => (string) ($order->fulfillmentBranch?->phone ?: ($company['contact_phone'] ?? '')),
+                'address' => (string) ($branch?->address ?: ($company['office_address'] ?? '')),
+                'phone' => (string) ($branch?->phone ?: ($company['contact_phone'] ?? '')),
             ],
             'courier' => $shipment?->courier,
-            'consignment' => filled($shipment?->tracking) ? (string) $shipment->tracking : null,
+            'consignment' => $consignment !== '' ? $consignment : null,
             'pieces' => (int) $order->lines->sum('quantity'),
         ];
     }
