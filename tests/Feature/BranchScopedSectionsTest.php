@@ -195,6 +195,41 @@ class BranchScopedSectionsTest extends TestCase
             ->where('data.orders.total', 3));
     }
 
+    public function test_top_sellers_rank_only_the_picked_branch_partners(): void
+    {
+        $this->rajshahi->forceFill(['district' => 'Rajshahi'])->save();
+        $sellers = [
+            'Dhaka Seller' => User::factory()->dealer()->create(['name' => 'Dhaka Seller', 'active_branch_id' => $this->dhaka->id, 'district' => 'Sylhet']),
+            'Rajshahi Seller' => User::factory()->dealer()->create(['name' => 'Rajshahi Seller', 'district' => 'Rajshahi']),
+            'No Branch Seller' => User::factory()->dealer()->create(['name' => 'No Branch Seller', 'district' => 'Sylhet']),
+        ];
+        foreach (array_values($sellers) as $index => $seller) {
+            $this->partner = $seller;
+            $this->order(null, 'dispatched')->forceFill(['total' => (string) (1000 - $index * 100).'.00'])->save();
+        }
+        $names = fn ($rows): array => collect($rows)->pluck('name')->all();
+
+        $this->ownerOnAll()->get('/top-sellers')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.view', 'all')
+            ->where('data.top_sellers.national', fn ($rows) => $names($rows) === ['Dhaka Seller', 'Rajshahi Seller', 'No Branch Seller']));
+
+        $this->flushSession();
+        $owner = User::factory()->staff()->create(['active_branch_id' => $this->rajshahi->id]);
+        $this->actingAs($owner)->onPortal('sadmin')->get('/top-sellers')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.branch_scope.code', 'RAJ-01')
+            ->where('data.top_sellers.national', fn ($rows) => $names($rows) === ['Rajshahi Seller']
+                && collect($rows)->first()['rank'] === 1));
+
+        $staff = $this->branchStaff($this->dhaka, ['reports']);
+        $this->actingAs($staff)->onPortal('manage')->withSession([BranchOperations::SessionView => 'all'])->get('/top-sellers')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.top_sellers.national', fn ($rows) => $names($rows) === ['Dhaka Seller']));
+        $this->actingAs($staff)->onPortal('manage')->get('/top-sellers?branch_id='.$this->rajshahi->id)->assertForbidden();
+
+        $this->flushSession();
+        $this->actingAs(User::factory()->staff('finance')->create())->onPortal('manage')->get('/top-sellers')->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('data.top_sellers.national', fn ($rows) => count($rows) === 3));
+    }
+
     public function test_payment_claims_follow_the_order_branch(): void
     {
         $claims = collect($this->ordersPerBranch('dispatched', 'submitted'))->map(fn (string $number): int => $this->claimFor($number));
